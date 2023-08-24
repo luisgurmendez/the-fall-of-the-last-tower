@@ -1,0 +1,33 @@
+{
+  "name": "js13k-siege",
+  "author": "Luis Gurmendez",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "webpack-dev-server --mode development --host 0.0.0.0",
+    "build:dev": "webpack --mode development",
+    "build:prod": "webpack --mode production",
+    "package": "npm run-script build:prod && node postbuild.js"
+  },
+  "dependencies": {
+    "stats.js": "^0.17.0",
+    "tinymusic": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/stats.js": "^0.17.0",
+    "archiver": "^4.0.1",
+    "clean-webpack-plugin": "^3.0.0",
+    "file-loader": "^6.2.0",
+    "gts": "^3.1.0",
+    "html-webpack-plugin": "^4.3.0",
+    "terser-webpack-plugin": "^5.1.4",
+    "ts-loader": "^7.0.3",
+    "typescript": "^3.8.3",
+    "webpack": "^5.50.0",
+    "webpack-bundle-analyzer": "^4.4.2",
+    "webpack-cli": "^3.3.11",
+    "webpack-dev-server": "^3.11.0"
+  },
+  "license": "ISC"
+}
