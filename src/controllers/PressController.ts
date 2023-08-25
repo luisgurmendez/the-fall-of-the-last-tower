@@ -1,9 +1,1 @@
-
-class PressController {
-
-
-
-
-
-
-}
+class PressController {}

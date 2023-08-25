@@ -13,8 +13,10 @@ import { wait } from "../utils/async";
 const MAX_ZOOM = 14;
 const MIN_ZOOM = 0.01;
 
-class Camera extends BaseObject implements Positionable, Stepable, Disposable, Initializable {
-
+class Camera
+  extends BaseObject
+  implements Positionable, Stepable, Disposable, Initializable
+{
   _position: Vector;
   viewport: Rectangle;
   private _zoom: number;
@@ -26,16 +28,19 @@ class Camera extends BaseObject implements Positionable, Stepable, Disposable, I
   // flying: Flying = new Flying();
 
   constructor() {
-    super('camera');
+    super("camera");
     // this.position = new Vector(document.body.scrollWidth / 2, document.body.scrollHeight / 2);
     this._position = new Vector(0, 0);
-    this.viewport = new Rectangle(document.body.scrollWidth, document.body.scrollHeight);
+    this.viewport = new Rectangle(
+      document.body.scrollWidth,
+      document.body.scrollHeight
+    );
     this._zoom = 1;
     this.following = null;
   }
 
   init(gameContext: GameContext) {
-    const { canvasRenderingContext } = gameContext
+    const { canvasRenderingContext } = gameContext;
     const canvas = canvasRenderingContext.canvas;
 
     this.viewport.w = canvas.width;
@@ -46,11 +51,12 @@ class Camera extends BaseObject implements Positionable, Stepable, Disposable, I
     let mouseDown = false;
 
     const handleCanvasWheel = (event: WheelEvent) => {
-
       event.preventDefault();
 
-      const mousex = (event.clientX - (canvas.offsetLeft + canvas.width / 2)) * -1
-      const mousey = (event.clientY - (canvas.offsetTop + canvas.height / 2)) * -1
+      const mousex =
+        (event.clientX - (canvas.offsetLeft + canvas.width / 2)) * -1;
+      const mousey =
+        (event.clientY - (canvas.offsetTop + canvas.height / 2)) * -1;
       const wheel = event.deltaY < 0 ? 1 : -1;
 
       const deltaZoom = Math.exp(wheel * 0.02);
@@ -60,40 +66,44 @@ class Camera extends BaseObject implements Positionable, Stepable, Disposable, I
 
       // Only change positions if there was some actual zooming
       if (oldZoom !== this.zoom && this.following === null) {
-        this.position.x += mousex / (this.zoom * deltaZoom) - mousex / this.zoom;
-        this.position.y += mousey / (this.zoom * deltaZoom) - mousey / this.zoom;
+        this.position.x +=
+          mousex / (this.zoom * deltaZoom) - mousex / this.zoom;
+        this.position.y +=
+          mousey / (this.zoom * deltaZoom) - mousey / this.zoom;
       }
-    }
+    };
 
     const handleMouseMove = (event: MouseEvent) => {
       if (mouseDown) {
         this.unfollow();
-        const posDiff = initialDraggingClientPosition.clone().sub(new Vector(event.clientX, event.clientY));
+        const posDiff = initialDraggingClientPosition
+          .clone()
+          .sub(new Vector(event.clientX, event.clientY));
         posDiff.scalar(1 / this.zoom);
 
         this.position = initialDragginPosition.clone().add(posDiff);
       }
-    }
+    };
 
     const handleMouseDown = (event: MouseEvent) => {
       mouseDown = true;
       initialDragginPosition = this.position.clone();
       initialDraggingClientPosition = new Vector(event.clientX, event.clientY);
-    }
+    };
 
     const handleCancelMouseDown = (event: MouseEvent) => {
       mouseDown = false;
-    }
+    };
 
     const handleZoom = (e: KeyboardEvent) => {
-      if (e.key === '.') {
+      if (e.key === ".") {
         this.zoomIn();
       }
 
-      if (e.key === ',') {
+      if (e.key === ",") {
         this.zoomOut();
       }
-    }
+    };
 
     // add event listeners to handle screen drag
     canvas.addEventListener("mousedown", handleMouseDown);
@@ -101,8 +111,8 @@ class Camera extends BaseObject implements Positionable, Stepable, Disposable, I
     canvas.addEventListener("mouseover", handleCancelMouseDown);
     canvas.addEventListener("mouseout", handleCancelMouseDown);
     canvas.addEventListener("mousemove", handleMouseMove);
-    canvas.addEventListener('wheel', handleCanvasWheel)
-    window.addEventListener('keydown', handleZoom)
+    canvas.addEventListener("wheel", handleCanvasWheel);
+    window.addEventListener("keydown", handleZoom);
 
     this.dispose = () => {
       canvas.removeEventListener("mousedown", handleMouseDown);
@@ -110,10 +120,9 @@ class Camera extends BaseObject implements Positionable, Stepable, Disposable, I
       canvas.removeEventListener("mouseover", handleCancelMouseDown);
       canvas.removeEventListener("mouseout", handleCancelMouseDown);
       canvas.removeEventListener("mousemove", handleMouseMove);
-      canvas.removeEventListener('wheel', handleCanvasWheel);
-      window.removeEventListener('keydown', handleZoom)
-    }
-
+      canvas.removeEventListener("wheel", handleCanvasWheel);
+      window.removeEventListener("keydown", handleZoom);
+    };
   }
 
   follow(obj: Positionable) {
@@ -153,10 +162,9 @@ class Camera extends BaseObject implements Positionable, Stepable, Disposable, I
     return this._position;
   }
 
-
   step(context: GameContext) {
     if (this.following !== null) {
-      this._position = this.following.position.clone()
+      this._position = this.following.position.clone();
     }
     // this._position.add(this.flying.fly(context.dt, this.position.clone()))
     this.adjutsPositionIfOutOfWorldsBounds(context.worldDimensions);
@@ -164,10 +172,14 @@ class Camera extends BaseObject implements Positionable, Stepable, Disposable, I
 
   //TODO: Double check bounding box of world with zooming, should we adjust viewport on zoom?
   adjutsPositionIfOutOfWorldsBounds(world: Rectangle) {
-    const adjutsLeft = this.position.clone().x - this.viewport.w / 2 < -world.w / 2;
-    const adjustRight = this.position.clone().x + this.viewport.w / 2 > world.w / 2;
-    const adjustTop = this.position.clone().y - this.viewport.h / 2 > world.h / 2;
-    const adjustBottom = this.position.clone().y + this.viewport.h / 2 < -world.h / 2;
+    const adjutsLeft =
+      this.position.clone().x - this.viewport.w / 2 < -world.w / 2;
+    const adjustRight =
+      this.position.clone().x + this.viewport.w / 2 > world.w / 2;
+    const adjustTop =
+      this.position.clone().y - this.viewport.h / 2 > world.h / 2;
+    const adjustBottom =
+      this.position.clone().y + this.viewport.h / 2 < -world.h / 2;
 
     if (adjutsLeft) {
       this.position.x = -world.w / 2 + this.viewport.w / 2;
@@ -184,7 +196,6 @@ class Camera extends BaseObject implements Positionable, Stepable, Disposable, I
     if (adjustBottom) {
       this.position.y = -world.w / 2 - this.viewport.h / 2;
     }
-
   }
 
   // render() {
@@ -199,7 +210,6 @@ class Camera extends BaseObject implements Positionable, Stepable, Disposable, I
   // return renderElement
   // }
 
-
   // there is a known bug where the promise resolves before the flying duration when the game is on pause
   // flyTo(position: Vector | Positionable, duration: number = 2): Promise<void> {
   //   let _position: Vector;
@@ -212,7 +222,6 @@ class Camera extends BaseObject implements Positionable, Stepable, Disposable, I
   //   this.flying.flyTo(this.position.clone(), _position.clone(), duration);
   //   return wait(duration)
   // }
-
 }
 
 export default Camera;
@@ -222,7 +231,6 @@ export default Camera;
 //   private duration: number | null = null;
 //   private elapsedTime: number = 0;
 //   private initialPosition: Vector | null = null;
-
 
 //   flyTo(from: Vector, to: Vector, duration: number) {
 //     this.toPosition = to.clone();
@@ -249,7 +257,6 @@ export default Camera;
 //         this.clear();
 //       }
 //     }
-
 
 //     return flyingDelta;
 //   }

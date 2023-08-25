@@ -8,7 +8,9 @@ import Initializable from "../behaviors/initializable";
 import Disposable from "../behaviors/disposable";
 import GameContext from "./gameContext";
 import ObjectLifecycleController from "../controllers/ObjectLifecycleController";
-import CollisionsController, { CollisionableObject } from "../controllers/CollisionsController";
+import CollisionsController, {
+  CollisionableObject,
+} from "../controllers/CollisionsController";
 import { GameApi } from "./game";
 import RenderController from "../controllers/RenderController";
 import { isCollisionableObject } from "../mixins/collisionable";
@@ -26,7 +28,6 @@ import RescuedAstronautsLabel from "../objects/astronaut/savedAstronautsLabel";
 const pressedKeys = Keyboard.getInstance();
 
 class Level implements Initializable, Disposable {
-
   objects: BaseObject[] = [];
   camera: Camera;
   worldDimensions: Rectangle;
@@ -34,15 +35,21 @@ class Level implements Initializable, Disposable {
   objective: LevelObjective;
   private numOfRescuedAstronauts: number = 0;
   private rocketStatusController: RocketStatusController;
-  private objectLifecycleController: ObjectLifecycleController = new ObjectLifecycleController();
-  private collisionController: CollisionsController = new CollisionsController();
+  private objectLifecycleController: ObjectLifecycleController =
+    new ObjectLifecycleController();
+  private collisionController: CollisionsController =
+    new CollisionsController();
   private renderController: RenderController = new RenderController();
   private statusController: LevelStatusController;
 
   shouldInitialize = true;
   shouldDispose = false;
 
-  constructor(objects: BaseObject[], objective: LevelObjective, worldDimensions: Rectangle = new Rectangle(5000, 5000)) {
+  constructor(
+    objects: BaseObject[],
+    objective: LevelObjective,
+    worldDimensions: Rectangle = new Rectangle(5000, 5000)
+  ) {
     const background = new SpaceBackground();
     this.rocket = new Rocket(new Vector());
     const stars = new StarPool(worldDimensions);
@@ -52,7 +59,10 @@ class Level implements Initializable, Disposable {
     this.objective = objective;
     const rescuedAstronautsLabel = new RescuedAstronautsLabel();
     const openMenuLabel = new Text();
-    this.objects.push(...objects, ...[this.rocket, this.camera, rescuedAstronautsLabel, openMenuLabel]);
+    this.objects.push(
+      ...objects,
+      ...[this.rocket, this.camera, rescuedAstronautsLabel, openMenuLabel]
+    );
     this.rocketStatusController = new RocketStatusController();
     this.statusController = new LevelStatusController(objective);
     this.numOfRescuedAstronauts = 0;
@@ -62,7 +72,6 @@ class Level implements Initializable, Disposable {
   update(gameApi: GameApi): void {
     const gameContext = this.generateGameContext(gameApi);
     if (!gameApi.isPaused) {
-
       this.objectLifecycleController.initialize(gameContext);
       this.objectLifecycleController.step(gameContext);
 
@@ -71,7 +80,7 @@ class Level implements Initializable, Disposable {
         this.rocketStatusController.step(gameContext);
         this.objective.step(gameContext);
         const status = this.statusController.getStatus(gameContext);
-        this.handleLevelEnding(gameContext, gameApi, status)
+        this.handleLevelEnding(gameContext, gameApi, status);
       }
       this.objectLifecycleController.dispose(gameContext);
     }
@@ -79,23 +88,41 @@ class Level implements Initializable, Disposable {
     this.renderController.render(gameContext);
   }
 
-  init() { };
+  init() {}
 
-  dispose() { };
+  dispose() {}
 
-  private handleLevelEnding(gameContext: GameContext, gameApi: GameApi, status: LevelStatus) {
-    const levelCompletedCompliments = ['Great job!', 'Awesome!', 'Nice!', 'Landed!', 'Nailed it!']
+  private handleLevelEnding(
+    gameContext: GameContext,
+    gameApi: GameApi,
+    status: LevelStatus
+  ) {
+    const levelCompletedCompliments = [
+      "Great job!",
+      "Awesome!",
+      "Nice!",
+      "Landed!",
+      "Nailed it!",
+    ];
     if (status !== LevelStatus.PLAYING) {
       if (status === LevelStatus.WON) {
-        gameContext.objects.push(new TimedTextSequence([levelCompletedCompliments[RandomUtils.getIntegerInRange(0, levelCompletedCompliments.length - 1)]]))
+        gameContext.objects.push(
+          new TimedTextSequence([
+            levelCompletedCompliments[
+              RandomUtils.getIntegerInRange(
+                0,
+                levelCompletedCompliments.length - 1
+              )
+            ],
+          ])
+        );
         setTimeout(() => {
           gameApi.levelPassed(this.numOfRescuedAstronauts);
         }, 2000);
       }
       if (status === LevelStatus.LOST) {
-        this.objects.push(new RestartLevelLabelObject())
+        this.objects.push(new RestartLevelLabelObject());
       }
-
     }
   }
 
@@ -106,11 +133,14 @@ class Level implements Initializable, Disposable {
 
   private rescueAstronaut = () => {
     this.numOfRescuedAstronauts += 1;
-  }
+  };
 
   private generateGameContext(api: GameApi): GameContext {
-    const collisionableObjects: CollisionableObject[] = this.objects.filter(isCollisionableObject) as CollisionableObject[];
-    const collisions = this.collisionController.getCollisions(collisionableObjects);
+    const collisionableObjects: CollisionableObject[] = this.objects.filter(
+      isCollisionableObject
+    ) as CollisionableObject[];
+    const collisions =
+      this.collisionController.getCollisions(collisionableObjects);
 
     return new GameContext(
       collisions,
@@ -128,37 +158,36 @@ class Level implements Initializable, Disposable {
       api.unPause
     );
   }
-
 }
 
 export default Level;
 
 export interface LevelObjective extends Stepable {
-  completed(): boolean
+  completed(): boolean;
 }
-
 
 enum LevelStatus {
-  WON, LOST, PLAYING
+  WON,
+  LOST,
+  PLAYING,
 }
 class LevelStatusController {
-
   hasWonOrLost = false;
   objective: LevelObjective;
 
   constructor(objective: LevelObjective) {
-    this.objective = objective
+    this.objective = objective;
   }
 
   getStatus(context: GameContext) {
     const { rocket } = context;
     if (this.objective.completed()) {
-      this.hasWonOrLost = true
+      this.hasWonOrLost = true;
       return LevelStatus.WON;
     }
     // Check if rocket has landed on another planet or if rocket is outOfBounds.
     if (rocket.hasExploded || rocket.hasLanded) {
-      this.hasWonOrLost = true
+      this.hasWonOrLost = true;
       return LevelStatus.LOST;
     }
 
@@ -167,32 +196,37 @@ class LevelStatusController {
 }
 
 class RestartLevelLabelObject extends BaseObject implements Renderable {
-
   render() {
     const renderFn = (ctx: GameContext) => {
-      ctx.canvasRenderingContext.font = '45px Comic Sans MS';
-      ctx.canvasRenderingContext.fillStyle = '#FFF';
-      RenderUtils.renderText(ctx.canvasRenderingContext, "Press [r] to restart level", new Vector(Dimensions.w / 2, 20));
-    }
+      ctx.canvasRenderingContext.font = "45px Comic Sans MS";
+      ctx.canvasRenderingContext.fillStyle = "#FFF";
+      RenderUtils.renderText(
+        ctx.canvasRenderingContext,
+        "Press [r] to restart level",
+        new Vector(Dimensions.w / 2, 20)
+      );
+    };
     const renderEl = new RenderElement(renderFn);
-    renderEl.positionType = 'overlay'
+    renderEl.positionType = "overlay";
     return renderEl;
   }
 }
 
-
 export class Text extends BaseObject {
-
   render() {
     const renderFn = (ctx: GameContext) => {
       const canvasRenderingContext = ctx.canvasRenderingContext;
-      canvasRenderingContext.fillStyle = '#FFF';
-      canvasRenderingContext.font = '15px Comic Sans MS';
-      RenderUtils.renderText(canvasRenderingContext, 'Press [m] to toggle menu', new Vector(100, Dimensions.h - 30));
-    }
+      canvasRenderingContext.fillStyle = "#FFF";
+      canvasRenderingContext.font = "15px Comic Sans MS";
+      RenderUtils.renderText(
+        canvasRenderingContext,
+        "Press [m] to toggle menu",
+        new Vector(100, Dimensions.h - 30)
+      );
+    };
 
     const rEl = new RenderElement(renderFn);
-    rEl.positionType = 'overlay';
+    rEl.positionType = "overlay";
     return rEl;
   }
 }

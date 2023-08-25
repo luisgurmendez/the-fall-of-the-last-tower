@@ -1,4 +1,3 @@
-
 export type Shape = Rectangle | Circle | NullShape;
 
 export class Rectangle {
@@ -19,4 +18,4 @@ export class Circle {
   }
 }
 
-export class NullShape { };
+export class NullShape {}

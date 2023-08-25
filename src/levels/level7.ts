@@ -21,14 +21,12 @@ function generate() {
   binary2.velocity = new Vector(0, -60);
 
   earth.color = targetPlanetColor;
-  const astronauts = generateAstronauts(new Vector(0, -900), new Vector(-50, -2140), new Vector(250, -1800))
-  const objects: BaseObject[] = [
-    earth,
-    venus,
-    binary1,
-    binary2,
-    ...astronauts
-  ];
+  const astronauts = generateAstronauts(
+    new Vector(0, -900),
+    new Vector(-50, -2140),
+    new Vector(250, -1800)
+  );
+  const objects: BaseObject[] = [earth, venus, binary1, binary2, ...astronauts];
   const level = new Level(objects, new LandingOnTargetPlanetObjective(earth));
   level.rocket.position = new Vector(0, -100);
   level.camera.zoom = 0.5;

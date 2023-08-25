@@ -13,14 +13,12 @@ function generate() {
   jupiter.color = targetPlanetColor;
   const moon = generateMoon(new Vector(0, -430), new Vector(70, 0));
   const moon2 = generateMoon(new Vector(0, -1100), new Vector(70, 0));
-  const astronauts = generateAstronauts(new Vector(0, -300), new Vector(100, -600), new Vector(250, -800))
-  const objects: BaseObject[] = [
-    earth,
-    jupiter,
-    moon,
-    moon2,
-    ...astronauts
-  ];
+  const astronauts = generateAstronauts(
+    new Vector(0, -300),
+    new Vector(100, -600),
+    new Vector(250, -800)
+  );
+  const objects: BaseObject[] = [earth, jupiter, moon, moon2, ...astronauts];
   const level = new Level(objects, new LandingOnTargetPlanetObjective(jupiter));
   level.rocket.position = new Vector(0, -10);
   return level;

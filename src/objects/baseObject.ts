@@ -5,7 +5,6 @@ import GameContext from "../core/gameContext";
 import { ObjectType } from "./objectType";
 import RandomUtils from "../utils/random";
 class BaseObject implements Renderable, Stepable {
-
   public id: string;
   public type: ObjectType = ObjectType.BASE_OBJECT;
 
@@ -17,9 +16,7 @@ class BaseObject implements Renderable, Stepable {
     return new NoRender();
   }
 
-  step(gameContext: GameContext) { }
-
+  step(gameContext: GameContext) {}
 }
 
 export default BaseObject;
-

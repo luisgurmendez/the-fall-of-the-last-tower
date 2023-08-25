@@ -1,6 +1,3 @@
-
-
-
 import Level, { LevelObjective } from "../core/level";
 import BaseObject from "../objects/baseObject";
 import Vector from "../physics/vector";
@@ -23,28 +20,33 @@ function generate() {
 export default generate;
 
 export class NoObjective implements LevelObjective {
-
-  step(context: GameContext): void { }
+  step(context: GameContext): void {}
   completed() {
-    return false
+    return false;
   }
 }
 
-
 export class Text extends BaseObject {
-
   render() {
     const renderFn = (ctx: GameContext) => {
       const canvasRenderingContext = ctx.canvasRenderingContext;
-      canvasRenderingContext.font = '45px Comic Sans MS';
-      canvasRenderingContext.fillStyle = '#FFF';
-      RenderUtils.renderText(canvasRenderingContext, 'Thanks for playing!', new Vector(Dimensions.w / 2, Dimensions.h / 2 + 40));
-      canvasRenderingContext.fillStyle = '#F00';
-      RenderUtils.renderText(canvasRenderingContext, 'By Luis Gurmendez', new Vector(Dimensions.w / 2, Dimensions.h / 2 + 100));
-    }
+      canvasRenderingContext.font = "45px Comic Sans MS";
+      canvasRenderingContext.fillStyle = "#FFF";
+      RenderUtils.renderText(
+        canvasRenderingContext,
+        "Thanks for playing!",
+        new Vector(Dimensions.w / 2, Dimensions.h / 2 + 40)
+      );
+      canvasRenderingContext.fillStyle = "#F00";
+      RenderUtils.renderText(
+        canvasRenderingContext,
+        "By Luis Gurmendez",
+        new Vector(Dimensions.w / 2, Dimensions.h / 2 + 100)
+      );
+    };
 
     const rEl = new RenderElement(renderFn);
-    rEl.positionType = 'overlay';
+    rEl.positionType = "overlay";
     return rEl;
   }
 }

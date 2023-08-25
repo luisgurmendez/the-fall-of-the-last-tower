@@ -18,7 +18,7 @@ class GameContext {
   readonly pressedKeys: Keyboard;
   readonly canvasRenderingContext: CanvasRenderingContext2D;
   readonly camera: Camera;
-  readonly worldDimensions: Rectangle
+  readonly worldDimensions: Rectangle;
   readonly numOfRescuedAstronauts: number;
 
   rescueAstronaut: () => void;

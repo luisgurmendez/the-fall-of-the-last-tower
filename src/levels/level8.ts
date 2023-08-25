@@ -18,16 +18,24 @@ function generate() {
   whiteDwarf2.color = Color.white();
   const whiteDwarf3 = new Planet(new Vector(0, -1800), 12500, 90);
   whiteDwarf3.color = Color.white();
-  const astronauts = generateAstronauts(new Vector(0, -1000), new Vector(-30, -1300), new Vector(30, -1300))
+  const astronauts = generateAstronauts(
+    new Vector(0, -1000),
+    new Vector(-30, -1300),
+    new Vector(30, -1300)
+  );
   const objects: BaseObject[] = [
     earth,
     jupiter,
     whiteDwarf1,
     whiteDwarf2,
     whiteDwarf3,
-    ...astronauts
+    ...astronauts,
   ];
-  const level = new Level(objects, new LandingOnTargetPlanetObjective(earth), new Rectangle(9000, 9000));
+  const level = new Level(
+    objects,
+    new LandingOnTargetPlanetObjective(earth),
+    new Rectangle(9000, 9000)
+  );
   level.rocket.position = new Vector(0, -110);
   return level;
 }

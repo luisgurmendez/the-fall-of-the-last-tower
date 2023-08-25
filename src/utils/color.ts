@@ -1,6 +1,5 @@
 import RandomUtils from "./random";
 
-
 type ColorUnitInRange = [number, number] | number;
 
 class Color {
@@ -21,8 +20,11 @@ class Color {
   }
 
   // Randomizes a rgba color between a range of number, or with a fixed value for certain values.
-  static random(r: ColorUnitInRange = 255, g: ColorUnitInRange = 255, b: ColorUnitInRange = 255) {
-
+  static random(
+    r: ColorUnitInRange = 255,
+    g: ColorUnitInRange = 255,
+    b: ColorUnitInRange = 255
+  ) {
     function randomizeColorUnit(u: ColorUnitInRange): number {
       if (Array.isArray(u)) {
         return RandomUtils.getIntegerInRange(u[0], u[1]);
@@ -33,8 +35,8 @@ class Color {
     return new Color(
       randomizeColorUnit(r),
       randomizeColorUnit(g),
-      randomizeColorUnit(b),
-    )
+      randomizeColorUnit(b)
+    );
   }
 
   static white() {
@@ -46,7 +48,7 @@ class Color {
   }
 
   rgba() {
-    return `rgba(${this.r},${this.g},${this.b},${this.a})`
+    return `rgba(${this.r},${this.g},${this.b},${this.a})`;
   }
 }
 

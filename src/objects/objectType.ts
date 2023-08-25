@@ -1,4 +1,3 @@
-
 export enum ObjectType {
   BASE_OBJECT,
   PLANET,
@@ -6,5 +5,5 @@ export enum ObjectType {
   ROCKET,
   ASTRONAUT,
   BUTTON,
-  PARTICLE
+  PARTICLE,
 }

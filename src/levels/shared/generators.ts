@@ -3,7 +3,10 @@ import Planet from "../../objects/planet/planet";
 import Vector from "../../physics/vector";
 import Color from "../../utils/color";
 
-export function generateMoon(position: Vector, velocity: Vector = new Vector()) {
+export function generateMoon(
+  position: Vector,
+  velocity: Vector = new Vector()
+) {
   const moon = new Planet(position, 0, 5);
   moon.isMoon = true;
   moon.color = Color.white();

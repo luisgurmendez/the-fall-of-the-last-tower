@@ -67,12 +67,11 @@ class Vector {
     const sin = Math.round(1000 * Math.sin(_angleInRads)) / 1000;
     const old = this.clone();
 
-    this.x = old.x * cos - old.y * sin
-    this.y = old.x * sin + old.y * cos
+    this.x = old.x * cos - old.y * sin;
+    this.y = old.x * sin + old.y * cos;
 
     return this;
   }
-
 }
 
 export default Vector;

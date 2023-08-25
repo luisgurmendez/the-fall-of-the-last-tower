@@ -1,6 +1,4 @@
-
 class RandomUtils {
-
   static getNumberWithVariance(n: number, variance: number): number {
     return n + Math.random() * variance;
   }
@@ -24,15 +22,13 @@ class RandomUtils {
   }
 
   static generateId() {
-    const id = Math.round((Math.random() * 10000)).toString(16);
+    const id = Math.round(Math.random() * 10000).toString(16);
     return id;
   }
 
   static getNegativeRandomly(n: number, p = 0.5) {
-    return (Math.random() > p ? -1 : 1) * n
+    return (Math.random() > p ? -1 : 1) * n;
   }
-
-
 }
 
 export default RandomUtils;

@@ -10,35 +10,37 @@ import { callTimes } from "../utils/fn";
 import Intersections from "../utils/intersections";
 import Color from "../utils/color";
 
-const SpaceBackgroundMixin = PositionableMixin(BaseObject)
+const SpaceBackgroundMixin = PositionableMixin(BaseObject);
 
 class SpaceBackground extends SpaceBackgroundMixin {
-
   constructor() {
     super();
-    this.id = 'background';
+    this.id = "background";
   }
 
   render() {
     const renderFn = (gameContext: GameContext) => {
       const { canvasRenderingContext } = gameContext;
       canvasRenderingContext.fillStyle = "#000";
-      RenderUtils.renderRectangle(canvasRenderingContext,
+      RenderUtils.renderRectangle(
+        canvasRenderingContext,
         new Vector(0, 0),
-        new Rectangle(gameContext.worldDimensions.w, gameContext.worldDimensions.h)
-      )
+        new Rectangle(
+          gameContext.worldDimensions.w,
+          gameContext.worldDimensions.h
+        )
+      );
       canvasRenderingContext.fill();
-    }
+    };
     const renderElement = new RenderElement(renderFn);
-    renderElement.positionType = 'overlay';
-    return renderElement
+    renderElement.positionType = "overlay";
+    return renderElement;
   }
 
-  step() { }
+  step() {}
 }
 
 export default SpaceBackground;
-
 
 class Star extends SpaceBackgroundMixin {
   shape: Circle;
@@ -57,30 +59,52 @@ export class StarPool extends SpaceBackgroundMixin {
     this.stars = [];
 
     callTimes(50000, () => {
-      const starPos = new Vector(RandomUtils.getValueInRange(-wd.w, wd.w), RandomUtils.getValueInRange(-wd.h, wd.h));
+      const starPos = new Vector(
+        RandomUtils.getValueInRange(-wd.w, wd.w),
+        RandomUtils.getValueInRange(-wd.h, wd.h)
+      );
       this.stars.push(new Star(starPos));
-    })
+    });
   }
 
   render() {
     const renderFn = (context: GameContext) => {
       const { canvasRenderingContext, camera } = context;
-      const cameraViewport = new Rectangle(camera.viewport.w / camera.zoom, camera.viewport.h / camera.zoom)
+      const cameraViewport = new Rectangle(
+        camera.viewport.w / camera.zoom,
+        camera.viewport.h / camera.zoom
+      );
 
-      canvasRenderingContext.fillStyle = '#FFF';
-      const inCameraBoundsStars = this.stars.filter(s => {
-        return Intersections.isPointInsideRectangle(s.position, cameraViewport, camera.position) && s.depth < camera.zoom;
+      canvasRenderingContext.fillStyle = "#FFF";
+      const inCameraBoundsStars = this.stars.filter((s) => {
+        return (
+          Intersections.isPointInsideRectangle(
+            s.position,
+            cameraViewport,
+            camera.position
+          ) && s.depth < camera.zoom
+        );
       });
 
-      inCameraBoundsStars.forEach(s => {
-        const trasposedStarPosition = s.position.clone()
-        canvasRenderingContext.fillStyle = new Color(255, 255, 255, 1 - (s.depth) / camera.zoom).rgba()
+      inCameraBoundsStars.forEach((s) => {
+        const trasposedStarPosition = s.position.clone();
+        canvasRenderingContext.fillStyle = new Color(
+          255,
+          255,
+          255,
+          1 - s.depth / camera.zoom
+        ).rgba();
         canvasRenderingContext.beginPath();
-        canvasRenderingContext.arc(trasposedStarPosition.x, trasposedStarPosition.y, s.shape.radius, 0, 2 * Math.PI);
+        canvasRenderingContext.arc(
+          trasposedStarPosition.x,
+          trasposedStarPosition.y,
+          s.shape.radius,
+          0,
+          2 * Math.PI
+        );
         canvasRenderingContext.fill();
-      })
-    }
-
+      });
+    };
 
     const renderElement = new RenderElement(renderFn);
     return renderElement;

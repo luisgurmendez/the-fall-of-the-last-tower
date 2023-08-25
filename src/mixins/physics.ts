@@ -1,4 +1,3 @@
-
 import Vector from "../physics/vector";
 import { PositionableConstructor, Positionable } from "./positional";
 import { GConstructor } from "./shared";
@@ -20,7 +19,9 @@ export interface Physicable extends Positionable {
 
 export type PhysicableConstructor = GConstructor<Physicable>;
 
-export function PhysicableMixin<TBase extends PositionableConstructor>(Base: TBase): PhysicableConstructor & TBase {
+export function PhysicableMixin<TBase extends PositionableConstructor>(
+  Base: TBase
+): PhysicableConstructor & TBase {
   return class M extends Base implements Physicable {
     velocity: Vector = new Vector();
     acceleration: Vector = new Vector();
@@ -48,8 +49,13 @@ export function PhysicableMixin<TBase extends PositionableConstructor>(Base: TBa
     // p = p0 + v0*dt + 1/2a*dt^2
     calculatePosition(dt: number) {
       const newPosition = this.position.clone();
-      const deltaPositionByAcceleration = this.acceleration.clone().scalar(Math.pow(dt, 2) / 2);
-      const deltaPosition = this.velocity.clone().scalar(dt).add(deltaPositionByAcceleration);
+      const deltaPositionByAcceleration = this.acceleration
+        .clone()
+        .scalar(Math.pow(dt, 2) / 2);
+      const deltaPosition = this.velocity
+        .clone()
+        .scalar(dt)
+        .add(deltaPositionByAcceleration);
       newPosition.add(deltaPosition);
       return newPosition;
     }
@@ -68,4 +74,3 @@ export function PhysicableMixin<TBase extends PositionableConstructor>(Base: TBa
     }
   };
 }
-

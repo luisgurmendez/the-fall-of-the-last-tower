@@ -6,7 +6,6 @@ import LevelsController from "../levels/levels";
 
 const pressedKeys = Keyboard.getInstance();
 class Game {
-
   private clock: Clock;
   private isPaused: boolean = false;
   private canvasRenderingContext: CanvasRenderingContext2D;
@@ -24,48 +23,48 @@ class Game {
 
   init() {
     this.levelsController.init();
-    window.addEventListener('blur', () => {
+    window.addEventListener("blur", () => {
       pressedKeys.clearPressedKeys();
       this.pause();
     });
     // window.addEventListener('focus', this.unPause);
 
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'x') {
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "x") {
         this.gameSpeed += 1;
         this.gameSpeed = Math.min(this.gameSpeed, 5);
       }
 
-      if (e.key === 'z') {
+      if (e.key === "z") {
         this.gameSpeed -= 1;
         this.gameSpeed = Math.max(this.gameSpeed, 1);
       }
 
-      if (e.key === 'm') {
+      if (e.key === "m") {
         if (this.showingMenu) {
-          this.hideMenu()
+          this.hideMenu();
         } else {
-          this.showMenu()
+          this.showMenu();
         }
       }
 
-      if (e.key === 'r') {
+      if (e.key === "r") {
         this.levelsController.restart();
       }
 
-      if (e.key === ' ') {
+      if (e.key === " ") {
         const level = this.levelsController.getLevel();
         level.camera.follow(level.rocket);
       }
 
-      if (e.key === 'p' && !this.showingMenu) {
+      if (e.key === "p" && !this.showingMenu) {
         if (this.isPaused) {
-          this.unPause()
+          this.unPause();
         } else {
-          this.pause()
+          this.pause();
         }
       }
-    })
+    });
 
     this.showMenu();
   }
@@ -73,21 +72,21 @@ class Game {
   unPause = () => {
     this.isPaused = false;
     this.clock.start();
-  }
+  };
 
   pause = () => {
     this.isPaused = true;
     this.clock.stop();
-  }
+  };
 
   loop = () => {
     return () => {
       // this.stats.begin()
       this.update();
       requestAnimationFrame(this.loop());
-      this.afterUpdate()
-    }
-  }
+      this.afterUpdate();
+    };
+  };
 
   private update() {
     try {
@@ -97,7 +96,6 @@ class Game {
     } catch (e) {
       console.log(e);
     }
-
   }
 
   private afterUpdate() {
@@ -108,11 +106,18 @@ class Game {
     // save to local storage withNumOfAstronautsSaved
     this.levelsController.saveLevel(withNumOfAstronautsSaved);
     this.levelsController.next();
-  }
+  };
 
   private generateGameApi(): GameApi {
     const dt = this.clock.getDelta() * this.gameSpeed;
-    return new GameApi(dt, this.canvasRenderingContext, this.isPaused, this.levelPassed, this.pause, this.unPause);
+    return new GameApi(
+      dt,
+      this.canvasRenderingContext,
+      this.isPaused,
+      this.levelPassed,
+      this.pause,
+      this.unPause
+    );
   }
 
   private showMenu() {
@@ -131,14 +136,12 @@ class Game {
     disposeMenu();
     this.showingMenu = false;
     this.unPause();
-  }
+  };
 }
 
 export default Game;
 
-
 export class GameApi {
-
   readonly canvasRenderingContext: CanvasRenderingContext2D;
   readonly dt: number;
 

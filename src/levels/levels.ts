@@ -10,11 +10,10 @@ import generateLevel6 from "../levels/level6";
 import generateLevel8 from "../levels/level8";
 import generateLevel7 from "../levels/level7";
 import generateLevel3 from "../levels/level3";
-import generateLevel4 from '../levels/level4';
-import generateBig from '../levels/superBig';
-import generateEndingScreen from '../levels/endScreen';
+import generateLevel4 from "../levels/level4";
+import generateBig from "../levels/superBig";
+import generateEndingScreen from "../levels/endScreen";
 class LevelsController {
-
   private level: Level;
   levelIndex: number;
   private levelGenerators: (() => Level)[];
@@ -33,7 +32,7 @@ class LevelsController {
       generateLevel8,
       generateLevel4,
       generateBig,
-      generateEndingScreen
+      generateEndingScreen,
     ];
     this.level = this.levelGenerators[this.levelIndex]();
   }
@@ -65,7 +64,7 @@ class LevelsController {
 
   getReachedLevel() {
     const savedLevels = this.getSavedLevels();
-    const passedLevels = Object.keys(savedLevels).map(l => parseInt(l));
+    const passedLevels = Object.keys(savedLevels).map((l) => parseInt(l));
     if (passedLevels.length > 0) {
       return Math.max(...passedLevels) + 1;
     }
@@ -73,17 +72,20 @@ class LevelsController {
   }
 
   getSavedLevels(): SavedLevel {
-    const savedLevelsString = localStorage.getItem('savedLevels');
+    const savedLevelsString = localStorage.getItem("savedLevels");
     if (savedLevelsString) {
-      return JSON.parse(savedLevelsString)
+      return JSON.parse(savedLevelsString);
     }
     return {};
   }
 
   saveLevel(savedAstronauts: number) {
     const savedLevels = this.getSavedLevels();
-    savedLevels[this.levelIndex] = Math.max(savedLevels[this.levelIndex] || 0, savedAstronauts);
-    localStorage.setItem('savedLevels', JSON.stringify(savedLevels));
+    savedLevels[this.levelIndex] = Math.max(
+      savedLevels[this.levelIndex] || 0,
+      savedAstronauts
+    );
+    localStorage.setItem("savedLevels", JSON.stringify(savedLevels));
   }
 
   goToLevel(i: number) {
@@ -94,7 +96,6 @@ class LevelsController {
 
 export default LevelsController;
 
-
 export interface SavedLevel {
-  [levelIndex: number]: number
+  [levelIndex: number]: number;
 }

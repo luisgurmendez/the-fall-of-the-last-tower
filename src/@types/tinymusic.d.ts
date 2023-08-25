@@ -1,1 +1,1 @@
-declare module 'tinymusic';
+declare module "tinymusic";

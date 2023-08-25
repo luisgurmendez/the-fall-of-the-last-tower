@@ -2,9 +2,7 @@ import GameContext from "../../core/gameContext";
 import { LevelObjective } from "../../core/level";
 import { ObjectType } from "../../objects/objectType";
 
-
 class AstronautRescueObjective implements LevelObjective {
-
   private numOfAstronauts: number;
 
   constructor(numOfAstronauts: number) {
@@ -13,7 +11,9 @@ class AstronautRescueObjective implements LevelObjective {
 
   step(context: GameContext) {
     const { rocket } = context;
-    const astronauts = rocket.collisions.filter(obj => obj.type === ObjectType.ASTRONAUT);
+    const astronauts = rocket.collisions.filter(
+      (obj) => obj.type === ObjectType.ASTRONAUT
+    );
     this.numOfAstronauts -= astronauts.length;
   }
 

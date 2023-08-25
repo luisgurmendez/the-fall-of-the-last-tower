@@ -12,14 +12,12 @@ function generate() {
   const earth = new Planet(new Vector(300, -580), 3200, 70);
   const mars = new Planet(new Vector(-150, -600), 3800, 120);
   earth.color = targetPlanetColor;
-  const astronauts = generateAstronauts(new Vector(20, -1120), new Vector(100, -600), new Vector(250, -800))
-  const objects: BaseObject[] = [
-    earth,
-    venus,
-    mars,
-    jupiter,
-    ...astronauts
-  ];
+  const astronauts = generateAstronauts(
+    new Vector(20, -1120),
+    new Vector(100, -600),
+    new Vector(250, -800)
+  );
+  const objects: BaseObject[] = [earth, venus, mars, jupiter, ...astronauts];
   const level = new Level(objects, new LandingOnTargetPlanetObjective(earth));
   level.rocket.position = new Vector(0, -110);
   level.camera.zoom = 0.5;

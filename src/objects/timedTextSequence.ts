@@ -11,10 +11,9 @@ interface TimedText {
   text: string;
 }
 
-type TimedTextType = TimedText | string
+type TimedTextType = TimedText | string;
 
 class TimedTextSequence extends BaseObject implements Disposable {
-
   private texts: TimedText[];
   private activeTimedTextIndex: number = 0;
   private activeTimedText: TimedText;
@@ -22,11 +21,11 @@ class TimedTextSequence extends BaseObject implements Disposable {
 
   constructor(texts: TimedTextType[]) {
     super();
-    this.texts = texts.map(t => {
-      if (typeof t === 'object') {
-        return t
+    this.texts = texts.map((t) => {
+      if (typeof t === "object") {
+        return t;
       } else {
-        return { text: t, duration: 4 }
+        return { text: t, duration: 4 };
       }
     });
 
@@ -44,7 +43,6 @@ class TimedTextSequence extends BaseObject implements Disposable {
     } else {
       this.activeTimedText.duration -= context.dt;
     }
-
   }
 
   render() {
@@ -52,15 +50,17 @@ class TimedTextSequence extends BaseObject implements Disposable {
       const { canvasRenderingContext } = ctx;
       canvasRenderingContext.font = "35px Comic Sans MS";
       canvasRenderingContext.fillStyle = "#FFF";
-      RenderUtils.renderText(canvasRenderingContext, this.activeTimedText.text, new Vector(Dimensions.w / 2, Dimensions.h - 80))
-    }
+      RenderUtils.renderText(
+        canvasRenderingContext,
+        this.activeTimedText.text,
+        new Vector(Dimensions.w / 2, Dimensions.h - 80)
+      );
+    };
 
     const renderElement = new RenderElement(renderFn);
-    renderElement.positionType = 'overlay';
+    renderElement.positionType = "overlay";
     return renderElement;
   }
-
 }
-
 
 export default TimedTextSequence;

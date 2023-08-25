@@ -1,4 +1,3 @@
-
 // Shameless copy of threejs Clock;
 
 class Clock {
@@ -35,7 +34,6 @@ class Clock {
   }
 
   getDelta() {
-
     let diff = 0;
     if (this.autoStart && !this.running) {
       this.start();
@@ -54,7 +52,7 @@ class Clock {
 }
 
 function now() {
-  return (typeof performance === 'undefined' ? Date : performance).now(); // see #10732
+  return (typeof performance === "undefined" ? Date : performance).now(); // see #10732
 }
 
 export default Clock;

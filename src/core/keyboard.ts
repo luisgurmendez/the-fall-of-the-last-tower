@@ -1,35 +1,34 @@
-export type PressedKeysMapping = { [key: string]: boolean }
+export type PressedKeysMapping = { [key: string]: boolean };
 class Keyboard {
-
   private static instance: Keyboard;
   private pressedKeys: PressedKeysMapping;
 
   private constructor() {
     this.pressedKeys = {};
 
-    document.addEventListener('keydown', this.keyDownHanlder)
-    document.addEventListener('keyup', this.keyUpHanlder)
+    document.addEventListener("keydown", this.keyDownHanlder);
+    document.addEventListener("keyup", this.keyUpHanlder);
   }
 
   private keyUpHanlder = (e: KeyboardEvent) => {
     this.pressedKeys[e.key] = false;
-  }
+  };
 
   private keyDownHanlder = (e: KeyboardEvent) => {
     this.pressedKeys[e.key] = true;
-  }
+  };
 
   public isKeyPressed = (key: string) => {
-    return !!this.pressedKeys[key]
-  }
+    return !!this.pressedKeys[key];
+  };
 
   public clearPressedKeys() {
     this.pressedKeys = {};
   }
 
   public clean() {
-    document.removeEventListener('keydown', this.keyDownHanlder)
-    document.removeEventListener('keyup', this.keyUpHanlder)
+    document.removeEventListener("keydown", this.keyDownHanlder);
+    document.removeEventListener("keyup", this.keyUpHanlder);
   }
 
   public static getInstance(): Keyboard {
@@ -41,7 +40,7 @@ class Keyboard {
   }
 
   public isPressingAnyKey() {
-    return Object.keys(this.pressedKeys).some(key => this.pressedKeys[key]);
+    return Object.keys(this.pressedKeys).some((key) => this.pressedKeys[key]);
   }
 }
 

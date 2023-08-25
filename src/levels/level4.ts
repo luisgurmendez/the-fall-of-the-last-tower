@@ -11,21 +11,25 @@ function generate() {
   const earth = new Planet(new Vector(0, 100), 3000, 100);
   const mars = new Planet(new Vector(0, 480), 2000, 75);
   mars.color = targetPlanetColor;
-  const whiteDwarf = new Planet(new Vector(240, 0), 10500, 45)
+  const whiteDwarf = new Planet(new Vector(240, 0), 10500, 45);
   whiteDwarf.color = Color.white();
-  const whiteDwarf2 = new Planet(new Vector(-240, 0), 10500, 45)
+  const whiteDwarf2 = new Planet(new Vector(-240, 0), 10500, 45);
   whiteDwarf2.color = Color.white();
 
   whiteDwarf2.hasRing = false;
   whiteDwarf.hasRing = false;
 
-  const astronauts = generateAstronauts(new Vector(0, -200), new Vector(150, 600), new Vector(-150, 600))
+  const astronauts = generateAstronauts(
+    new Vector(0, -200),
+    new Vector(150, 600),
+    new Vector(-150, 600)
+  );
   const objects: BaseObject[] = [
     earth,
     mars,
     whiteDwarf,
     whiteDwarf2,
-    ...astronauts
+    ...astronauts,
   ];
   const level = new Level(objects, new LandingOnTargetPlanetObjective(mars));
   level.rocket.position = new Vector(0, -10);

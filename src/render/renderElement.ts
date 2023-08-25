@@ -3,12 +3,12 @@ import RandomUtils from "../utils/random";
 
 export type RenderFn = (gameContext: GameContext) => void;
 
-export type PositionType = 'overlay' | 'normal';
+export type PositionType = "overlay" | "normal";
 class RenderElement {
   _render: RenderFn;
-  positionType: PositionType = 'normal';
+  positionType: PositionType = "normal";
   children: RenderElement[] = [];
-  id = RandomUtils.generateId()
+  id = RandomUtils.generateId();
 
   zIndex: number = 1;
 
@@ -25,6 +25,6 @@ export default RenderElement;
 
 export class NoRender extends RenderElement {
   constructor() {
-    super(() => { })
+    super(() => {});
   }
 }

@@ -4,7 +4,7 @@ interface Renderable<RenderOptions = {}> {
 }
 
 export function isRenderable(object: any): object is Renderable {
-  return typeof object === 'object' && object.render !== undefined;
+  return typeof object === "object" && object.render !== undefined;
 }
 
 export default Renderable;

@@ -12,8 +12,8 @@ export interface RocketThrusterRenderOptions {
 
 const defaultOptions: Required<RocketThrusterRenderOptions> = {
   color: new Color(255, 10, 20),
-  offset: new Vector()
-}
+  offset: new Vector(),
+};
 
 class RocketThruster implements Renderable<RocketThrusterRenderOptions> {
   maxFuel: number;
@@ -28,36 +28,50 @@ class RocketThruster implements Renderable<RocketThrusterRenderOptions> {
 
   render(options?: RocketThrusterRenderOptions): RenderElement {
     const renderFn = (context: GameContext) => {
-      const _options = { ...defaultOptions, ...options }
+      const _options = { ...defaultOptions, ...options };
 
       const fuelBoxColor = _options.color.rgba();
       const { canvasRenderingContext } = context;
-      const fuleConsumptionPercent = (this.fuel / this.maxFuel);
+      const fuleConsumptionPercent = this.fuel / this.maxFuel;
 
       canvasRenderingContext.translate(_options.offset.x, _options.offset.y);
       const fuelBoxHeight = canvasRenderingContext.canvas.height * 0.5;
-      const fuelBoxPosition = new Vector(25, canvasRenderingContext.canvas.height * 0.25)
+      const fuelBoxPosition = new Vector(
+        25,
+        canvasRenderingContext.canvas.height * 0.25
+      );
       const fuelBoxRect = new Rectangle(20, fuelBoxHeight);
 
       const filledFuelBoxHeight = fuelBoxHeight * fuleConsumptionPercent;
-      const filledFuelBoxPosition = fuelBoxPosition.clone().add(new Vector(0, fuelBoxHeight - filledFuelBoxHeight))
+      const filledFuelBoxPosition = fuelBoxPosition
+        .clone()
+        .add(new Vector(0, fuelBoxHeight - filledFuelBoxHeight));
       const filledFuelBoxRect = new Rectangle(20, filledFuelBoxHeight);
 
       canvasRenderingContext.strokeStyle = fuelBoxColor;
       canvasRenderingContext.fillStyle = fuelBoxColor;
 
       canvasRenderingContext.beginPath();
-      canvasRenderingContext.rect(fuelBoxPosition.x, fuelBoxPosition.y, fuelBoxRect.w, fuelBoxRect.h);
+      canvasRenderingContext.rect(
+        fuelBoxPosition.x,
+        fuelBoxPosition.y,
+        fuelBoxRect.w,
+        fuelBoxRect.h
+      );
       canvasRenderingContext.stroke();
 
       canvasRenderingContext.beginPath();
-      canvasRenderingContext.rect(filledFuelBoxPosition.x, filledFuelBoxPosition.y, filledFuelBoxRect.w, filledFuelBoxRect.h);
+      canvasRenderingContext.rect(
+        filledFuelBoxPosition.x,
+        filledFuelBoxPosition.y,
+        filledFuelBoxRect.w,
+        filledFuelBoxRect.h
+      );
       canvasRenderingContext.fill();
+    };
 
-    }
-
-    const renderElement = new RenderElement(renderFn)
-    renderElement.positionType = 'overlay';
+    const renderElement = new RenderElement(renderFn);
+    renderElement.positionType = "overlay";
     return renderElement;
   }
 

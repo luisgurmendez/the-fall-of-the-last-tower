@@ -6,7 +6,7 @@ interface Pressable {
 }
 
 export function isPressable(obj: any): obj is Pressable {
-  return typeof obj === 'object' && obj.onPress !== undefined;
+  return typeof obj === "object" && obj.onPress !== undefined;
 }
 
 export default Pressable;
