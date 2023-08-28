@@ -4,6 +4,8 @@ export const Dimensions = new Rectangle(
   document.body.scrollWidth,
   document.body.scrollHeight
 );
+
+// TODO(lg): opt is this really needed?
 class CanvasGenerator {
   static generateCanvas() {
     let canvasRenderingContext: CanvasRenderingContext2D;
