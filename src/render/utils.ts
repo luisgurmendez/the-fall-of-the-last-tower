@@ -47,7 +47,7 @@ class RenderUtils {
     );
   }
 
-  static generatePixelArt(colors: string, pixelArt: string, size: number = 16) {
+  static generatePixelArt(colors: string, pixelArt: string, size = 16) {
     const canvas = document.createElement("canvas");
     canvas.width = size;
     canvas.height = size;
@@ -83,6 +83,10 @@ class RenderUtils {
     canvasRenderingContext.rotate(angle);
     canvasRenderingContext.translate(-position.x, -position.y);
   }
+
+  // static renderSprite(asset:string, position: Vector, index: number, singleSpriteDimsension: number){
+
+  // }
 }
 
 export default RenderUtils;

@@ -1,8 +1,16 @@
 export type PressedKeysMapping = { [key: string]: boolean };
+
 class Keyboard {
   private static instance: Keyboard;
   private pressedKeys: PressedKeysMapping;
 
+  public static getInstance(): Keyboard {
+    if (!Keyboard.instance) {
+      Keyboard.instance = new Keyboard();
+    }
+
+    return Keyboard.instance;
+  }
   private constructor() {
     this.pressedKeys = {};
 
@@ -29,14 +37,6 @@ class Keyboard {
   public clean() {
     document.removeEventListener("keydown", this.keyDownHanlder);
     document.removeEventListener("keyup", this.keyUpHanlder);
-  }
-
-  public static getInstance(): Keyboard {
-    if (!Keyboard.instance) {
-      Keyboard.instance = new Keyboard();
-    }
-
-    return Keyboard.instance;
   }
 
   public isPressingAnyKey() {

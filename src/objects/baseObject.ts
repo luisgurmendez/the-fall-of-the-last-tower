@@ -1,22 +1,29 @@
 import Renderable from "../behaviors/renderable";
 import Stepable from "../behaviors/stepable";
-import { NoRender } from "../render/renderElement";
-import GameContext from "../core/gameContext";
+import RenderElement, { NoRender } from "../render/renderElement";
 import { ObjectType } from "./objectType";
 import RandomUtils from "../utils/random";
-class BaseObject implements Renderable, Stepable {
+import Vector from "../physics/vector";
+import GameContext from "../core/gameContext";
+import { PositionableMixin } from "../mixins/positional";
+
+const PositionalMixins = PositionableMixin(Object);
+
+class BaseObject extends PositionalMixins implements Renderable, Stepable {
   public id: string;
   public type: ObjectType = ObjectType.BASE_OBJECT;
 
-  constructor(id: string = RandomUtils.generateId()) {
+  constructor(position = new Vector(), id: string = RandomUtils.generateId()) {
+    super();
     this.id = id;
+    this.position = position;
   }
 
-  render() {
+  render(): RenderElement {
     return new NoRender();
   }
 
-  step(gameContext: GameContext) {}
+  step(gctx: GameContext) {}
 }
 
 export default BaseObject;

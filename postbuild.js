@@ -1,14 +1,14 @@
 const fs = require("fs");
 const archiver = require("archiver");
 
-let output = fs.createWriteStream("./public/build.zip");
-let archive = archiver("zip", {
+const output = fs.createWriteStream("./public/build.zip");
+const archive = archiver("zip", {
   zlib: { level: 9 }, // set compression to best
 });
 
 const MAX = 13 * 1024; // 13kb
 
-output.on("close", function () {
+output.on("close", () => {
   const bytes = archive.pointer();
   const percent = ((bytes / MAX) * 100).toFixed(2);
   if (bytes > MAX) {
@@ -18,7 +18,7 @@ output.on("close", function () {
   }
 });
 
-archive.on("warning", function (err) {
+archive.on("warning", (err) => {
   if (err.code === "ENOENT") {
     console.warn(err);
   } else {
@@ -26,7 +26,7 @@ archive.on("warning", function (err) {
   }
 });
 
-archive.on("error", function (err) {
+archive.on("error", (err) => {
   throw err;
 });
 

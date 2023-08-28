@@ -2,13 +2,12 @@ import GameContext from "../../core/gameContext";
 import Vector from "../../physics/vector";
 import { ObjectType } from "../objectType";
 import { PhysicableMixin } from "../../mixins/physics";
-import { PositionableMixin } from "../../mixins/positional";
 import BaseObject from "../../objects/baseObject";
 import RenderElement from "../../render/renderElement";
 import Disposable from "../../behaviors/disposable";
 import Color from "../../utils/color";
 
-const ParticleMixins = PhysicableMixin(PositionableMixin(BaseObject));
+const ParticleMixins = PhysicableMixin(BaseObject);
 
 class Particle extends ParticleMixins implements Disposable {
   ttl: number;

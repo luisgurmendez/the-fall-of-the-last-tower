@@ -29,8 +29,8 @@ class Intersections {
     // Find the nearest polet on the
     // rectangle to the center of
     // the circle
-    let xn = Math.max(rx1, Math.min(sx, rx2));
-    let yn = Math.max(ry1, Math.min(sy, ry2));
+    const xn = Math.max(rx1, Math.min(sx, rx2));
+    const yn = Math.max(ry1, Math.min(sy, ry2));
 
     // Find the distance between the
     // nearest polet and the center
@@ -39,8 +39,8 @@ class Intersections {
     // (x1, y1) & (x2, y2) in
     // 2D Euclidean space is
     // ((x1-x2)**2 + (y1-y2)**2)**0.5
-    let dx = xn - sx;
-    let dy = yn - sy;
+    const dx = xn - sx;
+    const dy = yn - sy;
     return dx * dx + dy * dy <= sradius * sradius;
   }
 
@@ -64,7 +64,7 @@ class Intersections {
     // To check if either rectangle is actually a line
     // For example : l1 ={-1,0} r1={1,1} l2={0,-1} r2={0,1}
 
-    if (l1.x == r1.x || l1.y == r1.y || l2.x == r2.x || l2.y == r2.y) {
+    if (l1.x === r1.x || l1.y === r1.y || l2.x === r2.x || l2.y === r2.y) {
       // the line cannot have positive overlap
       return false;
     }

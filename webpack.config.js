@@ -23,7 +23,7 @@ module.exports = (env, argv) => {
       index: "index.html", // Serve <outputFolderName>/index.html
       open: false, // Open a web browser on server start
       host: "localhost", // Set host to localhost
-      port: 8080, // Run on port 8082
+      port: 8081, // Run on port 8082
     },
     module: {
       rules: [
@@ -60,7 +60,7 @@ module.exports = (env, argv) => {
           collapseWhitespace: true,
         },
       }),
-      new BundleAnalyzerPlugin(),
+      // new BundleAnalyzerPlugin(),
     ],
     /** Tree shaking */
     optimization: {

@@ -1,6 +1,5 @@
 import RocketStatusController from "../controllers/RocketStatusController";
 import { SavedLevel } from "../levels/levels";
-import AstronautRenderUtils from "../objects/astronaut/astronautRenderUtils";
 import { callTimes } from "../utils/fn";
 
 interface MenuItem {
@@ -96,9 +95,7 @@ function createMenuContent(
   const totalRescuedAstronautsLabel = document.createElement("span");
   totalRescuedAstronautsLabel.innerText = ` Rescued: ${rescued} / ${totalAstronauts}`;
   totalRescuedAstronautsLabel.className = "r";
-  const astronautEl = AstronautRenderUtils.generateAstronautPixelArt();
 
-  totalRescuedContainer.append(astronautEl);
   totalRescuedContainer.append(totalRescuedAstronautsLabel);
   menu.append(title, ...itemElements, totalRescuedContainer);
   return menu;
@@ -132,15 +129,15 @@ function createControlsContent(onBack: Fn) {
   const title = createMenuTitle("Controls");
   const controls = [
     "w,a,s,d - thrusters",
-    "a,d - pre launching inclination",
-    "p - toggle pause",
-    ` mouse wheel or '.' or ',' - zoom in/out`,
-    `'space' - camera follow rocket`,
-    "click & drag to move camera",
-    "m - toggle menu",
-    "r - restart level",
-    "x - increase game speed",
-    "z - decrease game speed",
+    // "a,d - pre launching inclination",
+    // "p - toggle pause",
+    // " mouse wheel or '.' or ',' - zoom in/out",
+    // "'space' - camera follow rocket",
+    // "click & drag to move camera",
+    // "m - toggle menu",
+    // "r - restart level",
+    // "x - increase game speed",
+    // "z - decrease game speed",
   ];
   const back = createMenuButton("< Back", onBack);
   const controlEls = controls.map(createTextRow);
@@ -218,19 +215,12 @@ function createLevelElement(level: LevelOption) {
   }`;
   itemEl.addEventListener("click", level.onClick);
 
-  const astronautEls = AstronautRenderUtils.generateAstronautRescuesPixelArts(
-    level.numOfRescues
-  );
-  astronautEls.forEach((a) => {
-    a.style.marginLeft = "4px";
-  });
   const rescuedLabel = document.createElement("span");
   rescuedLabel.innerText = "Rescued: ";
   rescuedLabel.className = "r";
 
   levelItemContainer.appendChild(itemEl);
   levelItemContainer.appendChild(rescuedLabel);
-  levelItemContainer.append(...astronautEls);
 
   return levelItemContainer;
 }

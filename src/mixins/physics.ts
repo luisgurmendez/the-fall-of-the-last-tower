@@ -25,8 +25,8 @@ export function PhysicableMixin<TBase extends PositionableConstructor>(
   return class M extends Base implements Physicable {
     velocity: Vector = new Vector();
     acceleration: Vector = new Vector();
-    angularAcceleration: number = 0;
-    angularVelocity: number = 0;
+    angularAcceleration = 0;
+    angularVelocity = 0;
     direction: Vector = new Vector();
 
     get speed(): number {

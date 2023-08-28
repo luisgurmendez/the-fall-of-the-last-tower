@@ -18,4 +18,10 @@ export class Circle {
   }
 }
 
+export class Square extends Rectangle {
+  constructor(size: number) {
+    super(size, size);
+  }
+}
+
 export class NullShape {}

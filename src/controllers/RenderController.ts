@@ -39,34 +39,30 @@ class RenderController {
     // Rendering
     this.clearCanvas(canvasRenderingContext);
 
-    if (background) {
-      this.safetlyRender(canvasRenderingContext, () => {
-        const backgroundRenderElement = background.render();
-        backgroundRenderElement.render(gameContext);
-      });
-    }
-
     // render normal elements..
     this.safetlyRender(canvasRenderingContext, () => {
       canvasRenderingContext.translate(Dimensions.w / 2, Dimensions.h / 2);
       canvasRenderingContext.scale(camera.zoom, camera.zoom);
       canvasRenderingContext.translate(-camera.position.x, -camera.position.y);
 
+      if (background) {
+        this.safetlyRender(canvasRenderingContext, () => {
+          const backgroundRenderElement = background.render();
+          backgroundRenderElement.render(gameContext);
+        });
+      }
+
       // Make the center of the screen aligned with the camera's position
       normalRenderElements.forEach((element) => {
         if (isRenderable(element)) {
-          this.safetlyRender(canvasRenderingContext, () => {
-            element.render(gameContext);
-          });
+          this._renderElement(element, gameContext);
         }
       });
     });
 
     // render overlay elements.
     overlayRenderElements.forEach((element) => {
-      this.safetlyRender(canvasRenderingContext, () => {
-        element.render(gameContext);
-      });
+      element.render(gameContext);
     });
 
     if (gameContext.isPaused) {
@@ -91,6 +87,16 @@ class RenderController {
     canvasRenderingContext.save();
     render();
     canvasRenderingContext.restore();
+  }
+
+  private _renderElement(element: RenderElement, gctx: GameContext) {
+    if (element.saftly) {
+      this.safetlyRender(gctx.canvasRenderingContext, () =>
+        element.render(gctx)
+      );
+    } else {
+      element.render(gctx);
+    }
   }
 
   private renderPause(canvasRenderingContext: CanvasRenderingContext2D) {

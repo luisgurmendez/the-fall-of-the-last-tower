@@ -15,7 +15,7 @@ type TimedTextType = TimedText | string;
 
 class TimedTextSequence extends BaseObject implements Disposable {
   private texts: TimedText[];
-  private activeTimedTextIndex: number = 0;
+  private activeTimedTextIndex = 0;
   private activeTimedText: TimedText;
   shouldDispose = false;
 

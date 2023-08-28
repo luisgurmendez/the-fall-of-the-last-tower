@@ -1,10 +1,9 @@
 import { Rectangle, Circle } from "../objects/shapes";
 import { Collisionable, isCollisionableObject } from "../mixins/collisionable";
-import { Positionable } from "../mixins/positional";
 import BaseObject from "../objects/baseObject";
 import Intersections from "../utils/intersections";
 
-export type CollisionableObject = Collisionable & Positionable & BaseObject;
+export type CollisionableObject = Collisionable & BaseObject;
 
 export interface Collisions {
   [objectId: string]: Collisionable[];
@@ -12,7 +11,7 @@ export interface Collisions {
 
 class CollisionsController {
   // TODO: optimize? quadtrees?
-  getCollisions(objects: CollisionableObject[]): Collisions {
+  buildCollisions(objects: CollisionableObject[]): Collisions {
     const collisions: Collisions = {};
 
     for (let i = 0; i < objects.length; i++) {

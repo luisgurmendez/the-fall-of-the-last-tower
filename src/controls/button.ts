@@ -46,7 +46,7 @@ class Button
     styles: ButtonStyles = defaultButtonStyles,
     id?: string
   ) {
-    super(id);
+    super(new Vector(), id);
     this.type = ObjectType.BUTTON;
     this.position = position;
     this.text = text;

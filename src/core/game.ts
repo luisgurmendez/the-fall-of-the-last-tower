@@ -3,15 +3,18 @@ import Clock from "./clock";
 import CanvasGenerator from "./canvas";
 import { createMenu, disposeMenu } from "../menu/menu";
 import LevelsController from "../levels/levels";
+import Stats from "stats.js";
 
+const stats = new Stats();
 const pressedKeys = Keyboard.getInstance();
+
 class Game {
   private clock: Clock;
-  private isPaused: boolean = false;
+  private isPaused = false;
   private canvasRenderingContext: CanvasRenderingContext2D;
 
   private levelsController: LevelsController;
-  private gameSpeed: number = 1;
+  private gameSpeed = 1;
   private showingMenu = false;
 
   constructor() {
@@ -23,50 +26,44 @@ class Game {
 
   init() {
     this.levelsController.init();
-    window.addEventListener("blur", () => {
-      pressedKeys.clearPressedKeys();
-      this.pause();
-    });
-    // window.addEventListener('focus', this.unPause);
 
-    window.addEventListener("keydown", (e) => {
-      if (e.key === "x") {
-        this.gameSpeed += 1;
-        this.gameSpeed = Math.min(this.gameSpeed, 5);
-      }
+    stats.showPanel(1); // 0: fps, 1: ms, 2: mb, 3+: custom
+    document.body.appendChild(stats.dom);
+    // window.addEventListener("blur", () => {
+    //   pressedKeys.clearPressedKeys();
+    //   this.pause();
+    // });
+    // // window.addEventListener('focus', this.unPause);
 
-      if (e.key === "z") {
-        this.gameSpeed -= 1;
-        this.gameSpeed = Math.max(this.gameSpeed, 1);
-      }
+    // window.addEventListener("keydown", (e) => {
+    //   if (e.key === "x") {
+    //     this.gameSpeed += 1;
+    //     this.gameSpeed = Math.min(this.gameSpeed, 5);
+    //   }
 
-      if (e.key === "m") {
-        if (this.showingMenu) {
-          this.hideMenu();
-        } else {
-          this.showMenu();
-        }
-      }
+    //   if (e.key === "z") {
+    //     this.gameSpeed -= 1;
+    //     this.gameSpeed = Math.max(this.gameSpeed, 1);
+    //   }
 
-      if (e.key === "r") {
-        this.levelsController.restart();
-      }
+    //   if (e.key === "m") {
+    //     if (this.showingMenu) {
+    //       this.hideMenu();
+    //     } else {
+    //       this.showMenu();
+    //     }
+    //   }
 
-      if (e.key === " ") {
-        const level = this.levelsController.getLevel();
-        level.camera.follow(level.rocket);
-      }
+    //   if (e.key === "p" && !this.showingMenu) {
+    //     if (this.isPaused) {
+    //       this.unPause();
+    //     } else {
+    //       this.pause();
+    //     }
+    //   }
+    // });
 
-      if (e.key === "p" && !this.showingMenu) {
-        if (this.isPaused) {
-          this.unPause();
-        } else {
-          this.pause();
-        }
-      }
-    });
-
-    this.showMenu();
+    // this.showMenu();
   }
 
   unPause = () => {
@@ -81,8 +78,9 @@ class Game {
 
   loop = () => {
     return () => {
-      // this.stats.begin()
+      stats.begin();
       this.update();
+      stats.end();
       requestAnimationFrame(this.loop());
       this.afterUpdate();
     };
@@ -102,19 +100,12 @@ class Game {
     // this.stats.end()
   }
 
-  private levelPassed = (withNumOfAstronautsSaved: number) => {
-    // save to local storage withNumOfAstronautsSaved
-    this.levelsController.saveLevel(withNumOfAstronautsSaved);
-    this.levelsController.next();
-  };
-
   private generateGameApi(): GameApi {
     const dt = this.clock.getDelta() * this.gameSpeed;
     return new GameApi(
       dt,
       this.canvasRenderingContext,
       this.isPaused,
-      this.levelPassed,
       this.pause,
       this.unPause
     );
@@ -145,8 +136,6 @@ export class GameApi {
   readonly canvasRenderingContext: CanvasRenderingContext2D;
   readonly dt: number;
 
-  levelPassed: (a: number) => void;
-
   readonly isPaused: boolean;
   pause: () => void;
   unPause: () => void;
@@ -155,14 +144,12 @@ export class GameApi {
     dt: number,
     canvasRenderingContext: CanvasRenderingContext2D,
     isPaused: boolean,
-    levelPassed: (a: number) => void,
     pause: () => void,
     unPause: () => void
   ) {
     this.dt = dt;
     this.canvasRenderingContext = canvasRenderingContext;
     this.isPaused = isPaused;
-    this.levelPassed = levelPassed;
     this.pause = pause;
     this.unPause = unPause;
   }

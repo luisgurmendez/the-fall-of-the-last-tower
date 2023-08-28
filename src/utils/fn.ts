@@ -10,7 +10,7 @@ export function filterInPlaceAndGetRest<T>(
 ) {
   let i = 0;
   const rest: T[] = [];
-  for (let v of objs) {
+  for (const v of objs) {
     if (filterFn(v)) {
       objs[i++] = v;
     } else {

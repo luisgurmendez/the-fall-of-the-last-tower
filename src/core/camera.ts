@@ -13,22 +13,19 @@ import { wait } from "../utils/async";
 const MAX_ZOOM = 14;
 const MIN_ZOOM = 0.01;
 
-class Camera
-  extends BaseObject
-  implements Positionable, Stepable, Disposable, Initializable
-{
+class Camera extends BaseObject implements Stepable, Disposable, Initializable {
   _position: Vector;
   viewport: Rectangle;
   private _zoom: number;
   following: Positionable | null;
   dispose?: () => void = undefined;
-  locked: boolean = false;
+  locked = false;
   shouldInitialize = true;
   shouldDispose = false;
   // flying: Flying = new Flying();
 
   constructor() {
-    super("camera");
+    super(new Vector(), "camera");
     // this.position = new Vector(document.body.scrollWidth / 2, document.body.scrollHeight / 2);
     this._position = new Vector(0, 0);
     this.viewport = new Rectangle(
