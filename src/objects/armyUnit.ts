@@ -7,11 +7,11 @@
 // }
 
 enum ArmyUnitSide {
-    Player,
-    Enemy,
+  Player,
+  Enemy,
 }
 
 interface ArmyUnit {
-    // 0 player, 1 enemy
-    side: 0 | 1;
+  // 0 player, 1 enemy
+  side: 0 | 1;
 }

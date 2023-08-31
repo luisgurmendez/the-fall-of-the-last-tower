@@ -9,7 +9,7 @@ import RenderElement from "../render/renderElement";
 import RenderUtils from "../render/utils";
 import Catapult from "../objects/catapult/catapult";
 import Button from "../controls/button";
-import Soldier from "../objects/soldier/soldier";
+import Swordsman from "../objects/swordsman/swordsman";
 
 function generate() {
   // const tiles = buildTilesGrid();
@@ -42,17 +42,22 @@ class Criterion implements LevelCriterion {
   lost(): boolean {
     return false;
   }
-  step(context: GameContext): void { }
+  step(context: GameContext): void {}
 }
 
 function buildSoldiers() {
   const soldiers: BaseObject[] = [];
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 100; i++) {
     const side = Math.random() > 0.5 ? 0 : 1;
-    soldiers.push(new Soldier(
-      new Vector(100 * side - 10 + (Math.random() * 50), Math.random() * 1000 - 500),
-      side
-    ));
+    soldiers.push(
+      new Swordsman(
+        new Vector(
+          100 * side - 10 + Math.random() * 50,
+          Math.random() * 1000 - 500
+        ),
+        side
+      )
+    );
   }
   return soldiers;
 }

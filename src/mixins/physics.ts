@@ -19,7 +19,6 @@ export interface Physicable extends Positionable {
 
 export type PhysicableConstructor = GConstructor<Physicable>;
 
-
 // Your mixin with added friction and maxSpeed
 export function PhysicableMixin<TBase extends PositionableConstructor>(
   Base: TBase
@@ -30,8 +29,8 @@ export function PhysicableMixin<TBase extends PositionableConstructor>(
     angularAcceleration = 0;
     angularVelocity = 0;
     direction: Vector = new Vector();
-    friction: number = 0.995; // you can set this value to suit your needs
-    maxSpeed: number = 100; // you can set this value to suit your needs
+    friction = 0.995; // you can set this value to suit your needs
+    maxSpeed = 100; // you can set this value to suit your needs
 
     get speed(): number {
       return this.velocity.length();
@@ -85,10 +84,6 @@ export function PhysicableMixin<TBase extends PositionableConstructor>(
     }
   };
 }
-
-
-
-
 
 // export function PhysicableMixin<TBase extends PositionableConstructor>(
 //   Base: TBase

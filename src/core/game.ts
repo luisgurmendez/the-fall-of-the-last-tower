@@ -35,16 +35,17 @@ class Game {
     // });
     // // window.addEventListener('focus', this.unPause);
 
-    // window.addEventListener("keydown", (e) => {
-    //   if (e.key === "x") {
-    //     this.gameSpeed += 1;
-    //     this.gameSpeed = Math.min(this.gameSpeed, 5);
-    //   }
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "x") {
+        this.gameSpeed += 1;
+        this.gameSpeed = Math.min(this.gameSpeed, 5);
+      }
 
-    //   if (e.key === "z") {
-    //     this.gameSpeed -= 1;
-    //     this.gameSpeed = Math.max(this.gameSpeed, 1);
-    //   }
+      if (e.key === "z") {
+        this.gameSpeed -= 1;
+        this.gameSpeed = Math.max(this.gameSpeed, 1);
+      }
+    });
 
     //   if (e.key === "m") {
     //     if (this.showingMenu) {

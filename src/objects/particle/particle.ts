@@ -48,18 +48,14 @@ class Particle extends ParticleMixins implements Disposable {
         this.color.a = alpha;
       }
       canvasRenderingContext.fillStyle = this.color.rgba();
-      canvasRenderingContext.beginPath();
-      // canvasRenderingContext.rect(this.position.x, this.position.y, this.size * 2, this.size * 2); // square particles?
-      canvasRenderingContext.arc(
+      canvasRenderingContext.fillRect(
         this.position.x,
         this.position.y,
-        this.size,
-        0,
-        2 * Math.PI
+        this.size * 2,
+        this.size * 2
       );
-      canvasRenderingContext.fill();
     };
-    return new RenderElement(renderFn);
+    return new RenderElement(renderFn, true);
   }
 
   private calculateAcceleration(context: GameContext) {
