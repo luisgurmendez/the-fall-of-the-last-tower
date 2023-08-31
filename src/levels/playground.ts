@@ -3,24 +3,31 @@ import Vector from "../physics/vector";
 import GameContext from "../core/gameContext";
 import Tile from "../objects/tile/tile";
 import Background from "../objects/background";
-import { Circle, Square } from "../objects/shapes";
+import { Circle, Rectangle, Square } from "../objects/shapes";
 import BaseObject from "../objects/baseObject";
 import RenderElement from "../render/renderElement";
 import RenderUtils from "../render/utils";
 import Catapult from "../objects/catapult/catapult";
+import Button from "../controls/button";
+import Soldier from "../objects/soldier/soldier";
 
 function generate() {
   // const tiles = buildTilesGrid();
+  const worldDimensions: Rectangle = new Square(5000);
   const level = new Level(
     [
-      new Catapult(new Vector()),
-      new Catapult(new Vector(25, 25)),
-      new Catapult(new Vector(50, 50)),
-      new Catapult(new Vector(50, 75)),
-      new Background(),
+      // new Catapult(new Vector()),
+      // new Catapult(new Vector(25, 25)),
+      // new Catapult(new Vector(50, 50)),
+      // new Catapult(new Vector(50, 75)),
+
+      // new Soldier(new Vector(Math.random() * 1000 - 500, Math.random() * 1000 - 500), 0),
+      // new Soldier(new Vector(Math.random() * 1000 - 500, Math.random() * 1000 - 500), 1),
+      ...buildSoldiers(),
+      new Background(worldDimensions),
     ],
     new Criterion(),
-    new Square(5000)
+    worldDimensions
   );
   level.camera.zoom = 0.6;
   return level;
@@ -35,18 +42,19 @@ class Criterion implements LevelCriterion {
   lost(): boolean {
     return false;
   }
-  step(context: GameContext): void {}
+  step(context: GameContext): void { }
 }
 
-class Center extends BaseObject {
-  render() {
-    return new RenderElement((gctx) => {
-      const ctx = gctx.canvasRenderingContext;
-      ctx.fillStyle = "#FF0";
-      RenderUtils.renderCircle(ctx, new Vector(0, 0), new Circle(30));
-      ctx.fill();
-    });
+function buildSoldiers() {
+  const soldiers: BaseObject[] = [];
+  for (let i = 0; i < 10; i++) {
+    const side = Math.random() > 0.5 ? 0 : 1;
+    soldiers.push(new Soldier(
+      new Vector(100 * side - 10 + (Math.random() * 50), Math.random() * 1000 - 500),
+      side
+    ));
   }
+  return soldiers;
 }
 
 function buildTilesGrid() {

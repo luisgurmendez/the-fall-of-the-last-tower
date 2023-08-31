@@ -53,7 +53,18 @@ class Vector {
   }
 
   angleTo(v: Vector) {
-    return Math.atan2(this.y, this.x) - Math.atan2(v.y, v.x);
+    // return Math.atan2(this.y, this.x) - Math.atan2(v.y, v.x);
+    const dot = this.dot(v);
+    const det = this.cross(v);
+    return Math.atan2(det, dot);
+  }
+
+  dot(v: Vector) {
+    return this.x * v.x + this.y * v.y;
+  }
+
+  cross(v: Vector) {
+    return this.x * v.y - this.y * v.x;
   }
 
   rotate(angle: number, inDegree = true) {
@@ -67,9 +78,12 @@ class Vector {
 
     this.x = old.x * cos - old.y * sin;
     this.y = old.x * sin + old.y * cos;
-
     return this;
   }
+
+
+
+
 }
 
 export default Vector;

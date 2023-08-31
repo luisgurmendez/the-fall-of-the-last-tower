@@ -11,9 +11,10 @@ import Assets from "../../controllers/AssetLoader";
 
 const CatapultMixin = PhysicableMixin(CollisionableMixin<Square>()(BaseObject));
 
-class Catapult extends CatapultMixin implements Initializable, Disposable {
+class Catapult extends CatapultMixin implements Initializable, Disposable, ArmyUnit {
   shouldInitialize = true;
   shouldDispose = false;
+  side: 0 | 1;
 
   constructor(position: Vector) {
     super(position);
@@ -22,7 +23,9 @@ class Catapult extends CatapultMixin implements Initializable, Disposable {
     const acc = 5 * Math.random();
     this.acceleration = new Vector(-1 * acc, acc);
     this.velocity = this.calculateVelocity(3);
+    this.side = 0;
   }
+
 
   render() {
     return new RenderElement((gtx) => {
@@ -41,8 +44,8 @@ class Catapult extends CatapultMixin implements Initializable, Disposable {
     this.position = this.calculatePosition(gctx.dt);
   }
 
-  init(gameContext: GameContext) {}
-  dispose() {}
+  init(gameContext: GameContext) { }
+  dispose() { }
 }
 
 export default Catapult;

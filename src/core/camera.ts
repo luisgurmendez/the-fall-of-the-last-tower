@@ -11,7 +11,7 @@ import { Rectangle } from "../objects/shapes";
 import { wait } from "../utils/async";
 
 const MAX_ZOOM = 14;
-const MIN_ZOOM = 0.01;
+const MIN_ZOOM = 0.5;
 
 class Camera extends BaseObject implements Stepable, Disposable, Initializable {
   _position: Vector;
@@ -169,29 +169,34 @@ class Camera extends BaseObject implements Stepable, Disposable, Initializable {
 
   //TODO: Double check bounding box of world with zooming, should we adjust viewport on zoom?
   adjutsPositionIfOutOfWorldsBounds(world: Rectangle) {
+    const viewportWithZoom = new Rectangle(this.viewport.w / this.zoom, this.viewport.h / this.zoom);
+
     const adjutsLeft =
-      this.position.clone().x - this.viewport.w / 2 < -world.w / 2;
+      this.position.clone().x - viewportWithZoom.w / 2 < -world.w / 2;
+
     const adjustRight =
-      this.position.clone().x + this.viewport.w / 2 > world.w / 2;
+      this.position.clone().x + viewportWithZoom.w / 2 > world.w / 2;
+
     const adjustTop =
-      this.position.clone().y - this.viewport.h / 2 > world.h / 2;
+      this.position.clone().y + viewportWithZoom.h / 2 > world.h / 2;
+
     const adjustBottom =
-      this.position.clone().y + this.viewport.h / 2 < -world.h / 2;
+      this.position.clone().y - viewportWithZoom.h / 2 < -world.h / 2;
 
     if (adjutsLeft) {
-      this.position.x = -world.w / 2 + this.viewport.w / 2;
+      this.position.x = -world.w / 2 + viewportWithZoom.w / 2;
     }
 
     if (adjustRight) {
-      this.position.x = world.w / 2 - this.viewport.w / 2;
+      this.position.x = world.w / 2 - viewportWithZoom.w / 2;
     }
 
     if (adjustTop) {
-      this.position.y = world.w / 2 + this.viewport.h / 2;
+      this.position.y = world.w / 2 - viewportWithZoom.h / 2;
     }
 
     if (adjustBottom) {
-      this.position.y = -world.w / 2 - this.viewport.h / 2;
+      this.position.y = -world.w / 2 + viewportWithZoom.h / 2;
     }
   }
 

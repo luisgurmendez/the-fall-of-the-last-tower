@@ -3,9 +3,11 @@ import { Collisions } from "../controllers/CollisionsController";
 import BaseObject from "../objects/baseObject";
 import Keyboard from "./keyboard";
 import Camera from "./camera";
+import SpatiallyHashedObjects from "../utils/spatiallyHashedObjects";
 
 class GameContext {
   readonly collisions: Collisions;
+  readonly spatialHasing: SpatiallyHashedObjects;
   readonly isPaused: boolean;
   readonly dt: number;
   readonly objects: BaseObject[];
@@ -19,6 +21,7 @@ class GameContext {
 
   constructor(
     collisions: Collisions,
+    spatialHasing: SpatiallyHashedObjects,
     dt: number,
     isPaused: boolean,
     objects: BaseObject[],
@@ -30,6 +33,7 @@ class GameContext {
     unPause: () => void
   ) {
     this.collisions = collisions;
+    this.spatialHasing = spatialHasing;
     this.dt = dt;
     this.isPaused = isPaused;
     this.objects = objects;

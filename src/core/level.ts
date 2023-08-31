@@ -19,6 +19,7 @@ import Renderable from "../behaviors/renderable";
 import RenderUtils from "../render/utils";
 import { Dimensions } from "./canvas";
 import RenderElement from "../render/renderElement";
+import SpatiallyHashedObjects from "../utils/spatiallyHashedObjects";
 
 const pressedKeys = Keyboard.getInstance();
 
@@ -51,34 +52,52 @@ class Level implements Initializable, Disposable {
   }
 
   update(gameApi: GameApi): void {
+    // console.time('collisions')
     const collisions = this._buildCollisions();
-    const gameContext = this.generateGameContext(gameApi, collisions);
+    const spatialHasing = this._buildSpatiallyHashedObjects();
+    // console.timeEnd('collisions')
+
+    const gameContext = this.generateGameContext(gameApi, collisions, spatialHasing);
     if (!gameApi.isPaused) {
       this.objectLifecycleController.initialize(gameContext);
+      // console.time('step')
       this.objectLifecycleController.step(gameContext);
+      // console.timeEnd('step')
 
       // Move this to private fn..
       if (!this.statusController.hasWonOrLost) {
         const status = this.statusController.checkLevelCriteria(gameContext);
         if (status !== LevelStatus.PLAYING) {
-          console.log(status);
+          // console.log(status);
         }
       }
       this.objectLifecycleController.dispose(gameContext);
     }
+    // console.time('render')
     this.renderController.render(gameContext);
+    // console.timeEnd('render')
+
   }
 
   private _buildCollisions() {
     const collisionableObjects: CollisionableObject[] = this.objects.filter(
       isCollisionableObject
     );
-    return this.collisionController.buildCollisions(collisionableObjects);
+    // return this.collisionController.buildCollisions(collisionableObjects);
+    return {};
   }
 
-  init() {}
+  private _buildSpatiallyHashedObjects() {
+    const spatialHasing = new SpatiallyHashedObjects(200);
+    this.objects.forEach((obj) => {
+      spatialHasing.insert(obj);
+    });
+    return spatialHasing;
+  }
 
-  dispose() {}
+  init() { }
+
+  dispose() { }
 
   restart() {
     this.dispose();
@@ -87,10 +106,12 @@ class Level implements Initializable, Disposable {
 
   private generateGameContext(
     api: GameApi,
-    collisions: Collisions
+    collisions: Collisions,
+    spatialHasing: SpatiallyHashedObjects
   ): GameContext {
     return new GameContext(
       collisions,
+      spatialHasing,
       api.dt,
       api.isPaused,
       this.objects,

@@ -12,7 +12,7 @@ import RenderElement from "../render/renderElement";
 import Initializable from "behaviors/initializable";
 
 const defaultButtonStyles: Required<ButtonStyles> = {
-  backgroundColor: "#FFF",
+  backgroundColor: "#F00",
   color: "#000",
   font: "30px Comic Sans MS",
   padding: 8,
@@ -28,14 +28,13 @@ interface ButtonStyles {
 // TODO: fix pressing a relatively positioned element
 class Button
   extends BaseObject
-  implements Renderable, Pressable, Positionable, Disposable, Initializable
-{
+  implements Renderable, Pressable, Positionable, Disposable, Initializable {
   pressArea: Rectangle;
   position: Vector;
   onPress: () => void;
   styles: Required<ButtonStyles>;
   text: string;
-  dispose = () => {};
+  dispose = () => { };
   shouldInitialize = true;
   shouldDispose = false;
 

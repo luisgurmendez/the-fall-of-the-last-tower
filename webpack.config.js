@@ -69,18 +69,18 @@ module.exports = (env, argv) => {
       sideEffects: false,
       minimizer: !isDevelopment
         ? [
-            new TerserPlugin({
-              terserOptions: {
-                mangle: {
-                  keep_fnames: false,
-                  keep_classnames: false,
-                  properties: true,
-                  module: true,
-                },
+          new TerserPlugin({
+            terserOptions: {
+              mangle: {
                 keep_fnames: false,
+                keep_classnames: false,
+                properties: true,
+                module: true,
               },
-            }),
-          ]
+              keep_fnames: false,
+            },
+          }),
+        ]
         : [],
     },
   };
