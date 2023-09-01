@@ -60,7 +60,7 @@ module.exports = (env, argv) => {
           collapseWhitespace: true,
         },
       }),
-      // new BundleAnalyzerPlugin(),
+      new BundleAnalyzerPlugin(),
     ],
     /** Tree shaking */
     optimization: {

@@ -4,6 +4,7 @@ import BaseObject from "../objects/baseObject";
 import Keyboard from "./keyboard";
 import Camera from "./camera";
 import SpatiallyHashedObjects from "../utils/spatiallyHashedObjects";
+import Background from "../objects/background";
 
 class GameContext {
   readonly collisions: Collisions;
@@ -15,6 +16,9 @@ class GameContext {
   readonly canvasRenderingContext: CanvasRenderingContext2D;
   readonly camera: Camera;
   readonly worldDimensions: Rectangle;
+  // readonly background: Background;
+  // readonly castle: Rectangle;
+
 
   pause: () => void;
   unPause: () => void;
@@ -25,6 +29,7 @@ class GameContext {
     dt: number,
     isPaused: boolean,
     objects: BaseObject[],
+    // background: Background,
     pressedKeys: Keyboard,
     canvasRenderingContext: CanvasRenderingContext2D,
     camera: Camera,
@@ -37,6 +42,7 @@ class GameContext {
     this.dt = dt;
     this.isPaused = isPaused;
     this.objects = objects;
+    // this.background = background;
     this.pressedKeys = pressedKeys;
     this.canvasRenderingContext = canvasRenderingContext;
     this.camera = camera;

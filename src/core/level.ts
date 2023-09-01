@@ -115,6 +115,7 @@ class Level implements Initializable, Disposable {
       api.dt,
       api.isPaused,
       this.objects,
+      // this.background,
       pressedKeys,
       api.canvasRenderingContext,
       this.camera,

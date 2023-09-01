@@ -47,12 +47,12 @@ class Criterion implements LevelCriterion {
 
 function buildSoldiers() {
   const soldiers: BaseObject[] = [];
-  for (let i = 0; i < 8000; i++) {
+  for (let i = 0; i < 2000; i++) {
     const side = Math.random() > 0.5 ? 0 : 1;
     soldiers.push(
       new Swordsman(
         new Vector(
-          100 * side - 10 + Math.random() * 50,
+          100 * side - 80 + Math.random() * 50,
           Math.random() * 1000 - 500
         ),
         side

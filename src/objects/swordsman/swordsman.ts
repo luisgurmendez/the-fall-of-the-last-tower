@@ -53,6 +53,7 @@ class Swordsman
     this.spriteAnimator.addAnimation("w", [0, 1, 2], 0.2);
     this.spriteAnimator.addAnimation("a", [3, 4, 5, 6, 7, 8, 9], 0.2);
     this.spriteAnimator.playAnimation("w", true);
+
   }
 
   shouldDispose: boolean;

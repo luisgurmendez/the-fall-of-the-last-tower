@@ -31,7 +31,7 @@ class Particle extends ParticleMixins implements Disposable {
   }
 
   step(context: GameContext) {
-    this.acceleration = this.calculateAcceleration(context);
+    this.acceleration = new Vector();
     this.position = this.calculatePosition(context.dt);
     this.velocity = this.calculateVelocity(context.dt);
     this.ttl -= context.dt;
@@ -56,10 +56,6 @@ class Particle extends ParticleMixins implements Disposable {
       );
     };
     return new RenderElement(renderFn, true);
-  }
-
-  private calculateAcceleration(context: GameContext) {
-    return new Vector();
   }
 }
 
