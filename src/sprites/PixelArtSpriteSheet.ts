@@ -1,4 +1,4 @@
-import Vector from "../physics/vector";
+import Vector from "@/physics/vector";
 import PixelArtBuilder, { PixelArt } from "./PixelArtBuilder";
 
 class PixelArtSpriteSheet {

@@ -1,5 +1,5 @@
-import BaseObject from "../objects/baseObject";
-import Vector from "../physics/vector";
+import BaseObject from "@/objects/baseObject";
+import Vector from "@/physics/vector";
 
 class SpatiallyHashedObjects {
     private cellSize: number;

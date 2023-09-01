@@ -1,10 +1,10 @@
-import GameContext from "../core/gameContext";
-import { isRenderable } from "../behaviors/renderable";
-import RenderElement from "../render/renderElement";
-import Vector from "../physics/vector";
-import RenderUtils from "../render/utils";
-import Color from "../utils/color";
-import { Dimensions } from "../core/canvas";
+import GameContext from "@/core/gameContext";
+import { isRenderable } from "@/behaviors/renderable";
+import RenderElement from "@/render/renderElement";
+import Vector from "@/physics/vector";
+import RenderUtils from "@/render/utils";
+import Color from "@/utils/color";
+import { Dimensions } from "@/core/canvas";
 
 class RenderController {
   render(gameContext: GameContext) {

@@ -1,6 +1,6 @@
 import RenderController from "controllers/RenderController";
-import GameContext from "../core/gameContext";
-import RandomUtils from "../utils/random";
+import GameContext from "@/core/gameContext";
+import RandomUtils from "@/utils/random";
 
 /// TODO(lg): This should be the canvas context no the game context
 export type RenderFn = (gameContext: GameContext) => void;
@@ -29,6 +29,6 @@ export default RenderElement;
 
 export class NoRender extends RenderElement {
   constructor() {
-    super(() => {});
+    super(() => { });
   }
 }

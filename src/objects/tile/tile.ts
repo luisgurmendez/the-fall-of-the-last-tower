@@ -1,9 +1,9 @@
-import RenderUtils from "../../render/utils";
-import BaseObject from "../baseObject";
-import RenderElement from "../../render/renderElement";
-import Renderable from "../../behaviors/renderable";
-import Vector from "../../physics/vector";
-import { Square } from "../../objects/shapes";
+import RenderUtils from "@/render/utils";
+import BaseObject from "@/objects/baseObject";
+import RenderElement from "@/render/renderElement";
+import Renderable from "@/behaviors/renderable";
+import Vector from "@/physics/vector";
+import { Square } from "@/objects/shapes";
 
 export enum TileType {
   grass,

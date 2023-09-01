@@ -1,11 +1,11 @@
-import GameContext from "../../core/gameContext";
-import Vector from "../../physics/vector";
-import { ObjectType } from "../objectType";
-import { PhysicableMixin } from "../../mixins/physics";
-import BaseObject from "../../objects/baseObject";
-import RenderElement from "../../render/renderElement";
-import Disposable from "../../behaviors/disposable";
-import Color from "../../utils/color";
+import GameContext from "@/core/gameContext";
+import Vector from "@/physics/vector";
+import { ObjectType } from "@/objects/objectType";
+import { PhysicableMixin } from "@/mixins/physics";
+import BaseObject from "@/objects/baseObject";
+import RenderElement from "@/render/renderElement";
+import Disposable from "@/behaviors/disposable";
+import Color from "@/utils/color";
 
 const ParticleMixins = PhysicableMixin(BaseObject);
 

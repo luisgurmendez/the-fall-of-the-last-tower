@@ -1,18 +1,17 @@
-import GameContext from "../../core/gameContext";
-import BaseObject from "../baseObject";
-import Disposable, { isDisposable } from "../../behaviors/disposable";
-import Vector from "../../physics/vector";
-import { PhysicableMixin } from "../../mixins/physics";
-import { CollisionableMixin } from "../../mixins/collisionable";
-import { Rectangle, Square } from "../shapes";
-import RenderElement from "../../render/renderElement";
-import PixelArtSpriteAnimator from "../../sprites/PixelArtSpriteAnimator";
+import GameContext from "@/core/gameContext";
+import Disposable, { isDisposable } from "@/behaviors/disposable";
+import Vector from "@/physics/vector";
+import { PhysicableMixin } from "@/mixins/physics";
+import { CollisionableMixin } from "@/mixins/collisionable";
+import RenderElement from "@/render/renderElement";
+import PixelArtSpriteAnimator from "@/sprites/PixelArtSpriteAnimator";
 import { buildSwordsManSprites } from "./sprites";
-import PixelArtSpriteSheet from "../../sprites/PixelArtSpriteSheet";
-import Attackable, { isAttackable } from "../../behaviors/attackable";
+import PixelArtSpriteSheet from "@/sprites/PixelArtSpriteSheet";
+import Attackable, { isAttackable } from "@/behaviors/attackable";
 import { generateSwordsmanBloodBath } from "./ParticleUtils";
-import RenderUtils from "../../render/utils";
-import Background from "../../objects/background";
+import Background from "@/objects/background";
+import BaseObject from "@/objects/baseObject";
+import { Square } from "@/objects/shapes";
 
 const SowrdsmanMixin = PhysicableMixin(
   CollisionableMixin<Square>()(BaseObject)

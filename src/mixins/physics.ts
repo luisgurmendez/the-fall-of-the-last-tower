@@ -1,4 +1,4 @@
-import Vector from "../physics/vector";
+import Vector from "@/physics/vector";
 import { PositionableConstructor, Positionable } from "./positional";
 import { GConstructor } from "./shared";
 

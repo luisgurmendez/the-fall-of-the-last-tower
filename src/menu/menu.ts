@@ -1,13 +1,13 @@
-import RocketStatusController from "../controllers/RocketStatusController";
-import { SavedLevel } from "../levels/levels";
-import { callTimes } from "../utils/fn";
+import RocketStatusController from "@/controllers/RocketStatusController";
+import { SavedLevel } from "@/levels/levels";
+import { callTimes } from "@/utils/fn";
 
 interface MenuItem {
   label: string;
   onClick: () => void;
 }
 
-function noop() {}
+function noop() { }
 
 type Fn = () => void;
 type GoToLevelFn = (i: number) => void;
@@ -210,9 +210,8 @@ function createLevelElement(level: LevelOption) {
 
   const itemEl = document.createElement("button");
   itemEl.innerText = level.name;
-  itemEl.className = `m-i ${level.inLevel ? "l-s" : ""} ${
-    level.numOfRescues === 3 ? "l-a" : ""
-  }`;
+  itemEl.className = `m-i ${level.inLevel ? "l-s" : ""} ${level.numOfRescues === 3 ? "l-a" : ""
+    }`;
   itemEl.addEventListener("click", level.onClick);
 
   const rescuedLabel = document.createElement("span");

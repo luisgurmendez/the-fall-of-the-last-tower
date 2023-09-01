@@ -1,14 +1,14 @@
-import { Rectangle } from "../objects/shapes";
-import GameContext from "../core/gameContext";
-import Pressable from "../behaviors/pressable";
-import Renderable from "../behaviors/renderable";
-import { Positionable } from "../mixins/positional";
-import Vector from "../physics/vector";
-import BaseObject from "../objects/baseObject";
-import { ObjectType } from "../objects/objectType";
-import Disposable from "../behaviors/disposable";
-import Camera from "../core/camera";
-import RenderElement from "../render/renderElement";
+import { Rectangle } from "@/objects/shapes";
+import GameContext from "@/core/gameContext";
+import Pressable from "@/behaviors/pressable";
+import Renderable from "@/behaviors/renderable";
+import { Positionable } from "@/mixins/positional";
+import Vector from "@/physics/vector";
+import BaseObject from "@/objects/baseObject";
+import { ObjectType } from "@/objects/objectType";
+import Disposable from "@/behaviors/disposable";
+import Camera from "@/core/camera";
+import RenderElement from "@/render/renderElement";
 import Initializable from "behaviors/initializable";
 
 const defaultButtonStyles: Required<ButtonStyles> = {

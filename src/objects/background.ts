@@ -1,15 +1,15 @@
-import GameContext from "../core/gameContext";
-import Vector from "../physics/vector";
-import RenderUtils from "../render/utils";
-import RenderElement from "../render/renderElement";
+import GameContext from "@/core/gameContext";
+import Vector from "@/physics/vector";
+import RenderUtils from "@/render/utils";
+import RenderElement from "@/render/renderElement";
 import BaseObject from "./baseObject";
 import { Circle, Rectangle, Square } from "./shapes";
-import PixelArtBuilder from "../sprites/PixelArtBuilder";
-import RandomUtils from "../utils/random";
-import bloodstains1 from "../art/bloodstains/bloodstains1";
-import bloodstains2 from "../art/bloodstains/bloodstains2";
-import bloodstains3 from "../art/bloodstains/bloodstains3";
-import bloodstains4 from "../art/bloodstains/bloodstains4";
+import PixelArtBuilder from "@/sprites/PixelArtBuilder";
+import RandomUtils from "@/utils/random";
+import bloodstains1 from "@/art/bloodstains/bloodstains1";
+import bloodstains2 from "@/art/bloodstains/bloodstains2";
+import bloodstains3 from "@/art/bloodstains/bloodstains3";
+import bloodstains4 from "@/art/bloodstains/bloodstains4";
 
 class Background extends BaseObject {
   backgroundCanvas: HTMLCanvasElement;

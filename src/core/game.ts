@@ -1,12 +1,12 @@
-import Keyboard from "./keyboard";
+// import Keyboard from "./keyboard";
 import Clock from "./clock";
 import CanvasGenerator from "./canvas";
-import { createMenu, disposeMenu } from "../menu/menu";
-import LevelsController from "../levels/levels";
+import { createMenu, disposeMenu } from "@/menu/menu";
+import LevelsController from "@/levels/levels";
 import Stats from "stats.js";
 
 const stats = new Stats();
-const pressedKeys = Keyboard.getInstance();
+// const pressedKeys = Keyboard.getInstance();
 
 class Game {
   private clock: Clock;

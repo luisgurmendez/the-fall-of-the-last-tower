@@ -1,27 +1,27 @@
-import { Rectangle } from "../objects/shapes";
-import BaseObject from "../objects/baseObject";
+import { Rectangle } from "@/objects/shapes";
+import BaseObject from "@/objects/baseObject";
 import Camera from "./camera";
-import Vector from "../physics/vector";
-import Initializable from "../behaviors/initializable";
-import Disposable from "../behaviors/disposable";
+import Vector from "@/physics/vector";
+import Initializable from "@/behaviors/initializable";
+import Disposable from "@/behaviors/disposable";
 import GameContext from "./gameContext";
-import ObjectLifecycleController from "../controllers/ObjectLifecycleController";
+import ObjectLifecycleController from "@/controllers/ObjectLifecycleController";
 import CollisionsController, {
   CollisionableObject,
   Collisions,
-} from "../controllers/CollisionsController";
+} from "@/controllers/CollisionsController";
 import { GameApi } from "./game";
-import RenderController from "../controllers/RenderController";
-import { isCollisionableObject } from "../mixins/collisionable";
-import Keyboard from "./keyboard";
-import Stepable from "../behaviors/stepable";
-import Renderable from "../behaviors/renderable";
-import RenderUtils from "../render/utils";
+import RenderController from "@/controllers/RenderController";
+import { isCollisionableObject } from "@/mixins/collisionable";
+// import Keyboard from "./keyboard";
+import Stepable from "@/behaviors/stepable";
+import Renderable from "@/behaviors/renderable";
+import RenderUtils from "@/render/utils";
 import { Dimensions } from "./canvas";
-import RenderElement from "../render/renderElement";
-import SpatiallyHashedObjects from "../utils/spatiallyHashedObjects";
+import RenderElement from "@/render/renderElement";
+import SpatiallyHashedObjects from "@/utils/spatiallyHashedObjects";
 
-const pressedKeys = Keyboard.getInstance();
+// const pressedKeys = Keyboard.getInstance();
 
 class Level implements Initializable, Disposable {
   objects: BaseObject[] = [];
@@ -68,7 +68,7 @@ class Level implements Initializable, Disposable {
       if (!this.statusController.hasWonOrLost) {
         const status = this.statusController.checkLevelCriteria(gameContext);
         if (status !== LevelStatus.PLAYING) {
-          // console.log(status);
+          console.log(status);
         }
       }
       this.objectLifecycleController.dispose(gameContext);
@@ -116,7 +116,7 @@ class Level implements Initializable, Disposable {
       api.isPaused,
       this.objects,
       // this.background,
-      pressedKeys,
+      // pressedKeys,
       api.canvasRenderingContext,
       this.camera,
       this.worldDimensions,

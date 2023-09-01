@@ -1,9 +1,9 @@
-import Disposable from "../behaviors/disposable";
-import { Dimensions } from "../core/canvas";
-import GameContext from "../core/gameContext";
-import Vector from "../physics/vector";
-import RenderElement from "../render/renderElement";
-import RenderUtils from "../render/utils";
+import Disposable from "@/behaviors/disposable";
+import { Dimensions } from "@/core/canvas";
+import GameContext from "@/core/gameContext";
+import Vector from "@/physics/vector";
+import RenderElement from "@/render/renderElement";
+import RenderUtils from "@/render/utils";
 import BaseObject from "./baseObject";
 
 interface TimedText {

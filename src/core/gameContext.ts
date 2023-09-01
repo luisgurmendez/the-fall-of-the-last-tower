@@ -1,10 +1,10 @@
-import { Rectangle } from "../objects/shapes";
-import { Collisions } from "../controllers/CollisionsController";
-import BaseObject from "../objects/baseObject";
-import Keyboard from "./keyboard";
+import { Rectangle } from "@/objects/shapes";
+import { Collisions } from "@/controllers/CollisionsController";
+import BaseObject from "@/objects/baseObject";
+// import Keyboard from "./keyboard";
 import Camera from "./camera";
-import SpatiallyHashedObjects from "../utils/spatiallyHashedObjects";
-import Background from "../objects/background";
+import SpatiallyHashedObjects from "@/utils/spatiallyHashedObjects";
+import Background from "@/objects/background";
 
 class GameContext {
   readonly collisions: Collisions;
@@ -12,7 +12,7 @@ class GameContext {
   readonly isPaused: boolean;
   readonly dt: number;
   readonly objects: BaseObject[];
-  readonly pressedKeys: Keyboard;
+  // readonly pressedKeys: Keyboard;
   readonly canvasRenderingContext: CanvasRenderingContext2D;
   readonly camera: Camera;
   readonly worldDimensions: Rectangle;
@@ -30,7 +30,7 @@ class GameContext {
     isPaused: boolean,
     objects: BaseObject[],
     // background: Background,
-    pressedKeys: Keyboard,
+    // pressedKeys: Keyboard,
     canvasRenderingContext: CanvasRenderingContext2D,
     camera: Camera,
     worldDimensions: Rectangle,
@@ -43,7 +43,7 @@ class GameContext {
     this.isPaused = isPaused;
     this.objects = objects;
     // this.background = background;
-    this.pressedKeys = pressedKeys;
+    // this.pressedKeys = pressedKeys;
     this.canvasRenderingContext = canvasRenderingContext;
     this.camera = camera;
     this.worldDimensions = worldDimensions;

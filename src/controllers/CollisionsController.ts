@@ -1,7 +1,7 @@
-import { Rectangle, Circle } from "../objects/shapes";
-import { Collisionable, isCollisionableObject } from "../mixins/collisionable";
-import BaseObject from "../objects/baseObject";
-import Intersections from "../utils/intersections";
+import { Rectangle, Circle } from "@/objects/shapes";
+import { Collisionable, isCollisionableObject } from "@/mixins/collisionable";
+import BaseObject from "@/objects/baseObject";
+import Intersections from "@/utils/intersections";
 
 export type CollisionableObject = Collisionable & BaseObject;
 

@@ -1,4 +1,4 @@
-import { Rectangle } from "../objects/shapes";
+import { Rectangle } from "@/objects/shapes";
 
 export const Dimensions = new Rectangle(
   document.body.scrollWidth,

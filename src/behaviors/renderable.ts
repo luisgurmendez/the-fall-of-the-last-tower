@@ -1,4 +1,4 @@
-import RenderElement, { RenderFn } from "../render/renderElement";
+import RenderElement, { RenderFn } from "@/render/renderElement";
 interface Renderable<RenderOptions = {}> {
   render(options?: RenderOptions): RenderElement;
 }

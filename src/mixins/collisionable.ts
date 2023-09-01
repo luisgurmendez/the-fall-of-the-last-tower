@@ -1,5 +1,5 @@
-import BaseObject from "objects/baseObject";
-import { NullShape, Shape } from "../objects/shapes";
+import BaseObject from "@/objects/baseObject";
+import { NullShape, Shape } from "@/objects/shapes";
 import { GConstructor } from "./shared";
 
 export interface Collisionable<S extends Shape = Shape> extends BaseObject {

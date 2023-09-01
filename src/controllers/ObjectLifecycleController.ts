@@ -1,8 +1,8 @@
-import { isStepable } from "../behaviors/stepable";
-import GameContext from "../core/gameContext";
-import { isInitializable } from "../behaviors/initializable";
-import { isDisposable } from "../behaviors/disposable";
-import { filterInPlaceAndGetRest } from "../utils/fn";
+import { isStepable } from "@/behaviors/stepable";
+import GameContext from "@/core/gameContext";
+import { isInitializable } from "@/behaviors/initializable";
+import { isDisposable } from "@/behaviors/disposable";
+import { filterInPlaceAndGetRest } from "@/utils/fn";
 
 class ObjectLifecycleController {
   initialize(gameContext: GameContext) {

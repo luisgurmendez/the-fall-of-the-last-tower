@@ -1,15 +1,11 @@
-import Level, { LevelCriterion } from "../core/level";
-import Vector from "../physics/vector";
-import GameContext from "../core/gameContext";
-import Tile from "../objects/tile/tile";
-import Background from "../objects/background";
-import { Circle, Rectangle, Square } from "../objects/shapes";
-import BaseObject from "../objects/baseObject";
-import RenderElement from "../render/renderElement";
-import RenderUtils from "../render/utils";
-import Catapult from "../objects/catapult/catapult";
-import Button from "../controls/button";
-import Swordsman from "../objects/swordsman/swordsman";
+import Level, { LevelCriterion } from "@/core/level";
+import Vector from "@/physics/vector";
+import GameContext from "@/core/gameContext";
+import Tile from "@/objects/tile/tile";
+import Background from "@/objects/background";
+import { Rectangle, Square } from "@/objects/shapes";
+import BaseObject from "@/objects/baseObject";
+import Swordsman from "@/objects/swordsman/swordsman";
 
 function generate() {
   // const tiles = buildTilesGrid();

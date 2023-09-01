@@ -1,8 +1,8 @@
-import Color from "../../utils/color";
-import Particle from "../../objects/particle/particle";
-import Vector from "../../physics/vector";
-import RandomUtils from "../../utils/random";
-import { callTimes } from "../../utils/fn";
+import Color from "@/utils/color";
+import Particle from "@/objects/particle/particle";
+import Vector from "@/physics/vector";
+import RandomUtils from "@/utils/random";
+import { callTimes } from "@/utils/fn";
 
 export function generateSwordsmanBloodBath(position: Vector) {
   return callTimes(30, () => {

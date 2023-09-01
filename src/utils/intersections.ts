@@ -1,5 +1,5 @@
-import { Circle, Rectangle } from "../objects/shapes";
-import Vector from "../physics/vector";
+import { Circle, Rectangle } from "@/objects/shapes";
+import Vector from "@/physics/vector";
 
 class Intersections {
   static isRectangleIntersectingCircle(

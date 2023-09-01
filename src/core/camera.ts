@@ -1,14 +1,14 @@
-import Disposable from "../behaviors/disposable";
-import BaseObject from "../objects/baseObject";
-import RenderElement from "../render/renderElement";
-import Renderable from "../behaviors/renderable";
-import Stepable from "../behaviors/stepable";
-import { isPositionable, Positionable } from "../mixins/positional";
-import Vector from "../physics/vector";
+import Disposable from "@/behaviors/disposable";
+import BaseObject from "@/objects/baseObject";
+import RenderElement from "@/render/renderElement";
+import Renderable from "@/behaviors/renderable";
+import Stepable from "@/behaviors/stepable";
+import { isPositionable, Positionable } from "@/mixins/positional";
+import Vector from "@/physics/vector";
 import GameContext from "./gameContext";
-import Initializable from "../behaviors/initializable";
-import { Rectangle } from "../objects/shapes";
-import { wait } from "../utils/async";
+import Initializable from "@/behaviors/initializable";
+import { Rectangle } from "@/objects/shapes";
+import { wait } from "@/utils/async";
 
 const MAX_ZOOM = 14;
 const MIN_ZOOM = 0.5;

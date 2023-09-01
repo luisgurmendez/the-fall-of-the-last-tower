@@ -1,5 +1,5 @@
-import Level from "../core/level";
-import playgroundLevel from "../levels/playground";
+import Level from "@/core/level";
+import playgroundLevel from "@/levels/playground";
 
 class LevelsController {
   private level: Level;

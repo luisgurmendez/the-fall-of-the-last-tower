@@ -1,4 +1,4 @@
-import { Shape } from "../objects/shapes";
+import { Shape } from "@/objects/shapes";
 
 interface Pressable {
   pressArea: Shape;

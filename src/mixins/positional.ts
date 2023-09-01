@@ -1,4 +1,4 @@
-import Vector from "../physics/vector";
+import Vector from "@/physics/vector";
 import { GConstructor } from "./shared";
 
 export interface Positionable {

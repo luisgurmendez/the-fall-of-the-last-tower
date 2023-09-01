@@ -1,4 +1,4 @@
-import GameContext from "../core/gameContext";
+import GameContext from "@/core/gameContext";
 
 interface Initializable {
   shouldInitialize: boolean;

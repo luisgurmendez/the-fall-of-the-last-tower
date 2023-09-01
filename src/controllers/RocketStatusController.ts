@@ -1,4 +1,4 @@
-import GameContext from "../core/gameContext";
+import GameContext from "@/core/gameContext";
 
 // Updates the status of the rocket, lands it or explodes it.
 class RocketStatusController {
