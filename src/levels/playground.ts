@@ -42,12 +42,12 @@ class Criterion implements LevelCriterion {
   lost(): boolean {
     return false;
   }
-  step(context: GameContext): void {}
+  step(context: GameContext): void { }
 }
 
 function buildSoldiers() {
   const soldiers: BaseObject[] = [];
-  for (let i = 0; i < 100; i++) {
+  for (let i = 0; i < 8000; i++) {
     const side = Math.random() > 0.5 ? 0 : 1;
     soldiers.push(
       new Swordsman(

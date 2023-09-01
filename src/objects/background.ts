@@ -3,9 +3,13 @@ import Vector from "../physics/vector";
 import RenderUtils from "../render/utils";
 import RenderElement from "../render/renderElement";
 import BaseObject from "./baseObject";
-import { Rectangle, Square } from "./shapes";
+import { Circle, Rectangle, Square } from "./shapes";
 import PixelArtBuilder from "../sprites/PixelArtBuilder";
 import RandomUtils from "../utils/random";
+import bloodstains1 from "../art/bloodstains/bloodstains1";
+import bloodstains2 from "../art/bloodstains/bloodstains2";
+import bloodstains3 from "../art/bloodstains/bloodstains3";
+import bloodstains4 from "../art/bloodstains/bloodstains4";
 
 class Background extends BaseObject {
   backgroundCanvas: HTMLCanvasElement;
@@ -68,11 +72,36 @@ class Background extends BaseObject {
   }
 
   drawBloodStain(position: Vector) {
+    console.log('bloodstain')
     const ctx = this.backgroundCanvas.getContext("2d");
-    // ctx.
+    ctx?.save()
+
+
+
+    const blodstain = RandomUtils.getRandomValueOf<HTMLCanvasElement>([
+      bloodstain1,
+      bloodstain2,
+      bloodstain3Helmet,
+      bloodstain4Sword,
+    ]);
+
+    ctx?.translate(Math.round(this.backgroundCanvas.width / 2), Math.round(this.backgroundCanvas.height / 2));
+    ctx?.translate(Math.round(position.x), Math.round(position.y),);
+
+    if (RandomUtils.getRandomBoolean()) {
+      // mirror
+      ctx?.scale(-1, 1);
+    }
+
+    ctx!.drawImage(
+      blodstain,
+      -Math.round(blodstain.width / 2),
+      -Math.round(blodstain.height / 2),
+    );
+    ctx?.restore()
   }
 
-  step() {}
+  step() { }
 }
 
 export default Background;
@@ -132,6 +161,11 @@ const tree = PixelArtBuilder.buildCanvas({
     0x9ccd22,
   ],
 });
+
+const bloodstain1 = PixelArtBuilder.buildCanvas(bloodstains1);
+const bloodstain2 = PixelArtBuilder.buildCanvas(bloodstains2);
+const bloodstain3Helmet = PixelArtBuilder.buildCanvas(bloodstains3);
+const bloodstain4Sword = PixelArtBuilder.buildCanvas(bloodstains4);
 
 const backgroundBitMap = [
   [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],

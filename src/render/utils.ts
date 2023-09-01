@@ -5,7 +5,7 @@ class RenderUtils {
   static renderCircle(
     canvasRenderingContext: CanvasRenderingContext2D,
     position: Vector,
-    circle: Circle
+    circle: Circle = new Circle(10)
   ) {
     canvasRenderingContext.beginPath();
     canvasRenderingContext.arc(

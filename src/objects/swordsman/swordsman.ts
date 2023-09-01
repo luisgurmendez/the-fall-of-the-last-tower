@@ -4,7 +4,7 @@ import Disposable, { isDisposable } from "../../behaviors/disposable";
 import Vector from "../../physics/vector";
 import { PhysicableMixin } from "../../mixins/physics";
 import { CollisionableMixin } from "../../mixins/collisionable";
-import { Square } from "../shapes";
+import { Rectangle, Square } from "../shapes";
 import RenderElement from "../../render/renderElement";
 import PixelArtSpriteAnimator from "../../sprites/PixelArtSpriteAnimator";
 import { buildSwordsManSprites } from "./sprites";
@@ -12,6 +12,7 @@ import PixelArtSpriteSheet from "../../sprites/PixelArtSpriteSheet";
 import Attackable, { isAttackable } from "../../behaviors/attackable";
 import { generateSwordsmanBloodBath } from "./ParticleUtils";
 import RenderUtils from "../../render/utils";
+import Background from "../../objects/background";
 
 const SowrdsmanMixin = PhysicableMixin(
   CollisionableMixin<Square>()(BaseObject)
@@ -26,8 +27,7 @@ const swordsmanSpriteSheetEnemy = new PixelArtSpriteSheet(
 
 class Swordsman
   extends SowrdsmanMixin
-  implements ArmyUnit, Disposable, Attackable
-{
+  implements ArmyUnit, Disposable, Attackable {
   side: 0 | 1;
   rotationSpeed: number;
   target: BaseObject | null;
@@ -39,7 +39,7 @@ class Swordsman
   constructor(position: Vector, side: 0 | 1) {
     super(position);
     this.direction = new Vector(1, 0);
-    this.collisionMask = new Square(6);
+    this.collisionMask = new Square(32);
     this.side = side;
     this.rotationSpeed = 2;
     this.target = null;
@@ -192,7 +192,10 @@ class Swordsman
     gameContext.objects.push(
       ...generateSwordsmanBloodBath(this.position.clone())
     );
-    console.log(gameContext.objects);
+    const background = gameContext.objects.find(obj => obj.id === 'background');
+    if (background instanceof Background) {
+      background.drawBloodStain(this.position.clone().add(new Vector(0, this.collisionMask.h / 2)));
+    }
   }
 
   get isAttacking() {
