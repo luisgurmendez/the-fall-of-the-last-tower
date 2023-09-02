@@ -1,3 +1,4 @@
+import { PixelArt } from "@/sprites/PixelArtBuilder";
 import archerAttack0 from "./archer-attack-sprites/archerAttack0";
 import archerAttack1 from "./archer-attack-sprites/archerAttack1";
 import archerAttack2 from "./archer-attack-sprites/archerAttack2";
@@ -18,8 +19,8 @@ export function buildArcherSprites(side: 0 | 1) {
         archerAttack2,
         archerAttack3,
         archerAttack4,
-    ].map(s => ({
-        ...s,
-        palette: s.palette.map(p => p === 0x213ded ? (side === 1 ? p : 0xED2121) : p)
-    }))
+    ].map(s => {
+        const [v, w, h, c, palette] = s;
+        return [v, w, h, c, palette.map(p => p === 0x213ded ? (side === 1 ? p : 0xED2121) : p)]
+    }) as PixelArt[]
 }

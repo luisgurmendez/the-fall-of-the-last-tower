@@ -3,6 +3,7 @@
  * @license GPLv3 | Copyright (c) 2023 Mark Vasilkov
  */
 'use strict'
+import { PixelArt } from "@/sprites/PixelArtBuilder"
 
 const value = 0xe16ea8b9a5dace68bb11fe2ad235e915aeeden
 const width = 16
@@ -14,13 +15,13 @@ const palette = [
   0x6d0b0b,
 ]
 
-const bloodstains0 =  {
-    value,
-    width,
-    height,
-    cardinality,
-    palette,
-}
+const bloodstains0: PixelArt = [
+  value,
+  width,
+  height,
+  cardinality,
+  palette,
+]
 
 export default bloodstains0
 

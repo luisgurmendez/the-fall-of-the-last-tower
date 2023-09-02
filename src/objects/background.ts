@@ -143,29 +143,29 @@ function forRandomPositionsInside(
   }
 }
 
-const grass = PixelArtBuilder.buildCanvas({
-  value: 0x1ean,
-  width: 3,
-  height: 3,
-  cardinality: 2,
-  palette: [0x007700, undefined],
-});
+const grass = PixelArtBuilder.buildCanvas([
+  0x1ean,
+  3,
+  3,
+  2,
+  [0x007700, undefined],
+]);
 
-const tallGrass = PixelArtBuilder.buildCanvas({
-  value: 0x1f9a0c0783d9cn,
-  width: 7,
-  height: 5,
-  cardinality: 3,
-  palette: [, 0x007700, 0x87b151],
-});
+const tallGrass = PixelArtBuilder.buildCanvas([
+  0x1f9a0c0783d9cn,
+  7,
+  5,
+  3,
+  [, 0x007700, 0x87b151],
+]);
 
-const flower = PixelArtBuilder.buildCanvas({
-  value: 0x337644n,
-  width: 3,
-  height: 4,
-  cardinality: 4,
-  palette: [, 0xffffff, 0xecea6b, 0x87b151],
-});
+const flower = PixelArtBuilder.buildCanvas([
+  0x337644n,
+  3,
+  4,
+  4,
+  [, 0xffffff, 0xecea6b, 0x87b151],
+]);
 
 const tree = PixelArtBuilder.buildCanvas(tree0);
 
