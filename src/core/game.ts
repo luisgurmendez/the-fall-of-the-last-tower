@@ -1,7 +1,7 @@
 // import Keyboard from "./keyboard";
 import Clock from "./clock";
 import CanvasGenerator from "./canvas";
-import { createMenu, disposeMenu } from "@/menu/menu";
+// import { createMenu, disposeMenu } from "@/menu/menu";
 import LevelsController from "@/levels/levels";
 import Stats from "stats.js";
 
@@ -112,23 +112,23 @@ class Game {
     );
   }
 
-  private showMenu() {
-    this.pause();
-    createMenu(
-      this.hideMenu,
-      this.levelsController.getNumOfLevels(),
-      this.levelsController.levelIndex,
-      this.levelsController.getSavedLevels(),
-      (i: number) => this.levelsController.goToLevel(i)
-    );
-    this.showingMenu = true;
-  }
+  // private showMenu() {
+  //   this.pause();
+  //   createMenu(
+  //     this.hideMenu,
+  //     this.levelsController.getNumOfLevels(),
+  //     this.levelsController.levelIndex,
+  //     this.levelsController.getSavedLevels(),
+  //     (i: number) => this.levelsController.goToLevel(i)
+  //   );
+  //   this.showingMenu = true;
+  // }
 
-  private hideMenu = () => {
-    disposeMenu();
-    this.showingMenu = false;
-    this.unPause();
-  };
+  // private hideMenu = () => {
+  //   disposeMenu();
+  //   this.showingMenu = false;
+  //   this.unPause();
+};
 }
 
 export default Game;

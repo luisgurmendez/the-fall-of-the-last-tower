@@ -127,7 +127,7 @@ class Archer
         }
     }
 
-    /// TODO remove, not worth it.
+    /// TODO remove?, not worth it.
     private adjustDirection(dt: number) {
         const lookAt = this.target?.position.clone()
             .sub(this.position)
@@ -165,7 +165,6 @@ class Archer
     private attack(gameContext: GameContext): boolean {
         this.attackingTimeout = this.attackTimeout;
 
-        const isLookingLeft = this.direction.x < 0;
         /// adds a little offset to the arrow position
         const arrowPositionOffset = new Vector(0, 1.5);
         const arrow = new Arrow(this.position.clone().add(arrowPositionOffset), this.direction.clone(), this.side);
@@ -176,9 +175,6 @@ class Archer
         this.spriteAnimator.playAnimation("a", true,);
         this.acceleration = new Vector(0, 0);
         this.velocity = new Vector(0, 0);
-        // if (isAttackable(this.target)) {
-        // this.target.hasBeenAttacked(3);
-        // }
         return true
     }
 
