@@ -1,19 +1,21 @@
 type PixelArtValue = bigint;
 
-export interface PixelArt {
-    value: PixelArtValue;
-    width: number;
-    height: number;
-    // numbers of colors for this pixelart
-    cardinality: number;
-    palette: (number | undefined)[];
-}
+// export interface PixelArt {
+//     value: PixelArtValue;
+//     width: number;
+//     height: number;
+//     // numbers of colors for this pixelart
+//     cardinality: number;
+//     palette: (number | undefined)[];
+// }
 
+
+export type PixelArt = [PixelArtValue, number, number, number, (number | undefined)[]]
 
 class PixelArtBuilder {
     static buildCanvas = (pixelart: PixelArt, scale: number = 1): HTMLCanvasElement => {
         const canvas = document.createElement("canvas");
-        const { cardinality, width, height, value, palette } = pixelart;
+        const [value, width, height, cardinality, palette] = pixelart;
         let _value = value;
         canvas.width = width * scale;
         canvas.height = height * scale;
