@@ -1,6 +1,7 @@
 import Vector from "@/physics/vector";
 import { PixelArt } from "./PixelArtBuilder";
 import PixelArtSpriteSheet from "./PixelArtSpriteSheet";
+import GameContext from "@/core/gameContext";
 
 class PixelArtSpriteAnimator {
   private animations: {
@@ -30,11 +31,11 @@ class PixelArtSpriteAnimator {
   }
 
   playAnimation(name: string, killPrevAnimation = false): void {
-    if (
-      name === this.currentAnimation ||
+    if (name === this.currentAnimation ||
       (this.isPlayingAnimation && !killPrevAnimation)
-    )
+    ) {
       return;
+    }
     this.currentAnimation = name;
     this.currentFrame = 0;
     this.elapsedTime = 0;

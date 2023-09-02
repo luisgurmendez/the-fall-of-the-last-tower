@@ -9,6 +9,7 @@ export interface Physicable extends Positionable {
   speed: number;
   angularAcceleration: number;
   angularVelocity: number;
+  friction: number;
   isMoving: () => boolean;
 
   calculateVelocity: (dt: number) => Vector;
@@ -29,7 +30,7 @@ export function PhysicableMixin<TBase extends PositionableConstructor>(
     angularAcceleration = 0;
     angularVelocity = 0;
     direction: Vector = new Vector();
-    friction = 0.995; // you can set this value to suit your needs
+    friction = 0.993; // you can set this value to suit your needs
     maxSpeed = 100; // you can set this value to suit your needs
 
     get speed(): number {

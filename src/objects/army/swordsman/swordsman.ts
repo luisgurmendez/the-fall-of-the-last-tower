@@ -13,7 +13,10 @@ import Background from "@/objects/background";
 import BaseObject from "@/objects/baseObject";
 import { Square } from "@/objects/shapes";
 
-const SowrdsmanMixin = PhysicableMixin(
+const ATTACK_RANGE = 20;
+const OUT_OF_REACH_RANGE = 350;
+
+const SwordsmanMixin = PhysicableMixin(
   CollisionableMixin<Square>()(BaseObject)
 );
 
@@ -25,7 +28,7 @@ const swordsmanSpriteSheetEnemy = new PixelArtSpriteSheet(
 );
 
 class Swordsman
-  extends SowrdsmanMixin
+  extends SwordsmanMixin
   implements ArmyUnit, Disposable, Attackable {
   side: 0 | 1;
   rotationSpeed: number;
@@ -81,93 +84,93 @@ class Swordsman
   }
 
   step(gctx: GameContext) {
+    const { dt } = gctx;
+
     if (this.health <= 0) {
       this.die(gctx);
     }
-
-    let hasSetAnimation = false;
-    const { dt, spatialHasing } = gctx;
-    this.spriteAnimator.update(dt);
-    const objs = spatialHasing.query(this.position);
-    this.attackingTimeout -= dt;
 
     if (this.target && isDisposable(this.target) && this.target.shouldDispose) {
       this.target = null;
     }
 
-    if (!this.target) {
-      this.target = this.getNearestEnemy(objs);
-    }
+    let hasSetAnimation = false;
+    this.attackingTimeout -= dt;
+    this.spriteAnimator.update(dt);
+
+    this.fixTarget(gctx);
 
     if (!this.isAttacking) {
-      if (this.target) {
-        const directionToEnemy = this.target.position
-          .clone()
-          .sub(this.position)
-          .normalize();
-        const angleToEnemy = this.direction.angleTo(directionToEnemy);
-        const rotationAmount = this.rotationSpeed * dt;
-        const rotationAngle =
-          Math.sign(angleToEnemy) *
-          Math.min(Math.abs(angleToEnemy), rotationAmount);
 
-        this.direction = this.direction
-          .rotate(rotationAngle, false)
-          .normalize();
-      } else {
-        const directionToEnemy = new Vector(0, 0);
-        const angleToEnemy = this.direction.angleTo(directionToEnemy);
-        const rotationAmount = this.rotationSpeed * dt;
-        const rotationAngle =
-          Math.sign(angleToEnemy) *
-          Math.min(Math.abs(angleToEnemy), rotationAmount);
-
-        this.direction = this.direction
-          .rotate(rotationAngle, false)
-          .normalize();
-      }
-
-      this.acceleration = this.direction.clone().scalar(4);
+      this.adjustDirection(gctx.dt);
+      const lookAt = this.target?.position.clone()
+        .sub(this.position)
+        .normalize() ?? new Vector(0, 0);
+      this.acceleration = lookAt.scalar(4);
       this.velocity = this.calculateVelocity(gctx.dt);
       this.position = this.calculatePosition(gctx.dt);
     }
 
-    if (this.target) {
-      // Attacks if enemy is near
-      if (
-        this.canAttack &&
-        this.target.position.distanceTo(this.position) < 20
-      ) {
-        this.attackingTimeout = this.attackTimeout;
-        if (Math.random() > 0.5 && isDisposable(this.target)) {
-          this.spriteAnimator.playAnimation("a", true);
-          hasSetAnimation = true;
-          this.acceleration = new Vector(0, 0);
-          this.velocity = new Vector(0, 0);
-          if (isAttackable(this.target)) {
-            this.target.hasBeenAttacked(3);
-          }
-          // this.target.shouldDispose = true;
-          // this.target = null;
-        }
-      } else {
-        // Retargets if enemy is far
-        // if (this.target.position.distanceTo(this.position) > 150) {
-        // this.target = null;
-        // }
-      }
+    if (this.shouldAttack) {
+      hasSetAnimation = this.attack();
     }
+
 
     if (!hasSetAnimation) {
       this.spriteAnimator.playAnimation("w", false);
     }
   }
 
-  getNearestEnemy(objs: BaseObject[]) {
-    const enemies: BaseObject[] = objs.filter(
-      (obj) =>
-        (obj as any).side !== undefined && (obj as any).side !== this.side
-    );
+  /// TODO remove, not worth it.
+  private adjustDirection(dt: number) {
+    const lookAt = this.target?.position.clone()
+      .sub(this.position)
+      .normalize() ?? new Vector(0, 0);
+
+    const angleToEnemy = this.direction.angleTo(lookAt);
+    const rotationAmount = this.rotationSpeed * dt;
+    const rotationAngle =
+      Math.sign(angleToEnemy) *
+      Math.min(Math.abs(angleToEnemy), rotationAmount);
+
+    this.direction = this.direction
+      .rotate(rotationAngle, false)
+      .normalize();
+  }
+
+  private fixTarget(gameContext: GameContext) {
+    const { spatialHashing } = gameContext;
+    if (this.target && (this.target.id === 'castle' || this.target.position.distanceTo(this.position) > OUT_OF_REACH_RANGE)) {
+      this.target = null;
+    }
+
+    if (!this.target || this.target.id === 'castle') {
+      const nearByObjs = spatialHashing.query(this.position);
+      /// TODO fix types
+      const nearByEnemies = nearByObjs.filter(obj => (obj as any).side !== undefined && (obj as any).side !== this.side);
+      if (nearByEnemies.length > 0) {
+        this.target = this.getNearestEnemy(nearByEnemies);
+      } else {
+        this.target = gameContext.objects.find(obj => obj.id === 'castle') ?? null;
+      }
+    }
+  }
+
+  private attack(): boolean {
+    this.attackingTimeout = this.attackTimeout;
+    if (Math.random() > 0.5 && isDisposable(this.target)) {
+      this.spriteAnimator.playAnimation("a", true);
+      this.acceleration = new Vector(0, 0);
+      this.velocity = new Vector(0, 0);
+      if (isAttackable(this.target)) {
+        this.target.hasBeenAttacked(3);
+      }
+      return true
+    }
+    return false;
+  }
+
+  private getNearestEnemy(enemies: BaseObject[]) {
     enemies.sort((a, b) => {
       const aDistance = a.position.distanceTo(this.position);
       const bDistance = b.position.distanceTo(this.position);
@@ -182,23 +185,22 @@ class Swordsman
     }
   }
 
-  tryToBlockAttack(damage: number) {
+  private tryToBlockAttack(damage: number) {
     return false;
   }
 
-  die(gameContext: GameContext) {
+  private die(gameContext: GameContext) {
     this.shouldDispose = true;
-    console.log(this.position);
     gameContext.objects.push(
       ...generateSwordsmanBloodBath(this.position.clone())
     );
     const background = gameContext.objects.find(obj => obj.id === 'background');
     if (background instanceof Background) {
-      background.drawBloodStain(this.position.clone().add(new Vector(0, this.collisionMask.h / 2)));
+      background.drawSwordsmanBloodstain(this.position.clone().add(new Vector(0, this.collisionMask.h / 2)));
     }
   }
 
-  get isAttacking() {
+  private get isAttacking() {
     return (
       this.spriteAnimator.currentAnimation === "a" &&
       this.spriteAnimator.isPlayingAnimation &&
@@ -206,7 +208,11 @@ class Swordsman
     );
   }
 
-  get canAttack() {
+  private get shouldAttack() {
+    return this.target && this.canAttack && this.target.position.distanceTo(this.position) < ATTACK_RANGE;
+  }
+
+  private get canAttack() {
     return this.attackingTimeout <= 0;
   }
 }

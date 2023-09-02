@@ -56,7 +56,7 @@ class Camera extends BaseObject implements Stepable, Disposable, Initializable {
         (event.clientY - (canvas.offsetTop + canvas.height / 2)) * -1;
       const wheel = event.deltaY < 0 ? 1 : -1;
 
-      const deltaZoom = Math.exp(wheel * 0.02);
+      const deltaZoom = Math.exp(wheel * 0.05);
 
       const oldZoom = this.zoom;
       this.zoom = this.zoom * deltaZoom;

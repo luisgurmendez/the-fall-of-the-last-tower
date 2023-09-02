@@ -4,20 +4,17 @@
  */
 'use strict'
 
-const value = 0x3862d0763e46d566465dd45f39ba4603eb55143b86e271f6d2ed69c73a5eb87d5213551d07a6de464c0ed7a94dddaffa8229cea1461647a779e3ad8c85ce9ee6dbfb3405b9a2212302c4230000000n
+const value = 0xe16ea8b9a5dace68bb11fe2ad235e915aeeden
 const width = 16
 const height = 16
-const cardinality = 6
+const cardinality = 3
 const palette = [
   ,
-  0x000000,
-  0x414143,
-  0x7e7979,
   0xa10000,
-  0xffffff,
+  0x6d0b0b,
 ]
 
-const bloodstains2 =  {
+const bloodstains0 =  {
     value,
     width,
     height,
@@ -25,5 +22,5 @@ const bloodstains2 =  {
     palette,
 }
 
-export default bloodstains2
+export default bloodstains0
 

@@ -10,6 +10,7 @@ import bloodstains1 from "@/art/bloodstains/bloodstains1";
 import bloodstains2 from "@/art/bloodstains/bloodstains2";
 import bloodstains3 from "@/art/bloodstains/bloodstains3";
 import bloodstains4 from "@/art/bloodstains/bloodstains4";
+import bloodstains0 from "@/art/bloodstains/bloodstains0";
 
 class Background extends BaseObject {
   backgroundCanvas: HTMLCanvasElement;
@@ -24,6 +25,7 @@ class Background extends BaseObject {
     ctx!.imageSmoothingEnabled = false;
     ctx!.fillStyle = "#99c555";
     ctx!.fillRect(0, 0, worldDimensions.w, worldDimensions.h);
+
     forRandomPositionsInside(10000, worldDimensions, (position) => {
       ctx?.save();
       if (RandomUtils.getRandomBoolean()) {
@@ -71,20 +73,28 @@ class Background extends BaseObject {
     return renderElement;
   }
 
-  drawBloodStain(position: Vector) {
-    console.log('bloodstain')
-    const ctx = this.backgroundCanvas.getContext("2d");
-    ctx?.save()
-
-
-
-    const blodstain = RandomUtils.getRandomValueOf<HTMLCanvasElement>([
+  drawSwordsmanBloodstain(position: Vector) {
+    const bloodstain = RandomUtils.getRandomValueOf<HTMLCanvasElement>([
       bloodstain1,
       bloodstain2,
       bloodstain3Helmet,
       bloodstain4Sword,
     ]);
+    this.drawBloodstain(position, bloodstain);
+  }
 
+  drawArcherBloodstain(position: Vector) {
+    const bloodstain = RandomUtils.getRandomValueOf<HTMLCanvasElement>([
+      bloodstain1,
+      bloodstain2,
+      bloodstainBow,
+    ]);
+    this.drawBloodstain(position, bloodstain);
+  }
+
+  private drawBloodstain(position: Vector, bloodstain: HTMLCanvasElement,) {
+    const ctx = this.backgroundCanvas.getContext("2d");
+    ctx?.save()
     ctx?.translate(Math.round(this.backgroundCanvas.width / 2), Math.round(this.backgroundCanvas.height / 2));
     ctx?.translate(Math.round(position.x), Math.round(position.y),);
 
@@ -94,10 +104,28 @@ class Background extends BaseObject {
     }
 
     ctx!.drawImage(
-      blodstain,
-      -Math.round(blodstain.width / 2),
-      -Math.round(blodstain.height / 2),
+      bloodstain,
+      -Math.round(bloodstain.width / 2),
+      -Math.round(bloodstain.height / 2),
     );
+    ctx?.restore()
+  }
+
+  drawArrow(position: Vector, direction: Vector) {
+    const ctx = this.backgroundCanvas.getContext("2d");
+    ctx?.save()
+    ctx?.translate(Math.round(this.backgroundCanvas.width / 2), Math.round(this.backgroundCanvas.height / 2));
+    ctx?.translate(Math.round(position.x), Math.round(position.y));
+
+    if (direction.x < 0) {
+      // mirror
+      ctx?.scale(-1, 1);
+    }
+    ctx?.rotate(45 * Math.PI / 180);
+    ctx?.beginPath();
+    ctx?.moveTo(0, 0);
+    ctx?.lineTo(10, 0);
+    ctx?.stroke();
     ctx?.restore()
   }
 
@@ -162,10 +190,11 @@ const tree = PixelArtBuilder.buildCanvas({
   ],
 });
 
-const bloodstain1 = PixelArtBuilder.buildCanvas(bloodstains1);
-const bloodstain2 = PixelArtBuilder.buildCanvas(bloodstains2);
-const bloodstain3Helmet = PixelArtBuilder.buildCanvas(bloodstains3);
-const bloodstain4Sword = PixelArtBuilder.buildCanvas(bloodstains4);
+const bloodstain1 = PixelArtBuilder.buildCanvas(bloodstains0);
+const bloodstain2 = PixelArtBuilder.buildCanvas(bloodstains1);
+const bloodstain3Helmet = PixelArtBuilder.buildCanvas(bloodstains2);
+const bloodstain4Sword = PixelArtBuilder.buildCanvas(bloodstains3);
+const bloodstainBow = PixelArtBuilder.buildCanvas(bloodstains4);
 
 const backgroundBitMap = [
   [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -201,11 +230,11 @@ function drawBackgroundBitMap(
   for (let y = 0; y < bitMap.length; y++) {
     for (let x = 0; x < bitMap[y].length; x++) {
       const tile = bitMap[y][x];
-      if (tile === 0 || tile === 3) {
+      if (tile === 0) {
         continue;
       }
       const position = new Vector(x * tileWidth, y * tileHeight);
-      const tileCanvas = getTileCanvas(tile, tileWidth, tileHeight);
+      const tileCanvas = buildForestCanvas(tileWidth, tileHeight);
       ctx.drawImage(tileCanvas, position.x, position.y);
     }
   }
@@ -225,43 +254,4 @@ function buildForestCanvas(w: number, h: number) {
     }
   );
   return canvas;
-}
-
-function buildSandCanvas(w: number, h: number) {
-  const canvas = document.createElement("canvas");
-  const sandDensity = 32;
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext("2d")!;
-  ctx.fillStyle = "#f4e6b2";
-  ctx.fillRect(0, 0, w, h);
-  ctx.fillStyle = "#000";
-
-  forRandomPositionsInside(
-    (w * h) / sandDensity,
-    new Rectangle(w, h),
-    (position) => {
-      ctx.fillRect(position.x, position.y, 1, 1);
-    }
-  );
-
-  return canvas;
-}
-
-function getTileCanvas(
-  tile: number,
-  tileWidth: number,
-  tileHeight: number
-): HTMLCanvasElement {
-  const tileCanvas = document.createElement("canvas");
-  tileCanvas.width = tileWidth;
-  tileCanvas.height = tileHeight;
-  const tileCtx = tileCanvas.getContext("2d")!;
-  switch (tile) {
-    case 1:
-      return buildForestCanvas(tileWidth, tileHeight);
-    case 2:
-      return buildSandCanvas(tileWidth, tileHeight);
-  }
-  return tileCanvas;
 }

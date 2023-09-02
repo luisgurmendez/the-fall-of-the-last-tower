@@ -8,7 +8,7 @@ import Background from "@/objects/background";
 
 class GameContext {
   readonly collisions: Collisions;
-  readonly spatialHasing: SpatiallyHashedObjects;
+  readonly spatialHashing: SpatiallyHashedObjects;
   readonly isPaused: boolean;
   readonly dt: number;
   readonly objects: BaseObject[];
@@ -25,7 +25,7 @@ class GameContext {
 
   constructor(
     collisions: Collisions,
-    spatialHasing: SpatiallyHashedObjects,
+    spatialHashing: SpatiallyHashedObjects,
     dt: number,
     isPaused: boolean,
     objects: BaseObject[],
@@ -38,7 +38,7 @@ class GameContext {
     unPause: () => void
   ) {
     this.collisions = collisions;
-    this.spatialHasing = spatialHasing;
+    this.spatialHashing = spatialHashing;
     this.dt = dt;
     this.isPaused = isPaused;
     this.objects = objects;

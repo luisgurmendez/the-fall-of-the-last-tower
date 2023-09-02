@@ -4,14 +4,14 @@
  */
 'use strict'
 
-const value = 0xed7e121d3e4140edb445f07cff914e6c6c6n
-const width = 15
-const height = 6
+const value = 0xa8d79ee03cfae1ca691a2e0db6dcdda70a6a9n
+const width = 16
+const height = 16
 const cardinality = 3
 const palette = [
   ,
-  0xa10000,
   0x6d0b0b,
+  0xa10000,
 ]
 
 const bloodstains1 =  {
