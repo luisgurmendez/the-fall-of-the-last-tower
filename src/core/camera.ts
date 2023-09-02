@@ -11,7 +11,7 @@ import { Rectangle } from "@/objects/shapes";
 import { wait } from "@/utils/async";
 
 const MAX_ZOOM = 14;
-const MIN_ZOOM = 0.5;
+const MIN_ZOOM = 0.4;
 
 class Camera extends BaseObject implements Stepable, Disposable, Initializable {
   _position: Vector;
@@ -22,6 +22,7 @@ class Camera extends BaseObject implements Stepable, Disposable, Initializable {
   locked = false;
   shouldInitialize = true;
   shouldDispose = false;
+  worldDimensions: Rectangle | null = null;
   // flying: Flying = new Flying();
 
   constructor() {
@@ -39,6 +40,7 @@ class Camera extends BaseObject implements Stepable, Disposable, Initializable {
   init(gameContext: GameContext) {
     const { canvasRenderingContext } = gameContext;
     const canvas = canvasRenderingContext.canvas;
+    this.worldDimensions = gameContext.worldDimensions;
 
     this.viewport.w = canvas.width;
     this.viewport.h = canvas.height;
@@ -141,7 +143,7 @@ class Camera extends BaseObject implements Stepable, Disposable, Initializable {
 
   set zoom(_z: number) {
     if (!this.locked) {
-      this._zoom = Math.min(Math.max(_z, MIN_ZOOM), MAX_ZOOM);
+      this._zoom = Math.min(Math.max(_z, this.getMinZoom()), MAX_ZOOM);
     }
   }
 
@@ -159,19 +161,26 @@ class Camera extends BaseObject implements Stepable, Disposable, Initializable {
     return this._position;
   }
 
+  getMinZoom() {
+    if (this.worldDimensions === null) {
+      return MIN_ZOOM;
+    }
+    const minZoomX = this.viewport.w / this.worldDimensions.w;
+    const minZoomY = this.viewport.h / this.worldDimensions.h;
+    return Math.max(minZoomX, minZoomY);
+  }
+
   step(context: GameContext) {
     if (this.following !== null) {
       this._position = this.following.position.clone();
     }
-    // this._position.add(this.flying.fly(context.dt, this.position.clone()))
-    this.adjutsPositionIfOutOfWorldsBounds(context.worldDimensions);
+    this.adjustPositionIfOutOfWorldsBounds(context.worldDimensions);
   }
 
-  //TODO: Double check bounding box of world with zooming, should we adjust viewport on zoom?
-  adjutsPositionIfOutOfWorldsBounds(world: Rectangle) {
+  adjustPositionIfOutOfWorldsBounds(world: Rectangle) {
     const viewportWithZoom = new Rectangle(this.viewport.w / this.zoom, this.viewport.h / this.zoom);
 
-    const adjutsLeft =
+    const adjustLeft =
       this.position.clone().x - viewportWithZoom.w / 2 < -world.w / 2;
 
     const adjustRight =
@@ -183,7 +192,7 @@ class Camera extends BaseObject implements Stepable, Disposable, Initializable {
     const adjustBottom =
       this.position.clone().y - viewportWithZoom.h / 2 < -world.h / 2;
 
-    if (adjutsLeft) {
+    if (adjustLeft) {
       this.position.x = -world.w / 2 + viewportWithZoom.w / 2;
     }
 

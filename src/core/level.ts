@@ -42,8 +42,6 @@ class Level implements Initializable, Disposable {
     criteria: LevelCriterion,
     worldDimensions: Rectangle = new Rectangle(1000, 1000)
   ) {
-    // const background = new SpaceBackground();
-    // const stars = new StarPool(worldDimensions);
     this.objects = objects;
     this.camera = new Camera();
     this.worldDimensions = worldDimensions;
@@ -52,17 +50,13 @@ class Level implements Initializable, Disposable {
   }
 
   update(gameApi: GameApi): void {
-    // console.time('collisions')
     const collisions = this._buildCollisions();
     const spatialHasing = this._buildSpatiallyHashedObjects();
-    // console.timeEnd('collisions')
 
     const gameContext = this.generateGameContext(gameApi, collisions, spatialHasing);
     if (!gameApi.isPaused) {
       this.objectLifecycleController.initialize(gameContext);
-      // console.time('step')
       this.objectLifecycleController.step(gameContext);
-      // console.timeEnd('step')
 
       // Move this to private fn..
       if (!this.statusController.hasWonOrLost) {

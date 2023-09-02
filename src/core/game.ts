@@ -129,7 +129,6 @@ class Game {
   //   this.showingMenu = false;
   //   this.unPause();
 };
-}
 
 export default Game;
 

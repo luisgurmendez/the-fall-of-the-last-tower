@@ -1,4 +1,3 @@
-import RenderController from "controllers/RenderController";
 import GameContext from "@/core/gameContext";
 import RandomUtils from "@/utils/random";
 

@@ -9,7 +9,7 @@ import { ObjectType } from "@/objects/objectType";
 import Disposable from "@/behaviors/disposable";
 import Camera from "@/core/camera";
 import RenderElement from "@/render/renderElement";
-import Initializable from "behaviors/initializable";
+import Initializable from "@/behaviors/initializable";
 
 const defaultButtonStyles: Required<ButtonStyles> = {
   backgroundColor: "#F00",
