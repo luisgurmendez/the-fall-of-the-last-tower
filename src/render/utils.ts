@@ -5,13 +5,13 @@ class RenderUtils {
   static renderCircle(
     canvasRenderingContext: CanvasRenderingContext2D,
     position: Vector,
-    circle: Circle = new Circle(10)
+    radius: number,
   ) {
     canvasRenderingContext.beginPath();
     canvasRenderingContext.arc(
       position.x,
       position.y,
-      circle.radius,
+      radius,
       0,
       2 * Math.PI
     );
@@ -21,14 +21,15 @@ class RenderUtils {
   static renderRectangle(
     canvasRenderingContext: CanvasRenderingContext2D,
     position: Vector,
-    rectangle: Rectangle
+    w: number,
+    h: number
   ) {
     canvasRenderingContext.beginPath();
     canvasRenderingContext.rect(
-      position.x - rectangle.w / 2,
-      position.y - rectangle.h / 2,
-      rectangle.w,
-      rectangle.h
+      position.x - w / 2,
+      position.y - h / 2,
+      w,
+      h
     );
     canvasRenderingContext.stroke();
   }

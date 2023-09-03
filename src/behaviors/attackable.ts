@@ -1,9 +1,9 @@
 interface Attackable {
-  hasBeenAttacked(damage: number): void;
+  applyDamage(damage: number): void;
 }
 
 export function isAttackable(object: any): object is Attackable {
-  return typeof object === "object" && object.hasBeenAttacked !== undefined;
+  return typeof object === "object" && object.applyDamage !== undefined;
 }
 
 export default Attackable;

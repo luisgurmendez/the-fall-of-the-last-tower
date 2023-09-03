@@ -175,7 +175,6 @@ const bloodstain3Helmet = PixelArtBuilder.buildCanvas(bloodstains2);
 const bloodstain4Sword = PixelArtBuilder.buildCanvas(bloodstains3);
 const bloodstainBow = PixelArtBuilder.buildCanvas(bloodstains4);
 
-
 function drawTrees(
   ctx: CanvasRenderingContext2D,
   worldDimensions: Rectangle
@@ -190,92 +189,16 @@ function drawTrees(
     const y = RandomUtils.getIntegerInRange(-worldDimensions.h / 2, worldDimensions.h / 2);
     // const y = fn(x);
     if (y > 0) {
-      if (fn(x) < y) {
+      if (fn(x) + RandomUtils.getIntegerInRange(-200, 200) < y) {
         treesPlanted++;
         ctx.drawImage(tree, x, y);
       }
     } else {
-      if (-fn(x) > y) {
+      if (-fn(x) + RandomUtils.getIntegerInRange(-200, 200) > y) {
         treesPlanted++;
         ctx.drawImage(tree, x, y);
       }
     }
   }
   ctx.restore();
-
-  forRandomPositionsInside(
-    200,
-    worldDimensions,
-    (position) => {
-      ctx.drawImage(tree, position.x, position.y);
-    }
-  );
-
-
-}
-
-
-const backgroundBitMap = [
-  [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-  [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-  [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-  [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-  [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-  [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-  [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-];
-
-function drawBackgroundBitMap(
-  ctx: CanvasRenderingContext2D,
-  bitMap: number[][],
-  worldDimensions: Rectangle
-) {
-  const tileWidth = worldDimensions.w / bitMap[0].length;
-  const tileHeight = worldDimensions.h / bitMap.length;
-  for (let y = 0; y < bitMap.length; y++) {
-    for (let x = 0; x < bitMap[y].length; x++) {
-      const tile = bitMap[y][x];
-      if (tile === 0) {
-        continue;
-      }
-      const position = new Vector(x * tileWidth, y * tileHeight);
-      const tileCanvas = buildForestCanvas(tileWidth, tileHeight);
-      ctx.drawImage(tileCanvas, position.x, position.y);
-    }
-  }
-}
-
-function buildForestCanvas(w: number, h: number) {
-  const forestDensity = 20;
-  const canvas = document.createElement("canvas");
-  canvas.width = w + tree.width * 4;
-  canvas.height = h + tree.height * 4;
-  const ctx = canvas.getContext("2d")!;
-  forRandomPositionsInside(
-    (w * h) / (forestDensity * tree.height),
-    new Rectangle(w, h),
-    (position) => {
-      ctx.save();
-      // ctx!.scale(2, 2);
-      // context.drawImage(imageObj, 0, 0, 100, 100 * imageObj.height / imageObj.width)
-      const treeSize = RandomUtils.getNumberWithVariance(1, 1);
-      ctx!.drawImage(tree, position.x, position.y, tree.width * treeSize, tree.height * treeSize);
-      // ctx.restore();
-    }
-  );
-  return canvas;
 }

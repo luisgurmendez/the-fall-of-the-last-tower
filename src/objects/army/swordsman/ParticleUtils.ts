@@ -4,7 +4,7 @@ import Vector from "@/physics/vector";
 import RandomUtils from "@/utils/random";
 import { callTimes } from "@/utils/fn";
 
-export function generateSwordsmanBloodBath(position: Vector) {
+export function generateBloodExplotion(position: Vector) {
   return callTimes(30, () => {
     const ttl = RandomUtils.getValueInRange(0.5, 1.3);
     const particle = new Particle(ttl);

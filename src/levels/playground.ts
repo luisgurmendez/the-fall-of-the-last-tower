@@ -1,25 +1,24 @@
 import Level, { LevelCriterion } from "@/core/level";
 import Vector from "@/physics/vector";
 import GameContext from "@/core/gameContext";
-import Tile from "@/objects/tile/tile";
 import Background from "@/objects/background";
 import { Rectangle, Square } from "@/objects/shapes";
 import BaseObject from "@/objects/baseObject";
 import Swordsman from "@/objects/army/swordsman/swordsman";
 import Castle from "@/objects/castle/castle";
 import Archer from "@/objects/army/archer/archer";
+import RandomUtils from "@/utils/random";
 
 function generate() {
   // const tiles = buildTilesGrid();
   const worldDimensions: Rectangle = new Square(5000);
   const level = new Level(
     [
-      ...buildSwordsmen(),
       ...buildArchers(),
-      // new Swordsman(new Vector(50, 50), 0),
+      ...buildSwordsmen(),
       // new Swordsman(new Vector(85, 50), 1),
-      new Background(worldDimensions),
       new Castle(),
+      new Background(worldDimensions),
     ],
     new Criterion(),
     worldDimensions
@@ -31,19 +30,45 @@ function generate() {
 export default generate;
 
 class Criterion implements LevelCriterion {
+  wave = 0;
+
   won(): boolean {
     return false;
   }
   lost(): boolean {
     return false;
   }
-  step(context: GameContext): void { }
+  step(context: GameContext): void {
+    if (Math.random() > 0.99) {
+      this.buildWave(this.wave, context);
+    }
+  }
+
+  buildWave(wave: number, context: GameContext) {
+    if (wave < 1) {
+      const soldiers: BaseObject[] = [];
+      for (let i = 0; i < 100; i++) {
+        soldiers.push(
+          new Swordsman(
+            new Vector(
+              context.worldDimensions.w / 2 + (Math.random() * 500),
+              RandomUtils.getNumberWithVariance(-200, 400),
+            ),
+            1
+          )
+        );
+      }
+      context.objects.push(...soldiers);
+      this.wave++;
+    }
+
+  }
 }
 
 function buildSwordsmen() {
   const soldiers: BaseObject[] = [];
-  for (let i = 0; i < 1000; i++) {
-    const side = Math.random() > 0.5 ? 0 : 1;
+  for (let i = 0; i < 500; i++) {
+    const side = 0;
     soldiers.push(
       new Swordsman(
         new Vector(
@@ -60,7 +85,7 @@ function buildSwordsmen() {
 function buildArchers() {
   const soldiers: BaseObject[] = [];
   for (let i = 0; i < 200; i++) {
-    const side = Math.random() > 0.5 ? 0 : 1;
+    const side = 0;
     soldiers.push(
       new Archer(
         new Vector(
@@ -72,35 +97,4 @@ function buildArchers() {
     );
   }
   return soldiers;
-}
-
-function buildTilesGrid() {
-  const gridSize = 100;
-  const positionOffsetBetweenTiles = Math.sqrt(Tile.SIZE ** 2 + Tile.SIZE ** 2);
-  const tiles: Tile[] = [];
-  const startingPoint = new Vector(
-    (-gridSize / 2) * Tile.SIZE,
-    (-gridSize / 2) * Tile.SIZE
-  );
-  let prevPosition = startingPoint;
-  for (let i = 0; i < gridSize * gridSize; i++) {
-    const newPosition = prevPosition
-      .clone()
-      .add(new Vector(positionOffsetBetweenTiles, 0));
-    if (i % gridSize === 0) {
-      if (i % (gridSize * 2) === 0) {
-        newPosition.add(new Vector(0, positionOffsetBetweenTiles / 2));
-        newPosition.x = startingPoint.x;
-      } else {
-        newPosition.add(new Vector(0, positionOffsetBetweenTiles / 2));
-        newPosition.x = startingPoint.x + positionOffsetBetweenTiles / 2;
-      }
-    }
-    prevPosition = newPosition;
-    if (newPosition.distanceTo(new Vector(0, 0)) <= Tile.SIZE * 40) {
-      tiles.push(new Tile(newPosition));
-    }
-  }
-
-  return tiles;
 }

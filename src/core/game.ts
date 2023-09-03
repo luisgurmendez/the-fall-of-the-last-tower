@@ -2,7 +2,8 @@
 import Clock from "./clock";
 import CanvasGenerator from "./canvas";
 // import { createMenu, disposeMenu } from "@/menu/menu";
-import LevelsController from "@/levels/levels";
+import playgroundLevel from "@/levels/playground";
+
 // import Stats from "stats.js";
 
 // const stats = new Stats();
@@ -13,7 +14,7 @@ class Game {
   private isPaused = false;
   private canvasRenderingContext: CanvasRenderingContext2D;
 
-  private levelsController: LevelsController;
+  private level = playgroundLevel();
   private gameSpeed = 1;
   private showingMenu = false;
 
@@ -21,19 +22,17 @@ class Game {
     // Inits canvas rendering context
     this.canvasRenderingContext = CanvasGenerator.generateCanvas();
     this.clock = new Clock();
-    this.levelsController = new LevelsController();
   }
 
   init() {
-    this.levelsController.init();
+    this.level.init();
 
     // stats.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
     // document.body.appendChild(stats.dom);
-    // window.addEventListener("blur", () => {
-    //   pressedKeys.clearPressedKeys();
-    //   this.pause();
-    // });
-    // // window.addEventListener('focus', this.unPause);
+    window.addEventListener("blur", () => {
+      this.pause();
+    });
+    window.addEventListener('focus', this.unPause);
 
     window.addEventListener("keydown", (e) => {
       if (e.key === "x") {
@@ -45,6 +44,14 @@ class Game {
         this.gameSpeed -= 1;
         this.gameSpeed = Math.max(this.gameSpeed, 1);
       }
+
+      if (e.key === "p" && !this.showingMenu) {
+        if (this.isPaused) {
+          this.unPause();
+        } else {
+          this.pause();
+        }
+      }
     });
 
     //   if (e.key === "m") {
@@ -55,13 +62,7 @@ class Game {
     //     }
     //   }
 
-    //   if (e.key === "p" && !this.showingMenu) {
-    //     if (this.isPaused) {
-    //       this.unPause();
-    //     } else {
-    //       this.pause();
-    //     }
-    //   }
+
     // });
 
     // this.showMenu();
@@ -89,9 +90,9 @@ class Game {
 
   private update() {
     try {
-      const level = this.levelsController.getLevel();
+
       const gameApi = this.generateGameApi();
-      level.update(gameApi);
+      this.level.update(gameApi);
     } catch (e) {
       console.log(e);
     }
@@ -103,13 +104,13 @@ class Game {
 
   private generateGameApi(): GameApi {
     const dt = this.clock.getDelta() * this.gameSpeed;
-    return new GameApi(
+    return {
       dt,
-      this.canvasRenderingContext,
-      this.isPaused,
-      this.pause,
-      this.unPause
-    );
+      canvasRenderingContext: this.canvasRenderingContext,
+      isPaused: this.isPaused,
+      pause: this.pause,
+      unPause: this.unPause
+    }
   }
 
   // private showMenu() {
@@ -132,25 +133,14 @@ class Game {
 
 export default Game;
 
-export class GameApi {
+
+export interface GameApi { }
+
+export interface GameApi {
   readonly canvasRenderingContext: CanvasRenderingContext2D;
   readonly dt: number;
-
   readonly isPaused: boolean;
   pause: () => void;
   unPause: () => void;
-
-  constructor(
-    dt: number,
-    canvasRenderingContext: CanvasRenderingContext2D,
-    isPaused: boolean,
-    pause: () => void,
-    unPause: () => void
-  ) {
-    this.dt = dt;
-    this.canvasRenderingContext = canvasRenderingContext;
-    this.isPaused = isPaused;
-    this.pause = pause;
-    this.unPause = unPause;
-  }
 }
+
