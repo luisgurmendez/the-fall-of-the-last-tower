@@ -12,9 +12,11 @@ import ArmyUnit from "../armyUnit";
 import Cooldown from "@/objects/cooldown";
 import { buildArmySpritesWithSideColor } from "../spriteUtils";
 import { Target } from "../types";
+import CollisionsController from "@/controllers/CollisionsController";
 
 const ATTACK_RANGE = 15;
 const OUT_OF_REACH_RANGE = 350;
+
 
 const swordsmanSpriteSheetAlly = new PixelArtSpriteSheet(
   buildArmySpritesWithSideColor(swordsmanSprites, 0)
@@ -27,7 +29,7 @@ class Swordsman
   extends ArmyUnit {
   maxArmor: number = 0;
   armor: number = 0;
-  attackCooldown: Cooldown = new Cooldown(1000);
+  attackCooldown: Cooldown = new Cooldown(1);
 
   side: 0 | 1;
   // rotationSpeed: number;
@@ -39,7 +41,8 @@ class Swordsman
   constructor(position: Vector, side: 0 | 1) {
     super(position);
     this.direction = new Vector(1, 0);
-    this.collisionMask = new Rectangle(24, 32);
+    /// half the actual size
+    this.collisionMask = new Rectangle(12, 16);
     this.side = side;
     // this.rotationSpeed = 2;
     this.target = null;
@@ -69,7 +72,7 @@ class Swordsman
 
   step(gctx: GameContext) {
     const { dt } = gctx;
-
+    const prevPos = this.position.clone();
     if (this.health <= 0) {
       this.die(gctx);
     }
@@ -88,11 +91,7 @@ class Swordsman
 
       this.adjustDirection(gctx.dt);
 
-      const lookAt = this.target?.position.clone()
-        .sub(this.position)
-        .normalize() ?? new Vector(0, 0);
-
-      this.acceleration = lookAt.scalar(80);
+      this.acceleration = this.direction.clone().scalar(80);
       this.velocity = this.calculateVelocity(gctx.dt);
       this.position = this.calculatePosition(gctx.dt);
     }
@@ -104,6 +103,10 @@ class Swordsman
 
     if (!hasSetAnimation) {
       this.spriteAnimator.playAnimation("w", false);
+    }
+
+    if (this.target && CollisionsController.calculateCollision(this.target, this)) {
+      this.position = prevPos;
     }
   }
 
@@ -132,9 +135,12 @@ class Swordsman
     }
 
     if (!this.target || this.target.id === 'castle') {
-      const nearByObjs = spatialHashing.query(this.position);
-      /// TODO fix types
-      const nearByEnemies = nearByObjs.filter(obj => (obj as any).side !== undefined && (obj as any).side !== this.side);
+      const nearByObjs = spatialHashing.queryInRange(this.position, OUT_OF_REACH_RANGE)
+
+      const nearByEnemies = nearByObjs.filter(obj => (obj as any).side !== undefined && (obj as any).side !== this.side && isAttackable(obj));
+      if (this.side === 0) {
+        console.log(nearByEnemies)
+      }
       if (nearByEnemies.length > 0) {
         this.target = this.getNearestEnemy(nearByEnemies);
       } else if (this.side === 1) {

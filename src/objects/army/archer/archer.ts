@@ -15,18 +15,16 @@ import { Rectangle, Square } from "@/objects/shapes";
 import { archerSprites } from "./sprites";
 import { buildArmySpritesWithSideColor } from "../spriteUtils";
 import Arrow from "./arrow";
+import ArmyUnit from "../armyUnit";
+import { Target } from "../types";
+import Cooldown from "@/objects/cooldown";
 
-const ATTACK_RANGE = 200;
+const ATTACK_RANGE = 1000;
 const OUT_OF_REACH_RANGE = 350;
 
 const archerAttackSpriteFrames = [3, 4, 5, 6, 7,]
 const archerAttackAnimationDurationPerFrame = 0.2;
 const archerArrowReleaseFrameAnimationDuration = archerAttackAnimationDurationPerFrame * 4;
-
-/// TODO(): reuse with swordsman
-const ArcherMixin = PhysicableMixin(
-    CollisionableMixin<Square>()(BaseObject)
-);
 
 const archerSpriteSheetAlly = new PixelArtSpriteSheet(
     buildArmySpritesWithSideColor(archerSprites, 0)
@@ -35,14 +33,15 @@ const archermanSpriteSheetEnemy = new PixelArtSpriteSheet(
     buildArmySpritesWithSideColor(archerSprites, 1)
 );
 
-class Archer
-    extends ArcherMixin
-    implements Disposable, Attackable {
+class Archer extends ArmyUnit {
+    protected maxHealth: number = 80;
+    protected maxArmor: number = 10;
+    protected armor: number = 10;
+    protected attackCooldown: Cooldown = new Cooldown(2);
+
     side: 0 | 1;
     rotationSpeed: number;
-    target: BaseObject | null;
-    attackTimeout = 1000;
-    attackingTimeout = 0;
+    target: Target | null;
     spriteAnimator: PixelArtSpriteAnimator;
     health = 10;
 
@@ -54,8 +53,6 @@ class Archer
         this.rotationSpeed = 2;
         this.target = null;
         this.shouldDispose = false;
-        this.attackTimeout = 3;
-        this.attackingTimeout = 0;
         this.spriteAnimator = new PixelArtSpriteAnimator(
             side === 0 ? archerSpriteSheetAlly : archermanSpriteSheetEnemy,
             1
@@ -67,10 +64,6 @@ class Archer
 
     shouldDispose: boolean;
 
-    dispose() {
-        this.shouldDispose = true;
-    }
-
     render() {
         if (this.isAttacking) {
             this.spriteAnimator.playAnimation("a");
@@ -80,19 +73,13 @@ class Archer
             this.spriteAnimator.stopAnimation();
         }
 
-        return new RenderElement((gtx) => {
-            const { canvasRenderingContext } = gtx;
-            this.spriteAnimator.render(
-                canvasRenderingContext,
-                this.position,
-                this.direction.x < 0
-            );
-        }, true);
+        return this.buildRenderElement();
     }
 
     step(gctx: GameContext) {
         const { dt } = gctx;
         let hasSetAnimation = false;
+        this.attackCooldown.update(dt);
 
         if (this.health <= 0) {
             this.die(gctx);
@@ -102,9 +89,7 @@ class Archer
             this.target = null;
         }
 
-        this.attackingTimeout -= dt;
         this.spriteAnimator.update(dt);
-
         this.fixTarget(gctx);
 
         if (!this.isAttacking) {
@@ -113,7 +98,7 @@ class Archer
             const lookAt = this.target?.position.clone()
                 .sub(this.position)
                 .normalize() ?? new Vector(0, 0);
-            this.acceleration = lookAt.scalar(4);
+            this.acceleration = lookAt.scalar(90);
             this.velocity = this.calculateVelocity(gctx.dt);
             this.position = this.calculatePosition(gctx.dt);
         }
@@ -121,7 +106,6 @@ class Archer
         if (this.shouldAttack) {
             hasSetAnimation = this.attack(gctx);
         }
-
 
         if (!hasSetAnimation) {
             this.spriteAnimator.playAnimation("w", false);
@@ -152,19 +136,19 @@ class Archer
         }
 
         if (!this.target || this.target.id === 'castle') {
-            const nearByObjs = spatialHashing.query(this.position);
+            const nearByObjs = spatialHashing.queryInRange(this.position, ATTACK_RANGE + 10);
             /// TODO fix types
             const nearByEnemies = nearByObjs.filter(obj => (obj as any).side !== undefined && (obj as any).side !== this.side);
             if (nearByEnemies.length > 0) {
-                this.target = this.getNearestEnemy(nearByEnemies);
-            } else {
-                this.target = gameContext.objects.find(obj => obj.id === 'castle') ?? null;
+                this.target = this.getNearestEnemy(nearByEnemies) as Target;
+            } else if (this.side === 1) {
+                this.target = gameContext.objects.find(obj => obj.id === 'castle') as Target ?? null;
             }
         }
     }
 
-    private attack(gameContext: GameContext): boolean {
-        this.attackingTimeout = this.attackTimeout;
+    protected attack(gameContext: GameContext): boolean {
+        this.attackCooldown.start();
 
         /// adds a little offset to the arrow position
         const arrowPositionOffset = new Vector(0, 1.5);
@@ -198,31 +182,20 @@ class Archer
         return false;
     }
 
-    private die(gameContext: GameContext) {
-        this.shouldDispose = true;
-        gameContext.objects.push(
-            ...generateBloodExplotion(this.position.clone())
-        );
-        const background = gameContext.objects.find(obj => obj.id === 'background');
-        if (background instanceof Background) {
-            background.drawArcherBloodstain(this.position.clone().add(new Vector(0, this.collisionMask.h / 2)));
-        }
-    }
-
     private get isAttacking() {
         return (
             this.spriteAnimator.currentAnimation === "a" &&
             this.spriteAnimator.isPlayingAnimation &&
-            this.attackingTimeout > 0
+            this.attackCooldown.isCooling()
         );
     }
 
     private get shouldAttack() {
-        return this.target && this.canAttack && this.target.position.distanceTo(this.position) < ATTACK_RANGE;
+        return this.target && this.canAttack() && this.target.position.distanceTo(this.position) < ATTACK_RANGE;
     }
 
-    private get canAttack() {
-        return this.attackingTimeout <= 0;
+    chooseTypeOfBloodstainWhenDying(background: Background): (inPosition: Vector) => void {
+        return background.drawArcherBloodstain.bind(background);
     }
 }
 

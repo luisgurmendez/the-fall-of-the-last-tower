@@ -11,6 +11,8 @@ import Background from "../background";
 import Vector from "@/physics/vector";
 import PixelArtSpriteAnimator from "@/sprites/PixelArtSpriteAnimator";
 import RenderElement from "@/render/renderElement";
+import RenderUtils from "@/render/utils";
+import Archer from "./archer/archer";
 
 const BaseArmyUnit = PhysicableMixin(
     CollisionableMixin<Square>()(BaseObject)
@@ -30,7 +32,7 @@ abstract class ArmyUnit extends BaseArmyUnit implements Disposable {
 
     abstract chooseTypeOfBloodstainWhenDying(background: Background): (inPosition: Vector) => void;
 
-    protected abstract attack(): void;
+    protected abstract attack(g: GameContext): void;
 
     protected canAttack() {
         return !this.attackCooldown.isCooling();
@@ -56,7 +58,6 @@ abstract class ArmyUnit extends BaseArmyUnit implements Disposable {
     buildRenderElement() {
         return new RenderElement((gtx) => {
             const { canvasRenderingContext } = gtx;
-
             this.spriteAnimator.render(
                 canvasRenderingContext,
                 this.position,

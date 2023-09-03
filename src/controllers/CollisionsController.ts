@@ -23,7 +23,7 @@ class CollisionsController {
             primaryObj !== secondaryObj &&
             isCollisionableObject(secondaryObj)
           ) {
-            const areObjectsColliding = this.calculateCollision(
+            const areObjectsColliding = CollisionsController.calculateCollision(
               primaryObj,
               secondaryObj
             );
@@ -43,7 +43,7 @@ class CollisionsController {
   }
 
   // Checks if 2 objects are colliding
-  private calculateCollision(
+  static calculateCollision(
     a: CollisionableObject,
     b: CollisionableObject
   ): boolean {

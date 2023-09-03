@@ -77,8 +77,7 @@ class Level implements Initializable, Disposable {
     const collisionableObjects: CollisionableObject[] = this.objects.filter(
       isCollisionableObject
     );
-    // return this.collisionController.buildCollisions(collisionableObjects);
-    return {};
+    return this.collisionController.buildCollisions(collisionableObjects);
   }
 
   private _buildSpatiallyHashedObjects() {
