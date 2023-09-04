@@ -7,7 +7,7 @@ import Cooldown from "../cooldown";
 import GameContext from "@/core/gameContext";
 import Disposable from "@/behaviors/disposable";
 import { generateBloodExplotion } from "./swordsman/ParticleUtils";
-import Background from "../background";
+import Background, { BACKGROUND_ID } from "../background";
 import Vector from "@/physics/vector";
 import PixelArtSpriteAnimator from "@/sprites/PixelArtSpriteAnimator";
 import RenderElement from "@/render/renderElement";
@@ -42,7 +42,7 @@ abstract class ArmyUnit extends BaseArmyUnit implements Disposable {
         gameContext.objects.push(
             ...generateBloodExplotion(this.position.clone())
         );
-        const background = gameContext.objects.find(obj => obj.id === 'background');
+        const background = gameContext.objects.find(obj => obj.id === BACKGROUND_ID);
         if (background instanceof Background) {
             this.chooseTypeOfBloodstainWhenDying(background)(this.position.clone().add(new Vector(0, this.collisionMask.h / 2)));
         }

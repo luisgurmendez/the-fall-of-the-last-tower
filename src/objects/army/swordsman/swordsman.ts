@@ -14,6 +14,7 @@ import { buildArmySpritesWithSideColor } from "../spriteUtils";
 import { Target } from "../types";
 import CollisionsController from "@/controllers/CollisionsController";
 import RandomUtils from "@/utils/random";
+import { CASTLE_ID } from "@/objects/castle/castle";
 
 const ATTACK_RANGE = 15;
 const OUT_OF_REACH_RANGE = 350;
@@ -131,11 +132,11 @@ class Swordsman
 
   private fixTarget(gameContext: GameContext) {
     const { spatialHashing } = gameContext;
-    if (this.target && (this.target.id === 'castle' || this.target.position.distanceTo(this.position) > OUT_OF_REACH_RANGE)) {
+    if (this.target && (this.target.id === CASTLE_ID || this.target.position.distanceTo(this.position) > OUT_OF_REACH_RANGE)) {
       this.target = null;
     }
 
-    if (!this.target || this.target.id === 'castle') {
+    if (!this.target || this.target.id === CASTLE_ID) {
       const nearByObjs = spatialHashing.queryInRange(this.position, OUT_OF_REACH_RANGE)
 
       const nearByEnemies = nearByObjs.filter(obj => (obj as any).side !== undefined && (obj as any).side !== this.side && isAttackable(obj));
@@ -143,7 +144,7 @@ class Swordsman
       if (nearByEnemies.length > 0) {
         this.target = RandomUtils.getRandomValueOf(nearByEnemies) as Target;
       } else if (this.side === 1) {
-        this.target = gameContext.objects.find(obj => obj.id === 'castle') as Target ?? null;
+        this.target = gameContext.objects.find(obj => obj.id === CASTLE_ID) as Target ?? null;
       }
     }
   }

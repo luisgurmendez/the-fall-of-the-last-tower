@@ -1,6 +1,5 @@
 import GameContext from "@/core/gameContext";
 import Vector from "@/physics/vector";
-import { ObjectType } from "@/objects/objectType";
 import { PhysicableMixin } from "@/mixins/physics";
 import BaseObject from "@/objects/baseObject";
 import RenderElement from "@/render/renderElement";
@@ -20,7 +19,6 @@ class Particle extends ParticleMixins implements Disposable {
   constructor(ttl = 1) {
     super();
     this.position = new Vector();
-    this.type = ObjectType.PARTICLE;
     this.velocity = new Vector(0, 0);
     this.direction = new Vector(0, -1);
     this.ttl = ttl;

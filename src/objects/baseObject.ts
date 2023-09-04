@@ -1,7 +1,6 @@
 import Renderable from "@/behaviors/renderable";
 import Stepable from "@/behaviors/stepable";
 import RenderElement, { NoRender } from "@/render/renderElement";
-import { ObjectType } from "./objectType";
 import RandomUtils from "@/utils/random";
 import Vector from "@/physics/vector";
 import GameContext from "@/core/gameContext";
@@ -11,7 +10,6 @@ const PositionalMixins = PositionableMixin(Object);
 
 class BaseObject extends PositionalMixins implements Renderable, Stepable {
   public id: string;
-  public type: ObjectType = ObjectType.BASE_OBJECT;
 
   constructor(position = new Vector(), id: string = RandomUtils.generateId()) {
     super();

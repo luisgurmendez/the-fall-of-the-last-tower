@@ -4,9 +4,9 @@ import CanvasGenerator from "./canvas";
 // import { createMenu, disposeMenu } from "@/menu/menu";
 import playgroundLevel from "@/levels/playground";
 
-// import Stats from "stats.js";
+import Stats from "stats.js";
 
-// const stats = new Stats();
+const stats = new Stats();
 // const pressedKeys = Keyboard.getInstance();
 
 class Game {
@@ -27,8 +27,8 @@ class Game {
   init() {
     this.level.init();
 
-    // stats.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
-    // document.body.appendChild(stats.dom);
+    stats.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
+    document.body.appendChild(stats.dom);
     window.addEventListener("blur", () => {
       // this.pause();
     });
@@ -80,9 +80,9 @@ class Game {
 
   loop = () => {
     return () => {
-      // stats.begin();
+      stats.begin();
       this.update();
-      // stats.end();
+      stats.end();
       requestAnimationFrame(this.loop());
       this.afterUpdate();
     };

@@ -16,7 +16,9 @@ export const swordsmanSprites = [
     swordsmanAttack1,
     swordsmanAttack2,
     swordsmanAttack3,
+    swordsmanAttack2,
     swordsmanAttack4,
     swordsmanAttack5,
     swordsmanAttack6,
-    swordsmanAttack7,]
+    swordsmanAttack7,
+]

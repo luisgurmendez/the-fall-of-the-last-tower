@@ -2,7 +2,7 @@ import Vector from "@/physics/vector";
 import BaseObject from "../baseObject";
 import RenderElement from "@/render/renderElement";
 import RenderUtils from "@/render/utils";
-import { Circle, Rectangle, Shape, Square } from "../shapes";
+import { Rectangle } from "../shapes";
 import { CollisionableMixin } from "@/mixins/collisionable";
 import Attackable from "@/behaviors/attackable";
 import RandomUtils from "@/utils/random";
@@ -11,30 +11,34 @@ import Particle from "../particle/particle";
 import Color from "@/utils/color";
 
 const castleBrickSize = 50;
+export const CASTLE_ID = 'c'
+const darkGray = "#555";
+const lightGray = "#ddd";
+const transparent = "transparent"
 
 class Castle extends CollisionableMixin<Rectangle>()(BaseObject) implements Attackable {
     size: Rectangle = new Rectangle(1000, 1000);
     health = 1000;
-    maxHealth = 1000;
+    maxHealth = this.health;
     constructor() {
-        super(new Vector(-2500, 0), 'castle');
+        super(new Vector(-2500, 0), CASTLE_ID);
         this.collisionMask = this.size;
     }
     applyDamage(damage: number): void {
-        console.log(damage);
         this.health -= damage;
     }
 
     render() {
         return new RenderElement((ctx) => {
 
-            ctx.canvasRenderingContext.strokeStyle = "transparent";
 
-            ctx.canvasRenderingContext.fillStyle = "#ddd";
+            ctx.canvasRenderingContext.strokeStyle = transparent;
+
+            ctx.canvasRenderingContext.fillStyle = lightGray;
             RenderUtils.renderRectangle(ctx.canvasRenderingContext, this.position, this.size.w, this.size.h);
             ctx.canvasRenderingContext.fill();
 
-            ctx.canvasRenderingContext.fillStyle = "#555";
+            ctx.canvasRenderingContext.fillStyle = darkGray;
             RenderUtils.renderRectangle(ctx.canvasRenderingContext, this.position, this.size.w - castleBrickSize, this.size.h - castleBrickSize,);
             ctx.canvasRenderingContext.fill();
 
@@ -42,7 +46,7 @@ class Castle extends CollisionableMixin<Rectangle>()(BaseObject) implements Atta
             const brickLines = Math.round(this.size.w / castleBrickSize) - 1;
 
             ctx.canvasRenderingContext.save();
-            ctx.canvasRenderingContext.strokeStyle = "#555";
+            ctx.canvasRenderingContext.strokeStyle = darkGray;
             ctx.canvasRenderingContext.lineWidth = 4;
             ctx.canvasRenderingContext.beginPath();
             ctx.canvasRenderingContext.translate(this.position.x, this.position.y);
@@ -71,13 +75,13 @@ class Castle extends CollisionableMixin<Rectangle>()(BaseObject) implements Atta
 
     drawTower(ctx: CanvasRenderingContext2D, position: Vector) {
         const towerRadius = 100;
-        ctx.strokeStyle = "transparent";
+        ctx.strokeStyle = transparent;
 
-        ctx.fillStyle = "#ddd";
+        ctx.fillStyle = lightGray;
         RenderUtils.renderCircle(ctx, position, towerRadius);
         ctx.fill();
 
-        ctx.fillStyle = "#555";
+        ctx.fillStyle = darkGray;
         RenderUtils.renderCircle(ctx, position, towerRadius - castleBrickSize / 2);
         ctx.fill();
 
@@ -85,7 +89,7 @@ class Castle extends CollisionableMixin<Rectangle>()(BaseObject) implements Atta
         // draw brick lines
         const brickLines = Math.round(this.size.w / castleBrickSize) - 1;
         ctx.save();
-        ctx.strokeStyle = "#555";
+        ctx.strokeStyle = darkGray;
         ctx.lineWidth = 4;
         ctx.beginPath();
         ctx.translate(position.x, position.y);
@@ -123,143 +127,4 @@ class Castle extends CollisionableMixin<Rectangle>()(BaseObject) implements Atta
 }
 
 export default Castle;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// import Vector from "@/physics/vector";
-// import BaseObject from "../baseObject";
-// import RenderElement from "@/render/renderElement";
-// import RenderUtils from "@/render/utils";
-// import { Rectangle } from "../shapes";
-// import { CollisionableMixin } from "@/mixins/collisionable";
-// import Attackable from "@/behaviors/attackable";
-
-// const castleBrickSize = 50;
-
-// class Castle extends CollisionableMixin<Rectangle>()(BaseObject) implements Attackable {
-//     size: Rectangle = new Rectangle(1000, 1000);
-//     health = 1000;
-//     castleCanvas: HTMLCanvasElement;
-
-//     constructor() {
-//         super(new Vector(-2500, 0), 'castle');
-//         this.collisionMask = this.size;
-//         this.castleCanvas = document.createElement('canvas');
-//         this.castleCanvas.width = this.size.w;
-//         this.castleCanvas.height = this.size.h;
-//         drawCastle(this.castleCanvas, this.size, this.position);
-//     }
-
-//     applyDamage(damage: number): void {
-//         this.health -= damage;
-//     }
-
-//     render() {
-//         return new RenderElement((ctx) => {
-//             ctx.canvasRenderingContext.drawImage(this.castleCanvas, 0, 0);
-//         }, true);
-//     }
-// }
-
-// export default Castle;
-
-
-
-// const drawCastle = (canvas: HTMLCanvasElement, size: Rectangle, position: Vector) => {
-//     const ctx = canvas.getContext('2d')!;
-
-//     ctx.strokeStyle = "transparent";
-
-//     ctx.fillStyle = "#ddd";
-//     RenderUtils.renderRectangle(ctx, position, size.w, size.h);
-//     ctx.fill();
-
-//     ctx.fillStyle = "#555";
-//     RenderUtils.renderRectangle(ctx, position, size.w - castleBrickSize, size.h - castleBrickSize,);
-//     ctx.fill();
-
-//     // draw a grid that represent the lines on the briks
-//     const brickLines = Math.round(size.w / castleBrickSize) - 1;
-
-//     ctx.save();
-//     ctx.strokeStyle = "#555";
-//     ctx.lineWidth = 4;
-//     ctx.beginPath();
-//     ctx.translate(position.x, position.y);
-//     ctx.translate(-size.w / 2, -size.h / 2);
-
-//     ctx.moveTo(0, 0);
-//     for (let i = 0; i < brickLines; i++) {
-//         ctx.lineTo(castleBrickSize * i, size.h);
-//         ctx.moveTo(0, castleBrickSize * (i + 1));
-//         ctx.lineTo(size.w, castleBrickSize * (i + 1),);
-//         ctx.moveTo(castleBrickSize * (i + 1), 0);
-//     }
-//     ctx.stroke();
-//     ctx.restore();
-
-
-//     // draw the 2 towers on the corners
-//     drawTower(ctx, position.clone().add(new Vector(size.w / 2, size.h / 2)), size);
-//     drawTower(ctx, position.clone().add(new Vector(size.w / 2, -size.h / 2)), size);
-// }
-
-// const drawTower = (ctx: CanvasRenderingContext2D, position: Vector, size: Rectangle) => {
-//     const towerRadius = 100;
-//     ctx.strokeStyle = "transparent";
-
-//     ctx.fillStyle = "#ddd";
-//     RenderUtils.renderCircle(ctx, position, towerRadius);
-//     ctx.fill();
-
-//     ctx.fillStyle = "#555";
-//     RenderUtils.renderCircle(ctx, position, towerRadius - castleBrickSize / 2);
-//     ctx.fill();
-
-
-//     // draw brick lines
-//     const brickLines = Math.round(size.w / castleBrickSize) - 1;
-//     ctx.save();
-//     ctx.strokeStyle = "#555";
-//     ctx.lineWidth = 4;
-//     ctx.beginPath();
-//     ctx.translate(position.x, position.y);
-//     ctx.moveTo(0, 0);
-//     for (let i = 0; i < brickLines; i++) {
-//         const angle = (i * 360 / brickLines) * (Math.PI / 180);
-//         const x = 100 * Math.cos(angle);
-//         const y = 100 * Math.sin(angle);
-//         ctx.moveTo(0, 0);
-//         ctx.lineTo(x, y);
-//     }
-//     ctx.stroke();
-//     ctx.restore();
-// }
 

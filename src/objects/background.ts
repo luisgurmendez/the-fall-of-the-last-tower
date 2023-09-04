@@ -1,9 +1,8 @@
 import GameContext from "@/core/gameContext";
 import Vector from "@/physics/vector";
-import RenderUtils from "@/render/utils";
 import RenderElement from "@/render/renderElement";
 import BaseObject from "./baseObject";
-import { Circle, Rectangle, Square } from "./shapes";
+import { Rectangle } from "./shapes";
 import PixelArtBuilder from "@/sprites/PixelArtBuilder";
 import RandomUtils from "@/utils/random";
 import bloodstains1 from "@/art/bloodstains/bloodstains1";
@@ -13,13 +12,14 @@ import bloodstains4 from "@/art/bloodstains/bloodstains4";
 import bloodstains0 from "@/art/bloodstains/bloodstains0";
 import tree0 from "@/art/tree0";
 
+export const BACKGROUND_ID = "bg";
+
 class Background extends BaseObject {
   backgroundCanvas: HTMLCanvasElement;
   canvasRenderingContext: CanvasRenderingContext2D | null;
   constructor(worldDimensions: Rectangle) {
     super();
-    this.id = "background";
-
+    this.id = BACKGROUND_ID;
     const canvas = document.createElement("canvas");
     canvas.width = worldDimensions.w;
     canvas.height = worldDimensions.h;
@@ -60,7 +60,7 @@ class Background extends BaseObject {
   render() {
     const renderFn = (gameContext: GameContext) => {
       const { canvasRenderingContext, worldDimensions } = gameContext;
-      
+
       // renders a grid in the background of cells of 200x200 pixels
       canvasRenderingContext.drawImage(
         this.backgroundCanvas,
@@ -101,7 +101,7 @@ class Background extends BaseObject {
       // }
       // canvasRenderingContext.stroke();
 
-      
+
     };
     const renderElement = new RenderElement(renderFn);
     renderElement.positionType = "normal";
@@ -164,7 +164,7 @@ class Background extends BaseObject {
     ctx?.restore()
   }
 
-  step() {}
+  step() { }
 }
 
 export default Background;

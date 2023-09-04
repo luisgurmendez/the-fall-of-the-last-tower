@@ -5,14 +5,15 @@ import Vector from "@/physics/vector";
 import RenderUtils from "@/render/utils";
 import Color from "@/utils/color";
 import { Dimensions } from "@/core/canvas";
+import { BACKGROUND_ID } from "@/objects/background";
 
 class RenderController {
   render(gameContext: GameContext) {
     const { canvasRenderingContext, camera, objects } = gameContext;
     const renderableObjects = objects
       .filter(isRenderable)
-      .filter((obj) => obj.id !== "background").sort((a,b) => a.position.y - b.position.y);
-    const background = objects.find((obj) => obj.id === "background");
+      .filter((obj) => obj.id !== BACKGROUND_ID).sort((a, b) => a.position.y - b.position.y);
+    const background = objects.find((obj) => obj.id === BACKGROUND_ID);
 
     const renderElements: RenderElement[] = [];
     renderableObjects.forEach((obj) => {

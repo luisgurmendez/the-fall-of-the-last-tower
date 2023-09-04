@@ -81,9 +81,6 @@ class Vector {
     return this;
   }
 
-
-
-
 }
 
 export default Vector;

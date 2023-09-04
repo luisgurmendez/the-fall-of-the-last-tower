@@ -8,10 +8,10 @@ import Vector from "@/physics/vector";
 import GameContext from "./gameContext";
 import Initializable from "@/behaviors/initializable";
 import { Rectangle } from "@/objects/shapes";
-import { wait } from "@/utils/async";
 
 const MAX_ZOOM = 14;
 const MIN_ZOOM = 0.4;
+export const CAMERA_ID = "cmr"
 
 class Camera extends BaseObject implements Stepable, Disposable, Initializable {
   _position: Vector;
@@ -26,7 +26,7 @@ class Camera extends BaseObject implements Stepable, Disposable, Initializable {
   // flying: Flying = new Flying();
 
   constructor() {
-    super(new Vector(), "camera");
+    super(new Vector(), CAMERA_ID);
     // this.position = new Vector(document.body.scrollWidth / 2, document.body.scrollHeight / 2);
     this._position = new Vector(0, 0);
     this.viewport = new Rectangle(
