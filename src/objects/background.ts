@@ -15,6 +15,7 @@ import tree0 from "@/art/tree0";
 
 class Background extends BaseObject {
   backgroundCanvas: HTMLCanvasElement;
+  canvasRenderingContext: CanvasRenderingContext2D | null;
   constructor(worldDimensions: Rectangle) {
     super();
     this.id = "background";
@@ -23,6 +24,7 @@ class Background extends BaseObject {
     canvas.width = worldDimensions.w;
     canvas.height = worldDimensions.h;
     const ctx = canvas.getContext("2d");
+    this.canvasRenderingContext = null;
     ctx!.imageSmoothingEnabled = false;
     ctx!.fillStyle = "#99c555";
     ctx!.fillRect(0, 0, worldDimensions.w, worldDimensions.h);
@@ -57,12 +59,49 @@ class Background extends BaseObject {
 
   render() {
     const renderFn = (gameContext: GameContext) => {
-      const { canvasRenderingContext } = gameContext;
+      const { canvasRenderingContext, worldDimensions } = gameContext;
+      
+      // renders a grid in the background of cells of 200x200 pixels
       canvasRenderingContext.drawImage(
         this.backgroundCanvas,
         this.backgroundCanvas.width / -2,
         this.backgroundCanvas.height / -2
       );
+
+      // const cellSize = 200;
+      // const cellCountX = Math.ceil(
+      //   worldDimensions.w / cellSize
+      // );
+
+      // const cellCountY = Math.ceil(
+      //   worldDimensions.h / cellSize
+      // );
+      // canvasRenderingContext.strokeStyle = "#000000";
+      // canvasRenderingContext.lineWidth = 1;
+      // canvasRenderingContext.beginPath();
+      // for (let i = 0; i < cellCountX; i++) {
+      //   canvasRenderingContext.moveTo(
+      //     i * cellSize - worldDimensions.w / 2,
+      //     -worldDimensions.h / 2
+      //   );
+      //   canvasRenderingContext.lineTo(
+      //     i * cellSize - worldDimensions.w / 2,
+      //     worldDimensions.h / 2
+      //   );
+      // }
+      // for (let i = 0; i < cellCountY; i++) {
+      //   canvasRenderingContext.moveTo(
+      //     -worldDimensions.w / 2,
+      //     i * cellSize - worldDimensions.h / 2
+      //   );
+      //   canvasRenderingContext.lineTo(
+      //     worldDimensions.w / 2,
+      //     i * cellSize - worldDimensions.h / 2
+      //   );
+      // }
+      // canvasRenderingContext.stroke();
+
+      
     };
     const renderElement = new RenderElement(renderFn);
     renderElement.positionType = "normal";
@@ -107,7 +146,7 @@ class Background extends BaseObject {
     ctx?.restore()
   }
 
-  drawArrow(position: Vector, direction: Vector) {
+  drawArrow = (position: Vector, direction: Vector) => {
     const ctx = this.backgroundCanvas.getContext("2d");
     ctx?.save()
     ctx?.translate(Math.round(this.backgroundCanvas.width / 2), Math.round(this.backgroundCanvas.height / 2));
@@ -125,7 +164,7 @@ class Background extends BaseObject {
     ctx?.restore()
   }
 
-  step() { }
+  step() {}
 }
 
 export default Background;

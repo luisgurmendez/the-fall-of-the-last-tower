@@ -14,8 +14,8 @@ function generate() {
   const worldDimensions: Rectangle = new Square(5000);
   const level = new Level(
     [
-      // ...buildArchers(),
-      ...buildSwordsmen(),
+      ...buildArchers(),
+      // ...buildSwordsmen(),
       new Castle(),
       new Background(worldDimensions),
     ],
@@ -46,13 +46,14 @@ class Criterion implements LevelCriterion {
 
   buildWave(wave: number, context: GameContext) {
     if (wave < 1) {
+      const x = context.worldDimensions.w / 10 + (Math.random() * 500);
       const soldiers: BaseObject[] = [];
-      for (let i = 0; i < 100; i++) {
+      for (let i = 0; i < 50; i++) {
         soldiers.push(
           new Swordsman(
             new Vector(
-              context.worldDimensions.w / 10 + (Math.random() * 500),
-              RandomUtils.getNumberWithVariance(-200, 400),
+              x,
+              RandomUtils.getNumberWithVariance(-500, 1000),
             ),
             1
           )
@@ -72,7 +73,7 @@ function buildSwordsmen() {
     soldiers.push(
       new Swordsman(
         new Vector(
-          Math.random() * 200,
+          Math.random() * 400,
           Math.random() * 600 - 500
         ),
         side
@@ -84,7 +85,7 @@ function buildSwordsmen() {
 
 function buildArchers() {
   const soldiers: BaseObject[] = [];
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 50; i++) {
     const side = 0;
     soldiers.push(
       new Archer(

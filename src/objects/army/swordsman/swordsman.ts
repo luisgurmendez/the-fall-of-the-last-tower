@@ -13,6 +13,7 @@ import Cooldown from "@/objects/cooldown";
 import { buildArmySpritesWithSideColor } from "../spriteUtils";
 import { Target } from "../types";
 import CollisionsController from "@/controllers/CollisionsController";
+import RandomUtils from "@/utils/random";
 
 const ATTACK_RANGE = 15;
 const OUT_OF_REACH_RANGE = 350;
@@ -138,11 +139,9 @@ class Swordsman
       const nearByObjs = spatialHashing.queryInRange(this.position, OUT_OF_REACH_RANGE)
 
       const nearByEnemies = nearByObjs.filter(obj => (obj as any).side !== undefined && (obj as any).side !== this.side && isAttackable(obj));
-      if (this.side === 0) {
-        console.log(nearByEnemies)
-      }
+
       if (nearByEnemies.length > 0) {
-        this.target = this.getNearestEnemy(nearByEnemies);
+        this.target = RandomUtils.getRandomValueOf(nearByEnemies) as Target;
       } else if (this.side === 1) {
         this.target = gameContext.objects.find(obj => obj.id === 'castle') as Target ?? null;
       }

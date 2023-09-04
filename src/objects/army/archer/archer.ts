@@ -18,8 +18,9 @@ import Arrow from "./arrow";
 import ArmyUnit from "../armyUnit";
 import { Target } from "../types";
 import Cooldown from "@/objects/cooldown";
+import RandomUtils from "@/utils/random";
 
-const ATTACK_RANGE = 1000;
+const ATTACK_RANGE = 800;
 const OUT_OF_REACH_RANGE = 350;
 
 const archerAttackSpriteFrames = [3, 4, 5, 6, 7,]
@@ -34,10 +35,10 @@ const archermanSpriteSheetEnemy = new PixelArtSpriteSheet(
 );
 
 class Archer extends ArmyUnit {
-    protected maxHealth: number = 80;
+    protected maxHealth: number = 30;
     protected maxArmor: number = 10;
-    protected armor: number = 10;
-    protected attackCooldown: Cooldown = new Cooldown(2);
+    protected armor: number = 0;
+    protected attackCooldown: Cooldown = new Cooldown(5);
 
     side: 0 | 1;
     rotationSpeed: number;
@@ -98,8 +99,8 @@ class Archer extends ArmyUnit {
             const lookAt = this.target?.position.clone()
                 .sub(this.position)
                 .normalize() ?? new Vector(0, 0);
-            this.acceleration = lookAt.scalar(90);
-            this.velocity = this.calculateVelocity(gctx.dt);
+        // this.acceleration = lookAt.scalar(200);
+        this.velocity = this.calculateVelocity(gctx.dt);
             this.position = this.calculatePosition(gctx.dt);
         }
 
@@ -140,7 +141,7 @@ class Archer extends ArmyUnit {
             /// TODO fix types
             const nearByEnemies = nearByObjs.filter(obj => (obj as any).side !== undefined && (obj as any).side !== this.side);
             if (nearByEnemies.length > 0) {
-                this.target = this.getNearestEnemy(nearByEnemies) as Target;
+                this.target = RandomUtils.getRandomValueOf(nearByEnemies) as Target;
             } else if (this.side === 1) {
                 this.target = gameContext.objects.find(obj => obj.id === 'castle') as Target ?? null;
             }

@@ -37,12 +37,12 @@ class Game {
     window.addEventListener("keydown", (e) => {
       if (e.key === "x") {
         this.gameSpeed += 1;
-        this.gameSpeed = Math.min(this.gameSpeed, 5);
+        this.gameSpeed = Math.min(this.gameSpeed, 10);
       }
 
       if (e.key === "z") {
-        this.gameSpeed -= 1;
-        this.gameSpeed = Math.max(this.gameSpeed, 1);
+        this.gameSpeed -= 0.1;
+        this.gameSpeed = Math.max(this.gameSpeed, 0.1);
       }
 
       if (e.key === "p" && !this.showingMenu) {

@@ -9,10 +9,9 @@ import { Dimensions } from "@/core/canvas";
 class RenderController {
   render(gameContext: GameContext) {
     const { canvasRenderingContext, camera, objects } = gameContext;
-    const { canvas } = canvasRenderingContext;
     const renderableObjects = objects
       .filter(isRenderable)
-      .filter((obj) => obj.id !== "background");
+      .filter((obj) => obj.id !== "background").sort((a,b) => a.position.y - b.position.y);
     const background = objects.find((obj) => obj.id === "background");
 
     const renderElements: RenderElement[] = [];

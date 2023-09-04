@@ -1,3 +1,4 @@
+import RandomUtils from "@/utils/random";
 
 class Cooldown {
     cooldown: number;

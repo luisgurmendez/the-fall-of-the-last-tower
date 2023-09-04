@@ -10,7 +10,6 @@ import BaseObject from "@/objects/baseObject";
 import { Rectangle, Square } from "@/objects/shapes";
 
 
-
 const ArrowMixin = PhysicableMixin(CollisionableMixin<Rectangle>()(BaseObject));
 const ARROW_LENGTH = 14;
 class Arrow extends ArrowMixin implements Disposable {
@@ -23,7 +22,7 @@ class Arrow extends ArrowMixin implements Disposable {
         super(position);
         this.direction = direction;
         this.collisionMask = new Rectangle(10, 2);
-        this.velocity = direction.scalar(300);
+        this.velocity = direction.scalar(500);
         this.acceleration = direction.scalar(1);
         this.shouldDispose = false;
         this.side = side;
