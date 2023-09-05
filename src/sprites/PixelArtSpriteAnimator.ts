@@ -8,7 +8,7 @@ class PixelArtSpriteAnimator {
     [key: string]: { frames: number[]; duration: number };
   } = {};
   currentAnimation: string | null = null;
-  private currentFrame = 0;
+  public currentFrame = 0;
   private elapsedTime = 0;
   private loop = false;
   private spriteSheet: PixelArtSpriteSheet;

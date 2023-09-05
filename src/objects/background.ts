@@ -5,12 +5,16 @@ import BaseObject from "./baseObject";
 import { Rectangle } from "./shapes";
 import PixelArtBuilder from "@/sprites/PixelArtBuilder";
 import RandomUtils from "@/utils/random";
+
 import bloodstains1 from "@/art/bloodstains/bloodstains1";
 import bloodstains2 from "@/art/bloodstains/bloodstains2";
 import bloodstains3 from "@/art/bloodstains/bloodstains3";
 import bloodstains4 from "@/art/bloodstains/bloodstains4";
 import bloodstains0 from "@/art/bloodstains/bloodstains0";
-import tree0 from "@/art/tree0";
+import PixelArtDrawUtils from "@/utils/pixelartDrawUtils";
+
+
+// import tree0 from "@/art/tree0";
 
 export const BACKGROUND_ID = "bg";
 
@@ -206,13 +210,62 @@ const flower = PixelArtBuilder.buildCanvas([
   [, 0xffffff, 0xecea6b, 0x87b151],
 ]);
 
-const tree = PixelArtBuilder.buildCanvas(tree0);
+// const tree = PixelArtBuilder.buildCanvas(tree0);
 
 const bloodstain1 = PixelArtBuilder.buildCanvas(bloodstains0);
 const bloodstain2 = PixelArtBuilder.buildCanvas(bloodstains1);
 const bloodstain3Helmet = PixelArtBuilder.buildCanvas(bloodstains2);
 const bloodstain4Sword = PixelArtBuilder.buildCanvas(bloodstains3);
 const bloodstainBow = PixelArtBuilder.buildCanvas(bloodstains4);
+const tree0 = buildTreeCanvas();
+const tree1 = buildTreeCanvas();
+const tree2 = buildTreeCanvas();
+const tree3 = buildTreeCanvas();
+const tree4 = buildTreeCanvas();
+
+
+function buildTreeCanvas() {
+  const treeCanvas = document.createElement("canvas");
+  const treeWidth = 32;
+  const treeHeight = 64;
+  treeCanvas.width = treeWidth * 2;
+  treeCanvas.height = treeHeight * 2;
+
+  const treeBottomPadding = 8;
+
+
+  const ctx = treeCanvas.getContext("2d")!;
+  ctx!.imageSmoothingEnabled = true;
+  const green1 = "#428118";
+  const green2 = "#5d9a1b";
+  const green3 = "#9ccd22";
+
+
+  const troncoWidth = RandomUtils.getIntegerInRange(4, 6) * 2
+
+  let pixelartUtils = new PixelArtDrawUtils(ctx, '#87b151');
+  pixelartUtils.drawPixelatedEllipseFill(treeCanvas.width / 2, treeCanvas.height - treeBottomPadding, troncoWidth * 2, troncoWidth / 2,);
+
+
+  ctx!.fillStyle = "#9b6429";
+  ctx!.fillRect(treeCanvas.width / 2 - troncoWidth / 2, treeCanvas.height / 2 - treeBottomPadding, troncoWidth, treeCanvas.height / 2);
+
+  // ctx!.fillStyle = green1;
+  // ctx!.fillRect(0, 0, treeCanvas.width, treeCanvas.height / 2);
+  pixelartUtils = new PixelArtDrawUtils(ctx, green1, 3);
+  pixelartUtils.drawPixelatedEllipseFill(treeCanvas.width / 2, treeCanvas.height / 2, troncoWidth * 4, troncoWidth * 2,);
+  ctx!.strokeStyle = 'transparent';
+  // forRandomPositionsInside(5, new Rectangle(treeCanvas.width, treeCanvas.height / 2), (position) => {
+  //   ctx!.fillStyle = RandomUtils.getRandomValueOf([green2, green3]);
+  //   const bushSize = RandomUtils.getIntegerInRange(treeWidth / 2, treeWidth);
+  //   RenderUtils.renderRectangle(ctx!, new Vector(Math.round(position.x - bushSize / 2), Math.round(position.y - bushSize / 2)), bushSize, bushSize);
+  //   ctx!.fill();
+  // });
+
+
+  return treeCanvas;
+}
+
 
 function drawTrees(
   ctx: CanvasRenderingContext2D,
@@ -223,21 +276,26 @@ function drawTrees(
   const fn = (x: number) => 2000 + (-1500 / (1 + Math.E ** (-1 * ((x - 500) / 500))))
   ctx.save();
   ctx.translate(worldDimensions.w / 2, worldDimensions.h / 2);
+  const trees = [];
   while (treesPlanted < 10000) {
     const x = RandomUtils.getIntegerInRange(-worldDimensions.w / 2, worldDimensions.w / 2);
-    const y = RandomUtils.getIntegerInRange(-worldDimensions.h / 2, worldDimensions.h / 2);
+    const y = RandomUtils.getIntegerInRange(-worldDimensions.w / 2, worldDimensions.w / 2);
     // const y = fn(x);
+    const tree = RandomUtils.getRandomValueOf([tree0, tree1, tree2, tree3, tree4]);
     if (y > 0) {
       if (fn(x) + RandomUtils.getIntegerInRange(-200, 200) < y) {
         treesPlanted++;
-        ctx.drawImage(tree, x, y);
+        trees.push({ x, y, tree })
       }
     } else {
       if (-fn(x) + RandomUtils.getIntegerInRange(-200, 200) > y) {
         treesPlanted++;
-        ctx.drawImage(tree, x, y);
+        trees.push({ x, y, tree })
       }
     }
   }
+  trees.sort((a, b) => a.y - b.y).forEach(({ x, y, tree }) => {
+    ctx.drawImage(tree, x, y);
+  });
   ctx.restore();
 }

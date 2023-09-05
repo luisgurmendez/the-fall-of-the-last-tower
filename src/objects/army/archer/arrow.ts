@@ -8,6 +8,8 @@ import { isAttackable } from "@/behaviors/attackable";
 import Background, { BACKGROUND_ID } from "@/objects/background";
 import BaseObject from "@/objects/baseObject";
 import { Rectangle, Square } from "@/objects/shapes";
+import Particle from "@/objects/particle/particle";
+import { generateBloodDrops } from "../ParticleUtils";
 
 
 const ArrowMixin = PhysicableMixin(CollisionableMixin<Rectangle>()(BaseObject));
@@ -48,11 +50,17 @@ class Arrow extends ArrowMixin implements Disposable {
         if (this.ttl <= 0) {
 
             this.shouldDispose = true;
-            const background = gameContext.objects.find(obj => obj.id === BACKGROUND_ID);
-            if (background instanceof Background) {
+
+            const background = this.findBackground(gameContext);
+            if (background) {
                 background.drawArrow(this.position.clone(), this.direction.clone());
             }
         }
+    }
+
+    findBackground(gameContext: GameContext): Background | undefined {
+        const bg = gameContext.objects.find(obj => obj.id === BACKGROUND_ID);
+        return bg as Background | undefined;
     }
 
     render() {

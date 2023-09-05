@@ -8,7 +8,7 @@ import { isAttackable } from "@/behaviors/attackable";
 import Background from "@/objects/background";
 import BaseObject from "@/objects/baseObject";
 import { Rectangle, Square } from "@/objects/shapes";
-import ArmyUnit from "../armyUnit";
+import ArmyUnit, { ATTACK_ANIMATION_ID, WALK_ANIMATION_ID } from "../armyUnit";
 import Cooldown from "@/objects/cooldown";
 import { buildArmySpritesWithSideColor } from "../spriteUtils";
 import { Target } from "../types";
@@ -39,6 +39,7 @@ class Swordsman
   spriteAnimator: PixelArtSpriteAnimator;
   health = 100;
   maxHealth: number = 100;
+  protected triggerAttackAnimationFrame: number;
 
   constructor(position: Vector, side: 0 | 1) {
     super(position);
@@ -53,40 +54,25 @@ class Swordsman
       side === 0 ? swordsmanSpriteSheetAlly : swordsmanSpriteSheetEnemy,
       1
     );
-    this.spriteAnimator.addAnimation("w", [0, 1, 2], 0.2);
-    this.spriteAnimator.addAnimation("a", [3, 4, 5, 6, 7, 8, 9], 0.2);
-
+    this.spriteAnimator.addAnimation(WALK_ANIMATION_ID, [0, 1, 2], 0.2);
+    this.spriteAnimator.addAnimation(ATTACK_ANIMATION_ID, [3, 4, 5, 6, 7, 8, 9], 0.2);
+    this.triggerAttackAnimationFrame = 4;
   }
 
   shouldDispose: boolean;
 
-  render() {
-    if (this.isAttacking) {
-      this.spriteAnimator.playAnimation("a");
-    } else if (this.isMoving()) {
-      this.spriteAnimator.playAnimation("w");
-    } else {
-      this.spriteAnimator.stopAnimation();
-    }
-
-    return this.buildRenderElement();
-  }
 
   step(gctx: GameContext) {
     const { dt } = gctx;
+    this.beforeStep(gctx);
+
     const prevPos = this.position.clone();
-    if (this.health <= 0) {
-      this.die(gctx);
-    }
 
     if (this.target && isDisposable(this.target) && this.target.shouldDispose) {
       this.target = null;
     }
 
     let hasSetAnimation = false;
-    this.attackCooldown.update(dt);
-    this.spriteAnimator.update(dt);
-
     this.fixTarget(gctx);
 
     if (!this.isAttacking) {
@@ -99,17 +85,20 @@ class Swordsman
     }
 
     if (this.shouldAttack) {
-      hasSetAnimation = this.attack();
-    }
-
-
-    if (!hasSetAnimation) {
-      this.spriteAnimator.playAnimation("w", false);
+      const target = this.target
+      this.attack(() => {
+        if (!this.shouldDispose && target && isAttackable(target)) {
+          target.applyDamage(30);
+        }
+      });
+      hasSetAnimation = true;
     }
 
     if (this.target && CollisionsController.calculateCollision(this.target, this)) {
       this.position = prevPos;
     }
+
+    this.afterStep(gctx);
   }
 
   /// TODO remove, not worth it.
@@ -119,15 +108,6 @@ class Swordsman
       .normalize() ?? new Vector(0, 0);
 
     this.direction = lookAt;
-    // const angleToEnemy = this.direction.angleTo(lookAt);
-    // const rotationAmount = this.rotationSpeed * dt;
-    // const rotationAngle =
-    //   Math.sign(angleToEnemy) *
-    //   Math.min(Math.abs(angleToEnemy), rotationAmount);
-
-    // this.direction = this.direction
-    //   .rotate(rotationAngle, false)
-    //   .normalize();
   }
 
   private fixTarget(gameContext: GameContext) {
@@ -147,21 +127,6 @@ class Swordsman
         this.target = gameContext.objects.find(obj => obj.id === CASTLE_ID) as Target ?? null;
       }
     }
-  }
-
-  protected attack(): boolean {
-    this.spriteAnimator.playAnimation("a", true);
-    this.acceleration = new Vector(0, 0);
-    this.velocity = new Vector(0, 0);
-    this.attackCooldown.start();
-    const target = this.target;
-    setTimeout(() => {
-      if (!this.shouldDispose && target && isAttackable(target)) {
-        target.applyDamage(30);
-      }
-    }, 800)
-
-    return true
   }
 
   private getNearestEnemy(enemies: BaseObject[]): Target {
