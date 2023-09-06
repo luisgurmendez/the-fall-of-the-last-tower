@@ -240,7 +240,6 @@ function buildTreeCanvas() {
   const green2 = "#5d9a1b";
   const green3 = "#9ccd22";
 
-
   const troncoWidth = RandomUtils.getIntegerInRange(4, 6) * 2
 
   let pixelartUtils = new PixelArtDrawUtils(ctx, '#87b151');
@@ -250,22 +249,12 @@ function buildTreeCanvas() {
   ctx!.fillStyle = "#9b6429";
   ctx!.fillRect(treeCanvas.width / 2 - troncoWidth / 2, treeCanvas.height / 2 - treeBottomPadding, troncoWidth, treeCanvas.height / 2);
 
-  // ctx!.fillStyle = green1;
-  // ctx!.fillRect(0, 0, treeCanvas.width, treeCanvas.height / 2);
-  pixelartUtils = new PixelArtDrawUtils(ctx, green1, 3);
+  pixelartUtils = new PixelArtDrawUtils(ctx, RandomUtils.getRandomValueOf([green1, green2, green3]), 2);
   pixelartUtils.drawPixelatedEllipseFill(treeCanvas.width / 2, treeCanvas.height / 2, troncoWidth * 4, troncoWidth * 2,);
   ctx!.strokeStyle = 'transparent';
-  // forRandomPositionsInside(5, new Rectangle(treeCanvas.width, treeCanvas.height / 2), (position) => {
-  //   ctx!.fillStyle = RandomUtils.getRandomValueOf([green2, green3]);
-  //   const bushSize = RandomUtils.getIntegerInRange(treeWidth / 2, treeWidth);
-  //   RenderUtils.renderRectangle(ctx!, new Vector(Math.round(position.x - bushSize / 2), Math.round(position.y - bushSize / 2)), bushSize, bushSize);
-  //   ctx!.fill();
-  // });
-
 
   return treeCanvas;
 }
-
 
 function drawTrees(
   ctx: CanvasRenderingContext2D,

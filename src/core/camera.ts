@@ -1,17 +1,17 @@
 import Disposable from "@/behaviors/disposable";
 import BaseObject from "@/objects/baseObject";
-import RenderElement from "@/render/renderElement";
-import Renderable from "@/behaviors/renderable";
 import Stepable from "@/behaviors/stepable";
-import { isPositionable, Positionable } from "@/mixins/positional";
+import { Positionable } from "@/mixins/positional";
 import Vector from "@/physics/vector";
 import GameContext from "./gameContext";
 import Initializable from "@/behaviors/initializable";
 import { Rectangle } from "@/objects/shapes";
+import Keyboard from "./keyboard";
 
 const MAX_ZOOM = 14;
 const MIN_ZOOM = 0.4;
 export const CAMERA_ID = "cmr"
+const keyboard = Keyboard.getInstance();
 
 class Camera extends BaseObject implements Stepable, Disposable, Initializable {
   _position: Vector;
@@ -23,6 +23,7 @@ class Camera extends BaseObject implements Stepable, Disposable, Initializable {
   shouldInitialize = true;
   shouldDispose = false;
   worldDimensions: Rectangle | null = null;
+  mousePosition: Vector | null = null;
   // flying: Flying = new Flying();
 
   constructor() {
@@ -51,6 +52,7 @@ class Camera extends BaseObject implements Stepable, Disposable, Initializable {
 
     const handleCanvasWheel = (event: WheelEvent) => {
       event.preventDefault();
+      if (keyboard.isKeyPressed("s")) return;
 
       const mousex =
         (event.clientX - (canvas.offsetLeft + canvas.width / 2)) * -1;
@@ -73,6 +75,13 @@ class Camera extends BaseObject implements Stepable, Disposable, Initializable {
     };
 
     const handleMouseMove = (event: MouseEvent) => {
+      if (keyboard.isKeyPressed("s")) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = event.clientX - rect.left;
+      const mouseY = event.clientY - rect.top;
+      this.mousePosition = new Vector(mouseX, mouseY);
+
       if (mouseDown) {
         this.unfollow();
         const posDiff = initialDraggingClientPosition
@@ -85,6 +94,7 @@ class Camera extends BaseObject implements Stepable, Disposable, Initializable {
     };
 
     const handleMouseDown = (event: MouseEvent) => {
+      if (keyboard.isKeyPressed("s")) return;
       mouseDown = true;
       initialDragginPosition = this.position.clone();
       initialDraggingClientPosition = new Vector(event.clientX, event.clientY);
@@ -95,6 +105,7 @@ class Camera extends BaseObject implements Stepable, Disposable, Initializable {
     };
 
     const handleZoom = (e: KeyboardEvent) => {
+      if (keyboard.isKeyPressed("s")) return;
       if (e.key === ".") {
         this.zoomIn();
       }
@@ -170,7 +181,50 @@ class Camera extends BaseObject implements Stepable, Disposable, Initializable {
     return Math.max(minZoomX, minZoomY);
   }
 
+  private updatePosition() {
+    // How close the mouse needs to be to an edge to start scrolling
+    const edgeThreshold = 50;
+    // Maximum speed of camera scroll in units per frame
+    const maxSpeed = 10;
+
+    // Update the camera position based on mouse coordinates
+    if (this.mousePosition !== null) {
+      const mouseX = this.mousePosition.x;
+      const mouseY = this.mousePosition.y;
+      let deltaX = 0, deltaY = 0;
+
+      // Calculate distance from each edge
+      const distLeft = mouseX;
+      const distRight = this.viewport.w - mouseX;
+      const distTop = mouseY;
+      const distBottom = this.viewport.h - mouseY;
+
+      // Check if we're near any of the edges and update camera position accordingly
+      if (distLeft < edgeThreshold) {
+        deltaX = -maxSpeed * Math.pow((edgeThreshold - distLeft) / edgeThreshold, 2);
+      }
+      if (distRight < edgeThreshold) {
+        deltaX = maxSpeed * Math.pow((edgeThreshold - distRight) / edgeThreshold, 2);
+      }
+      if (distTop < edgeThreshold) {
+        deltaY = -maxSpeed * Math.pow((edgeThreshold - distTop) / edgeThreshold, 2);
+      }
+      if (distBottom < edgeThreshold) {
+        deltaY = maxSpeed * Math.pow((edgeThreshold - distBottom) / edgeThreshold, 2);
+      }
+
+      // Update the camera position
+      this.position.x += deltaX;
+      this.position.y += deltaY;
+    }
+
+  }
+
   step(context: GameContext) {
+    const { canvasRenderingContext: { canvas } } = context;
+    this.viewport.w = canvas.width;
+    this.viewport.h = canvas.height;
+    this.updatePosition();
     if (this.following !== null) {
       this._position = this.following.position.clone();
     }

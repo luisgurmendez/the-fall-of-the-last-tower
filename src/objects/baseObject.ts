@@ -21,7 +21,7 @@ class BaseObject extends PositionalMixins implements Renderable, Stepable {
     return new NoRender();
   }
 
-  step(gctx: GameContext) { }
+  step(gameContext: GameContext) { }
 }
 
 export default BaseObject;

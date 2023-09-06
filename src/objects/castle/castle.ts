@@ -31,7 +31,6 @@ class Castle extends CollisionableMixin<Rectangle>()(BaseObject) implements Atta
     render() {
         return new RenderElement((ctx) => {
 
-
             ctx.canvasRenderingContext.strokeStyle = transparent;
 
             ctx.canvasRenderingContext.fillStyle = lightGray;

@@ -1,15 +1,15 @@
-export type PressedKeysMapping = { [key: string]: boolean };
+type PressedKeysMapping = { [key: string]: boolean };
 
-class Keyboard {
-  private static instance: Keyboard;
+class KeyboardLuis {
+  private static instance: KeyboardLuis;
   private pressedKeys: PressedKeysMapping;
 
-  public static getInstance(): Keyboard {
-    if (!Keyboard.instance) {
-      Keyboard.instance = new Keyboard();
+  public static getInstance(): KeyboardLuis {
+    if (!KeyboardLuis.instance) {
+      KeyboardLuis.instance = new KeyboardLuis();
     }
 
-    return Keyboard.instance;
+    return KeyboardLuis.instance;
   }
   private constructor() {
     this.pressedKeys = {};
@@ -44,4 +44,4 @@ class Keyboard {
   }
 }
 
-export default Keyboard;
+export default KeyboardLuis;

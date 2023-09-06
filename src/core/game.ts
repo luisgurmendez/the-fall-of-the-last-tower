@@ -1,13 +1,8 @@
-// import Keyboard from "./keyboard";
 import Clock from "./clock";
 import CanvasGenerator from "./canvas";
-// import { createMenu, disposeMenu } from "@/menu/menu";
-import playgroundLevel from "@/levels/playground";
+import playgroundLevel from "@/levels/battlefield";
 
 // import Stats from "stats.js";
-
-// const stats = new Stats();
-// const pressedKeys = Keyboard.getInstance();
 
 class Game {
   private clock: Clock;
@@ -25,8 +20,6 @@ class Game {
   }
 
   init() {
-    this.level.init();
-
     // stats.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
     // document.body.appendChild(stats.dom);
     window.addEventListener("blur", () => {
@@ -52,20 +45,11 @@ class Game {
           this.pause();
         }
       }
+
+      if (e.key === "b") {
+        document.body.requestFullscreen();
+      }
     });
-
-    //   if (e.key === "m") {
-    //     if (this.showingMenu) {
-    //       this.hideMenu();
-    //     } else {
-    //       this.showMenu();
-    //     }
-    //   }
-
-
-    // });
-
-    // this.showMenu();
   }
 
   unPause = () => {
@@ -112,23 +96,6 @@ class Game {
       unPause: this.unPause
     }
   }
-
-  // private showMenu() {
-  //   this.pause();
-  //   createMenu(
-  //     this.hideMenu,
-  //     this.levelsController.getNumOfLevels(),
-  //     this.levelsController.levelIndex,
-  //     this.levelsController.getSavedLevels(),
-  //     (i: number) => this.levelsController.goToLevel(i)
-  //   );
-  //   this.showingMenu = true;
-  // }
-
-  // private hideMenu = () => {
-  //   disposeMenu();
-  //   this.showingMenu = false;
-  //   this.unPause();
 };
 
 export default Game;

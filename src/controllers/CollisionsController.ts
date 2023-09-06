@@ -2,6 +2,7 @@ import { Rectangle, Circle } from "@/objects/shapes";
 import { Collisionable, isCollisionableObject } from "@/mixins/collisionable";
 import BaseObject from "@/objects/baseObject";
 import Intersections from "@/utils/intersections";
+import SpatiallyHashedObjects from "@/utils/spatiallyHashedObjects";
 
 export type CollisionableObject = Collisionable & BaseObject;
 
@@ -10,15 +11,15 @@ export interface Collisions {
 }
 
 class CollisionsController {
-  // TODO: optimize? quadtrees?
-  buildCollisions(objects: CollisionableObject[]): Collisions {
+  buildCollisions(objects: CollisionableObject[], spatialHashing: SpatiallyHashedObjects): Collisions {
     const collisions: Collisions = {};
 
     for (let i = 0; i < objects.length; i++) {
       const primaryObj = objects[i];
       if (isCollisionableObject(primaryObj)) {
-        for (let j = 0; j < objects.length; j++) {
-          const secondaryObj = objects[j];
+        const nearbyObjs = spatialHashing.queryInRange(primaryObj.position, primaryObj.collisionMask.maxDistanceToCenter + 5);
+        for (let j = 0; j < nearbyObjs.length; j++) {
+          const secondaryObj = nearbyObjs[j];
           if (
             primaryObj !== secondaryObj &&
             isCollisionableObject(secondaryObj)

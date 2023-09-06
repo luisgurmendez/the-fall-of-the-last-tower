@@ -1,11 +1,9 @@
 import { Rectangle } from "@/objects/shapes";
 import BaseObject from "@/objects/baseObject";
 import Camera from "./camera";
-import Vector from "@/physics/vector";
-import Initializable from "@/behaviors/initializable";
-import Disposable from "@/behaviors/disposable";
+import { isInitializable } from "@/behaviors/initializable";
+import { isDisposable } from "@/behaviors/disposable";
 import GameContext from "./gameContext";
-import ObjectLifecycleController from "@/controllers/ObjectLifecycleController";
 import CollisionsController, {
   CollisionableObject,
   Collisions,
@@ -13,22 +11,15 @@ import CollisionsController, {
 import { GameApi } from "./game";
 import RenderController from "@/controllers/RenderController";
 import { isCollisionableObject } from "@/mixins/collisionable";
-// import Keyboard from "./keyboard";
-import Stepable from "@/behaviors/stepable";
-import Renderable from "@/behaviors/renderable";
-import RenderUtils from "@/render/utils";
-import { Dimensions } from "./canvas";
-import RenderElement from "@/render/renderElement";
+import Stepable, { isStepable } from "@/behaviors/stepable";
 import SpatiallyHashedObjects from "@/utils/spatiallyHashedObjects";
+import { filterInPlaceAndGetRest } from "@/utils/fn";
 
-// const pressedKeys = Keyboard.getInstance();
-
-class Level implements Initializable, Disposable {
+class Level {
   objects: BaseObject[] = [];
   camera: Camera;
   worldDimensions: Rectangle;
-  private objectLifecycleController: ObjectLifecycleController =
-    new ObjectLifecycleController();
+
   private collisionController: CollisionsController =
     new CollisionsController();
   private renderController: RenderController = new RenderController();
@@ -50,13 +41,13 @@ class Level implements Initializable, Disposable {
   }
 
   update(gameApi: GameApi): void {
-    const collisions = this._buildCollisions();
     const spatialHasing = this._buildSpatiallyHashedObjects();
+    const collisions = this._buildCollisions(spatialHasing);
 
     const gameContext = this.generateGameContext(gameApi, collisions, spatialHasing);
     if (!gameApi.isPaused) {
-      this.objectLifecycleController.initialize(gameContext);
-      this.objectLifecycleController.step(gameContext);
+      this.initializeObjects(gameContext);
+      this.stepObjects(gameContext);
 
       // Move this to private fn..
       if (!this.statusController.hasWonOrLost) {
@@ -65,19 +56,17 @@ class Level implements Initializable, Disposable {
           console.log(status);
         }
       }
-      this.objectLifecycleController.dispose(gameContext);
+      this.disposeObjects(gameContext);
     }
-    // console.time('render')
     this.renderController.render(gameContext);
-    // console.timeEnd('render')
 
   }
 
-  private _buildCollisions() {
+  private _buildCollisions(spatialHasing: SpatiallyHashedObjects) {
     const collisionableObjects: CollisionableObject[] = this.objects.filter(
       isCollisionableObject
     );
-    return this.collisionController.buildCollisions(collisionableObjects);
+    return this.collisionController.buildCollisions(collisionableObjects, spatialHasing);
   }
 
   private _buildSpatiallyHashedObjects() {
@@ -88,14 +77,39 @@ class Level implements Initializable, Disposable {
     return spatialHasing;
   }
 
-  init() { }
 
-  dispose() { }
+  private initializeObjects(gameContext: GameContext) {
+    const { objects } = gameContext;
 
-  restart() {
-    this.dispose();
-    this.init();
+    objects.forEach((obj) => {
+      if (isInitializable(obj) && obj.shouldInitialize) {
+        obj.init(gameContext);
+        obj.shouldInitialize = false;
+      }
+    });
   }
+
+  private stepObjects(gameContext: GameContext) {
+    const objects = gameContext.objects;
+    objects.forEach((obj) => {
+      if (isStepable(obj)) {
+        obj.step(gameContext);
+      }
+    });
+  }
+
+  private disposeObjects(gameContext: GameContext) {
+    const { objects } = gameContext;
+
+    const objsToDispose = filterInPlaceAndGetRest(objects, (obj) => {
+      return !(isDisposable(obj) && obj.shouldDispose);
+    });
+
+    objsToDispose.forEach((obj) => {
+      isDisposable(obj) && obj.dispose && obj.dispose();
+    });
+  }
+
 
   private generateGameContext(
     api: GameApi,

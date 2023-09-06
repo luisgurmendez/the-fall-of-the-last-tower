@@ -79,7 +79,7 @@ class Swordsman
 
       this.adjustDirection(gctx.dt);
 
-      this.acceleration = this.direction.clone().scalar(80);
+      this.acceleration = this.direction.clone().scalar(2000);
       this.velocity = this.calculateVelocity(gctx.dt);
       this.position = this.calculatePosition(gctx.dt);
     }
@@ -101,7 +101,6 @@ class Swordsman
     this.afterStep(gctx);
   }
 
-  /// TODO remove, not worth it.
   private adjustDirection(dt: number) {
     const lookAt = this.target?.position.clone()
       .sub(this.position)

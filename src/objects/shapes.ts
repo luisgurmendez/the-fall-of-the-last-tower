@@ -8,6 +8,10 @@ export class Rectangle {
     this.w = w;
     this.h = h;
   }
+
+  get maxDistanceToCenter() {
+    return Math.max(this.w, this.h);
+  }
 }
 
 export class Circle {
@@ -15,6 +19,10 @@ export class Circle {
 
   constructor(r: number) {
     this.radius = r;
+  }
+
+  get maxDistanceToCenter() {
+    return this.radius;
   }
 }
 
@@ -24,4 +32,8 @@ export class Square extends Rectangle {
   }
 }
 
-export class NullShape {}
+export class NullShape {
+  get maxDistanceToCenter() {
+    return 0;
+  }
+}

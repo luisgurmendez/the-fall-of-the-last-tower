@@ -4,8 +4,6 @@ import Vector from "@/physics/vector";
 class SpatiallyHashedObjects {
     private cellSize: number;
     private table: Map<string, BaseObject[]> = new Map();
-    private tableMedium: Map<string, BaseObject[]> = new Map();
-    private tableBig: Map<string, BaseObject[]> = new Map();
 
     constructor(cellSize: number) {
         this.cellSize = cellSize;

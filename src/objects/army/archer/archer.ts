@@ -1,17 +1,11 @@
 import GameContext from "@/core/gameContext";
 import Disposable, { isDisposable } from "@/behaviors/disposable";
 import Vector from "@/physics/vector";
-import { PhysicableMixin } from "@/mixins/physics";
-import { CollisionableMixin } from "@/mixins/collisionable";
-import RenderElement from "@/render/renderElement";
 import PixelArtSpriteAnimator from "@/sprites/PixelArtSpriteAnimator";
 import PixelArtSpriteSheet from "@/sprites/PixelArtSpriteSheet";
-import Attackable, { isAttackable } from "@/behaviors/attackable";
-/// TODO(): reuse with swordsman
-import { generateBloodExplotion } from "../ParticleUtils";
 import Background from "@/objects/background";
 import BaseObject from "@/objects/baseObject";
-import { Rectangle, Square } from "@/objects/shapes";
+import { Square } from "@/objects/shapes";
 import { archerSprites } from "./sprites";
 import { buildArmySpritesWithSideColor } from "../spriteUtils";
 import Arrow from "./arrow";
@@ -20,6 +14,7 @@ import { Target } from "../types";
 import Cooldown from "@/objects/cooldown";
 import RandomUtils from "@/utils/random";
 import { CASTLE_ID } from "@/objects/castle/castle";
+import { otherSideObjectsFiltering } from "../utils";
 
 const ATTACK_RANGE = 800;
 const OUT_OF_REACH_RANGE = 350;
@@ -79,11 +74,12 @@ class Archer extends ArmyUnit {
 
         if (!this.isAttacking) {
 
-            this.adjustDirection(gctx.dt);
-            const lookAt = this.target?.position.clone()
+            const lookAt = this.targetPosition?.clone()
                 .sub(this.position)
                 .normalize() ?? new Vector(0, 0);
-            // this.acceleration = lookAt.scalar(200);
+
+            this.direction = lookAt;
+            this.acceleration = lookAt.scalar(3000);
             this.velocity = this.calculateVelocity(gctx.dt);
             this.position = this.calculatePosition(gctx.dt);
         }
@@ -103,15 +99,6 @@ class Archer extends ArmyUnit {
         }
     }
 
-    /// TODO remove?, not worth it.
-    private adjustDirection(dt: number) {
-        const lookAt = this.target?.position.clone()
-            .sub(this.position)
-            .normalize() ?? new Vector(0, 0);
-
-        this.direction = lookAt;
-    }
-
     private fixTarget(gameContext: GameContext) {
         const { spatialHashing } = gameContext;
         if (this.target && (this.target.id === CASTLE_ID || this.target.position.distanceTo(this.position) > OUT_OF_REACH_RANGE)) {
@@ -121,7 +108,7 @@ class Archer extends ArmyUnit {
         if (!this.target || this.target.id === CASTLE_ID) {
             const nearByObjs = spatialHashing.queryInRange(this.position, ATTACK_RANGE + 10);
             /// TODO fix types
-            const nearByEnemies = nearByObjs.filter(obj => (obj as any).side !== undefined && (obj as any).side !== this.side);
+            const nearByEnemies = nearByObjs.filter(otherSideObjectsFiltering(this.side));
             if (nearByEnemies.length > 0) {
                 this.target = RandomUtils.getRandomValueOf(nearByEnemies) as Target;
             } else if (this.side === 1) {

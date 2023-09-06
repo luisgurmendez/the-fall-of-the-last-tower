@@ -7,15 +7,12 @@ import RenderElement from "@/render/renderElement";
 import { isAttackable } from "@/behaviors/attackable";
 import Background, { BACKGROUND_ID } from "@/objects/background";
 import BaseObject from "@/objects/baseObject";
-import { Rectangle, Square } from "@/objects/shapes";
-import Particle from "@/objects/particle/particle";
-import { generateBloodDrops } from "../ParticleUtils";
-
+import { Rectangle } from "@/objects/shapes";
+import { otherSideObjectsFiltering } from "../utils";
 
 const ArrowMixin = PhysicableMixin(CollisionableMixin<Rectangle>()(BaseObject));
 const ARROW_LENGTH = 14;
 class Arrow extends ArrowMixin implements Disposable {
-
     shouldDispose: boolean;
     side: 0 | 1;
     ttl: number;
@@ -35,10 +32,9 @@ class Arrow extends ArrowMixin implements Disposable {
     step(gameContext: GameContext) {
         this.position = this.calculatePosition(gameContext.dt);
         const { collisions } = gameContext;
-        const collisionsWith = collisions[this.id];
-        if (collisionsWith && collisionsWith.length > 0) {
+        if (collisions[this.id] && collisions[this.id].length > 0) {
             // find collision with enemy
-            const enemy = collisionsWith.find(obj => (obj as any).side !== undefined && (obj as any).side !== this.side);
+            const enemy = collisions[this.id].find(otherSideObjectsFiltering(this.side));
             if (enemy) {
                 if (isAttackable(enemy)) {
                     enemy.applyDamage(3);
@@ -69,6 +65,8 @@ class Arrow extends ArrowMixin implements Disposable {
             canvasRenderingContext.strokeStyle = 'black';
             canvasRenderingContext.translate(this.position.x, this.position.y);
             canvasRenderingContext.rotate(new Vector(1, 0).angleTo(this.direction));
+
+            // draws the pointing tip
             canvasRenderingContext.beginPath();
             canvasRenderingContext.moveTo(0, 0);
             canvasRenderingContext.lineTo(ARROW_LENGTH, 0);

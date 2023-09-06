@@ -8,18 +8,19 @@ import Swordsman from "@/objects/army/swordsman/swordsman";
 import Castle from "@/objects/castle/castle";
 import Archer from "@/objects/army/archer/archer";
 import RandomUtils from "@/utils/random";
+import Player from "@/objects/player/player";
 
 function generate() {
-  // const tiles = buildTilesGrid();
   const worldDimensions: Rectangle = new Square(5000);
   const level = new Level(
     [
       ...buildArchers(),
-      // ...buildSwordsmen(),
       new Castle(),
       new Background(worldDimensions),
+      new Player(),
     ],
     new Criterion(),
+
     worldDimensions
   );
   level.camera.zoom = 0.6;
@@ -31,13 +32,13 @@ export default generate;
 class Criterion implements LevelCriterion {
   wave = 0;
 
-
   won(): boolean {
     return false;
   }
   lost(): boolean {
     return false;
   }
+
   step(context: GameContext): void {
     if (Math.random() > 0.99) {
       this.buildWave(this.wave, context);

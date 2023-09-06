@@ -1,8 +1,8 @@
 import { ArmyUnitSide, Target } from "@/objects/army/types";
-import { Rectangle, Square } from "@/objects/shapes";
+import { Square } from "@/objects/shapes";
 import BaseObject from "@/objects/baseObject";
 import { PhysicableMixin } from "@/mixins/physics";
-import { Collisionable, CollisionableMixin } from "@/mixins/collisionable";
+import { CollisionableMixin } from "@/mixins/collisionable";
 import Cooldown from "../cooldown";
 import GameContext from "@/core/gameContext";
 import Disposable from "@/behaviors/disposable";
@@ -11,9 +11,8 @@ import Background, { BACKGROUND_ID } from "../background";
 import Vector from "@/physics/vector";
 import PixelArtSpriteAnimator from "@/sprites/PixelArtSpriteAnimator";
 import RenderElement from "@/render/renderElement";
-import RenderUtils from "@/render/utils";
-import Archer from "./archer/archer";
 import Particle from "../particle/particle";
+import PixelArtDrawUtils from "@/utils/pixelartDrawUtils";
 
 
 export const ATTACK_ANIMATION_ID = "a";
@@ -33,7 +32,15 @@ abstract class ArmyUnit extends BaseArmyUnit implements Disposable {
     protected abstract maxArmor: number;
     protected abstract armor: number;
     protected abstract attackCooldown: Cooldown;
+    /// Enemy to attack if in reach
     protected abstract target: Target | null;
+
+    /// position vector of the desired position to move to
+    targetPosition: Vector | null = null;
+
+    /// Whether the unit is selected by the player
+    isSelected: boolean = false;
+
     protected abstract spriteAnimator: PixelArtSpriteAnimator;
     private bloodDropsToAddOnNextStep: Particle[] = [];
 
@@ -122,6 +129,11 @@ abstract class ArmyUnit extends BaseArmyUnit implements Disposable {
     buildRenderElement() {
         return new RenderElement((gtx) => {
             const { canvasRenderingContext } = gtx;
+            if (this.isSelected) {
+                const drawUtils = new PixelArtDrawUtils(canvasRenderingContext, "white", 1);
+                drawUtils.drawPixelatedEllipse(this.position.x, this.position.y + this.collisionMask.h / 2, this.collisionMask.w / 2, this.collisionMask.h / 4,);
+            }
+
             this.spriteAnimator.render(
                 canvasRenderingContext,
                 this.position,
