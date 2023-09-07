@@ -10,6 +10,9 @@ import CollisionsController from "@/controllers/CollisionsController";
 import { isCollisionableObject } from "@/mixins/collisionable";
 import ArmyUnit from "../army/armyUnit";
 import RenderUtils from "@/render/utils";
+import SpatiallyHashedObjects from "@/utils/spatiallyHashedObjects";
+import Intersections from "@/utils/intersections";
+import { Target } from "../army/types";
 
 const keyboard = Keyboard.getInstance();
 
@@ -21,6 +24,8 @@ class Player extends BaseObject implements Initializable, Disposable {
     initialDraggingClientPosition: Vector | null = null;
     mouseDown: boolean = false;
     selectedUnits: ArmyUnit[] = [];
+    mousePositionInGame: Vector | null = null;
+    hoveringTarget: Target | null = null;
 
     constructor() {
         super();
@@ -37,9 +42,10 @@ class Player extends BaseObject implements Initializable, Disposable {
         this.initialDraggingClientPosition = new Vector();
 
         const handleMouseMove = (event: MouseEvent) => {
+            this.mousePositionInGame = this.mouseCoordsToGameCoordsWithZoom(gameContext, canvas, event.clientX, event.clientY, gameContext.camera.zoom);
             if (keyboard.isKeyPressed("s")) {
                 if (this.mouseDown) {
-                    this.initialDraggingClientPosition = this.windowToCanvasPositionWithZoom(gameContext, canvas, event.clientX, event.clientY, gameContext.camera.zoom);
+                    this.initialDraggingClientPosition = this.mouseCoordsToGameCoordsWithZoom(gameContext, canvas, event.clientX, event.clientY, gameContext.camera.zoom);
                 }
             }
         };
@@ -49,7 +55,7 @@ class Player extends BaseObject implements Initializable, Disposable {
                 this.selectedUnits = [];
                 this.mark = null;
                 this.mouseDown = true;
-                this.initialDraggingPosition = this.windowToCanvasPositionWithZoom(gameContext, canvas, event.clientX, event.clientY, gameContext.camera.zoom)
+                this.initialDraggingPosition = this.mouseCoordsToGameCoordsWithZoom(gameContext, canvas, event.clientX, event.clientY, gameContext.camera.zoom)
                 this.initialDraggingClientPosition = null;
             }
         };
@@ -62,11 +68,18 @@ class Player extends BaseObject implements Initializable, Disposable {
 
         const handleRightClick = (event: MouseEvent) => {
             event.preventDefault();
-            const position = this.windowToCanvasPositionWithZoom(gameContext, canvas, event.clientX, event.clientY, gameContext.camera.zoom);
-            this.mark = position;
-            this.selectedUnits.forEach(unit => {
-                unit.targetPosition = position;
-            })
+            if (this.hoveringTarget) {
+                this.selectedUnits.forEach(unit => {
+                    (unit as any).target = this.hoveringTarget;
+                })
+            } else {
+                const position = this.mouseCoordsToGameCoordsWithZoom(gameContext, canvas, event.clientX, event.clientY, gameContext.camera.zoom);
+                this.mark = position;
+                this.selectedUnits.forEach(unit => {
+                    unit.targetPosition = position;
+                })
+            }
+
         }
 
         canvas.addEventListener("mousedown", handleMouseDown);
@@ -88,6 +101,7 @@ class Player extends BaseObject implements Initializable, Disposable {
     }
 
     step(gctx: GameContext) {
+        const { spatialHashing } = gctx;
         if (this.initialDraggingPosition && this.initialDraggingClientPosition) {
             const selectionCollisionMask = new Rectangle(
                 Math.abs(this.initialDraggingClientPosition.x - this.initialDraggingPosition.x),
@@ -107,7 +121,8 @@ class Player extends BaseObject implements Initializable, Disposable {
             const selection: any = new BaseObject(selectionCenterPosition);
             selection.collisionMask = selectionCollisionMask;
 
-            gctx.objects.forEach(obj => {
+            const posibleObjectsInSelection = spatialHashing.queryInRange(selectionCenterPosition, Math.max(selectionCollisionMask.w / 2, selectionCollisionMask.h / 2));
+            posibleObjectsInSelection.forEach(obj => {
                 if (isCollisionableObject(obj) && CollisionsController.calculateCollision(selection, obj)) {
                     if (obj instanceof ArmyUnit) {
                         obj.isSelected = true;
@@ -117,6 +132,14 @@ class Player extends BaseObject implements Initializable, Disposable {
                     (obj as any).isSelected = false;
                 }
             })
+        }
+
+        if (this.mousePositionInGame) {
+            const hoveringObject = spatialHashing.query(this.mousePositionInGame).find(obj => isCollisionableObject(obj) && Intersections.isPointInsideRectangle(this.mousePositionInGame!, obj.collisionMask as Rectangle, obj.position));
+            this.hoveringTarget = hoveringObject as Target ?? null;
+            if (hoveringObject) {
+                (hoveringObject as any).isBeingHovered = true;
+            }
         }
     }
 
@@ -154,7 +177,7 @@ class Player extends BaseObject implements Initializable, Disposable {
         }, true);
     }
 
-    private windowToCanvasPositionWithZoom(gctx: GameContext, canvas: HTMLCanvasElement, x: number, y: number, zoom: number): Vector {
+    private mouseCoordsToGameCoordsWithZoom(gctx: GameContext, canvas: HTMLCanvasElement, x: number, y: number, zoom: number): Vector {
         const zoomFactor = gctx.camera.zoom;
         const cameraX = gctx.camera.position.x;
         const cameraY = gctx.camera.position.y;

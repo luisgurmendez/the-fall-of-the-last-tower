@@ -1,22 +1,22 @@
 {
   "allowFreeVars": true,
-  "numAbbreviations": 29,
+  "numAbbreviations": 31,
   "dynamicModels": 0,
-  "recipLearningRate": 710,
-  "modelMaxCount": 6,
-  "modelRecipBaseCount": 21,
+  "recipLearningRate": 930,
+  "modelMaxCount": 5,
+  "modelRecipBaseCount": 32,
   "sparseSelectors": [
     0,
     1,
     3,
     5,
     6,
-    10,
-    15,
-    25,
-    63,
+    13,
+    17,
+    42,
     125,
-    230,
-    497
+    231,
+    423,
+    441
   ]
 }

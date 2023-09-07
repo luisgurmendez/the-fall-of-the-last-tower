@@ -79,7 +79,7 @@ class Archer extends ArmyUnit {
                 .normalize() ?? new Vector(0, 0);
 
             this.direction = lookAt;
-            this.acceleration = lookAt.scalar(3000);
+            this.acceleration = lookAt.scalar(500);
             this.velocity = this.calculateVelocity(gctx.dt);
             this.position = this.calculatePosition(gctx.dt);
         }

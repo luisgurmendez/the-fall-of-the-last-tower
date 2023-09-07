@@ -79,7 +79,7 @@ class Swordsman
 
       this.adjustDirection(gctx.dt);
 
-      this.acceleration = this.direction.clone().scalar(2000);
+      this.acceleration = this.direction.clone().scalar(500);
       this.velocity = this.calculateVelocity(gctx.dt);
       this.position = this.calculatePosition(gctx.dt);
     }

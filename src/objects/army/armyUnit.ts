@@ -134,6 +134,11 @@ abstract class ArmyUnit extends BaseArmyUnit implements Disposable {
                 drawUtils.drawPixelatedEllipse(this.position.x, this.position.y + this.collisionMask.h / 2, this.collisionMask.w / 2, this.collisionMask.h / 4,);
             }
 
+            if ((this as any).isBeingHovered) {
+                const drawUtils = new PixelArtDrawUtils(canvasRenderingContext, "red", 1);
+                drawUtils.drawPixelatedEllipse(this.position.x, this.position.y + this.collisionMask.h / 2, this.collisionMask.w / 2, this.collisionMask.h / 4,);
+            }
+
             this.spriteAnimator.render(
                 canvasRenderingContext,
                 this.position,
