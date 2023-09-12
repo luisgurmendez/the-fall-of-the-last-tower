@@ -33,7 +33,7 @@ class ObjectLifecycleController {
     });
 
     objsToDispose.forEach((obj) => {
-      isDisposable(obj) && obj.dispose && obj.dispose();
+      isDisposable(obj) && obj.dispose && obj.dispose(gameContext);
     });
   }
 }

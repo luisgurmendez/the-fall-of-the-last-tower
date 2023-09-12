@@ -1,15 +1,17 @@
 import Clock from "./clock";
 import CanvasGenerator from "./canvas";
-import playgroundLevel from "@/levels/battlefield";
-
+import battlefieldLevel from "@/levels/battlefield";
+import CustomKeyboard from "./keyboard";
 // import Stats from "stats.js";
+
+export const keyboard = CustomKeyboard.getInstance();
 
 class Game {
   private clock: Clock;
   private isPaused = false;
   private canvasRenderingContext: CanvasRenderingContext2D;
 
-  private level = playgroundLevel();
+  private level = battlefieldLevel();
   private gameSpeed = 1;
   private showingMenu = false;
 
@@ -23,14 +25,15 @@ class Game {
     // stats.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
     // document.body.appendChild(stats.dom);
     window.addEventListener("blur", () => {
-      // this.pause();
+      this.pause();
     });
+
     window.addEventListener('focus', this.unPause);
 
     window.addEventListener("keydown", (e) => {
       if (e.key === "x") {
         this.gameSpeed += 1;
-        this.gameSpeed = Math.min(this.gameSpeed, 10);
+        this.gameSpeed = Math.min(this.gameSpeed, 3);
       }
 
       if (e.key === "z") {
@@ -38,16 +41,12 @@ class Game {
         this.gameSpeed = Math.max(this.gameSpeed, 0.1);
       }
 
-      if (e.key === "p" && !this.showingMenu) {
-        if (this.isPaused) {
-          this.unPause();
-        } else {
-          this.pause();
-        }
-      }
-
       if (e.key === "b") {
         document.body.requestFullscreen();
+      }
+
+      if (e.key === "p") {
+        this.isPaused ? this.unPause() : this.pause();
       }
     });
   }
@@ -74,7 +73,6 @@ class Game {
 
   private update() {
     try {
-
       const gameApi = this.generateGameApi();
       this.level.update(gameApi);
     } catch (e) {

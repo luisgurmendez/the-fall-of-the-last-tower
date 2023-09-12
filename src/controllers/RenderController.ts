@@ -6,13 +6,35 @@ import RenderUtils from "@/render/utils";
 import Color from "@/utils/color";
 import { Dimensions } from "@/core/canvas";
 import { BACKGROUND_ID } from "@/objects/background";
+import { CASTLE_ID } from "@/objects/castle/castle";
+import Particle from "@/objects/particle/particle";
+import BaseObject from "@/objects/baseObject";
+
+function objectRenderingPositionComparator(a: BaseObject, b: BaseObject) {
+  /// Sorts by y value so that when rendering we don't overlap objects that are behind others.
+  /// Also positiones the castle in the back, and instance of Particles in the front.
+  if (a.id === CASTLE_ID) {
+    return -1;
+  }
+  if (b.id === CASTLE_ID) {
+    return 1;
+  }
+  if (a instanceof Particle) {
+    return 1;
+  }
+  if (b instanceof Particle) {
+    return -1;
+  }
+  return a.position.y - b.position.y;
+}
 
 class RenderController {
   render(gameContext: GameContext) {
     const { canvasRenderingContext, camera, objects } = gameContext;
     const renderableObjects = objects
       .filter(isRenderable)
-      .filter((obj) => obj.id !== BACKGROUND_ID).sort((a, b) => a.position.y - b.position.y);
+      .filter((obj) => obj.id !== BACKGROUND_ID).sort(objectRenderingPositionComparator);
+
     const background = objects.find((obj) => obj.id === BACKGROUND_ID);
 
     const renderElements: RenderElement[] = [];

@@ -22,7 +22,7 @@ class RandomUtils {
   }
 
   static generateId() {
-    const id = Math.round(Math.random() * 10000).toString(16);
+    const id = Math.round(Math.random() * 9999).toString(16);
     return id;
   }
 

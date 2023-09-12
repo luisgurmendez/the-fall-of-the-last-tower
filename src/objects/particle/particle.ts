@@ -15,6 +15,7 @@ class Particle extends ParticleMixins implements Disposable {
   fade = false;
   private maxTTL: number;
   size: number;
+  isVertical = false;
 
   constructor(ttl = 1) {
     super();
@@ -29,6 +30,10 @@ class Particle extends ParticleMixins implements Disposable {
   }
 
   step(context: GameContext) {
+    if (this.isVertical) {
+      // changes the size to give an effect that the particles i going up to the camera
+      this.size += context.dt * 10;
+    }
     this.acceleration = new Vector();
     this.position = this.calculatePosition(context.dt);
     this.velocity = this.calculateVelocity(context.dt);
@@ -47,8 +52,8 @@ class Particle extends ParticleMixins implements Disposable {
       }
       canvasRenderingContext.fillStyle = this.color.rgba();
       canvasRenderingContext.fillRect(
-        this.position.x,
-        this.position.y,
+        this.position.x - this.size / 2,
+        this.position.y - this.size / 2,
         this.size * 2,
         this.size * 2
       );

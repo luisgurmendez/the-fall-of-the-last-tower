@@ -1,6 +1,8 @@
+import GameContext from "@/core/gameContext";
+
 interface Disposable {
   shouldDispose: boolean;
-  dispose?: () => void | undefined;
+  dispose?: (g: GameContext) => void | undefined;
 }
 
 export function isDisposable(obj: any): obj is Disposable {

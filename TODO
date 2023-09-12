@@ -1,3 +1,5 @@
 [] improve tree not overlappings
 [] avoid units "entering" the castle
 [] improve movement of units, archers should run and attack, swordsman should not get on top of each other
+[] remove armor func
+[] double check selection logic there are some edge cases

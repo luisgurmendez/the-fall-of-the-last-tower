@@ -1,5 +1,6 @@
 import Vector from "@/physics/vector";
 import PixelArtBuilder, { PixelArt } from "./PixelArtBuilder";
+import RenderUtils from "@/render/utils";
 
 class PixelArtSpriteSheet {
   canvases: HTMLCanvasElement[];
@@ -14,6 +15,7 @@ class PixelArtSpriteSheet {
     mirrored: boolean
   ): void {
     const canvas = this.canvases[frame];
+
     ctx.translate(position.x, position.y);
     if (mirrored) {
       ctx.scale(-1, 1);

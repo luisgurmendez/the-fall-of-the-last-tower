@@ -24,6 +24,10 @@ export class Circle {
   get maxDistanceToCenter() {
     return this.radius;
   }
+
+  get perimeter() {
+    return 2 * Math.PI * this.radius;
+  }
 }
 
 export class Square extends Rectangle {

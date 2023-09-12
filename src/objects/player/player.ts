@@ -1,4 +1,3 @@
-import Keyboard from "@/core/keyboard";
 import BaseObject from "../baseObject";
 import Vector from "@/physics/vector";
 import Initializable from "@/behaviors/initializable";
@@ -10,11 +9,8 @@ import CollisionsController from "@/controllers/CollisionsController";
 import { isCollisionableObject } from "@/mixins/collisionable";
 import ArmyUnit from "../army/armyUnit";
 import RenderUtils from "@/render/utils";
-import SpatiallyHashedObjects from "@/utils/spatiallyHashedObjects";
 import Intersections from "@/utils/intersections";
 import { Target } from "../army/types";
-
-const keyboard = Keyboard.getInstance();
 
 class Player extends BaseObject implements Initializable, Disposable {
     mark: Vector | null;
@@ -23,9 +19,9 @@ class Player extends BaseObject implements Initializable, Disposable {
     initialDraggingPosition: Vector | null = null;
     initialDraggingClientPosition: Vector | null = null;
     mouseDown: boolean = false;
-    selectedUnits: ArmyUnit[] = [];
+    selectedUnits: Set<ArmyUnit> = new Set();
     mousePositionInGame: Vector | null = null;
-    hoveringTarget: Target | null = null;
+    hoveringTarget: ArmyUnit | null = null;
 
     constructor() {
         super();
@@ -34,7 +30,7 @@ class Player extends BaseObject implements Initializable, Disposable {
     dispose?: (() => void | undefined) | undefined;
 
     init(gameContext: GameContext) {
-        this.position = new Vector(-Infinity, -Infinity);
+        this.position = new Vector();
         const { canvasRenderingContext } = gameContext;
         const canvas = canvasRenderingContext.canvas;
 
@@ -42,22 +38,39 @@ class Player extends BaseObject implements Initializable, Disposable {
         this.initialDraggingClientPosition = new Vector();
 
         const handleMouseMove = (event: MouseEvent) => {
-            this.mousePositionInGame = this.mouseCoordsToGameCoordsWithZoom(gameContext, canvas, event.clientX, event.clientY, gameContext.camera.zoom);
-            if (keyboard.isKeyPressed("s")) {
-                if (this.mouseDown) {
-                    this.initialDraggingClientPosition = this.mouseCoordsToGameCoordsWithZoom(gameContext, canvas, event.clientX, event.clientY, gameContext.camera.zoom);
-                }
+            this.mousePositionInGame = this.mouseCoordsToGameCoordsWithZoom(gameContext, canvas, event.clientX, event.clientY,);
+            if (this.mouseDown) {
+                this.initialDraggingClientPosition = this.mousePositionInGame.clone();
             }
         };
 
         const handleMouseDown = (event: MouseEvent) => {
-            if (keyboard.isKeyPressed("s")) {
-                this.selectedUnits = [];
-                this.mark = null;
+            if (event.button === 2) {
+                handleRightClick(event);
+                return;
+            }
+
+            if (this.hoveringTarget) {
+                if ((this.hoveringTarget as any).side === 1) {
+                    /// Sets the target as the hovered target for all selected units
+                    this.selectedUnits.forEach(unit => {
+                        (unit as any).targetPosition = null;
+                        (unit as any).target = this.hoveringTarget;
+                    })
+                } else {
+                    /// selecting a single unit
+                    this.unselectAllUnits();
+                    (this.hoveringTarget as any).isSelected = true;
+                    this.selectedUnits.add(this.hoveringTarget as any);
+                }
+            } else {
                 this.mouseDown = true;
-                this.initialDraggingPosition = this.mouseCoordsToGameCoordsWithZoom(gameContext, canvas, event.clientX, event.clientY, gameContext.camera.zoom)
+                this.unselectAllUnits();
+                this.mark = null;
+                this.initialDraggingPosition = this.mouseCoordsToGameCoordsWithZoom(gameContext, canvas, event.clientX, event.clientY,)
                 this.initialDraggingClientPosition = null;
             }
+
         };
 
         const handleCancelMouseDown = (event: MouseEvent) => {
@@ -68,18 +81,31 @@ class Player extends BaseObject implements Initializable, Disposable {
 
         const handleRightClick = (event: MouseEvent) => {
             event.preventDefault();
-            if (this.hoveringTarget) {
+            if (this.hoveringTarget && this.hoveringTarget.side === 1) {
                 this.selectedUnits.forEach(unit => {
-                    (unit as any).target = this.hoveringTarget;
+                    unit.target = this.hoveringTarget;
                 })
             } else {
-                const position = this.mouseCoordsToGameCoordsWithZoom(gameContext, canvas, event.clientX, event.clientY, gameContext.camera.zoom);
-                this.mark = position;
-                this.selectedUnits.forEach(unit => {
-                    unit.targetPosition = position;
+                const position = this.mouseCoordsToGameCoordsWithZoom(gameContext, canvas, event.clientX, event.clientY);
+                this.mark = position.clone();
+                /// sets the target position for each unit making it a line using the `position` as the center and using the
+                /// distance between units as the distance between each unit
+                let i = 0;
+                const distanceBetweenUnits = 25
+                this.selectedUnits.forEach((unit) => {
+                    // Sets the targetPosition for individual units to form a military formation
+                    /// TODO(): make them linup in the middle of the targetPosition.
+                    const offsetY = Math.floor(i / 10) * distanceBetweenUnits;
+                    const offsetX = (i % 10) * distanceBetweenUnits;
+                    unit.targetPosition = position.clone().add(new Vector(offsetX, offsetY));
+                    unit.target = null;
+                    i++;
                 })
             }
+        }
 
+        const preventDefault = (event: MouseEvent) => {
+            event.preventDefault();
         }
 
         canvas.addEventListener("mousedown", handleMouseDown);
@@ -87,7 +113,7 @@ class Player extends BaseObject implements Initializable, Disposable {
         canvas.addEventListener("mouseover", handleCancelMouseDown);
         canvas.addEventListener("mouseout", handleCancelMouseDown);
         canvas.addEventListener("mousemove", handleMouseMove);
-        canvas.addEventListener("contextmenu", handleRightClick);
+        canvas.addEventListener("contextmenu", preventDefault);
 
 
         this.dispose = () => {
@@ -96,8 +122,15 @@ class Player extends BaseObject implements Initializable, Disposable {
             canvas.removeEventListener("mouseover", handleCancelMouseDown);
             canvas.removeEventListener("mouseout", handleCancelMouseDown);
             canvas.removeEventListener("mousemove", handleMouseMove);
-            canvas.removeEventListener("contextmenu", handleRightClick);
+            canvas.removeEventListener("contextmenu", preventDefault);
         };
+    }
+
+    unselectAllUnits() {
+        this.selectedUnits.forEach(unit => {
+            (unit as any).isSelected = false;
+        })
+        this.selectedUnits = new Set();
     }
 
     step(gctx: GameContext) {
@@ -121,22 +154,24 @@ class Player extends BaseObject implements Initializable, Disposable {
             const selection: any = new BaseObject(selectionCenterPosition);
             selection.collisionMask = selectionCollisionMask;
 
-            const posibleObjectsInSelection = spatialHashing.queryInRange(selectionCenterPosition, Math.max(selectionCollisionMask.w / 2, selectionCollisionMask.h / 2));
+            const posibleObjectsInSelection = spatialHashing.queryInRange(selectionCenterPosition, Math.max(selectionCollisionMask.w, selectionCollisionMask.h));
             posibleObjectsInSelection.forEach(obj => {
                 if (isCollisionableObject(obj) && CollisionsController.calculateCollision(selection, obj)) {
-                    if (obj instanceof ArmyUnit) {
+                    if (obj instanceof ArmyUnit && obj.side === 0) {
                         obj.isSelected = true;
-                        this.selectedUnits.push(obj);
+                        this.selectedUnits.add(obj);
                     }
                 } else {
                     (obj as any).isSelected = false;
+                    this.selectedUnits.delete(obj as any);
                 }
             })
         }
 
         if (this.mousePositionInGame) {
             const hoveringObject = spatialHashing.query(this.mousePositionInGame).find(obj => isCollisionableObject(obj) && Intersections.isPointInsideRectangle(this.mousePositionInGame!, obj.collisionMask as Rectangle, obj.position));
-            this.hoveringTarget = hoveringObject as Target ?? null;
+            if ((this.hoveringTarget as any)) (this.hoveringTarget as any).isBeingHovered = false;
+            this.hoveringTarget = hoveringObject as ArmyUnit ?? null;
             if (hoveringObject) {
                 (hoveringObject as any).isBeingHovered = true;
             }
@@ -155,6 +190,8 @@ class Player extends BaseObject implements Initializable, Disposable {
             }
 
             if (this.mark) {
+
+                // marker stem
                 canvasRenderingContext.strokeStyle = "black";
                 canvasRenderingContext.lineWidth = 2;
                 canvasRenderingContext.beginPath();
@@ -162,22 +199,29 @@ class Player extends BaseObject implements Initializable, Disposable {
                 canvasRenderingContext.lineTo(this.mark.x, this.mark.y + 12);
                 canvasRenderingContext.stroke();
 
+                // marker red ball
                 canvasRenderingContext.strokeStyle = "transparent";
                 canvasRenderingContext.fillStyle = "red";
                 RenderUtils.renderCircle(canvasRenderingContext, this.mark, 6);
                 canvasRenderingContext.fill();
                 canvasRenderingContext.fillStyle = "white";
 
+                // marker shine
                 RenderUtils.renderCircle(canvasRenderingContext, this.mark.clone().add(new Vector(2, -2)), 2);
                 canvasRenderingContext.fill();
                 RenderUtils.renderCircle(canvasRenderingContext, this.mark.clone().add(new Vector(3, 2)), 1);
+                canvasRenderingContext.fill();
+
+                // marker pin effect on map
+                canvasRenderingContext.fillStyle = "black";
+                RenderUtils.renderCircle(canvasRenderingContext, this.mark.clone().add(new Vector(0, 12)), 1);
                 canvasRenderingContext.fill();
 
             }
         }, true);
     }
 
-    private mouseCoordsToGameCoordsWithZoom(gctx: GameContext, canvas: HTMLCanvasElement, x: number, y: number, zoom: number): Vector {
+    private mouseCoordsToGameCoordsWithZoom(gctx: GameContext, canvas: HTMLCanvasElement, x: number, y: number): Vector {
         const zoomFactor = gctx.camera.zoom;
         const cameraX = gctx.camera.position.x;
         const cameraY = gctx.camera.position.y;

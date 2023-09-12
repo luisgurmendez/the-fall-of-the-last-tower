@@ -6,12 +6,10 @@ import Vector from "@/physics/vector";
 import GameContext from "./gameContext";
 import Initializable from "@/behaviors/initializable";
 import { Rectangle } from "@/objects/shapes";
-import Keyboard from "./keyboard";
 
 const MAX_ZOOM = 14;
 const MIN_ZOOM = 0.4;
 export const CAMERA_ID = "cmr"
-const keyboard = Keyboard.getInstance();
 
 class Camera extends BaseObject implements Stepable, Disposable, Initializable {
   _position: Vector;
@@ -46,14 +44,8 @@ class Camera extends BaseObject implements Stepable, Disposable, Initializable {
     this.viewport.w = canvas.width;
     this.viewport.h = canvas.height;
 
-    let initialDragginPosition = new Vector();
-    let initialDraggingClientPosition = new Vector();
-    let mouseDown = false;
-
     const handleCanvasWheel = (event: WheelEvent) => {
       event.preventDefault();
-      if (keyboard.isKeyPressed("s")) return;
-
       const mousex =
         (event.clientX - (canvas.offsetLeft + canvas.width / 2)) * -1;
       const mousey =
@@ -75,37 +67,13 @@ class Camera extends BaseObject implements Stepable, Disposable, Initializable {
     };
 
     const handleMouseMove = (event: MouseEvent) => {
-      if (keyboard.isKeyPressed("s")) return;
-
       const rect = canvas.getBoundingClientRect();
       const mouseX = event.clientX - rect.left;
       const mouseY = event.clientY - rect.top;
       this.mousePosition = new Vector(mouseX, mouseY);
-
-      if (mouseDown) {
-        this.unfollow();
-        const posDiff = initialDraggingClientPosition
-          .clone()
-          .sub(new Vector(event.clientX, event.clientY));
-        posDiff.scalar(1 / this.zoom);
-
-        this.position = initialDragginPosition.clone().add(posDiff);
-      }
-    };
-
-    const handleMouseDown = (event: MouseEvent) => {
-      if (keyboard.isKeyPressed("s")) return;
-      mouseDown = true;
-      initialDragginPosition = this.position.clone();
-      initialDraggingClientPosition = new Vector(event.clientX, event.clientY);
-    };
-
-    const handleCancelMouseDown = (event: MouseEvent) => {
-      mouseDown = false;
     };
 
     const handleZoom = (e: KeyboardEvent) => {
-      if (keyboard.isKeyPressed("s")) return;
       if (e.key === ".") {
         this.zoomIn();
       }
@@ -116,19 +84,11 @@ class Camera extends BaseObject implements Stepable, Disposable, Initializable {
     };
 
     // add event listeners to handle screen drag
-    canvas.addEventListener("mousedown", handleMouseDown);
-    canvas.addEventListener("mouseup", handleCancelMouseDown);
-    canvas.addEventListener("mouseover", handleCancelMouseDown);
-    canvas.addEventListener("mouseout", handleCancelMouseDown);
     canvas.addEventListener("mousemove", handleMouseMove);
     canvas.addEventListener("wheel", handleCanvasWheel);
     window.addEventListener("keydown", handleZoom);
 
     this.dispose = () => {
-      canvas.removeEventListener("mousedown", handleMouseDown);
-      canvas.removeEventListener("mouseup", handleCancelMouseDown);
-      canvas.removeEventListener("mouseover", handleCancelMouseDown);
-      canvas.removeEventListener("mouseout", handleCancelMouseDown);
       canvas.removeEventListener("mousemove", handleMouseMove);
       canvas.removeEventListener("wheel", handleCanvasWheel);
       window.removeEventListener("keydown", handleZoom);
@@ -183,9 +143,9 @@ class Camera extends BaseObject implements Stepable, Disposable, Initializable {
 
   private updatePosition() {
     // How close the mouse needs to be to an edge to start scrolling
-    const edgeThreshold = 50;
+    const edgeThreshold = 150;
     // Maximum speed of camera scroll in units per frame
-    const maxSpeed = 10;
+    const maxSpeed = 20;
 
     // Update the camera position based on mouse coordinates
     if (this.mousePosition !== null) {

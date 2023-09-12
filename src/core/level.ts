@@ -14,6 +14,7 @@ import { isCollisionableObject } from "@/mixins/collisionable";
 import Stepable, { isStepable } from "@/behaviors/stepable";
 import SpatiallyHashedObjects from "@/utils/spatiallyHashedObjects";
 import { filterInPlaceAndGetRest } from "@/utils/fn";
+import Castle, { CASTLE_ID } from "@/objects/castle/castle";
 
 class Level {
   objects: BaseObject[] = [];
@@ -23,60 +24,43 @@ class Level {
   private collisionController: CollisionsController =
     new CollisionsController();
   private renderController: RenderController = new RenderController();
-  private statusController: LevelStatusController;
 
   shouldInitialize = true;
   shouldDispose = false;
 
   constructor(
     objects: BaseObject[],
-    criteria: LevelCriterion,
-    worldDimensions: Rectangle = new Rectangle(1000, 1000)
+    worldDimensions: Rectangle
   ) {
     this.objects = objects;
     this.camera = new Camera();
     this.worldDimensions = worldDimensions;
-    this.statusController = new LevelStatusController(criteria);
     this.objects = [...objects, this.camera];
   }
 
   update(gameApi: GameApi): void {
-    const spatialHasing = this._buildSpatiallyHashedObjects();
-    const collisions = this._buildCollisions(spatialHasing);
 
-    const gameContext = this.generateGameContext(gameApi, collisions, spatialHasing);
     if (!gameApi.isPaused) {
+      const collisionableObjects: CollisionableObject[] = this.objects.filter(
+        isCollisionableObject
+      );
+      const spatialHasing = this._buildSpatiallyHashedObjects(collisionableObjects);
+      const collisions = this.collisionController.buildCollisions(collisionableObjects, spatialHasing);
+
+      const gameContext = this.generateGameContext(gameApi, collisions, spatialHasing);
+
       this.initializeObjects(gameContext);
       this.stepObjects(gameContext);
-
-      // Move this to private fn..
-      if (!this.statusController.hasWonOrLost) {
-        const status = this.statusController.checkLevelCriteria(gameContext);
-        if (status !== LevelStatus.PLAYING) {
-          console.log(status);
-        }
-      }
       this.disposeObjects(gameContext);
+      this.renderController.render(gameContext);
     }
-    this.renderController.render(gameContext);
-
   }
 
-  private _buildCollisions(spatialHasing: SpatiallyHashedObjects) {
-    const collisionableObjects: CollisionableObject[] = this.objects.filter(
-      isCollisionableObject
-    );
-    return this.collisionController.buildCollisions(collisionableObjects, spatialHasing);
-  }
-
-  private _buildSpatiallyHashedObjects() {
-    const spatialHasing = new SpatiallyHashedObjects(200);
-    this.objects.forEach((obj) => {
-      spatialHasing.insert(obj);
-    });
+  private _buildSpatiallyHashedObjects(collisionableObjects: CollisionableObject[]) {
+    const spatialHasing = new SpatiallyHashedObjects(100);
+    collisionableObjects.forEach(spatialHasing.insert);
     return spatialHasing;
   }
-
 
   private initializeObjects(gameContext: GameContext) {
     const { objects } = gameContext;
@@ -100,13 +84,12 @@ class Level {
 
   private disposeObjects(gameContext: GameContext) {
     const { objects } = gameContext;
-
     const objsToDispose = filterInPlaceAndGetRest(objects, (obj) => {
       return !(isDisposable(obj) && obj.shouldDispose);
     });
 
     objsToDispose.forEach((obj) => {
-      isDisposable(obj) && obj.dispose && obj.dispose();
+      isDisposable(obj) && obj.dispose && obj.dispose(gameContext);
     });
   }
 
@@ -143,68 +126,3 @@ export interface LevelCriterion extends Stepable {
 export interface LevelFailing extends Stepable {
   completed(): boolean;
 }
-
-enum LevelStatus {
-  WON,
-  LOST,
-  PLAYING,
-}
-class LevelStatusController {
-  hasWonOrLost = false;
-  criteria: LevelCriterion;
-
-  constructor(criteria: LevelCriterion) {
-    this.criteria = criteria;
-  }
-
-  checkLevelCriteria(context: GameContext) {
-    this.criteria.step(context);
-    if (this.criteria.won()) {
-      this.hasWonOrLost = true;
-      return LevelStatus.WON;
-    }
-
-    if (this.criteria.lost()) {
-      this.hasWonOrLost = true;
-      return LevelStatus.LOST;
-    }
-
-    return LevelStatus.PLAYING;
-  }
-}
-
-// class RestartLevelLabelObject extends BaseObject implements Renderable {
-//   render() {
-//     const renderFn = (ctx: GameContext) => {
-//       ctx.canvasRenderingContext.font = "45px Comic Sans MS";
-//       ctx.canvasRenderingContext.fillStyle = "#FFF";
-//       RenderUtils.renderText(
-//         ctx.canvasRenderingContext,
-//         "Press [r] to restart level",
-//         new Vector(Dimensions.w / 2, 20)
-//       );
-//     };
-//     const renderEl = new RenderElement(renderFn);
-//     renderEl.positionType = "overlay";
-//     return renderEl;
-//   }
-// }
-
-// export class Text extends BaseObject {
-//   render() {
-//     const renderFn = (ctx: GameContext) => {
-//       const canvasRenderingContext = ctx.canvasRenderingContext;
-//       canvasRenderingContext.fillStyle = "#FFF";
-//       canvasRenderingContext.font = "15px Comic Sans MS";
-//       RenderUtils.renderText(
-//         canvasRenderingContext,
-//         "Press [m] to toggle menu",
-//         new Vector(100, Dimensions.h - 30)
-//       );
-//     };
-
-//     const rEl = new RenderElement(renderFn);
-//     rEl.positionType = "overlay";
-//     return rEl;
-//   }
-// }

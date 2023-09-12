@@ -12,12 +12,10 @@ import Arrow from "./arrow";
 import ArmyUnit, { ATTACK_ANIMATION_ID, WALK_ANIMATION_ID } from "../armyUnit";
 import { Target } from "../types";
 import Cooldown from "@/objects/cooldown";
-import RandomUtils from "@/utils/random";
-import { CASTLE_ID } from "@/objects/castle/castle";
-import { otherSideObjectsFiltering } from "../utils";
 
 const ATTACK_RANGE = 800;
-const OUT_OF_REACH_RANGE = 350;
+const OUT_OF_REACH_RANGE = ATTACK_RANGE * 2;
+const ACCELERATION = 500;
 
 const archerAttackSpriteFrames = [3, 4, 5, 6, 7,]
 
@@ -29,6 +27,9 @@ const archermanSpriteSheetEnemy = new PixelArtSpriteSheet(
 );
 
 class Archer extends ArmyUnit {
+    protected attackRange: number = ATTACK_RANGE;
+    protected accelerationRate: number = ACCELERATION;
+    protected outOfSightRange: number = OUT_OF_REACH_RANGE;
     protected maxHealth: number = 30;
     protected maxArmor: number = 10;
     protected armor: number = 0;
@@ -51,7 +52,7 @@ class Archer extends ArmyUnit {
         this.shouldDispose = false;
         this.spriteAnimator = new PixelArtSpriteAnimator(
             side === 0 ? archerSpriteSheetAlly : archermanSpriteSheetEnemy,
-            1
+            3
         );
         this.spriteAnimator.addAnimation(WALK_ANIMATION_ID, [0, 1, 2], 0.2);
         this.spriteAnimator.addAnimation(ATTACK_ANIMATION_ID, archerAttackSpriteFrames, 0.2);
@@ -61,77 +62,76 @@ class Archer extends ArmyUnit {
 
     shouldDispose: boolean;
 
-    step(gctx: GameContext) {
-        const { dt } = gctx;
-        let hasSetAnimation = false;
-        this.beforeStep(gctx);
-
-        if (this.target && isDisposable(this.target) && this.target.shouldDispose) {
-            this.target = null;
-        }
-
-        this.fixTarget(gctx);
-
-        if (!this.isAttacking) {
-
-            const lookAt = this.targetPosition?.clone()
-                .sub(this.position)
-                .normalize() ?? new Vector(0, 0);
-
-            this.direction = lookAt;
-            this.acceleration = lookAt.scalar(500);
-            this.velocity = this.calculateVelocity(gctx.dt);
-            this.position = this.calculatePosition(gctx.dt);
-        }
-
+    protected attackIfPossible(g: GameContext) {
         if (this.shouldAttack) {
-            /// adds a little offset to the arrow position
+            const direction = this.target!.position.clone().sub(this.position.clone()).normalize();
+            this.direction = direction.clone();
             const arrowPositionOffset = new Vector(0, 1.5);
-            const arrow = new Arrow(this.position.clone().add(arrowPositionOffset), this.direction.clone(), this.side);
+            const position = this.position.clone();
             this.attack((gameContext) => {
+                const arrow = new Arrow(position.add(arrowPositionOffset), direction, this.side);
                 gameContext.objects.push(arrow);
             });
-            hasSetAnimation = true;
-        }
-
-        if (!hasSetAnimation) {
-            this.spriteAnimator.playAnimation("w", false);
         }
     }
 
-    private fixTarget(gameContext: GameContext) {
-        const { spatialHashing } = gameContext;
-        if (this.target && (this.target.id === CASTLE_ID || this.target.position.distanceTo(this.position) > OUT_OF_REACH_RANGE)) {
-            this.target = null;
-        }
+    // private move(g: GameContext) {
+    //     if (!this.isAttacking) {
+    //         let _lookingAtDirection;
 
-        if (!this.target || this.target.id === CASTLE_ID) {
-            const nearByObjs = spatialHashing.queryInRange(this.position, ATTACK_RANGE + 10);
-            /// TODO fix types
-            const nearByEnemies = nearByObjs.filter(otherSideObjectsFiltering(this.side));
-            if (nearByEnemies.length > 0) {
-                this.target = RandomUtils.getRandomValueOf(nearByEnemies) as Target;
-            } else if (this.side === 1) {
-                this.target = gameContext.objects.find(obj => obj.id === CASTLE_ID) as Target ?? null;
-            }
-        }
-    }
+    //         if (this.targetPosition) {
+    //             _lookingAtDirection = this.targetPosition.clone().sub(this.position).normalize();
+    //         } else if (this.target) {
+    //             // move away of target if too close, ak half the attack range
+    //             if (this.target.position.distanceTo(this.position) < ATTACK_RANGE) {
+    //                 _lookingAtDirection = this.position.clone().sub(this.target.position.clone()).normalize();
+    //             } else {
+    //                 _lookingAtDirection = this.target.position.clone().sub(this.position.clone()).normalize();
+    //             }
+    //         } else {
+    //             this.velocity = new Vector(0, 0);
+    //             this.acceleration = new Vector(0, 0);
+    //             return;
+    //         }
 
-    private getNearestEnemy(enemies: BaseObject[]) {
-        enemies.sort((a, b) => {
-            const aDistance = a.position.distanceTo(this.position);
-            const bDistance = b.position.distanceTo(this.position);
-            return aDistance - bDistance;
-        });
-        return enemies[0];
-    }
+    //         this.direction = _lookingAtDirection.clone();
+    //         this.acceleration = _lookingAtDirection.scalar(this.accelerationRate);
+    //         this.velocity = this.calculateVelocity(g.dt);
+    //     }
+    // }
 
-    private get isAttacking() {
-        return (
-            this.spriteAnimator.currentAnimation === "a" &&
-            this.spriteAnimator.isPlayingAnimation
-        );
-    }
+
+    // private fixTarget(gameContext: GameContext) {
+    //     const { spatialHashing } = gameContext;
+
+    //     if (this.target && isDisposable(this.target) && this.target.shouldDispose) {
+    //         this.target = null;
+    //     }
+
+    //     if (this.targetPosition && this.targetPosition.distanceTo(this.position) < 10) {
+    //         this.targetPosition = null;
+    //     }
+
+
+    //     if (this.targetPosition) {
+    //         this.target = null;
+    //     } else {
+    //         if (this.target && (this.target.id === CASTLE_ID || this.target.position.distanceTo(this.position) > OUT_OF_REACH_RANGE)) {
+    //             this.target = null;
+    //         }
+
+    //         if (!this.target || this.target.id === CASTLE_ID) {
+    //             const nearByObjs = spatialHashing.query(this.position);
+    //             const nearByEnemies = nearByObjs.filter(otherSideObjectsFiltering(this.side));
+    //             if (nearByEnemies.length > 0) {
+    //                 this.target = RandomUtils.getRandomValueOf(nearByEnemies) as Target;
+    //             } else if (this.side === 1) {
+    //                 this.targetPosition = new Vector();
+    //             }
+    //         }
+    //     }
+
+    // }
 
     private get shouldAttack() {
         return this.target && this.canAttack() && this.target.position.distanceTo(this.position) < ATTACK_RANGE;

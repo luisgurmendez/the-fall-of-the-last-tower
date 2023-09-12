@@ -13,32 +13,33 @@ export interface Collisions {
 class CollisionsController {
   buildCollisions(objects: CollisionableObject[], spatialHashing: SpatiallyHashedObjects): Collisions {
     const collisions: Collisions = {};
-
     for (let i = 0; i < objects.length; i++) {
       const primaryObj = objects[i];
-      if (isCollisionableObject(primaryObj)) {
-        const nearbyObjs = spatialHashing.queryInRange(primaryObj.position, primaryObj.collisionMask.maxDistanceToCenter + 5);
-        for (let j = 0; j < nearbyObjs.length; j++) {
-          const secondaryObj = nearbyObjs[j];
-          if (
-            primaryObj !== secondaryObj &&
-            isCollisionableObject(secondaryObj)
-          ) {
-            const areObjectsColliding = CollisionsController.calculateCollision(
-              primaryObj,
-              secondaryObj
-            );
-            if (areObjectsColliding) {
-              if (collisions[primaryObj.id] === undefined) {
-                collisions[primaryObj.id] = [secondaryObj];
-              } else {
-                collisions[primaryObj.id].push(secondaryObj);
-              }
+      const nearbyObjs = spatialHashing.query(primaryObj.position);
+      for (let j = 0; j < nearbyObjs.length; j++) {
+        const secondaryObj = nearbyObjs[j];
+        if (
+          primaryObj !== secondaryObj &&
+          isCollisionableObject(secondaryObj)
+        ) {
+          const areObjectsColliding = CollisionsController.calculateCollision(
+            primaryObj,
+            secondaryObj
+          );
+          if ((primaryObj as any).side !== (secondaryObj as any).side && areObjectsColliding) {
+            console.log(primaryObj, secondaryObj);
+          }
+          if (areObjectsColliding) {
+            if (collisions[primaryObj.id] === undefined) {
+              collisions[primaryObj.id] = [secondaryObj];
+            } else {
+              collisions[primaryObj.id].push(secondaryObj);
             }
           }
         }
       }
-      primaryObj.setCollisions(collisions[primaryObj.id]); // injects the collisions into the obj.
+      // injects the collisions into the obj.
+      primaryObj.setCollisions(collisions[primaryObj.id]);
     }
     return collisions;
   }

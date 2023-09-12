@@ -8,6 +8,7 @@ class Intersections {
     rectPos: Vector,
     circlePos: Vector
   ) {
+
     // rectangle center
     const { x: rx, y: ry } = rectPos;
     // circle center

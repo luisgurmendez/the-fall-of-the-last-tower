@@ -9,9 +9,11 @@ import Background, { BACKGROUND_ID } from "@/objects/background";
 import BaseObject from "@/objects/baseObject";
 import { Rectangle } from "@/objects/shapes";
 import { otherSideObjectsFiltering } from "../utils";
+import RenderUtils from "@/render/utils";
 
 const ArrowMixin = PhysicableMixin(CollisionableMixin<Rectangle>()(BaseObject));
 const ARROW_LENGTH = 14;
+
 class Arrow extends ArrowMixin implements Disposable {
     shouldDispose: boolean;
     side: 0 | 1;
@@ -20,7 +22,7 @@ class Arrow extends ArrowMixin implements Disposable {
     constructor(position: Vector, direction: Vector, side: 0 | 1) {
         super(position);
         this.direction = direction;
-        this.collisionMask = new Rectangle(10, 2);
+        this.collisionMask = new Rectangle(ARROW_LENGTH, 2);
         this.velocity = direction.scalar(500);
         this.acceleration = direction.scalar(1);
         this.shouldDispose = false;
@@ -29,22 +31,27 @@ class Arrow extends ArrowMixin implements Disposable {
         this.ttl = 2;
     }
 
-    step(gameContext: GameContext) {
-        this.position = this.calculatePosition(gameContext.dt);
+    step = (gameContext: GameContext) => {
         const { collisions } = gameContext;
         if (collisions[this.id] && collisions[this.id].length > 0) {
             // find collision with enemy
+
             const enemy = collisions[this.id].find(otherSideObjectsFiltering(this.side));
+            // if (this.side === 0) {
+            //     console.log(collisions);
+            //     console.log(enemy);
+            // }
             if (enemy) {
+                console.log(enemy);
                 if (isAttackable(enemy)) {
-                    enemy.applyDamage(3);
+                    enemy.applyDamage(15);
                 }
                 this.shouldDispose = true;
             }
         }
         this.ttl -= gameContext.dt;
-        if (this.ttl <= 0) {
 
+        if (this.ttl <= 0) {
             this.shouldDispose = true;
 
             const background = this.findBackground(gameContext);
@@ -52,6 +59,8 @@ class Arrow extends ArrowMixin implements Disposable {
                 background.drawArrow(this.position.clone(), this.direction.clone());
             }
         }
+
+        this.position = this.calculatePosition(gameContext.dt);
     }
 
     findBackground(gameContext: GameContext): Background | undefined {

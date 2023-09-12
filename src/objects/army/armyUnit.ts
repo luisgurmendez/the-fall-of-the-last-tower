@@ -5,7 +5,7 @@ import { PhysicableMixin } from "@/mixins/physics";
 import { CollisionableMixin } from "@/mixins/collisionable";
 import Cooldown from "../cooldown";
 import GameContext from "@/core/gameContext";
-import Disposable from "@/behaviors/disposable";
+import Disposable, { isDisposable } from "@/behaviors/disposable";
 import { generateBloodDrops, generateBloodExplotion } from "./ParticleUtils";
 import Background, { BACKGROUND_ID } from "../background";
 import Vector from "@/physics/vector";
@@ -13,11 +13,12 @@ import PixelArtSpriteAnimator from "@/sprites/PixelArtSpriteAnimator";
 import RenderElement from "@/render/renderElement";
 import Particle from "../particle/particle";
 import PixelArtDrawUtils from "@/utils/pixelartDrawUtils";
-
+import { CASTLE_ID } from "../castle/castle";
+import { otherSideObjectsFiltering } from "./utils";
+import RandomUtils from "@/utils/random";
 
 export const ATTACK_ANIMATION_ID = "a";
 export const WALK_ANIMATION_ID = "w";
-export const IDLE_ANIMATION_ID = "w";
 
 const BaseArmyUnit = PhysicableMixin(
     CollisionableMixin<Square>()(BaseObject)
@@ -26,20 +27,24 @@ const BaseArmyUnit = PhysicableMixin(
 abstract class ArmyUnit extends BaseArmyUnit implements Disposable {
     shouldDispose: boolean = false;
     dispose?: (() => void | undefined) | undefined;
-    protected abstract side: ArmyUnitSide;
+    abstract side: ArmyUnitSide;
+    protected abstract outOfSightRange: number;
     protected abstract health: number;
     protected abstract maxHealth: number;
     protected abstract maxArmor: number;
     protected abstract armor: number;
     protected abstract attackCooldown: Cooldown;
     /// Enemy to attack if in reach
-    protected abstract target: Target | null;
+    abstract target: Target | null;
+    protected abstract attackRange: number;
+    protected abstract accelerationRate: number;
+    // Whether the  player is hovering
+    isBeingHovered = false;
+    /// Whether the unit is selected by the player
+    isSelected = false;
 
     /// position vector of the desired position to move to
     targetPosition: Vector | null = null;
-
-    /// Whether the unit is selected by the player
-    isSelected: boolean = false;
 
     protected abstract spriteAnimator: PixelArtSpriteAnimator;
     private bloodDropsToAddOnNextStep: Particle[] = [];
@@ -47,15 +52,18 @@ abstract class ArmyUnit extends BaseArmyUnit implements Disposable {
     /// The frame in which the attack should be triggered.
     protected abstract triggerAttackAnimationFrame: number;
     private queuedAttackWithAnimationFrame: ((gctx: GameContext) => void) | null = null;
+    private prevPosition: Vector = new Vector();
 
     abstract chooseTypeOfBloodstainWhenDying(background: Background): (inPosition: Vector) => void;
 
     protected attack(attackCb: (gctx: GameContext) => void) {
-        this.spriteAnimator.playAnimation("a", true);
-        this.acceleration = new Vector(0, 0);
-        this.velocity = new Vector(0, 0);
-        this.attackCooldown.start();
-        this.queuedAttackWithAnimationFrame = attackCb;
+        if (!this.isAttacking) {
+            this.spriteAnimator.playAnimation(ATTACK_ANIMATION_ID, true);
+            this.acceleration = new Vector(0, 0);
+            this.velocity = new Vector(0, 0);
+            this.attackCooldown.start();
+            this.queuedAttackWithAnimationFrame = attackCb;
+        }
     }
 
     protected canAttack() {
@@ -81,6 +89,7 @@ abstract class ArmyUnit extends BaseArmyUnit implements Disposable {
 
     protected beforeStep(gctx: GameContext) {
         const { dt } = gctx;
+
         this.checkDeath(gctx);
         if (this.bloodDropsToAddOnNextStep.length > 0) {
             gctx.objects.push(...this.bloodDropsToAddOnNextStep);
@@ -95,20 +104,29 @@ abstract class ArmyUnit extends BaseArmyUnit implements Disposable {
                 this.queuedAttackWithAnimationFrame = null;
             }
         }
+
+        this.prevPosition = this.position.clone();
     }
 
     protected afterStep(gctx: GameContext) {
-        if (this.spriteAnimator.currentAnimation === "a" && this.spriteAnimator.isPlayingAnimation) {
-            this.acceleration = new Vector(0, 0);
-            this.velocity = new Vector(0, 0);
+        this.position = this.calculatePosition(gctx.dt);
+
+        if (this.spriteAnimator.currentAnimation === ATTACK_ANIMATION_ID && this.spriteAnimator.isPlayingAnimation) {
+            this.acceleration = new Vector();
+            this.velocity = new Vector();
+        }
+        // console.log(this.collisions);
+        // console.log(this.collisions.some(o => (o as any).side !== this.side));
+        if (this.collisions.some(o => (o as any).side !== this.side)) {
+            this.position = this.prevPosition.clone();
         }
     }
 
     public render() {
-        if (this.queuedAttackWithAnimationFrame !== null || (this.spriteAnimator.currentAnimation === "a" && this.spriteAnimator.isPlayingAnimation)) {
-            this.spriteAnimator.playAnimation("a");
+        if (this.queuedAttackWithAnimationFrame !== null || (this.spriteAnimator.currentAnimation === ATTACK_ANIMATION_ID && this.spriteAnimator.isPlayingAnimation)) {
+            this.spriteAnimator.playAnimation(ATTACK_ANIMATION_ID);
         } else if (this.isMoving()) {
-            this.spriteAnimator.playAnimation("w");
+            this.spriteAnimator.playAnimation(WALK_ANIMATION_ID);
         } else {
             this.spriteAnimator.stopAnimation();
         }
@@ -117,25 +135,109 @@ abstract class ArmyUnit extends BaseArmyUnit implements Disposable {
     }
 
 
+    protected fixTarget(gameContext: GameContext) {
+
+        const { spatialHashing } = gameContext;
+
+        // set the target to null if target is too far away or if it should be disposed or the target is actually the CASTLE,
+        // units take priority over castle
+        if (this.target && (this.target.id === CASTLE_ID || (isDisposable(this.target) && this.target.shouldDispose) || (this.target.position.distanceTo(this.position) > this.outOfSightRange))) {
+            this.target = null;
+        }
+
+        // set the targetPos to null if it's already reached
+        if (this.targetPosition && this.targetPosition.distanceTo(this.position) < 10) {
+            this.targetPosition = null;
+        }
+
+        // if there is a targetPosition don't look for new targets
+        if (this.targetPosition) {
+            this.target = null;
+        } else {
+            if (!this.target) {
+                const nearByObjs = spatialHashing.queryInRange(this.position, this.outOfSightRange / 2);
+                const nearByEnemies = nearByObjs.filter(otherSideObjectsFiltering(this.side));
+                if (nearByEnemies.length > 0) {
+                    this.target = RandomUtils.getRandomValueOf(nearByEnemies) as Target;
+                } else if (this.side === 1) {
+                    this.targetPosition = new Vector();
+                }
+            }
+        }
+    }
+
+    protected move(g: GameContext) {
+        if (!this.isAttacking) {
+            let _lookingAtDirection;
+
+            if (this.targetPosition) {
+                _lookingAtDirection = this.targetPosition.clone().sub(this.position).normalize();
+            } else if (this.target) {
+                // move away of target if too close, ak half the attack range
+                if (this.target.position.distanceTo(this.position) < this.attackRange) {
+                    _lookingAtDirection = this.position.clone().sub(this.target.position.clone()).normalize();
+                } else {
+                    _lookingAtDirection = this.target.position.clone().sub(this.position.clone()).normalize();
+                }
+            } else {
+                this.velocity = new Vector(0, 0);
+                this.acceleration = new Vector(0, 0);
+                return;
+            }
+
+            this.direction = _lookingAtDirection.clone();
+            this.acceleration = _lookingAtDirection.scalar(this.accelerationRate);
+            this.velocity = this.calculateVelocity(g.dt);
+        }
+
+
+
+
+        // if (!this.isAttacking) {
+        //     let _lookingAtDirection = new Vector();
+
+        //     if (this.targetPosition) {
+        //       _lookingAtDirection = this.targetPosition.clone().sub(this.position).normalize();
+        //     } else if (this.target) {
+        //       _lookingAtDirection = this.target.position.clone().sub(this.position.clone()).normalize();
+        //     } else {
+        //       this.velocity = new Vector(0, 0);
+        //       this.acceleration = new Vector(0, 0);
+        //       return;
+        //     }
+
+        //     this.direction = _lookingAtDirection.clone();
+        //     this.acceleration = _lookingAtDirection.scalar(this.accelerationRate);
+        //     this.velocity = this.calculateVelocity(g.dt);
+        //   }
+    }
+
+    step(gctx: GameContext) {
+        this.beforeStep(gctx);
+        this.fixTarget(gctx);
+        this.attackIfPossible(gctx);
+        this.move(gctx)
+        this.afterStep(gctx)
+    }
+
     // Consumes the armor first, then the health
     applyDamage(rawDamage: number) {
         const remainingDamage = Math.max(0, rawDamage - this.armor);
         this.armor = Math.max(0, this.armor - rawDamage);
         this.health = Math.max(0, this.health - remainingDamage);
         this.bloodDropsToAddOnNextStep.push(...generateBloodDrops(this.position.clone()))
-
     }
+
+    protected abstract attackIfPossible(g: GameContext): void;
 
     buildRenderElement() {
         return new RenderElement((gtx) => {
             const { canvasRenderingContext } = gtx;
-            if (this.isSelected) {
-                const drawUtils = new PixelArtDrawUtils(canvasRenderingContext, "white", 1);
-                drawUtils.drawPixelatedEllipse(this.position.x, this.position.y + this.collisionMask.h / 2, this.collisionMask.w / 2, this.collisionMask.h / 4,);
-            }
+            let color = this.side === 0 ? "white" : "red";
 
-            if ((this as any).isBeingHovered) {
-                const drawUtils = new PixelArtDrawUtils(canvasRenderingContext, "red", 1);
+            // Draws a circle around the unit if it's selected or hovered
+            if (this.isSelected || this.isBeingHovered) {
+                const drawUtils = new PixelArtDrawUtils(canvasRenderingContext, color, 2);
                 drawUtils.drawPixelatedEllipse(this.position.x, this.position.y + this.collisionMask.h / 2, this.collisionMask.w / 2, this.collisionMask.h / 4,);
             }
 
@@ -145,6 +247,13 @@ abstract class ArmyUnit extends BaseArmyUnit implements Disposable {
                 this.direction.x < 0
             );
         }, true);
+    }
+
+    protected get isAttacking() {
+        return (
+            this.spriteAnimator.currentAnimation === ATTACK_ANIMATION_ID &&
+            this.spriteAnimator.isPlayingAnimation
+        );
     }
 
 }
