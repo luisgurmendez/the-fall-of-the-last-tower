@@ -5,7 +5,7 @@ import { swordsmanSprites } from "./sprites";
 import PixelArtSpriteSheet from "@/sprites/PixelArtSpriteSheet";
 import { isAttackable } from "@/behaviors/attackable";
 import Background from "@/objects/background";
-import { Rectangle, Square } from "@/objects/shapes";
+import { Rectangle } from "@/objects/shapes";
 import ArmyUnit, { ATTACK_ANIMATION_ID, WALK_ANIMATION_ID } from "../armyUnit";
 import Cooldown from "@/objects/cooldown";
 import { buildArmySpritesWithSideColor } from "../spriteUtils";

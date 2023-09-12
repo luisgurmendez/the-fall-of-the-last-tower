@@ -17,7 +17,7 @@ class WaveController extends BaseObject {
         if (wave < 1) {
             const soldiers: BaseObject[] = [];
             for (let i = 0; i < 15; i++) {
-                // soldiers.push(new Swordsman(new Vector(context.worldDimensions.w / 2, RandomUtils.getNumberWithVariance(-300, 600),), 1));
+                soldiers.push(new Swordsman(new Vector(context.worldDimensions.w / 2, RandomUtils.getNumberWithVariance(-300, 600),), 1));
             }
             for (let i = 0; i < 10; i++) {
                 soldiers.push(new Archer(new Vector(context.worldDimensions.w / 2, RandomUtils.getNumberWithVariance(-300, 600),), 1));

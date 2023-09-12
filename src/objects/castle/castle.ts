@@ -25,7 +25,7 @@ class Castle extends CastleMixin implements Attackable {
     maxHealth = this.health;
     side = 0;
     constructor() {
-        super(new Vector(0, 0), CASTLE_ID);
+        super(new Vector(-700, 0), CASTLE_ID);
         this.collisionMask = this.size;
     }
     applyDamage(damage: number): void {

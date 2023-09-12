@@ -19,7 +19,7 @@ function generate() {
     [
       ...buildArchers(),
       ...buildArchers2(),
-      // ...buildSwordsmans(),
+      ...buildSwordsmans(),
       // ...buildSwordsmans2(),
 
       // new Swordsman(new Vector(-1300, -100), 0),
@@ -29,8 +29,8 @@ function generate() {
       new Castle(),
       new Background(worldDimensions),
       new Player(),
-      new Stats(),
-      new TimedTextSequenceWithWaveInitializer(["Protect your tower", "use your troops wisely", "good luck!"])
+      // new Stats(),
+      new TimedTextSequenceWithWaveInitializer(["Protect your tower", "re order your army", "and destroy the enemy"])
     ],
     worldDimensions
   );
@@ -122,18 +122,18 @@ class TimedTextSequenceWithWaveInitializer extends TimedTextSequence {
 
 
 
-class Stats extends BaseObject {
+// class Stats extends BaseObject {
 
-  render() {
-    const renderElement = new RenderElement((gameContext: GameContext) => {
-      const { canvasRenderingContext, canvasRenderingContext: { canvas } } = gameContext;
-      // canvasRenderingContext.fillText(`(${gameContext.camera.position.x.toFixed(0)},${gameContext.camera.position.y.toFixed(0)})`, canvas.width - 120, 20);
-      canvasRenderingContext.fillText(`🏹 🗡️`, canvas.width - 120, 50);
-      // canvasRenderingContext.fillText(`(${gameContext.camera.position.x.toFixed(0)},${gameContext.camera.position.y.toFixed(0)})`, canvas.width - 120, 20);
-    });
+//   render() {
+//     const renderElement = new RenderElement((gameContext: GameContext) => {
+//       const { canvasRenderingContext, canvasRenderingContext: { canvas } } = gameContext;
+//       // canvasRenderingContext.fillText(`(${gameContext.camera.position.x.toFixed(0)},${gameContext.camera.position.y.toFixed(0)})`, canvas.width - 120, 20);
+//       canvasRenderingContext.fillText(`🏹 🗡️`, canvas.width - 120, 50);
+//       // canvasRenderingContext.fillText(`(${gameContext.camera.position.x.toFixed(0)},${gameContext.camera.position.y.toFixed(0)})`, canvas.width - 120, 20);
+//     });
 
-    renderElement.positionType = 'overlay';
+//     renderElement.positionType = 'overlay';
 
-    return renderElement;
-  }
-}
+//     return renderElement;
+//   }
+// }
