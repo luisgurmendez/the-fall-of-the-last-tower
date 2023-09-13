@@ -36,10 +36,11 @@ class RenderUtils {
   static renderText(
     canvasRenderingContext: CanvasRenderingContext2D,
     text: string,
-    position: Vector
+    position: Vector,
+    centered = true
   ) {
-    const textWidth = canvasRenderingContext.measureText(text).width;
-    const textHeight = canvasRenderingContext.measureText("M").width;
+    const textWidth = centered ? canvasRenderingContext.measureText(text).width : 0;
+    const textHeight = centered ? canvasRenderingContext.measureText("M").width : 0;
     canvasRenderingContext.fillText(
       text,
       position.x - textWidth / 2,

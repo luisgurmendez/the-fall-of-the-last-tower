@@ -174,8 +174,8 @@ class Camera extends BaseObject implements Stepable, Disposable, Initializable {
       }
 
       // Update the camera position
-      this.position.x += deltaX;
-      this.position.y += deltaY;
+      this.position.x += deltaX * 1 / this.zoom;
+      this.position.y += deltaY * 1 / this.zoom;
     }
 
   }
@@ -222,74 +222,6 @@ class Camera extends BaseObject implements Stepable, Disposable, Initializable {
       this.position.y = -world.w / 2 + viewportWithZoom.h / 2;
     }
   }
-
-  // render() {
-  // const renderFn = (gameContext: GameContext) => {
-  //   const { canvasRenderingContext, canvasRenderingContext: { canvas } } = gameContext;
-  //   canvasRenderingContext.font = "15px Comic Sans MS";
-  //   canvasRenderingContext.fillStyle = "#FFF";
-  //   canvasRenderingContext.fillText(`(${this.position.x.toFixed(0)},${this.position.y.toFixed(0)})`, canvas.width - 120, 20);
-  // }
-  // const renderElement = new RenderElement(renderFn);
-  // renderElement.positionType = 'overlay';
-  // return renderElement
-  // }
-
-  // there is a known bug where the promise resolves before the flying duration when the game is on pause
-  // flyTo(position: Vector | Positionable, duration: number = 2): Promise<void> {
-  //   let _position: Vector;
-  //   if (isPositionable(position)) {
-  //     _position = position.position.clone();
-  //   } else {
-  //     _position = position;
-  //   }
-  //   this.following = null;
-  //   this.flying.flyTo(this.position.clone(), _position.clone(), duration);
-  //   return wait(duration)
-  // }
 }
 
 export default Camera;
-
-// class Flying {
-//   private toPosition: Vector | null = null;
-//   private duration: number | null = null;
-//   private elapsedTime: number = 0;
-//   private initialPosition: Vector | null = null;
-
-//   flyTo(from: Vector, to: Vector, duration: number) {
-//     this.toPosition = to.clone();
-//     this.initialPosition = from.clone();
-//     this.duration = duration;
-//     this.elapsedTime = duration;
-//   }
-
-//   fly(dt: number, actualPosition: Vector) {
-//     let flyingDelta = new Vector();
-//     if (
-//       this.toPosition !== null &&
-//       this.duration !== null &&
-//       this.elapsedTime !== null &&
-//       this.initialPosition !== null
-//     ) {
-//       this.elapsedTime -= dt;
-//       const toPositionVector = this.toPosition.clone().sub(actualPosition);
-//       const distanceToFlyingPosition = this.initialPosition.distanceTo(this.toPosition);
-//       const flyingSpeed = distanceToFlyingPosition / this.duration;
-//       flyingDelta = toPositionVector.normalize().scalar(dt * flyingSpeed);
-//       if (this.elapsedTime < 0) {
-//         flyingDelta = this.toPosition.clone().sub(actualPosition);
-//         this.clear();
-//       }
-//     }
-
-//     return flyingDelta;
-//   }
-
-//   clear() {
-//     this.toPosition = null;
-//     this.duration = null;
-//     this.initialPosition = null;
-//   }
-
-// }

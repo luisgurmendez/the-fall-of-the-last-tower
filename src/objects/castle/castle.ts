@@ -2,13 +2,15 @@ import Vector from "@/physics/vector";
 import BaseObject from "../baseObject";
 import RenderElement from "@/render/renderElement";
 import RenderUtils from "@/render/utils";
-import { Circle, Rectangle } from "../shapes";
+import { Circle } from "../shapes";
 import { CollisionableMixin } from "@/mixins/collisionable";
 import Attackable from "@/behaviors/attackable";
 import RandomUtils from "@/utils/random";
 import GameContext from "@/core/gameContext";
 import Particle from "../particle/particle";
 import Color from "@/utils/color";
+import { castleExplotion } from "../army/ParticleUtils";
+import Disposable from "@/behaviors/disposable";
 
 const castleBrickSize = 50;
 export const CASTLE_ID = 'c'
@@ -18,16 +20,18 @@ const transparent = "transparent"
 
 const CastleMixin = CollisionableMixin<Circle>()(BaseObject);
 
-
-class Castle extends CastleMixin implements Attackable {
+class Castle extends CastleMixin implements Attackable, Disposable {
     size: Circle = new Circle(200);
-    health = 999;
+    health = 20000;
     maxHealth = this.health;
     side = 0;
     constructor() {
-        super(new Vector(-700, 0), CASTLE_ID);
+        super(new Vector(-2000, 0), CASTLE_ID);
         this.collisionMask = this.size;
+        this.shouldDispose = false;
     }
+    shouldDispose: boolean;
+    dispose?: ((g: GameContext) => void | undefined) | undefined;
     applyDamage(damage: number): void {
         this.health -= damage;
     }
@@ -70,6 +74,13 @@ class Castle extends CastleMixin implements Attackable {
 
     step(g: GameContext) {
         this.smoke(g);
+        if (this.health <= 0) {
+            const pos = this.position.clone();
+            const particles = castleExplotion(pos)
+            this.shouldDispose = true;
+            g.background.drawCastleExplotion(pos);
+            g.objects.push(...particles);
+        }
     }
 
     smoke(gctx: GameContext) {

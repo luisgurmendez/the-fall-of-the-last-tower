@@ -34,7 +34,7 @@ class Particle extends ParticleMixins implements Disposable {
       // changes the size to give an effect that the particles i going up to the camera
       this.size += context.dt * 10;
     }
-    this.acceleration = new Vector();
+    // this.acceleration = new Vector();
     this.position = this.calculatePosition(context.dt);
     this.velocity = this.calculateVelocity(context.dt);
     this.ttl -= context.dt;

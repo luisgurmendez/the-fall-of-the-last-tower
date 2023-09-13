@@ -6,10 +6,10 @@ import { Rectangle } from "./shapes";
 import PixelArtBuilder from "@/sprites/PixelArtBuilder";
 import RandomUtils from "@/utils/random";
 
-import bloodstains1 from "@/art/bloodstains/bloodstains1";
-import bloodstains2 from "@/art/bloodstains/bloodstains2";
-import bloodstains3 from "@/art/bloodstains/bloodstains3";
-import bloodstains4 from "@/art/bloodstains/bloodstains4";
+// import bloodstains1 from "@/art/bloodstains/bloodstains1";
+// import bloodstains2 from "@/art/bloodstains/bloodstains2";
+// import bloodstains3 from "@/art/bloodstains/bloodstains3";
+// import bloodstains4 from "@/art/bloodstains/bloodstains4";
 import bloodstains0 from "@/art/bloodstains/bloodstains0";
 import PixelArtDrawUtils from "@/utils/pixelartDrawUtils";
 
@@ -110,9 +110,9 @@ class Background extends BaseObject {
   drawSwordsmanBloodstain(position: Vector) {
     const bloodstain = RandomUtils.getRandomValueOf<HTMLCanvasElement>([
       bloodstain1,
-      bloodstain2,
-      bloodstain3Helmet,
-      bloodstain4Sword,
+      // bloodstain2,
+      // bloodstain3Helmet,
+      // bloodstain4Sword,
     ]);
     this.drawBloodstain(position, bloodstain);
   }
@@ -120,10 +120,17 @@ class Background extends BaseObject {
   drawArcherBloodstain(position: Vector) {
     const bloodstain = RandomUtils.getRandomValueOf<HTMLCanvasElement>([
       bloodstain1,
-      bloodstain2,
-      bloodstainBow,
+      // bloodstain2,
+      // bloodstainBow,
     ]);
     this.drawBloodstain(position, bloodstain);
+  }
+
+  drawCastleExplotion(position: Vector) {
+    const ctx = this.backgroundCanvas.getContext("2d");
+    const pixelArtUtils = new PixelArtDrawUtils(ctx!, '#000', 3);
+    ctx?.translate(Math.round(this.backgroundCanvas.width / 2), Math.round(this.backgroundCanvas.height / 2));
+    pixelArtUtils.drawPixelatedEllipseFill(position.x, position.y, 100, 40);
   }
 
   private drawBloodstain(position: Vector, bloodstain: HTMLCanvasElement,) {
@@ -208,10 +215,10 @@ const flower = PixelArtBuilder.buildCanvas([
 // const tree = PixelArtBuilder.buildCanvas(tree0);
 
 const bloodstain1 = PixelArtBuilder.buildCanvas(bloodstains0);
-const bloodstain2 = PixelArtBuilder.buildCanvas(bloodstains1);
-const bloodstain3Helmet = PixelArtBuilder.buildCanvas(bloodstains2);
-const bloodstain4Sword = PixelArtBuilder.buildCanvas(bloodstains3);
-const bloodstainBow = PixelArtBuilder.buildCanvas(bloodstains4);
+// const bloodstain2 = PixelArtBuilder.buildCanvas(bloodstains1);
+// const bloodstain3Helmet = PixelArtBuilder.buildCanvas(bloodstains2);
+// const bloodstain4Sword = PixelArtBuilder.buildCanvas(bloodstains3);
+// const bloodstainBow = PixelArtBuilder.buildCanvas(bloodstains4);
 const tree0 = buildTreeCanvas();
 const tree1 = buildTreeCanvas();
 const tree2 = buildTreeCanvas();
@@ -251,31 +258,30 @@ function buildTreeCanvas() {
   return treeCanvas;
 }
 
+
+export const isNotInsidePlayableAreaFn = (v: Vector) => {
+  const fx = 2000 + (-1500 / (1 + Math.E ** (-1 * ((v.x - 500) / 500))));
+  return fx < Math.abs(v.y) || Math.abs(v.x) > 2500 || Math.abs(v.y) > 2500;
+}
+
 function drawTrees(
   ctx: CanvasRenderingContext2D,
   worldDimensions: Rectangle
 ) {
 
   let treesPlanted = 0;
-  const fn = (x: number) => 2000 + (-1500 / (1 + Math.E ** (-1 * ((x - 500) / 500))))
+
   ctx.save();
   ctx.translate(worldDimensions.w / 2, worldDimensions.h / 2);
+
   const trees = [];
-  while (treesPlanted < 9999) {
+  while (treesPlanted < 15999) {
     const x = RandomUtils.getIntegerInRange(-worldDimensions.w / 2, worldDimensions.w / 2);
     const y = RandomUtils.getIntegerInRange(-worldDimensions.w / 2, worldDimensions.w / 2);
-    // const y = fn(x);
     const tree = RandomUtils.getRandomValueOf([tree0, tree1, tree2, tree3, tree4]);
-    if (y > 0) {
-      if (fn(x) + RandomUtils.getIntegerInRange(-200, 200) < y) {
-        treesPlanted++;
-        trees.push({ x, y, tree })
-      }
-    } else {
-      if (-fn(x) + RandomUtils.getIntegerInRange(-200, 200) > y) {
-        treesPlanted++;
-        trees.push({ x, y, tree })
-      }
+    if (isNotInsidePlayableAreaFn(new Vector(x, y))) {
+      treesPlanted++;
+      trees.push({ x, y, tree })
     }
   }
   trees.sort((a, b) => a.y - b.y).forEach(({ x, y, tree }) => {

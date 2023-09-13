@@ -35,14 +35,8 @@ class Arrow extends ArrowMixin implements Disposable {
         const { collisions } = gameContext;
         if (collisions[this.id] && collisions[this.id].length > 0) {
             // find collision with enemy
-
             const enemy = collisions[this.id].find(otherSideObjectsFiltering(this.side));
-            // if (this.side === 0) {
-            //     console.log(collisions);
-            //     console.log(enemy);
-            // }
             if (enemy) {
-                console.log(enemy);
                 if (isAttackable(enemy)) {
                     enemy.applyDamage(15);
                 }
@@ -53,19 +47,10 @@ class Arrow extends ArrowMixin implements Disposable {
 
         if (this.ttl <= 0) {
             this.shouldDispose = true;
-
-            const background = this.findBackground(gameContext);
-            if (background) {
-                background.drawArrow(this.position.clone(), this.direction.clone());
-            }
+            gameContext.background.drawArrow(this.position.clone(), this.direction.clone());
         }
 
         this.position = this.calculatePosition(gameContext.dt);
-    }
-
-    findBackground(gameContext: GameContext): Background | undefined {
-        const bg = gameContext.objects.find(obj => obj.id === BACKGROUND_ID);
-        return bg as Background | undefined;
     }
 
     render() {

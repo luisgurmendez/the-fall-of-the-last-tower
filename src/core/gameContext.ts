@@ -4,7 +4,8 @@ import BaseObject from "@/objects/baseObject";
 // import Keyboard from "./keyboard";
 import Camera from "./camera";
 import SpatiallyHashedObjects from "@/utils/spatiallyHashedObjects";
-import Background from "@/objects/background";
+import Castle, { CASTLE_ID } from "@/objects/castle/castle";
+import Background, { BACKGROUND_ID } from "@/objects/background";
 
 class GameContext {
   readonly collisions: Collisions;
@@ -16,10 +17,11 @@ class GameContext {
   readonly canvasRenderingContext: CanvasRenderingContext2D;
   readonly camera: Camera;
   readonly worldDimensions: Rectangle;
-  // readonly background: Background;
-  // readonly castle: Rectangle;
+  readonly background: Background;
+  readonly castle: Castle | undefined;
+  readonly money: number;
 
-
+  setMoney: (a: number) => void;
   pause: () => void;
   unPause: () => void;
 
@@ -29,11 +31,11 @@ class GameContext {
     dt: number,
     isPaused: boolean,
     objects: BaseObject[],
-    // background: Background,
-    // pressedKeys: Keyboard,
     canvasRenderingContext: CanvasRenderingContext2D,
     camera: Camera,
     worldDimensions: Rectangle,
+    money: number,
+    setMoney: (amount: number) => void,
     pause: () => void,
     unPause: () => void
   ) {
@@ -42,11 +44,14 @@ class GameContext {
     this.dt = dt;
     this.isPaused = isPaused;
     this.objects = objects;
-    // this.background = background;
     // this.pressedKeys = pressedKeys;
     this.canvasRenderingContext = canvasRenderingContext;
     this.camera = camera;
     this.worldDimensions = worldDimensions;
+    this.castle = objects.find(o => o.id === CASTLE_ID) as Castle;
+    this.background = objects.find(o => o.id === BACKGROUND_ID) as Background;
+    this.money = money;
+    this.setMoney = setMoney;
     this.pause = pause;
     this.unPause = unPause;
   }

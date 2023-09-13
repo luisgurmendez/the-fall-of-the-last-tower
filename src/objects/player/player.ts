@@ -11,6 +11,11 @@ import ArmyUnit from "../army/armyUnit";
 import RenderUtils from "@/render/utils";
 import Intersections from "@/utils/intersections";
 import { Target } from "../army/types";
+import { Dimensions } from "@/core/canvas";
+import Swordsman from "../army/swordsman/swordsman";
+import Cooldown from "../cooldown";
+import Archer from "../army/archer/archer";
+import RandomUtils from "@/utils/random";
 
 class Player extends BaseObject implements Initializable, Disposable {
     mark: Vector | null;
@@ -22,6 +27,11 @@ class Player extends BaseObject implements Initializable, Disposable {
     selectedUnits: Set<ArmyUnit> = new Set();
     mousePositionInGame: Vector | null = null;
     hoveringTarget: ArmyUnit | null = null;
+    spawnSwordsmanCooldown = new Cooldown(0.5);
+    spawnArcherCooldown = new Cooldown(1);
+    shouldSpawnSwordsman = false;
+    shouldSpawnArcher = false;
+    private increaseMoneyCooldown = new Cooldown(1);
 
     constructor() {
         super();
@@ -56,6 +66,7 @@ class Player extends BaseObject implements Initializable, Disposable {
                     this.selectedUnits.forEach(unit => {
                         (unit as any).targetPosition = null;
                         (unit as any).target = this.hoveringTarget;
+                        (unit as any).targetHasBeenSetByPlayer = true;
                     })
                 } else {
                     /// selecting a single unit
@@ -83,7 +94,9 @@ class Player extends BaseObject implements Initializable, Disposable {
             event.preventDefault();
             if (this.hoveringTarget && this.hoveringTarget.side === 1) {
                 this.selectedUnits.forEach(unit => {
-                    unit.target = this.hoveringTarget;
+                    (unit as any).targetPosition = null;
+                    (unit as any).target = this.hoveringTarget;
+                    (unit as any).targetHasBeenSetByPlayer = true;
                 })
             } else {
                 const position = this.mouseCoordsToGameCoordsWithZoom(gameContext, canvas, event.clientX, event.clientY);
@@ -114,7 +127,15 @@ class Player extends BaseObject implements Initializable, Disposable {
         canvas.addEventListener("mouseout", handleCancelMouseDown);
         canvas.addEventListener("mousemove", handleMouseMove);
         canvas.addEventListener("contextmenu", preventDefault);
+        window.addEventListener("keydown", (e) => {
+            if (e.key === "s") {
+                this.shouldSpawnSwordsman = true;
+            }
 
+            if (e.key === "a") {
+                this.shouldSpawnArcher = true;
+            }
+        });
 
         this.dispose = () => {
             canvas.removeEventListener("mousedown", handleMouseDown);
@@ -135,6 +156,10 @@ class Player extends BaseObject implements Initializable, Disposable {
 
     step(gctx: GameContext) {
         const { spatialHashing } = gctx;
+        this.increaseMoneyCooldown.update(gctx.dt);
+        this.spawnSwordsmanCooldown.update(gctx.dt);
+        this.spawnArcherCooldown.update(gctx.dt);
+
         if (this.initialDraggingPosition && this.initialDraggingClientPosition) {
             const selectionCollisionMask = new Rectangle(
                 Math.abs(this.initialDraggingClientPosition.x - this.initialDraggingPosition.x),
@@ -175,6 +200,28 @@ class Player extends BaseObject implements Initializable, Disposable {
             if (hoveringObject) {
                 (hoveringObject as any).isBeingHovered = true;
             }
+        }
+
+        /// spawn units
+        if (this.shouldSpawnSwordsman && !this.spawnSwordsmanCooldown.isCooling() && gctx.money > 100) {
+            this.spawnSwordsmanCooldown.start();
+            gctx.setMoney(gctx.money - 100);
+            gctx.objects.push(new Swordsman(new Vector(-1500, RandomUtils.getIntegerInRange(0, 800) - 400), 0));
+        }
+
+        if (this.shouldSpawnArcher && !this.spawnSwordsmanCooldown.isCooling() && gctx.money > 60) {
+            this.spawnArcherCooldown.start();
+            gctx.setMoney(gctx.money - 60);
+            gctx.objects.push(new Archer(new Vector(-1500, RandomUtils.getIntegerInRange(0, 800) - 400), 0));
+        }
+
+        this.shouldSpawnArcher = false;
+        this.shouldSpawnSwordsman = false;
+
+
+        if (!this.increaseMoneyCooldown.isCooling()) {
+            gctx.setMoney(gctx.money + 10);
+            this.increaseMoneyCooldown.start();
         }
     }
 
@@ -219,6 +266,7 @@ class Player extends BaseObject implements Initializable, Disposable {
 
             }
         }, true);
+
     }
 
     private mouseCoordsToGameCoordsWithZoom(gctx: GameContext, canvas: HTMLCanvasElement, x: number, y: number): Vector {

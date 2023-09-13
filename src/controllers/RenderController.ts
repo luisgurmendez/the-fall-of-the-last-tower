@@ -31,6 +31,7 @@ function objectRenderingPositionComparator(a: BaseObject, b: BaseObject) {
 class RenderController {
   render(gameContext: GameContext) {
     const { canvasRenderingContext, camera, objects } = gameContext;
+    canvasRenderingContext.font = "25px Comic Sans MS";
     const renderableObjects = objects
       .filter(isRenderable)
       .filter((obj) => obj.id !== BACKGROUND_ID).sort(objectRenderingPositionComparator);
@@ -121,7 +122,7 @@ class RenderController {
     }
   }
 
-  private renderPause(canvasRenderingContext: CanvasRenderingContext2D) {
+  public renderPause(canvasRenderingContext: CanvasRenderingContext2D) {
     const canvasDimensions = {
       w: canvasRenderingContext.canvas.width,
       h: canvasRenderingContext.canvas.height,
@@ -129,12 +130,11 @@ class RenderController {
     canvasRenderingContext.rect(0, 0, canvasDimensions.w, canvasDimensions.h);
     canvasRenderingContext.fillStyle = new Color(0, 0, 0, 0.5).rgba();
     canvasRenderingContext.fill();
-    canvasRenderingContext.font = "45px Comic Sans MS";
     canvasRenderingContext.fillStyle = "#FFF";
     RenderUtils.renderText(
       canvasRenderingContext,
       "Press [p] to unpause",
-      new Vector(canvasDimensions.w / 2, 0)
+      new Vector(canvasDimensions.w / 2, 80)
     );
   }
 }

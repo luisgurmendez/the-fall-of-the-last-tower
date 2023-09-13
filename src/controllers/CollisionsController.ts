@@ -26,9 +26,6 @@ class CollisionsController {
             primaryObj,
             secondaryObj
           );
-          if ((primaryObj as any).side !== (secondaryObj as any).side && areObjectsColliding) {
-            console.log(primaryObj, secondaryObj);
-          }
           if (areObjectsColliding) {
             if (collisions[primaryObj.id] === undefined) {
               collisions[primaryObj.id] = [secondaryObj];

@@ -7,7 +7,7 @@ import Cooldown from "../cooldown";
 import GameContext from "@/core/gameContext";
 import Disposable, { isDisposable } from "@/behaviors/disposable";
 import { generateBloodDrops, generateBloodExplotion } from "./ParticleUtils";
-import Background, { BACKGROUND_ID } from "../background";
+import Background, { BACKGROUND_ID, isNotInsidePlayableAreaFn } from "../background";
 import Vector from "@/physics/vector";
 import PixelArtSpriteAnimator from "@/sprites/PixelArtSpriteAnimator";
 import RenderElement from "@/render/renderElement";
@@ -16,6 +16,7 @@ import PixelArtDrawUtils from "@/utils/pixelartDrawUtils";
 import { CASTLE_ID } from "../castle/castle";
 import { otherSideObjectsFiltering } from "./utils";
 import RandomUtils from "@/utils/random";
+import { isAttackable } from "@/behaviors/attackable";
 
 export const ATTACK_ANIMATION_ID = "a";
 export const WALK_ANIMATION_ID = "w";
@@ -34,6 +35,8 @@ abstract class ArmyUnit extends BaseArmyUnit implements Disposable {
     protected abstract maxArmor: number;
     protected abstract armor: number;
     protected abstract attackCooldown: Cooldown;
+    targetHasBeenSetByPlayer = false;
+
     /// Enemy to attack if in reach
     abstract target: Target | null;
     protected abstract attackRange: number;
@@ -75,9 +78,9 @@ abstract class ArmyUnit extends BaseArmyUnit implements Disposable {
         gameContext.objects.push(
             ...generateBloodExplotion(this.position.clone())
         );
-        const background = gameContext.objects.find(obj => obj.id === BACKGROUND_ID);
-        if (background instanceof Background) {
-            this.chooseTypeOfBloodstainWhenDying(background)(this.position.clone().add(new Vector(0, this.collisionMask.h / 2)));
+        this.chooseTypeOfBloodstainWhenDying(gameContext.background)(this.position.clone().add(new Vector(0, this.collisionMask.h / 2)));
+        if (this.side === 1) {
+            gameContext.setMoney(gameContext.money + 50);
         }
     }
 
@@ -98,6 +101,7 @@ abstract class ArmyUnit extends BaseArmyUnit implements Disposable {
 
         this.attackCooldown.update(dt);
         this.spriteAnimator.update(dt);
+
         if (this.queuedAttackWithAnimationFrame !== null) {
             if (this.spriteAnimator.currentFrame === this.triggerAttackAnimationFrame) {
                 this.queuedAttackWithAnimationFrame(gctx);
@@ -115,10 +119,16 @@ abstract class ArmyUnit extends BaseArmyUnit implements Disposable {
             this.acceleration = new Vector();
             this.velocity = new Vector();
         }
-        // console.log(this.collisions);
-        // console.log(this.collisions.some(o => (o as any).side !== this.side));
-        if (this.collisions.some(o => (o as any).side !== this.side)) {
-            this.position = this.prevPosition.clone();
+        const collidingWithCastle = this.collisions.some(o => o === gctx.castle);
+        if (collidingWithCastle || isNotInsidePlayableAreaFn(this.position)) {
+
+            // if its colliding with castle and its not looking towards the castle teleport them 10 pixels away from the castle
+            const pointingTowardsCastle = gctx.castle!.position.clone().sub(this.position).normalize();
+            if (collidingWithCastle && this.direction.dot(pointingTowardsCastle) < 0) {
+                this.position = this.position.add(this.direction.clone().scalar(10));
+            } else {
+                this.position = this.prevPosition
+            }
         }
     }
 
@@ -137,11 +147,11 @@ abstract class ArmyUnit extends BaseArmyUnit implements Disposable {
 
     protected fixTarget(gameContext: GameContext) {
 
-        const { spatialHashing } = gameContext;
+        const { spatialHashing, castle } = gameContext;
 
         // set the target to null if target is too far away or if it should be disposed or the target is actually the CASTLE,
         // units take priority over castle
-        if (this.target && (this.target.id === CASTLE_ID || (isDisposable(this.target) && this.target.shouldDispose) || (this.target.position.distanceTo(this.position) > this.outOfSightRange))) {
+        if (this.target && (this.target.id === CASTLE_ID || (isDisposable(this.target) && this.target.shouldDispose) || (!this.targetHasBeenSetByPlayer && this.target.position.distanceTo(this.position) > this.outOfSightRange))) {
             this.target = null;
         }
 
@@ -156,11 +166,13 @@ abstract class ArmyUnit extends BaseArmyUnit implements Disposable {
         } else {
             if (!this.target) {
                 const nearByObjs = spatialHashing.queryInRange(this.position, this.outOfSightRange / 2);
-                const nearByEnemies = nearByObjs.filter(otherSideObjectsFiltering(this.side));
+                const nearByEnemies = nearByObjs.filter(otherSideObjectsFiltering(this.side)).filter(isAttackable);
                 if (nearByEnemies.length > 0) {
                     this.target = RandomUtils.getRandomValueOf(nearByEnemies) as Target;
+                    this.targetHasBeenSetByPlayer = false
                 } else if (this.side === 1) {
-                    this.targetPosition = new Vector();
+                    this.target = castle ?? null;
+                    this.targetHasBeenSetByPlayer = false
                 }
             }
         }
@@ -168,15 +180,25 @@ abstract class ArmyUnit extends BaseArmyUnit implements Disposable {
 
     protected move(g: GameContext) {
         if (!this.isAttacking) {
-            let _lookingAtDirection;
+            let _lookingAtDirection = this.direction.clone();
 
             if (this.targetPosition) {
                 _lookingAtDirection = this.targetPosition.clone().sub(this.position).normalize();
             } else if (this.target) {
-                // move away of target if too close, ak half the attack range
-                if (this.target.position.distanceTo(this.position) < this.attackRange) {
+                const distanceToTarget = this.target.position.distanceTo(this.position);
+                const comfortRange = this.attackRange + 10; // Add a buffer, you can adjust the value based on your needs
+
+                // Check if target is too close
+                if (distanceToTarget < this.attackRange) {
                     _lookingAtDirection = this.position.clone().sub(this.target.position.clone()).normalize();
-                } else {
+                }
+                // Check if target is within the comfort range but outside the attack range.
+                // In this case, the archer won't change the direction and will continue in its current direction.
+                else if (distanceToTarget >= this.attackRange && distanceToTarget <= comfortRange) {
+                    // Keep the current direction and don't change the _lookingAtDirection
+                }
+                // If target is beyond the comfort range
+                else {
                     _lookingAtDirection = this.target.position.clone().sub(this.position.clone()).normalize();
                 }
             } else {
@@ -186,30 +208,9 @@ abstract class ArmyUnit extends BaseArmyUnit implements Disposable {
             }
 
             this.direction = _lookingAtDirection.clone();
-            this.acceleration = _lookingAtDirection.scalar(this.accelerationRate);
+            this.acceleration = _lookingAtDirection.clone().scalar(this.accelerationRate);
             this.velocity = this.calculateVelocity(g.dt);
         }
-
-
-
-
-        // if (!this.isAttacking) {
-        //     let _lookingAtDirection = new Vector();
-
-        //     if (this.targetPosition) {
-        //       _lookingAtDirection = this.targetPosition.clone().sub(this.position).normalize();
-        //     } else if (this.target) {
-        //       _lookingAtDirection = this.target.position.clone().sub(this.position.clone()).normalize();
-        //     } else {
-        //       this.velocity = new Vector(0, 0);
-        //       this.acceleration = new Vector(0, 0);
-        //       return;
-        //     }
-
-        //     this.direction = _lookingAtDirection.clone();
-        //     this.acceleration = _lookingAtDirection.scalar(this.accelerationRate);
-        //     this.velocity = this.calculateVelocity(g.dt);
-        //   }
     }
 
     step(gctx: GameContext) {

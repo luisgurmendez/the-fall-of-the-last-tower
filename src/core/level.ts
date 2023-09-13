@@ -14,12 +14,12 @@ import { isCollisionableObject } from "@/mixins/collisionable";
 import Stepable, { isStepable } from "@/behaviors/stepable";
 import SpatiallyHashedObjects from "@/utils/spatiallyHashedObjects";
 import { filterInPlaceAndGetRest } from "@/utils/fn";
-import Castle, { CASTLE_ID } from "@/objects/castle/castle";
 
 class Level {
   objects: BaseObject[] = [];
   camera: Camera;
   worldDimensions: Rectangle;
+  money = 130;
 
   private collisionController: CollisionsController =
     new CollisionsController();
@@ -40,20 +40,18 @@ class Level {
 
   update(gameApi: GameApi): void {
 
-    if (!gameApi.isPaused) {
-      const collisionableObjects: CollisionableObject[] = this.objects.filter(
-        isCollisionableObject
-      );
-      const spatialHasing = this._buildSpatiallyHashedObjects(collisionableObjects);
-      const collisions = this.collisionController.buildCollisions(collisionableObjects, spatialHasing);
+    const collisionableObjects: CollisionableObject[] = this.objects.filter(
+      isCollisionableObject
+    );
+    const spatialHasing = this._buildSpatiallyHashedObjects(collisionableObjects);
+    const collisions = this.collisionController.buildCollisions(collisionableObjects, spatialHasing);
 
-      const gameContext = this.generateGameContext(gameApi, collisions, spatialHasing);
+    const gameContext = this.generateGameContext(gameApi, collisions, spatialHasing);
 
-      this.initializeObjects(gameContext);
-      this.stepObjects(gameContext);
-      this.disposeObjects(gameContext);
-      this.renderController.render(gameContext);
-    }
+    this.initializeObjects(gameContext);
+    this.stepObjects(gameContext);
+    this.disposeObjects(gameContext);
+    this.renderController.render(gameContext)
   }
 
   private _buildSpatiallyHashedObjects(collisionableObjects: CollisionableObject[]) {
@@ -93,6 +91,9 @@ class Level {
     });
   }
 
+  private setMoney = (a: number) => {
+    this.money = a;
+  }
 
   private generateGameContext(
     api: GameApi,
@@ -110,6 +111,8 @@ class Level {
       api.canvasRenderingContext,
       this.camera,
       this.worldDimensions,
+      this.money,
+      this.setMoney,
       api.pause,
       api.unPause
     );

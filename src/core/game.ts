@@ -1,10 +1,10 @@
 import Clock from "./clock";
 import CanvasGenerator from "./canvas";
 import battlefieldLevel from "@/levels/battlefield";
-import CustomKeyboard from "./keyboard";
+// import CustomKeyboard from "./keyboard";
 // import Stats from "stats.js";
 
-export const keyboard = CustomKeyboard.getInstance();
+// export const keyboard = CustomKeyboard.getInstance();
 
 class Game {
   private clock: Clock;
@@ -13,7 +13,6 @@ class Game {
 
   private level = battlefieldLevel();
   private gameSpeed = 1;
-  private showingMenu = false;
 
   constructor() {
     // Inits canvas rendering context
@@ -48,6 +47,10 @@ class Game {
       if (e.key === "p") {
         this.isPaused ? this.unPause() : this.pause();
       }
+
+      if (e.key === "r") {
+        this.level = battlefieldLevel();
+      }
     });
   }
 
@@ -67,7 +70,6 @@ class Game {
       this.update();
       // stats.end();
       requestAnimationFrame(this.loop());
-      this.afterUpdate();
     };
   };
 
@@ -78,10 +80,6 @@ class Game {
     } catch (e) {
       console.log(e);
     }
-  }
-
-  private afterUpdate() {
-    // this.stats.end()
   }
 
   private generateGameApi(): GameApi {
