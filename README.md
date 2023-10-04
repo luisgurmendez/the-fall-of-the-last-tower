@@ -1,8 +1,15 @@
 ## The Fall of "The Last Tower"
 
-Submission for js13kb 2023.
+Submission for js13kb 2023 coding competition.
+
+![image](https://github.com/luisgurmendez/the-fall-of-the-last-tower/assets/17949470/9ce25db1-deb7-403c-8ee0-b50bf2ae20ff)
+
+![image](https://github.com/luisgurmendez/the-fall-of-the-last-tower/assets/17949470/1f0fbb89-1a12-47e9-a63b-3abbc957aabe)
 
 
+
+Play it here:
+https://js13kgames.com/entries/the-fall-of-the-last-tower
 
 ### Run it locally with
 `npm run serve`
