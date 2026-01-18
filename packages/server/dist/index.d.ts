@@ -4,31 +4,11 @@
  * Siege MOBA game server.
  * Handles authoritative game state, networking, and matchmaking.
  */
-
-// Game management
 export { ServerGame, type ServerGameConfig } from './game/ServerGame';
 export { ServerGameContext, type GameContextConfig } from './game/ServerGameContext';
 export { GameRoom, type GameRoomConfig, type PlayerInfo, type GameRoomState } from './game/GameRoom';
-
-// Simulation
 export { ServerEntity, type ServerEntityConfig } from './simulation/ServerEntity';
 export { ServerChampion, type ServerChampionConfig } from './simulation/ServerChampion';
-
-// Networking
 export { InputHandler, type InputValidationResult, type PendingInput } from './network/InputHandler';
-
-// Re-export shared types for convenience
-export {
-  Vector,
-  MOBAConfig,
-  GameConfig,
-  Side,
-  EntityType,
-  InputType,
-  type ClientInput,
-  type StateUpdate,
-  type FullStateSnapshot,
-  type ChampionDefinition,
-} from '@siege/shared';
-
-console.log('[Siege Server] Module loaded');
+export { Vector, MOBAConfig, GameConfig, Side, EntityType, InputType, type ClientInput, type StateUpdate, type FullStateSnapshot, type ChampionDefinition, } from '@siege/shared';
+//# sourceMappingURL=index.d.ts.map
