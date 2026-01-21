@@ -76,7 +76,7 @@
   z-index: 2;
   text-align: center;
   color: var(--pixel-text);
-  max-width: 700px;
+  max-width: 1200px;
   max-height: 90vh;
   padding: 40px;
   overflow-y: auto;
@@ -113,7 +113,7 @@
 
 .game-title {
   font-family: var(--pixel-font);
-  font-size: 72px;
+  font-size: 90px;
   color: var(--pixel-gold);
   text-shadow:
     2px 2px 0 var(--pixel-gold-darker),
@@ -125,7 +125,7 @@
 
 .game-subtitle {
   font-family: var(--pixel-font);
-  font-size: 24px;
+  font-size: 32px;
   color: var(--pixel-text-dim);
   letter-spacing: 8px;
   margin-bottom: 50px;
@@ -151,7 +151,7 @@
 
 .play-button {
   font-family: var(--pixel-font);
-  font-size: 36px;
+  font-size: 44px;
   padding: 24px 80px;
   background: var(--pixel-gold-dark);
   border: 4px solid var(--pixel-gold-darker);
@@ -190,7 +190,7 @@
 .menu-link {
   font-family: var(--pixel-font);
   color: var(--pixel-text-muted);
-  font-size: 20px;
+  font-size: 26px;
   margin: 0 20px;
   cursor: pointer;
   transition: color 0.2s;
@@ -214,7 +214,7 @@
   align-items: center;
   gap: 30px;
   font-family: var(--pixel-font);
-  font-size: 18px;
+  font-size: 24px;
   color: var(--pixel-text-muted);
   z-index: 3;
   text-shadow: 2px 2px 0 #000;
@@ -269,7 +269,7 @@
 
 .connecting-text {
   font-family: var(--pixel-font);
-  font-size: 28px;
+  font-size: 36px;
   color: var(--pixel-text-dim);
   margin-bottom: 30px;
   text-shadow: 2px 2px 0 #000;
@@ -277,7 +277,7 @@
 
 .cancel-button {
   font-family: var(--pixel-font);
-  font-size: 20px;
+  font-size: 26px;
   padding: 14px 50px;
   background: transparent;
   border: 4px solid var(--pixel-text-muted);
@@ -298,7 +298,7 @@
 
 .queue-title {
   font-family: var(--pixel-font);
-  font-size: 40px;
+  font-size: 50px;
   color: var(--pixel-gold);
   margin-bottom: 30px;
   letter-spacing: 4px;
@@ -311,7 +311,7 @@
 
 .queue-stat {
   font-family: var(--pixel-font);
-  font-size: 22px;
+  font-size: 28px;
   color: var(--pixel-text-dim);
   margin-bottom: 12px;
   text-shadow: 2px 2px 0 #000;
@@ -323,7 +323,7 @@
 
 .queue-timer {
   font-family: var(--pixel-font);
-  font-size: 56px;
+  font-size: 70px;
   color: var(--pixel-text);
   margin-bottom: 30px;
   font-variant-numeric: tabular-nums;
@@ -336,7 +336,7 @@
 
 .match-found-title {
   font-family: var(--pixel-font);
-  font-size: 48px;
+  font-size: 60px;
   color: var(--pixel-gold);
   margin-bottom: 40px;
   text-shadow: 2px 2px 0 #000;
@@ -379,7 +379,7 @@
 
 .team-label {
   font-family: var(--pixel-font);
-  font-size: 18px;
+  font-size: 24px;
   text-transform: uppercase;
   letter-spacing: 3px;
   margin-bottom: 12px;
@@ -396,14 +396,14 @@
 
 .team-champion {
   font-family: var(--pixel-font);
-  font-size: 28px;
+  font-size: 36px;
   color: var(--pixel-text);
   text-shadow: 2px 2px 0 #000;
 }
 
 .vs-text {
   font-family: var(--pixel-font);
-  font-size: 42px;
+  font-size: 52px;
   color: var(--pixel-gold);
   text-shadow:
     2px 2px 0 var(--pixel-gold-darker),
@@ -420,7 +420,7 @@
 
 .loading-text {
   font-family: var(--pixel-font);
-  font-size: 20px;
+  font-size: 26px;
   color: var(--pixel-text-dim);
   margin-bottom: 15px;
   text-shadow: 2px 2px 0 #000;
@@ -463,7 +463,7 @@
 
 .error-title {
   font-family: var(--pixel-font);
-  font-size: 36px;
+  font-size: 46px;
   color: var(--pixel-error);
   margin-bottom: 15px;
   text-shadow: 2px 2px 0 #000;
@@ -471,7 +471,7 @@
 
 .error-message {
   font-family: var(--pixel-font);
-  font-size: 20px;
+  font-size: 26px;
   color: var(--pixel-text-dim);
   margin-bottom: 30px;
   text-shadow: 2px 2px 0 #000;
@@ -479,7 +479,7 @@
 
 .retry-button {
   font-family: var(--pixel-font);
-  font-size: 24px;
+  font-size: 30px;
   padding: 18px 60px;
   background: var(--pixel-gold-dark);
   border: 4px solid var(--pixel-gold-darker);
@@ -507,7 +507,7 @@
   left: 50%;
   transform: translateX(-50%);
   font-family: var(--pixel-font);
-  font-size: 18px;
+  font-size: 24px;
   color: var(--pixel-text-muted);
   text-shadow: 2px 2px 0 #000;
   z-index: 3;

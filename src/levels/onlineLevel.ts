@@ -125,7 +125,7 @@ export function generateOnlineLevel(config: OnlineLevelConfig): Level {
     championHUD,
     new GameStatsHUD({ getLatency: () => networkClient.getLatency() }),
     // OnlineMinimap reads from server state instead of local objects
-    new OnlineMinimap(stateManager, matchData.yourSide, { size: 200 }),
+    new OnlineMinimap(stateManager, matchData.yourSide, { size: 200, corner: 'bottom-right' }),
     // Debug inspector for entity inspection (F3 to toggle)
     debugInspector,
   ];

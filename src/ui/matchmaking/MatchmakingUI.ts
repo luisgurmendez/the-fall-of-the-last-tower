@@ -11,22 +11,38 @@
  * - Error handling
  */
 
-import { NetworkClient, type NetworkClientConfig } from '../../../packages/client/src/network/NetworkClient';
+import { NetworkClient } from "../../../packages/client/src/network/NetworkClient";
 import {
   CHAMPION_DEFINITIONS,
   getAllChampionDefinitions,
+  getAbilityDefinition,
+  ABILITY_DEFINITIONS,
   type ChampionDefinition,
-} from '@siege/shared';
+  type AbilityDefinition,
+  type AbilityScaling,
+} from "@siege/shared";
+
+// Debug: verify imports
+console.log("[MatchmakingUI] Module loaded");
+console.log("[MatchmakingUI] getAbilityDefinition:", typeof getAbilityDefinition);
+console.log("[MatchmakingUI] ABILITY_DEFINITIONS:", ABILITY_DEFINITIONS);
+console.log("[MatchmakingUI] Test lookup warrior_slash:", getAbilityDefinition("warrior_slash"));
 
 /**
  * Screen identifiers.
  */
-export type ScreenId = 'menu' | 'champion-select' | 'connecting' | 'queue' | 'match-found' | 'error';
+export type ScreenId =
+  | "menu"
+  | "champion-select"
+  | "connecting"
+  | "queue"
+  | "match-found"
+  | "error";
 
 /**
  * Connection status.
  */
-export type ConnectionStatus = 'offline' | 'connecting' | 'online';
+export type ConnectionStatus = "offline" | "connecting" | "online";
 
 /**
  * Match data received from server.
@@ -54,24 +70,24 @@ export interface MatchmakingUICallbacks {
  * Tips to display randomly.
  */
 const TIPS = [
-  'Tip: Use QWER for abilities, right-click to move',
-  'Tip: Press P to open the shop',
-  'Tip: Last hitting minions gives bonus gold',
-  'Tip: Stay behind your minions to avoid tower damage',
-  'Tip: Press TAB to see the scoreboard',
-  'Tip: Wards reveal invisible enemies',
-  'Tip: Killing dragon gives team-wide buffs',
+  "Tip: Use QWER for abilities, right-click to move",
+  "Tip: Press P to open the shop",
+  "Tip: Last hitting minions gives bonus gold",
+  "Tip: Stay behind your minions to avoid tower damage",
+  "Tip: Press TAB to see the scoreboard",
+  "Tip: Wards reveal invisible enemies",
+  "Tip: Killing dragon gives team-wide buffs",
 ];
 
 /**
  * Champion icons (emoji placeholders).
  */
 const CHAMPION_ICONS: Record<string, string> = {
-  warrior: '⚔️',
-  magnus: '🔮',
-  elara: '✨',
-  vex: '🗡️',
-  gorath: '🛡️',
+  warrior: "⚔️",
+  magnus: "🔮",
+  elara: "✨",
+  vex: "🗡️",
+  gorath: "🛡️",
 };
 
 /**
@@ -108,6 +124,7 @@ export class MatchmakingUI {
   private detailTitle: HTMLElement;
   private detailClass: HTMLElement;
   private detailStats: HTMLElement;
+  private detailAbilities: HTMLElement;
   private lockInButton: HTMLButtonElement;
 
   // Network
@@ -116,18 +133,21 @@ export class MatchmakingUI {
   private playerId: string;
 
   // State
-  private currentScreen: ScreenId = 'menu';
+  private currentScreen: ScreenId = "menu";
   private queueStartTime: number = 0;
   private queueTimerInterval: ReturnType<typeof setInterval> | null = null;
   private loadingProgress: number = 0;
   private matchData: MatchData | null = null;
-  private selectedChampionId: string = 'warrior';
+  private selectedChampionId: string = "warrior";
   private bufferedFullState: any = null;
 
   // Callbacks
   private callbacks: MatchmakingUICallbacks;
 
-  constructor(serverUrl: string = 'ws://localhost:8080/ws', callbacks: MatchmakingUICallbacks = {}) {
+  constructor(
+    serverUrl: string = "ws://localhost:8080/ws",
+    callbacks: MatchmakingUICallbacks = {},
+  ) {
     this.serverUrl = serverUrl;
     this.playerId = this.generatePlayerId();
     this.callbacks = callbacks;
@@ -135,47 +155,59 @@ export class MatchmakingUI {
     // Get DOM elements - use safe getter that won't crash if element missing
     const getEl = (id: string) => document.getElementById(id) as HTMLElement;
 
-    this.overlay = getEl('matchmaking-overlay');
+    this.overlay = getEl("matchmaking-overlay");
 
     // Get screens
-    this.screens.set('menu', getEl('screen-menu'));
-    this.screens.set('champion-select', getEl('screen-champion-select'));
-    this.screens.set('connecting', getEl('screen-connecting'));
-    this.screens.set('queue', getEl('screen-queue'));
-    this.screens.set('match-found', getEl('screen-match-found'));
-    this.screens.set('error', getEl('screen-error'));
+    this.screens.set("menu", getEl("screen-menu"));
+    this.screens.set("champion-select", getEl("screen-champion-select"));
+    this.screens.set("connecting", getEl("screen-connecting"));
+    this.screens.set("queue", getEl("screen-queue"));
+    this.screens.set("match-found", getEl("screen-match-found"));
+    this.screens.set("error", getEl("screen-error"));
 
     // Get status elements
-    this.statusDot = getEl('status-dot');
-    this.statusText = getEl('status-text');
-    this.pingValue = getEl('ping-value');
-    this.tipText = getEl('tip-text');
+    this.statusDot = getEl("status-dot");
+    this.statusText = getEl("status-text");
+    this.pingValue = getEl("ping-value");
+    this.tipText = getEl("tip-text");
 
     // Get queue elements
-    this.queueTimer = getEl('queue-timer');
-    this.queuePosition = getEl('queue-position');
-    this.queueSize = getEl('queue-size');
+    this.queueTimer = getEl("queue-timer");
+    this.queuePosition = getEl("queue-position");
+    this.queueSize = getEl("queue-size");
 
     // Get match found elements
-    this.blueChampion = getEl('blue-champion');
-    this.redChampion = getEl('red-champion');
-    this.loadingBar = getEl('loading-bar');
+    this.blueChampion = getEl("blue-champion");
+    this.redChampion = getEl("red-champion");
+    this.loadingBar = getEl("loading-bar");
 
     // Get error elements
-    this.errorMessage = getEl('error-message');
+    this.errorMessage = getEl("error-message");
 
     // Get champion select elements
-    this.championGrid = getEl('champion-grid');
-    this.detailPortrait = getEl('detail-portrait');
-    this.detailName = getEl('detail-name');
-    this.detailTitle = getEl('detail-title');
-    this.detailClass = getEl('detail-class');
-    this.detailStats = getEl('detail-stats');
-    this.lockInButton = getEl('btn-lock-in') as HTMLButtonElement;
+    this.championGrid = getEl("champion-grid");
+    this.detailPortrait = getEl("detail-portrait");
+    this.detailName = getEl("detail-name");
+    this.detailTitle = getEl("detail-title");
+    this.detailClass = getEl("detail-class");
+    this.detailStats = getEl("detail-stats");
+    this.detailAbilities = getEl("detail-abilities");
+    this.lockInButton = getEl("btn-lock-in") as HTMLButtonElement;
+
+    // Debug: Check if abilities element was found
+    console.log("[MatchmakingUI] Constructor - detailAbilities element:", this.detailAbilities);
+    if (!this.detailAbilities) {
+      console.error("[MatchmakingUI] CRITICAL: detail-abilities element not found in DOM!");
+      console.log("[MatchmakingUI] Looking for element with id 'detail-abilities'...");
+      console.log("[MatchmakingUI] All elements with 'detail' in id:",
+        Array.from(document.querySelectorAll('[id*="detail"]')).map(el => el.id));
+    }
 
     // Warn if critical elements missing
     if (!this.overlay) {
-      console.warn('[MatchmakingUI] Matchmaking overlay element not found in DOM');
+      console.warn(
+        "[MatchmakingUI] Matchmaking overlay element not found in DOM",
+      );
       return;
     }
 
@@ -196,11 +228,11 @@ export class MatchmakingUI {
    * Generate a unique player ID.
    */
   private generatePlayerId(): string {
-    const stored = localStorage.getItem('siege-player-id');
+    const stored = localStorage.getItem("siege-player-id");
     if (stored) return stored;
 
     const id = `player-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    localStorage.setItem('siege-player-id', id);
+    localStorage.setItem("siege-player-id", id);
     return id;
   }
 
@@ -217,7 +249,7 @@ export class MatchmakingUI {
   private populateChampionGrid(): void {
     if (!this.championGrid) return;
 
-    this.championGrid.innerHTML = '';
+    this.championGrid.innerHTML = "";
     const champions = getAllChampionDefinitions();
 
     for (const champion of champions) {
@@ -235,21 +267,21 @@ export class MatchmakingUI {
    * Create a champion card element.
    */
   private createChampionCard(champion: ChampionDefinition): HTMLElement {
-    const card = document.createElement('div');
-    card.className = 'champion-card';
+    const card = document.createElement("div");
+    card.className = "champion-card";
     card.dataset.championId = champion.id;
     card.dataset.class = champion.class;
 
-    const portrait = document.createElement('div');
-    portrait.className = 'champion-portrait';
-    portrait.textContent = CHAMPION_ICONS[champion.id] || '❓';
+    const portrait = document.createElement("div");
+    portrait.className = "champion-portrait";
+    portrait.textContent = CHAMPION_ICONS[champion.id] || "❓";
 
-    const name = document.createElement('div');
-    name.className = 'champion-card-name';
+    const name = document.createElement("div");
+    name.className = "champion-card-name";
     name.textContent = champion.name;
 
-    const championClass = document.createElement('div');
-    championClass.className = 'champion-card-class';
+    const championClass = document.createElement("div");
+    championClass.className = "champion-card-class";
     championClass.textContent = champion.class;
 
     card.appendChild(portrait);
@@ -257,7 +289,7 @@ export class MatchmakingUI {
     card.appendChild(championClass);
 
     // Click handler
-    card.addEventListener('click', () => {
+    card.addEventListener("click", () => {
       this.selectChampion(champion.id);
     });
 
@@ -271,13 +303,13 @@ export class MatchmakingUI {
     this.selectedChampionId = championId;
 
     // Update card selection state
-    const cards = this.championGrid?.querySelectorAll('.champion-card');
+    const cards = this.championGrid?.querySelectorAll(".champion-card");
     cards?.forEach((card) => {
       const el = card as HTMLElement;
       if (el.dataset.championId === championId) {
-        el.classList.add('selected');
+        el.classList.add("selected");
       } else {
-        el.classList.remove('selected');
+        el.classList.remove("selected");
       }
     });
 
@@ -299,7 +331,7 @@ export class MatchmakingUI {
 
     // Update portrait
     if (this.detailPortrait) {
-      this.detailPortrait.textContent = CHAMPION_ICONS[championId] || '❓';
+      this.detailPortrait.textContent = CHAMPION_ICONS[championId] || "❓";
     }
 
     // Update name
@@ -318,8 +350,8 @@ export class MatchmakingUI {
     }
 
     // Update stats
+    const stats = champion.baseStats;
     if (this.detailStats) {
-      const stats = champion.baseStats;
       this.detailStats.innerHTML = `
         <div class="champion-stat-row">
           <span class="champion-stat-label">Health</span>
@@ -347,6 +379,283 @@ export class MatchmakingUI {
         </div>
       `;
     }
+
+    // Update abilities
+    if (this.detailAbilities) {
+      this.detailAbilities.innerHTML = "";
+      const slots: Array<"Q" | "W" | "E" | "R"> = ["Q", "W", "E", "R"];
+
+      console.log("[MatchmakingUI] Updating abilities for champion:", championId);
+      console.log("[MatchmakingUI] champion.abilities:", champion.abilities);
+
+      for (const slot of slots) {
+        const abilityId = champion.abilities[slot];
+        console.log(`[MatchmakingUI] Slot ${slot}: abilityId = "${abilityId}"`);
+        if (!abilityId) {
+          console.log(`[MatchmakingUI] Slot ${slot}: No ability ID, skipping`);
+          continue;
+        }
+
+        const abilityDef = getAbilityDefinition(abilityId);
+        console.log(`[MatchmakingUI] Slot ${slot}: abilityDef =`, abilityDef);
+        if (!abilityDef) {
+          console.log(`[MatchmakingUI] Slot ${slot}: No ability definition found for "${abilityId}"`);
+          continue;
+        }
+
+        const abilityCard = this.createAbilityCard(slot, abilityDef, stats);
+        this.detailAbilities.appendChild(abilityCard);
+        console.log(`[MatchmakingUI] Slot ${slot}: Added ability card`);
+      }
+    } else {
+      console.log("[MatchmakingUI] detailAbilities element not found!");
+    }
+  }
+
+  /**
+   * Create an ability card element for the champion select screen.
+   */
+  private createAbilityCard(
+    slot: string,
+    ability: AbilityDefinition,
+    baseStats: ChampionDefinition["baseStats"],
+  ): HTMLElement {
+    const card = document.createElement("div");
+    card.className = "ability-card";
+
+    // Ability header with slot and name
+    const header = document.createElement("div");
+    header.className = "ability-card-header";
+    header.innerHTML = `
+      <span class="ability-slot">${slot}</span>
+      <span class="ability-name">${ability.name}</span>
+    `;
+    card.appendChild(header);
+
+    // Description with interpolated values at rank 1
+    const description = document.createElement("div");
+    description.className = "ability-description";
+    const interpolatedDesc = this.interpolateAbilityDescription(
+      ability,
+      1,
+      baseStats,
+    );
+    description.innerHTML = interpolatedDesc;
+    card.appendChild(description);
+
+    // Stats row (cooldown, cost, range)
+    const statsRow = document.createElement("div");
+    statsRow.className = "ability-stats-row";
+
+    const statParts: string[] = [];
+    if (ability.cooldown && ability.cooldown.length > 0) {
+      const cdValues = ability.cooldown.map((cd) => cd.toString()).join("/");
+      statParts.push(`CD: ${cdValues}s`);
+    }
+    if (ability.manaCost && ability.manaCost.length > 0) {
+      const costValues = ability.manaCost.map((c) => c.toString()).join("/");
+      statParts.push(`Cost: ${costValues}`);
+    }
+    if (ability.range && ability.range > 0) {
+      statParts.push(`Range: ${ability.range}`);
+    }
+
+    statsRow.textContent = statParts.join("  •  ");
+    card.appendChild(statsRow);
+
+    // Scaling info
+    const scalingInfo = this.getAbilityScalingInfo(ability);
+    if (scalingInfo) {
+      const scaling = document.createElement("div");
+      scaling.className = "ability-scaling";
+      scaling.innerHTML = scalingInfo;
+      card.appendChild(scaling);
+    }
+
+    return card;
+  }
+
+  /**
+   * Interpolate ability description with calculated values.
+   */
+  private interpolateAbilityDescription(
+    ability: AbilityDefinition,
+    rank: number,
+    baseStats: ChampionDefinition["baseStats"],
+  ): string {
+    let description = ability.description;
+
+    const stats = {
+      attackDamage: baseStats.attackDamage,
+      abilityPower: baseStats.abilityPower,
+      bonusHealth: 0,
+      maxHealth: baseStats.health,
+      armor: baseStats.armor,
+      magicResist: baseStats.magicResist,
+    };
+
+    // Replace {damage}
+    if (ability.damage?.scaling) {
+      const value = this.calculateScalingValue(
+        ability.damage.scaling,
+        rank,
+        stats,
+      );
+      const formatted = this.formatScalingPreview(
+        value,
+        ability.damage.scaling,
+      );
+      description = description.replace("{damage}", formatted);
+    }
+
+    // Replace {heal}
+    if (ability.heal?.scaling) {
+      const value = this.calculateScalingValue(
+        ability.heal.scaling,
+        rank,
+        stats,
+      );
+      const formatted = this.formatScalingPreview(value, ability.heal.scaling);
+      description = description.replace("{heal}", formatted);
+    }
+
+    // Replace {shield}
+    if (ability.shield?.scaling) {
+      const value = this.calculateScalingValue(
+        ability.shield.scaling,
+        rank,
+        stats,
+      );
+      const formatted = this.formatScalingPreview(
+        value,
+        ability.shield.scaling,
+      );
+      description = description.replace("{shield}", formatted);
+    }
+
+    return description;
+  }
+
+  /**
+   * Calculate a scaling value at a given rank.
+   */
+  private calculateScalingValue(
+    scaling: AbilityScaling,
+    rank: number,
+    stats: {
+      attackDamage?: number;
+      abilityPower?: number;
+      bonusHealth?: number;
+      maxHealth?: number;
+      armor?: number;
+      magicResist?: number;
+    },
+  ): number {
+    if (rank < 1 || rank > scaling.base.length) return 0;
+
+    let value = scaling.base[rank - 1];
+
+    if (scaling.adRatio && stats.attackDamage) {
+      value += stats.attackDamage * scaling.adRatio;
+    }
+    if (scaling.apRatio && stats.abilityPower) {
+      value += stats.abilityPower * scaling.apRatio;
+    }
+    if (scaling.bonusHealthRatio && stats.bonusHealth) {
+      value += stats.bonusHealth * scaling.bonusHealthRatio;
+    }
+    if (scaling.maxHealthRatio && stats.maxHealth) {
+      value += stats.maxHealth * scaling.maxHealthRatio;
+    }
+    if (scaling.armorRatio && stats.armor) {
+      value += stats.armor * scaling.armorRatio;
+    }
+    if (scaling.magicResistRatio && stats.magicResist) {
+      value += stats.magicResist * scaling.magicResistRatio;
+    }
+
+    return value;
+  }
+
+  /**
+   * Format scaling preview with base values and ratios.
+   */
+  private formatScalingPreview(value: number, scaling: AbilityScaling): string {
+    const baseValues = scaling.base.join("/");
+    const scalingParts: string[] = [];
+
+    if (scaling.adRatio) {
+      scalingParts.push(
+        `<span class="scaling-ad">+${Math.round(scaling.adRatio * 100)}% AD</span>`,
+      );
+    }
+    if (scaling.apRatio) {
+      scalingParts.push(
+        `<span class="scaling-ap">+${Math.round(scaling.apRatio * 100)}% AP</span>`,
+      );
+    }
+    if (scaling.bonusHealthRatio) {
+      scalingParts.push(
+        `<span class="scaling-hp">+${Math.round(scaling.bonusHealthRatio * 100)}% Bonus HP</span>`,
+      );
+    }
+    if (scaling.maxHealthRatio) {
+      scalingParts.push(
+        `<span class="scaling-hp">+${Math.round(scaling.maxHealthRatio * 100)}% Max HP</span>`,
+      );
+    }
+    if (scaling.armorRatio) {
+      scalingParts.push(
+        `<span class="scaling-armor">+${Math.round(scaling.armorRatio * 100)}% Armor</span>`,
+      );
+    }
+    if (scaling.magicResistRatio) {
+      scalingParts.push(
+        `<span class="scaling-mr">+${Math.round(scaling.magicResistRatio * 100)}% MR</span>`,
+      );
+    }
+
+    if (scalingParts.length > 0) {
+      return `${baseValues} (${scalingParts.join(" ")})`;
+    }
+
+    return baseValues;
+  }
+
+  /**
+   * Get scaling info HTML for an ability.
+   */
+  private getAbilityScalingInfo(ability: AbilityDefinition): string | null {
+    const parts: string[] = [];
+
+    if (ability.damage?.scaling) {
+      const dmgType =
+        ability.damage.type === "physical"
+          ? "Physical"
+          : ability.damage.type === "magic"
+            ? "Magic"
+            : "True";
+      parts.push(
+        `<span class="scaling-label">${dmgType} Damage:</span> ${this.formatScalingPreview(0, ability.damage.scaling)}`,
+      );
+    }
+
+    if (ability.heal?.scaling) {
+      parts.push(
+        `<span class="scaling-label">Heal:</span> ${this.formatScalingPreview(0, ability.heal.scaling)}`,
+      );
+    }
+
+    if (ability.shield?.scaling) {
+      const duration = ability.shield.duration
+        ? ` (${ability.shield.duration}s)`
+        : "";
+      parts.push(
+        `<span class="scaling-label">Shield${duration}:</span> ${this.formatScalingPreview(0, ability.shield.scaling)}`,
+      );
+    }
+
+    return parts.length > 0 ? parts.join("<br>") : null;
   }
 
   /**
@@ -364,44 +673,50 @@ export class MatchmakingUI {
    */
   private setupEventListeners(): void {
     // Play button - go to champion select
-    document.getElementById('btn-play')?.addEventListener('click', () => {
-      this.showScreen('champion-select');
+    document.getElementById("btn-play")?.addEventListener("click", () => {
+      this.showScreen("champion-select");
     });
 
     // Back button - return to menu
-    document.getElementById('btn-back-menu')?.addEventListener('click', () => {
-      this.showScreen('menu');
+    document.getElementById("btn-back-menu")?.addEventListener("click", () => {
+      this.showScreen("menu");
     });
 
     // Lock-in button - proceed to matchmaking
-    document.getElementById('btn-lock-in')?.addEventListener('click', () => {
+    document.getElementById("btn-lock-in")?.addEventListener("click", () => {
       this.lockInChampion();
     });
 
     // Cancel connect button
-    document.getElementById('btn-cancel-connect')?.addEventListener('click', () => {
-      this.cancelConnection();
-    });
+    document
+      .getElementById("btn-cancel-connect")
+      ?.addEventListener("click", () => {
+        this.cancelConnection();
+      });
 
     // Cancel queue button
-    document.getElementById('btn-cancel-queue')?.addEventListener('click', () => {
-      this.cancelQueue();
-    });
+    document
+      .getElementById("btn-cancel-queue")
+      ?.addEventListener("click", () => {
+        this.cancelQueue();
+      });
 
     // Retry button
-    document.getElementById('btn-retry')?.addEventListener('click', () => {
-      this.showScreen('menu');
+    document.getElementById("btn-retry")?.addEventListener("click", () => {
+      this.showScreen("menu");
     });
 
     // Settings button (placeholder)
-    document.getElementById('btn-settings')?.addEventListener('click', () => {
-      console.log('Settings clicked');
+    document.getElementById("btn-settings")?.addEventListener("click", () => {
+      console.log("Settings clicked");
     });
 
     // How to play button (placeholder)
-    document.getElementById('btn-how-to-play')?.addEventListener('click', () => {
-      console.log('How to play clicked');
-    });
+    document
+      .getElementById("btn-how-to-play")
+      ?.addEventListener("click", () => {
+        console.log("How to play clicked");
+      });
   }
 
   /**
@@ -410,23 +725,23 @@ export class MatchmakingUI {
   private showScreen(screenId: ScreenId): void {
     // Hide all screens
     for (const [id, element] of this.screens) {
-      element?.classList.remove('active');
+      element?.classList.remove("active");
     }
 
     // Show requested screen
     const screen = this.screens.get(screenId);
     if (screen) {
-      screen.classList.add('active');
+      screen.classList.add("active");
       this.currentScreen = screenId;
     }
 
     // Toggle champion-select mode class on container for CSS targeting
-    const container = this.overlay?.querySelector('.matchmaking-container');
+    const container = this.overlay?.querySelector(".matchmaking-container");
     if (container) {
-      if (screenId === 'champion-select') {
-        container.classList.add('champion-select-mode');
+      if (screenId === "champion-select") {
+        container.classList.add("champion-select-mode");
       } else {
-        container.classList.remove('champion-select-mode');
+        container.classList.remove("champion-select-mode");
       }
     }
   }
@@ -436,19 +751,19 @@ export class MatchmakingUI {
    */
   private updateConnectionStatus(status: ConnectionStatus): void {
     if (this.statusDot) {
-      this.statusDot.className = 'status-dot ' + status;
+      this.statusDot.className = "status-dot " + status;
     }
 
     if (this.statusText) {
       switch (status) {
-        case 'offline':
-          this.statusText.textContent = 'Offline';
+        case "offline":
+          this.statusText.textContent = "Offline";
           break;
-        case 'connecting':
-          this.statusText.textContent = 'Connecting...';
+        case "connecting":
+          this.statusText.textContent = "Connecting...";
           break;
-        case 'online':
-          this.statusText.textContent = 'Online';
+        case "online":
+          this.statusText.textContent = "Online";
           break;
       }
     }
@@ -467,34 +782,39 @@ export class MatchmakingUI {
    * Start matchmaking process.
    */
   private startMatchmaking(): void {
-    this.showScreen('connecting');
-    this.updateConnectionStatus('connecting');
+    this.showScreen("connecting");
+    this.updateConnectionStatus("connecting");
 
     // Create network client
     this.networkClient = new NetworkClient({
       serverUrl: this.serverUrl,
       playerId: this.playerId,
-      gameId: '', // Will be assigned by server
+      gameId: "", // Will be assigned by server
     });
 
     // Setup event handlers
     this.networkClient.onConnect = () => {
-      console.log('[MatchmakingUI] Connected to server');
-      this.updateConnectionStatus('online');
+      console.log("[MatchmakingUI] Connected to server");
+      this.updateConnectionStatus("online");
 
       // Send ready message to join queue with selected champion
-      console.log(`[MatchmakingUI] Sending ready with selectedChampionId="${this.selectedChampionId}"`);
+      console.log(
+        `[MatchmakingUI] Sending ready with selectedChampionId="${this.selectedChampionId}"`,
+      );
       this.networkClient?.sendReady(this.selectedChampionId);
-      this.showScreen('queue');
+      this.showScreen("queue");
       this.startQueueTimer();
     };
 
     this.networkClient.onDisconnect = (code, reason) => {
       console.log(`[MatchmakingUI] Disconnected: ${code} - ${reason}`);
-      this.updateConnectionStatus('offline');
+      this.updateConnectionStatus("offline");
 
-      if (this.currentScreen !== 'menu' && this.currentScreen !== 'champion-select') {
-        this.showError('Connection lost. Please try again.');
+      if (
+        this.currentScreen !== "menu" &&
+        this.currentScreen !== "champion-select"
+      ) {
+        this.showError("Connection lost. Please try again.");
       }
     };
 
@@ -503,12 +823,12 @@ export class MatchmakingUI {
     };
 
     this.networkClient.onError = (error) => {
-      console.error('[MatchmakingUI] Error:', error);
+      console.error("[MatchmakingUI] Error:", error);
       this.showError(error);
     };
 
     this.networkClient.onGameStart = (data: any) => {
-      console.log('[MatchmakingUI] Game starting:', data);
+      console.log("[MatchmakingUI] Game starting:", data);
       this.handleMatchFound(data);
     };
 
@@ -516,7 +836,11 @@ export class MatchmakingUI {
       // Buffer the full state so OnlineGame can process it after initialization
       // This is needed because FULL_STATE is sent immediately after GAME_START,
       // but OnlineGame isn't created until after the loading animation
-      console.log('[MatchmakingUI] Buffering full state:', snapshot?.entities?.length || 0, 'entities');
+      console.log(
+        "[MatchmakingUI] Buffering full state:",
+        snapshot?.entities?.length || 0,
+        "entities",
+      );
       this.bufferedFullState = snapshot;
     };
 
@@ -526,9 +850,11 @@ export class MatchmakingUI {
     };
 
     // Handle custom events (queue joined, etc.)
-    const originalOnMessage = (this.networkClient as any).handleMessage?.bind(this.networkClient);
+    const originalOnMessage = (this.networkClient as any).handleMessage?.bind(
+      this.networkClient,
+    );
     (this.networkClient as any).handleServerMessage = (message: any) => {
-      if (message.type === 2 && message.data?.event === 'queue_joined') {
+      if (message.type === 2 && message.data?.event === "queue_joined") {
         this.updateQueueInfo(message.data.position, message.data.queueSize);
       }
     };
@@ -543,8 +869,8 @@ export class MatchmakingUI {
   private cancelConnection(): void {
     this.networkClient?.disconnect();
     this.networkClient = null;
-    this.updateConnectionStatus('offline');
-    this.showScreen('champion-select');
+    this.updateConnectionStatus("offline");
+    this.showScreen("champion-select");
   }
 
   /**
@@ -554,8 +880,8 @@ export class MatchmakingUI {
     this.stopQueueTimer();
     this.networkClient?.disconnect();
     this.networkClient = null;
-    this.updateConnectionStatus('offline');
-    this.showScreen('champion-select');
+    this.updateConnectionStatus("offline");
+    this.showScreen("champion-select");
   }
 
   /**
@@ -568,7 +894,7 @@ export class MatchmakingUI {
       const minutes = Math.floor(elapsed / 60);
       const seconds = elapsed % 60;
       if (this.queueTimer) {
-        this.queueTimer.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        this.queueTimer.textContent = `${minutes}:${seconds.toString().padStart(2, "0")}`;
       }
     }, 1000);
   }
@@ -587,7 +913,8 @@ export class MatchmakingUI {
    * Update queue info display.
    */
   private updateQueueInfo(position: number, size: number): void {
-    if (this.queuePosition) this.queuePosition.textContent = position.toString();
+    if (this.queuePosition)
+      this.queuePosition.textContent = position.toString();
     if (this.queueSize) this.queueSize.textContent = size.toString();
   }
 
@@ -603,18 +930,22 @@ export class MatchmakingUI {
     const redPlayer = data.players?.find((p: any) => p.side === 1);
 
     if (this.blueChampion) {
-      const championName = this.formatChampionName(bluePlayer?.championId || 'warrior');
-      const icon = CHAMPION_ICONS[bluePlayer?.championId || 'warrior'] || '⚔️';
+      const championName = this.formatChampionName(
+        bluePlayer?.championId || "warrior",
+      );
+      const icon = CHAMPION_ICONS[bluePlayer?.championId || "warrior"] || "⚔️";
       this.blueChampion.textContent = `${icon} ${championName}`;
     }
     if (this.redChampion) {
-      const championName = this.formatChampionName(redPlayer?.championId || 'warrior');
-      const icon = CHAMPION_ICONS[redPlayer?.championId || 'warrior'] || '⚔️';
+      const championName = this.formatChampionName(
+        redPlayer?.championId || "warrior",
+      );
+      const icon = CHAMPION_ICONS[redPlayer?.championId || "warrior"] || "⚔️";
       this.redChampion.textContent = `${icon} ${championName}`;
     }
 
     // Show match found screen
-    this.showScreen('match-found');
+    this.showScreen("match-found");
 
     // Start loading animation
     this.startLoadingAnimation();
@@ -634,7 +965,7 @@ export class MatchmakingUI {
   private startLoadingAnimation(): void {
     this.loadingProgress = 0;
     if (this.loadingBar) {
-      this.loadingBar.style.width = '0%';
+      this.loadingBar.style.width = "0%";
     }
 
     const loadingInterval = setInterval(() => {
@@ -642,7 +973,7 @@ export class MatchmakingUI {
 
       if (this.loadingProgress >= 100) {
         this.loadingProgress = 100;
-        if (this.loadingBar) this.loadingBar.style.width = '100%';
+        if (this.loadingBar) this.loadingBar.style.width = "100%";
         clearInterval(loadingInterval);
 
         // Transition to game
@@ -650,7 +981,8 @@ export class MatchmakingUI {
           this.startGame();
         }, 500);
       } else {
-        if (this.loadingBar) this.loadingBar.style.width = `${this.loadingProgress}%`;
+        if (this.loadingBar)
+          this.loadingBar.style.width = `${this.loadingProgress}%`;
       }
     }, 200);
   }
@@ -677,7 +1009,7 @@ export class MatchmakingUI {
     if (this.errorMessage) {
       this.errorMessage.textContent = message;
     }
-    this.showScreen('error');
+    this.showScreen("error");
     this.stopQueueTimer();
   }
 
@@ -703,22 +1035,22 @@ export class MatchmakingUI {
    * Show the overlay.
    */
   show(): void {
-    this.overlay?.classList.remove('hidden');
-    this.showScreen('menu');
+    this.overlay?.classList.remove("hidden");
+    this.showScreen("menu");
   }
 
   /**
    * Hide the overlay.
    */
   hide(): void {
-    this.overlay?.classList.add('hidden');
+    this.overlay?.classList.add("hidden");
   }
 
   /**
    * Check if overlay is visible.
    */
   isVisible(): boolean {
-    return this.overlay ? !this.overlay.classList.contains('hidden') : false;
+    return this.overlay ? !this.overlay.classList.contains("hidden") : false;
   }
 
   /**
@@ -767,7 +1099,7 @@ export class MatchmakingUI {
     this.matchData = null;
     this.loadingProgress = 0;
     this.bufferedFullState = null;
-    this.updateConnectionStatus('offline');
-    this.showScreen('menu');
+    this.updateConnectionStatus("offline");
+    this.showScreen("menu");
   }
 }

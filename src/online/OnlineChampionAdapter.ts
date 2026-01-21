@@ -15,10 +15,13 @@ import {
   type AbilitySlot,
   type ItemSlot,
   type ItemDefinition,
+  type AbilityScaling,
+  type DamageType,
+  type ActiveEffectState,
   getAbilityDefinition as getSharedAbilityDefinition,
   getChampionDefinition,
 } from '@siege/shared';
-import type { HUDTrinket } from '@/ui/ChampionHUD';
+import type { HUDTrinket, HUDActiveEffect } from '@/ui/ChampionHUD';
 
 /**
  * Local interface for inventory display.
@@ -61,7 +64,7 @@ console.log('[OnlineChampionAdapter] Test lookup elara:', testChampion ? `found:
 /**
  * Client-side ability definition for tooltips and targeting.
  */
-interface ClientAbilityDefinition {
+export interface ClientAbilityDefinition {
   name: string;
   description: string;
   range: number;
@@ -69,6 +72,23 @@ interface ClientAbilityDefinition {
   shape?: string;
   aoeRadius?: number;
   coneAngle?: number;
+  maxRank?: number;
+  manaCost?: number[];
+  cooldown?: number[];
+  /** Damage configuration with scaling */
+  damage?: {
+    type: DamageType;
+    scaling: AbilityScaling;
+  };
+  /** Heal configuration with scaling */
+  heal?: {
+    scaling: AbilityScaling;
+  };
+  /** Shield configuration with scaling */
+  shield?: {
+    scaling: AbilityScaling;
+    duration: number;
+  };
 }
 
 // Debug: track which champion abilities have been logged to avoid spam
@@ -123,6 +143,12 @@ function getAbilityDefinition(championId: string, slot: AbilitySlot): ClientAbil
     shape: abilityDef.shape,
     aoeRadius: abilityDef.aoeRadius,
     coneAngle: abilityDef.coneAngle,
+    maxRank: abilityDef.maxRank,
+    manaCost: abilityDef.manaCost,
+    cooldown: abilityDef.cooldown,
+    damage: abilityDef.damage,
+    heal: abilityDef.heal,
+    shield: abilityDef.shield,
   };
 }
 
@@ -133,15 +159,13 @@ function getAbilityDefinition(championId: string, slot: AbilitySlot): ClientAbil
 class OnlineAbilityAdapter {
   private state: AbilityState;
   private abilityDef: ClientAbilityDefinition;
-  readonly definition: { name: string; description: string };
+  readonly definition: ClientAbilityDefinition;
 
   constructor(state: AbilityState, slot: AbilitySlot, championId: string) {
     this.state = state;
     this.abilityDef = getAbilityDefinition(championId, slot);
-    this.definition = {
-      name: this.abilityDef.name,
-      description: this.abilityDef.description,
-    };
+    // Expose the full definition for tooltip interpolation
+    this.definition = this.abilityDef;
   }
 
   get rank(): number {
@@ -494,6 +518,22 @@ export class OnlineChampionAdapter {
         percent: percent as any,
       };
     });
+  }
+
+  /**
+   * Get active effects from server state.
+   * Returns an array of active effects for HUD display.
+   */
+  getActiveEffects(): HUDActiveEffect[] {
+    const snapshot = this.getSnapshot();
+    if (!snapshot?.activeEffects) return [];
+
+    return snapshot.activeEffects.map(effect => ({
+      definitionId: effect.definitionId,
+      timeRemaining: effect.timeRemaining,
+      stacks: effect.stacks,
+      shieldRemaining: effect.shieldRemaining,
+    }));
   }
 
   /**

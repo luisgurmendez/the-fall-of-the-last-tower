@@ -13,7 +13,8 @@ import RenderElement from '@/render/renderElement';
 import RenderUtils from '@/render/utils';
 import GameContext from '@/core/gameContext';
 import { InputManager, MouseButton } from '@/core/input/InputManager';
-import { type StatModifier, type ChampionStats, type ItemSlot, type ItemDefinition, type AbilitySlot } from '@siege/shared';
+import { type StatModifier, type ChampionStats, type ItemSlot, type ItemDefinition, type AbilitySlot, type AbilityScaling, type DamageType, type ActiveEffectState, calculateAbilityValue } from '@siege/shared';
+import { getEffectDisplayInfo, type EffectDisplayInfo, EFFECT_CATEGORY_COLORS } from '@/data/effectDisplayInfo';
 // Re-export for external use
 export type { ItemSlot, AbilitySlot };
 
@@ -49,10 +50,32 @@ export interface HUDTrinket {
 }
 
 /**
+ * Ability definition interface for HUD tooltips.
+ */
+export interface HUDAbilityDefinition {
+  name: string;
+  description: string;
+  maxRank?: number;
+  manaCost?: number[];
+  cooldown?: number[];
+  damage?: {
+    type: DamageType;
+    scaling: AbilityScaling;
+  };
+  heal?: {
+    scaling: AbilityScaling;
+  };
+  shield?: {
+    scaling: AbilityScaling;
+    duration: number;
+  };
+}
+
+/**
  * Interface for ability data needed by HUD.
  */
 export interface HUDAbility {
-  readonly definition?: { name: string; description: string } | null;
+  readonly definition?: HUDAbilityDefinition | null;
   readonly rank: number;
   readonly isReady: boolean;
   readonly cooldownProgress: number;
@@ -77,6 +100,7 @@ export interface HUDChampionData {
   getCurrentResource(): number;
   getAbility(slot: AbilitySlot): HUDAbility | undefined;
   getBuffs(): StatModifier[];
+  getActiveEffects(): HUDActiveEffect[];
   getInventory(): ChampionInventory;
   getTrinket(): HUDTrinket | null;
   getPosition(): Vector;
@@ -84,6 +108,20 @@ export interface HUDChampionData {
   getExperience(): number;
   getExperienceToNextLevel(): number;
   getSkillPoints(): number;
+}
+
+/**
+ * Active effect data for HUD display.
+ */
+export interface HUDActiveEffect {
+  /** Effect definition ID */
+  definitionId: string;
+  /** Time remaining in seconds */
+  timeRemaining: number;
+  /** Current stack count */
+  stacks: number;
+  /** For shields: remaining shield amount */
+  shieldRemaining?: number;
 }
 
 /** Hover state for HUD elements */
@@ -94,6 +132,8 @@ export interface HUDHoverState {
   item: ItemSlot | null;
   /** Currently hovered buff index, or null if none */
   buff: number | null;
+  /** Currently hovered effect index, or null if none */
+  effect: number | null;
 }
 
 /** HUD configuration options */
@@ -154,6 +194,8 @@ const PANEL = {
   margin: 10,
   buffSize: 32,
   buffSpacing: 5,
+  effectSize: 36,
+  effectSpacing: 4,
   wardBoxSize: 48,
   tooltipWidth: 320,
   tooltipPadding: 12,
@@ -170,7 +212,7 @@ export class ChampionHUD extends ScreenEntity {
   private inputManager: InputManager;
 
   /** Current hover state */
-  private hoverState: HUDHoverState = { ability: null, item: null, buff: null };
+  private hoverState: HUDHoverState = { ability: null, item: null, buff: null, effect: null };
 
   /** Cached ability box positions for hit testing (updated each frame) */
   private abilityBoxes: Map<AbilitySlot, { x: number; y: number; size: number }> = new Map();
@@ -180,6 +222,9 @@ export class ChampionHUD extends ScreenEntity {
 
   /** Cached buff box positions for hit testing */
   private buffBoxes: Map<number, { x: number; y: number; size: number }> = new Map();
+
+  /** Cached effect box positions for hit testing */
+  private effectBoxes: Map<number, { x: number; y: number; size: number }> = new Map();
 
   /** Cached level-up button positions for hit testing */
   private levelUpButtons: Map<AbilitySlot, { x: number; y: number; width: number; height: number }> = new Map();
@@ -279,6 +324,15 @@ export class ChampionHUD extends ScreenEntity {
       }
     }
 
+    // Check effect hover
+    let newHoveredEffect: number | null = null;
+    for (const [index, box] of this.effectBoxes) {
+      if (this.isPointInBox(mousePos.x, mousePos.y, box)) {
+        newHoveredEffect = index;
+        break;
+      }
+    }
+
     // Check level-up button hover
     let newHoveredLevelUpButton: AbilitySlot | null = null;
     for (const [slot, box] of this.levelUpButtons) {
@@ -324,6 +378,11 @@ export class ChampionHUD extends ScreenEntity {
     // Update buff hover state
     if (newHoveredBuff !== this.hoverState.buff) {
       this.hoverState.buff = newHoveredBuff;
+    }
+
+    // Update effect hover state
+    if (newHoveredEffect !== this.hoverState.effect) {
+      this.hoverState.effect = newHoveredEffect;
     }
   }
 
@@ -446,10 +505,14 @@ export class ChampionHUD extends ScreenEntity {
       const wardY = contentTop + (centerHeight - PANEL.wardBoxSize) / 2;
       this.drawWardPanel(ctx, wardX, wardY);
 
-      // 6. Draw buffs on top of HUD (from the right)
-      this.drawBuffs(ctx, startX + hudWidth - PANEL.padding, startY - PANEL.buffSize - 6);
+      // 6. Draw active effects on top of HUD (from the right)
+      this.drawActiveEffects(ctx, startX + hudWidth - PANEL.padding, startY - PANEL.effectSize - 8);
 
-      // 7. Draw ability tooltip if hovering
+      // 7. Draw legacy buffs (stat modifiers, if any)
+      // These are separate from active effects and displayed in a second row if needed
+      this.drawBuffs(ctx, startX + hudWidth - PANEL.padding, startY - PANEL.effectSize - PANEL.buffSize - 14);
+
+      // 8. Draw ability tooltip if hovering
       if (this.hoverState.ability) {
         const abilityBox = this.abilityBoxes.get(this.hoverState.ability);
         if (abilityBox) {
@@ -457,7 +520,16 @@ export class ChampionHUD extends ScreenEntity {
         }
       }
 
-      // 8. Draw buff tooltip if hovering
+      // 9. Draw effect tooltip if hovering
+      if (this.hoverState.effect !== null && this.champion) {
+        const effectBox = this.effectBoxes.get(this.hoverState.effect);
+        const effects = this.champion.getActiveEffects();
+        if (effectBox && this.hoverState.effect < effects.length) {
+          this.drawEffectTooltip(ctx, effectBox.x, effectBox.y, effects[this.hoverState.effect]);
+        }
+      }
+
+      // 10. Draw buff tooltip if hovering
       if (this.hoverState.buff !== null && this.champion) {
         const buffBox = this.buffBoxes.get(this.hoverState.buff);
         const buffs = this.champion.getBuffs();
@@ -466,7 +538,7 @@ export class ChampionHUD extends ScreenEntity {
         }
       }
 
-      // 9. Draw item tooltip if hovering
+      // 11. Draw item tooltip if hovering
       if (this.hoverState.item !== null && this.champion) {
         const itemBox = this.itemBoxes.get(this.hoverState.item);
         const inventory = this.champion.getInventory();
@@ -1117,6 +1189,181 @@ export class ChampionHUD extends ScreenEntity {
     );
   }
 
+  /** Draw active effects on top of HUD (from right to left) */
+  private drawActiveEffects(ctx: CanvasRenderingContext2D, rightX: number, y: number): void {
+    if (!this.champion) return;
+    const effects = this.champion.getActiveEffects();
+
+    // Clear old effect boxes
+    this.effectBoxes.clear();
+
+    if (effects.length === 0) return;
+
+    const size = PANEL.effectSize;
+    const spacing = PANEL.effectSpacing;
+
+    // Draw effects from right to left
+    effects.forEach((effect, index) => {
+      const x = rightX - (index + 1) * (size + spacing) + spacing;
+      // Cache position for hit testing
+      this.effectBoxes.set(index, { x, y, size });
+      const isHovered = this.hoverState.effect === index;
+      this.drawEffectIcon(ctx, x, y, size, effect, isHovered);
+    });
+  }
+
+  /** Draw a single effect icon */
+  private drawEffectIcon(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    size: number,
+    effect: HUDActiveEffect,
+    isHovered: boolean = false
+  ): void {
+    const displayInfo = getEffectDisplayInfo(effect.definitionId);
+
+    // Background based on category
+    const bgColor = isHovered
+      ? HUD_COLORS.borderHighlight
+      : (displayInfo.category === 'buff' ? 'rgba(46, 204, 113, 0.3)' :
+         displayInfo.category === 'debuff' ? 'rgba(231, 76, 60, 0.3)' :
+         'rgba(155, 89, 182, 0.3)');
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(x, y, size, size);
+
+    // Border with effect color (highlight when hovered)
+    if (isHovered) {
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 3;
+    } else {
+      ctx.strokeStyle = displayInfo.color;
+      ctx.lineWidth = 2;
+    }
+    ctx.strokeRect(x, y, size, size);
+
+    // Effect icon
+    RenderUtils.renderBitmapText(
+      ctx,
+      displayInfo.icon,
+      x + size / 2,
+      y + size / 2 - 14,
+      { color: displayInfo.color, size: 26, centered: true, shadow: true }
+    );
+
+    // Duration timer at bottom
+    if (effect.timeRemaining > 0) {
+      const timerText = effect.timeRemaining >= 10
+        ? Math.floor(effect.timeRemaining).toString()
+        : effect.timeRemaining.toFixed(1);
+      RenderUtils.renderBitmapText(
+        ctx,
+        timerText,
+        x + size / 2,
+        y + size - 16,
+        { color: HUD_COLORS.text, size: 16, centered: true, shadow: false }
+      );
+    }
+
+    // Stack count at top right if > 1
+    if (effect.stacks > 1) {
+      RenderUtils.renderBitmapText(
+        ctx,
+        `x${effect.stacks}`,
+        x + size - 4,
+        y + 2,
+        { color: '#FFD700', size: 14, rightAlign: true, shadow: true }
+      );
+    }
+  }
+
+  /** Draw effect tooltip above the effect icon */
+  private drawEffectTooltip(
+    ctx: CanvasRenderingContext2D,
+    effectX: number,
+    effectY: number,
+    effect: HUDActiveEffect
+  ): void {
+    const displayInfo = getEffectDisplayInfo(effect.definitionId);
+    const padding = PANEL.tooltipPadding;
+    const lineHeight = 18;
+
+    // Calculate tooltip dimensions
+    const tooltipWidth = 220;
+    const headerHeight = lineHeight + 4;
+    const descHeight = lineHeight;
+    const stackHeight = effect.stacks > 1 ? lineHeight : 0;
+    const durationHeight = effect.timeRemaining > 0 ? lineHeight + 4 : 0;
+    const tooltipHeight = padding * 2 + headerHeight + descHeight + stackHeight + durationHeight;
+
+    // Position tooltip above the effect icon
+    const tooltipX = effectX + PANEL.effectSize / 2 - tooltipWidth / 2;
+    const tooltipY = effectY - tooltipHeight - 8;
+
+    // Clamp to screen bounds
+    const clampedX = Math.max(10, Math.min(tooltipX, Dimensions.w - tooltipWidth - 10));
+    const clampedY = Math.max(10, tooltipY);
+
+    ctx.save();
+
+    // Background
+    ctx.fillStyle = 'rgba(20, 20, 40, 0.95)';
+    ctx.fillRect(clampedX, clampedY, tooltipWidth, tooltipHeight);
+
+    // Border with category color
+    ctx.strokeStyle = displayInfo.color;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(clampedX, clampedY, tooltipWidth, tooltipHeight);
+
+    let currentY = clampedY + padding;
+
+    // Effect name
+    RenderUtils.renderBitmapText(
+      ctx,
+      displayInfo.name,
+      clampedX + padding,
+      currentY,
+      { color: displayInfo.color, size: 24, shadow: false }
+    );
+    currentY += headerHeight;
+
+    // Description
+    RenderUtils.renderBitmapText(
+      ctx,
+      displayInfo.description,
+      clampedX + padding,
+      currentY,
+      { color: HUD_COLORS.textDim, size: 18, shadow: false }
+    );
+    currentY += descHeight;
+
+    // Stacks
+    if (effect.stacks > 1) {
+      RenderUtils.renderBitmapText(
+        ctx,
+        `Stacks: ${effect.stacks}`,
+        clampedX + padding,
+        currentY,
+        { color: '#FFD700', size: 18, shadow: false }
+      );
+      currentY += lineHeight;
+    }
+
+    // Duration remaining
+    if (effect.timeRemaining > 0) {
+      currentY += 4;
+      RenderUtils.renderBitmapText(
+        ctx,
+        `Duration: ${effect.timeRemaining.toFixed(1)}s`,
+        clampedX + tooltipWidth / 2,
+        currentY,
+        { color: '#AAAAAA', size: 18, shadow: false, centered: true }
+      );
+    }
+
+    ctx.restore();
+  }
+
   /** Draw ward count panel */
   private drawWardPanel(ctx: CanvasRenderingContext2D, x: number, y: number): void {
     const size = PANEL.wardBoxSize;
@@ -1279,13 +1526,25 @@ export class ChampionHUD extends ScreenEntity {
     if (!ability) return;
 
     const name = ability.definition?.name || slot;
-    const description = ability.definition?.description || 'No description';
+    const rawDescription = ability.definition?.description || 'No description';
     const rank = ability.rank ?? 0;
-    const maxRank = slot === 'R' ? 3 : 5;
+    const maxRank = ability.definition?.maxRank ?? (slot === 'R' ? 3 : 5);
+
+    // Interpolate description with actual calculated values
+    const stats = this.champion.getStats();
+    const description = this.interpolateAbilityDescription(
+      rawDescription,
+      ability.definition,
+      rank,
+      stats
+    );
 
     // Get cost info
     const targetDesc = ability.getTargetDescription?.();
     const range = targetDesc?.range ?? 0;
+
+    // Get mana cost at current rank
+    const manaCost = ability.definition?.manaCost?.[Math.max(0, rank - 1)] ?? 0;
 
     // Tooltip dimensions
     const tooltipWidth = PANEL.tooltipWidth;
@@ -1355,11 +1614,19 @@ export class ChampionHUD extends ScreenEntity {
 
     currentY += 4;
 
-    // Range info
+    // Cost and range line
+    const costParts: string[] = [];
+    if (manaCost > 0) {
+      costParts.push(`Cost: ${manaCost}`);
+    }
     if (range > 0) {
+      costParts.push(`Range: ${range}`);
+    }
+
+    if (costParts.length > 0) {
       RenderUtils.renderBitmapText(
         ctx,
-        `Range: ${range}`,
+        costParts.join('  |  '),
         clampedX + padding,
         currentY,
         { color: '#00CED1', size: 20, shadow: false }
@@ -1410,6 +1677,114 @@ export class ChampionHUD extends ScreenEntity {
     }
 
     return lines;
+  }
+
+  /**
+   * Interpolate ability description by replacing placeholders with calculated values.
+   * Replaces {damage}, {heal}, {shield} with actual values including scaling breakdown.
+   */
+  private interpolateAbilityDescription(
+    description: string,
+    definition: HUDAbilityDefinition | null | undefined,
+    rank: number,
+    stats: ChampionStats
+  ): string {
+    if (!definition || rank < 1) {
+      return description;
+    }
+
+    let result = description;
+
+    // Calculate bonus health (current max - base at level 1)
+    // Approximation: assume base health is around 500-600
+    const bonusHealth = Math.max(0, stats.maxHealth - 580);
+    const missingHealth = stats.maxHealth - stats.health;
+
+    const statValues = {
+      attackDamage: stats.attackDamage,
+      abilityPower: stats.abilityPower,
+      bonusHealth,
+      maxHealth: stats.maxHealth,
+      missingHealth,
+      armor: stats.armor,
+      magicResist: stats.magicResist,
+    };
+
+    // Replace {damage} placeholder
+    if (definition.damage?.scaling) {
+      const value = calculateAbilityValue(definition.damage.scaling, rank, statValues);
+      const formatted = this.formatScalingValue(value, definition.damage.scaling, statValues, definition.damage.type);
+      result = result.replace('{damage}', formatted);
+    }
+
+    // Replace {heal} placeholder
+    if (definition.heal?.scaling) {
+      const value = calculateAbilityValue(definition.heal.scaling, rank, statValues);
+      const formatted = this.formatScalingValue(value, definition.heal.scaling, statValues);
+      result = result.replace('{heal}', formatted);
+    }
+
+    // Replace {shield} placeholder
+    if (definition.shield?.scaling) {
+      const value = calculateAbilityValue(definition.shield.scaling, rank, statValues);
+      const formatted = this.formatScalingValue(value, definition.shield.scaling, statValues);
+      result = result.replace('{shield}', formatted);
+    }
+
+    return result;
+  }
+
+  /**
+   * Format a scaling value with breakdown showing base + scaling contributions.
+   * Example: "150 (+80% AD)" or "200 (+50% AP)"
+   */
+  private formatScalingValue(
+    totalValue: number,
+    scaling: AbilityScaling,
+    stats: {
+      attackDamage?: number;
+      abilityPower?: number;
+      bonusHealth?: number;
+      maxHealth?: number;
+      armor?: number;
+      magicResist?: number;
+    },
+    damageType?: DamageType
+  ): string {
+    const rounded = Math.round(totalValue);
+    const scalingParts: string[] = [];
+
+    // Add scaling ratio breakdowns
+    if (scaling.adRatio && stats.attackDamage) {
+      const adBonus = Math.round(stats.attackDamage * scaling.adRatio);
+      if (adBonus > 0) {
+        scalingParts.push(`+${Math.round(scaling.adRatio * 100)}% AD`);
+      }
+    }
+    if (scaling.apRatio && stats.abilityPower) {
+      const apBonus = Math.round(stats.abilityPower * scaling.apRatio);
+      if (apBonus > 0) {
+        scalingParts.push(`+${Math.round(scaling.apRatio * 100)}% AP`);
+      }
+    }
+    if (scaling.bonusHealthRatio && stats.bonusHealth) {
+      scalingParts.push(`+${Math.round(scaling.bonusHealthRatio * 100)}% Bonus HP`);
+    }
+    if (scaling.maxHealthRatio && stats.maxHealth) {
+      scalingParts.push(`+${Math.round(scaling.maxHealthRatio * 100)}% Max HP`);
+    }
+    if (scaling.armorRatio && stats.armor) {
+      scalingParts.push(`+${Math.round(scaling.armorRatio * 100)}% Armor`);
+    }
+    if (scaling.magicResistRatio && stats.magicResist) {
+      scalingParts.push(`+${Math.round(scaling.magicResistRatio * 100)}% MR`);
+    }
+
+    if (scalingParts.length > 0) {
+      return `${rounded} (${scalingParts.join(' ')})`;
+    }
+
+    return rounded.toString();
   }
 
   /** Draw buff tooltip above the buff icon */

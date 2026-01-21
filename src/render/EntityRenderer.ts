@@ -521,7 +521,7 @@ export class EntityRenderer implements GameObject {
 
     // Draw mana bar for local player
     if (isLocalPlayer && snapshot.resource !== undefined && snapshot.maxResource !== undefined) {
-      this.renderResourceBar(ctx, snapshot.resource, snapshot.maxResource, size * 0.8, -size * 0.5);
+      this.renderResourceBar(ctx, snapshot.resource, snapshot.maxResource, size, -size * 0.5);
     }
 
     // Draw level indicator

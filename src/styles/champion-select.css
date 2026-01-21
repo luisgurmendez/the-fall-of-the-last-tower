@@ -13,13 +13,13 @@
 /* ============================================ */
 
 #screen-champion-select {
-  max-width: 900px;
+  max-width: 1100px;
   width: 100%;
 }
 
 .champion-select-title {
   font-family: var(--pixel-font);
-  font-size: 28px;
+  font-size: 36px;
   color: var(--pixel-gold);
   text-shadow:
     2px 2px 0 var(--pixel-gold-darker),
@@ -100,7 +100,7 @@
 /* Champion Name */
 .champion-card-name {
   font-family: var(--pixel-font);
-  font-size: 16px;
+  font-size: 20px;
   color: var(--pixel-text);
   text-shadow: 1px 1px 0 #000;
   margin-bottom: 2px;
@@ -112,7 +112,7 @@
 /* Champion Class */
 .champion-card-class {
   font-family: var(--pixel-font);
-  font-size: 12px;
+  font-size: 16px;
   color: var(--pixel-text-dim);
   text-shadow: 1px 1px 0 #000;
   text-transform: uppercase;
@@ -140,15 +140,15 @@
 
 /* Large portrait in details */
 .champion-detail-portrait {
-  width: 90px;
-  height: 90px;
-  min-width: 90px;
+  width: 120px;
+  height: 120px;
+  min-width: 120px;
   background: var(--pixel-bg-darker);
-  border: 3px solid var(--pixel-border);
+  border: 4px solid var(--pixel-border);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 52px;
+  font-size: 70px;
 }
 
 /* Champion info section */
@@ -159,7 +159,7 @@
 
 .champion-detail-name {
   font-family: var(--pixel-font);
-  font-size: 24px;
+  font-size: 32px;
   color: var(--pixel-gold);
   text-shadow: 2px 2px 0 #000;
   margin-bottom: 4px;
@@ -167,7 +167,7 @@
 
 .champion-detail-title {
   font-family: var(--pixel-font);
-  font-size: 14px;
+  font-size: 18px;
   color: var(--pixel-text-dim);
   text-shadow: 1px 1px 0 #000;
   margin-bottom: 6px;
@@ -176,7 +176,7 @@
 
 .champion-detail-class {
   font-family: var(--pixel-font);
-  font-size: 14px;
+  font-size: 18px;
   color: var(--pixel-accent);
   text-shadow: 1px 1px 0 #000;
   text-transform: uppercase;
@@ -189,17 +189,20 @@
 
 /* Stats preview */
 .champion-stats-preview {
-  min-width: 140px;
+  min-width: 180px;
   text-align: left;
+  background: var(--pixel-bg-darker);
+  padding: 12px 16px;
+  border: 2px solid var(--pixel-border);
 }
 
 .champion-stat-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 2px 0;
+  padding: 4px 0;
   font-family: var(--pixel-font);
-  font-size: 13px;
+  font-size: 20px;
   text-shadow: 1px 1px 0 #000;
 }
 
@@ -248,7 +251,7 @@
 /* Back button */
 #btn-back-menu {
   font-family: var(--pixel-font);
-  font-size: 18px;
+  font-size: 24px;
   padding: 10px 30px;
   background: transparent;
   border: 3px solid var(--pixel-text-muted);
@@ -266,7 +269,7 @@
 /* Lock-in button */
 #btn-lock-in {
   font-family: var(--pixel-font);
-  font-size: 22px;
+  font-size: 28px;
   padding: 12px 45px;
   background: var(--pixel-gold-dark);
   border: 3px solid var(--pixel-gold-darker);
@@ -369,5 +372,165 @@
   .champion-stats-preview {
     width: 100%;
     max-width: 200px;
+  }
+}
+
+/* ============================================ */
+/* Champion Abilities Section                  */
+/* ============================================ */
+
+/* Update details panel for new layout */
+.champion-details-panel {
+  flex-direction: column;
+  max-width: 1000px;
+  min-height: auto;
+  padding: 20px 24px;
+}
+
+.champion-detail-header {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.champion-abilities-section {
+  width: 100%;
+  border-top: 3px solid var(--pixel-border);
+  padding-top: 20px;
+}
+
+.abilities-title {
+  font-family: var(--pixel-font);
+  font-size: 28px;
+  color: var(--pixel-gold);
+  text-shadow: 2px 2px 0 #000;
+  margin-bottom: 16px;
+  letter-spacing: 3px;
+}
+
+.champion-abilities-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+/* Ability Card */
+.ability-card {
+  background: linear-gradient(135deg, var(--pixel-bg-darker) 0%, #12121f 100%);
+  border: 3px solid var(--pixel-border);
+  border-radius: 4px;
+  padding: 16px 20px;
+  text-align: left;
+  transition: border-color 0.2s, transform 0.1s;
+}
+
+.ability-card:hover {
+  border-color: var(--pixel-accent);
+  transform: translateY(-2px);
+}
+
+.ability-card-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.ability-slot {
+  font-family: var(--pixel-font);
+  font-size: 28px;
+  font-weight: bold;
+  color: var(--pixel-bg-dark);
+  text-shadow: none;
+  background: linear-gradient(135deg, var(--pixel-gold) 0%, var(--pixel-gold-dark) 100%);
+  border: 3px solid var(--pixel-gold-darker);
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(201, 162, 39, 0.4);
+}
+
+.ability-name {
+  font-family: var(--pixel-font);
+  font-size: 24px;
+  color: var(--pixel-text);
+  text-shadow: 2px 2px 0 #000;
+  flex: 1;
+}
+
+.ability-description {
+  font-family: var(--pixel-font);
+  font-size: 18px;
+  color: #cccccc;
+  text-shadow: 1px 1px 0 #000;
+  line-height: 1.5;
+  margin-bottom: 14px;
+  min-height: auto;
+}
+
+.ability-stats-row {
+  font-family: var(--pixel-font);
+  font-size: 17px;
+  color: var(--pixel-accent);
+  text-shadow: 1px 1px 0 #000;
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  background: rgba(0, 206, 209, 0.1);
+  border-left: 3px solid var(--pixel-accent);
+}
+
+.ability-scaling {
+  font-family: var(--pixel-font);
+  font-size: 16px;
+  color: #bbbbbb;
+  text-shadow: 1px 1px 0 #000;
+  line-height: 1.6;
+  border-top: 2px solid var(--pixel-border);
+  padding-top: 10px;
+  margin-top: 6px;
+}
+
+.scaling-label {
+  color: var(--pixel-text-muted);
+}
+
+.scaling-ad {
+  color: #ff6b6b;
+  font-weight: bold;
+}
+
+.scaling-ap {
+  color: #c084fc;
+  font-weight: bold;
+}
+
+.scaling-hp {
+  color: #4ade80;
+  font-weight: bold;
+}
+
+.scaling-armor {
+  color: #fbbf24;
+  font-weight: bold;
+}
+
+.scaling-mr {
+  color: #60a5fa;
+  font-weight: bold;
+}
+
+/* Responsive: Stack abilities on smaller screens */
+@media (max-width: 900px) {
+  .champion-abilities-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .champion-details-panel {
+    max-width: 600px;
   }
 }

@@ -45,6 +45,9 @@ export class DebugInspector implements GameObject {
   private wheelListener: ((e: WheelEvent) => void) | null = null;
   private mouseMoveListener: ((e: MouseEvent) => void) | null = null;
 
+  // Canvas reference for coordinate conversion
+  private canvas: HTMLCanvasElement | null = null;
+
   // Highlight for selected entity
   private highlightPulse = 0;
 
@@ -67,6 +70,9 @@ export class DebugInspector implements GameObject {
   }
 
   init(ctx: GameContext): void {
+    // Store canvas reference for coordinate conversion
+    this.canvas = ctx.canvasRenderingContext.canvas;
+
     // Set up keyboard listener for toggle and escape
     this.keyListener = (e: KeyboardEvent) => {
       // F3 toggles debug mode
@@ -89,11 +95,11 @@ export class DebugInspector implements GameObject {
 
     // Set up wheel listener for scrolling the panel
     this.wheelListener = (e: WheelEvent) => {
-      if (!this.config.enabled) return;
+      if (!this.config.enabled || !this.canvas) return;
 
-      // Check if mouse is over panel
-      const mousePos = new Vector(e.clientX, e.clientY);
-      if (this.panel.isPointInPanel(mousePos.x, mousePos.y)) {
+      // Convert viewport coordinates to canvas coordinates
+      const canvasPos = this.viewportToCanvasCoords(e.clientX, e.clientY);
+      if (this.panel.isPointInPanel(canvasPos.x, canvasPos.y)) {
         e.preventDefault();
         this.panel.handleScroll(e.deltaY);
       }
@@ -102,10 +108,30 @@ export class DebugInspector implements GameObject {
 
     // Set up mouse move listener for hover states
     this.mouseMoveListener = (e: MouseEvent) => {
-      if (!this.config.enabled) return;
-      this.panel.updateHoverState(e.clientX, e.clientY);
+      if (!this.config.enabled || !this.canvas) return;
+      const canvasPos = this.viewportToCanvasCoords(e.clientX, e.clientY);
+      this.panel.updateHoverState(canvasPos.x, canvasPos.y);
     };
     window.addEventListener('mousemove', this.mouseMoveListener);
+  }
+
+  /**
+   * Convert viewport coordinates (clientX/clientY) to canvas coordinates.
+   * This handles cases where the canvas is scaled or positioned within the page.
+   */
+  private viewportToCanvasCoords(clientX: number, clientY: number): Vector {
+    if (!this.canvas) {
+      return new Vector(clientX, clientY);
+    }
+
+    const rect = this.canvas.getBoundingClientRect();
+    const scaleX = this.canvas.width / rect.width;
+    const scaleY = this.canvas.height / rect.height;
+
+    return new Vector(
+      (clientX - rect.left) * scaleX,
+      (clientY - rect.top) * scaleY
+    );
   }
 
   step(ctx: GameContext): void {
@@ -600,6 +626,7 @@ export class DebugInspector implements GameObject {
       window.removeEventListener('mousemove', this.mouseMoveListener);
       this.mouseMoveListener = null;
     }
+    this.canvas = null;
   }
 }
 
