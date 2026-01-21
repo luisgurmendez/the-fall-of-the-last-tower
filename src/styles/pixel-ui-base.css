@@ -1,0 +1,314 @@
+/**
+ * Pixel UI Base - Shared Design Tokens and Base Components
+ *
+ * This file contains the foundational styles for the pixel-art UI theme.
+ * Import this file before other UI-specific stylesheets.
+ */
+
+/* Load the pixel art font */
+@font-face {
+  font-family: "m5x7";
+  src: url("/assets/fonts/m5x7.ttf") format("truetype");
+}
+
+/* ============================================ */
+/* CSS Variables - Design Tokens               */
+/* ============================================ */
+
+:root {
+  /* Background colors */
+  --pixel-bg-dark: #1a1a2e;
+  --pixel-bg-darker: #0a0a12;
+  --pixel-bg-light: #252540;
+  --pixel-bg-lighter: #353560;
+
+  /* Border colors */
+  --pixel-border: #3a3a5c;
+  --pixel-border-highlight: #5a5a8c;
+
+  /* Accent colors */
+  --pixel-accent: #00ced1;
+  --pixel-gold: #ffd700;
+  --pixel-gold-dark: #c9a227;
+  --pixel-gold-darker: #a88a20;
+
+  /* Text colors */
+  --pixel-text: #ffffff;
+  --pixel-text-dim: #aaaaaa;
+  --pixel-text-muted: #666666;
+
+  /* Status/Stat colors */
+  --pixel-health: #2ecc71;
+  --pixel-mana: #3498db;
+  --pixel-ad: #ff6b6b;
+  --pixel-ap: #a855f7;
+  --pixel-armor: #f59e0b;
+  --pixel-mr: #8b5cf6;
+  --pixel-error: #e74c3c;
+  --pixel-warning: #f39c12;
+
+  /* Team colors */
+  --pixel-team-blue: #3498db;
+  --pixel-team-red: #e74c3c;
+
+  /* Pixelated border using box-shadow technique */
+  --pixel-border-shadow:
+    inset -4px -4px 0 0 var(--pixel-border),
+    inset 4px 4px 0 0 var(--pixel-border-highlight),
+    inset -8px -8px 0 0 var(--pixel-bg-light),
+    inset 8px 8px 0 0 var(--pixel-bg-dark);
+
+  /* Font */
+  --pixel-font: "m5x7", "Courier New", monospace;
+}
+
+/* ============================================ */
+/* Checkered Backdrop Pattern                  */
+/* ============================================ */
+
+.pixel-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  background-image:
+    linear-gradient(45deg, rgba(255, 255, 255, 0.03) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(255, 255, 255, 0.03) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.03) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.03) 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+}
+
+/* ============================================ */
+/* Pixel Border Class                          */
+/* ============================================ */
+
+.pixel-border {
+  border: 4px solid var(--pixel-border);
+  box-shadow:
+    0 0 0 4px var(--pixel-bg-dark),
+    inset 0 0 0 2px var(--pixel-border-highlight);
+}
+
+/* ============================================ */
+/* Pixel Panel - Container with pixel styling  */
+/* ============================================ */
+
+.pixel-panel {
+  background: var(--pixel-bg-dark);
+  border: 4px solid var(--pixel-border);
+  box-shadow:
+    0 0 0 4px var(--pixel-bg-darker),
+    inset 0 0 0 2px var(--pixel-border-highlight);
+  font-family: var(--pixel-font);
+  image-rendering: pixelated;
+}
+
+/* ============================================ */
+/* Pixel Button - Base button styling          */
+/* ============================================ */
+
+.pixel-button {
+  font-family: var(--pixel-font);
+  font-size: 24px;
+  padding: 16px 32px;
+  background: var(--pixel-bg-light);
+  border: 4px solid var(--pixel-border);
+  box-shadow:
+    inset -2px -2px 0 0 var(--pixel-bg-darker),
+    inset 2px 2px 0 0 var(--pixel-border-highlight);
+  color: var(--pixel-text);
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+  text-shadow: 2px 2px 0 #000;
+  letter-spacing: 2px;
+}
+
+.pixel-button:hover {
+  background: var(--pixel-bg-lighter);
+  transform: translateY(-2px);
+}
+
+.pixel-button:active {
+  transform: translateY(0);
+  box-shadow:
+    inset 2px 2px 0 0 var(--pixel-bg-darker),
+    inset -2px -2px 0 0 var(--pixel-border-highlight);
+}
+
+.pixel-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.pixel-button:disabled:hover {
+  background: var(--pixel-bg-light);
+  transform: none;
+}
+
+/* Primary button variant - Gold/Gold */
+.pixel-button.primary {
+  background: var(--pixel-gold-dark);
+  border-color: var(--pixel-gold-darker);
+  color: var(--pixel-bg-dark);
+  box-shadow:
+    inset -2px -2px 0 0 var(--pixel-gold-darker),
+    inset 2px 2px 0 0 var(--pixel-gold);
+}
+
+.pixel-button.primary:hover {
+  background: var(--pixel-gold);
+}
+
+/* Danger button variant */
+.pixel-button.danger {
+  background: #c0392b;
+  border-color: #8b0000;
+  color: var(--pixel-text);
+  box-shadow:
+    inset -2px -2px 0 0 #8b0000,
+    inset 2px 2px 0 0 var(--pixel-error);
+}
+
+.pixel-button.danger:hover {
+  background: var(--pixel-error);
+}
+
+/* Success button variant */
+.pixel-button.success {
+  background: #27ae60;
+  border-color: #1e8449;
+  color: var(--pixel-text);
+  box-shadow:
+    inset -2px -2px 0 0 #1e8449,
+    inset 2px 2px 0 0 var(--pixel-health);
+}
+
+.pixel-button.success:hover {
+  background: var(--pixel-health);
+}
+
+/* Secondary button variant - Transparent/Border only */
+.pixel-button.secondary {
+  background: transparent;
+  border-color: var(--pixel-text-muted);
+  color: var(--pixel-text-dim);
+  box-shadow: none;
+}
+
+.pixel-button.secondary:hover {
+  border-color: var(--pixel-gold);
+  color: var(--pixel-gold);
+  background: transparent;
+}
+
+/* ============================================ */
+/* Pixel Title - Large text styling            */
+/* ============================================ */
+
+.pixel-title {
+  font-family: var(--pixel-font);
+  font-size: 48px;
+  color: var(--pixel-accent);
+  text-shadow: 2px 2px 0 #000;
+  letter-spacing: 4px;
+}
+
+.pixel-title.gold {
+  color: var(--pixel-gold);
+  text-shadow:
+    2px 2px 0 var(--pixel-gold-darker),
+    4px 4px 0 #000;
+}
+
+/* ============================================ */
+/* Pixel Input - Text input styling            */
+/* ============================================ */
+
+.pixel-input {
+  font-family: var(--pixel-font);
+  font-size: 20px;
+  padding: 12px 16px;
+  background: var(--pixel-bg-darker);
+  border: 4px solid var(--pixel-border);
+  color: var(--pixel-text);
+  outline: none;
+}
+
+.pixel-input:focus {
+  border-color: var(--pixel-accent);
+}
+
+/* ============================================ */
+/* Utility Classes                             */
+/* ============================================ */
+
+.pixel-ui {
+  font-family: var(--pixel-font);
+  image-rendering: pixelated;
+}
+
+.text-gold {
+  color: var(--pixel-gold);
+}
+
+.text-accent {
+  color: var(--pixel-accent);
+}
+
+.text-dim {
+  color: var(--pixel-text-dim);
+}
+
+.text-muted {
+  color: var(--pixel-text-muted);
+}
+
+/* ============================================ */
+/* Animations                                  */
+/* ============================================ */
+
+@keyframes pixel-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pixel-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes pixel-glow {
+  from {
+    text-shadow: 0 0 10px currentColor;
+  }
+  to {
+    text-shadow: 0 0 20px currentColor, 0 0 30px currentColor;
+  }
+}
+
+.animate-fade-in {
+  animation: pixel-fade-in 0.3s ease-out;
+}
+
+.animate-pulse {
+  animation: pixel-pulse 1s infinite;
+}
+
+.animate-glow {
+  animation: pixel-glow 1s ease-in-out infinite alternate;
+}

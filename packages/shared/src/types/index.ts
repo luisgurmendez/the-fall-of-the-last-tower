@@ -110,11 +110,16 @@ export type {
   SellItemInput,
   RecallInput,
   PingInput,
+  PlaceWardInput,
+  WardType,
   ClientInput,
   ChampionSnapshot,
   MinionSnapshot,
   TowerSnapshot,
   ProjectileSnapshot,
+  NexusSnapshot,
+  JungleCreatureSnapshot,
+  WardSnapshot,
   EntitySnapshot,
   EntityDelta,
   GameEvent,
@@ -129,3 +134,33 @@ export {
   ServerMessageType,
   ClientMessageType,
 } from './network';
+
+// Minion types
+export type {
+  MinionType,
+  LaneId,
+  MinionStats,
+  WaveComposition,
+  MinionConfig,
+} from './minions';
+export {
+  DEFAULT_MINION_STATS,
+  DEFAULT_MINION_WAVE_CONFIG,
+} from './minions';
+
+// Structure types
+export type {
+  TowerTier,
+  TowerLane,
+  TowerStats,
+  TowerReward,
+  InhibitorStats,
+  NexusStats,
+} from './structures';
+export {
+  DEFAULT_TOWER_STATS,
+  DEFAULT_TOWER_REWARDS,
+  DEFAULT_INHIBITOR_STATS,
+  DEFAULT_NEXUS_STATS,
+  TowerTargetPriority,
+} from './structures';

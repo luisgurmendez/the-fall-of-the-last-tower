@@ -1,5 +1,5 @@
 /**
- * ServerGame - Main game loop running at 30 Hz.
+ * ServerGame - Main game loop running at 125 Hz (8ms tick).
  *
  * Handles:
  * - Fixed timestep game simulation
@@ -22,7 +22,16 @@ export declare class ServerGame {
     private readonly onStateUpdate?;
     private lastTickTime;
     private tickDurations;
+    private allTickDurations;
     private maxTickDuration;
+    private minTickDuration;
+    private budgetOverruns;
+    private totalTickDuration;
+    private lastTickStart;
+    private tickIntervals;
+    private memorySnapshots;
+    private lastMemorySample;
+    private readonly memorySampleInterval;
     constructor(config?: ServerGameConfig);
     /**
      * Start the game loop.
@@ -40,6 +49,22 @@ export declare class ServerGame {
      * Track tick duration for performance monitoring.
      */
     private trackTickDuration;
+    /**
+     * Sample current memory usage.
+     */
+    private sampleMemory;
+    /**
+     * Calculate percentile from sorted array.
+     */
+    private percentile;
+    /**
+     * Calculate standard deviation.
+     */
+    private standardDeviation;
+    /**
+     * Format bytes to human readable string.
+     */
+    private formatBytes;
     /**
      * Log performance metrics.
      */
@@ -60,5 +85,40 @@ export declare class ServerGame {
      * Get game time in seconds.
      */
     getGameTime(): number;
+    /**
+     * Get metrics as an object for external monitoring/APIs.
+     */
+    getMetrics(): ServerGameMetrics;
+}
+/**
+ * Metrics object returned by getMetrics().
+ */
+export interface ServerGameMetrics {
+    gameTimeSeconds: number;
+    ticksProcessed: number;
+    tickBudgetMs: number;
+    tickDuration: {
+        min: number;
+        avg: number;
+        median: number;
+        max: number;
+        stdDev: number;
+        p95: number;
+        p99: number;
+    };
+    budget: {
+        overruns: number;
+        overrunPercent: number;
+        utilizationPercent: number;
+    };
+    jitter: {
+        avg: number;
+        max: number;
+    };
+    memory: {
+        currentHeapBytes: number;
+        avgHeapBytes: number;
+        maxHeapBytes: number;
+    };
 }
 //# sourceMappingURL=ServerGame.d.ts.map

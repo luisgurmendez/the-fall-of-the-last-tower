@@ -1,6 +1,6 @@
-import GameContext from "@/core/gameContext";
+import type GameContext from "@/core/gameContext";
 
-interface Disposable {
+export interface Disposable {
   shouldDispose: boolean;
   dispose?: (g: GameContext) => void | undefined;
 }

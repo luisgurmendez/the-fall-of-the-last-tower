@@ -1,0 +1,113 @@
+syntax = "proto3";
+package siege.network;
+
+import "common/enums.proto";
+
+option go_package = "github.com/siege/protocol/network";
+
+// Base input message header
+message InputHeader {
+  uint32 seq = 1;           // Sequence number for acknowledgment
+  int64 client_time = 2;    // Client timestamp when input was created
+  siege.common.InputType type = 3;
+}
+
+// Movement input (MOVE or ATTACK_MOVE)
+message MoveInput {
+  InputHeader header = 1;
+  float target_x = 2;
+  float target_y = 3;
+}
+
+// Target a specific unit
+message TargetUnitInput {
+  InputHeader header = 1;
+  string target_entity_id = 2;
+}
+
+// Stop current action
+message StopInput {
+  InputHeader header = 1;
+}
+
+// Cast an ability
+message AbilityInput {
+  InputHeader header = 1;
+  siege.common.AbilitySlot slot = 2;
+  AbilityTargetType target_type = 3;
+  optional float target_x = 4;
+  optional float target_y = 5;
+  optional string target_entity_id = 6;
+}
+
+enum AbilityTargetType {
+  ABILITY_TARGET_NONE = 0;
+  ABILITY_TARGET_POSITION = 1;
+  ABILITY_TARGET_UNIT = 2;
+}
+
+// Level up an ability
+message LevelUpInput {
+  InputHeader header = 1;
+  siege.common.AbilitySlot slot = 2;
+}
+
+// Buy an item
+message BuyItemInput {
+  InputHeader header = 1;
+  string item_id = 2;
+}
+
+// Sell an item
+message SellItemInput {
+  InputHeader header = 1;
+  uint32 slot = 2;
+}
+
+// Recall to base
+message RecallInput {
+  InputHeader header = 1;
+}
+
+// Ping the map
+message PingInput {
+  InputHeader header = 1;
+  PingType ping_type = 2;
+  float x = 3;
+  float y = 4;
+}
+
+enum PingType {
+  PING_MISSING = 0;
+  PING_DANGER = 1;
+  PING_ASSIST = 2;
+  PING_ON_MY_WAY = 3;
+  PING_ENEMY_VISION = 4;
+  PING_RETREAT = 5;
+}
+
+// Union wrapper for all client inputs
+message ClientInput {
+  oneof input {
+    MoveInput move = 1;
+    TargetUnitInput target_unit = 2;
+    StopInput stop = 3;
+    AbilityInput ability = 4;
+    LevelUpInput level_up = 5;
+    BuyItemInput buy_item = 6;
+    SellItemInput sell_item = 7;
+    RecallInput recall = 8;
+    PingInput ping = 9;
+  }
+}
+
+// Client ready message
+message ReadyMessage {
+  string player_id = 1;
+  string game_id = 2;
+}
+
+// Client ping for latency measurement
+message PingMessage {
+  int64 timestamp = 1;
+}

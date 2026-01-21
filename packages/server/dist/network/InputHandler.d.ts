@@ -67,6 +67,10 @@ export declare class InputHandler {
      */
     private handleRecallInput;
     /**
+     * Handle place ward input.
+     */
+    private handlePlaceWardInput;
+    /**
      * Basic input validation.
      */
     private validateInput;

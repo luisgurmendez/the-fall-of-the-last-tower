@@ -7,7 +7,8 @@
 
 // Math utilities
 export { Vector } from './math/Vector';
-export { Shape, Rectangle, Circle, Square, NullShape } from './math/shapes';
+export { Rectangle, Circle, Square, NullShape } from './math/shapes';
+export type { Shape } from './math/shapes';
 
 // Type definitions
 export * from './types';
@@ -18,3 +19,9 @@ export type { MapSide, LaneId, JungleCreatureType } from './config';
 
 // Utility functions
 export * from './utils';
+
+// Champion registry
+export * from './champions';
+
+// Ability registry
+export * from './abilities';

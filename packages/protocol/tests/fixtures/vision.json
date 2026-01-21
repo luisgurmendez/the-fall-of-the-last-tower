@@ -1,0 +1,113 @@
+{
+  "$schema": "./fixture.schema.json",
+  "name": "Vision System",
+  "description": "Test fixtures for fog of war and visibility calculations",
+  "tolerance": 0.01,
+
+  "sight_ranges": {
+    "description": "Default sight ranges for different entity types",
+    "values": {
+      "champion": 1200,
+      "minion": 800,
+      "tower": 1000,
+      "ward": 900
+    }
+  },
+
+  "visibility_check": {
+    "description": "is_visible = distance(entity, viewer) <= viewer.sight_range",
+    "cases": [
+      {
+        "viewer_x": 0,
+        "viewer_y": 0,
+        "viewer_sight_range": 1200,
+        "entity_x": 500,
+        "entity_y": 0,
+        "expected_visible": true,
+        "note": "Distance = 500, within 1200 range"
+      },
+      {
+        "viewer_x": 0,
+        "viewer_y": 0,
+        "viewer_sight_range": 1200,
+        "entity_x": 1200,
+        "entity_y": 0,
+        "expected_visible": true,
+        "note": "Distance = 1200, exactly at range"
+      },
+      {
+        "viewer_x": 0,
+        "viewer_y": 0,
+        "viewer_sight_range": 1200,
+        "entity_x": 1201,
+        "entity_y": 0,
+        "expected_visible": false,
+        "note": "Distance = 1201, just outside range"
+      },
+      {
+        "viewer_x": 100,
+        "viewer_y": 200,
+        "viewer_sight_range": 800,
+        "entity_x": 700,
+        "entity_y": 700,
+        "expected_visible": false,
+        "note": "Distance ~707, outside minion sight range"
+      },
+      {
+        "viewer_x": 0,
+        "viewer_y": 0,
+        "viewer_sight_range": 1000,
+        "entity_x": 600,
+        "entity_y": 800,
+        "expected_visible": false,
+        "note": "Diagonal distance = 1000, exactly at boundary"
+      }
+    ]
+  },
+
+  "ward_configuration": {
+    "description": "Ward vision parameters",
+    "values": {
+      "sight_range": 900,
+      "duration_seconds": 180,
+      "max_wards_per_player": 3
+    }
+  },
+
+  "bush_reveal": {
+    "description": "Champions in bushes are only visible to enemies within bush_reveal_range",
+    "constants": {
+      "bush_reveal_range": 100
+    },
+    "cases": [
+      {
+        "entity_in_bush": true,
+        "viewer_in_same_bush": true,
+        "distance": 150,
+        "expected_visible": true,
+        "note": "Same bush always reveals"
+      },
+      {
+        "entity_in_bush": true,
+        "viewer_in_same_bush": false,
+        "distance": 50,
+        "expected_visible": true,
+        "note": "Within bush reveal range"
+      },
+      {
+        "entity_in_bush": true,
+        "viewer_in_same_bush": false,
+        "distance": 150,
+        "expected_visible": false,
+        "note": "Outside bush reveal range"
+      },
+      {
+        "entity_in_bush": false,
+        "viewer_in_same_bush": false,
+        "distance": 150,
+        "expected_visible": true,
+        "note": "Not in bush, normal visibility rules apply"
+      }
+    ]
+  }
+}

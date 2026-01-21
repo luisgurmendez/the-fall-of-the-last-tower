@@ -357,121 +357,13 @@ export declare const MOBAConfig: {
     };
     /**
      * Wall configuration (tile-aligned to 64 unit grid).
-     * Minimum height is 128 (2 tiles) for proper cliff rendering.
+     * Currently empty - walls disabled for open map gameplay.
      */
-    readonly WALLS: readonly [{
-        readonly position: Vector;
-        readonly width: 384;
-        readonly height: 128;
-    }, {
-        readonly position: Vector;
-        readonly width: 192;
-        readonly height: 128;
-    }, {
-        readonly position: Vector;
-        readonly width: 128;
-        readonly height: 256;
-    }, {
-        readonly position: Vector;
-        readonly width: 192;
-        readonly height: 128;
-    }, {
-        readonly position: Vector;
-        readonly width: 128;
-        readonly height: 192;
-    }, {
-        readonly position: Vector;
-        readonly width: 192;
-        readonly height: 128;
-    }, {
-        readonly position: Vector;
-        readonly width: 128;
-        readonly height: 256;
-    }, {
-        readonly position: Vector;
-        readonly width: 192;
-        readonly height: 128;
-    }, {
-        readonly position: Vector;
-        readonly width: 128;
-        readonly height: 192;
-    }, {
-        readonly position: Vector;
-        readonly width: 256;
-        readonly height: 128;
-    }, {
-        readonly position: Vector;
-        readonly width: 192;
-        readonly height: 128;
-    }, {
-        readonly position: Vector;
-        readonly width: 128;
-        readonly height: 192;
-    }, {
-        readonly position: Vector;
-        readonly width: 384;
-        readonly height: 128;
-    }, {
-        readonly position: Vector;
-        readonly width: 192;
-        readonly height: 128;
-    }, {
-        readonly position: Vector;
-        readonly width: 128;
-        readonly height: 256;
-    }, {
-        readonly position: Vector;
-        readonly width: 192;
-        readonly height: 128;
-    }, {
-        readonly position: Vector;
-        readonly width: 128;
-        readonly height: 192;
-    }, {
-        readonly position: Vector;
-        readonly width: 192;
-        readonly height: 128;
-    }, {
-        readonly position: Vector;
-        readonly width: 128;
-        readonly height: 256;
-    }, {
-        readonly position: Vector;
-        readonly width: 192;
-        readonly height: 128;
-    }, {
-        readonly position: Vector;
-        readonly width: 128;
-        readonly height: 192;
-    }, {
-        readonly position: Vector;
-        readonly width: 256;
-        readonly height: 128;
-    }, {
-        readonly position: Vector;
-        readonly width: 192;
-        readonly height: 128;
-    }, {
-        readonly position: Vector;
-        readonly width: 128;
-        readonly height: 192;
-    }, {
-        readonly position: Vector;
-        readonly width: 128;
-        readonly height: 128;
-    }, {
-        readonly position: Vector;
-        readonly width: 128;
-        readonly height: 128;
-    }, {
-        readonly position: Vector;
-        readonly width: 128;
-        readonly height: 128;
-    }, {
-        readonly position: Vector;
-        readonly width: 128;
-        readonly height: 128;
-    }];
+    readonly WALLS: {
+        position: typeof Vector.prototype;
+        width: number;
+        height: number;
+    }[];
     /**
      * Tower positions and configuration.
      */

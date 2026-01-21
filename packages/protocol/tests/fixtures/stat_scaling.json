@@ -1,0 +1,137 @@
+{
+  "$schema": "./fixture.schema.json",
+  "name": "Stat Scaling",
+  "description": "Test fixtures for stat calculations at different levels",
+  "tolerance": 0.01,
+
+  "base_stat_at_level": {
+    "description": "stat_at_level = base_stat + growth_stat * (level - 1)",
+    "cases": [
+      {
+        "stat_name": "health",
+        "base_stat": 580,
+        "growth_stat": 95,
+        "level": 1,
+        "expected": 580
+      },
+      {
+        "stat_name": "health",
+        "base_stat": 580,
+        "growth_stat": 95,
+        "level": 6,
+        "expected": 1055
+      },
+      {
+        "stat_name": "health",
+        "base_stat": 580,
+        "growth_stat": 95,
+        "level": 10,
+        "expected": 1435
+      },
+      {
+        "stat_name": "health",
+        "base_stat": 580,
+        "growth_stat": 95,
+        "level": 18,
+        "expected": 2195
+      },
+      {
+        "stat_name": "attack_damage",
+        "base_stat": 60,
+        "growth_stat": 3.5,
+        "level": 1,
+        "expected": 60
+      },
+      {
+        "stat_name": "attack_damage",
+        "base_stat": 60,
+        "growth_stat": 3.5,
+        "level": 18,
+        "expected": 119.5
+      },
+      {
+        "stat_name": "armor",
+        "base_stat": 28,
+        "growth_stat": 4.2,
+        "level": 10,
+        "expected": 65.8
+      }
+    ]
+  },
+
+  "attack_speed_at_level": {
+    "description": "growth_bonus = (base_attack_speed_growth * (level - 1)) / 100; attack_speed = base_attack_speed * (1 + growth_bonus + bonus_attack_speed_percent)",
+    "cases": [
+      {
+        "base_attack_speed": 0.658,
+        "attack_speed_growth_percent": 2.5,
+        "bonus_attack_speed_percent": 0,
+        "level": 1,
+        "expected": 0.658
+      },
+      {
+        "base_attack_speed": 0.658,
+        "attack_speed_growth_percent": 2.5,
+        "bonus_attack_speed_percent": 0,
+        "level": 10,
+        "expected": 0.806,
+        "note": "Growth bonus = 0.225"
+      },
+      {
+        "base_attack_speed": 0.658,
+        "attack_speed_growth_percent": 2.5,
+        "bonus_attack_speed_percent": 0,
+        "level": 18,
+        "expected": 0.938,
+        "note": "Growth bonus = 0.425"
+      },
+      {
+        "base_attack_speed": 0.658,
+        "attack_speed_growth_percent": 2.5,
+        "bonus_attack_speed_percent": 0.5,
+        "level": 10,
+        "expected": 1.135,
+        "note": "With 50% bonus attack speed from items"
+      },
+      {
+        "base_attack_speed": 0.625,
+        "attack_speed_growth_percent": 3.0,
+        "bonus_attack_speed_percent": 0,
+        "level": 18,
+        "expected": 0.944
+      }
+    ]
+  },
+
+  "final_stat_calculation": {
+    "description": "final_stat = (base_stat_at_level + flat_bonus) * (1 + percent_bonus)",
+    "cases": [
+      {
+        "base_stat_at_level": 1000,
+        "flat_bonus": 500,
+        "percent_bonus": 0,
+        "expected": 1500
+      },
+      {
+        "base_stat_at_level": 1000,
+        "flat_bonus": 0,
+        "percent_bonus": 0.2,
+        "expected": 1200,
+        "note": "20% bonus"
+      },
+      {
+        "base_stat_at_level": 1000,
+        "flat_bonus": 500,
+        "percent_bonus": 0.2,
+        "expected": 1800,
+        "note": "Flat applied before percent"
+      },
+      {
+        "base_stat_at_level": 2000,
+        "flat_bonus": 400,
+        "percent_bonus": 0.15,
+        "expected": 2760
+      }
+    ]
+  }
+}

@@ -4,7 +4,12 @@
  * This is the authoritative source of truth for the game.
  * All entities, their positions, health, abilities, etc. are managed here.
  */
-import { MOBAConfig, } from '@siege/shared';
+import { Vector, MOBAConfig, EntityType, } from '@siege/shared';
+import { ServerMinion } from '../simulation/ServerMinion';
+import { ServerJungleCamp } from '../simulation/ServerJungleCamp';
+import { ServerWard } from '../simulation/ServerWard';
+import { FogOfWarServer } from '../systems/FogOfWarServer';
+import { CollisionSystem } from '../systems/CollisionSystem';
 export class ServerGameContext {
     constructor(config) {
         // Entity management
@@ -21,8 +26,41 @@ export class ServerGameContext {
         // Spawn counters
         this.minionWaveCount = 0;
         this.nextMinionWaveTime = MOBAConfig.MINION_WAVES.FIRST_WAVE_DELAY;
+        // Jungle camps
+        this.jungleCamps = [];
+        // Ward management
+        this.wards = new Map();
+        this.MAX_WARDS_PER_PLAYER = 3; // Max wards a player can have active
         this.gameId = config.gameId;
         this.mapConfig = config.mapConfig ?? MOBAConfig;
+        this.fogOfWar = new FogOfWarServer();
+        this.collisionSystem = new CollisionSystem();
+        // Initialize jungle camps
+        this.initializeJungleCamps();
+    }
+    /**
+     * Initialize jungle camps from config.
+     */
+    initializeJungleCamps() {
+        for (const campConfig of this.mapConfig.JUNGLE.CAMPS) {
+            const camp = new ServerJungleCamp({
+                id: campConfig.id,
+                position: new Vector(campConfig.position.x, campConfig.position.y),
+                creatureType: campConfig.creatureType,
+                count: campConfig.count,
+                respawnTime: campConfig.respawnTime,
+            });
+            this.jungleCamps.push(camp);
+        }
+        console.log(`[ServerGameContext] Initialized ${this.jungleCamps.length} jungle camps`);
+    }
+    /**
+     * Spawn all jungle camps (called at game start).
+     */
+    spawnJungleCamps() {
+        for (const camp of this.jungleCamps) {
+            camp.spawnCreatures(this);
+        }
     }
     /**
      * Generate a unique entity ID.
@@ -42,6 +80,7 @@ export class ServerGameContext {
     removeEntity(entityId) {
         this.entities.delete(entityId);
         this.champions.delete(entityId);
+        this.wards.delete(entityId);
     }
     /**
      * Get an entity by ID.
@@ -62,6 +101,7 @@ export class ServerGameContext {
         this.entities.set(champion.id, champion);
         this.champions.set(champion.id, champion);
         this.playerChampions.set(playerId, champion.id);
+        console.log(`[ServerGameContext] Added champion ${champion.id} for player ${playerId}, side ${champion.side}. Total entities: ${this.entities.size}`);
     }
     /**
      * Get a champion by ID.
@@ -88,6 +128,70 @@ export class ServerGameContext {
     getChampionsBySide(side) {
         return Array.from(this.champions.values()).filter(c => c.side === side);
     }
+    // =====================
+    // Ward Management
+    // =====================
+    /**
+     * Place a ward at a position.
+     * Returns true if ward was placed, false if player has too many wards.
+     */
+    placeWard(playerId, wardType, position) {
+        const champion = this.getChampionByPlayerId(playerId);
+        if (!champion) {
+            console.log(`[ServerGameContext] Cannot place ward: No champion for player ${playerId}`);
+            return null;
+        }
+        // Count player's existing wards
+        const playerWards = this.getWardsByOwner(playerId);
+        if (playerWards.length >= this.MAX_WARDS_PER_PLAYER) {
+            // Remove oldest ward
+            const oldestWard = playerWards[0];
+            console.log(`[ServerGameContext] Player ${playerId} has max wards, removing oldest: ${oldestWard.id}`);
+            this.removeWard(oldestWard.id);
+        }
+        // Create and add the ward
+        const ward = new ServerWard({
+            id: this.generateEntityId(),
+            position: position.clone(),
+            side: champion.side,
+            wardType,
+            ownerId: playerId,
+        });
+        this.wards.set(ward.id, ward);
+        this.entities.set(ward.id, ward);
+        console.log(`[ServerGameContext] Player ${playerId} placed ${wardType} ward at (${position.x.toFixed(0)}, ${position.y.toFixed(0)})`);
+        return ward;
+    }
+    /**
+     * Remove a ward by ID.
+     */
+    removeWard(wardId) {
+        const ward = this.wards.get(wardId);
+        if (ward) {
+            this.wards.delete(wardId);
+            this.entities.delete(wardId);
+        }
+    }
+    /**
+     * Get all wards.
+     */
+    getWards() {
+        return Array.from(this.wards.values());
+    }
+    /**
+     * Get wards owned by a player.
+     */
+    getWardsByOwner(playerId) {
+        return Array.from(this.wards.values())
+            .filter(w => w.ownerId === playerId && !w.isDead)
+            .sort((a, b) => a.placedAt - b.placedAt);
+    }
+    /**
+     * Get wards for a side.
+     */
+    getWardsBySide(side) {
+        return Array.from(this.wards.values()).filter(w => w.side === side && !w.isDead);
+    }
     /**
      * Update game state for one tick.
      */
@@ -98,8 +202,16 @@ export class ServerGameContext {
         for (const entity of this.entities.values()) {
             entity.update(dt, this);
         }
+        // Resolve collisions (after movement, before fog of war)
+        this.collisionSystem.resolveCollisions(this.getAllEntities());
+        // Update fog of war vision
+        this.fogOfWar.updateVision(this, this.tick);
         // Check for minion wave spawns
         this.checkMinionWaveSpawn();
+        // Update jungle camps (for respawning)
+        for (const camp of this.jungleCamps) {
+            camp.update(dt, this);
+        }
         // Remove dead entities marked for removal
         for (const [id, entity] of this.entities) {
             if (entity.shouldRemove()) {
@@ -121,8 +233,83 @@ export class ServerGameContext {
      * Spawn a minion wave for both teams.
      */
     spawnMinionWave() {
-        // TODO: Implement minion spawning
         console.log(`[ServerGameContext] Spawning minion wave ${this.minionWaveCount + 1}`);
+        const lanes = ['top', 'mid', 'bot'];
+        const waveConfig = this.mapConfig.MINION_WAVES.WAVE_COMPOSITION;
+        for (const lane of lanes) {
+            // Spawn minions for both sides
+            this.spawnLaneMinions(0, lane, waveConfig); // Blue side
+            this.spawnLaneMinions(1, lane, waveConfig); // Red side
+        }
+    }
+    /**
+     * Spawn minions for a specific side and lane.
+     * Minions are spawned in a staggered line formation to prevent clumping.
+     */
+    spawnLaneMinions(side, lane, waveConfig) {
+        const laneConfig = this.mapConfig.LANES[lane.toUpperCase()];
+        // Get waypoints - blue side uses them as-is, red side reverses them
+        const waypoints = side === 0
+            ? laneConfig.waypoints.map(w => new Vector(w.x, w.y))
+            : [...laneConfig.waypoints].reverse().map(w => new Vector(w.x, w.y));
+        // Calculate spawn position and lane direction
+        const nexusPoint = waypoints[0].clone();
+        const nextWaypoint = waypoints.length > 1 ? waypoints[1] : nexusPoint;
+        // Calculate lane direction for staggering
+        const laneDirection = new Vector(nextWaypoint.x - nexusPoint.x, nextWaypoint.y - nexusPoint.y);
+        const laneDist = Math.sqrt(laneDirection.x * laneDirection.x + laneDirection.y * laneDirection.y);
+        if (laneDist > 0) {
+            laneDirection.x /= laneDist;
+            laneDirection.y /= laneDist;
+        }
+        // Offset spawn position AWAY from nexus (150 units in lane direction)
+        // This prevents minions from spawning inside the nexus collider
+        const NEXUS_SPAWN_OFFSET = 150;
+        const spawnBase = new Vector(nexusPoint.x + laneDirection.x * NEXUS_SPAWN_OFFSET, nexusPoint.y + laneDirection.y * NEXUS_SPAWN_OFFSET);
+        // Perpendicular direction for spread
+        const perpDirection = new Vector(-laneDirection.y, laneDirection.x);
+        // Spacing between minions in the formation
+        const MINION_SPACING = 60; // Distance between minions along the lane
+        const LATERAL_SPREAD = 40; // Random lateral spread
+        // Spawn melee minions (swordsmen) in front
+        for (let i = 0; i < waveConfig.swordsmen; i++) {
+            // Stagger along lane direction (front minions spawn further along the lane)
+            const forwardOffset = i * MINION_SPACING;
+            // Small random lateral spread
+            const lateralOffset = (Math.random() - 0.5) * LATERAL_SPREAD;
+            const spawnPos = new Vector(spawnBase.x + laneDirection.x * forwardOffset + perpDirection.x * lateralOffset, spawnBase.y + laneDirection.y * forwardOffset + perpDirection.y * lateralOffset);
+            // Skip waypoint[0] (nexus) since we spawn minions offset from there
+            // Minions should walk toward waypoint[1] immediately
+            const minionWaypoints = waypoints.slice(1).map(w => w.clone());
+            const minion = new ServerMinion({
+                id: this.generateEntityId(),
+                position: spawnPos,
+                side,
+                minionType: 'melee',
+                lane,
+                waypoints: minionWaypoints,
+            });
+            this.addEntity(minion);
+        }
+        // Spawn caster minions (archers) behind melee
+        const casterStartOffset = -MINION_SPACING * 2; // Start behind the melee group
+        for (let i = 0; i < waveConfig.archers; i++) {
+            const forwardOffset = casterStartOffset - i * MINION_SPACING;
+            const lateralOffset = (Math.random() - 0.5) * LATERAL_SPREAD;
+            const spawnPos = new Vector(spawnBase.x + laneDirection.x * forwardOffset + perpDirection.x * lateralOffset, spawnBase.y + laneDirection.y * forwardOffset + perpDirection.y * lateralOffset);
+            // Skip waypoint[0] (nexus) since we spawn minions offset from there
+            const minionWaypoints = waypoints.slice(1).map(w => w.clone());
+            const minion = new ServerMinion({
+                id: this.generateEntityId(),
+                position: spawnPos,
+                side,
+                minionType: 'caster',
+                lane,
+                waypoints: minionWaypoints,
+            });
+            this.addEntity(minion);
+        }
+        console.log(`[ServerGameContext] Spawned ${waveConfig.swordsmen + waveConfig.archers} minions for ${side === 0 ? 'Blue' : 'Red'} ${lane} lane (staggered formation)`);
     }
     /**
      * Add a game event.
@@ -146,9 +333,31 @@ export class ServerGameContext {
      * Get entities visible to a specific side (fog of war filtering).
      */
     getVisibleEntities(forSide) {
-        // TODO: Implement fog of war visibility
-        // For now, return all entities
-        return Array.from(this.entities.values());
+        return this.fogOfWar.getVisibleEntities(this, forSide);
+    }
+    /**
+     * Check if an entity is visible to a side.
+     */
+    isEntityVisibleTo(entity, side) {
+        return this.fogOfWar.isVisibleTo(entity, side);
+    }
+    /**
+     * Check if a position is visible to a side.
+     */
+    isPositionVisibleTo(position, side) {
+        return this.fogOfWar.isPositionVisibleTo(position, side);
+    }
+    /**
+     * Check if source can target the target (visibility check).
+     */
+    canTarget(source, target) {
+        return this.fogOfWar.canTarget(source, target);
+    }
+    /**
+     * Get the fog of war system.
+     */
+    getFogOfWar() {
+        return this.fogOfWar;
     }
     /**
      * Get entities within a radius of a position.
@@ -156,6 +365,9 @@ export class ServerGameContext {
     getEntitiesInRadius(position, radius) {
         const radiusSq = radius * radius;
         return Array.from(this.entities.values()).filter(entity => {
+            // Skip dead entities
+            if (entity.isDead)
+                return false;
             const dx = entity.position.x - position.x;
             const dy = entity.position.y - position.y;
             return dx * dx + dy * dy <= radiusSq;
@@ -187,6 +399,14 @@ export class ServerGameContext {
         const side = playerChampion?.side ?? 0;
         // Get visible entities (fog of war)
         const visibleEntities = this.getVisibleEntities(side);
+        // DEBUG: Log tower positions in snapshot
+        const towers = visibleEntities.filter(e => e.entityType === EntityType.TOWER);
+        if (towers.length > 0) {
+            console.log(`[ServerGameContext] createSnapshot: ${towers.length} towers for player ${forPlayerId}`);
+            for (const tower of towers) {
+                console.log(`  - Tower ${tower.id}: side=${tower.side}, pos=(${tower.position.x.toFixed(0)}, ${tower.position.y.toFixed(0)})`);
+            }
+        }
         // Create snapshots
         return visibleEntities.map(entity => entity.toSnapshot());
     }

@@ -60,6 +60,12 @@ export declare class ServerChampion extends ServerEntity {
     shields: ActiveShield[];
     forcedMovement: ForcedMovement | null;
     direction: Vector;
+    sightRange: number;
+    trinketCharges: number;
+    trinketMaxCharges: number;
+    trinketCooldown: number;
+    trinketRechargeTimer: number;
+    trinketRechargeTime: number;
     constructor(config: ServerChampionConfig);
     private createDefaultAbilityState;
     /**
@@ -99,6 +105,14 @@ export declare class ServerChampion extends ServerEntity {
      */
     private updateEffects;
     /**
+     * Process an over-time effect tick.
+     */
+    private processOverTimeEffect;
+    /**
+     * Calculate CC status from active effects.
+     */
+    private calculateCCStatus;
+    /**
      * Update shields.
      */
     private updateShields;
@@ -122,6 +136,23 @@ export declare class ServerChampion extends ServerEntity {
      * Update regeneration.
      */
     private updateRegeneration;
+    /**
+     * Update trinket (ward) charges.
+     */
+    private updateTrinket;
+    /**
+     * Check if can place a ward.
+     */
+    canPlaceWard(): boolean;
+    /**
+     * Consume a trinket charge when placing a ward.
+     * Returns true if successful.
+     */
+    consumeTrinketCharge(): boolean;
+    /**
+     * Get trinket recharge progress (0-1).
+     */
+    getTrinketRechargeProgress(): number;
     /**
      * Enter combat state.
      */
@@ -155,6 +186,38 @@ export declare class ServerChampion extends ServerEntity {
      */
     removeModifier(source: string): void;
     /**
+     * Apply item stats to champion stats.
+     */
+    private applyItemStats;
+    /**
+     * Apply effect stat modifier to champion stats.
+     */
+    private applyEffectStatModifier;
+    /**
+     * Apply an effect to this champion.
+     */
+    applyEffect(effectId: string, duration: number, sourceId?: string, stacks?: number): void;
+    /**
+     * Remove an effect from this champion.
+     */
+    removeEffect(effectId: string): boolean;
+    /**
+     * Remove all effects matching a category.
+     */
+    removeEffectsByCategory(category: 'buff' | 'debuff' | 'neutral'): number;
+    /**
+     * Cleanse all cleansable debuffs.
+     */
+    cleanse(): number;
+    /**
+     * Check if champion has a specific effect.
+     */
+    hasEffect(effectId: string): boolean;
+    /**
+     * Get an active effect by ID.
+     */
+    getEffect(effectId: string): ActiveEffectState | undefined;
+    /**
      * Set movement target.
      */
     setMoveTarget(position: Vector): void;
@@ -178,6 +241,37 @@ export declare class ServerChampion extends ServerEntity {
      * Level up.
      */
     private levelUp;
+    /**
+     * Buy an item.
+     * @returns true if purchase succeeded
+     */
+    buyItem(itemId: string): boolean;
+    /**
+     * Sell an item from a specific slot.
+     * @returns gold gained, or 0 if failed
+     */
+    sellItem(slot: number): number;
+    /**
+     * Check if champion has a specific item.
+     */
+    hasItem(itemId: string): boolean;
+    /**
+     * Find first empty inventory slot.
+     */
+    private findEmptySlot;
+    /**
+     * Champions participate in collision.
+     */
+    isCollidable(): boolean;
+    /**
+     * Champion collision radius.
+     */
+    getRadius(): number;
+    /**
+     * Champion collision mass.
+     * Champions are heavier than minions, so they push minions more.
+     */
+    getMass(): number;
     /**
      * Convert to network snapshot.
      */

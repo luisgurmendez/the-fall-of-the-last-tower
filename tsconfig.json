@@ -1,6 +1,7 @@
 {
   "exclude": [
-    "tools"
+    "tools",
+    "packages"
   ],
   "include": [
     "./src"
@@ -20,7 +21,7 @@
     // "sourceMap": true,                           /* Generates corresponding '.map' file. */
     // "outFile": "./",                             /* Concatenate and emit output to single file. */
     "outDir": "./dist", /* Redirect output structure to the directory. */
-    "rootDir": "./src", /* Specify the root directory of input files. Use to control the output directory structure with --outDir. */
+    // "rootDir": "./src", /* Disabled for monorepo - path mappings include packages/ */
     // "composite": true,                           /* Enable project compilation */
     // "tsBuildInfoFile": "./",                     /* Specify file to store incremental compilation information */
     // "removeComments": true,                      /* Do not emit comments to output. */
@@ -50,7 +51,9 @@
     "paths": {
       "@/*": ["src/*"],
       "@siege/shared": ["packages/shared/src"],
-      "@siege/shared/*": ["packages/shared/src/*"]
+      "@siege/shared/*": ["packages/shared/src/*"],
+      "@siege/client": ["packages/client/src"],
+      "@siege/client/*": ["packages/client/src/*"]
     }, /* A series of entries which re-map imports to lookup locations relative to the 'baseUrl'. */
     // "rootDirs": [],                              /* List of root folders whose combined content represents the structure of the project at runtime. */
     // "typeRoots": [],                             /* List of folders to include type definitions from. */

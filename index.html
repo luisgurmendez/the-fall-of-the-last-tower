@@ -1,11 +1,192 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="src/styles/pixel-ui-base.css" />
+  <link rel="stylesheet" href="src/styles/matchmaking.css" />
+  <link rel="stylesheet" href="src/styles/champion-select.css" />
+  <link rel="stylesheet" href="shop.css" />
 </head>
 
 <body>
   <div id="c"></div>
+
+  <!-- Matchmaking Overlay -->
+  <div id="matchmaking-overlay" class="pixel-ui">
+    <div class="matchmaking-container">
+      <!-- Logo -->
+      <div class="game-logo">⚔️</div>
+      <div class="game-title">SIEGE</div>
+      <div class="game-subtitle">ARENA COMBAT</div>
+
+      <!-- Main Menu Screen -->
+      <div class="mm-screen active" id="screen-menu">
+        <button class="play-button" id="btn-play">▶ PLAY</button>
+        <div class="menu-links">
+          <span class="menu-link" id="btn-settings">Settings</span>
+          <span class="menu-link" id="btn-how-to-play">How to Play</span>
+        </div>
+      </div>
+
+      <!-- Champion Select Screen -->
+      <div class="mm-screen" id="screen-champion-select">
+        <div class="champion-select-title">SELECT YOUR CHAMPION</div>
+
+        <div class="champion-grid" id="champion-grid">
+          <!-- Champion cards will be dynamically populated -->
+        </div>
+
+        <div class="champion-details-panel" id="champion-details">
+          <div class="champion-detail-portrait" id="detail-portrait"></div>
+          <div class="champion-detail-info">
+            <div class="champion-detail-name" id="detail-name">Select a Champion</div>
+            <div class="champion-detail-title" id="detail-title"></div>
+            <div class="champion-detail-class" id="detail-class"></div>
+          </div>
+          <div class="champion-stats-preview" id="detail-stats"></div>
+        </div>
+
+        <div class="champion-select-actions">
+          <button class="pixel-button secondary" id="btn-back-menu">BACK</button>
+          <button class="pixel-button primary" id="btn-lock-in" disabled>LOCK IN</button>
+        </div>
+      </div>
+
+      <!-- Connecting Screen -->
+      <div class="mm-screen" id="screen-connecting">
+        <div class="spinner"></div>
+        <div class="connecting-text">Connecting to server...</div>
+        <button class="cancel-button" id="btn-cancel-connect">Cancel</button>
+      </div>
+
+      <!-- Queue Screen -->
+      <div class="mm-screen" id="screen-queue">
+        <div class="queue-title">FINDING MATCH</div>
+        <div class="spinner"></div>
+        <div class="queue-timer" id="queue-timer">0:00</div>
+        <div class="queue-info">
+          <div class="queue-stat">Queue Position: <span class="queue-stat-value" id="queue-position">--</span></div>
+          <div class="queue-stat">Players in Queue: <span class="queue-stat-value" id="queue-size">--</span></div>
+        </div>
+        <button class="cancel-button" id="btn-cancel-queue">Cancel</button>
+      </div>
+
+      <!-- Match Found Screen -->
+      <div class="mm-screen" id="screen-match-found">
+        <div class="match-found-title">⚔️ MATCH FOUND ⚔️</div>
+        <div class="teams-display">
+          <div class="team-box blue">
+            <div class="team-label">Blue Team</div>
+            <div class="team-champion" id="blue-champion">Warrior</div>
+          </div>
+          <div class="vs-text">VS</div>
+          <div class="team-box red">
+            <div class="team-label">Red Team</div>
+            <div class="team-champion" id="red-champion">Warrior</div>
+          </div>
+        </div>
+        <div class="loading-section">
+          <div class="loading-text">Loading game...</div>
+          <div class="loading-bar-container">
+            <div class="loading-bar" id="loading-bar"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Error Screen -->
+      <div class="mm-screen" id="screen-error">
+        <div class="error-icon">⚠️</div>
+        <div class="error-title">Connection Error</div>
+        <div class="error-message" id="error-message">Unable to connect to server. Please try again.</div>
+        <button class="retry-button" id="btn-retry">Try Again</button>
+      </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <div class="status-indicator">
+        <div class="status-dot" id="status-dot"></div>
+        <span id="status-text">Offline</span>
+      </div>
+      <div class="status-indicator">
+        <span>Ping: <span id="ping-value">--</span>ms</span>
+      </div>
+    </div>
+
+    <!-- Tip -->
+    <div class="tip-text" id="tip-text">Tip: Use QWER for abilities, right-click to move</div>
+  </div>
+
+  <!-- Shop Overlay -->
+  <div id="shop-overlay" class="shop-overlay hidden">
+    <div class="shop-backdrop"></div>
+    <div class="shop-container pixel-border">
+      <!-- Header -->
+      <div class="shop-header">
+        <h1 class="shop-title">SHOP</h1>
+        <div class="shop-gold">
+          <span class="gold-icon">&#9679;</span>
+          <span id="shop-gold-amount">0</span>
+        </div>
+        <button id="shop-close" class="shop-close-btn">X</button>
+      </div>
+
+      <!-- Categories -->
+      <div class="shop-categories">
+        <button class="category-btn active" data-category="all">All</button>
+        <button class="category-btn" data-category="attack_damage">AD</button>
+        <button class="category-btn" data-category="ability_power">AP</button>
+        <button class="category-btn" data-category="attack_speed">AS</button>
+        <button class="category-btn" data-category="armor">Armor</button>
+        <button class="category-btn" data-category="magic_resist">MR</button>
+        <button class="category-btn" data-category="health">Health</button>
+        <button class="category-btn" data-category="utility">Utility</button>
+      </div>
+
+      <!-- Main Content -->
+      <div class="shop-content">
+        <!-- Item Grid -->
+        <div class="shop-items-panel">
+          <div id="shop-items-grid" class="items-grid">
+            <!-- Items will be populated by JS -->
+          </div>
+        </div>
+
+        <!-- Item Details -->
+        <div class="shop-details-panel">
+          <div id="item-details" class="item-details">
+            <div class="item-details-placeholder">
+              Select an item to view details
+            </div>
+          </div>
+
+          <!-- Buy/Sell Buttons -->
+          <div class="shop-actions">
+            <button id="btn-buy" class="action-btn buy-btn" disabled>BUY</button>
+            <button id="btn-sell" class="action-btn sell-btn" disabled>SELL</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Inventory -->
+      <div class="shop-inventory">
+        <span class="inventory-label">INVENTORY:</span>
+        <div class="inventory-slots">
+          <div class="inventory-slot" data-slot="0"></div>
+          <div class="inventory-slot" data-slot="1"></div>
+          <div class="inventory-slot" data-slot="2"></div>
+          <div class="inventory-slot" data-slot="3"></div>
+          <div class="inventory-slot" data-slot="4"></div>
+          <div class="inventory-slot" data-slot="5"></div>
+        </div>
+        <button id="btn-undo" class="action-btn undo-btn" disabled>UNDO</button>
+      </div>
+    </div>
+  </div>
+
   <script type="module" src="/src/index.ts"></script>
 </body>
 

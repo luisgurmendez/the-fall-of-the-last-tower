@@ -11,28 +11,31 @@ import Particle from "../particle/particle";
 import Color from "@/utils/color";
 import { castleExplotion } from "../army/ParticleUtils";
 import Disposable from "@/behaviors/disposable";
+import { UnitConfig } from "@/config";
 
-const castleBrickSize = 50;
-export const CASTLE_ID = 'c'
+const { CASTLE: CONFIG } = UnitConfig;
+export const CASTLE_ID = 'castle';
 const darkGray = "#555";
 const lightGray = "#ddd";
-const transparent = "transparent"
+const transparent = "transparent";
 
 const CastleMixin = CollisionableMixin<Circle>()(BaseObject);
 
 class Castle extends CastleMixin implements Attackable, Disposable {
-    size: Circle = new Circle(200);
-    health = 20000;
+    size: Circle = new Circle(CONFIG.RADIUS);
+    health = CONFIG.HEALTH;
     maxHealth = this.health;
     side = 0;
     constructor() {
-        super(new Vector(-2000, 0), CASTLE_ID);
+        super(new Vector(CONFIG.POSITION.X, CONFIG.POSITION.Y), CASTLE_ID);
         this.collisionMask = this.size;
         this.shouldDispose = false;
     }
     shouldDispose: boolean;
     dispose?: ((g: GameContext) => void | undefined) | undefined;
-    applyDamage(damage: number): void {
+
+    takeDamage(damage: number, _type: 'physical' | 'magic' | 'true'): void {
+        // Castle takes full damage (no resistance)
         this.health -= damage;
     }
 
@@ -48,11 +51,11 @@ class Castle extends CastleMixin implements Attackable, Disposable {
             ctx.fill();
 
             ctx.fillStyle = darkGray;
-            RenderUtils.renderCircle(ctx, position, towerRadius - castleBrickSize / 2);
+            RenderUtils.renderCircle(ctx, position, towerRadius - CONFIG.BRICK_SIZE / 2);
             ctx.fill();
 
             // draw brick lines
-            const brickLines = Math.round(this.size.perimeter / castleBrickSize) - 1;
+            const brickLines = Math.round(this.size.perimeter / CONFIG.BRICK_SIZE) - 1;
 
             ctx.save();
             ctx.strokeStyle = darkGray;
@@ -76,7 +79,7 @@ class Castle extends CastleMixin implements Attackable, Disposable {
         this.smoke(g);
         if (this.health <= 0) {
             const pos = this.position.clone();
-            const particles = castleExplotion(pos)
+            const particles = castleExplotion(pos);
             this.shouldDispose = true;
             g.background.drawCastleExplotion(pos);
             g.objects.push(...particles);
@@ -85,14 +88,17 @@ class Castle extends CastleMixin implements Attackable, Disposable {
 
     smoke(gctx: GameContext) {
         const healthPercentage = this.health / this.maxHealth;
-        if (Math.random() < 0.05 && healthPercentage < 0.8) {
-            const ttl = RandomUtils.getValueInRange(0.1, 2.5);
+        if (Math.random() < CONFIG.SMOKE.SPAWN_CHANCE && healthPercentage < CONFIG.SMOKE.DAMAGE_THRESHOLD) {
+            const ttl = RandomUtils.getValueInRange(CONFIG.SMOKE.TTL_MIN, CONFIG.SMOKE.TTL_MAX);
             const particle = new Particle(ttl);
-            particle.size = RandomUtils.getValueInRange(10, 40);
-            particle.position = this.position.clone().add(new Vector(RandomUtils.getNumberWithVariance(0, particle.size / 2) - particle.size / 2, RandomUtils.getNumberWithVariance(0, particle.size / 2) - particle.size));
+            particle.size = RandomUtils.getValueInRange(CONFIG.SMOKE.SIZE_MIN, CONFIG.SMOKE.SIZE_MAX);
+            particle.position = this.position.clone().add(new Vector(
+                RandomUtils.getNumberWithVariance(0, particle.size / 2) - particle.size / 2,
+                RandomUtils.getNumberWithVariance(0, particle.size / 2) - particle.size
+            ));
             // show more dark and red (like fire) smoke if the castle is more damaged, else light gray smoke
             const shade = 255 * healthPercentage;
-            particle.color = new Color(shade, shade, shade)
+            particle.color = new Color(shade, shade, shade);
             particle.fade = true;
             particle.isVertical = true;
             particle.velocity = new Vector(RandomUtils.getValueInRange(0.5, 1), -100)

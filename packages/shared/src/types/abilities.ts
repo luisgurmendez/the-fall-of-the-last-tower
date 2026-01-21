@@ -143,6 +143,62 @@ export interface AbilityDefinition {
     duration: number;
   };
 
+  // ===================
+  // Projectile configuration (for skillshots)
+  // ===================
+
+  /** Projectile speed in units per second */
+  projectileSpeed?: number;
+
+  /** Projectile collision radius */
+  projectileRadius?: number;
+
+  /** Whether projectile passes through targets */
+  piercing?: boolean;
+
+  // ===================
+  // Area of Effect configuration
+  // ===================
+
+  /** Cone angle in radians (for cone-shaped abilities) */
+  coneAngle?: number;
+
+  /** Delay before AoE applies damage (for abilities like Meteor) */
+  aoeDelay?: number;
+
+  /** Duration for persistent AoEs (0 or undefined = instant) */
+  aoeDuration?: number;
+
+  /** Tick rate for persistent AoEs */
+  aoeTickRate?: number;
+
+  // ===================
+  // Movement configuration
+  // ===================
+
+  /** Dash configuration (for mobility abilities) */
+  dash?: {
+    speed: number;
+    distance: number;
+  };
+
+  /** Whether this is a blink/teleport (instant reposition) */
+  teleport?: boolean;
+
+  // ===================
+  // Effect application
+  // ===================
+
+  /** Effect IDs to apply to targets */
+  appliesEffects?: string[];
+
+  /** Duration for applied effects */
+  effectDuration?: number;
+
+  // ===================
+  // Passive configuration
+  // ===================
+
   /** For passive abilities: what triggers it */
   passiveTrigger?: PassiveTrigger;
 

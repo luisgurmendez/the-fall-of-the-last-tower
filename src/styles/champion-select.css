@@ -1,0 +1,373 @@
+/**
+ * Champion Select Screen Styles - Pixel Art Theme
+ *
+ * Styles for the champion selection screen including:
+ * - Champion grid
+ * - Champion cards
+ * - Champion details panel
+ * - Lock-in button
+ */
+
+/* ============================================ */
+/* Champion Select Container                   */
+/* ============================================ */
+
+#screen-champion-select {
+  max-width: 900px;
+  width: 100%;
+}
+
+.champion-select-title {
+  font-family: var(--pixel-font);
+  font-size: 28px;
+  color: var(--pixel-gold);
+  text-shadow:
+    2px 2px 0 var(--pixel-gold-darker),
+    4px 4px 0 #000;
+  letter-spacing: 4px;
+  margin-bottom: 12px;
+}
+
+/* ============================================ */
+/* Champion Grid                               */
+/* ============================================ */
+
+.champion-grid {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+/* ============================================ */
+/* Champion Card                               */
+/* ============================================ */
+
+.champion-card {
+  width: 100px;
+  background: var(--pixel-bg-light);
+  border: 3px solid var(--pixel-border);
+  box-shadow:
+    inset -3px -3px 0 0 var(--pixel-bg-darker),
+    inset 3px 3px 0 0 var(--pixel-border-highlight);
+  cursor: pointer;
+  transition: transform 0.1s, border-color 0.1s, box-shadow 0.1s;
+  padding: 8px;
+  text-align: center;
+}
+
+.champion-card:hover {
+  border-color: var(--pixel-accent);
+  transform: translateY(-4px);
+  box-shadow:
+    inset -4px -4px 0 0 var(--pixel-bg-darker),
+    inset 4px 4px 0 0 var(--pixel-border-highlight),
+    0 8px 0 0 rgba(0, 206, 209, 0.3);
+}
+
+.champion-card.selected {
+  border-color: var(--pixel-gold);
+  box-shadow:
+    inset -4px -4px 0 0 var(--pixel-gold-darker),
+    inset 4px 4px 0 0 #ffe066,
+    0 0 20px rgba(201, 162, 39, 0.4);
+  transform: translateY(-4px);
+}
+
+.champion-card.locked {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Champion Portrait */
+.champion-portrait {
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 6px;
+  background: var(--pixel-bg-darker);
+  border: 3px solid var(--pixel-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+}
+
+.champion-card.selected .champion-portrait {
+  border-color: var(--pixel-gold-dark);
+}
+
+/* Champion Name */
+.champion-card-name {
+  font-family: var(--pixel-font);
+  font-size: 16px;
+  color: var(--pixel-text);
+  text-shadow: 1px 1px 0 #000;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Champion Class */
+.champion-card-class {
+  font-family: var(--pixel-font);
+  font-size: 12px;
+  color: var(--pixel-text-dim);
+  text-shadow: 1px 1px 0 #000;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* ============================================ */
+/* Champion Details Panel                      */
+/* ============================================ */
+
+.champion-details-panel {
+  background: var(--pixel-bg-light);
+  border: 3px solid var(--pixel-border);
+  box-shadow:
+    inset -3px -3px 0 0 var(--pixel-bg-darker),
+    inset 3px 3px 0 0 var(--pixel-border-highlight);
+  padding: 12px 16px;
+  max-width: 550px;
+  margin: 0 auto 16px;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  min-height: 120px;
+}
+
+/* Large portrait in details */
+.champion-detail-portrait {
+  width: 90px;
+  height: 90px;
+  min-width: 90px;
+  background: var(--pixel-bg-darker);
+  border: 3px solid var(--pixel-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 52px;
+}
+
+/* Champion info section */
+.champion-detail-info {
+  flex: 1;
+  text-align: left;
+}
+
+.champion-detail-name {
+  font-family: var(--pixel-font);
+  font-size: 24px;
+  color: var(--pixel-gold);
+  text-shadow: 2px 2px 0 #000;
+  margin-bottom: 4px;
+}
+
+.champion-detail-title {
+  font-family: var(--pixel-font);
+  font-size: 14px;
+  color: var(--pixel-text-dim);
+  text-shadow: 1px 1px 0 #000;
+  margin-bottom: 6px;
+  font-style: italic;
+}
+
+.champion-detail-class {
+  font-family: var(--pixel-font);
+  font-size: 14px;
+  color: var(--pixel-accent);
+  text-shadow: 1px 1px 0 #000;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  padding: 3px 10px;
+  background: var(--pixel-bg-darker);
+  border: 2px solid var(--pixel-border);
+  display: inline-block;
+}
+
+/* Stats preview */
+.champion-stats-preview {
+  min-width: 140px;
+  text-align: left;
+}
+
+.champion-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 0;
+  font-family: var(--pixel-font);
+  font-size: 13px;
+  text-shadow: 1px 1px 0 #000;
+}
+
+.champion-stat-label {
+  color: var(--pixel-text-dim);
+}
+
+.champion-stat-value {
+  color: var(--pixel-text);
+}
+
+.champion-stat-value.health {
+  color: var(--pixel-health);
+}
+
+.champion-stat-value.mana {
+  color: var(--pixel-mana);
+}
+
+.champion-stat-value.ad {
+  color: var(--pixel-ad);
+}
+
+.champion-stat-value.armor {
+  color: var(--pixel-armor);
+}
+
+.champion-stat-value.mr {
+  color: var(--pixel-mr);
+}
+
+.champion-stat-value.ms {
+  color: var(--pixel-accent);
+}
+
+/* ============================================ */
+/* Champion Select Actions                     */
+/* ============================================ */
+
+.champion-select-actions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+/* Back button */
+#btn-back-menu {
+  font-family: var(--pixel-font);
+  font-size: 18px;
+  padding: 10px 30px;
+  background: transparent;
+  border: 3px solid var(--pixel-text-muted);
+  color: var(--pixel-text-dim);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-shadow: 2px 2px 0 #000;
+}
+
+#btn-back-menu:hover {
+  border-color: var(--pixel-gold);
+  color: var(--pixel-gold);
+}
+
+/* Lock-in button */
+#btn-lock-in {
+  font-family: var(--pixel-font);
+  font-size: 22px;
+  padding: 12px 45px;
+  background: var(--pixel-gold-dark);
+  border: 3px solid var(--pixel-gold-darker);
+  box-shadow:
+    inset -3px -3px 0 0 var(--pixel-gold-darker),
+    inset 3px 3px 0 0 var(--pixel-gold),
+    0 0 16px rgba(201, 162, 39, 0.3);
+  color: var(--pixel-bg-dark);
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s, background 0.1s;
+  text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.3);
+  letter-spacing: 2px;
+}
+
+#btn-lock-in:hover:not(:disabled) {
+  background: var(--pixel-gold);
+  transform: translateY(-2px);
+  box-shadow:
+    inset -3px -3px 0 0 var(--pixel-gold-dark),
+    inset 3px 3px 0 0 #ffe066,
+    0 4px 24px rgba(201, 162, 39, 0.5);
+}
+
+#btn-lock-in:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow:
+    inset 3px 3px 0 0 var(--pixel-gold-darker),
+    inset -3px -3px 0 0 var(--pixel-gold);
+}
+
+#btn-lock-in:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: var(--pixel-bg-lighter);
+  border-color: var(--pixel-border);
+  box-shadow:
+    inset -3px -3px 0 0 var(--pixel-bg-darker),
+    inset 3px 3px 0 0 var(--pixel-border-highlight);
+  color: var(--pixel-text-muted);
+}
+
+/* ============================================ */
+/* Class-specific accent colors                */
+/* ============================================ */
+
+.champion-card[data-class="warrior"] .champion-portrait {
+  background: linear-gradient(135deg, #5d4e37 0%, #3d3425 100%);
+}
+
+.champion-card[data-class="mage"] .champion-portrait {
+  background: linear-gradient(135deg, #4a3860 0%, #2a2040 100%);
+}
+
+.champion-card[data-class="assassin"] .champion-portrait {
+  background: linear-gradient(135deg, #503040 0%, #302020 100%);
+}
+
+.champion-card[data-class="tank"] .champion-portrait {
+  background: linear-gradient(135deg, #404860 0%, #202840 100%);
+}
+
+.champion-card[data-class="support"] .champion-portrait {
+  background: linear-gradient(135deg, #405050 0%, #203030 100%);
+}
+
+/* ============================================ */
+/* Responsive adjustments                      */
+/* ============================================ */
+
+@media (max-width: 768px) {
+  .champion-grid {
+    gap: 10px;
+  }
+
+  .champion-card {
+    width: 110px;
+    padding: 8px;
+  }
+
+  .champion-portrait {
+    width: 60px;
+    height: 60px;
+    font-size: 36px;
+  }
+
+  .champion-card-name {
+    font-size: 16px;
+  }
+
+  .champion-details-panel {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .champion-detail-info {
+    text-align: center;
+  }
+
+  .champion-stats-preview {
+    width: 100%;
+    max-width: 200px;
+  }
+}

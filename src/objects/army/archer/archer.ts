@@ -1,145 +1,204 @@
+/**
+ * Archer - Ranged infantry unit.
+ *
+ * A backline ranged unit that fires arrows at enemies from a distance.
+ * Uses Archer sprites from tiny_sword asset pack.
+ * Stats and configuration are defined in UnitConfig.ARCHER.
+ */
+
 import GameContext from "@/core/gameContext";
-import Disposable, { isDisposable } from "@/behaviors/disposable";
 import Vector from "@/physics/vector";
 import PixelArtSpriteAnimator from "@/sprites/PixelArtSpriteAnimator";
-import PixelArtSpriteSheet from "@/sprites/PixelArtSpriteSheet";
+import ImageSpriteSheet from "@/sprites/ImageSpriteSheet";
 import Background from "@/objects/background";
-import BaseObject from "@/objects/baseObject";
 import { Square } from "@/objects/shapes";
-import { archerSprites } from "./sprites";
-import { buildArmySpritesWithSideColor } from "../spriteUtils";
 import Arrow from "./arrow";
 import ArmyUnit, { ATTACK_ANIMATION_ID, WALK_ANIMATION_ID } from "../armyUnit";
 import { Target } from "../types";
 import Cooldown from "@/objects/cooldown";
+import { UnitConfig } from "@/config";
 
-const ATTACK_RANGE = 800;
-const OUT_OF_REACH_RANGE = ATTACK_RANGE * 2;
-const ACCELERATION = 500;
+const { ARCHER: CONFIG } = UnitConfig;
 
-const archerAttackSpriteFrames = [3, 4, 5, 6, 7,]
+/** Sprite frame dimensions */
+const FRAME_WIDTH = 192;
+const FRAME_HEIGHT = 192;
+const SPRITE_SCALE = 0.35;
 
-const archerSpriteSheetAlly = new PixelArtSpriteSheet(
-    buildArmySpritesWithSideColor(archerSprites, 0)
-);
-const archermanSpriteSheetEnemy = new PixelArtSpriteSheet(
-    buildArmySpritesWithSideColor(archerSprites, 1)
-);
+/** Animation frame counts */
+const IDLE_FRAMES = 6;
+const RUN_FRAMES = 4;
+const SHOOT_FRAMES = 8;
 
+// Pre-built sprite sheets for each side (avoid recreating per instance)
+const archerSpriteSheetAlly = new ImageSpriteSheet({
+  type: 'animations',
+  animations: {
+    idle: {
+      src: '/assets/sprites/units/Archer_Blue/Archer_Idle.png',
+      frameCount: IDLE_FRAMES,
+      frameWidth: FRAME_WIDTH,
+      frameHeight: FRAME_HEIGHT,
+    },
+    walk: {
+      src: '/assets/sprites/units/Archer_Blue/Archer_Run.png',
+      frameCount: RUN_FRAMES,
+      frameWidth: FRAME_WIDTH,
+      frameHeight: FRAME_HEIGHT,
+    },
+    attack: {
+      src: '/assets/sprites/units/Archer_Blue/Archer_Shoot.png',
+      frameCount: SHOOT_FRAMES,
+      frameWidth: FRAME_WIDTH,
+      frameHeight: FRAME_HEIGHT,
+    },
+  },
+  scale: SPRITE_SCALE,
+});
+
+const archerSpriteSheetEnemy = new ImageSpriteSheet({
+  type: 'animations',
+  animations: {
+    idle: {
+      src: '/assets/sprites/units/Archer_Red/Archer_Idle.png',
+      frameCount: IDLE_FRAMES,
+      frameWidth: FRAME_WIDTH,
+      frameHeight: FRAME_HEIGHT,
+    },
+    walk: {
+      src: '/assets/sprites/units/Archer_Red/Archer_Run.png',
+      frameCount: RUN_FRAMES,
+      frameWidth: FRAME_WIDTH,
+      frameHeight: FRAME_HEIGHT,
+    },
+    attack: {
+      src: '/assets/sprites/units/Archer_Red/Archer_Shoot.png',
+      frameCount: SHOOT_FRAMES,
+      frameWidth: FRAME_WIDTH,
+      frameHeight: FRAME_HEIGHT,
+    },
+  },
+  scale: SPRITE_SCALE,
+});
+
+/** Vertical offset for arrow spawn position (bow height) */
+const ARROW_SPAWN_OFFSET = new Vector(0, 1.5);
+
+/**
+ * Archer - Ranged infantry unit.
+ *
+ * Combat characteristics:
+ * - Long attack range (ranged)
+ * - Low health (glass cannon)
+ * - Spawns arrow projectiles that deal physical damage
+ */
 class Archer extends ArmyUnit {
-    protected attackRange: number = ATTACK_RANGE;
-    protected accelerationRate: number = ACCELERATION;
-    protected outOfSightRange: number = OUT_OF_REACH_RANGE;
-    protected maxHealth: number = 30;
-    protected maxArmor: number = 10;
-    protected armor: number = 0;
-    protected attackCooldown: Cooldown = new Cooldown(5);
+  // ==================
+  // Stats (from config)
+  // ==================
 
-    side: 0 | 1;
-    rotationSpeed: number;
-    target: Target | null;
-    spriteAnimator: PixelArtSpriteAnimator;
-    health = 10;
-    protected triggerAttackAnimationFrame: number;
+  protected health = CONFIG.HEALTH;
+  protected maxHealth = CONFIG.HEALTH;
+  protected maxArmor = CONFIG.ARMOR;
+  protected armor = CONFIG.ARMOR;
+  protected magicResist = CONFIG.MAGIC_RESIST;
+  protected attackRange = CONFIG.ATTACK_RANGE;
+  protected accelerationRate = CONFIG.ACCELERATION;
+  protected outOfSightRange = CONFIG.SIGHT_RANGE;
+  protected attackCooldown = new Cooldown(CONFIG.ATTACK_COOLDOWN);
 
-    constructor(position: Vector, side: 0 | 1) {
-        super(position);
-        this.direction = new Vector(1, 0);
-        this.collisionMask = new Square(32);
-        this.side = side;
-        this.rotationSpeed = 2;
-        this.target = null;
-        this.shouldDispose = false;
-        this.spriteAnimator = new PixelArtSpriteAnimator(
-            side === 0 ? archerSpriteSheetAlly : archermanSpriteSheetEnemy,
-            3
-        );
-        this.spriteAnimator.addAnimation(WALK_ANIMATION_ID, [0, 1, 2], 0.2);
-        this.spriteAnimator.addAnimation(ATTACK_ANIMATION_ID, archerAttackSpriteFrames, 0.2);
-        this.spriteAnimator.playAnimation(WALK_ANIMATION_ID, true);
-        this.triggerAttackAnimationFrame = 4;
-    }
+  /** Damage dealt by arrows */
+  protected readonly arrowDamage = CONFIG.DAMAGE;
 
-    shouldDispose: boolean;
+  // ==================
+  // Unit Properties
+  // ==================
 
-    protected attackIfPossible(g: GameContext) {
-        if (this.shouldAttack) {
-            const direction = this.target!.position.clone().sub(this.position.clone()).normalize();
-            this.direction = direction.clone();
-            const arrowPositionOffset = new Vector(0, 1.5);
-            const position = this.position.clone();
-            this.attack((gameContext) => {
-                const arrow = new Arrow(position.add(arrowPositionOffset), direction, this.side);
-                gameContext.objects.push(arrow);
-            });
-        }
-    }
+  readonly side: 0 | 1;
+  target: Target | null = null;
+  shouldDispose = false;
 
-    // private move(g: GameContext) {
-    //     if (!this.isAttacking) {
-    //         let _lookingAtDirection;
+  // ==================
+  // Animation
+  // ==================
 
-    //         if (this.targetPosition) {
-    //             _lookingAtDirection = this.targetPosition.clone().sub(this.position).normalize();
-    //         } else if (this.target) {
-    //             // move away of target if too close, ak half the attack range
-    //             if (this.target.position.distanceTo(this.position) < ATTACK_RANGE) {
-    //                 _lookingAtDirection = this.position.clone().sub(this.target.position.clone()).normalize();
-    //             } else {
-    //                 _lookingAtDirection = this.target.position.clone().sub(this.position.clone()).normalize();
-    //             }
-    //         } else {
-    //             this.velocity = new Vector(0, 0);
-    //             this.acceleration = new Vector(0, 0);
-    //             return;
-    //         }
+  protected spriteAnimator: PixelArtSpriteAnimator;
+  // Shoot animation has 8 frames (0-7), trigger arrow spawn on frame 5
+  protected triggerAttackAnimationFrame = 5;
 
-    //         this.direction = _lookingAtDirection.clone();
-    //         this.acceleration = _lookingAtDirection.scalar(this.accelerationRate);
-    //         this.velocity = this.calculateVelocity(g.dt);
-    //     }
-    // }
+  /**
+   * Create a new Archer.
+   * @param position - Starting world position
+   * @param side - Team side (0 = ally, 1 = enemy)
+   */
+  constructor(position: Vector, side: 0 | 1) {
+    super(position);
+    this.side = side;
 
+    // Set initial facing direction based on side
+    this.direction = new Vector(side === 0 ? 1 : -1, 0);
 
-    // private fixTarget(gameContext: GameContext) {
-    //     const { spatialHashing } = gameContext;
+    // Setup collision mask (square for archers)
+    this.collisionMask = new Square(CONFIG.COLLISION.SIZE);
 
-    //     if (this.target && isDisposable(this.target) && this.target.shouldDispose) {
-    //         this.target = null;
-    //     }
+    // Setup sprite animator with side-appropriate sprites
+    const spriteSheet = side === 0 ? archerSpriteSheetAlly : archerSpriteSheetEnemy;
+    const idleFrameOffset = spriteSheet.getAnimationFrameOffset('idle');
+    this.spriteAnimator = new PixelArtSpriteAnimator(spriteSheet as any, idleFrameOffset);
 
-    //     if (this.targetPosition && this.targetPosition.distanceTo(this.position) < 10) {
-    //         this.targetPosition = null;
-    //     }
+    // Register animations using ImageSpriteSheet frame indices
+    this.spriteAnimator.addAnimation(
+      WALK_ANIMATION_ID,
+      spriteSheet.getAnimationFrames('walk'),
+      0.1,
+      true // loop
+    );
+    this.spriteAnimator.addAnimation(
+      ATTACK_ANIMATION_ID,
+      spriteSheet.getAnimationFrames('attack'),
+      0.08
+    );
+  }
 
+  /**
+   * Execute ranged attack by spawning an arrow toward the target.
+   *
+   * Called by the behavior system when attack conditions are met:
+   * - Target exists and is valid
+   * - Unit is in attack range
+   * - Attack cooldown is ready
+   *
+   * Plays attack animation and spawns arrow on the trigger frame.
+   */
+  protected performAttack(gctx: GameContext): void {
+    const target = this.target;
+    if (!target) return;
 
-    //     if (this.targetPosition) {
-    //         this.target = null;
-    //     } else {
-    //         if (this.target && (this.target.id === CASTLE_ID || this.target.position.distanceTo(this.position) > OUT_OF_REACH_RANGE)) {
-    //             this.target = null;
-    //         }
+    // Calculate direction to target and face that way
+    const directionToTarget = target.position.clone().sub(this.position).normalize();
+    this.direction = directionToTarget.clone();
 
-    //         if (!this.target || this.target.id === CASTLE_ID) {
-    //             const nearByObjs = spatialHashing.query(this.position);
-    //             const nearByEnemies = nearByObjs.filter(otherSideObjectsFiltering(this.side));
-    //             if (nearByEnemies.length > 0) {
-    //                 this.target = RandomUtils.getRandomValueOf(nearByEnemies) as Target;
-    //             } else if (this.side === 1) {
-    //                 this.targetPosition = new Vector();
-    //             }
-    //         }
-    //     }
+    // Capture spawn position for the delayed callback
+    const spawnPosition = this.position.clone().add(ARROW_SPAWN_OFFSET);
 
-    // }
+    this.attack((gameContext) => {
+      // Spawn arrow at the captured position, traveling toward target
+      const arrow = new Arrow(
+        spawnPosition.clone(),
+        directionToTarget,
+        this.side,
+        this.arrowDamage
+      );
+      gameContext.objects.push(arrow);
+    });
+  }
 
-    private get shouldAttack() {
-        return this.target && this.canAttack() && this.target.position.distanceTo(this.position) < ATTACK_RANGE;
-    }
-
-    chooseTypeOfBloodstainWhenDying(background: Background): (inPosition: Vector) => void {
-        return background.drawArcherBloodstain.bind(background);
-    }
+  /**
+   * Generate bloodstain effect when dying.
+   */
+  chooseTypeOfBloodstainWhenDying(background: Background): (inPosition: Vector) => void {
+    return background.drawArcherBloodstain.bind(background);
+  }
 }
 
 export default Archer;

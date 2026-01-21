@@ -1,4 +1,4 @@
-import GameContext from "@/core/gameContext";
+import type GameContext from "@/core/gameContext";
 import RandomUtils from "@/utils/random";
 
 /// TODO(lg): This should be the canvas context no the game context

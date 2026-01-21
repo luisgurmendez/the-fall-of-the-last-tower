@@ -37,6 +37,7 @@ export function CollisionableMixin<S extends Shape>() {
 export function isCollisionableObject(obj: any): obj is Collisionable {
   return (
     typeof obj === "object" &&
-    (obj as unknown as Collisionable).collisionMask !== undefined
+    (obj as unknown as Collisionable).collisionMask !== undefined &&
+    typeof (obj as unknown as Collisionable).setCollisions === "function"
   );
 }

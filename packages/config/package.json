@@ -1,0 +1,14 @@
+{
+  "name": "@siege/config",
+  "version": "1.0.0",
+  "description": "Externalized configuration for Siege MOBA",
+  "type": "module",
+  "main": "./index.ts",
+  "scripts": {
+    "validate": "ajv validate -s schemas/game-config.schema.json -d data/game.yaml"
+  },
+  "devDependencies": {
+    "ajv-cli": "^5.0.0",
+    "yaml": "^2.3.0"
+  }
+}

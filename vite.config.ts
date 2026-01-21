@@ -21,6 +21,8 @@ export default defineConfig(({ command, mode }) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
+        '@siege/shared': path.resolve(__dirname, './packages/shared/src'),
+        '@siege/client': path.resolve(__dirname, './packages/client/src'),
       }
     },
     plugins: undefined

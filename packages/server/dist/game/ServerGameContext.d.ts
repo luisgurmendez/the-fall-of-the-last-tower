@@ -4,9 +4,11 @@
  * This is the authoritative source of truth for the game.
  * All entities, their positions, health, abilities, etc. are managed here.
  */
-import { Vector, MOBAConfig, Side, EntitySnapshot, GameEvent, GameEventType } from '@siege/shared';
+import { Vector, MOBAConfig, Side, EntitySnapshot, GameEvent, GameEventType, type WardType } from '@siege/shared';
 import type { ServerEntity } from '../simulation/ServerEntity';
 import type { ServerChampion } from '../simulation/ServerChampion';
+import { ServerWard } from '../simulation/ServerWard';
+import { FogOfWarServer } from '../systems/FogOfWarServer';
 export interface GameContextConfig {
     gameId: string;
     mapConfig?: typeof MOBAConfig;
@@ -23,7 +25,20 @@ export declare class ServerGameContext {
     private pendingEvents;
     private minionWaveCount;
     private nextMinionWaveTime;
+    private fogOfWar;
+    private collisionSystem;
+    private jungleCamps;
+    private wards;
+    private readonly MAX_WARDS_PER_PLAYER;
     constructor(config: GameContextConfig);
+    /**
+     * Initialize jungle camps from config.
+     */
+    private initializeJungleCamps;
+    /**
+     * Spawn all jungle camps (called at game start).
+     */
+    spawnJungleCamps(): void;
     /**
      * Generate a unique entity ID.
      */
@@ -65,6 +80,27 @@ export declare class ServerGameContext {
      */
     getChampionsBySide(side: Side): ServerChampion[];
     /**
+     * Place a ward at a position.
+     * Returns true if ward was placed, false if player has too many wards.
+     */
+    placeWard(playerId: string, wardType: WardType, position: Vector): ServerWard | null;
+    /**
+     * Remove a ward by ID.
+     */
+    removeWard(wardId: string): void;
+    /**
+     * Get all wards.
+     */
+    getWards(): ServerWard[];
+    /**
+     * Get wards owned by a player.
+     */
+    getWardsByOwner(playerId: string): ServerWard[];
+    /**
+     * Get wards for a side.
+     */
+    getWardsBySide(side: Side): ServerWard[];
+    /**
      * Update game state for one tick.
      */
     update(dt: number): void;
@@ -77,6 +113,11 @@ export declare class ServerGameContext {
      */
     private spawnMinionWave;
     /**
+     * Spawn minions for a specific side and lane.
+     * Minions are spawned in a staggered line formation to prevent clumping.
+     */
+    private spawnLaneMinions;
+    /**
      * Add a game event.
      */
     addEvent(type: GameEventType, data: Record<string, unknown>): void;
@@ -88,6 +129,22 @@ export declare class ServerGameContext {
      * Get entities visible to a specific side (fog of war filtering).
      */
     getVisibleEntities(forSide: Side): ServerEntity[];
+    /**
+     * Check if an entity is visible to a side.
+     */
+    isEntityVisibleTo(entity: ServerEntity, side: Side): boolean;
+    /**
+     * Check if a position is visible to a side.
+     */
+    isPositionVisibleTo(position: Vector, side: Side): boolean;
+    /**
+     * Check if source can target the target (visibility check).
+     */
+    canTarget(source: ServerEntity, target: ServerEntity): boolean;
+    /**
+     * Get the fog of war system.
+     */
+    getFogOfWar(): FogOfWarServer;
     /**
      * Get entities within a radius of a position.
      */

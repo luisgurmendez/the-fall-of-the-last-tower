@@ -286,43 +286,9 @@ export const MOBAConfig = {
 
   /**
    * Wall configuration (tile-aligned to 64 unit grid).
-   * Minimum height is 128 (2 tiles) for proper cliff rendering.
+   * Currently empty - walls disabled for open map gameplay.
    */
-  WALLS: [
-    // ========== BLUE SIDE JUNGLE WALLS ==========
-    { position: new Vector(-960, -768), width: 384, height: 128 },
-    { position: new Vector(-544, -768), width: 192, height: 128 },
-    { position: new Vector(-1088, -448), width: 128, height: 256 },
-    { position: new Vector(-864, -448), width: 192, height: 128 },
-    { position: new Vector(-736, -320), width: 128, height: 192 },
-    { position: new Vector(-544, -352), width: 192, height: 128 },
-    { position: new Vector(-416, -224), width: 128, height: 256 },
-    { position: new Vector(-736, 0), width: 192, height: 128 },
-    { position: new Vector(-896, 160), width: 128, height: 192 },
-    { position: new Vector(-672, 256), width: 256, height: 128 },
-    { position: new Vector(-544, 448), width: 192, height: 128 },
-    { position: new Vector(-416, 352), width: 128, height: 192 },
-
-    // ========== RED SIDE JUNGLE WALLS ==========
-    { position: new Vector(960, 768), width: 384, height: 128 },
-    { position: new Vector(544, 768), width: 192, height: 128 },
-    { position: new Vector(1088, 448), width: 128, height: 256 },
-    { position: new Vector(864, 448), width: 192, height: 128 },
-    { position: new Vector(736, 320), width: 128, height: 192 },
-    { position: new Vector(544, 352), width: 192, height: 128 },
-    { position: new Vector(416, 224), width: 128, height: 256 },
-    { position: new Vector(736, 0), width: 192, height: 128 },
-    { position: new Vector(896, -160), width: 128, height: 192 },
-    { position: new Vector(672, -256), width: 256, height: 128 },
-    { position: new Vector(544, -448), width: 192, height: 128 },
-    { position: new Vector(416, -352), width: 128, height: 192 },
-
-    // ========== RIVER AREA WALLS ==========
-    { position: new Vector(-192, -192), width: 128, height: 128 },
-    { position: new Vector(192, 192), width: 128, height: 128 },
-    { position: new Vector(-96, 96), width: 128, height: 128 },
-    { position: new Vector(96, -96), width: 128, height: 128 },
-  ],
+  WALLS: [] as Array<{ position: typeof Vector.prototype; width: number; height: number }>,
 
   /**
    * Tower positions and configuration.

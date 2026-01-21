@@ -1,0 +1,25 @@
+syntax = "proto3";
+package siege.common;
+
+option go_package = "github.com/siege/protocol/common";
+
+// 2D Vector for positions and directions
+message Vector2 {
+  float x = 1;
+  float y = 2;
+}
+
+// Bounding box for collision detection
+message BoundingBox {
+  float x = 1;
+  float y = 2;
+  float width = 3;
+  float height = 4;
+}
+
+// Circle for range checks
+message Circle {
+  float x = 1;
+  float y = 2;
+  float radius = 3;
+}

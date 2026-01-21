@@ -25,6 +25,9 @@ class Vector {
 
   normalize() {
     const length = this.length();
+    if (length === 0) {
+      return this;
+    }
     this.x /= length;
     this.y /= length;
     return this;
@@ -80,6 +83,18 @@ class Vector {
     return this;
   }
 
+  /**
+   * Linear interpolation between two vectors.
+   * @param a Start vector
+   * @param b End vector
+   * @param t Interpolation factor (0 = a, 1 = b)
+   */
+  static lerp(a: Vector, b: Vector, t: number): Vector {
+    return new Vector(
+      a.x + (b.x - a.x) * t,
+      a.y + (b.y - a.y) * t
+    );
+  }
 }
 
 export default Vector;

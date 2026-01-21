@@ -195,4 +195,31 @@ export abstract class ServerEntity {
   isAlly(other: ServerEntity): boolean {
     return this.side === other.side;
   }
+
+  // =====================
+  // Collision Interface
+  // =====================
+
+  /**
+   * Whether this entity participates in collision detection.
+   * Override in subclasses to enable collision.
+   */
+  isCollidable(): boolean {
+    return false;
+  }
+
+  /**
+   * Get collision radius. Override in subclasses.
+   */
+  getRadius(): number {
+    return 0;
+  }
+
+  /**
+   * Get collision mass. Heavier units push lighter units more.
+   * Override in subclasses.
+   */
+  getMass(): number {
+    return 100; // Default mass
+  }
 }

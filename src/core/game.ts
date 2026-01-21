@@ -1,23 +1,52 @@
 import Clock from "./clock";
 import CanvasGenerator from "./canvas";
-import battlefieldLevel from "@/levels/battlefield";
-// import CustomKeyboard from "./keyboard";
-// import Stats from "stats.js";
+import { generateDefault as mobaLevel } from "@/levels/mobaLevel";
+import { generateCustomMapLevel } from "@/levels/customMapLevel";
+import { InputManager } from "./input/InputManager";
+import { getShopUI } from "@/ui/shop/ShopUI";
+import { profiler } from "@/debug/PerformanceProfiler";
+import { getCursorManager } from "./CursorManager";
 
-// export const keyboard = CustomKeyboard.getInstance();
+// Profiler runs silently in dev mode by default
+// Press F3 to toggle verbose mode with debug panel
+// Press F4 to log detailed breakdown to console
 
 class Game {
   private clock: Clock;
   private isPaused = false;
   private canvasRenderingContext: CanvasRenderingContext2D;
+  private canvas: HTMLCanvasElement;
 
-  private level = battlefieldLevel();
+  private level;
   private gameSpeed = 1;
+  private customMapKey?: string;
 
-  constructor() {
+  constructor(customMapKey?: string) {
+    this.customMapKey = customMapKey;
+
+    // Initialize level based on mode
+    if (customMapKey) {
+      const customLevel = generateCustomMapLevel(customMapKey);
+      if (customLevel) {
+        this.level = customLevel;
+      } else {
+        console.warn('Failed to load custom map, falling back to default');
+        this.level = mobaLevel();
+      }
+    } else {
+      this.level = mobaLevel();
+    }
     // Inits canvas rendering context
-    this.canvasRenderingContext = CanvasGenerator.generateCanvas();
+    const { canvas, context } = CanvasGenerator.generateCanvas();
+    this.canvas = canvas;
+    this.canvasRenderingContext = context;
     this.clock = new Clock();
+
+    // Initialize input manager with canvas for mouse/keyboard events
+    InputManager.getInstance().init(canvas);
+
+    // Initialize cursor manager with canvas
+    getCursorManager().init(canvas);
   }
 
   init() {
@@ -44,12 +73,32 @@ class Game {
         document.body.requestFullscreen();
       }
 
-      if (e.key === "p") {
-        this.isPaused ? this.unPause() : this.pause();
+      // 'P' key to toggle shop (works even when paused)
+      if (e.key === "p" || e.key === "P") {
+        const shopUI = getShopUI();
+        shopUI.toggle();
       }
 
-      if (e.key === "r") {
-        this.level = battlefieldLevel();
+      // Use 'Escape' to pause when shop is not open, or close shop if open
+      if (e.key === "Escape") {
+        const shopUI = getShopUI();
+        if (shopUI.isOpen()) {
+          shopUI.close();
+        } else {
+          this.isPaused ? this.unPause() : this.pause();
+        }
+      }
+
+      // Restart with Shift+R (not just R, to avoid conflicts with abilities)
+      if (e.key === "r" && e.shiftKey) {
+        if (this.customMapKey) {
+          const customLevel = generateCustomMapLevel(this.customMapKey);
+          if (customLevel) {
+            this.level = customLevel;
+          }
+        } else {
+          this.level = mobaLevel();
+        }
       }
     });
   }
@@ -66,9 +115,9 @@ class Game {
 
   loop = () => {
     return () => {
-      // stats.begin();
+      profiler.beginFrame();
       this.update();
-      // stats.end();
+      profiler.endFrame();
       requestAnimationFrame(this.loop());
     };
   };
@@ -77,6 +126,9 @@ class Game {
     try {
       const gameApi = this.generateGameApi();
       this.level.update(gameApi);
+
+      // Clear "just pressed" input states at end of frame
+      InputManager.getInstance().update();
     } catch (e) {
       console.log(e);
     }

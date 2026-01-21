@@ -1,0 +1,60 @@
+{
+  "name": "Siege MOBA Cross-Language Test Fixtures",
+  "version": "1.0.0",
+  "description": "Test fixtures for verifying game logic implementations across TypeScript, Rust, Go, and other languages",
+
+  "fixtures": [
+    {
+      "file": "damage_calculations.json",
+      "description": "Damage reduction, armor penetration, physical/magic/true damage"
+    },
+    {
+      "file": "stat_scaling.json",
+      "description": "Stat at level, attack speed, final stat calculations"
+    },
+    {
+      "file": "experience_levels.json",
+      "description": "XP thresholds, level calculation, experience sharing"
+    },
+    {
+      "file": "respawn_times.json",
+      "description": "Respawn timer calculations"
+    },
+    {
+      "file": "cooldown_reduction.json",
+      "description": "Ability haste to CDR conversion, actual cooldown"
+    },
+    {
+      "file": "gold_calculations.json",
+      "description": "Kill gold, bounties, assists, passive gold"
+    },
+    {
+      "file": "crowd_control.json",
+      "description": "CC duration, tenacity, status effects"
+    },
+    {
+      "file": "movement.json",
+      "description": "Movement speed, slows, position updates, attack cooldown"
+    },
+    {
+      "file": "ability_scaling.json",
+      "description": "Ability damage/value calculations with stat scaling"
+    },
+    {
+      "file": "vision.json",
+      "description": "Fog of war, visibility, bush mechanics"
+    }
+  ],
+
+  "usage": {
+    "typescript": "import fixtures from './damage_calculations.json'; // Uses TypeScript JSON imports",
+    "rust": "let fixtures: DamageFixtures = serde_json::from_str(include_str!(\"../fixtures/damage_calculations.json\"))?;",
+    "go": "fixtures, err := loadFixtures(\"damage_calculations.json\")"
+  },
+
+  "tolerance_notes": {
+    "default_tolerance": 0.01,
+    "integer_values": "Use tolerance of 0 for integer-only results (levels, XP thresholds)",
+    "percentage_tolerance": 0.001
+  }
+}

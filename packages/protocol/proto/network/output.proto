@@ -1,0 +1,104 @@
+syntax = "proto3";
+package siege.network;
+
+import "common/enums.proto";
+import "entities/champion.proto";
+import "entities/minion.proto";
+import "entities/tower.proto";
+
+option go_package = "github.com/siege/protocol/network";
+
+// Delta update for an entity (only changed fields)
+message EntityDelta {
+  string entity_id = 1;
+  uint32 change_mask = 2;  // Bitmask of EntityChangeMask values
+  bytes data = 3;          // Serialized partial snapshot
+}
+
+// Game event notification
+message GameEvent {
+  siege.common.GameEventType type = 1;
+  int64 timestamp = 2;
+  map<string, string> data = 3;  // Event-specific key-value pairs
+}
+
+// Incremental state update (sent every tick)
+message StateUpdate {
+  uint32 tick = 1;
+  int64 timestamp = 2;
+  float game_time = 3;
+
+  // Input acknowledgments per player
+  map<string, uint32> input_acks = 4;
+
+  // Changed entities
+  repeated EntityDelta deltas = 5;
+
+  // Game events this tick
+  repeated GameEvent events = 6;
+}
+
+// Full game state snapshot (sent on connect/reconnect)
+message FullStateSnapshot {
+  uint32 tick = 1;
+  int64 timestamp = 2;
+  float game_time = 3;
+
+  // All entities
+  repeated siege.entities.ChampionSnapshot champions = 10;
+  repeated siege.entities.MinionSnapshot minions = 11;
+  repeated siege.entities.TowerSnapshot towers = 12;
+  repeated siege.entities.ProjectileSnapshot projectiles = 13;
+
+  // Recent events (for replay on reconnect)
+  repeated GameEvent recent_events = 20;
+}
+
+// Game start notification
+message GameStartMessage {
+  uint32 tick = 1;
+  float game_time = 2;
+  map<string, string> player_champions = 3;  // player_id -> champion_id
+}
+
+// Game end notification
+message GameEndMessage {
+  siege.common.Side winning_side = 1;
+  float duration = 2;
+  map<string, PlayerStats> player_stats = 3;
+}
+
+message PlayerStats {
+  uint32 kills = 1;
+  uint32 deaths = 2;
+  uint32 assists = 3;
+  uint32 cs = 4;
+  float gold_earned = 5;
+  float damage_dealt = 6;
+  float damage_taken = 7;
+}
+
+// Error message
+message ErrorMessage {
+  string error = 1;
+  string code = 2;
+}
+
+// Pong response for latency measurement
+message PongMessage {
+  int64 timestamp = 1;
+}
+
+// Union wrapper for all server messages
+message ServerMessage {
+  siege.common.ServerMessageType type = 1;
+  oneof payload {
+    StateUpdate state_update = 2;
+    FullStateSnapshot full_state = 3;
+    GameStartMessage game_start = 4;
+    GameEndMessage game_end = 5;
+    ErrorMessage error = 6;
+    PongMessage pong = 7;
+    GameEvent event = 8;
+  }
+}

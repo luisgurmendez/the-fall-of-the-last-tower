@@ -91,5 +91,19 @@ export declare abstract class ServerEntity {
      * Check if entity is an ally.
      */
     isAlly(other: ServerEntity): boolean;
+    /**
+     * Whether this entity participates in collision detection.
+     * Override in subclasses to enable collision.
+     */
+    isCollidable(): boolean;
+    /**
+     * Get collision radius. Override in subclasses.
+     */
+    getRadius(): number;
+    /**
+     * Get collision mass. Heavier units push lighter units more.
+     * Override in subclasses.
+     */
+    getMass(): number;
 }
 //# sourceMappingURL=ServerEntity.d.ts.map

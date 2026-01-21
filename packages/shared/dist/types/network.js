@@ -29,6 +29,8 @@ export var InputType;
     InputType[InputType["PING"] = 9] = "PING";
     /** Chat message */
     InputType[InputType["CHAT"] = 10] = "CHAT";
+    /** Place a ward */
+    InputType[InputType["PLACE_WARD"] = 11] = "PLACE_WARD";
 })(InputType || (InputType = {}));
 /**
  * Entity types in the game.
@@ -109,5 +111,7 @@ export var ClientMessageType;
     ClientMessageType[ClientMessageType["PING"] = 1] = "PING";
     /** Ready to start */
     ClientMessageType[ClientMessageType["READY"] = 2] = "READY";
+    /** Event acknowledgment for reliable delivery */
+    ClientMessageType[ClientMessageType["EVENT_ACK"] = 3] = "EVENT_ACK";
 })(ClientMessageType || (ClientMessageType = {}));
 //# sourceMappingURL=network.js.map

@@ -10,46 +10,67 @@ import BaseObject from "@/objects/baseObject";
 import { Rectangle } from "@/objects/shapes";
 import { otherSideObjectsFiltering } from "../utils";
 import RenderUtils from "@/render/utils";
+import { UnitConfig } from "@/config";
 
+const { ARROW: CONFIG } = UnitConfig;
 const ArrowMixin = PhysicableMixin(CollisionableMixin<Rectangle>()(BaseObject));
-const ARROW_LENGTH = 14;
 
+/**
+ * Arrow projectile fired by Archers.
+ *
+ * Travels in a straight line until it hits an enemy or expires.
+ * Damage can be configured via constructor (defaults to CONFIG.DAMAGE).
+ */
 class Arrow extends ArrowMixin implements Disposable {
     shouldDispose: boolean;
-    side: 0 | 1;
-    ttl: number;
+    readonly side: 0 | 1;
+    protected ttl: number;
+    protected readonly damage: number;
 
-    constructor(position: Vector, direction: Vector, side: 0 | 1) {
+    /**
+     * Create a new Arrow projectile.
+     * @param position - Starting position
+     * @param direction - Direction vector (will be normalized)
+     * @param side - Team side (0 = ally, 1 = enemy)
+     * @param damage - Damage dealt on hit (defaults to CONFIG.DAMAGE)
+     */
+    constructor(position: Vector, direction: Vector, side: 0 | 1, damage: number = CONFIG.DAMAGE) {
         super(position);
-        this.direction = direction;
-        this.collisionMask = new Rectangle(ARROW_LENGTH, 2);
-        this.velocity = direction.scalar(500);
-        this.acceleration = direction.scalar(1);
+        this.direction = direction.clone().normalize();
+        this.collisionMask = new Rectangle(CONFIG.LENGTH, 2);
+        this.velocity = this.direction.clone().scalar(CONFIG.SPEED);
+        this.acceleration = this.direction.clone().scalar(CONFIG.ACCELERATION);
         this.shouldDispose = false;
         this.side = side;
-        this.friction = 0;
-        this.ttl = 2;
+        this.friction = CONFIG.FRICTION;
+        this.ttl = CONFIG.TTL;
+        this.damage = damage;
     }
 
     step = (gameContext: GameContext) => {
-        const { collisions } = gameContext;
-        if (collisions[this.id] && collisions[this.id].length > 0) {
-            // find collision with enemy
-            const enemy = collisions[this.id].find(otherSideObjectsFiltering(this.side));
+        // Check for collisions with enemy units
+        const collisionList = gameContext.collisions[this.id];
+        if (collisionList && collisionList.length > 0) {
+            const enemy = collisionList.find(otherSideObjectsFiltering(this.side));
             if (enemy) {
                 if (isAttackable(enemy)) {
-                    enemy.applyDamage(15);
+                    enemy.takeDamage(this.damage, 'physical');
                 }
                 this.shouldDispose = true;
+                return; // Stop processing after hit
             }
         }
-        this.ttl -= gameContext.dt;
 
+        // Update TTL
+        this.ttl -= gameContext.dt;
         if (this.ttl <= 0) {
             this.shouldDispose = true;
+            // Draw arrow stuck in ground when it expires
             gameContext.background.drawArrow(this.position.clone(), this.direction.clone());
+            return;
         }
 
+        // Update position
         this.position = this.calculatePosition(gameContext.dt);
     }
 
@@ -63,9 +84,9 @@ class Arrow extends ArrowMixin implements Disposable {
             // draws the pointing tip
             canvasRenderingContext.beginPath();
             canvasRenderingContext.moveTo(0, 0);
-            canvasRenderingContext.lineTo(ARROW_LENGTH, 0);
-            canvasRenderingContext.moveTo(ARROW_LENGTH - 2, 1.5);
-            canvasRenderingContext.lineTo(ARROW_LENGTH - 2, -1.5);
+            canvasRenderingContext.lineTo(CONFIG.LENGTH, 0);
+            canvasRenderingContext.moveTo(CONFIG.LENGTH - 2, 1.5);
+            canvasRenderingContext.lineTo(CONFIG.LENGTH - 2, -1.5);
             canvasRenderingContext.stroke();
         }, true);
     }

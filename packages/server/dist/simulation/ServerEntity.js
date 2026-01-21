@@ -141,5 +141,28 @@ export class ServerEntity {
     isAlly(other) {
         return this.side === other.side;
     }
+    // =====================
+    // Collision Interface
+    // =====================
+    /**
+     * Whether this entity participates in collision detection.
+     * Override in subclasses to enable collision.
+     */
+    isCollidable() {
+        return false;
+    }
+    /**
+     * Get collision radius. Override in subclasses.
+     */
+    getRadius() {
+        return 0;
+    }
+    /**
+     * Get collision mass. Heavier units push lighter units more.
+     * Override in subclasses.
+     */
+    getMass() {
+        return 100; // Default mass
+    }
 }
 //# sourceMappingURL=ServerEntity.js.map

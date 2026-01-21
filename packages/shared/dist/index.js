@@ -13,4 +13,8 @@ export * from './types';
 export { MOBAConfig, GameConfig } from './config';
 // Utility functions
 export * from './utils';
+// Champion registry
+export * from './champions';
+// Ability registry
+export * from './abilities';
 //# sourceMappingURL=index.js.map

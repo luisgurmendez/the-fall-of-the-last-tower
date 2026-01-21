@@ -1,6 +1,6 @@
-import GameContext from "@/core/gameContext";
+import type GameContext from "@/core/gameContext";
 
-interface Initializable {
+export interface Initializable {
   shouldInitialize: boolean;
   init: (gameContext: GameContext) => void;
 }

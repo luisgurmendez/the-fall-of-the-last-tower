@@ -1,0 +1,102 @@
+# Siege MOBA - Game Configuration
+# This file defines core game constants that must be consistent across all implementations
+
+tick:
+  server_tick_rate: 30          # Hz - server updates per second
+  client_render_rate: 60        # Hz - client render target
+  input_send_rate: 60           # Hz - client input send rate
+
+network:
+  interpolation_delay_ms: 100   # ms - render delay for interpolation
+  max_lag_compensation_ms: 250  # ms - maximum rewind for hit detection
+  snap_threshold: 100           # units - hard snap distance
+  correction_threshold: 5       # units - smooth correction threshold
+  correction_lerp: 0.3          # factor - lerp amount for corrections
+  history_buffer_size: 30       # ticks - state history for lag comp
+
+timing:
+  surrender_available_seconds: 900      # 15 minutes
+  reconnect_grace_period_seconds: 300   # 5 minutes
+  afk_timeout_seconds: 60
+  recall_duration_seconds: 8
+
+economy:
+  starting_gold: 500
+  passive_gold_per_second: 1.9
+
+  minion_gold:
+    melee: 21
+    caster: 14
+    siege: 60
+    super: 45
+
+  champion_kill:
+    base_gold: 300
+    assist_percent: 0.5
+    bounty_per_kill_above_2: 50
+
+  tower_gold:
+    global: 50
+    killer: 150
+
+experience:
+  share_range: 1400             # units - XP sharing radius
+
+  minion_xp:
+    melee: 60
+    caster: 29
+    siege: 92
+    super: 97
+
+  champion_kill:
+    base_xp: 140
+    xp_per_level_diff: 20
+
+  # XP required to reach each level (cumulative)
+  level_thresholds:
+    - 0       # Level 1
+    - 280     # Level 2
+    - 660     # Level 3
+    - 1140    # Level 4
+    - 1720    # Level 5
+    - 2400    # Level 6
+    - 3180    # Level 7
+    - 4060    # Level 8
+    - 5040    # Level 9
+    - 6120    # Level 10
+    - 7300    # Level 11
+    - 8580    # Level 12
+    - 9960    # Level 13
+    - 11440   # Level 14
+    - 13020   # Level 15
+    - 14700   # Level 16
+    - 16480   # Level 17
+    - 18360   # Level 18
+
+combat:
+  combat_timeout_seconds: 5
+  out_of_combat_regen_multiplier: 2.5
+  resist_damage_cap: 0.9        # 90% max damage reduction
+  crit_damage_multiplier: 2.0
+  minimum_move_speed: 110
+  minimum_cc_duration: 0.5      # seconds
+
+respawn:
+  base_time_seconds: 6
+  time_per_level_seconds: 2
+  max_time_seconds: 60
+
+vision:
+  champion_sight_range: 1200
+  minion_sight_range: 800
+  tower_sight_range: 1000
+  ward_sight_range: 900
+  ward_duration_seconds: 180
+  max_wards_per_player: 3
+  bush_reveal_range: 100
+
+limits:
+  max_level: 18
+  max_ability_rank: 5
+  max_item_slots: 6
+  max_game_duration_seconds: 3600

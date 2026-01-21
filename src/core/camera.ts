@@ -1,18 +1,25 @@
 import Disposable from "@/behaviors/disposable";
-import BaseObject from "@/objects/baseObject";
+import { GameObject } from "@/core/GameObject";
 import Stepable from "@/behaviors/stepable";
 import { Positionable } from "@/mixins/positional";
 import Vector from "@/physics/vector";
-import GameContext from "./gameContext";
+import type GameContext from "./gameContext";
 import Initializable from "@/behaviors/initializable";
 import { Rectangle } from "@/objects/shapes";
+import { GameConfig } from "@/config";
 
-const MAX_ZOOM = 14;
-const MIN_ZOOM = 0.4;
-export const CAMERA_ID = "cmr"
+const { CAMERA: CAMERA_CONFIG } = GameConfig;
+export const CAMERA_ID = "camera";
 
-class Camera extends BaseObject implements Stepable, Disposable, Initializable {
-  _position: Vector;
+/**
+ * Camera - Special game object that controls the viewport.
+ *
+ * Implements GameObject directly (rather than extending WorldEntity)
+ * because it needs custom position accessor behavior for locking.
+ */
+class Camera implements GameObject, Stepable, Disposable, Initializable {
+  readonly id = CAMERA_ID;
+  private _position: Vector;
   viewport: Rectangle;
   private _zoom: number;
   following: Positionable | null;
@@ -25,7 +32,6 @@ class Camera extends BaseObject implements Stepable, Disposable, Initializable {
   // flying: Flying = new Flying();
 
   constructor() {
-    super(new Vector(), CAMERA_ID);
     // this.position = new Vector(document.body.scrollWidth / 2, document.body.scrollHeight / 2);
     this._position = new Vector(0, 0);
     this.viewport = new Rectangle(
@@ -114,7 +120,7 @@ class Camera extends BaseObject implements Stepable, Disposable, Initializable {
 
   set zoom(_z: number) {
     if (!this.locked) {
-      this._zoom = Math.min(Math.max(_z, this.getMinZoom()), MAX_ZOOM);
+      this._zoom = Math.min(Math.max(_z, this.getMinZoom()), CAMERA_CONFIG.MAX_ZOOM);
     }
   }
 
@@ -134,7 +140,7 @@ class Camera extends BaseObject implements Stepable, Disposable, Initializable {
 
   getMinZoom() {
     if (this.worldDimensions === null) {
-      return MIN_ZOOM;
+      return CAMERA_CONFIG.MIN_ZOOM;
     }
     const minZoomX = this.viewport.w / this.worldDimensions.w;
     const minZoomY = this.viewport.h / this.worldDimensions.h;
@@ -142,10 +148,8 @@ class Camera extends BaseObject implements Stepable, Disposable, Initializable {
   }
 
   private updatePosition() {
-    // How close the mouse needs to be to an edge to start scrolling
-    const edgeThreshold = 150;
-    // Maximum speed of camera scroll in units per frame
-    const maxSpeed = 20;
+    const edgeThreshold = CAMERA_CONFIG.EDGE_SCROLL_THRESHOLD;
+    const maxSpeed = CAMERA_CONFIG.EDGE_SCROLL_SPEED;
 
     // Update the camera position based on mouse coordinates
     if (this.mousePosition !== null) {
@@ -215,11 +219,11 @@ class Camera extends BaseObject implements Stepable, Disposable, Initializable {
     }
 
     if (adjustTop) {
-      this.position.y = world.w / 2 - viewportWithZoom.h / 2;
+      this.position.y = world.h / 2 - viewportWithZoom.h / 2;
     }
 
     if (adjustBottom) {
-      this.position.y = -world.w / 2 + viewportWithZoom.h / 2;
+      this.position.y = -world.h / 2 + viewportWithZoom.h / 2;
     }
   }
 }

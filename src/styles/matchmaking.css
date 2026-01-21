@@ -1,0 +1,543 @@
+/**
+ * Matchmaking UI Styles - Pixel Art Theme
+ *
+ * Styles for the matchmaking overlay screens including:
+ * - Main menu
+ * - Connecting
+ * - Queue
+ * - Match found
+ * - Error
+ */
+
+/* ============================================ */
+/* Matchmaking Overlay                         */
+/* ============================================ */
+
+#matchmaking-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--pixel-bg-darker);
+  font-family: var(--pixel-font);
+  image-rendering: pixelated;
+}
+
+#matchmaking-overlay.hidden {
+  display: none;
+}
+
+/* Scanline overlay effect */
+#matchmaking-overlay::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.1) 2px,
+      rgba(0, 0, 0, 0.1) 4px
+    );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Checkered background pattern */
+#matchmaking-overlay::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image:
+    linear-gradient(45deg, rgba(255, 255, 255, 0.02) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(255, 255, 255, 0.02) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.02) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.02) 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.matchmaking-container {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  color: var(--pixel-text);
+  max-width: 700px;
+  max-height: 90vh;
+  padding: 40px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Custom scrollbar for matchmaking container */
+.matchmaking-container::-webkit-scrollbar {
+  width: 12px;
+}
+
+.matchmaking-container::-webkit-scrollbar-track {
+  background: var(--pixel-bg-darker);
+}
+
+.matchmaking-container::-webkit-scrollbar-thumb {
+  background: var(--pixel-border);
+  border: 2px solid var(--pixel-bg-darker);
+}
+
+.matchmaking-container::-webkit-scrollbar-thumb:hover {
+  background: var(--pixel-border-highlight);
+}
+
+/* ============================================ */
+/* Logo and Title                              */
+/* ============================================ */
+
+.game-logo {
+  font-size: 80px;
+  margin-bottom: 10px;
+  filter: drop-shadow(0 0 20px rgba(201, 162, 39, 0.5));
+}
+
+.game-title {
+  font-family: var(--pixel-font);
+  font-size: 72px;
+  color: var(--pixel-gold);
+  text-shadow:
+    2px 2px 0 var(--pixel-gold-darker),
+    4px 4px 0 #000,
+    0 0 40px rgba(201, 162, 39, 0.5);
+  margin-bottom: 8px;
+  letter-spacing: 12px;
+}
+
+.game-subtitle {
+  font-family: var(--pixel-font);
+  font-size: 24px;
+  color: var(--pixel-text-dim);
+  letter-spacing: 8px;
+  margin-bottom: 50px;
+  text-shadow: 2px 2px 0 #000;
+}
+
+/* ============================================ */
+/* Screens                                     */
+/* ============================================ */
+
+.mm-screen {
+  display: none;
+  animation: pixel-fade-in 0.3s ease-out;
+}
+
+.mm-screen.active {
+  display: block;
+}
+
+/* ============================================ */
+/* Main Menu Screen                            */
+/* ============================================ */
+
+.play-button {
+  font-family: var(--pixel-font);
+  font-size: 36px;
+  padding: 24px 80px;
+  background: var(--pixel-gold-dark);
+  border: 4px solid var(--pixel-gold-darker);
+  box-shadow:
+    inset -4px -4px 0 0 var(--pixel-gold-darker),
+    inset 4px 4px 0 0 var(--pixel-gold),
+    0 0 30px rgba(201, 162, 39, 0.4);
+  color: var(--pixel-bg-dark);
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+  text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.3);
+  letter-spacing: 4px;
+  margin-bottom: 30px;
+}
+
+.play-button:hover {
+  background: var(--pixel-gold);
+  transform: translateY(-4px);
+  box-shadow:
+    inset -4px -4px 0 0 var(--pixel-gold-dark),
+    inset 4px 4px 0 0 #ffe066,
+    0 8px 40px rgba(201, 162, 39, 0.6);
+}
+
+.play-button:active {
+  transform: translateY(0);
+  box-shadow:
+    inset 4px 4px 0 0 var(--pixel-gold-darker),
+    inset -4px -4px 0 0 var(--pixel-gold);
+}
+
+.menu-links {
+  margin-top: 30px;
+}
+
+.menu-link {
+  font-family: var(--pixel-font);
+  color: var(--pixel-text-muted);
+  font-size: 20px;
+  margin: 0 20px;
+  cursor: pointer;
+  transition: color 0.2s;
+  text-shadow: 2px 2px 0 #000;
+}
+
+.menu-link:hover {
+  color: var(--pixel-gold);
+}
+
+/* ============================================ */
+/* Status Bar                                  */
+/* ============================================ */
+
+.status-bar {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  font-family: var(--pixel-font);
+  font-size: 18px;
+  color: var(--pixel-text-muted);
+  z-index: 3;
+  text-shadow: 2px 2px 0 #000;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.status-dot {
+  width: 12px;
+  height: 12px;
+  background: var(--pixel-text-muted);
+  /* Pixel-style square dot */
+  border: 2px solid var(--pixel-border);
+}
+
+.status-dot.online {
+  background: var(--pixel-health);
+  box-shadow: 0 0 10px rgba(46, 204, 113, 0.5);
+}
+
+.status-dot.offline {
+  background: var(--pixel-error);
+}
+
+.status-dot.connecting {
+  background: var(--pixel-warning);
+  animation: pixel-pulse 1s infinite;
+}
+
+/* ============================================ */
+/* Connecting Screen                           */
+/* ============================================ */
+
+.spinner {
+  width: 64px;
+  height: 64px;
+  border: 6px solid var(--pixel-bg-lighter);
+  border-top-color: var(--pixel-gold);
+  margin: 0 auto 30px;
+  animation: spin 1s steps(8) infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.connecting-text {
+  font-family: var(--pixel-font);
+  font-size: 28px;
+  color: var(--pixel-text-dim);
+  margin-bottom: 30px;
+  text-shadow: 2px 2px 0 #000;
+}
+
+.cancel-button {
+  font-family: var(--pixel-font);
+  font-size: 20px;
+  padding: 14px 50px;
+  background: transparent;
+  border: 4px solid var(--pixel-text-muted);
+  color: var(--pixel-text-dim);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-shadow: 2px 2px 0 #000;
+}
+
+.cancel-button:hover {
+  border-color: var(--pixel-gold);
+  color: var(--pixel-gold);
+}
+
+/* ============================================ */
+/* Queue Screen                                */
+/* ============================================ */
+
+.queue-title {
+  font-family: var(--pixel-font);
+  font-size: 40px;
+  color: var(--pixel-gold);
+  margin-bottom: 30px;
+  letter-spacing: 4px;
+  text-shadow: 2px 2px 0 #000;
+}
+
+.queue-info {
+  margin-bottom: 40px;
+}
+
+.queue-stat {
+  font-family: var(--pixel-font);
+  font-size: 22px;
+  color: var(--pixel-text-dim);
+  margin-bottom: 12px;
+  text-shadow: 2px 2px 0 #000;
+}
+
+.queue-stat-value {
+  color: var(--pixel-text);
+}
+
+.queue-timer {
+  font-family: var(--pixel-font);
+  font-size: 56px;
+  color: var(--pixel-text);
+  margin-bottom: 30px;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 2px 2px 0 #000;
+}
+
+/* ============================================ */
+/* Match Found Screen                          */
+/* ============================================ */
+
+.match-found-title {
+  font-family: var(--pixel-font);
+  font-size: 48px;
+  color: var(--pixel-gold);
+  margin-bottom: 40px;
+  text-shadow: 2px 2px 0 #000;
+  animation: pixel-glow 1s ease-in-out infinite alternate;
+}
+
+.teams-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  margin-bottom: 40px;
+}
+
+.team-box {
+  background: var(--pixel-bg-light);
+  border: 4px solid;
+  padding: 30px 50px;
+  min-width: 160px;
+  box-shadow:
+    inset -4px -4px 0 0 var(--pixel-bg-darker),
+    inset 4px 4px 0 0 var(--pixel-border-highlight);
+}
+
+.team-box.blue {
+  border-color: var(--pixel-team-blue);
+  box-shadow:
+    inset -4px -4px 0 0 #1a5276,
+    inset 4px 4px 0 0 #5dade2,
+    0 0 20px rgba(52, 152, 219, 0.3);
+}
+
+.team-box.red {
+  border-color: var(--pixel-team-red);
+  box-shadow:
+    inset -4px -4px 0 0 #922b21,
+    inset 4px 4px 0 0 #f1948a,
+    0 0 20px rgba(231, 76, 60, 0.3);
+}
+
+.team-label {
+  font-family: var(--pixel-font);
+  font-size: 18px;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  margin-bottom: 12px;
+  text-shadow: 2px 2px 0 #000;
+}
+
+.team-box.blue .team-label {
+  color: var(--pixel-team-blue);
+}
+
+.team-box.red .team-label {
+  color: var(--pixel-team-red);
+}
+
+.team-champion {
+  font-family: var(--pixel-font);
+  font-size: 28px;
+  color: var(--pixel-text);
+  text-shadow: 2px 2px 0 #000;
+}
+
+.vs-text {
+  font-family: var(--pixel-font);
+  font-size: 42px;
+  color: var(--pixel-gold);
+  text-shadow:
+    2px 2px 0 var(--pixel-gold-darker),
+    4px 4px 0 #000;
+}
+
+/* ============================================ */
+/* Loading Bar                                 */
+/* ============================================ */
+
+.loading-section {
+  margin-top: 30px;
+}
+
+.loading-text {
+  font-family: var(--pixel-font);
+  font-size: 20px;
+  color: var(--pixel-text-dim);
+  margin-bottom: 15px;
+  text-shadow: 2px 2px 0 #000;
+}
+
+.loading-bar-container {
+  width: 100%;
+  max-width: 400px;
+  height: 16px;
+  background: var(--pixel-bg-darker);
+  border: 4px solid var(--pixel-border);
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+.loading-bar {
+  height: 100%;
+  background: var(--pixel-gold);
+  width: 0%;
+  transition: width 0.3s ease-out;
+  /* Pixel-style progress bar with segments */
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--pixel-gold) 0px,
+    var(--pixel-gold) 8px,
+    var(--pixel-gold-dark) 8px,
+    var(--pixel-gold-dark) 10px
+  );
+}
+
+/* ============================================ */
+/* Error Screen                                */
+/* ============================================ */
+
+.error-icon {
+  font-size: 72px;
+  margin-bottom: 20px;
+  filter: drop-shadow(0 0 10px rgba(231, 76, 60, 0.5));
+}
+
+.error-title {
+  font-family: var(--pixel-font);
+  font-size: 36px;
+  color: var(--pixel-error);
+  margin-bottom: 15px;
+  text-shadow: 2px 2px 0 #000;
+}
+
+.error-message {
+  font-family: var(--pixel-font);
+  font-size: 20px;
+  color: var(--pixel-text-dim);
+  margin-bottom: 30px;
+  text-shadow: 2px 2px 0 #000;
+}
+
+.retry-button {
+  font-family: var(--pixel-font);
+  font-size: 24px;
+  padding: 18px 60px;
+  background: var(--pixel-gold-dark);
+  border: 4px solid var(--pixel-gold-darker);
+  box-shadow:
+    inset -4px -4px 0 0 var(--pixel-gold-darker),
+    inset 4px 4px 0 0 var(--pixel-gold);
+  color: var(--pixel-bg-dark);
+  cursor: pointer;
+  transition: transform 0.1s;
+  text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.retry-button:hover {
+  background: var(--pixel-gold);
+  transform: translateY(-2px);
+}
+
+/* ============================================ */
+/* Tip Text                                    */
+/* ============================================ */
+
+.tip-text {
+  position: fixed;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--pixel-font);
+  font-size: 18px;
+  color: var(--pixel-text-muted);
+  text-shadow: 2px 2px 0 #000;
+  z-index: 3;
+}
+
+/* ============================================ */
+/* Champion Select Screen Overrides            */
+/* ============================================ */
+
+/* Hide the game header on champion select to save space (class-based) */
+.matchmaking-container.champion-select-mode .game-logo,
+.matchmaking-container.champion-select-mode .game-title,
+.matchmaking-container.champion-select-mode .game-subtitle {
+  display: none;
+}
+
+/* Reduce container padding on champion select */
+.matchmaking-container.champion-select-mode {
+  padding: 20px;
+}
+
+/* :has() based selectors for browsers that support it (fallback for JS not running) */
+@supports selector(:has(*)) {
+  .matchmaking-container:has(#screen-champion-select.active) .game-logo,
+  .matchmaking-container:has(#screen-champion-select.active) .game-title,
+  .matchmaking-container:has(#screen-champion-select.active) .game-subtitle {
+    display: none;
+  }
+
+  .matchmaking-container:has(#screen-champion-select.active) {
+    padding: 20px;
+  }
+}

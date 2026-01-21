@@ -7,6 +7,7 @@ export interface Physicable extends Positionable {
   direction: Vector;
   acceleration: Vector;
   speed: number;
+  maxSpeed: number;
   angularAcceleration: number;
   angularVelocity: number;
   friction: number;

@@ -4,3 +4,6 @@ build/
 build.zip
 public/
 /dist/
+
+dist/*
+packages/*/dist/*

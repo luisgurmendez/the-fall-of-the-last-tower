@@ -1,0 +1,147 @@
+{
+  "$schema": "./fixture.schema.json",
+  "name": "Ability Scaling",
+  "description": "Test fixtures for ability damage/value calculations with stat scaling",
+  "tolerance": 0.01,
+
+  "scaled_value_calculation": {
+    "description": "scaled_value = base_value[rank] + (ad * ad_ratio) + (ap * ap_ratio) + (bonus_health * bonus_health_ratio) + ...",
+    "cases": [
+      {
+        "description": "Simple AD scaling ability",
+        "base_values": [60, 95, 130, 165, 200],
+        "rank": 1,
+        "attack_damage": 100,
+        "ability_power": 0,
+        "ad_ratio": 0.6,
+        "ap_ratio": 0,
+        "expected_value": 120,
+        "note": "60 + (100 * 0.6)"
+      },
+      {
+        "description": "Simple AP scaling ability",
+        "base_values": [80, 120, 160, 200, 240],
+        "rank": 3,
+        "attack_damage": 80,
+        "ability_power": 200,
+        "ad_ratio": 0,
+        "ap_ratio": 0.7,
+        "expected_value": 300,
+        "note": "160 + (200 * 0.7)"
+      },
+      {
+        "description": "Hybrid scaling ability",
+        "base_values": [50, 80, 110, 140, 170],
+        "rank": 5,
+        "attack_damage": 150,
+        "ability_power": 100,
+        "ad_ratio": 0.4,
+        "ap_ratio": 0.5,
+        "expected_value": 280,
+        "note": "170 + (150 * 0.4) + (100 * 0.5)"
+      },
+      {
+        "description": "Rank 1 with no bonus stats",
+        "base_values": [100, 150, 200, 250, 300],
+        "rank": 1,
+        "attack_damage": 0,
+        "ability_power": 0,
+        "ad_ratio": 0.5,
+        "ap_ratio": 0.3,
+        "expected_value": 100
+      },
+      {
+        "description": "Max rank high scaling",
+        "base_values": [40, 70, 100, 130, 160],
+        "rank": 5,
+        "attack_damage": 300,
+        "ability_power": 500,
+        "ad_ratio": 1.0,
+        "ap_ratio": 0.8,
+        "expected_value": 860,
+        "note": "160 + (300 * 1.0) + (500 * 0.8)"
+      }
+    ]
+  },
+
+  "bonus_health_scaling": {
+    "description": "Some abilities scale with bonus health",
+    "cases": [
+      {
+        "base_value": 100,
+        "bonus_health": 500,
+        "bonus_health_ratio": 0.08,
+        "expected_value": 140,
+        "note": "Tank ability: 100 + (500 * 0.08)"
+      },
+      {
+        "base_value": 80,
+        "bonus_health": 2000,
+        "bonus_health_ratio": 0.05,
+        "expected_value": 180
+      }
+    ]
+  },
+
+  "missing_health_scaling": {
+    "description": "Execute abilities scale with target's missing health",
+    "cases": [
+      {
+        "base_value": 100,
+        "target_max_health": 2000,
+        "target_current_health": 1000,
+        "missing_health_ratio": 0.08,
+        "expected_value": 180,
+        "note": "Missing = 1000, bonus = 1000 * 0.08 = 80"
+      },
+      {
+        "base_value": 150,
+        "target_max_health": 3000,
+        "target_current_health": 500,
+        "missing_health_ratio": 0.06,
+        "expected_value": 300,
+        "note": "Missing = 2500, bonus = 2500 * 0.06 = 150"
+      }
+    ]
+  },
+
+  "max_health_scaling": {
+    "description": "Some abilities scale with max health (usually % damage)",
+    "cases": [
+      {
+        "base_value": 50,
+        "target_max_health": 2000,
+        "max_health_ratio": 0.04,
+        "expected_value": 130,
+        "note": "50 + (2000 * 0.04)"
+      },
+      {
+        "base_value": 0,
+        "target_max_health": 5000,
+        "max_health_ratio": 0.10,
+        "expected_value": 500,
+        "note": "Pure % max health damage"
+      }
+    ]
+  },
+
+  "resistance_scaling": {
+    "description": "Some tank abilities scale with armor or magic resist",
+    "cases": [
+      {
+        "base_value": 60,
+        "armor": 200,
+        "armor_ratio": 0.5,
+        "expected_value": 160,
+        "note": "60 + (200 * 0.5)"
+      },
+      {
+        "base_value": 80,
+        "magic_resist": 150,
+        "mr_ratio": 0.4,
+        "expected_value": 140,
+        "note": "80 + (150 * 0.4)"
+      }
+    ]
+  }
+}

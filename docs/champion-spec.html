@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Siege - Starter Champions Spec</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'fighter': '#c45c2c',
+            'marksman': '#2c8c4c',
+            'mage': '#5c4c9c',
+            'assassin': '#8c2c4c',
+            'support': '#2c6c8c',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .ability-icon {
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 20px;
+      border-radius: 8px;
+    }
+    .stat-bar {
+      height: 8px;
+      border-radius: 4px;
+      background: #1f2937;
+    }
+    .stat-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.3s;
+    }
+  </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen">
+  <div class="container mx-auto px-4 py-8 max-w-6xl">
+
+    <!-- Header -->
+    <header class="text-center mb-12">
+      <h1 class="text-4xl font-bold mb-2">Siege</h1>
+      <p class="text-gray-400 text-lg">Starter Champions Specification</p>
+      <div class="mt-4 flex justify-center gap-4 text-sm">
+        <span class="px-3 py-1 bg-fighter rounded">Fighter</span>
+        <span class="px-3 py-1 bg-marksman rounded">Marksman</span>
+        <span class="px-3 py-1 bg-mage rounded">Mage</span>
+        <span class="px-3 py-1 bg-assassin rounded">Assassin</span>
+        <span class="px-3 py-1 bg-support rounded">Support</span>
+      </div>
+    </header>
+
+    <!-- Level Selector -->
+    <div class="mb-8 text-center">
+      <label class="text-gray-400 mr-4">Champion Level:</label>
+      <input type="range" id="levelSlider" min="1" max="18" value="1" class="w-64 align-middle">
+      <span id="levelDisplay" class="ml-4 text-2xl font-bold text-yellow-400">1</span>
+    </div>
+
+    <!-- Champions Grid -->
+    <div class="space-y-12" id="championsContainer">
+
+      <!-- BRAN -->
+      <section class="bg-gray-800 rounded-xl overflow-hidden" data-champion="bran">
+        <div class="bg-fighter p-4 flex items-center gap-4">
+          <div class="w-16 h-16 bg-gray-900 rounded-full flex items-center justify-center text-3xl">⚔️</div>
+          <div>
+            <h2 class="text-2xl font-bold">Bran, the Footsoldier</h2>
+            <p class="text-gray-200 opacity-80">Fighter</p>
+          </div>
+        </div>
+
+        <div class="p-6">
+          <p class="text-gray-400 italic mb-6">"Twenty years in the shield wall taught Bran one thing: fancy sword tricks get you killed."</p>
+
+          <!-- Stats -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-xs text-gray-400 uppercase">Health</div>
+              <div class="text-xl font-bold text-red-400" data-stat="health" data-base="620" data-per-level="95">620</div>
+            </div>
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-xs text-gray-400 uppercase">Mana</div>
+              <div class="text-xl font-bold text-blue-400" data-stat="mana" data-base="280" data-per-level="40">280</div>
+            </div>
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-xs text-gray-400 uppercase">Attack Damage</div>
+              <div class="text-xl font-bold text-orange-400" data-stat="ad" data-base="62" data-per-level="3.5">62</div>
+            </div>
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-xs text-gray-400 uppercase">Armor</div>
+              <div class="text-xl font-bold text-yellow-400" data-stat="armor" data-base="38" data-per-level="4.2">38</div>
+            </div>
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-xs text-gray-400 uppercase">Magic Resist</div>
+              <div class="text-xl font-bold text-purple-400" data-stat="mr" data-base="32" data-per-level="2.0">32</div>
+            </div>
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-xs text-gray-400 uppercase">Attack Speed</div>
+              <div class="text-xl font-bold text-green-400" data-stat="as" data-base="0.65" data-per-level="0.025">0.65</div>
+            </div>
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-xs text-gray-400 uppercase">Move Speed</div>
+              <div class="text-xl font-bold text-cyan-400">345</div>
+            </div>
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-xs text-gray-400 uppercase">Attack Range</div>
+              <div class="text-xl font-bold text-gray-300">150</div>
+            </div>
+          </div>
+
+          <!-- Abilities -->
+          <h3 class="text-lg font-bold mb-4 text-gray-300">Abilities</h3>
+          <div class="space-y-4">
+
+            <!-- Passive -->
+            <div class="bg-gray-700 rounded-lg p-4 flex gap-4">
+              <div class="ability-icon bg-gray-600 text-gray-300 shrink-0">P</div>
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="font-bold">Veteran's Grit</span>
+                  <span class="text-xs bg-gray-600 px-2 py-0.5 rounded">Passive</span>
+                </div>
+                <p class="text-gray-400 text-sm">Bran regenerates <span class="text-green-400 font-bold">1% max health/sec</span> while below <span class="text-red-400">30% health</span>.</p>
+              </div>
+            </div>
+
+            <!-- Q -->
+            <div class="bg-gray-700 rounded-lg p-4 flex gap-4">
+              <div class="ability-icon bg-fighter text-white shrink-0">Q</div>
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="font-bold">Heavy Slash</span>
+                  <span class="text-xs bg-blue-900 px-2 py-0.5 rounded">40 Mana</span>
+                  <span class="text-xs bg-gray-600 px-2 py-0.5 rounded">6s CD</span>
+                </div>
+                <p class="text-gray-400 text-sm">Swings sword in a frontal arc, dealing <span class="text-orange-400 font-bold" data-ability="q" data-values="80,120,160,200,240">80</span> <span class="text-gray-500">(+70% AD)</span> physical damage.</p>
+                <div class="mt-2 text-xs text-gray-500">Range: 250 | Angle: 180°</div>
+              </div>
+            </div>
+
+            <!-- W -->
+            <div class="bg-gray-700 rounded-lg p-4 flex gap-4">
+              <div class="ability-icon bg-fighter text-white shrink-0">W</div>
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="font-bold">Shield Block</span>
+                  <span class="text-xs bg-blue-900 px-2 py-0.5 rounded">50 Mana</span>
+                  <span class="text-xs bg-gray-600 px-2 py-0.5 rounded">12s CD</span>
+                </div>
+                <p class="text-gray-400 text-sm">Raises shield for 2s, gaining <span class="text-yellow-400 font-bold" data-ability="w" data-values="30,40,50,60,70">30%</span> damage reduction. Slowed by 20% while active.</p>
+              </div>
+            </div>
+
+            <!-- E -->
+            <div class="bg-gray-700 rounded-lg p-4 flex gap-4">
+              <div class="ability-icon bg-fighter text-white shrink-0">E</div>
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="font-bold">Shoulder Charge</span>
+                  <span class="text-xs bg-blue-900 px-2 py-0.5 rounded">60 Mana</span>
+                  <span class="text-xs bg-gray-600 px-2 py-0.5 rounded">10s CD</span>
+                </div>
+                <p class="text-gray-400 text-sm">Charges forward, dealing <span class="text-orange-400 font-bold" data-ability="e" data-values="60,90,120,150,180">60</span> <span class="text-gray-500">(+50% AD)</span> physical damage and stunning for <span class="text-yellow-400">0.75s</span>.</p>
+                <div class="mt-2 text-xs text-gray-500">Range: 400</div>
+              </div>
+            </div>
+
+            <!-- R -->
+            <div class="bg-gray-700 rounded-lg p-4 flex gap-4 border border-yellow-600">
+              <div class="ability-icon bg-yellow-600 text-white shrink-0">R</div>
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="font-bold">War Cry</span>
+                  <span class="text-xs bg-blue-900 px-2 py-0.5 rounded">100 Mana</span>
+                  <span class="text-xs bg-gray-600 px-2 py-0.5 rounded">80s CD</span>
+                </div>
+                <p class="text-gray-400 text-sm">Shouts, gaining <span class="text-green-400 font-bold" data-ability="r-as" data-values="20,30,40">20%</span> attack speed and <span class="text-cyan-400 font-bold" data-ability="r-ms" data-values="15,25,35">15%</span> movement speed for 6s.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ELARA -->
+      <section class="bg-gray-800 rounded-xl overflow-hidden" data-champion="elara">
+        <div class="bg-marksman p-4 flex items-center gap-4">
+          <div class="w-16 h-16 bg-gray-900 rounded-full flex items-center justify-center text-3xl">🏹</div>
+          <div>
+            <h2 class="text-2xl font-bold">Elara, the Bowmaiden</h2>
+            <p class="text-gray-200 opacity-80">Marksman</p>
+          </div>
+        </div>
+
+        <div class="p-6">
+          <p class="text-gray-400 italic mb-6">"She learned to shoot before she could write. She never misses—and she never forgives."</p>
+
+          <!-- Stats -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-xs text-gray-400 uppercase">Health</div>
+              <div class="text-xl font-bold text-red-400" data-stat="health" data-base="530" data-per-level="85">530</div>
+            </div>
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-xs text-gray-400 uppercase">Mana</div>
+              <div class="text-xl font-bold text-blue-400" data-stat="mana" data-base="320" data-per-level="45">320</div>
+            </div>
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-xs text-gray-400 uppercase">Attack Damage</div>
+              <div class="text-xl font-bold text-orange-400" data-stat="ad" data-base="58" data-per-level="3.2">58</div>
+            </div>
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-xs text-gray-400 uppercase">Armor</div>
+              <div class="text-xl font-bold text-yellow-400" data-stat="armor" data-base="26" data-per-level="3.5">26</div>
+            </div>
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-xs text-gray-400 uppercase">Magic Resist</div>
+              <div class="text-xl font-bold text-purple-400" data-stat="mr" data-base="30" data-per-level="1.5">30</div>
+            </div>
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-xs text-gray-400 uppercase">Attack Speed</div>
+              <div class="text-xl font-bold text-green-400" data-stat="as" data-base="0.68" data-per-level="0.035">0.68</div>
+            </div>
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-xs text-gray-400 uppercase">Move Speed</div>
+              <div class="text-xl font-bold text-cyan-400">330</div>
+            </div>
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-xs text-gray-400 uppercase">Attack Range</div>
+              <div class="text-xl font-bold text-gray-300">550</div>
+            </div>
+          </div>
+
+          <!-- Abilities -->
+          <h3 class="text-lg font-bold mb-4 text-gray-300">Abilities</h3>
+          <div class="space-y-4">
+
+            <div class="bg-gray-700 rounded-lg p-4 flex gap-4">
+              <div class="ability-icon bg-gray-600 text-gray-300 shrink-0">P</div>
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="font-bold">Steady Aim</span>
+                  <span class="text-xs bg-gray-600 px-2 py-0.5 rounded">Passive</span>
+                </div>
+                <p class="text-gray-400 text-sm">Basic attacks deal <span class="text-orange-400 font-bold">10% bonus damage</span> to targets more than <span class="text-cyan-400">500 units</span> away.</p>
+              </div>
+            </div>
+
+            <div class="bg-gray-700 rounded-lg p-4 flex gap-4">
+              <div class="ability-icon bg-marksman text-white shrink-0">Q</div>
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="font-bold">Piercing Arrow</span>
+                  <span class="text-xs bg-blue-900 px-2 py-0.5 rounded">50 Mana</span>
+                  <span class="text-xs bg-gray-600 px-2 py-0.5 rounded">7s CD</span>
+                </div>
+                <p class="text-gray-400 text-sm">Fires arrow that passes through enemies, dealing <span class="text-orange-400 font-bold" data-ability="q" data-values="70,110,150,190,230">70</span> <span class="text-gray-500">(+80% AD)</span> physical damage to all hit.</p>
+                <div class="mt-2 text-xs text-gray-500">Range: 800 | Width: 60 | Pierces</div>
+              </div>
+            </div>
+
+            <div class="bg-gray-700 rounded-lg p-4 flex gap-4">
+              <div class="ability-icon bg-marksman text-white shrink-0">W</div>
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="font-bold">Quick Step</span>
+                  <span class="text-xs bg-blue-900 px-2 py-0.5 rounded">40 Mana</span>
+                  <span class="text-xs bg-gray-600 px-2 py-0.5 rounded">14s CD</span>
+                </div>
+                <p class="text-gray-400 text-sm">Dashes short distance and gains <span class="text-cyan-400 font-bold">30% movement speed</span> for 2s.</p>
+                <div class="mt-2 text-xs text-gray-500">Dash Range: 300</div>
+              </div>
+            </div>
+
+            <div class="bg-gray-700 rounded-lg p-4 flex gap-4">
+              <div class="ability-icon bg-marksman text-white shrink-0">E</div>
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="font-bold">Crippling Shot</span>
+                  <span class="text-xs bg-blue-900 px-2 py-0.5 rounded">55 Mana</span>
+                  <span class="text-xs bg-gray-600 px-2 py-0.5 rounded">10s CD</span>
+                </div>
+                <p class="text-gray-400 text-sm">Fires arrow at target, dealing <span class="text-orange-400 font-bold" data-ability="e" data-values="50,80,110,140,170">50</span> <span class="text-gray-500">(+60% AD)</span> damage and slowing by <span class="text-cyan-400 font-bold" data-ability="e-slow" data-values="30,35,40,45,50">30%</span> for 2s.</p>
+                <div class="mt-2 text-xs text-gray-500">Range: 600 | Point-and-click</div>
+              </div>
+            </div>
+
+            <div class="bg-gray-700 rounded-lg p-4 flex gap-4 border border-yellow-600">
+              <div class="ability-icon bg-yellow-600 text-white shrink-0">R</div>
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="font-bold">Arrow Storm</span>
+                  <span class="text-xs bg-blue-900 px-2 py-0.5 rounded">100 Mana</span>
+                  <span class="text-xs bg-gray-600 px-2 py-0.5 rounded">90s CD</span>
+                </div>
+                <p class="text-gray-400 text-sm">After <span class="text-yellow-400">1s delay</span>, rains arrows on area dealing <span class="text-orange-400 font-bold" data-ability="r" data-values="200,300,400">200</span> <span class="text-gray-500">(+100% AD)</span> physical damage.</p>
+                <div class="mt-2 text-xs text-gray-500">Range: 700 | Radius: 250 | Delay: 1s</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MAGNUS -->
+      <section class="bg-gray-800 rounded-xl overflow-hidden" data-champion="magnus">
+        <div class="bg-mage p-4 flex items-center gap-4">
+          <div class="w-16 h-16 bg-gray-900 rounded-full flex items-center justify-center text-3xl">🔥</div>
+          <div>
+            <h2 class="text-2xl font-bold">Magnus, the Battlemage</h2>
+            <p class="text-gray-200 opacity-80">Mage</p>
+          </div>
+        </div>
+
+        <div class="p-6">
+          <p class="text-gray-400 italic mb-6">"He learned one thing—how to make things explode—and perfected it."</p>
+
+          <!-- Stats -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-xs text-gray-400 uppercase">Health</div>
+              <div class="text-xl font-bold text-red-400" data-stat="health" data-base="500" data-per-level="80">500</div>
+            </div>
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-xs text-gray-400 uppercase">Mana</div>
+              <div class="text-xl font-bold text-blue-400" data-stat="mana" data-base="400" data-per-level="55">400</div>
+            </div>
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-xs text-gray-400 uppercase">Attack Damage</div>
+              <div class="text-xl font-bold text-orange-400" data-stat="ad" data-base="52" data-per-level="2.5">52</div>
+            </div>
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-xs text-gray-400 uppercase">Ability Power</div>
+              <div class="text-xl font-bold text-purple-400" data-stat="ap" data-base="0" data-per-level="0">0</div>
+            </div>
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-xs text-gray-400 uppercase">Armor</div>
+              <div class="text-xl font-bold text-yellow-400" data-stat="armor" data-base="22" data-per-level="3.0">22</div>
+            </div>
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-xs text-gray-400 uppercase">Magic Resist</div>
+              <div class="text-xl font-bold text-purple-400" data-stat="mr" data-base="34" data-per-level="2.0">34</div>
+            </div>
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-xs text-gray-400 uppercase">Move Speed</div>
+              <div class="text-xl font-bold text-cyan-400">340</div>
+            </div>
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-xs text-gray-400 uppercase">Attack Range</div>
+              <div class="text-xl font-bold text-gray-300">475</div>
+            </div>
+          </div>
+
+          <!-- Abilities -->
+          <h3 class="text-lg font-bold mb-4 text-gray-300">Abilities</h3>
+          <div class="space-y-4">
+
+            <div class="bg-gray-700 rounded-lg p-4 flex gap-4 border border-purple-500">
+              <div class="ability-icon bg-purple-600 text-gray-300 shrink-0">P</div>
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="font-bold">Arcane Surge</span>
+                  <span class="text-xs bg-purple-900 px-2 py-0.5 rounded">Stacking</span>
+                </div>
+                <p class="text-gray-400 text-sm">Abilities generate <span class="text-purple-400 font-bold">Arcane Charge</span> stacks (max 4). Each stack increases ability damage by <span class="text-purple-400 font-bold">5%</span>. Stacks decay after 5s out of combat.</p>
+                <div class="mt-2 flex gap-2">
+                  <span class="px-2 py-1 bg-gray-600 rounded text-xs">0 stacks: +0%</span>
+                  <span class="px-2 py-1 bg-gray-600 rounded text-xs">4 stacks: +20%</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-gray-700 rounded-lg p-4 flex gap-4">
+              <div class="ability-icon bg-mage text-white shrink-0">Q</div>
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="font-bold">Fireball</span>
+                  <span class="text-xs bg-blue-900 px-2 py-0.5 rounded">45 Mana</span>
+                  <span class="text-xs bg-gray-600 px-2 py-0.5 rounded">5s CD</span>
+                </div>
+                <p class="text-gray-400 text-sm">Hurls fireball dealing <span class="text-purple-400 font-bold" data-ability="q" data-values="80,125,170,215,260">80</span> <span class="text-gray-500">(+65% AP)</span> magic damage to first enemy hit.</p>
+                <div class="mt-2 text-xs text-gray-500">Range: 700 | Width: 50 | Speed: 1200</div>
+              </div>
+            </div>
+
+            <div class="bg-gray-700 rounded-lg p-4 flex gap-4">
+              <div class="ability-icon bg-mage text-white shrink-0">W</div>
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="font-bold">Arcane Shield</span>
+                  <span class="text-xs bg-blue-900 px-2 py-0.5 rounded">60 Mana</span>
+                  <span class="text-xs bg-gray-600 px-2 py-0.5 rounded">14s CD</span>
+                </div>
+                <p class="text-gray-400 text-sm">Gains shield absorbing <span class="text-purple-400 font-bold" data-ability="w" data-values="60,100,140,180,220">60</span> <span class="text-gray-500">(+40% AP)</span> damage for 3s.</p>
+              </div>
+            </div>
+
+            <div class="bg-gray-700 rounded-lg p-4 flex gap-4">
+              <div class="ability-icon bg-mage text-white shrink-0">E</div>
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="font-bold">Blink</span>
+                  <span class="text-xs bg-blue-900 px-2 py-0.5 rounded">80 Mana</span>
+                  <span class="text-xs bg-gray-600 px-2 py-0.5 rounded">16s CD</span>
+                </div>
+                <p class="text-gray-400 text-sm">Instantly teleports to target location.</p>
+                <div class="mt-2 text-xs text-gray-500">Range: 400 | Instant cast</div>
+              </div>
+            </div>
+
+            <div class="bg-gray-700 rounded-lg p-4 flex gap-4 border border-yellow-600">
+              <div class="ability-icon bg-yellow-600 text-white shrink-0">R</div>
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="font-bold">Meteor</span>
+                  <span class="text-xs bg-blue-900 px-2 py-0.5 rounded">100 Mana</span>
+                  <span class="text-xs bg-gray-600 px-2 py-0.5 rounded">100s CD</span>
+                </div>
+                <p class="text-gray-400 text-sm">After <span class="text-yellow-400">1.5s delay</span>, meteor strikes dealing <span class="text-purple-400 font-bold" data-ability="r" data-values="250,375,500">250</span> <span class="text-gray-500">(+80% AP)</span> magic damage in area.</p>
+                <div class="mt-2 text-xs text-gray-500">Range: 800 | Radius: 300 | Delay: 1.5s</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- THORNE -->
+      <section class="bg-gray-800 rounded-xl overflow-hidden" data-champion="thorne">
+        <div class="bg-assassin p-4 flex items-center gap-4">
+          <div class="w-16 h-16 bg-gray-900 rounded-full flex items-center justify-center text-3xl">🗡️</div>
+          <div>
+            <h2 class="text-2xl font-bold">Thorne, the Sellsword</h2>
+            <p class="text-gray-200 opacity-80">Assassin</p>
+          </div>
+        </div>
+
+        <div class="p-6">
+          <p class="text-gray-400 italic mb-6">"Fast, silent, and gone before the body hits the ground."</p>
+
+          <!-- Stats -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-xs text-gray-400 uppercase">Health</div>
+              <div class="text-xl font-bold text-red-400" data-stat="health" data-base="560" data-per-level="90">560</div>
+            </div>
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-xs text-gray-400 uppercase">Mana</div>
+              <div class="text-xl font-bold text-blue-400" data-stat="mana" data-base="300" data-per-level="42">300</div>
+            </div>
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-xs text-gray-400 uppercase">Attack Damage</div>
+              <div class="text-xl font-bold text-orange-400" data-stat="ad" data-base="65" data-per-level="3.8">65</div>
+            </div>
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-xs text-gray-400 uppercase">Armor</div>
+              <div class="text-xl font-bold text-yellow-400" data-stat="armor" data-base="28" data-per-level="3.8">28</div>
+            </div>
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-xs text-gray-400 uppercase">Magic Resist</div>
+              <div class="text-xl font-bold text-purple-400" data-stat="mr" data-base="32" data-per-level="1.8">32</div>
+            </div>
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-xs text-gray-400 uppercase">Attack Speed</div>
+              <div class="text-xl font-bold text-green-400" data-stat="as" data-base="0.70" data-per-level="0.030">0.70</div>
+            </div>
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-xs text-gray-400 uppercase">Move Speed</div>
+              <div class="text-xl font-bold text-cyan-400">355</div>
+            </div>
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-xs text-gray-400 uppercase">Attack Range</div>
+              <div class="text-xl font-bold text-gray-300">125</div>
+            </div>
+          </div>
+
+          <!-- Abilities -->
+          <h3 class="text-lg font-bold mb-4 text-gray-300">Abilities</h3>
+          <div class="space-y-4">
+
+            <div class="bg-gray-700 rounded-lg p-4 flex gap-4">
+              <div class="ability-icon bg-gray-600 text-gray-300 shrink-0">P</div>
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="font-bold">Killer Instinct</span>
+                  <span class="text-xs bg-gray-600 px-2 py-0.5 rounded">Passive</span>
+                </div>
+                <p class="text-gray-400 text-sm">Deals <span class="text-orange-400 font-bold">15% bonus damage</span> to enemies below <span class="text-red-400">40% health</span>.</p>
+              </div>
+            </div>
+
+            <div class="bg-gray-700 rounded-lg p-4 flex gap-4">
+              <div class="ability-icon bg-assassin text-white shrink-0">Q</div>
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="font-bold">Swift Strike</span>
+                  <span class="text-xs bg-blue-900 px-2 py-0.5 rounded">45 Mana</span>
+                  <span class="text-xs bg-gray-600 px-2 py-0.5 rounded">8s CD</span>
+                </div>
+                <p class="text-gray-400 text-sm">Dashes through target enemy, dealing <span class="text-orange-400 font-bold" data-ability="q" data-values="70,105,140,175,210">70</span> <span class="text-gray-500">(+90% AD)</span> physical damage and appearing behind them.</p>
+                <div class="mt-2 text-xs text-gray-500">Range: 450 | Targeted</div>
+              </div>
+            </div>
+
+            <div class="bg-gray-700 rounded-lg p-4 flex gap-4">
+              <div class="ability-icon bg-assassin text-white shrink-0">W</div>
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="font-bold">Blade Flurry</span>
+                  <span class="text-xs bg-blue-900 px-2 py-0.5 rounded">50 Mana</span>
+                  <span class="text-xs bg-gray-600 px-2 py-0.5 rounded">9s CD</span>
+                </div>
+                <p class="text-gray-400 text-sm">Slashes rapidly, dealing <span class="text-orange-400 font-bold" data-ability="w" data-values="60,95,130,165,200">60</span> <span class="text-gray-500">(+70% AD)</span> physical damage to nearby enemies.</p>
+                <div class="mt-2 text-xs text-gray-500">Radius: 200 | Instant</div>
+              </div>
+            </div>
+
+            <div class="bg-gray-700 rounded-lg p-4 flex gap-4">
+              <div class="ability-icon bg-assassin text-white shrink-0">E</div>
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="font-bold">Shadow Step</span>
+                  <span class="text-xs bg-blue-900 px-2 py-0.5 rounded">70 Mana</span>
+                  <span class="text-xs bg-gray-600 px-2 py-0.5 rounded">18s CD</span>
+                </div>
+                <p class="text-gray-400 text-sm">Becomes <span class="text-purple-400 font-bold">invisible</span> for <span class="text-purple-400" data-ability="e" data-values="2,2.25,2.5,2.75,3">2</span>s and gains <span class="text-cyan-400">20% move speed</span>. Attacking breaks invisibility.</p>
+              </div>
+            </div>
+
+            <div class="bg-gray-700 rounded-lg p-4 flex gap-4 border border-yellow-600">
+              <div class="ability-icon bg-yellow-600 text-white shrink-0">R</div>
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="font-bold">Deathmark</span>
+                  <span class="text-xs bg-blue-900 px-2 py-0.5 rounded">100 Mana</span>
+                  <span class="text-xs bg-gray-600 px-2 py-0.5 rounded">90s CD</span>
+                </div>
+                <p class="text-gray-400 text-sm">Marks enemy for 3s. On expiry, deals <span class="text-orange-400 font-bold" data-ability="r" data-values="150,250,350">150</span> <span class="text-gray-500">(+100% AD)</span> + <span class="text-red-400 font-bold">30% of damage dealt</span> during mark.</p>
+                <div class="mt-2 text-xs text-gray-500">Range: 500 | Duration: 3s</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- GRETA -->
+      <section class="bg-gray-800 rounded-xl overflow-hidden" data-champion="greta">
+        <div class="bg-support p-4 flex items-center gap-4">
+          <div class="w-16 h-16 bg-gray-900 rounded-full flex items-center justify-center text-3xl">💚</div>
+          <div>
+            <h2 class="text-2xl font-bold">Greta, the Field Medic</h2>
+            <p class="text-gray-200 opacity-80">Support</p>
+          </div>
+        </div>
+
+        <div class="p-6">
+          <p class="text-gray-400 italic mb-6">"Her hands have closed more wounds than any surgeon in the kingdom."</p>
+
+          <!-- Stats -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-xs text-gray-400 uppercase">Health</div>
+              <div class="text-xl font-bold text-red-400" data-stat="health" data-base="480" data-per-level="75">480</div>
+            </div>
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-xs text-gray-400 uppercase">Mana</div>
+              <div class="text-xl font-bold text-blue-400" data-stat="mana" data-base="450" data-per-level="60">450</div>
+            </div>
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-xs text-gray-400 uppercase">Attack Damage</div>
+              <div class="text-xl font-bold text-orange-400" data-stat="ad" data-base="48" data-per-level="2.0">48</div>
+            </div>
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-xs text-gray-400 uppercase">Ability Power</div>
+              <div class="text-xl font-bold text-purple-400" data-stat="ap" data-base="0" data-per-level="0">0</div>
+            </div>
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-xs text-gray-400 uppercase">Armor</div>
+              <div class="text-xl font-bold text-yellow-400" data-stat="armor" data-base="24" data-per-level="3.2">24</div>
+            </div>
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-xs text-gray-400 uppercase">Magic Resist</div>
+              <div class="text-xl font-bold text-purple-400" data-stat="mr" data-base="30" data-per-level="2.0">30</div>
+            </div>
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-xs text-gray-400 uppercase">Move Speed</div>
+              <div class="text-xl font-bold text-cyan-400">335</div>
+            </div>
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-xs text-gray-400 uppercase">Attack Range</div>
+              <div class="text-xl font-bold text-gray-300">500</div>
+            </div>
+          </div>
+
+          <!-- Abilities -->
+          <h3 class="text-lg font-bold mb-4 text-gray-300">Abilities</h3>
+          <div class="space-y-4">
+
+            <div class="bg-gray-700 rounded-lg p-4 flex gap-4">
+              <div class="ability-icon bg-gray-600 text-gray-300 shrink-0">P</div>
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="font-bold">Triage</span>
+                  <span class="text-xs bg-gray-600 px-2 py-0.5 rounded">Passive</span>
+                </div>
+                <p class="text-gray-400 text-sm">Healing is <span class="text-green-400 font-bold">20% more effective</span> on allies below <span class="text-red-400">40% health</span>.</p>
+              </div>
+            </div>
+
+            <div class="bg-gray-700 rounded-lg p-4 flex gap-4">
+              <div class="ability-icon bg-support text-white shrink-0">Q</div>
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="font-bold">Healing Touch</span>
+                  <span class="text-xs bg-blue-900 px-2 py-0.5 rounded">60 Mana</span>
+                  <span class="text-xs bg-gray-600 px-2 py-0.5 rounded">8s CD</span>
+                </div>
+                <p class="text-gray-400 text-sm">Heals target ally for <span class="text-green-400 font-bold" data-ability="q" data-values="70,110,150,190,230">70</span> <span class="text-gray-500">(+50% AP)</span> health.</p>
+                <div class="mt-2 text-xs text-gray-500">Range: 600 | Point-and-click</div>
+              </div>
+            </div>
+
+            <div class="bg-gray-700 rounded-lg p-4 flex gap-4">
+              <div class="ability-icon bg-support text-white shrink-0">W</div>
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="font-bold">Purifying Light</span>
+                  <span class="text-xs bg-blue-900 px-2 py-0.5 rounded">80 Mana</span>
+                  <span class="text-xs bg-gray-600 px-2 py-0.5 rounded">14s CD</span>
+                </div>
+                <p class="text-gray-400 text-sm">Removes <span class="text-purple-400 font-bold">all debuffs</span> from target ally and heals for <span class="text-green-400 font-bold" data-ability="w" data-values="40,60,80,100,120">40</span> <span class="text-gray-500">(+30% AP)</span>.</p>
+                <div class="mt-2 text-xs text-gray-500">Range: 500 | Cleanses all CC</div>
+              </div>
+            </div>
+
+            <div class="bg-gray-700 rounded-lg p-4 flex gap-4">
+              <div class="ability-icon bg-support text-white shrink-0">E</div>
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="font-bold">Protective Blessing</span>
+                  <span class="text-xs bg-blue-900 px-2 py-0.5 rounded">70 Mana</span>
+                  <span class="text-xs bg-gray-600 px-2 py-0.5 rounded">12s CD</span>
+                </div>
+                <p class="text-gray-400 text-sm">Grants target ally <span class="text-yellow-400 font-bold" data-ability="e" data-values="20,30,40,50,60">20</span> armor and magic resist for 4s.</p>
+                <div class="mt-2 text-xs text-gray-500">Range: 600 | Duration: 4s</div>
+              </div>
+            </div>
+
+            <div class="bg-gray-700 rounded-lg p-4 flex gap-4 border border-yellow-600">
+              <div class="ability-icon bg-yellow-600 text-white shrink-0">R</div>
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="font-bold">Sanctuary</span>
+                  <span class="text-xs bg-blue-900 px-2 py-0.5 rounded">100 Mana</span>
+                  <span class="text-xs bg-gray-600 px-2 py-0.5 rounded">100s CD</span>
+                </div>
+                <p class="text-gray-400 text-sm">Creates healing zone for 5s. Allies inside regen <span class="text-green-400 font-bold" data-ability="r" data-values="40,60,80">40</span> <span class="text-gray-500">(+20% AP)</span> health/sec.</p>
+                <div class="mt-2 text-xs text-gray-500">Range: 600 | Radius: 300 | Duration: 5s</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- Stat Growth Reference -->
+    <section class="mt-12 bg-gray-800 rounded-xl p-6">
+      <h2 class="text-2xl font-bold mb-6">Stat Growth Reference</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-gray-400 border-b border-gray-700">
+              <th class="py-2 px-3">Champion</th>
+              <th class="py-2 px-3">HP</th>
+              <th class="py-2 px-3">HP/lvl</th>
+              <th class="py-2 px-3">Mana</th>
+              <th class="py-2 px-3">Mana/lvl</th>
+              <th class="py-2 px-3">AD</th>
+              <th class="py-2 px-3">AD/lvl</th>
+              <th class="py-2 px-3">Armor</th>
+              <th class="py-2 px-3">Armor/lvl</th>
+              <th class="py-2 px-3">MR</th>
+              <th class="py-2 px-3">MR/lvl</th>
+              <th class="py-2 px-3">AS</th>
+              <th class="py-2 px-3">AS/lvl</th>
+            </tr>
+          </thead>
+          <tbody class="text-gray-300">
+            <tr class="border-b border-gray-700">
+              <td class="py-2 px-3 font-bold text-fighter">Bran</td>
+              <td class="py-2 px-3">620</td>
+              <td class="py-2 px-3 text-green-400">+95</td>
+              <td class="py-2 px-3">280</td>
+              <td class="py-2 px-3 text-green-400">+40</td>
+              <td class="py-2 px-3">62</td>
+              <td class="py-2 px-3 text-green-400">+3.5</td>
+              <td class="py-2 px-3">38</td>
+              <td class="py-2 px-3 text-green-400">+4.2</td>
+              <td class="py-2 px-3">32</td>
+              <td class="py-2 px-3 text-green-400">+2.0</td>
+              <td class="py-2 px-3">0.65</td>
+              <td class="py-2 px-3 text-green-400">+2.5%</td>
+            </tr>
+            <tr class="border-b border-gray-700">
+              <td class="py-2 px-3 font-bold text-marksman">Elara</td>
+              <td class="py-2 px-3">530</td>
+              <td class="py-2 px-3 text-green-400">+85</td>
+              <td class="py-2 px-3">320</td>
+              <td class="py-2 px-3 text-green-400">+45</td>
+              <td class="py-2 px-3">58</td>
+              <td class="py-2 px-3 text-green-400">+3.2</td>
+              <td class="py-2 px-3">26</td>
+              <td class="py-2 px-3 text-green-400">+3.5</td>
+              <td class="py-2 px-3">30</td>
+              <td class="py-2 px-3 text-green-400">+1.5</td>
+              <td class="py-2 px-3">0.68</td>
+              <td class="py-2 px-3 text-green-400">+3.5%</td>
+            </tr>
+            <tr class="border-b border-gray-700">
+              <td class="py-2 px-3 font-bold text-mage">Magnus</td>
+              <td class="py-2 px-3">500</td>
+              <td class="py-2 px-3 text-green-400">+80</td>
+              <td class="py-2 px-3">400</td>
+              <td class="py-2 px-3 text-green-400">+55</td>
+              <td class="py-2 px-3">52</td>
+              <td class="py-2 px-3 text-green-400">+2.5</td>
+              <td class="py-2 px-3">22</td>
+              <td class="py-2 px-3 text-green-400">+3.0</td>
+              <td class="py-2 px-3">34</td>
+              <td class="py-2 px-3 text-green-400">+2.0</td>
+              <td class="py-2 px-3">0.63</td>
+              <td class="py-2 px-3 text-green-400">+2.0%</td>
+            </tr>
+            <tr class="border-b border-gray-700">
+              <td class="py-2 px-3 font-bold text-assassin">Thorne</td>
+              <td class="py-2 px-3">560</td>
+              <td class="py-2 px-3 text-green-400">+90</td>
+              <td class="py-2 px-3">300</td>
+              <td class="py-2 px-3 text-green-400">+42</td>
+              <td class="py-2 px-3">65</td>
+              <td class="py-2 px-3 text-green-400">+3.8</td>
+              <td class="py-2 px-3">28</td>
+              <td class="py-2 px-3 text-green-400">+3.8</td>
+              <td class="py-2 px-3">32</td>
+              <td class="py-2 px-3 text-green-400">+1.8</td>
+              <td class="py-2 px-3">0.70</td>
+              <td class="py-2 px-3 text-green-400">+3.0%</td>
+            </tr>
+            <tr>
+              <td class="py-2 px-3 font-bold text-support">Greta</td>
+              <td class="py-2 px-3">480</td>
+              <td class="py-2 px-3 text-green-400">+75</td>
+              <td class="py-2 px-3">450</td>
+              <td class="py-2 px-3 text-green-400">+60</td>
+              <td class="py-2 px-3">48</td>
+              <td class="py-2 px-3 text-green-400">+2.0</td>
+              <td class="py-2 px-3">24</td>
+              <td class="py-2 px-3 text-green-400">+3.2</td>
+              <td class="py-2 px-3">30</td>
+              <td class="py-2 px-3 text-green-400">+2.0</td>
+              <td class="py-2 px-3">0.60</td>
+              <td class="py-2 px-3 text-green-400">+2.0%</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="text-gray-500 text-xs mt-4">* Attack Speed growth is percentage based. Formula: Base AS × (1 + AS/lvl × (level - 1))</p>
+    </section>
+
+    <!-- Ability Rank Reference -->
+    <section class="mt-8 bg-gray-800 rounded-xl p-6">
+      <h2 class="text-2xl font-bold mb-6">Ability Rank Scaling</h2>
+      <p class="text-gray-400 mb-4">Champions gain ability points at levels 1-18. Basic abilities (Q/W/E) max at rank 5, Ultimate (R) maxes at rank 3.</p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-center">
+          <thead>
+            <tr class="text-gray-400 border-b border-gray-700">
+              <th class="py-2 px-2">Level</th>
+              <th class="py-2 px-2">1</th>
+              <th class="py-2 px-2">2</th>
+              <th class="py-2 px-2">3</th>
+              <th class="py-2 px-2">4</th>
+              <th class="py-2 px-2">5</th>
+              <th class="py-2 px-2 text-yellow-400">6</th>
+              <th class="py-2 px-2">7</th>
+              <th class="py-2 px-2">8</th>
+              <th class="py-2 px-2">9</th>
+              <th class="py-2 px-2">10</th>
+              <th class="py-2 px-2 text-yellow-400">11</th>
+              <th class="py-2 px-2">12</th>
+              <th class="py-2 px-2">13</th>
+              <th class="py-2 px-2">14</th>
+              <th class="py-2 px-2">15</th>
+              <th class="py-2 px-2 text-yellow-400">16</th>
+              <th class="py-2 px-2">17</th>
+              <th class="py-2 px-2">18</th>
+            </tr>
+          </thead>
+          <tbody class="text-gray-300">
+            <tr class="border-b border-gray-700">
+              <td class="py-2 px-2 font-bold">Ability Points</td>
+              <td class="py-2 px-2">1</td>
+              <td class="py-2 px-2">2</td>
+              <td class="py-2 px-2">3</td>
+              <td class="py-2 px-2">4</td>
+              <td class="py-2 px-2">5</td>
+              <td class="py-2 px-2 text-yellow-400">6</td>
+              <td class="py-2 px-2">7</td>
+              <td class="py-2 px-2">8</td>
+              <td class="py-2 px-2">9</td>
+              <td class="py-2 px-2">10</td>
+              <td class="py-2 px-2 text-yellow-400">11</td>
+              <td class="py-2 px-2">12</td>
+              <td class="py-2 px-2">13</td>
+              <td class="py-2 px-2">14</td>
+              <td class="py-2 px-2">15</td>
+              <td class="py-2 px-2 text-yellow-400">16</td>
+              <td class="py-2 px-2">17</td>
+              <td class="py-2 px-2">18</td>
+            </tr>
+            <tr>
+              <td class="py-2 px-2 font-bold">R Available</td>
+              <td class="py-2 px-2 text-gray-600">-</td>
+              <td class="py-2 px-2 text-gray-600">-</td>
+              <td class="py-2 px-2 text-gray-600">-</td>
+              <td class="py-2 px-2 text-gray-600">-</td>
+              <td class="py-2 px-2 text-gray-600">-</td>
+              <td class="py-2 px-2 text-yellow-400">R1</td>
+              <td class="py-2 px-2 text-gray-600">-</td>
+              <td class="py-2 px-2 text-gray-600">-</td>
+              <td class="py-2 px-2 text-gray-600">-</td>
+              <td class="py-2 px-2 text-gray-600">-</td>
+              <td class="py-2 px-2 text-yellow-400">R2</td>
+              <td class="py-2 px-2 text-gray-600">-</td>
+              <td class="py-2 px-2 text-gray-600">-</td>
+              <td class="py-2 px-2 text-gray-600">-</td>
+              <td class="py-2 px-2 text-gray-600">-</td>
+              <td class="py-2 px-2 text-yellow-400">R3</td>
+              <td class="py-2 px-2 text-gray-600">-</td>
+              <td class="py-2 px-2 text-gray-600">-</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="mt-12 text-center text-gray-500 text-sm">
+      <p>Siege - Starter Champions Specification v1.0</p>
+    </footer>
+
+  </div>
+
+  <script>
+    const levelSlider = document.getElementById('levelSlider');
+    const levelDisplay = document.getElementById('levelDisplay');
+
+    // Ability ranks based on typical skill order (max Q first, then W/E, R at 6/11/16)
+    function getAbilityRank(level, isUltimate) {
+      if (isUltimate) {
+        if (level >= 16) return 3;
+        if (level >= 11) return 2;
+        if (level >= 6) return 1;
+        return 0;
+      }
+      // Basic ability - simplified: assume maxing one ability first
+      return Math.min(5, Math.ceil(level / 2));
+    }
+
+    function updateStats(level) {
+      levelDisplay.textContent = level;
+
+      // Update all stats
+      document.querySelectorAll('[data-stat]').forEach(el => {
+        const base = parseFloat(el.dataset.base);
+        const perLevel = parseFloat(el.dataset.perLevel);
+        const stat = el.dataset.stat;
+
+        let value;
+        if (stat === 'as') {
+          // Attack speed uses percentage growth
+          value = base * (1 + perLevel * (level - 1));
+          el.textContent = value.toFixed(2);
+        } else {
+          value = base + perLevel * (level - 1);
+          el.textContent = Math.round(value);
+        }
+      });
+
+      // Update ability values
+      document.querySelectorAll('[data-ability]').forEach(el => {
+        const values = el.dataset.values.split(',').map(Number);
+        const abilityName = el.dataset.ability;
+        const isUltimate = abilityName.startsWith('r');
+        const rank = getAbilityRank(level, isUltimate);
+
+        if (rank > 0 && values[rank - 1] !== undefined) {
+          // Format based on whether it's a percentage or flat value
+          const value = values[rank - 1];
+          if (abilityName.includes('slow') || abilityName.includes('as') || abilityName.includes('ms')) {
+            el.textContent = value + '%';
+          } else if (abilityName === 'e' && el.closest('[data-champion="thorne"]')) {
+            el.textContent = value;
+          } else {
+            el.textContent = value;
+          }
+        }
+      });
+    }
+
+    levelSlider.addEventListener('input', (e) => {
+      updateStats(parseInt(e.target.value));
+    });
+
+    // Initialize
+    updateStats(1);
+  </script>
+</body>
+</html>

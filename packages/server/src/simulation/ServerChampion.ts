@@ -37,6 +37,20 @@ import {
 } from '@siege/shared';
 import { ServerEntity, ServerEntityConfig } from './ServerEntity';
 import type { ServerGameContext } from '../game/ServerGameContext';
+import {
+  getServerItemById,
+  type ServerItemDefinition,
+} from '../data/items';
+import {
+  getServerEffectById,
+  isCCEffect,
+  isStatEffect,
+  isOverTimeEffect,
+  type AnyServerEffectDef,
+  type ServerCCEffectDef,
+  type ServerStatEffectDef,
+  type ServerOverTimeEffectDef,
+} from '../data/effects';
 
 export interface ServerChampionConfig extends Omit<ServerEntityConfig, 'entityType'> {
   definition: ChampionDefinition;
@@ -113,6 +127,16 @@ export class ServerChampion extends ServerEntity {
   // Direction facing
   direction: Vector = new Vector(1, 0);
 
+  // Vision - champions provide fog of war vision
+  sightRange = 800;
+
+  // Trinket (ward placement) state
+  trinketCharges = 2;           // Start with 2 charges
+  trinketMaxCharges = 2;
+  trinketCooldown = 0;          // Cooldown after placing a ward
+  trinketRechargeTimer = 0;     // Time accumulator for next charge
+  trinketRechargeTime = 120;    // 120 seconds to recharge one ward
+
   constructor(config: ServerChampionConfig) {
     super({
       id: config.id,
@@ -124,6 +148,9 @@ export class ServerChampion extends ServerEntity {
     this.playerId = config.playerId;
     this.definition = config.definition;
 
+    // DEBUG: Log champion creation
+    console.log(`[ServerChampion] Created champion for player ${this.playerId}: id="${this.definition.id}", name="${this.definition.name}", Q=${this.definition.abilities.Q}`);
+
     // Initialize from definition
     const baseStats = this.definition.baseStats;
     this.health = baseStats.health;
@@ -134,6 +161,9 @@ export class ServerChampion extends ServerEntity {
 
     // Set initial direction based on side
     this.direction = new Vector(config.side === 0 ? 1 : -1, 0);
+
+    // Auto-level Q ability at start so players can cast abilities immediately
+    this.levelUpAbility('Q');
   }
 
   private createDefaultAbilityState(): AbilityState {
@@ -184,6 +214,9 @@ export class ServerChampion extends ServerEntity {
 
     // Regeneration (out of combat)
     this.updateRegeneration(dt);
+
+    // Update trinket (ward) charges
+    this.updateTrinket(dt);
 
     // Passive gold income
     this.gold += GameConfig.ECONOMY.PASSIVE_GOLD_PER_SECOND * dt;
@@ -244,14 +277,15 @@ export class ServerChampion extends ServerEntity {
       }
     }
 
-    if (this.targetPosition) {
-      this.moveToward(this.targetPosition, dt);
-
-      // Update facing direction
-      const dir = this.targetPosition.subtracted(this.position);
+    const target = this.targetPosition;
+    if (target) {
+      // Update facing direction first (before moveToward might clear targetPosition)
+      const dir = target.subtracted(this.position);
       if (dir.length() > 0.1) {
         this.direction = dir.normalized();
       }
+
+      this.moveToward(target, dt);
     }
   }
 
@@ -344,15 +378,125 @@ export class ServerChampion extends ServerEntity {
    * Update effects.
    */
   private updateEffects(dt: number): void {
-    // Update effect timers
+    // Process over-time effects and update timers
     this.activeEffects = this.activeEffects.filter(effect => {
+      const def = getServerEffectById(effect.definitionId);
+
+      // Handle over-time effects (DoT/HoT)
+      if (def && isOverTimeEffect(def)) {
+        this.processOverTimeEffect(effect, def, dt);
+      }
+
+      // Update timer
       effect.timeRemaining -= dt;
       return effect.timeRemaining > 0;
     });
 
-    // Recalculate CC status
-    // TODO: Implement proper CC calculation based on effect definitions
-    this.ccStatus = defaultCCStatus();
+    // Recalculate CC status from active effects
+    this.ccStatus = this.calculateCCStatus();
+
+    // Invalidate cached stats (effects may modify stats)
+    this.cachedStats = null;
+  }
+
+  /**
+   * Process an over-time effect tick.
+   */
+  private processOverTimeEffect(
+    effect: ActiveEffectState,
+    def: ServerOverTimeEffectDef,
+    dt: number
+  ): void {
+    // Initialize nextTickIn if not set
+    if (effect.nextTickIn === undefined) {
+      effect.nextTickIn = def.tickInterval;
+    }
+
+    // Countdown to next tick
+    effect.nextTickIn -= dt;
+
+    // Process tick when timer reaches 0
+    while (effect.nextTickIn <= 0) {
+      const tickValue = def.valuePerTick * effect.stacks;
+
+      switch (def.otType) {
+        case 'damage':
+          // Apply damage (DoT)
+          this.takeDamage(tickValue, def.damageType || 'magic', effect.sourceId);
+          break;
+        case 'heal':
+          // Apply healing (HoT)
+          this.heal(tickValue);
+          break;
+        case 'mana_drain':
+          // Drain mana
+          this.resource = Math.max(0, this.resource - tickValue);
+          break;
+        case 'mana_restore':
+          // Restore mana
+          const stats = this.getStats();
+          this.resource = Math.min(stats.maxResource, this.resource + tickValue);
+          break;
+      }
+
+      // Reset tick timer
+      effect.nextTickIn += def.tickInterval;
+    }
+  }
+
+  /**
+   * Calculate CC status from active effects.
+   */
+  private calculateCCStatus(): CrowdControlStatus {
+    const status: CrowdControlStatus = {
+      isStunned: false,
+      isSilenced: false,
+      isGrounded: false,
+      isRooted: false,
+      isDisarmed: false,
+      canMove: true,
+      canAttack: true,
+      canCast: true,
+      canUseMobilityAbilities: true,
+    };
+
+    for (const effect of this.activeEffects) {
+      const def = getServerEffectById(effect.definitionId);
+      if (!def || !isCCEffect(def)) continue;
+
+      switch (def.ccType) {
+        case 'stun':
+        case 'knockup':
+        case 'knockback':
+        case 'suppress':
+          status.isStunned = true;
+          break;
+        case 'silence':
+          status.isSilenced = true;
+          break;
+        case 'grounded':
+          status.isGrounded = true;
+          break;
+        case 'root':
+          status.isRooted = true;
+          break;
+        case 'disarm':
+        case 'blind':
+          status.isDisarmed = true;
+          break;
+        case 'slow':
+          // Slow doesn't set a flag, it modifies movement speed via stat effect
+          break;
+      }
+    }
+
+    // Compute ability to act
+    status.canMove = !status.isStunned && !status.isRooted;
+    status.canAttack = !status.isStunned && !status.isDisarmed;
+    status.canCast = !status.isStunned && !status.isSilenced;
+    status.canUseMobilityAbilities = status.canMove && status.canCast && !status.isGrounded;
+
+    return status;
   }
 
   /**
@@ -436,6 +580,56 @@ export class ServerChampion extends ServerEntity {
         this.resource + stats.resourceRegen * regenMultiplier * dt
       );
     }
+  }
+
+  /**
+   * Update trinket (ward) charges.
+   */
+  private updateTrinket(dt: number): void {
+    // Update cooldown
+    if (this.trinketCooldown > 0) {
+      this.trinketCooldown = Math.max(0, this.trinketCooldown - dt);
+    }
+
+    // Recharge if not at max charges
+    if (this.trinketCharges < this.trinketMaxCharges) {
+      this.trinketRechargeTimer += dt;
+
+      if (this.trinketRechargeTimer >= this.trinketRechargeTime) {
+        this.trinketCharges++;
+        this.trinketRechargeTimer = 0;
+      }
+    }
+  }
+
+  /**
+   * Check if can place a ward.
+   */
+  canPlaceWard(): boolean {
+    return this.trinketCharges > 0 && this.trinketCooldown <= 0 && !this.isDead;
+  }
+
+  /**
+   * Consume a trinket charge when placing a ward.
+   * Returns true if successful.
+   */
+  consumeTrinketCharge(): boolean {
+    if (!this.canPlaceWard()) {
+      return false;
+    }
+
+    this.trinketCharges--;
+    this.trinketCooldown = 1; // 1 second cooldown after placing
+
+    return true;
+  }
+
+  /**
+   * Get trinket recharge progress (0-1).
+   */
+  getTrinketRechargeProgress(): number {
+    if (this.trinketCharges >= this.trinketMaxCharges) return 1;
+    return this.trinketRechargeTimer / this.trinketRechargeTime;
   }
 
   /**
@@ -551,7 +745,7 @@ export class ServerChampion extends ServerEntity {
       level,
     };
 
-    // Apply modifiers
+    // Apply modifiers from abilities/buffs
     for (const modifier of this.statModifiers) {
       this.applyStatModifier(stats, modifier);
     }
@@ -559,7 +753,18 @@ export class ServerChampion extends ServerEntity {
     // Apply item stats
     for (const item of this.items) {
       if (item) {
-        // TODO: Apply item stats
+        const itemDef = getServerItemById(item.definitionId);
+        if (itemDef) {
+          this.applyItemStats(stats, itemDef);
+        }
+      }
+    }
+
+    // Apply effect stat modifiers (buffs/debuffs)
+    for (const effect of this.activeEffects) {
+      const effectDef = getServerEffectById(effect.definitionId);
+      if (effectDef && isStatEffect(effectDef)) {
+        this.applyEffectStatModifier(stats, effectDef, effect.stacks);
       }
     }
 
@@ -609,6 +814,180 @@ export class ServerChampion extends ServerEntity {
   removeModifier(source: string): void {
     this.statModifiers = this.statModifiers.filter(m => m.source !== source);
     this.cachedStats = null;
+  }
+
+  /**
+   * Apply item stats to champion stats.
+   */
+  private applyItemStats(stats: ChampionStats, itemDef: ServerItemDefinition): void {
+    for (const [key, value] of Object.entries(itemDef.stats)) {
+      const statKey = key as keyof ChampionBaseStats;
+      if (statKey in stats && typeof value === 'number') {
+        // Special handling for attack speed (percentage based)
+        if (statKey === 'attackSpeed') {
+          stats.attackSpeed *= (1 + value);
+        } else if (statKey === 'health') {
+          stats.maxHealth += value;
+        } else if (statKey === 'resource') {
+          stats.maxResource += value;
+        } else {
+          (stats as unknown as Record<string, number>)[statKey] += value;
+        }
+      }
+    }
+  }
+
+  /**
+   * Apply effect stat modifier to champion stats.
+   */
+  private applyEffectStatModifier(
+    stats: ChampionStats,
+    effectDef: ServerStatEffectDef,
+    stacks: number
+  ): void {
+    // Map effect stat type to ChampionStats key
+    // Note: lifesteal/spell_vamp/penetration are not in ChampionStats, handled separately
+    const statMap: Record<string, keyof ChampionStats> = {
+      'attack_damage': 'attackDamage',
+      'ability_power': 'abilityPower',
+      'armor': 'armor',
+      'magic_resist': 'magicResist',
+      'attack_speed': 'attackSpeed',
+      'movement_speed': 'movementSpeed',
+      'health_regen': 'healthRegen',
+      'mana_regen': 'resourceRegen',
+      'crit_chance': 'critChance',
+      'crit_damage': 'critDamage',
+    };
+
+    const statKey = statMap[effectDef.stat];
+    if (!statKey || !(statKey in stats)) return;
+
+    // Apply flat value (multiplied by stacks)
+    if (effectDef.flatValue !== undefined) {
+      (stats as unknown as Record<string, number>)[statKey] += effectDef.flatValue * stacks;
+    }
+
+    // Apply percent value (compounded by stacks)
+    if (effectDef.percentValue !== undefined) {
+      const multiplier = Math.pow(1 + effectDef.percentValue, stacks);
+      (stats as unknown as Record<string, number>)[statKey] *= multiplier;
+    }
+  }
+
+  /**
+   * Apply an effect to this champion.
+   */
+  applyEffect(effectId: string, duration: number, sourceId?: string, stacks = 1): void {
+    const def = getServerEffectById(effectId);
+    if (!def) {
+      console.warn(`[ServerChampion] Unknown effect: ${effectId}`);
+      return;
+    }
+
+    // Check for existing effect
+    const existing = this.activeEffects.find(e => e.definitionId === effectId);
+
+    if (existing) {
+      // Handle stack behavior
+      switch (def.stackBehavior) {
+        case 'refresh':
+          existing.timeRemaining = duration;
+          break;
+        case 'extend':
+          existing.timeRemaining += duration;
+          break;
+        case 'stack':
+          if (!def.maxStacks || existing.stacks < def.maxStacks) {
+            existing.stacks += stacks;
+          }
+          existing.timeRemaining = duration; // Usually refresh on stack
+          break;
+        case 'replace':
+          existing.timeRemaining = duration;
+          existing.stacks = stacks;
+          break;
+        case 'ignore':
+          // Do nothing
+          break;
+      }
+    } else {
+      // Add new effect
+      const newEffect: ActiveEffectState = {
+        definitionId: effectId,
+        sourceId,
+        timeRemaining: duration,
+        stacks,
+        instanceId: `${effectId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      };
+
+      // Initialize over-time effect tick timer
+      if (isOverTimeEffect(def)) {
+        newEffect.nextTickIn = def.tickInterval;
+      }
+
+      this.activeEffects.push(newEffect);
+    }
+
+    // Invalidate cached stats and recalculate CC status
+    this.cachedStats = null;
+    this.ccStatus = this.calculateCCStatus();
+  }
+
+  /**
+   * Remove an effect from this champion.
+   */
+  removeEffect(effectId: string): boolean {
+    const index = this.activeEffects.findIndex(e => e.definitionId === effectId);
+    if (index === -1) return false;
+
+    this.activeEffects.splice(index, 1);
+    this.cachedStats = null;
+    this.ccStatus = this.calculateCCStatus();
+    return true;
+  }
+
+  /**
+   * Remove all effects matching a category.
+   */
+  removeEffectsByCategory(category: 'buff' | 'debuff' | 'neutral'): number {
+    const before = this.activeEffects.length;
+    this.activeEffects = this.activeEffects.filter(e => {
+      const def = getServerEffectById(e.definitionId);
+      return def?.category !== category;
+    });
+    this.cachedStats = null;
+    this.ccStatus = this.calculateCCStatus();
+    return before - this.activeEffects.length;
+  }
+
+  /**
+   * Cleanse all cleansable debuffs.
+   */
+  cleanse(): number {
+    const before = this.activeEffects.length;
+    this.activeEffects = this.activeEffects.filter(e => {
+      const def = getServerEffectById(e.definitionId);
+      // Keep if not a debuff, or if not cleansable
+      return def?.category !== 'debuff' || !def.cleansable;
+    });
+    this.cachedStats = null;
+    this.ccStatus = this.calculateCCStatus();
+    return before - this.activeEffects.length;
+  }
+
+  /**
+   * Check if champion has a specific effect.
+   */
+  hasEffect(effectId: string): boolean {
+    return this.activeEffects.some(e => e.definitionId === effectId);
+  }
+
+  /**
+   * Get an active effect by ID.
+   */
+  getEffect(effectId: string): ActiveEffectState | undefined {
+    return this.activeEffects.find(e => e.definitionId === effectId);
   }
 
   /**
@@ -692,6 +1071,136 @@ export class ServerChampion extends ServerEntity {
     this.cachedStats = null;
   }
 
+  // =====================
+  // Item System
+  // =====================
+
+  /**
+   * Buy an item.
+   * @returns true if purchase succeeded
+   */
+  buyItem(itemId: string): boolean {
+    const itemDef = getServerItemById(itemId);
+    if (!itemDef) {
+      console.log(`[ServerChampion] Item not found: ${itemId}`);
+      return false;
+    }
+
+    // Check gold
+    if (this.gold < itemDef.cost) {
+      console.log(`[ServerChampion] Not enough gold for ${itemDef.name}: have ${this.gold}, need ${itemDef.cost}`);
+      return false;
+    }
+
+    // Check if unique and already owned
+    if (itemDef.isUnique && this.hasItem(itemId)) {
+      console.log(`[ServerChampion] Already owns unique item: ${itemDef.name}`);
+      return false;
+    }
+
+    // Find empty slot
+    const emptySlot = this.findEmptySlot();
+    if (emptySlot === null) {
+      console.log(`[ServerChampion] Inventory full, cannot buy ${itemDef.name}`);
+      return false;
+    }
+
+    // Deduct gold and add item
+    this.gold -= itemDef.cost;
+    this.totalGoldSpent += itemDef.cost;
+    this.items[emptySlot] = {
+      definitionId: itemId,
+      slot: emptySlot as ItemSlot,
+      passiveCooldowns: {},
+      nextIntervalTick: {},
+    };
+
+    // Invalidate cached stats
+    this.cachedStats = null;
+
+    console.log(`[ServerChampion] ${this.playerId} bought ${itemDef.name} for ${itemDef.cost}g (remaining: ${this.gold}g)`);
+    return true;
+  }
+
+  /**
+   * Sell an item from a specific slot.
+   * @returns gold gained, or 0 if failed
+   */
+  sellItem(slot: number): number {
+    if (slot < 0 || slot >= 6) {
+      console.log(`[ServerChampion] Invalid slot: ${slot}`);
+      return 0;
+    }
+
+    const item = this.items[slot];
+    if (!item) {
+      console.log(`[ServerChampion] No item in slot ${slot}`);
+      return 0;
+    }
+
+    const itemDef = getServerItemById(item.definitionId);
+    if (!itemDef) {
+      console.log(`[ServerChampion] Item definition not found: ${item.definitionId}`);
+      return 0;
+    }
+
+    // Add gold and remove item
+    const goldGained = itemDef.sellValue;
+    this.gold += goldGained;
+    this.items[slot] = null;
+
+    // Invalidate cached stats
+    this.cachedStats = null;
+
+    console.log(`[ServerChampion] ${this.playerId} sold ${itemDef.name} for ${goldGained}g (total: ${this.gold}g)`);
+    return goldGained;
+  }
+
+  /**
+   * Check if champion has a specific item.
+   */
+  hasItem(itemId: string): boolean {
+    return this.items.some(item => item?.definitionId === itemId);
+  }
+
+  /**
+   * Find first empty inventory slot.
+   */
+  private findEmptySlot(): ItemSlot | null {
+    for (let i = 0; i < 6; i++) {
+      if (!this.items[i]) {
+        return i as ItemSlot;
+      }
+    }
+    return null;
+  }
+
+  // =====================
+  // Collision Interface
+  // =====================
+
+  /**
+   * Champions participate in collision.
+   */
+  override isCollidable(): boolean {
+    return !this.isDead;
+  }
+
+  /**
+   * Champion collision radius.
+   */
+  override getRadius(): number {
+    return 25; // Standard champion collision radius
+  }
+
+  /**
+   * Champion collision mass.
+   * Champions are heavier than minions, so they push minions more.
+   */
+  override getMass(): number {
+    return 100; // Standard champion mass
+  }
+
   /**
    * Convert to network snapshot.
    */
@@ -739,6 +1248,11 @@ export class ServerChampion extends ServerEntity {
       deaths: this.deaths,
       assists: this.assists,
       cs: this.cs,
+
+      trinketCharges: this.trinketCharges,
+      trinketMaxCharges: this.trinketMaxCharges,
+      trinketCooldown: this.trinketCooldown,
+      trinketRechargeProgress: this.getTrinketRechargeProgress(),
     };
   }
 }

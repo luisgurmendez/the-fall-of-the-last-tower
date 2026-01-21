@@ -1,0 +1,33 @@
+{
+  "$schema": "./fixture.schema.json",
+  "name": "Cooldown Reduction (Ability Haste)",
+  "description": "Test fixtures for ability haste and cooldown calculations",
+  "tolerance": 0.01,
+
+  "ability_haste_to_cdr": {
+    "description": "cdr = ability_haste / (100 + ability_haste)",
+    "cases": [
+      { "ability_haste": 0, "expected_cdr": 0.0 },
+      { "ability_haste": 10, "expected_cdr": 0.0909 },
+      { "ability_haste": 20, "expected_cdr": 0.1667 },
+      { "ability_haste": 50, "expected_cdr": 0.3333 },
+      { "ability_haste": 100, "expected_cdr": 0.5 },
+      { "ability_haste": 150, "expected_cdr": 0.6 },
+      { "ability_haste": 200, "expected_cdr": 0.6667 }
+    ]
+  },
+
+  "actual_cooldown_calculation": {
+    "description": "actual_cooldown = base_cooldown * (1 - cdr) = base_cooldown * (100 / (100 + ability_haste))",
+    "cases": [
+      { "base_cooldown": 10, "ability_haste": 0, "expected_cooldown": 10.0 },
+      { "base_cooldown": 10, "ability_haste": 50, "expected_cooldown": 6.67 },
+      { "base_cooldown": 10, "ability_haste": 100, "expected_cooldown": 5.0 },
+      { "base_cooldown": 60, "ability_haste": 0, "expected_cooldown": 60.0 },
+      { "base_cooldown": 60, "ability_haste": 20, "expected_cooldown": 50.0 },
+      { "base_cooldown": 60, "ability_haste": 100, "expected_cooldown": 30.0 },
+      { "base_cooldown": 120, "ability_haste": 50, "expected_cooldown": 80.0 },
+      { "base_cooldown": 8, "ability_haste": 70, "expected_cooldown": 4.71 }
+    ]
+  }
+}

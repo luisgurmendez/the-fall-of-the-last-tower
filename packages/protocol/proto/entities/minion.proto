@@ -1,0 +1,46 @@
+syntax = "proto3";
+package siege.entities;
+
+import "common/enums.proto";
+
+option go_package = "github.com/siege/protocol/entities";
+
+// Minion state snapshot for network sync
+message MinionSnapshot {
+  // Identity
+  string entity_id = 1;
+  siege.common.EntityType entity_type = 2;
+  siege.common.Side side = 3;
+  siege.common.MinionType minion_type = 4;
+
+  // Position
+  float x = 10;
+  float y = 11;
+  optional float target_x = 12;
+  optional float target_y = 13;
+  optional string target_entity_id = 14;
+
+  // Stats
+  float health = 20;
+  float max_health = 21;
+
+  // State
+  bool is_dead = 30;
+}
+
+// Minion stats definition (for configuration)
+message MinionStats {
+  float health = 1;
+  float armor = 2;
+  float magic_resist = 3;
+  float attack_damage = 4;
+  float attack_range = 5;
+  float attack_cooldown = 6;
+  float movement_speed = 7;
+  float sight_range = 8;
+  float collision_radius = 9;
+
+  // Rewards
+  float gold_reward = 20;
+  float experience_reward = 21;
+}

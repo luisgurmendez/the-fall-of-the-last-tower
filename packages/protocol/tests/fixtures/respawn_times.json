@@ -1,0 +1,26 @@
+{
+  "$schema": "./fixture.schema.json",
+  "name": "Respawn Times",
+  "description": "Test fixtures for respawn timer calculations",
+  "tolerance": 0.01,
+
+  "constants": {
+    "base_respawn_time_seconds": 6,
+    "respawn_time_per_level_seconds": 2,
+    "max_respawn_time_seconds": 60
+  },
+
+  "respawn_timer_calculation": {
+    "description": "respawn_time = min(base + per_level * (level - 1), max_time)",
+    "cases": [
+      { "level": 1, "expected_seconds": 6 },
+      { "level": 2, "expected_seconds": 8 },
+      { "level": 3, "expected_seconds": 10 },
+      { "level": 5, "expected_seconds": 14 },
+      { "level": 10, "expected_seconds": 24 },
+      { "level": 15, "expected_seconds": 34 },
+      { "level": 18, "expected_seconds": 40 },
+      { "level": 28, "expected_seconds": 60, "note": "Capped at max (hypothetical high level)" }
+    ]
+  }
+}

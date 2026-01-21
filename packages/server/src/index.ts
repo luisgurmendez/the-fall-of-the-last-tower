@@ -13,9 +13,35 @@ export { GameRoom, type GameRoomConfig, type PlayerInfo, type GameRoomState } fr
 // Simulation
 export { ServerEntity, type ServerEntityConfig } from './simulation/ServerEntity';
 export { ServerChampion, type ServerChampionConfig } from './simulation/ServerChampion';
+export { ServerMinion, type ServerMinionConfig } from './simulation/ServerMinion';
+export { ServerTower, type ServerTowerConfig } from './simulation/ServerTower';
+
+// Navigation
+export { ServerNavGrid, CELL_SIZE } from './navigation/ServerNavGrid';
+
+// Systems
+export { FogOfWarServer, type VisionSource, type VisibilityResult } from './systems/FogOfWarServer';
 
 // Networking
 export { InputHandler, type InputValidationResult, type PendingInput } from './network/InputHandler';
+export {
+  WebSocketServer,
+  type WebSocketConnection,
+  type WebSocketServerConfig,
+  type MessageHandler,
+  type ConnectionHandler,
+  type DisconnectHandler,
+  type ParsedMessage,
+  type ServerMessage,
+} from './network/WebSocketServer';
+export { BunWebSocketServer } from './network/BunWebSocketServer';
+export { StateSerializer } from './network/StateSerializer';
+
+// Game Room Management
+export { GameRoomManager, type GameRoomManagerConfig } from './game/GameRoomManager';
+
+// Matchmaking
+export { Matchmaker, type MatchmakerConfig, type QueuedPlayer, type MatchResult } from './matchmaking/Matchmaker';
 
 // Re-export shared types for convenience
 export {
@@ -29,6 +55,10 @@ export {
   type StateUpdate,
   type FullStateSnapshot,
   type ChampionDefinition,
+  type MinionType,
+  type LaneId,
+  type TowerTier,
+  type TowerLane,
 } from '@siege/shared';
 
 console.log('[Siege Server] Module loaded');

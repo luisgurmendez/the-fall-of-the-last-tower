@@ -1,27 +1,12 @@
-import Renderable from "@/behaviors/renderable";
-import Stepable from "@/behaviors/stepable";
-import RenderElement, { NoRender } from "@/render/renderElement";
-import RandomUtils from "@/utils/random";
-import Vector from "@/physics/vector";
-import GameContext from "@/core/gameContext";
-import { PositionableMixin } from "@/mixins/positional";
+/**
+ * @deprecated Use WorldEntity, ScreenEntity, or LogicEntity from '@/core/GameObject' instead.
+ *
+ * This file is kept for backwards compatibility.
+ * New code should import from '@/core/GameObject'.
+ */
 
-const PositionalMixins = PositionableMixin(Object);
+import { WorldEntity } from '@/core/GameObject';
 
-class BaseObject extends PositionalMixins implements Renderable, Stepable {
-  public id: string;
-
-  constructor(position = new Vector(), id: string = RandomUtils.generateId()) {
-    super();
-    this.id = id;
-    this.position = position;
-  }
-
-  render(): RenderElement {
-    return new NoRender();
-  }
-
-  step(gameContext: GameContext) { }
-}
-
-export default BaseObject;
+// Re-export WorldEntity as BaseObject for backwards compatibility
+export { WorldEntity as default };
+export { WorldEntity as BaseObject };

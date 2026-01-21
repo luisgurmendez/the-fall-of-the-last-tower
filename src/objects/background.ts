@@ -6,12 +6,9 @@ import { Rectangle } from "./shapes";
 import PixelArtBuilder from "@/sprites/PixelArtBuilder";
 import RandomUtils from "@/utils/random";
 
-// import bloodstains1 from "@/art/bloodstains/bloodstains1";
-// import bloodstains2 from "@/art/bloodstains/bloodstains2";
-// import bloodstains3 from "@/art/bloodstains/bloodstains3";
-// import bloodstains4 from "@/art/bloodstains/bloodstains4";
 import bloodstains0 from "@/art/bloodstains/bloodstains0";
 import PixelArtDrawUtils from "@/utils/pixelartDrawUtils";
+import { GameMap, MapConfig } from "@/map";
 
 
 // import tree0 from "@/art/tree0";
@@ -21,9 +18,12 @@ export const BACKGROUND_ID = "bg";
 class Background extends BaseObject {
   backgroundCanvas: HTMLCanvasElement;
   canvasRenderingContext: CanvasRenderingContext2D | null;
-  constructor(worldDimensions: Rectangle) {
-    super();
-    this.id = BACKGROUND_ID;
+  gameMap: GameMap;
+
+  constructor(worldDimensions: Rectangle, gameMap?: GameMap) {
+    super(new Vector(), BACKGROUND_ID);
+    this.gameMap = gameMap ?? new GameMap();
+
     const canvas = document.createElement("canvas");
     canvas.width = worldDimensions.w;
     canvas.height = worldDimensions.h;
@@ -33,8 +33,8 @@ class Background extends BaseObject {
     ctx!.fillStyle = "#99c555";
     ctx!.fillRect(0, 0, worldDimensions.w, worldDimensions.h);
 
-
-    forRandomPositionsInside(9999, worldDimensions, (position) => {
+    // Draw grass decorations
+    forRandomPositionsInside(MapConfig.DECORATIONS.GRASS_COUNT, worldDimensions, (position) => {
       ctx?.save();
       if (RandomUtils.getRandomBoolean()) {
         ctx?.scale(-1, 1);
@@ -54,7 +54,8 @@ class Background extends BaseObject {
       ctx?.restore();
     });
 
-    drawTrees(ctx!, worldDimensions);
+    // Draw trees using the map's terrain generation
+    this.drawTreesFromMap(ctx!, worldDimensions);
     this.backgroundCanvas = canvas;
   }
 
@@ -171,6 +172,36 @@ class Background extends BaseObject {
   }
 
   step() { }
+
+  /**
+   * Draw trees using the GameMap's terrain generation.
+   * Trees are placed in non-playable areas (outside bases and lanes).
+   */
+  private drawTreesFromMap(ctx: CanvasRenderingContext2D, worldDimensions: Rectangle) {
+    const treeCanvases = [tree0, tree1, tree2, tree3, tree4];
+    const trees = this.gameMap.generateTrees();
+
+    ctx.save();
+    ctx.translate(worldDimensions.w / 2, worldDimensions.h / 2);
+
+    for (const treeData of trees) {
+      const treeCanvas = treeCanvases[treeData.variant % treeCanvases.length];
+      ctx.drawImage(
+        treeCanvas,
+        treeData.position.x - treeCanvas.width / 2,
+        treeData.position.y - treeCanvas.height / 2
+      );
+    }
+
+    ctx.restore();
+  }
+
+  /**
+   * Check if a position is in a playable area using the map.
+   */
+  isPlayableArea(position: Vector): boolean {
+    return this.gameMap.isPlayableArea(position);
+  }
 }
 
 export default Background;
@@ -259,33 +290,31 @@ function buildTreeCanvas() {
 }
 
 
+/**
+ * Legacy function for backward compatibility.
+ * @deprecated Use GameMap.isPlayableArea() instead.
+ */
 export const isNotInsidePlayableAreaFn = (v: Vector) => {
-  const fx = 2000 + (-1500 / (1 + Math.E ** (-1 * ((v.x - 500) / 500))));
-  return fx < Math.abs(v.y) || Math.abs(v.x) > 2500 || Math.abs(v.y) > 2500;
-}
+  // Uses the default MapConfig values
+  const halfSize = MapConfig.SIZE / 2;
+  const baseRadius = MapConfig.BASE.RADIUS;
+  const edgeOffset = MapConfig.BASE.EDGE_OFFSET;
 
-function drawTrees(
-  ctx: CanvasRenderingContext2D,
-  worldDimensions: Rectangle
-) {
+  // Check if in left base
+  const leftBaseX = -halfSize + edgeOffset;
+  const distToLeftBase = Math.sqrt((v.x - leftBaseX) ** 2 + v.y ** 2);
+  if (distToLeftBase < baseRadius) return false;
 
-  let treesPlanted = 0;
+  // Check if in right base
+  const rightBaseX = halfSize - edgeOffset;
+  const distToRightBase = Math.sqrt((v.x - rightBaseX) ** 2 + v.y ** 2);
+  if (distToRightBase < baseRadius) return false;
 
-  ctx.save();
-  ctx.translate(worldDimensions.w / 2, worldDimensions.h / 2);
-
-  const trees = [];
-  while (treesPlanted < 15999) {
-    const x = RandomUtils.getIntegerInRange(-worldDimensions.w / 2, worldDimensions.w / 2);
-    const y = RandomUtils.getIntegerInRange(-worldDimensions.w / 2, worldDimensions.w / 2);
-    const tree = RandomUtils.getRandomValueOf([tree0, tree1, tree2, tree3, tree4]);
-    if (isNotInsidePlayableAreaFn(new Vector(x, y))) {
-      treesPlanted++;
-      trees.push({ x, y, tree })
-    }
+  // Check if in lane (simplified center lane check)
+  const laneWidth = MapConfig.LANES.WIDTH;
+  if (Math.abs(v.y) < laneWidth / 2 && v.x > leftBaseX && v.x < rightBaseX) {
+    return false;
   }
-  trees.sort((a, b) => a.y - b.y).forEach(({ x, y, tree }) => {
-    ctx.drawImage(tree, x, y);
-  });
-  ctx.restore();
-}
+
+  return true;
+};

@@ -1,0 +1,61 @@
+# Siege MOBA - Minion Statistics
+
+minion_types:
+  melee:
+    health: 477
+    armor: 0
+    magic_resist: 0
+    attack_damage: 12
+    attack_range: 110
+    attack_cooldown: 1.25
+    movement_speed: 325
+    sight_range: 800
+    collision_radius: 24
+    gold_reward: 21
+    experience_reward: 60
+
+  caster:
+    health: 296
+    armor: 0
+    magic_resist: 0
+    attack_damage: 23
+    attack_range: 550
+    attack_cooldown: 1.0
+    movement_speed: 325
+    sight_range: 800
+    collision_radius: 24
+    gold_reward: 14
+    experience_reward: 29
+
+  siege:
+    health: 900
+    armor: 0
+    magic_resist: 0
+    attack_damage: 40
+    attack_range: 300
+    attack_cooldown: 3.0
+    movement_speed: 325
+    sight_range: 800
+    collision_radius: 32
+    gold_reward: 60
+    experience_reward: 92
+
+  super:
+    health: 1500
+    armor: 30
+    magic_resist: -30
+    attack_damage: 190
+    attack_range: 170
+    attack_cooldown: 0.85
+    movement_speed: 425
+    sight_range: 800
+    collision_radius: 36
+    gold_reward: 45
+    experience_reward: 97
+
+# Minion stat growth per minute
+scaling:
+  health_per_minute: 21
+  damage_per_minute: 0.5
+  armor_per_minute: 0.5
+  magic_resist_per_minute: 0.5

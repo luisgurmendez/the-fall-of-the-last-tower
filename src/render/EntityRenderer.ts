@@ -1,0 +1,956 @@
+/**
+ * EntityRenderer - Renders entities based on server state for online play.
+ *
+ * Renders:
+ * - Champions (with health bars, level indicators)
+ * - Minions (with sprites and health bars)
+ * - Towers (with sprite images)
+ * - Nexus (with sprite images)
+ * - Projectiles
+ *
+ * Uses the same sprite system as the local game for consistent visuals.
+ */
+
+import type { GameObject } from '@/core/GameObject';
+import type GameContext from '@/core/gameContext';
+import RenderElement from '@/render/renderElement';
+import Vector from '@/physics/vector';
+import type { OnlineStateManager, InterpolatedEntity } from '@/core/OnlineStateManager';
+import { EntityType, getChampionDefinition } from '@siege/shared';
+
+/**
+ * Colors for different teams.
+ */
+const TEAM_COLORS = {
+  BLUE: '#3498db',
+  RED: '#e74c3c',
+  NEUTRAL: '#95a5a6',
+};
+
+/**
+ * Sprite configuration.
+ */
+const SPRITES = {
+  TOWER: {
+    BLUE: '/assets/sprites/Buildings/Tower_Blue.png',
+    RED: '/assets/sprites/Buildings/Tower_Red.png',
+    WIDTH: 128,
+    HEIGHT: 256,
+    SCALE: 0.8,
+  },
+  NEXUS: {
+    BLUE: '/assets/sprites/Buildings/Barracks_Blue.png',
+    RED: '/assets/sprites/Buildings/Barracks_Red.png',
+    WIDTH: 192,
+    HEIGHT: 256,
+    SCALE: 1.0,
+  },
+  WARRIOR: {
+    IDLE_BLUE: '/assets/sprites/units/Warrior_Blue/Warrior_Idle.png',
+    IDLE_RED: '/assets/sprites/units/Warrior_Red/Warrior_Idle.png',
+    RUN_BLUE: '/assets/sprites/units/Warrior_Blue/Warrior_Run.png',
+    RUN_RED: '/assets/sprites/units/Warrior_Red/Warrior_Run.png',
+    ATTACK_BLUE: '/assets/sprites/units/Warrior_Blue/Warrior_Attack1.png',
+    ATTACK_RED: '/assets/sprites/units/Warrior_Red/Warrior_Attack1.png',
+    FRAME_WIDTH: 192,
+    FRAME_HEIGHT: 192,
+    IDLE_FRAMES: 8,
+    RUN_FRAMES: 6,
+    ATTACK_FRAMES: 4,
+    SCALE: 0.35,
+  },
+  ARCHER: {
+    IDLE_BLUE: '/assets/sprites/units/Archer_Blue/Archer_Idle.png',
+    IDLE_RED: '/assets/sprites/units/Archer_Red/Archer_Idle.png',
+    RUN_BLUE: '/assets/sprites/units/Archer_Blue/Archer_Run.png',
+    RUN_RED: '/assets/sprites/units/Archer_Red/Archer_Run.png',
+    ATTACK_BLUE: '/assets/sprites/units/Archer_Blue/Archer_Shoot.png',
+    ATTACK_RED: '/assets/sprites/units/Archer_Red/Archer_Shoot.png',
+    FRAME_WIDTH: 192,
+    FRAME_HEIGHT: 192,
+    IDLE_FRAMES: 6,
+    RUN_FRAMES: 4,
+    ATTACK_FRAMES: 8,
+    SCALE: 0.35,
+  },
+  SPIDER: {
+    IDLE: '/assets/sprites/Spider/Spider_Idle.png',
+    RUN: '/assets/sprites/Spider/Spider_Run.png',
+    ATTACK: '/assets/sprites/Spider/Spider_Attack.png',
+    FRAME_WIDTH: 192,
+    FRAME_HEIGHT: 192,
+    IDLE_FRAMES: 8,
+    RUN_FRAMES: 5,
+    ATTACK_FRAMES: 8,
+    SCALE: 0.4,
+  },
+  BEAR: {
+    IDLE: '/assets/sprites/Bear/Bear_Idle.png',
+    RUN: '/assets/sprites/Bear/Bear_Run.png',
+    ATTACK: '/assets/sprites/Bear/Bear_Attack.png',
+    FRAME_WIDTH: 256,
+    FRAME_HEIGHT: 256,
+    IDLE_FRAMES: 8,
+    RUN_FRAMES: 5,
+    ATTACK_FRAMES: 9,
+    SCALE: 0.4,
+  },
+};
+
+/**
+ * Image cache for loaded sprites.
+ */
+const imageCache: Map<string, HTMLImageElement> = new Map();
+let imagesLoaded = false;
+
+/**
+ * Load all sprite images.
+ */
+function loadImages(): void {
+  if (imagesLoaded) return;
+
+  const imagesToLoad = [
+    // Buildings
+    SPRITES.TOWER.BLUE,
+    SPRITES.TOWER.RED,
+    SPRITES.NEXUS.BLUE,
+    SPRITES.NEXUS.RED,
+    // Warriors
+    SPRITES.WARRIOR.IDLE_BLUE,
+    SPRITES.WARRIOR.IDLE_RED,
+    SPRITES.WARRIOR.RUN_BLUE,
+    SPRITES.WARRIOR.RUN_RED,
+    SPRITES.WARRIOR.ATTACK_BLUE,
+    SPRITES.WARRIOR.ATTACK_RED,
+    // Archers
+    SPRITES.ARCHER.IDLE_BLUE,
+    SPRITES.ARCHER.IDLE_RED,
+    SPRITES.ARCHER.RUN_BLUE,
+    SPRITES.ARCHER.RUN_RED,
+    SPRITES.ARCHER.ATTACK_BLUE,
+    SPRITES.ARCHER.ATTACK_RED,
+    // Creatures
+    SPRITES.SPIDER.IDLE,
+    SPRITES.SPIDER.RUN,
+    SPRITES.SPIDER.ATTACK,
+    SPRITES.BEAR.IDLE,
+    SPRITES.BEAR.RUN,
+    SPRITES.BEAR.ATTACK,
+  ];
+
+  for (const src of imagesToLoad) {
+    const img = new Image();
+    img.src = src;
+    imageCache.set(src, img);
+  }
+
+  imagesLoaded = true;
+}
+
+/**
+ * Track entity state for animations and direction.
+ */
+interface EntityRenderState {
+  lastX: number;
+  lastY: number;
+  facingRight: boolean;  // true = facing right, false = facing left
+  attackAnimTime: number; // Time into attack animation
+  isAttacking: boolean;
+}
+
+/**
+ * EntityRenderer renders all entities from server state.
+ */
+export class EntityRenderer implements GameObject {
+  readonly id = 'entity-renderer';
+  shouldInitialize = false;
+  shouldDispose = false;
+  position = new Vector(0, 0);
+
+  private stateManager: OnlineStateManager;
+  private localSide: number;
+  private frameCount = 0;
+  private animationTime = 0;
+
+  // Client-side animation timing (independent of server tick rate)
+  private lastRenderTime = 0;
+
+  // Track entity state for animations
+  private entityStates: Map<string, EntityRenderState> = new Map();
+
+  // For selected champion indicator animation
+  private selectionAnimTime = 0;
+
+  constructor(stateManager: OnlineStateManager, localSide: number) {
+    this.stateManager = stateManager;
+    this.localSide = localSide;
+    loadImages();
+  }
+
+  /**
+   * Get or create render state for an entity.
+   */
+  private getEntityState(entityId: string, x: number, y: number, side: number): EntityRenderState {
+    let state = this.entityStates.get(entityId);
+    if (!state) {
+      // Default facing direction based on team side
+      // Blue (0) faces right, Red (1) faces left
+      state = {
+        lastX: x,
+        lastY: y,
+        facingRight: side === 0,
+        attackAnimTime: 0,
+        isAttacking: false,
+      };
+      this.entityStates.set(entityId, state);
+    }
+    return state;
+  }
+
+  /**
+   * Update entity render state based on movement and actions.
+   * @param serverIsAttacking - Optional server-provided attack state (more accurate than targetEntityId)
+   */
+  private updateEntityState(
+    state: EntityRenderState,
+    x: number,
+    y: number,
+    targetEntityId: string | undefined,
+    targetX: number | undefined,
+    targetY: number | undefined,
+    dt: number,
+    serverIsAttacking?: boolean
+  ): void {
+    // Determine facing direction from movement or target
+    const dx = x - state.lastX;
+
+    // If moving horizontally, update facing direction
+    if (Math.abs(dx) > 0.5) {
+      state.facingRight = dx > 0;
+    } else if (targetX !== undefined && targetY !== undefined) {
+      // If not moving but has a target, face toward target
+      const targetDx = targetX - x;
+      if (Math.abs(targetDx) > 5) {
+        state.facingRight = targetDx > 0;
+      }
+    }
+
+    // Track attacking state
+    // Use server's isAttacking flag if provided (more accurate timing),
+    // otherwise fall back to checking targetEntityId
+    const wasAttacking = state.isAttacking;
+    state.isAttacking = serverIsAttacking !== undefined ? serverIsAttacking : !!targetEntityId;
+
+    // Reset or continue attack animation
+    if (state.isAttacking) {
+      if (!wasAttacking) {
+        // Just started attacking - reset animation
+        state.attackAnimTime = 0;
+      } else {
+        // Continue attack animation
+        state.attackAnimTime += dt;
+      }
+    } else {
+      state.attackAnimTime = 0;
+    }
+
+    // Update last position
+    state.lastX = x;
+    state.lastY = y;
+  }
+
+  /**
+   * Render method returns a RenderElement that draws all entities.
+   */
+  render(): RenderElement {
+    const element = new RenderElement((ctx: GameContext) => {
+      const { canvasRenderingContext } = ctx;
+
+      // Use client-side timing for smooth animations (independent of server tick rate)
+      const currentTime = performance.now();
+      const clientDt = this.lastRenderTime === 0
+        ? 1/60
+        : Math.min((currentTime - this.lastRenderTime) / 1000, 0.1);
+      this.lastRenderTime = currentTime;
+
+      this.frameCount++;
+      this.animationTime += clientDt;
+      this.selectionAnimTime += clientDt;
+
+      if (!this.stateManager.hasState()) {
+        if (this.frameCount % 60 === 0) {
+          console.log('[EntityRenderer] Waiting for state...');
+        }
+        this.renderWaitingMessage(canvasRenderingContext);
+        return;
+      }
+
+      // Get all entities and sort by Y position for proper depth
+      const entities = this.stateManager.getEntities();
+      const localEntityId = this.stateManager.getLocalEntityId();
+
+      // DEBUG: Log entity types being rendered
+      if (this.frameCount % 120 === 1) {
+        const typeCounts: Record<number, number> = {};
+        for (const e of entities) {
+          typeCounts[e.snapshot.entityType] = (typeCounts[e.snapshot.entityType] || 0) + 1;
+        }
+        const towers = entities.filter(e => e.snapshot.entityType === EntityType.TOWER);
+        const nexuses = entities.filter(e => e.snapshot.entityType === EntityType.NEXUS);
+        console.log(`[EntityRenderer] Entities: ${entities.length} total, types: ${JSON.stringify(typeCounts)}`);
+        if (towers.length > 0) {
+          console.log(`[EntityRenderer] Towers: ${towers.map(t => `${t.snapshot.entityId}@(${t.position.x.toFixed(0)},${t.position.y.toFixed(0)})`).join(', ')}`);
+        }
+        if (nexuses.length > 0) {
+          console.log(`[EntityRenderer] Nexuses: ${nexuses.map(n => `${n.snapshot.entityId}@(${n.position.x.toFixed(0)},${n.position.y.toFixed(0)})`).join(', ')}`);
+        }
+      }
+
+      // Sort entities by Y position (lower Y = rendered first = behind)
+      // Also sort by entity type to ensure structures render before units
+      const sortedEntities = [...entities].sort((a, b) => {
+        // Nexus renders first (behind everything)
+        if (a.snapshot.entityType === EntityType.NEXUS && b.snapshot.entityType !== EntityType.NEXUS) return -1;
+        if (b.snapshot.entityType === EntityType.NEXUS && a.snapshot.entityType !== EntityType.NEXUS) return 1;
+        // Then towers
+        if (a.snapshot.entityType === EntityType.TOWER && b.snapshot.entityType !== EntityType.TOWER) return -1;
+        if (b.snapshot.entityType === EntityType.TOWER && a.snapshot.entityType !== EntityType.TOWER) return 1;
+        // Then by Y position
+        return a.position.y - b.position.y;
+      });
+
+      for (const entity of sortedEntities) {
+        // Skip dead entities
+        const snapshot = entity.snapshot as any;
+        if (snapshot.isDead || snapshot.isDestroyed) {
+          continue;
+        }
+
+        const isLocalPlayer = entity.snapshot.entityId === localEntityId;
+        // Calculate interpolated position for smooth rendering
+        const interpolatedPos = this.getInterpolatedPosition(entity);
+        // Update entity render state for animation tracking
+        const side = snapshot.side ?? 0;
+        const state = this.getEntityState(entity.snapshot.entityId, interpolatedPos.x, interpolatedPos.y, side);
+        this.updateEntityState(
+          state,
+          interpolatedPos.x,
+          interpolatedPos.y,
+          snapshot.targetEntityId,
+          snapshot.targetX,
+          snapshot.targetY,
+          clientDt,
+          (snapshot as any).isAttacking  // Server-provided attack animation state
+        );
+        this.renderEntity(canvasRenderingContext, entity, isLocalPlayer, state);
+      }
+    }, true);
+
+    element.positionType = 'normal';
+    return element;
+  }
+
+  /**
+   * Calculate interpolated position for smooth rendering.
+   * Lerps between previousPosition and position based on time since last update.
+   * Server runs at 125 Hz (8ms per tick), but network updates may batch.
+   */
+  private getInterpolatedPosition(entity: InterpolatedEntity): Vector {
+    const timeSinceUpdate = Date.now() - entity.lastUpdateTime;
+    // Server sends at 125 Hz (8ms), but account for network jitter with slight buffer
+    const interpolationDelay = 16; // ms - roughly 2 server ticks / 1 client frame
+    const t = Math.min(1, timeSinceUpdate / interpolationDelay);
+
+    return Vector.lerp(entity.previousPosition, entity.position, t);
+  }
+
+  /**
+   * Render a single entity.
+   */
+  private renderEntity(ctx: CanvasRenderingContext2D, entity: InterpolatedEntity, isLocalPlayer: boolean, state: EntityRenderState): void {
+    const { snapshot } = entity;
+    // Use interpolated position for smooth rendering
+    const pos = this.getInterpolatedPosition(entity);
+
+    // Get team color
+    const side = (snapshot as any).side;
+
+    ctx.save();
+    ctx.translate(pos.x, pos.y);
+
+    // Draw entity based on type
+    switch (snapshot.entityType) {
+      case EntityType.CHAMPION:
+        this.renderChampion(ctx, snapshot, side, isLocalPlayer, state);
+        break;
+      case EntityType.MINION:
+        this.renderMinion(ctx, snapshot, side, state);
+        break;
+      case EntityType.TOWER:
+        this.renderTower(ctx, snapshot, side);
+        break;
+      case EntityType.NEXUS:
+        this.renderNexus(ctx, snapshot, side);
+        break;
+      case EntityType.PROJECTILE:
+        this.renderProjectile(ctx, snapshot);
+        break;
+      case EntityType.JUNGLE_CAMP:
+        this.renderJungleCamp(ctx, snapshot, state);
+        break;
+      case EntityType.WARD:
+        this.renderWard(ctx, snapshot, side);
+        break;
+      default:
+        this.renderGeneric(ctx, 30, side === 0 ? TEAM_COLORS.BLUE : TEAM_COLORS.RED);
+    }
+
+    ctx.restore();
+  }
+
+  /**
+   * Render a champion.
+   */
+  private renderChampion(
+    ctx: CanvasRenderingContext2D,
+    snapshot: any,
+    side: number,
+    isLocalPlayer: boolean,
+    state: EntityRenderState
+  ): void {
+    const size = 40;
+    const color = side === 0 ? TEAM_COLORS.BLUE : TEAM_COLORS.RED;
+
+    // Draw selection ring for local player (rotating dashed circle)
+    if (isLocalPlayer) {
+      ctx.save();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      // Animated rotating dash offset
+      const dashOffset = this.selectionAnimTime * 50;
+      ctx.setLineDash([10, 5]);
+      ctx.lineDashOffset = -dashOffset;
+      ctx.beginPath();
+      ctx.arc(0, 0, size * 0.8, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
+
+    // Draw body (circle with gradient for now - can add champion sprites later)
+    const gradient = ctx.createRadialGradient(0, -size * 0.2, 0, 0, 0, size * 0.5);
+    gradient.addColorStop(0, this.lightenColor(color, 30));
+    gradient.addColorStop(1, color);
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(0, 0, size * 0.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Draw border
+    ctx.strokeStyle = isLocalPlayer ? '#ffffff' : '#333333';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Draw health bar
+    if (snapshot.health !== undefined && snapshot.maxHealth !== undefined) {
+      this.renderHealthBar(ctx, snapshot.health, snapshot.maxHealth, size, -size * 0.7, color);
+    }
+
+    // Draw mana bar for local player
+    if (isLocalPlayer && snapshot.resource !== undefined && snapshot.maxResource !== undefined) {
+      this.renderResourceBar(ctx, snapshot.resource, snapshot.maxResource, size * 0.8, -size * 0.5);
+    }
+
+    // Draw level indicator
+    if (snapshot.level !== undefined) {
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 12px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(snapshot.level.toString(), 0, 5);
+    }
+
+    // Draw champion name below
+    if (snapshot.championId) {
+      // DEBUG: Log received championId
+      if (this.frameCount % 60 === 0) {
+        console.log(`[EntityRenderer] Champion snapshot: championId="${snapshot.championId}", entityId="${snapshot.entityId}"`);
+      }
+
+      // Look up champion definition to get the display name
+      const championDef = getChampionDefinition(snapshot.championId);
+      const displayName = championDef?.name || snapshot.championId;
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '10px Arial';
+      ctx.textAlign = 'center';
+      ctx.shadowColor = '#000000';
+      ctx.shadowBlur = 2;
+      ctx.fillText(displayName, 0, size * 0.8);
+      ctx.shadowBlur = 0;
+    }
+  }
+
+  /**
+   * Render a minion using sprites with proper animations and direction.
+   */
+  private renderMinion(ctx: CanvasRenderingContext2D, snapshot: any, side: number, state: EntityRenderState): void {
+    const minionType = snapshot.minionType || 'melee';
+    const isWarrior = minionType === 'melee';
+    const spriteConfig = isWarrior ? SPRITES.WARRIOR : SPRITES.ARCHER;
+
+    // Determine animation state: attacking, moving, or idle
+    const isAttacking = state.isAttacking;
+    const isMoving = snapshot.targetX !== undefined && snapshot.targetY !== undefined && !isAttacking;
+
+    // Select the correct sprite based on state and side
+    let spriteSrc: string;
+    let frameCount: number;
+    let animSpeed: number;
+
+    if (isAttacking) {
+      // Attack animation
+      spriteSrc = side === 0
+        ? (isWarrior ? SPRITES.WARRIOR.ATTACK_BLUE : SPRITES.ARCHER.ATTACK_BLUE)
+        : (isWarrior ? SPRITES.WARRIOR.ATTACK_RED : SPRITES.ARCHER.ATTACK_RED);
+      frameCount = isWarrior ? SPRITES.WARRIOR.ATTACK_FRAMES : SPRITES.ARCHER.ATTACK_FRAMES;
+      animSpeed = 12; // Fast attack animation
+    } else if (isMoving) {
+      // Run animation
+      spriteSrc = side === 0
+        ? (isWarrior ? SPRITES.WARRIOR.RUN_BLUE : SPRITES.ARCHER.RUN_BLUE)
+        : (isWarrior ? SPRITES.WARRIOR.RUN_RED : SPRITES.ARCHER.RUN_RED);
+      frameCount = isWarrior ? SPRITES.WARRIOR.RUN_FRAMES : SPRITES.ARCHER.RUN_FRAMES;
+      animSpeed = 10; // Smooth run animation
+    } else {
+      // Idle animation
+      spriteSrc = side === 0
+        ? (isWarrior ? SPRITES.WARRIOR.IDLE_BLUE : SPRITES.ARCHER.IDLE_BLUE)
+        : (isWarrior ? SPRITES.WARRIOR.IDLE_RED : SPRITES.ARCHER.IDLE_RED);
+      frameCount = isWarrior ? SPRITES.WARRIOR.IDLE_FRAMES : SPRITES.ARCHER.IDLE_FRAMES;
+      animSpeed = 8; // Relaxed idle animation
+    }
+
+    const image = imageCache.get(spriteSrc);
+
+    if (image && image.complete && image.naturalWidth > 0) {
+      // Calculate animation frame
+      const animTime = isAttacking ? state.attackAnimTime : this.animationTime;
+      const frameIndex = Math.floor(animTime * animSpeed) % frameCount;
+      const srcX = frameIndex * spriteConfig.FRAME_WIDTH;
+
+      const scaledWidth = spriteConfig.FRAME_WIDTH * spriteConfig.SCALE;
+      const scaledHeight = spriteConfig.FRAME_HEIGHT * spriteConfig.SCALE;
+
+      // Apply horizontal flip if facing left
+      ctx.save();
+      if (!state.facingRight) {
+        ctx.scale(-1, 1);
+      }
+
+      ctx.drawImage(
+        image,
+        srcX, 0, spriteConfig.FRAME_WIDTH, spriteConfig.FRAME_HEIGHT,
+        -scaledWidth / 2, -scaledHeight / 2,
+        scaledWidth, scaledHeight
+      );
+
+      ctx.restore();
+    } else {
+      // Fallback: draw colored circle
+      const color = side === 0 ? TEAM_COLORS.BLUE : TEAM_COLORS.RED;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(0, 0, 15, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    // Draw health bar
+    if (snapshot.health !== undefined && snapshot.maxHealth !== undefined) {
+      const color = side === 0 ? TEAM_COLORS.BLUE : TEAM_COLORS.RED;
+      this.renderHealthBar(ctx, snapshot.health, snapshot.maxHealth, 30, -25, color);
+    }
+  }
+
+  /**
+   * Render a tower using sprite images.
+   */
+  private renderTower(ctx: CanvasRenderingContext2D, snapshot: any, side: number): void {
+    // DEBUG: Log tower positions
+    if (this.frameCount % 120 === 1) {
+      console.log(`[EntityRenderer] Tower: id=${snapshot.entityId}, side=${side}, x=${snapshot.x}, y=${snapshot.y}, lane=${snapshot.lane}`);
+    }
+
+    const spriteSrc = side === 0 ? SPRITES.TOWER.BLUE : SPRITES.TOWER.RED;
+    const image = imageCache.get(spriteSrc);
+
+    if (image && image.complete && image.naturalWidth > 0) {
+      const scaledWidth = SPRITES.TOWER.WIDTH * SPRITES.TOWER.SCALE;
+      const scaledHeight = SPRITES.TOWER.HEIGHT * SPRITES.TOWER.SCALE;
+
+      ctx.drawImage(
+        image,
+        -scaledWidth / 2,
+        -scaledHeight + 30, // Offset so base is near position
+        scaledWidth,
+        scaledHeight
+      );
+    } else {
+      // Fallback: draw colored rectangle
+      const color = side === 0 ? TEAM_COLORS.BLUE : TEAM_COLORS.RED;
+      ctx.fillStyle = color;
+      ctx.fillRect(-25, -60, 50, 80);
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(-25, -60, 50, 80);
+    }
+
+    // Draw health bar
+    if (snapshot.health !== undefined && snapshot.maxHealth !== undefined) {
+      const barY = -SPRITES.TOWER.HEIGHT * SPRITES.TOWER.SCALE + 10;
+      const color = side === 0 ? TEAM_COLORS.BLUE : TEAM_COLORS.RED;
+      this.renderHealthBar(ctx, snapshot.health, snapshot.maxHealth, 60, barY, color);
+    }
+  }
+
+  /**
+   * Render a nexus using sprite images.
+   */
+  private renderNexus(ctx: CanvasRenderingContext2D, snapshot: any, side: number): void {
+    const spriteSrc = side === 0 ? SPRITES.NEXUS.BLUE : SPRITES.NEXUS.RED;
+    const image = imageCache.get(spriteSrc);
+
+    if (image && image.complete && image.naturalWidth > 0) {
+      const scaledWidth = SPRITES.NEXUS.WIDTH * SPRITES.NEXUS.SCALE;
+      const scaledHeight = SPRITES.NEXUS.HEIGHT * SPRITES.NEXUS.SCALE;
+
+      ctx.drawImage(
+        image,
+        -scaledWidth / 2,
+        -scaledHeight + 20, // Offset so base is near position
+        scaledWidth,
+        scaledHeight
+      );
+    } else {
+      // Fallback: draw colored rectangle
+      const color = side === 0 ? TEAM_COLORS.BLUE : TEAM_COLORS.RED;
+      ctx.fillStyle = color;
+      ctx.fillRect(-50, -80, 100, 100);
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(-50, -80, 100, 100);
+    }
+
+    // Draw health bar
+    if (snapshot.health !== undefined && snapshot.maxHealth !== undefined) {
+      const radius = 75;
+      const barY = -radius - 30;
+      const color = side === 0 ? TEAM_COLORS.BLUE : TEAM_COLORS.RED;
+      this.renderHealthBar(ctx, snapshot.health, snapshot.maxHealth, radius * 2, barY, color);
+
+      // Health text
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 10px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(
+        `${Math.ceil(snapshot.health)} / ${snapshot.maxHealth}`,
+        0,
+        barY + 6
+      );
+    }
+  }
+
+  /**
+   * Render a projectile.
+   */
+  private renderProjectile(ctx: CanvasRenderingContext2D, snapshot: any): void {
+    ctx.fillStyle = '#ffff00';
+    ctx.beginPath();
+    ctx.arc(0, 0, 5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Glow effect
+    ctx.globalAlpha = 0.5;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(0, 0, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  /**
+   * Render a jungle camp creature.
+   */
+  private renderJungleCamp(ctx: CanvasRenderingContext2D, snapshot: any, state: EntityRenderState): void {
+    const creatureType = (snapshot as any).creatureType || 'gromp';
+
+    // Use spider sprite for small creatures, bear for larger ones
+    const isSpider = creatureType === 'spider';
+    const spriteConfig = isSpider ? SPRITES.SPIDER : SPRITES.BEAR;
+
+    // Determine animation state
+    const isAttacking = state.isAttacking;
+    const isMoving = snapshot.targetX !== undefined && snapshot.targetY !== undefined && !isAttacking;
+
+    let spriteSrc: string;
+    let frameCount: number;
+
+    if (isAttacking) {
+      spriteSrc = isSpider ? SPRITES.SPIDER.ATTACK : SPRITES.BEAR.ATTACK;
+      frameCount = spriteConfig.ATTACK_FRAMES;
+    } else if (isMoving) {
+      spriteSrc = isSpider ? SPRITES.SPIDER.RUN : SPRITES.BEAR.RUN;
+      frameCount = spriteConfig.RUN_FRAMES;
+    } else {
+      spriteSrc = isSpider ? SPRITES.SPIDER.IDLE : SPRITES.BEAR.IDLE;
+      frameCount = spriteConfig.IDLE_FRAMES;
+    }
+
+    const image = imageCache.get(spriteSrc);
+
+    if (image && image.complete && image.naturalWidth > 0) {
+      const animTime = isAttacking ? state.attackAnimTime : this.animationTime;
+      // Use appropriate animation speed: faster for attack, moderate for movement/idle
+      const animSpeed = isAttacking ? 12 : (isMoving ? 10 : 8);
+      const frameIndex = Math.floor(animTime * animSpeed) % frameCount;
+      const srcX = frameIndex * spriteConfig.FRAME_WIDTH;
+
+      const scaledWidth = spriteConfig.FRAME_WIDTH * spriteConfig.SCALE;
+      const scaledHeight = spriteConfig.FRAME_HEIGHT * spriteConfig.SCALE;
+
+      // Apply horizontal flip if facing left
+      ctx.save();
+      if (!state.facingRight) {
+        ctx.scale(-1, 1);
+      }
+
+      ctx.drawImage(
+        image,
+        srcX, 0, spriteConfig.FRAME_WIDTH, spriteConfig.FRAME_HEIGHT,
+        -scaledWidth / 2, -scaledHeight / 2,
+        scaledWidth, scaledHeight
+      );
+
+      ctx.restore();
+    } else {
+      // Fallback: gray circle
+      ctx.fillStyle = TEAM_COLORS.NEUTRAL;
+      ctx.beginPath();
+      ctx.arc(0, 0, 20, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // Draw health bar
+    if (snapshot.health !== undefined && snapshot.maxHealth !== undefined) {
+      this.renderHealthBar(ctx, snapshot.health, snapshot.maxHealth, 40, -30, TEAM_COLORS.NEUTRAL);
+    }
+  }
+
+  /**
+   * Render a ward.
+   */
+  private renderWard(ctx: CanvasRenderingContext2D, snapshot: any, side: number): void {
+    const wardType = snapshot.wardType || 'stealth';
+    const isOwn = side === this.localSide;
+    const isStealthed = snapshot.isStealthed && !isOwn;
+
+    // Ward colors by type
+    const wardColors: Record<string, string> = {
+      stealth: '#44FF44',   // Green
+      control: '#FF44FF',   // Pink/Magenta
+      farsight: '#4444FF',  // Blue
+    };
+
+    const baseColor = wardColors[wardType] || '#44FF44';
+    const size = 12;
+
+    // Make enemy stealth wards semi-transparent (should be invisible but shown for debugging)
+    // In production, enemy stealth wards shouldn't be rendered at all unless revealed
+    const alpha = isStealthed ? 0.3 : 1.0;
+    ctx.globalAlpha = alpha;
+
+    // Draw ward body (diamond shape)
+    ctx.save();
+    ctx.rotate(Math.PI / 4); // 45-degree rotation for diamond
+
+    // Outer glow effect
+    const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, size * 1.5);
+    gradient.addColorStop(0, baseColor);
+    gradient.addColorStop(0.5, this.lightenColor(baseColor, -30));
+    gradient.addColorStop(1, 'transparent');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(-size * 1.5, -size * 1.5, size * 3, size * 3);
+
+    // Main body (square that looks like diamond after rotation)
+    ctx.fillStyle = baseColor;
+    ctx.fillRect(-size / 2, -size / 2, size, size);
+
+    // Inner highlight
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.fillRect(-size / 4, -size / 2, size / 2, size / 4);
+
+    // Border
+    ctx.strokeStyle = this.lightenColor(baseColor, -40);
+    ctx.lineWidth = 1;
+    ctx.strokeRect(-size / 2, -size / 2, size, size);
+
+    ctx.restore();
+
+    // Reset alpha
+    ctx.globalAlpha = 1.0;
+
+    // Draw remaining duration indicator (pie chart style)
+    if (snapshot.remainingDuration > 0 && isOwn) {
+      const maxDuration = wardType === 'stealth' ? 90 : wardType === 'farsight' ? 60 : 0;
+      if (maxDuration > 0) {
+        const progress = snapshot.remainingDuration / maxDuration;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, size * 0.8, -Math.PI / 2, -Math.PI / 2 + (1 - progress) * Math.PI * 2, false);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+        ctx.fill();
+      }
+    }
+
+    // Draw ward type indicator icon
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 8px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    if (wardType === 'control') {
+      // Control ward: eye icon (simplified as "👁" or "C")
+      ctx.fillText('C', 0, 0);
+    } else if (wardType === 'farsight') {
+      // Farsight ward: targeting icon (simplified as "F")
+      ctx.fillText('F', 0, 0);
+    }
+    // Stealth ward has no icon (most common, keep clean)
+
+    // Draw health pips for control wards (visible, destroyable)
+    if (!snapshot.isStealthed && snapshot.health !== undefined && snapshot.maxHealth !== undefined) {
+      const pipCount = snapshot.maxHealth;
+      const pipWidth = 4;
+      const pipSpacing = 2;
+      const totalWidth = pipCount * pipWidth + (pipCount - 1) * pipSpacing;
+      const startX = -totalWidth / 2;
+
+      for (let i = 0; i < pipCount; i++) {
+        const isFilled = i < snapshot.health;
+        ctx.fillStyle = isFilled ? baseColor : '#333333';
+        ctx.fillRect(startX + i * (pipWidth + pipSpacing), size + 4, pipWidth, 3);
+      }
+    }
+  }
+
+  /**
+   * Render a generic entity (fallback).
+   */
+  private renderGeneric(ctx: CanvasRenderingContext2D, size: number, color: string): void {
+    ctx.fillStyle = color;
+    ctx.fillRect(-size / 2, -size / 2, size, size);
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(-size / 2, -size / 2, size, size);
+  }
+
+  /**
+   * Render a health bar.
+   */
+  private renderHealthBar(
+    ctx: CanvasRenderingContext2D,
+    health: number,
+    maxHealth: number,
+    width: number,
+    yOffset: number,
+    teamColor: string
+  ): void {
+    const barWidth = width;
+    const barHeight = 6;
+    const healthPercent = Math.max(0, Math.min(1, health / maxHealth));
+
+    // Background
+    ctx.fillStyle = '#333333';
+    ctx.fillRect(-barWidth / 2, yOffset, barWidth, barHeight);
+
+    // Health fill - use team color or health-based color
+    const healthColor = healthPercent > 0.5 ? teamColor : healthPercent > 0.25 ? '#f39c12' : '#e74c3c';
+    ctx.fillStyle = healthColor;
+    ctx.fillRect(-barWidth / 2, yOffset, barWidth * healthPercent, barHeight);
+
+    // Border
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(-barWidth / 2, yOffset, barWidth, barHeight);
+  }
+
+  /**
+   * Render a resource (mana) bar.
+   */
+  private renderResourceBar(
+    ctx: CanvasRenderingContext2D,
+    resource: number,
+    maxResource: number,
+    width: number,
+    yOffset: number
+  ): void {
+    const barWidth = width;
+    const barHeight = 4;
+    const resourcePercent = Math.max(0, Math.min(1, resource / maxResource));
+
+    // Background
+    ctx.fillStyle = '#333333';
+    ctx.fillRect(-barWidth / 2, yOffset, barWidth, barHeight);
+
+    // Resource fill (blue for mana)
+    ctx.fillStyle = '#3498db';
+    ctx.fillRect(-barWidth / 2, yOffset, barWidth * resourcePercent, barHeight);
+
+    // Border
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(-barWidth / 2, yOffset, barWidth, barHeight);
+  }
+
+  /**
+   * Render waiting message when no state received yet.
+   */
+  private renderWaitingMessage(ctx: CanvasRenderingContext2D): void {
+    ctx.save();
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '24px Arial';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = '#000000';
+    ctx.shadowBlur = 4;
+    ctx.fillText('Waiting for game state...', 0, 0);
+    ctx.shadowBlur = 0;
+    ctx.restore();
+  }
+
+  /**
+   * Lighten a color by a percentage.
+   */
+  private lightenColor(color: string, percent: number): string {
+    const num = parseInt(color.replace('#', ''), 16);
+    const amt = Math.round(2.55 * percent);
+    const R = Math.max(0, Math.min(255, (num >> 16) + amt));
+    const G = Math.max(0, Math.min(255, ((num >> 8) & 0x00FF) + amt));
+    const B = Math.max(0, Math.min(255, (num & 0x0000FF) + amt));
+    return `#${(1 << 24 | R << 16 | G << 8 | B).toString(16).slice(1)}`;
+  }
+
+  /**
+   * Get team ID for fog of war filtering.
+   */
+  getTeamId(): number {
+    return this.localSide === 0 ? 0 : 1;
+  }
+}
+
+export default EntityRenderer;

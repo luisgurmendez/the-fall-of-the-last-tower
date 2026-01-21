@@ -1,0 +1,66 @@
+syntax = "proto3";
+package siege.entities;
+
+import "common/enums.proto";
+
+option go_package = "github.com/siege/protocol/entities";
+
+// Tower state snapshot for network sync
+message TowerSnapshot {
+  // Identity
+  string entity_id = 1;
+  siege.common.EntityType entity_type = 2;
+  siege.common.Side side = 3;
+  siege.common.LaneId lane = 4;
+  siege.common.TowerTier tier = 5;
+
+  // Position
+  float x = 10;
+  float y = 11;
+
+  // Current target
+  optional string target_entity_id = 12;
+
+  // Stats
+  float health = 20;
+  float max_health = 21;
+
+  // State
+  bool is_destroyed = 30;
+
+  // Warmup stacks (damage increases with consecutive hits)
+  uint32 warmup_stacks = 31;
+}
+
+// Tower stats definition (for configuration)
+message TowerStats {
+  float health = 1;
+  float armor = 2;
+  float magic_resist = 3;
+  float attack_damage = 4;
+  float attack_range = 5;
+  float attack_cooldown = 6;
+  float sight_range = 7;
+
+  // Warmup mechanic
+  uint32 max_warmup_stacks = 10;
+  float warmup_damage_per_stack = 11;
+
+  // Rewards
+  float global_gold = 20;
+  float killer_gold = 21;
+  float experience = 22;
+}
+
+// Projectile snapshot for network sync
+message ProjectileSnapshot {
+  string entity_id = 1;
+  siege.common.EntityType entity_type = 2;
+  string source_id = 3;
+  string projectile_type = 4;
+
+  float x = 10;
+  float y = 11;
+  float velocity_x = 12;
+  float velocity_y = 13;
+}

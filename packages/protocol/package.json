@@ -1,0 +1,19 @@
+{
+  "name": "@siege/protocol",
+  "version": "1.0.0",
+  "description": "Language-agnostic protocol definitions for Siege MOBA",
+  "type": "module",
+  "main": "./generated/typescript/index.ts",
+  "scripts": {
+    "generate": "buf generate",
+    "lint": "buf lint",
+    "format": "buf format -w",
+    "breaking": "buf breaking --against .git#branch=main",
+    "test": "bun test",
+    "test:verify": "bun test tests/typescript/verify.test.ts"
+  },
+  "devDependencies": {
+    "@bufbuild/buf": "^1.28.0",
+    "@bufbuild/protobuf": "^1.6.0"
+  }
+}

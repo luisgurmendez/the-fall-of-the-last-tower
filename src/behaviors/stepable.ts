@@ -1,6 +1,6 @@
-import GameContext from "@/core/gameContext";
+import type GameContext from "@/core/gameContext";
 
-interface Stepable {
+export interface Stepable {
   /**
    * User for updating the state of an object, runs every time before a render method.
    */

@@ -1,0 +1,84 @@
+{
+  "$schema": "./fixture.schema.json",
+  "name": "Experience and Levels",
+  "description": "Test fixtures for XP thresholds and level calculations",
+  "tolerance": 0,
+
+  "level_thresholds": {
+    "description": "Cumulative XP required to reach each level",
+    "thresholds": [
+      { "level": 1, "xp_required": 0 },
+      { "level": 2, "xp_required": 280 },
+      { "level": 3, "xp_required": 660 },
+      { "level": 4, "xp_required": 1140 },
+      { "level": 5, "xp_required": 1720 },
+      { "level": 6, "xp_required": 2400 },
+      { "level": 7, "xp_required": 3180 },
+      { "level": 8, "xp_required": 4060 },
+      { "level": 9, "xp_required": 5040 },
+      { "level": 10, "xp_required": 6120 },
+      { "level": 11, "xp_required": 7300 },
+      { "level": 12, "xp_required": 8580 },
+      { "level": 13, "xp_required": 9960 },
+      { "level": 14, "xp_required": 11440 },
+      { "level": 15, "xp_required": 13020 },
+      { "level": 16, "xp_required": 14700 },
+      { "level": 17, "xp_required": 16480 },
+      { "level": 18, "xp_required": 18360 }
+    ]
+  },
+
+  "level_from_experience": {
+    "description": "Calculate level from total XP (iterate from max level down)",
+    "cases": [
+      { "experience": 0, "expected_level": 1 },
+      { "experience": 100, "expected_level": 1 },
+      { "experience": 279, "expected_level": 1 },
+      { "experience": 280, "expected_level": 2 },
+      { "experience": 500, "expected_level": 2 },
+      { "experience": 659, "expected_level": 2 },
+      { "experience": 660, "expected_level": 3 },
+      { "experience": 2399, "expected_level": 5 },
+      { "experience": 2400, "expected_level": 6 },
+      { "experience": 10000, "expected_level": 13 },
+      { "experience": 18359, "expected_level": 17 },
+      { "experience": 18360, "expected_level": 18 },
+      { "experience": 50000, "expected_level": 18, "note": "Capped at max level" }
+    ]
+  },
+
+  "experience_sharing": {
+    "description": "shared_xp = base_xp / num_champions_in_range (range: 1400 units)",
+    "cases": [
+      { "base_xp": 60, "champions_in_range": 1, "expected_xp_each": 60 },
+      { "base_xp": 60, "champions_in_range": 2, "expected_xp_each": 30 },
+      { "base_xp": 60, "champions_in_range": 3, "expected_xp_each": 20 },
+      { "base_xp": 92, "champions_in_range": 2, "expected_xp_each": 46 },
+      { "base_xp": 200, "champions_in_range": 5, "expected_xp_each": 40 }
+    ]
+  },
+
+  "champion_kill_experience": {
+    "description": "base_xp + xp_per_level_diff * (victim_level - killer_level), minimum 0",
+    "constants": {
+      "base_xp": 140,
+      "xp_per_level_diff": 20
+    },
+    "cases": [
+      { "killer_level": 5, "victim_level": 5, "expected_xp": 140, "note": "Same level" },
+      { "killer_level": 5, "victim_level": 8, "expected_xp": 200, "note": "+3 levels" },
+      { "killer_level": 8, "victim_level": 5, "expected_xp": 80, "note": "-3 levels" },
+      { "killer_level": 10, "victim_level": 3, "expected_xp": 0, "note": "Clamped to 0" }
+    ]
+  },
+
+  "minion_experience": {
+    "description": "XP rewards from minion types",
+    "values": {
+      "melee": 60,
+      "caster": 29,
+      "siege": 92,
+      "super": 97
+    }
+  }
+}

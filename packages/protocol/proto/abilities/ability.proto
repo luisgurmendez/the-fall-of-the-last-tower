@@ -1,0 +1,143 @@
+syntax = "proto3";
+package siege.abilities;
+
+import "common/enums.proto";
+
+option go_package = "github.com/siege/protocol/abilities";
+
+// Runtime ability state
+message AbilityState {
+  string ability_id = 1;
+  uint32 rank = 2;              // 0-5 (0 = not learned)
+  float current_cooldown = 3;   // Remaining cooldown in seconds
+  float max_cooldown = 4;       // Base cooldown at current rank
+  bool is_active = 5;           // For toggle/channel abilities
+}
+
+// Active effect/buff/debuff on an entity
+message ActiveEffectState {
+  string effect_id = 1;
+  string source_entity_id = 2;
+  float remaining_duration = 3;
+  uint32 stacks = 4;
+
+  // Effect-specific data
+  oneof effect_data {
+    CrowdControlEffect cc_effect = 10;
+    StatModificationEffect stat_effect = 11;
+    OverTimeEffect over_time_effect = 12;
+    ShieldEffect shield_effect = 13;
+  }
+}
+
+// Crowd control effect data
+message CrowdControlEffect {
+  siege.common.CrowdControlType cc_type = 1;
+  float slow_percent = 2;  // For slows: 0.0-1.0
+}
+
+// Stat modification effect data
+message StatModificationEffect {
+  StatModificationType stat_type = 1;
+  float flat_amount = 2;
+  float percent_amount = 3;
+}
+
+enum StatModificationType {
+  STAT_ATTACK_DAMAGE = 0;
+  STAT_ABILITY_POWER = 1;
+  STAT_ARMOR = 2;
+  STAT_MAGIC_RESIST = 3;
+  STAT_ATTACK_SPEED = 4;
+  STAT_MOVEMENT_SPEED = 5;
+  STAT_HEALTH = 6;
+  STAT_HEALTH_REGEN = 7;
+  STAT_RESOURCE = 8;
+  STAT_RESOURCE_REGEN = 9;
+  STAT_CRIT_CHANCE = 10;
+  STAT_CRIT_DAMAGE = 11;
+  STAT_LIFESTEAL = 12;
+  STAT_ARMOR_PEN_FLAT = 13;
+  STAT_ARMOR_PEN_PERCENT = 14;
+  STAT_MAGIC_PEN_FLAT = 15;
+  STAT_MAGIC_PEN_PERCENT = 16;
+}
+
+// Damage/heal over time effect data
+message OverTimeEffect {
+  OverTimeType over_time_type = 1;
+  float amount_per_tick = 2;
+  float tick_interval = 3;
+  siege.common.DamageType damage_type = 4;  // For damage over time
+}
+
+enum OverTimeType {
+  OVER_TIME_DAMAGE = 0;
+  OVER_TIME_HEAL = 1;
+  OVER_TIME_MANA_DRAIN = 2;
+  OVER_TIME_MANA_RESTORE = 3;
+}
+
+// Shield effect data
+message ShieldEffect {
+  float remaining_amount = 1;
+  float max_amount = 2;
+  ShieldType shield_type = 3;
+}
+
+enum ShieldType {
+  SHIELD_ALL = 0;
+  SHIELD_PHYSICAL = 1;
+  SHIELD_MAGIC = 2;
+}
+
+// Ability scaling configuration
+message AbilityScaling {
+  float ad_ratio = 1;       // Attack damage ratio
+  float ap_ratio = 2;       // Ability power ratio
+  float bonus_health_ratio = 3;
+  float max_health_ratio = 4;
+  float missing_health_ratio = 5;
+  float armor_ratio = 6;
+  float magic_resist_ratio = 7;
+}
+
+// Ability definition (static configuration)
+message AbilityDefinition {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+
+  AbilityType ability_type = 4;
+  AbilityTargetingType targeting_type = 5;
+
+  // Cooldowns per rank (5 values)
+  repeated float cooldowns = 10;
+
+  // Resource costs per rank
+  repeated float costs = 11;
+
+  // Range
+  float range = 12;
+
+  // Damage/effect values per rank
+  repeated float base_values = 13;
+  AbilityScaling scaling = 14;
+}
+
+enum AbilityType {
+  ABILITY_TYPE_PASSIVE = 0;
+  ABILITY_TYPE_ACTIVE = 1;
+}
+
+enum AbilityTargetingType {
+  TARGETING_SELF = 0;
+  TARGETING_TARGET_ENEMY = 1;
+  TARGETING_TARGET_ALLY = 2;
+  TARGETING_TARGET_UNIT = 3;
+  TARGETING_SKILLSHOT = 4;
+  TARGETING_GROUND_TARGET = 5;
+  TARGETING_AURA = 6;
+  TARGETING_TOGGLE = 7;
+  TARGETING_NO_TARGET = 8;
+}

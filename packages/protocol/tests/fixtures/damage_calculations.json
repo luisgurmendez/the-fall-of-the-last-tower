@@ -1,0 +1,110 @@
+{
+  "$schema": "./fixture.schema.json",
+  "name": "Damage Calculations",
+  "description": "Test fixtures for damage reduction from resistances and damage calculations",
+  "tolerance": 0.01,
+
+  "damage_reduction_from_resist": {
+    "description": "if resist >= 0: reduction = resist / (100 + resist), else: reduction = resist / (100 - resist)",
+    "cases": [
+      { "resist": 0, "expected_reduction": 0.0, "expected_multiplier": 1.0 },
+      { "resist": 50, "expected_reduction": 0.3333, "expected_multiplier": 0.6667 },
+      { "resist": 100, "expected_reduction": 0.5, "expected_multiplier": 0.5 },
+      { "resist": 200, "expected_reduction": 0.6667, "expected_multiplier": 0.3333 },
+      { "resist": 300, "expected_reduction": 0.75, "expected_multiplier": 0.25 },
+      { "resist": -25, "expected_reduction": -0.2, "expected_multiplier": 1.2 },
+      { "resist": -50, "expected_reduction": -0.3333, "expected_multiplier": 1.3333 },
+      { "resist": -100, "expected_reduction": -0.5, "expected_multiplier": 1.5 }
+    ]
+  },
+
+  "damage_multiplier_clamping": {
+    "description": "Multiplier clamped between 0.1 (90% reduction cap) and 2.0 (100% amplification cap)",
+    "cases": [
+      { "resist": 900, "expected_multiplier": 0.1, "note": "Would be 0.09 without cap" },
+      { "resist": -200, "expected_multiplier": 1.6667, "note": "Within cap range" },
+      { "resist": -500, "expected_multiplier": 1.8333, "note": "Approaches 2.0 asymptotically but doesn't exceed" }
+    ]
+  },
+
+  "physical_damage_calculation": {
+    "description": "effective_armor = armor * (1 - armor_pen_percent) - armor_pen_flat, then apply damage reduction",
+    "cases": [
+      {
+        "raw_damage": 100,
+        "armor": 100,
+        "armor_pen_percent": 0,
+        "armor_pen_flat": 0,
+        "expected_damage": 50.0
+      },
+      {
+        "raw_damage": 100,
+        "armor": 100,
+        "armor_pen_percent": 0.35,
+        "armor_pen_flat": 0,
+        "expected_damage": 60.61,
+        "note": "35% armor pen: effective armor = 65"
+      },
+      {
+        "raw_damage": 100,
+        "armor": 100,
+        "armor_pen_percent": 0,
+        "armor_pen_flat": 20,
+        "expected_damage": 55.56,
+        "note": "20 flat pen: effective armor = 80"
+      },
+      {
+        "raw_damage": 100,
+        "armor": 100,
+        "armor_pen_percent": 0.35,
+        "armor_pen_flat": 20,
+        "expected_damage": 68.97,
+        "note": "Both pens: effective armor = 45"
+      },
+      {
+        "raw_damage": 200,
+        "armor": 50,
+        "armor_pen_percent": 0,
+        "armor_pen_flat": 0,
+        "expected_damage": 133.33
+      }
+    ]
+  },
+
+  "magic_damage_calculation": {
+    "description": "Same formula as physical but with magic resist and magic pen",
+    "cases": [
+      {
+        "raw_damage": 100,
+        "magic_resist": 100,
+        "magic_pen_percent": 0,
+        "magic_pen_flat": 0,
+        "expected_damage": 50.0
+      },
+      {
+        "raw_damage": 100,
+        "magic_resist": 50,
+        "magic_pen_percent": 0.4,
+        "magic_pen_flat": 10,
+        "expected_damage": 83.33,
+        "note": "40% percent pen + 10 flat: effective MR = 20"
+      }
+    ]
+  },
+
+  "true_damage": {
+    "description": "True damage ignores all resistances",
+    "cases": [
+      { "raw_damage": 100, "armor": 500, "expected_damage": 100 },
+      { "raw_damage": 250, "magic_resist": 200, "expected_damage": 250 }
+    ]
+  },
+
+  "critical_strike": {
+    "description": "Crit damage = base_damage * crit_damage_multiplier (default 2.0)",
+    "cases": [
+      { "base_damage": 100, "crit_multiplier": 2.0, "expected_crit_damage": 200 },
+      { "base_damage": 150, "crit_multiplier": 2.25, "expected_crit_damage": 337.5 }
+    ]
+  }
+}

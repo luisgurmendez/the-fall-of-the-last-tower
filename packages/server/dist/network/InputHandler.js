@@ -8,6 +8,7 @@
  * - Resource checks
  */
 import { Vector, InputType, } from '@siege/shared';
+import { abilityExecutor } from '../simulation/ServerAbilityExecutor';
 /**
  * Rate limiting configuration per input type.
  */
@@ -23,6 +24,7 @@ const RATE_LIMITS = {
     [InputType.RECALL]: 2,
     [InputType.PING]: 5,
     [InputType.CHAT]: 3,
+    [InputType.PLACE_WARD]: 3, // 3 per second
 };
 export class InputHandler {
     constructor() {
@@ -108,6 +110,9 @@ export class InputHandler {
             case InputType.RECALL:
                 this.handleRecallInput(champion);
                 break;
+            case InputType.PLACE_WARD:
+                this.handlePlaceWardInput(champion, input, context);
+                break;
         }
     }
     /**
@@ -157,46 +162,23 @@ export class InputHandler {
      * Handle ability input.
      */
     handleAbilityInput(champion, input, context) {
-        // Validate champion can cast
-        if (!champion.ccStatus.canCast) {
-            return;
+        // Prepare target position if provided
+        let targetPosition;
+        if (input.targetX !== undefined && input.targetY !== undefined) {
+            targetPosition = new Vector(input.targetX, input.targetY);
         }
-        const slot = input.slot;
-        const state = champion.abilityStates[slot];
-        // Check if ability is learned
-        if (state.rank <= 0) {
-            return;
+        // Use the ability executor to cast the ability
+        const result = abilityExecutor.castAbility({
+            champion,
+            slot: input.slot,
+            targetPosition,
+            targetEntityId: input.targetEntityId,
+            context,
+        });
+        if (!result.success) {
+            // Log failure for debugging (could also send feedback to client)
+            console.log(`[InputHandler] ${champion.playerId} failed to cast ${input.slot}: ${result.failReason}`);
         }
-        // Check cooldown
-        if (state.cooldownRemaining > 0) {
-            return;
-        }
-        // Check mana cost
-        // TODO: Get ability mana cost from definition
-        const manaCost = 0; // placeholder
-        if (champion.resource < manaCost) {
-            return;
-        }
-        // Validate target if needed
-        if (input.targetType === 'unit' && input.targetEntityId) {
-            const target = context.getEntity(input.targetEntityId);
-            if (!target || target.isDead) {
-                return;
-            }
-            // Check range
-            // TODO: Get ability range from definition
-            const range = 500; // placeholder
-            if (!champion.isInRange(target, range)) {
-                return;
-            }
-        }
-        // Cast the ability
-        // TODO: Implement actual ability casting
-        console.log(`[InputHandler] ${champion.playerId} casting ${slot}`);
-        // Deduct mana and start cooldown
-        champion.resource -= manaCost;
-        state.cooldownRemaining = 10; // placeholder cooldown
-        state.cooldownTotal = 10;
     }
     /**
      * Handle level up ability input.
@@ -208,21 +190,54 @@ export class InputHandler {
      * Handle buy item input.
      */
     handleBuyItemInput(champion, input, context) {
-        // TODO: Implement item purchasing
-        console.log(`[InputHandler] ${champion.playerId} buying item ${input.itemId}`);
+        champion.buyItem(input.itemId);
     }
     /**
      * Handle sell item input.
      */
     handleSellItemInput(champion, input) {
-        // TODO: Implement item selling
-        console.log(`[InputHandler] ${champion.playerId} selling item in slot ${input.slot}`);
+        champion.sellItem(input.slot);
     }
     /**
      * Handle recall input.
      */
     handleRecallInput(champion) {
         champion.startRecall();
+    }
+    /**
+     * Handle place ward input.
+     */
+    handlePlaceWardInput(champion, input, context) {
+        // Check if champion has trinket charges available
+        if (!champion.canPlaceWard()) {
+            console.log(`[InputHandler] Cannot place ward: no charges available (${champion.trinketCharges}/${champion.trinketMaxCharges}) or on cooldown (${champion.trinketCooldown.toFixed(1)}s)`);
+            return;
+        }
+        const targetPos = new Vector(input.x, input.y);
+        // Validate position is within map bounds
+        const mapSize = context.mapConfig.MAP_SIZE;
+        const halfWidth = mapSize.width / 2;
+        const halfHeight = mapSize.height / 2;
+        if (Math.abs(targetPos.x) > halfWidth || Math.abs(targetPos.y) > halfHeight) {
+            console.log(`[InputHandler] Ward placement out of bounds: (${input.x}, ${input.y})`);
+            return;
+        }
+        // Check if position is within placement range (depends on ward type)
+        // Stealth wards need to be placed near champion
+        // Farsight wards can be placed from far away
+        const maxPlacementRange = input.wardType === 'farsight' ? 4000 : 600;
+        const distance = champion.position.distanceTo(targetPos);
+        if (distance > maxPlacementRange) {
+            console.log(`[InputHandler] Ward placement too far: ${distance.toFixed(0)} > ${maxPlacementRange}`);
+            return;
+        }
+        // Consume trinket charge
+        if (!champion.consumeTrinketCharge()) {
+            console.log(`[InputHandler] Failed to consume trinket charge`);
+            return;
+        }
+        // Place the ward
+        context.placeWard(champion.playerId, input.wardType, targetPos);
     }
     /**
      * Basic input validation.

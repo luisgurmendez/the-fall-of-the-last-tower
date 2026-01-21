@@ -1,0 +1,81 @@
+{
+  "$schema": "./fixture.schema.json",
+  "name": "Movement",
+  "description": "Test fixtures for movement speed, slows, and position calculations",
+  "tolerance": 0.01,
+
+  "constants": {
+    "minimum_movement_speed": 110
+  },
+
+  "slow_calculation": {
+    "description": "Only the strongest slow applies (no multiplicative stacking). effective_speed = max(base_speed * (1 - strongest_slow), minimum_speed)",
+    "cases": [
+      { "base_speed": 340, "slows": [0.2], "expected_speed": 272 },
+      { "base_speed": 340, "slows": [0.4], "expected_speed": 204 },
+      { "base_speed": 340, "slows": [0.2, 0.4], "expected_speed": 204, "note": "Only 40% slow applies" },
+      { "base_speed": 340, "slows": [0.3, 0.3, 0.5], "expected_speed": 170, "note": "Only 50% slow applies" },
+      { "base_speed": 340, "slows": [0.99], "expected_speed": 110, "note": "Clamped to minimum" },
+      { "base_speed": 400, "slows": [0.8], "expected_speed": 110, "note": "Clamped to minimum" }
+    ]
+  },
+
+  "movement_per_tick": {
+    "description": "distance = movement_speed * delta_time",
+    "cases": [
+      { "movement_speed": 340, "delta_time_seconds": 0.0333, "expected_distance": 11.32, "note": "30 Hz tick" },
+      { "movement_speed": 340, "delta_time_seconds": 0.0167, "expected_distance": 5.68, "note": "60 Hz tick" },
+      { "movement_speed": 400, "delta_time_seconds": 0.0333, "expected_distance": 13.32 },
+      { "movement_speed": 110, "delta_time_seconds": 0.0333, "expected_distance": 3.66, "note": "At minimum speed" }
+    ]
+  },
+
+  "position_update": {
+    "description": "new_position = current_position + direction * distance_this_tick, don't overshoot",
+    "cases": [
+      {
+        "current_x": 0,
+        "current_y": 0,
+        "target_x": 100,
+        "target_y": 0,
+        "movement_speed": 340,
+        "delta_time": 0.0333,
+        "expected_x": 11.32,
+        "expected_y": 0
+      },
+      {
+        "current_x": 0,
+        "current_y": 0,
+        "target_x": 100,
+        "target_y": 100,
+        "movement_speed": 340,
+        "delta_time": 0.0333,
+        "expected_x": 8.0,
+        "expected_y": 8.0,
+        "note": "Diagonal movement (distance / sqrt(2))"
+      },
+      {
+        "current_x": 95,
+        "current_y": 0,
+        "target_x": 100,
+        "target_y": 0,
+        "movement_speed": 340,
+        "delta_time": 0.0333,
+        "expected_x": 100,
+        "expected_y": 0,
+        "note": "Would overshoot, so clamp to target"
+      }
+    ]
+  },
+
+  "attack_cooldown": {
+    "description": "attack_cooldown = 1 / attack_speed",
+    "cases": [
+      { "attack_speed": 0.625, "expected_cooldown": 1.6 },
+      { "attack_speed": 1.0, "expected_cooldown": 1.0 },
+      { "attack_speed": 1.5, "expected_cooldown": 0.667 },
+      { "attack_speed": 2.0, "expected_cooldown": 0.5 },
+      { "attack_speed": 2.5, "expected_cooldown": 0.4 }
+    ]
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "$schema": "./fixture.schema.json",
+  "name": "Gold Calculations",
+  "description": "Test fixtures for gold rewards, bounties, and assists",
+  "tolerance": 0.01,
+
+  "constants": {
+    "base_kill_gold": 300,
+    "assist_percent": 0.5,
+    "bounty_per_kill_above_2": 50,
+    "passive_gold_per_second": 1.9,
+    "tower_global_gold": 50,
+    "tower_killer_gold": 150
+  },
+
+  "minion_gold_rewards": {
+    "description": "Gold from last-hitting minions",
+    "values": {
+      "melee": 21,
+      "caster": 14,
+      "siege": 60,
+      "super": 45
+    }
+  },
+
+  "champion_kill_gold": {
+    "description": "kill_gold = base_gold + bounty_bonus if kill_streak >= 3",
+    "cases": [
+      { "killer_kill_streak": 0, "expected_gold": 300 },
+      { "killer_kill_streak": 1, "expected_gold": 300 },
+      { "killer_kill_streak": 2, "expected_gold": 300 },
+      { "killer_kill_streak": 3, "expected_gold": 350, "note": "50 * (3 - 2) = 50 bounty" },
+      { "killer_kill_streak": 4, "expected_gold": 400, "note": "50 * (4 - 2) = 100 bounty" },
+      { "killer_kill_streak": 5, "expected_gold": 450, "note": "50 * (5 - 2) = 150 bounty" },
+      { "killer_kill_streak": 10, "expected_gold": 700, "note": "50 * (10 - 2) = 400 bounty" }
+    ]
+  },
+
+  "assist_gold": {
+    "description": "assist_gold = (kill_gold * assist_percent) / num_assists",
+    "cases": [
+      { "kill_gold": 300, "num_assists": 1, "expected_gold_each": 150 },
+      { "kill_gold": 300, "num_assists": 2, "expected_gold_each": 75 },
+      { "kill_gold": 300, "num_assists": 3, "expected_gold_each": 50 },
+      { "kill_gold": 300, "num_assists": 4, "expected_gold_each": 37.5 },
+      { "kill_gold": 450, "num_assists": 2, "expected_gold_each": 112.5, "note": "With bounty" },
+      { "kill_gold": 700, "num_assists": 4, "expected_gold_each": 87.5, "note": "High bounty" }
+    ]
+  },
+
+  "passive_gold_generation": {
+    "description": "gold_gain = passive_gold_per_second * delta_time",
+    "cases": [
+      { "delta_time_seconds": 1, "expected_gold": 1.9 },
+      { "delta_time_seconds": 10, "expected_gold": 19.0 },
+      { "delta_time_seconds": 60, "expected_gold": 114.0 },
+      { "delta_time_seconds": 0.0333, "expected_gold": 0.0633, "note": "One tick at 30 Hz" }
+    ]
+  },
+
+  "tower_gold": {
+    "description": "Global gold to all team members plus bonus to killer",
+    "cases": [
+      { "team_size": 5, "killer_gold": 150, "ally_gold": 50, "total_team_gold": 350 }
+    ]
+  }
+}

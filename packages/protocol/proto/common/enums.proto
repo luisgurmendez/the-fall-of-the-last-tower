@@ -1,0 +1,146 @@
+syntax = "proto3";
+package siege.common;
+
+option go_package = "github.com/siege/protocol/common";
+
+// Team/side identifier
+enum Side {
+  SIDE_BLUE = 0;
+  SIDE_RED = 1;
+}
+
+// Input message types from client to server
+// Must match @siege/shared InputType enum values exactly
+enum InputType {
+  INPUT_TYPE_MOVE = 0;
+  INPUT_TYPE_ATTACK_MOVE = 1;
+  INPUT_TYPE_TARGET_UNIT = 2;
+  INPUT_TYPE_STOP = 3;
+  INPUT_TYPE_ABILITY = 4;
+  INPUT_TYPE_LEVEL_UP = 5;
+  INPUT_TYPE_BUY_ITEM = 6;
+  INPUT_TYPE_SELL_ITEM = 7;
+  INPUT_TYPE_RECALL = 8;
+  INPUT_TYPE_PING = 9;
+  INPUT_TYPE_CHAT = 10;
+}
+
+// Entity types in the game
+// Must match @siege/shared EntityType enum values exactly
+enum EntityType {
+  ENTITY_TYPE_CHAMPION = 0;
+  ENTITY_TYPE_MINION = 1;
+  ENTITY_TYPE_TOWER = 2;
+  ENTITY_TYPE_INHIBITOR = 3;
+  ENTITY_TYPE_NEXUS = 4;
+  ENTITY_TYPE_JUNGLE_CAMP = 5;
+  ENTITY_TYPE_PROJECTILE = 6;
+  ENTITY_TYPE_WARD = 7;
+}
+
+// Bitmask for entity field changes (delta compression)
+// Must match @siege/shared EntityChangeMask enum values exactly
+enum EntityChangeMask {
+  CHANGE_MASK_NONE = 0;
+  CHANGE_MASK_POSITION = 1;
+  CHANGE_MASK_HEALTH = 2;
+  CHANGE_MASK_RESOURCE = 4;
+  CHANGE_MASK_LEVEL = 8;
+  CHANGE_MASK_EFFECTS = 16;
+  CHANGE_MASK_ABILITIES = 32;
+  CHANGE_MASK_ITEMS = 64;
+  CHANGE_MASK_TARGET = 128;
+  CHANGE_MASK_STATE = 256;
+}
+
+// Damage types for combat calculations
+enum DamageType {
+  DAMAGE_TYPE_PHYSICAL = 0;
+  DAMAGE_TYPE_MAGIC = 1;
+  DAMAGE_TYPE_TRUE = 2;
+  DAMAGE_TYPE_PURE = 3;
+}
+
+// Server to client message types
+enum ServerMessageType {
+  SERVER_MESSAGE_FULL_STATE = 0;
+  SERVER_MESSAGE_STATE_UPDATE = 1;
+  SERVER_MESSAGE_EVENT = 2;
+  SERVER_MESSAGE_ERROR = 3;
+  SERVER_MESSAGE_PONG = 4;
+  SERVER_MESSAGE_GAME_START = 5;
+  SERVER_MESSAGE_GAME_END = 6;
+}
+
+// Client to server message types
+enum ClientMessageType {
+  CLIENT_MESSAGE_INPUT = 0;
+  CLIENT_MESSAGE_PING = 1;
+  CLIENT_MESSAGE_READY = 2;
+}
+
+// Game event types
+enum GameEventType {
+  EVENT_CHAMPION_KILL = 0;
+  EVENT_TOWER_DESTROYED = 1;
+  EVENT_DRAGON_KILLED = 2;
+  EVENT_BARON_KILLED = 3;
+  EVENT_INHIBITOR_DESTROYED = 4;
+  EVENT_INHIBITOR_RESPAWNED = 5;
+  EVENT_NEXUS_DESTROYED = 6;
+  EVENT_FIRST_BLOOD = 7;
+  EVENT_ACE = 8;
+  EVENT_MULTI_KILL = 9;
+  EVENT_ABILITY_CAST = 10;
+  EVENT_ITEM_PURCHASED = 11;
+  EVENT_LEVEL_UP = 12;
+}
+
+// Minion types
+enum MinionType {
+  MINION_TYPE_MELEE = 0;
+  MINION_TYPE_CASTER = 1;
+  MINION_TYPE_SIEGE = 2;
+  MINION_TYPE_SUPER = 3;
+}
+
+// Lane identifiers
+enum LaneId {
+  LANE_TOP = 0;
+  LANE_MID = 1;
+  LANE_BOT = 2;
+}
+
+// Tower tiers
+enum TowerTier {
+  TOWER_TIER_OUTER = 0;
+  TOWER_TIER_INNER = 1;
+  TOWER_TIER_INHIBITOR = 2;
+}
+
+// Ability slots
+enum AbilitySlot {
+  ABILITY_SLOT_Q = 0;
+  ABILITY_SLOT_W = 1;
+  ABILITY_SLOT_E = 2;
+  ABILITY_SLOT_R = 3;
+}
+
+// Crowd control types
+enum CrowdControlType {
+  CC_NONE = 0;
+  CC_STUN = 1;
+  CC_SILENCE = 2;
+  CC_ROOT = 3;
+  CC_SLOW = 4;
+  CC_KNOCKUP = 5;
+  CC_KNOCKBACK = 6;
+  CC_FEAR = 7;
+  CC_CHARM = 8;
+  CC_TAUNT = 9;
+  CC_SUPPRESS = 10;
+  CC_SLEEP = 11;
+  CC_BLIND = 12;
+  CC_DISARM = 13;
+  CC_GROUND = 14;
+}

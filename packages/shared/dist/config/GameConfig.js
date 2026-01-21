@@ -8,11 +8,11 @@ export const GameConfig = {
      */
     TICK: {
         /** Server tick rate (simulations per second) */
-        SERVER_TICK_RATE: 30,
+        SERVER_TICK_RATE: 125,
         /** Client render rate (frames per second) */
         CLIENT_RENDER_RATE: 60,
         /** Milliseconds per server tick */
-        SERVER_TICK_MS: 1000 / 30,
+        SERVER_TICK_MS: 8,
         /** Input send rate from client */
         INPUT_SEND_RATE: 60,
     },
@@ -20,8 +20,8 @@ export const GameConfig = {
      * Network configuration.
      */
     NETWORK: {
-        /** Interpolation delay in milliseconds (3 server ticks) */
-        INTERPOLATION_DELAY: 100,
+        /** Interpolation delay in milliseconds (3 server ticks at 125Hz) */
+        INTERPOLATION_DELAY: 24,
         /** Maximum lag compensation rewind in milliseconds */
         MAX_LAG_COMPENSATION: 250,
         /** Position snap threshold (units) */
@@ -109,9 +109,9 @@ export const GameConfig = {
      */
     VISION: {
         /** Default champion sight range */
-        CHAMPION_SIGHT_RANGE: 1200,
+        CHAMPION_SIGHT_RANGE: 800,
         /** Ward sight range */
-        WARD_SIGHT_RANGE: 900,
+        WARD_SIGHT_RANGE: 600,
         /** Ward duration (seconds) */
         WARD_DURATION: 180,
         /** Max wards per player */

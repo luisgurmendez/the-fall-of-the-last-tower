@@ -5,9 +5,14 @@ export const Dimensions = new Rectangle(
   document.body.scrollHeight
 );
 
+export interface CanvasResult {
+  canvas: HTMLCanvasElement;
+  context: CanvasRenderingContext2D;
+}
+
 // TODO(lg): opt is this really needed?
 class CanvasGenerator {
-  static generateCanvas() {
+  static generateCanvas(): CanvasResult {
     let canvasRenderingContext: CanvasRenderingContext2D;
     const canvas = document.createElement("canvas");
     const containerEl = document.getElementById("c");
@@ -35,7 +40,7 @@ class CanvasGenerator {
       throw ""; //Error('No canvas container');
     }
 
-    return canvasRenderingContext;
+    return { canvas, context: canvasRenderingContext };
   }
 }
 

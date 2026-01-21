@@ -31,7 +31,9 @@ export declare enum InputType {
     /** Ping map */
     PING = 9,
     /** Chat message */
-    CHAT = 10
+    CHAT = 10,
+    /** Place a ward */
+    PLACE_WARD = 11
 }
 /**
  * Base input message from client.
@@ -116,9 +118,22 @@ export interface PingInput extends InputMessage {
     y: number;
 }
 /**
+ * Ward type for network messages.
+ */
+export type WardType = 'stealth' | 'control' | 'farsight';
+/**
+ * Place ward input.
+ */
+export interface PlaceWardInput extends InputMessage {
+    type: InputType.PLACE_WARD;
+    wardType: WardType;
+    x: number;
+    y: number;
+}
+/**
  * Union type for all input messages.
  */
-export type ClientInput = MoveInput | TargetUnitInput | StopInput | AbilityInput | LevelUpInput | BuyItemInput | SellItemInput | RecallInput | PingInput;
+export type ClientInput = MoveInput | TargetUnitInput | StopInput | AbilityInput | LevelUpInput | BuyItemInput | SellItemInput | RecallInput | PingInput | PlaceWardInput;
 /**
  * Entity types in the game.
  */
@@ -184,6 +199,10 @@ export interface ChampionSnapshot {
     deaths: number;
     assists: number;
     cs: number;
+    trinketCharges: number;
+    trinketMaxCharges: number;
+    trinketCooldown: number;
+    trinketRechargeProgress: number;
 }
 /**
  * Snapshot of a minion's state for network sync.
@@ -201,6 +220,7 @@ export interface MinionSnapshot {
     health: number;
     maxHealth: number;
     isDead: boolean;
+    isAttacking?: boolean;
 }
 /**
  * Snapshot of a tower's state for network sync.
@@ -224,17 +244,71 @@ export interface TowerSnapshot {
 export interface ProjectileSnapshot {
     entityId: string;
     entityType: EntityType.PROJECTILE;
+    side: Side;
     sourceId: string;
-    projectileType: string;
+    abilityId: string;
     x: number;
     y: number;
-    velocityX: number;
-    velocityY: number;
+    directionX: number;
+    directionY: number;
+    speed: number;
+    radius: number;
+    isDead: boolean;
+}
+/**
+ * Snapshot of a nexus for network sync.
+ */
+export interface NexusSnapshot {
+    entityId: string;
+    entityType: EntityType.NEXUS;
+    side: Side;
+    x: number;
+    y: number;
+    health: number;
+    maxHealth: number;
+    isDestroyed: boolean;
+}
+/**
+ * Snapshot of a jungle creature for network sync.
+ */
+export interface JungleCreatureSnapshot {
+    entityId: string;
+    entityType: EntityType.JUNGLE_CAMP;
+    campId: string;
+    creatureType: string;
+    x: number;
+    y: number;
+    targetX?: number;
+    targetY?: number;
+    targetEntityId?: string;
+    health: number;
+    maxHealth: number;
+    isDead: boolean;
+}
+/**
+ * Snapshot of a ward for network sync.
+ */
+export interface WardSnapshot {
+    entityId: string;
+    entityType: EntityType.WARD;
+    side: Side;
+    wardType: WardType;
+    ownerId: string;
+    x: number;
+    y: number;
+    health: number;
+    maxHealth: number;
+    isDead: boolean;
+    isStealthed: boolean;
+    revealsWards: boolean;
+    sightRange: number;
+    remainingDuration: number;
+    placedAt: number;
 }
 /**
  * Union type for all entity snapshots.
  */
-export type EntitySnapshot = ChampionSnapshot | MinionSnapshot | TowerSnapshot | ProjectileSnapshot;
+export type EntitySnapshot = ChampionSnapshot | MinionSnapshot | TowerSnapshot | ProjectileSnapshot | NexusSnapshot | JungleCreatureSnapshot | WardSnapshot;
 /**
  * Delta update for an entity (only changed fields).
  */
@@ -265,9 +339,14 @@ export declare enum GameEventType {
  * Game event for important occurrences.
  */
 export interface GameEvent {
+    /** Event type */
     type: GameEventType;
+    /** When the event occurred */
     timestamp: number;
+    /** Event-specific data */
     data: Record<string, unknown>;
+    /** Unique event ID for reliable delivery (optional) */
+    eventId?: number;
 }
 /**
  * Full state update from server.
@@ -285,6 +364,8 @@ export interface StateUpdate {
     deltas: EntityDelta[];
     /** Game events that occurred */
     events: GameEvent[];
+    /** Last event ID for acknowledging reliable events (optional) */
+    lastEventId?: number;
 }
 /**
  * Full game state snapshot (sent on connect/reconnect).
@@ -324,6 +405,15 @@ export declare enum ClientMessageType {
     /** Ping request */
     PING = 1,
     /** Ready to start */
-    READY = 2
+    READY = 2,
+    /** Event acknowledgment for reliable delivery */
+    EVENT_ACK = 3
+}
+/**
+ * Event acknowledgment message from client.
+ */
+export interface EventAckMessage {
+    /** Last received event ID */
+    lastEventId: number;
 }
 //# sourceMappingURL=network.d.ts.map

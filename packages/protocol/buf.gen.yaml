@@ -1,0 +1,19 @@
+version: v2
+managed:
+  enabled: true
+plugins:
+  # TypeScript generation
+  - remote: buf.build/connectrpc/es
+    out: generated/typescript
+    opt:
+      - target=ts
+
+  # Go generation
+  - remote: buf.build/protocolbuffers/go
+    out: generated/go
+    opt:
+      - paths=source_relative
+
+  # Rust generation (using prost)
+  - remote: buf.build/community/neoeinstein-prost
+    out: generated/rust

@@ -1,0 +1,304 @@
+# Siege MOBA - Summoner's Rift Map Configuration
+
+map:
+  id: summoners_rift
+  name: "Summoner's Rift"
+  width: 3600
+  height: 3600
+  water_border: 192
+
+nexus:
+  blue:
+    x: -1200
+    y: 1200
+  red:
+    x: 1200
+    y: -1200
+  radius: 75
+  health: 5000
+  armor: 0
+  magic_resist: 0
+
+champion_spawn:
+  blue:
+    x: -1100
+    y: 1100
+  red:
+    x: 1100
+    y: -1100
+  spawn_radius: 50
+
+lanes:
+  top:
+    id: top
+    width: 100
+    waypoints:
+      - { x: -1200, y: 1200 }
+      - { x: -1200, y: -1000 }
+      - { x: -1000, y: -1200 }
+      - { x: 1200, y: -1200 }
+
+  mid:
+    id: mid
+    width: 100
+    waypoints:
+      - { x: -1200, y: 1200 }
+      - { x: -750, y: 750 }
+      - { x: 0, y: 0 }
+      - { x: 750, y: -750 }
+      - { x: 1200, y: -1200 }
+
+  bot:
+    id: bot
+    width: 100
+    waypoints:
+      - { x: -1200, y: 1200 }
+      - { x: 1000, y: 1200 }
+      - { x: 1200, y: 1000 }
+      - { x: 1200, y: -1200 }
+
+minion_waves:
+  spawn_interval_seconds: 30
+  first_wave_delay_seconds: 5
+  spawn_delay_between_seconds: 0.3
+  spawn_offset: 100
+
+  composition:
+    normal:
+      melee: 3
+      caster: 2
+      siege: 0
+    siege:  # Every 3rd wave
+      melee: 3
+      caster: 2
+      siege: 1
+    super:  # After inhibitor destroyed
+      melee: 1
+      caster: 2
+      siege: 0
+      super: 1
+
+towers:
+  # Tower stats by tier
+  stats:
+    tier_1:  # Outer towers
+      health: 3000
+      attack_damage: 150
+      attack_range: 350
+      attack_cooldown: 1.0
+      armor: 60
+      magic_resist: 60
+      sight_range: 1000
+      max_warmup_stacks: 6
+      warmup_damage_per_stack: 15
+      global_gold: 50
+      killer_gold: 150
+
+    tier_2:  # Inner towers
+      health: 3500
+      attack_damage: 175
+      attack_range: 350
+      attack_cooldown: 1.0
+      armor: 70
+      magic_resist: 70
+      sight_range: 1000
+      max_warmup_stacks: 6
+      warmup_damage_per_stack: 20
+      global_gold: 50
+      killer_gold: 175
+
+    tier_3:  # Inhibitor towers
+      health: 4000
+      attack_damage: 200
+      attack_range: 350
+      attack_cooldown: 1.0
+      armor: 80
+      magic_resist: 80
+      sight_range: 1000
+      max_warmup_stacks: 6
+      warmup_damage_per_stack: 25
+      global_gold: 50
+      killer_gold: 200
+
+  # Tower positions
+  positions:
+    # Blue side - Top lane
+    - { side: blue, lane: top, tier: 1, x: -1200, y: 700 }
+    - { side: blue, lane: top, tier: 2, x: -1200, y: 200 }
+    # Blue side - Mid lane
+    - { side: blue, lane: mid, tier: 1, x: -650, y: 650 }
+    - { side: blue, lane: mid, tier: 2, x: -350, y: 350 }
+    # Blue side - Bot lane
+    - { side: blue, lane: bot, tier: 1, x: -200, y: 1200 }
+    - { side: blue, lane: bot, tier: 2, x: 400, y: 1200 }
+
+    # Red side - Top lane
+    - { side: red, lane: top, tier: 1, x: 200, y: -1200 }
+    - { side: red, lane: top, tier: 2, x: -400, y: -1200 }
+    # Red side - Mid lane
+    - { side: red, lane: mid, tier: 1, x: 650, y: -650 }
+    - { side: red, lane: mid, tier: 2, x: 350, y: -350 }
+    # Red side - Bot lane
+    - { side: red, lane: bot, tier: 1, x: 1200, y: -700 }
+    - { side: red, lane: bot, tier: 2, x: 1200, y: -200 }
+
+inhibitors:
+  stats:
+    health: 4000
+    armor: 20
+    magic_resist: 20
+    respawn_time_seconds: 300
+
+  positions:
+    - { side: blue, lane: top, x: -1100, y: 900 }
+    - { side: blue, lane: mid, x: -900, y: 900 }
+    - { side: blue, lane: bot, x: -900, y: 1100 }
+    - { side: red, lane: top, x: 900, y: -1100 }
+    - { side: red, lane: mid, x: 900, y: -900 }
+    - { side: red, lane: bot, x: 1100, y: -900 }
+
+jungle_camps:
+  - id: blue_gromp
+    side: blue
+    position: { x: -900, y: 400 }
+    respawn_time_seconds: 120
+    creatures:
+      - type: gromp
+        health: 1800
+        damage: 70
+        gold: 90
+        experience: 135
+
+  - id: blue_wolves
+    side: blue
+    position: { x: -700, y: 200 }
+    respawn_time_seconds: 120
+    creatures:
+      - type: wolf_large
+        health: 1200
+        damage: 42
+        gold: 55
+        experience: 65
+      - type: wolf_small
+        health: 400
+        damage: 16
+        gold: 13
+        experience: 25
+      - type: wolf_small
+        health: 400
+        damage: 16
+        gold: 13
+        experience: 25
+
+  - id: blue_blue_buff
+    side: blue
+    position: { x: -800, y: 600 }
+    respawn_time_seconds: 300
+    creatures:
+      - type: blue_sentinel
+        health: 2100
+        damage: 82
+        gold: 100
+        experience: 200
+
+  - id: blue_red_buff
+    side: blue
+    position: { x: -400, y: 800 }
+    respawn_time_seconds: 300
+    creatures:
+      - type: red_brambleback
+        health: 2100
+        damage: 82
+        gold: 100
+        experience: 200
+
+  # Red side jungle camps (mirrored)
+  - id: red_gromp
+    side: red
+    position: { x: 900, y: -400 }
+    respawn_time_seconds: 120
+    creatures:
+      - type: gromp
+        health: 1800
+        damage: 70
+        gold: 90
+        experience: 135
+
+  - id: red_wolves
+    side: red
+    position: { x: 700, y: -200 }
+    respawn_time_seconds: 120
+    creatures:
+      - type: wolf_large
+        health: 1200
+        damage: 42
+        gold: 55
+        experience: 65
+      - type: wolf_small
+        health: 400
+        damage: 16
+        gold: 13
+        experience: 25
+      - type: wolf_small
+        health: 400
+        damage: 16
+        gold: 13
+        experience: 25
+
+  - id: red_blue_buff
+    side: red
+    position: { x: 800, y: -600 }
+    respawn_time_seconds: 300
+    creatures:
+      - type: blue_sentinel
+        health: 2100
+        damage: 82
+        gold: 100
+        experience: 200
+
+  - id: red_red_buff
+    side: red
+    position: { x: 400, y: -800 }
+    respawn_time_seconds: 300
+    creatures:
+      - type: red_brambleback
+        health: 2100
+        damage: 82
+        gold: 100
+        experience: 200
+
+  # Dragon
+  - id: dragon
+    side: neutral
+    position: { x: 600, y: 600 }
+    respawn_time_seconds: 360
+    creatures:
+      - type: dragon
+        health: 3500
+        damage: 100
+        gold: 150
+        experience: 300
+
+  # Baron
+  - id: baron
+    side: neutral
+    position: { x: -600, y: -600 }
+    respawn_time_seconds: 420
+    spawn_time_seconds: 1200  # 20 minutes
+    creatures:
+      - type: baron
+        health: 9000
+        damage: 300
+        gold: 300
+        experience: 600
+
+bushes:
+  - { x: -1000, y: 500, width: 100, height: 150 }
+  - { x: -500, y: 1000, width: 150, height: 100 }
+  - { x: -400, y: 400, width: 120, height: 120 }
+  - { x: 400, y: -400, width: 120, height: 120 }
+  - { x: 1000, y: -500, width: 100, height: 150 }
+  - { x: 500, y: -1000, width: 150, height: 100 }
+  # River bushes
+  - { x: 300, y: 300, width: 80, height: 80 }
+  - { x: -300, y: -300, width: 80, height: 80 }

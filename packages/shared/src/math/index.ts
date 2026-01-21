@@ -3,4 +3,5 @@
  */
 
 export { Vector, default as default } from './Vector';
-export { Shape, Rectangle, Circle, Square, NullShape } from './shapes';
+export { Rectangle, Circle, Square, NullShape } from './shapes';
+export type { Shape } from './shapes';

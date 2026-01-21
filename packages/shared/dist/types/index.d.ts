@@ -11,6 +11,10 @@ export type { AbilitySlot, AbilityType, AbilityTargetType, AbilityShape, Passive
 export { calculateAbilityValue, } from './abilities';
 export type { ItemSlot, ItemCategory, ItemPassiveTrigger, ItemPassiveDef, ItemDefinition, EquippedItemState, InventoryState, ItemPurchaseResult, ItemSellResult, } from './items';
 export { calculateItemStats, findEmptySlot, hasItem, } from './items';
-export type { InputMessage, MoveInput, TargetUnitInput, StopInput, AbilityInput, LevelUpInput, BuyItemInput, SellItemInput, RecallInput, PingInput, ClientInput, ChampionSnapshot, MinionSnapshot, TowerSnapshot, ProjectileSnapshot, EntitySnapshot, EntityDelta, GameEvent, StateUpdate, FullStateSnapshot, } from './network';
+export type { InputMessage, MoveInput, TargetUnitInput, StopInput, AbilityInput, LevelUpInput, BuyItemInput, SellItemInput, RecallInput, PingInput, PlaceWardInput, WardType, ClientInput, ChampionSnapshot, MinionSnapshot, TowerSnapshot, ProjectileSnapshot, NexusSnapshot, JungleCreatureSnapshot, WardSnapshot, EntitySnapshot, EntityDelta, GameEvent, StateUpdate, FullStateSnapshot, } from './network';
 export { InputType, EntityType, EntityChangeMask, GameEventType, ServerMessageType, ClientMessageType, } from './network';
+export type { MinionType, LaneId, MinionStats, WaveComposition, MinionConfig, } from './minions';
+export { DEFAULT_MINION_STATS, DEFAULT_MINION_WAVE_CONFIG, } from './minions';
+export type { TowerTier, TowerLane, TowerStats, TowerReward, InhibitorStats, NexusStats, } from './structures';
+export { DEFAULT_TOWER_STATS, DEFAULT_TOWER_REWARDS, DEFAULT_INHIBITOR_STATS, DEFAULT_NEXUS_STATS, TowerTargetPriority, } from './structures';
 //# sourceMappingURL=index.d.ts.map

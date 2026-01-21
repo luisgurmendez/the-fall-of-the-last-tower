@@ -35,6 +35,8 @@ export enum InputType {
   PING = 9,
   /** Chat message */
   CHAT = 10,
+  /** Place a ward */
+  PLACE_WARD = 11,
 }
 
 /**
@@ -130,6 +132,21 @@ export interface PingInput extends InputMessage {
 }
 
 /**
+ * Ward type for network messages.
+ */
+export type WardType = 'stealth' | 'control' | 'farsight';
+
+/**
+ * Place ward input.
+ */
+export interface PlaceWardInput extends InputMessage {
+  type: InputType.PLACE_WARD;
+  wardType: WardType;
+  x: number;
+  y: number;
+}
+
+/**
  * Union type for all input messages.
  */
 export type ClientInput =
@@ -141,7 +158,8 @@ export type ClientInput =
   | BuyItemInput
   | SellItemInput
   | RecallInput
-  | PingInput;
+  | PingInput
+  | PlaceWardInput;
 
 /**
  * Entity types in the game.
@@ -226,6 +244,12 @@ export interface ChampionSnapshot {
   deaths: number;
   assists: number;
   cs: number;  // Creep score
+
+  // Trinket (ward placement)
+  trinketCharges: number;
+  trinketMaxCharges: number;
+  trinketCooldown: number;
+  trinketRechargeProgress: number;
 }
 
 /**
@@ -246,6 +270,9 @@ export interface MinionSnapshot {
   health: number;
   maxHealth: number;
   isDead: boolean;
+
+  // Attack animation state - true when minion is actively in attack animation
+  isAttacking?: boolean;
 }
 
 /**
@@ -273,13 +300,82 @@ export interface TowerSnapshot {
 export interface ProjectileSnapshot {
   entityId: string;
   entityType: EntityType.PROJECTILE;
+  side: Side;
   sourceId: string;
-  projectileType: string;
+  abilityId: string;
 
   x: number;
   y: number;
-  velocityX: number;
-  velocityY: number;
+  directionX: number;
+  directionY: number;
+  speed: number;
+  radius: number;
+
+  isDead: boolean;
+}
+
+/**
+ * Snapshot of a nexus for network sync.
+ */
+export interface NexusSnapshot {
+  entityId: string;
+  entityType: EntityType.NEXUS;
+  side: Side;
+
+  x: number;
+  y: number;
+
+  health: number;
+  maxHealth: number;
+  isDestroyed: boolean;
+}
+
+/**
+ * Snapshot of a jungle creature for network sync.
+ */
+export interface JungleCreatureSnapshot {
+  entityId: string;
+  entityType: EntityType.JUNGLE_CAMP;
+  campId: string;
+  creatureType: string;
+
+  x: number;
+  y: number;
+  targetX?: number;
+  targetY?: number;
+  targetEntityId?: string;
+
+  health: number;
+  maxHealth: number;
+  isDead: boolean;
+}
+
+/**
+ * Snapshot of a ward for network sync.
+ */
+export interface WardSnapshot {
+  entityId: string;
+  entityType: EntityType.WARD;
+  side: Side;
+  wardType: WardType;
+  ownerId: string; // Player who placed the ward
+
+  x: number;
+  y: number;
+
+  // Ward state
+  health: number;
+  maxHealth: number;
+  isDead: boolean;
+  isStealthed: boolean;
+  revealsWards: boolean;
+  sightRange: number;
+
+  // Remaining time (0 for permanent wards like control)
+  remainingDuration: number;
+
+  // Timestamp when placed (for expiration tracking)
+  placedAt: number;
 }
 
 /**
@@ -289,7 +385,10 @@ export type EntitySnapshot =
   | ChampionSnapshot
   | MinionSnapshot
   | TowerSnapshot
-  | ProjectileSnapshot;
+  | ProjectileSnapshot
+  | NexusSnapshot
+  | JungleCreatureSnapshot
+  | WardSnapshot;
 
 /**
  * Delta update for an entity (only changed fields).
@@ -323,9 +422,14 @@ export enum GameEventType {
  * Game event for important occurrences.
  */
 export interface GameEvent {
+  /** Event type */
   type: GameEventType;
+  /** When the event occurred */
   timestamp: number;
+  /** Event-specific data */
   data: Record<string, unknown>;
+  /** Unique event ID for reliable delivery (optional) */
+  eventId?: number;
 }
 
 /**
@@ -344,6 +448,8 @@ export interface StateUpdate {
   deltas: EntityDelta[];
   /** Game events that occurred */
   events: GameEvent[];
+  /** Last event ID for acknowledging reliable events (optional) */
+  lastEventId?: number;
 }
 
 /**
@@ -387,4 +493,14 @@ export enum ClientMessageType {
   PING = 1,
   /** Ready to start */
   READY = 2,
+  /** Event acknowledgment for reliable delivery */
+  EVENT_ACK = 3,
+}
+
+/**
+ * Event acknowledgment message from client.
+ */
+export interface EventAckMessage {
+  /** Last received event ID */
+  lastEventId: number;
 }

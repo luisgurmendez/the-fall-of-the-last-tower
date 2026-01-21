@@ -1,0 +1,72 @@
+syntax = "proto3";
+package siege.entities;
+
+import "common/enums.proto";
+import "abilities/ability.proto";
+
+option go_package = "github.com/siege/protocol/entities";
+
+// Complete champion state snapshot for network sync
+message ChampionSnapshot {
+  // Identity
+  string entity_id = 1;
+  siege.common.EntityType entity_type = 2;
+  siege.common.Side side = 3;
+  string champion_id = 4;
+  string player_id = 5;
+
+  // Position and movement
+  float x = 10;
+  float y = 11;
+  optional float target_x = 12;
+  optional float target_y = 13;
+  optional string target_entity_id = 14;
+
+  // Core stats
+  float health = 20;
+  float max_health = 21;
+  float resource = 22;
+  float max_resource = 23;
+  uint32 level = 24;
+  uint32 experience = 25;
+
+  // Combat stats
+  float attack_damage = 30;
+  float ability_power = 31;
+  float armor = 32;
+  float magic_resist = 33;
+  float attack_speed = 34;
+  float movement_speed = 35;
+
+  // State flags
+  bool is_dead = 40;
+  float respawn_timer = 41;
+  bool is_recalling = 42;
+  float recall_progress = 43;
+
+  // Abilities (keyed by slot: Q=0, W=1, E=2, R=3)
+  map<uint32, siege.abilities.AbilityState> abilities = 50;
+
+  // Active effects/buffs/debuffs
+  repeated siege.abilities.ActiveEffectState active_effects = 51;
+
+  // Inventory (6 item slots, may contain nulls)
+  repeated EquippedItem items = 52;
+  float gold = 53;
+
+  // Score tracking
+  uint32 kills = 60;
+  uint32 deaths = 61;
+  uint32 assists = 62;
+  uint32 cs = 63;  // Creep score
+}
+
+// Equipped item in inventory slot
+message EquippedItem {
+  string item_id = 1;
+  uint32 slot = 2;
+  uint32 stacks = 3;
+
+  // Passive cooldowns (item_passive_id -> remaining cooldown)
+  map<string, float> passive_cooldowns = 4;
+}

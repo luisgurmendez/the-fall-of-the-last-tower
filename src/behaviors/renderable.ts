@@ -1,5 +1,6 @@
-import RenderElement, { RenderFn } from "@/render/renderElement";
-interface Renderable<RenderOptions = {}> {
+import type RenderElement from "@/render/renderElement";
+
+export interface Renderable<RenderOptions = {}> {
   render(options?: RenderOptions): RenderElement;
 }
 

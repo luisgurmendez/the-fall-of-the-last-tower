@@ -1,0 +1,64 @@
+{
+  "$schema": "./fixture.schema.json",
+  "name": "Crowd Control",
+  "description": "Test fixtures for CC duration, tenacity, and status effects",
+  "tolerance": 0.01,
+
+  "constants": {
+    "minimum_cc_duration_seconds": 0.5
+  },
+
+  "tenacity_calculation": {
+    "description": "actual_duration = max(base_duration * (1 - tenacity), minimum_cc_duration)",
+    "cases": [
+      { "base_duration": 2.0, "tenacity": 0.0, "expected_duration": 2.0 },
+      { "base_duration": 2.0, "tenacity": 0.3, "expected_duration": 1.4 },
+      { "base_duration": 2.0, "tenacity": 0.5, "expected_duration": 1.0 },
+      { "base_duration": 2.0, "tenacity": 0.7, "expected_duration": 0.6 },
+      { "base_duration": 1.0, "tenacity": 0.6, "expected_duration": 0.5, "note": "Clamped to minimum" },
+      { "base_duration": 0.8, "tenacity": 0.5, "expected_duration": 0.5, "note": "Clamped to minimum" },
+      { "base_duration": 3.0, "tenacity": 0.25, "expected_duration": 2.25 }
+    ]
+  },
+
+  "tenacity_exempt_cc": {
+    "description": "Knockups and suppressions are NOT reduced by tenacity",
+    "cc_types_exempt": ["KNOCKUP", "SUPPRESS"],
+    "cases": [
+      { "cc_type": "KNOCKUP", "base_duration": 1.5, "tenacity": 0.5, "expected_duration": 1.5 },
+      { "cc_type": "SUPPRESS", "base_duration": 2.5, "tenacity": 0.7, "expected_duration": 2.5 }
+    ]
+  },
+
+  "cc_status_flags": {
+    "description": "Effect of CC types on action flags",
+    "cc_effects": {
+      "STUN": { "can_move": false, "can_attack": false, "can_cast": false, "can_use_mobility": false },
+      "SUPPRESS": { "can_move": false, "can_attack": false, "can_cast": false, "can_use_mobility": false },
+      "SLEEP": { "can_move": false, "can_attack": false, "can_cast": false, "can_use_mobility": false },
+      "KNOCKUP": { "can_move": false, "can_attack": false, "can_cast": false, "can_use_mobility": false },
+      "ROOT": { "can_move": false, "can_attack": true, "can_cast": true, "can_use_mobility": false },
+      "SILENCE": { "can_move": true, "can_attack": true, "can_cast": false, "can_use_mobility": true },
+      "DISARM": { "can_move": true, "can_attack": false, "can_cast": true, "can_use_mobility": true },
+      "GROUND": { "can_move": true, "can_attack": true, "can_cast": true, "can_use_mobility": false }
+    }
+  },
+
+  "multiple_cc_resolution": {
+    "description": "When multiple CC effects are active, the most restrictive applies for each flag",
+    "cases": [
+      {
+        "active_effects": ["ROOT", "SILENCE"],
+        "expected": { "can_move": false, "can_attack": true, "can_cast": false, "can_use_mobility": false }
+      },
+      {
+        "active_effects": ["DISARM", "GROUND"],
+        "expected": { "can_move": true, "can_attack": false, "can_cast": true, "can_use_mobility": false }
+      },
+      {
+        "active_effects": ["ROOT", "DISARM", "SILENCE"],
+        "expected": { "can_move": false, "can_attack": false, "can_cast": false, "can_use_mobility": false }
+      }
+    ]
+  }
+}
