@@ -4,8 +4,7 @@ import { GameObject } from "@/core/GameObject";
 // import Keyboard from "./keyboard";
 import Camera from "./camera";
 import SpatiallyHashedObjects from "@/utils/spatiallyHashedObjects";
-import Castle, { CASTLE_ID } from "@/objects/castle/castle";
-import Background, { BACKGROUND_ID } from "@/objects/background";
+import MOBABackground, { BACKGROUND_ID } from "@/objects/MOBABackground";
 import { FogOfWar } from "@/core/FogOfWar";
 import NavigationGrid from "@/navigation/NavigationGrid";
 import { TEAM, TeamId } from "@/core/Team";
@@ -20,12 +19,11 @@ class GameContext {
   readonly canvasRenderingContext: CanvasRenderingContext2D;
   readonly camera: Camera;
   readonly worldDimensions: Rectangle;
-  readonly background: Background;
-  readonly castle: Castle | undefined;
+  readonly background: MOBABackground;
   readonly money: number;
   readonly fogOfWar: FogOfWar | undefined;
   readonly navigationGrid: NavigationGrid | undefined;
-  /** The local player's team ID (0 = blue, 1 = red). Defaults to TEAM.PLAYER (0) for single-player. */
+  /** The local player's team ID (0 = blue, 1 = red). Set from match data in online mode. */
   readonly localPlayerTeam: TeamId;
 
   setMoney: (a: number) => void;
@@ -58,8 +56,7 @@ class GameContext {
     this.canvasRenderingContext = canvasRenderingContext;
     this.camera = camera;
     this.worldDimensions = worldDimensions;
-    this.castle = objects.find(o => o.id === CASTLE_ID) as Castle;
-    this.background = objects.find(o => o.id === BACKGROUND_ID) as Background;
+    this.background = objects.find(o => o.id === BACKGROUND_ID) as MOBABackground;
     this.money = money;
     this.setMoney = setMoney;
     this.pause = pause;
@@ -71,3 +68,15 @@ class GameContext {
 }
 
 export default GameContext;
+
+/**
+ * Minimal API interface for the game loop.
+ * Used by Level to communicate with the game loop.
+ */
+export interface GameApi {
+  readonly canvasRenderingContext: CanvasRenderingContext2D;
+  readonly dt: number;
+  readonly isPaused: boolean;
+  pause: () => void;
+  unPause: () => void;
+}

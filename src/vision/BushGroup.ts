@@ -7,7 +7,7 @@
 
 import Vector from '@/physics/vector';
 import { Bush, BushType } from './Bush';
-import { IGameUnit } from '@/units/types';
+import type { IGameUnit } from './index';
 import { TeamId } from '@/core/Team';
 
 /**

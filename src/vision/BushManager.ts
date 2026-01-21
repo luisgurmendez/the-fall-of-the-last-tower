@@ -12,7 +12,7 @@ import Vector from '@/physics/vector';
 import { Bush } from './Bush';
 import type { BushConfig } from './Bush';
 import { BushGroup } from './BushGroup';
-import { IGameUnit } from '@/units/types';
+import type { IGameUnit } from './index';
 import { TeamId } from '@/core/Team';
 import { Ward } from '@/objects/ward';
 import GameContext from '@/core/gameContext';

@@ -5,9 +5,7 @@ import Vector from "@/physics/vector";
 import RenderUtils from "@/render/utils";
 import Color from "@/utils/color";
 import { Dimensions } from "@/core/canvas";
-import { BACKGROUND_ID } from "@/objects/background";
-import { CASTLE_ID } from "@/objects/castle/castle";
-import Particle from "@/objects/particle/particle";
+import { BACKGROUND_ID } from "@/objects/MOBABackground";
 import { GameObject, hasPosition } from "@/core/GameObject";
 import { FogOfWarRenderer } from "@/render/FogOfWarRenderer";
 import { TEAM, TeamId } from "@/core/Team";
@@ -76,19 +74,6 @@ function shouldRenderWithFog(
 
 function objectRenderingPositionComparator(a: GameObject, b: GameObject) {
   /// Sorts by y value so that when rendering we don't overlap objects that are behind others.
-  /// Also positiones the castle in the back, and instance of Particles in the front.
-  if (a.id === CASTLE_ID) {
-    return -1;
-  }
-  if (b.id === CASTLE_ID) {
-    return 1;
-  }
-  if (a instanceof Particle) {
-    return 1;
-  }
-  if (b instanceof Particle) {
-    return -1;
-  }
   // Sort by y position for objects that have position
   const aPos = hasPosition(a) ? a.position.y : 0;
   const bPos = hasPosition(b) ? b.position.y : 0;

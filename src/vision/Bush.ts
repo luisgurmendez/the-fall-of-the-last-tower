@@ -14,7 +14,7 @@ import GameContext from '@/core/gameContext';
 import RenderElement from '@/render/renderElement';
 import ImageSpriteSheet from '@/sprites/ImageSpriteSheet';
 import { TeamId, TEAM } from '@/core/Team';
-import { IGameUnit } from '@/units/types';
+import type { IGameUnit } from './index';
 import type { BushGroup } from './BushGroup';
 
 // Sprite paths
@@ -259,7 +259,7 @@ export class Bush extends WorldEntity {
       console.log(`[Bush] hasPlayerInsideGroup - onlinePlayerCheckFn: ${!!Bush.onlinePlayerCheckFn}, group: ${this.group?.id ?? 'null'}`);
     }
 
-    // Normal offline mode check
+    // Fallback: check group or individual bush state
     if (this.group) {
       return this.group.hasPlayerInside();
     }

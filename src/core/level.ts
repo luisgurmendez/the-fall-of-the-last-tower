@@ -7,7 +7,7 @@ import CollisionsController, {
   CollisionableObject,
   Collisions,
 } from "@/controllers/CollisionsController";
-import { GameApi } from "./game";
+import { GameApi } from "./gameContext";
 import RenderController from "@/controllers/RenderController";
 import { isCollisionableObject } from "@/mixins/collisionable";
 import SpatiallyHashedObjects from "@/utils/spatiallyHashedObjects";
@@ -18,7 +18,6 @@ import { getShopUI } from "@/ui/shop/ShopUI";
 import { profiler } from "@/debug/PerformanceProfiler";
 import NavigationGrid from "@/navigation/NavigationGrid";
 import { MOBAMap } from "@/map/MOBAMap";
-import { CustomMOBAMap } from "@/map/CustomMOBAMap";
 
 /**
  * Type guard to check if an object can reveal fog of war.
@@ -40,7 +39,7 @@ class Level {
   worldDimensions: Rectangle;
   money = GameConfig.ECONOMY.STARTING_MONEY;
   fogOfWar: FogOfWar;
-  /** Local player's team (for fog of war). Defaults to 0 (blue) for single-player. */
+  /** Local player's team (for fog of war). Set from match data in online mode. */
   localPlayerTeam: number = 0;
 
   private collisionController: CollisionsController =
@@ -193,21 +192,13 @@ class Level {
   }
 
   /**
-   * Find the navigation grid from MOBAMap or CustomMOBAMap if present.
+   * Find the navigation grid from MOBAMap if present.
    */
   private getNavigationGrid(): NavigationGrid | undefined {
-    // Check for regular MOBAMap
     const mobaMap = this.objects.find(obj => obj instanceof MOBAMap) as MOBAMap | undefined;
     if (mobaMap) {
       return mobaMap.getNavigationGrid();
     }
-
-    // Check for CustomMOBAMap
-    const customMap = this.objects.find(obj => obj instanceof CustomMOBAMap) as CustomMOBAMap | undefined;
-    if (customMap) {
-      return customMap.getNavigationGrid();
-    }
-
     return undefined;
   }
 

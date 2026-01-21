@@ -1,20 +1,33 @@
 /**
  * ShopUI - Controller for the HTML shop overlay.
- * Bridges the HTML shop interface with the game state.
- * Supports both local (offline) and network (online) modes.
+ * Online mode only - sends buy/sell requests to server.
  */
 
-import { Champion } from "@/champions/Champion";
 import GameContext from "@/core/gameContext";
-import { ALL_ITEMS, getItemsByCategory } from "@/items/definitions";
-import type { ItemDefinition, ItemSlot } from "@/items/types";
+import type { ItemDefinition, ItemSlot, ItemCategory } from "@siege/shared";
 import type { NetworkClient } from "@siege/client";
 
-type ItemCategory = ItemDefinition["category"] | "all";
+type ShopCategory = ItemCategory | "all";
+
+/**
+ * Placeholder item data until real definitions are added to @siege/shared.
+ * The server validates all purchases, so these are just for display.
+ */
+const ALL_ITEMS: ItemDefinition[] = [
+  { id: 'long_sword', name: 'Long Sword', description: '+10 Attack Damage', category: 'attack_damage', cost: 350, sellValue: 245, stats: { attackDamage: 10 }, isUnique: false, tags: [], passiveIds: [] },
+  { id: 'amplifying_tome', name: 'Amplifying Tome', description: '+20 Ability Power', category: 'ability_power', cost: 435, sellValue: 305, stats: { abilityPower: 20 }, isUnique: false, tags: [], passiveIds: [] },
+  { id: 'cloth_armor', name: 'Cloth Armor', description: '+15 Armor', category: 'armor', cost: 300, sellValue: 210, stats: { armor: 15 }, isUnique: false, tags: [], passiveIds: [] },
+  { id: 'ruby_crystal', name: 'Ruby Crystal', description: '+150 Health', category: 'health', cost: 400, sellValue: 280, stats: { health: 150 }, isUnique: false, tags: [], passiveIds: [] },
+  { id: 'boots', name: 'Boots', description: '+25 Movement Speed', category: 'movement', cost: 300, sellValue: 210, stats: { movementSpeed: 25 }, isUnique: false, tags: [], passiveIds: [] },
+];
+
+function getItemsByCategory(category: ItemCategory): ItemDefinition[] {
+  return ALL_ITEMS.filter(item => item.category === category);
+}
 
 interface ShopState {
   isOpen: boolean;
-  selectedCategory: ItemCategory;
+  selectedCategory: ShopCategory;
   selectedItem: ItemDefinition | null;
   selectedInventorySlot: ItemSlot | null;
 }
@@ -42,24 +55,15 @@ export class ShopUI {
   private categoryButtons: NodeListOf<HTMLButtonElement> | null = null;
   private inventorySlots: NodeListOf<HTMLElement> | null = null;
 
-  // Game reference
-  private champion: Champion | null = null;
+  // Game reference (for gold display in local context)
   private gameContext: GameContext | null = null;
 
   // Network client for online mode
   private networkClient: NetworkClient | null = null;
 
   // Online mode state (from server)
-  private onlineGold: number | null = null;
-  private onlineItems: Array<{ definitionId: string } | null> | null = null;
-
-  // Undo stack
-  private undoStack: Array<{
-    action: "buy" | "sell";
-    item: ItemDefinition;
-    slot: ItemSlot;
-    goldChange: number;
-  }> = [];
+  private onlineGold: number = 0;
+  private onlineItems: Array<{ definitionId: string } | null> = [];
 
   // Track if DOM has been initialized
   private domInitialized: boolean = false;
@@ -231,7 +235,7 @@ export class ShopUI {
   /**
    * Select a category and filter items.
    */
-  private selectCategory(category: ItemCategory): void {
+  private selectCategory(category: ShopCategory): void {
     this.state.selectedCategory = category;
 
     // Update active button
@@ -274,27 +278,31 @@ export class ShopUI {
    * Select an inventory slot.
    */
   private selectInventorySlot(slot: ItemSlot): void {
-    const inventory = this.champion?.getInventory();
-    const equippedItem = inventory?.items.get(slot);
+    const itemState = this.onlineItems[slot] ?? null;
 
-    if (equippedItem) {
-      this.state.selectedItem = equippedItem.definition;
-      this.state.selectedInventorySlot = slot;
+    if (itemState && itemState.definitionId) {
+      // Look up item definition
+      const itemDef = ALL_ITEMS.find(i => i.id === itemState.definitionId);
 
-      // Update selection visual
-      this.inventorySlots?.forEach((el, idx) => {
-        el.classList.toggle("selected", idx === slot);
-      });
+      if (itemDef) {
+        this.state.selectedItem = itemDef;
+        this.state.selectedInventorySlot = slot;
 
-      // Clear item grid selection
-      const itemEls = this.itemsGrid?.querySelectorAll(".shop-item");
-      itemEls?.forEach((el) => el.classList.remove("selected"));
+        // Update selection visual
+        this.inventorySlots?.forEach((el, idx) => {
+          el.classList.toggle("selected", idx === slot);
+        });
 
-      // Show details
-      this.showItemDetails(equippedItem.definition, true);
+        // Clear item grid selection
+        const itemEls = this.itemsGrid?.querySelectorAll(".shop-item");
+        itemEls?.forEach((el) => el.classList.remove("selected"));
 
-      // Update buttons
-      this.updateButtons();
+        // Show details
+        this.showItemDetails(itemDef, true);
+
+        // Update buttons
+        this.updateButtons();
+      }
     }
   }
 
@@ -401,18 +409,17 @@ export class ShopUI {
 
   /**
    * Format item passives for display.
+   * Note: passiveIds are just string IDs - full passive definitions would come from server.
    */
   private formatItemPassives(item: ItemDefinition): string {
-    if (!item.passives.length) return "";
+    if (!item.passiveIds || !item.passiveIds.length) return "";
 
-    return item.passives
+    // For now, just display passive IDs since full definitions aren't available client-side
+    return item.passiveIds
       .map(
-        (passive) => `
+        (passiveId) => `
       <div class="item-passive">
-        <div class="item-passive-name">${passive.isUnique ? "UNIQUE: " : ""}${
-          passive.name
-        }</div>
-        <div class="item-passive-desc">${passive.description}</div>
+        <div class="item-passive-name">${passiveId}</div>
       </div>
     `
       )
@@ -423,23 +430,14 @@ export class ShopUI {
    * Update button states based on current selection.
    */
   private updateButtons(): void {
-    // Get gold from online state or game context
-    const gold = this.onlineGold ?? this.gameContext?.money ?? 0;
+    const gold = this.onlineGold;
     const item = this.state.selectedItem;
 
-    // Buy button
+    // Buy button - check gold (server validates everything else)
     if (this.buyButton) {
-      let canBuy = false;
-
-      if (item && this.state.selectedInventorySlot === null) {
-        if (this.networkClient) {
-          // Online mode: just check gold (server validates everything else)
-          canBuy = gold >= item.cost;
-        } else if (this.champion) {
-          // Offline mode: full validation
-          canBuy = this.champion.canPurchaseItem(item, gold).success;
-        }
-      }
+      const canBuy = item !== null &&
+                     this.state.selectedInventorySlot === null &&
+                     gold >= item.cost;
       this.buyButton.disabled = !canBuy;
     }
 
@@ -449,10 +447,9 @@ export class ShopUI {
       this.sellButton.disabled = !canSell;
     }
 
-    // Undo button (disabled in online mode - server handles state)
+    // Undo button - not available in online mode (server handles state)
     if (this.undoButton) {
-      const canUndo = !this.networkClient && this.undoStack.length > 0;
-      this.undoButton.disabled = !canUndo;
+      this.undoButton.disabled = true;
     }
   }
 
@@ -460,131 +457,41 @@ export class ShopUI {
    * Buy the currently selected item.
    */
   private buySelectedItem(): void {
-    if (!this.state.selectedItem) return;
+    if (!this.state.selectedItem || !this.networkClient) return;
 
     const item = this.state.selectedItem;
 
-    // Online mode: send buy request to server
-    if (this.networkClient) {
-      console.log(`[ShopUI] Sending buy request for ${item.name} (${item.id})`);
-      this.networkClient.sendBuyItemInput(item.id);
-      // Server will handle validation and gold deduction
-      // Close shop after purchase attempt
-      this.close();
-      return;
-    }
-
-    // Offline mode: handle locally
-    if (!this.champion || !this.gameContext) return;
-
-    const gold = this.gameContext.money;
-
-    const result = this.champion.canPurchaseItem(item, gold);
-    if (!result.success) {
-      console.log(`Cannot buy ${item.name}: ${result.reason}`);
-      return;
-    }
-
-    // Deduct gold
-    this.gameContext.setMoney(gold - item.cost);
-
-    // Add item to inventory
-    const slot = this.champion.purchaseItem(item);
-
-    if (slot !== -1) {
-      // Add to undo stack
-      this.undoStack.push({
-        action: "buy",
-        item,
-        slot,
-        goldChange: -item.cost,
-      });
-
-      console.log(`Purchased ${item.name} for ${item.cost}g`);
-
-      // Refresh UI
-      this.refreshUI();
-    }
+    console.log(`[ShopUI] Sending buy request for ${item.name} (${item.id})`);
+    this.networkClient.sendBuyItemInput(item.id);
+    // Server will handle validation and gold deduction
+    // Close shop after purchase attempt
+    this.close();
   }
 
   /**
    * Sell the selected inventory item.
    */
   private sellSelectedItem(): void {
-    if (this.state.selectedInventorySlot === null) return;
+    if (this.state.selectedInventorySlot === null || !this.networkClient) return;
 
     const slot = this.state.selectedInventorySlot;
 
-    // Online mode: send sell request to server
-    if (this.networkClient) {
-      console.log(`[ShopUI] Sending sell request for slot ${slot}`);
-      this.networkClient.sendSellItemInput(slot);
-      // Server will handle validation and gold credit
-      // Clear selection
-      this.state.selectedItem = null;
-      this.state.selectedInventorySlot = null;
-      this.refreshUI();
-      return;
-    }
-
-    // Offline mode: handle locally
-    if (!this.champion || !this.gameContext) return;
-
-    const inventory = this.champion.getInventory();
-    const equipped = inventory.items.get(slot);
-
-    if (!equipped) return;
-
-    const item = equipped.definition;
-    const goldGained = this.champion.sellItem(slot);
-
-    // Add gold
-    this.gameContext.setMoney(this.gameContext.money + goldGained);
-
-    // Add to undo stack
-    this.undoStack.push({
-      action: "sell",
-      item,
-      slot,
-      goldChange: goldGained,
-    });
-
-    console.log(`Sold ${item.name} for ${goldGained}g`);
-
+    console.log(`[ShopUI] Sending sell request for slot ${slot}`);
+    this.networkClient.sendSellItemInput(slot);
+    // Server will handle validation and gold credit
     // Clear selection
     this.state.selectedItem = null;
     this.state.selectedInventorySlot = null;
-
-    // Refresh UI
     this.refreshUI();
   }
 
   /**
    * Undo the last buy/sell action.
+   * Note: Not available in online mode - server handles state.
    */
   private undoLastAction(): void {
-    if (!this.champion || !this.gameContext || this.undoStack.length === 0)
-      return;
-
-    const lastAction = this.undoStack.pop()!;
-
-    if (lastAction.action === "buy") {
-      // Undo a purchase - sell the item and refund full cost
-      this.champion.sellItem(lastAction.slot);
-      this.gameContext.setMoney(this.gameContext.money + lastAction.item.cost);
-      console.log(`Undid purchase of ${lastAction.item.name}`);
-    } else {
-      // Undo a sale - re-purchase the item without cost
-      const gold = this.gameContext.money;
-      if (gold >= lastAction.goldChange) {
-        this.gameContext.setMoney(gold - lastAction.goldChange);
-        this.champion.purchaseItem(lastAction.item);
-        console.log(`Undid sale of ${lastAction.item.name}`);
-      }
-    }
-
-    // Refresh UI
-    this.refreshUI();
+    // Undo is not available in online mode
+    console.log('[ShopUI] Undo not available in online mode');
   }
 
   /**
@@ -611,17 +518,7 @@ export class ShopUI {
    */
   private updateGoldDisplay(): void {
     if (!this.goldDisplay) return;
-
-    // Online mode: use server gold
-    if (this.onlineGold !== null) {
-      this.goldDisplay.textContent = Math.floor(this.onlineGold).toString();
-      return;
-    }
-
-    // Offline mode: use game context
-    if (this.gameContext) {
-      this.goldDisplay.textContent = this.gameContext.money.toString();
-    }
+    this.goldDisplay.textContent = Math.floor(this.onlineGold).toString();
   }
 
   /**
@@ -630,56 +527,25 @@ export class ShopUI {
   private updateInventorySlots(): void {
     if (!this.inventorySlots) return;
 
-    // Online mode: use server items
-    if (this.onlineItems !== null) {
-      this.inventorySlots.forEach((slot, index) => {
-        const itemState = this.onlineItems![index] ?? null;
-
-        // Clear slot
-        slot.innerHTML = "";
-        slot.classList.remove("has-item");
-
-        if (itemState && itemState.definitionId) {
-          // Look up item definition by ID
-          const itemDef = ALL_ITEMS.find(i => i.id === itemState.definitionId);
-
-          if (itemDef) {
-            slot.classList.add("has-item");
-
-            const iconDiv = document.createElement("div");
-            iconDiv.className = `slot-item-icon item-icon-${itemDef.category}`;
-            iconDiv.textContent = this.getItemIcon(itemDef);
-            slot.appendChild(iconDiv);
-          }
-        } else {
-          const numberDiv = document.createElement("div");
-          numberDiv.className = "slot-number";
-          numberDiv.textContent = (index + 1).toString();
-          slot.appendChild(numberDiv);
-        }
-      });
-      return;
-    }
-
-    // Offline mode: use champion inventory
-    if (!this.champion) return;
-
-    const inventory = this.champion.getInventory();
-
     this.inventorySlots.forEach((slot, index) => {
-      const equipped = inventory.items.get(index as ItemSlot);
+      const itemState = this.onlineItems[index] ?? null;
 
       // Clear slot
       slot.innerHTML = "";
       slot.classList.remove("has-item");
 
-      if (equipped) {
-        slot.classList.add("has-item");
+      if (itemState && itemState.definitionId) {
+        // Look up item definition by ID
+        const itemDef = ALL_ITEMS.find(i => i.id === itemState.definitionId);
 
-        const iconDiv = document.createElement("div");
-        iconDiv.className = `slot-item-icon item-icon-${equipped.definition.category}`;
-        iconDiv.textContent = this.getItemIcon(equipped.definition);
-        slot.appendChild(iconDiv);
+        if (itemDef) {
+          slot.classList.add("has-item");
+
+          const iconDiv = document.createElement("div");
+          iconDiv.className = `slot-item-icon item-icon-${itemDef.category}`;
+          iconDiv.textContent = this.getItemIcon(itemDef);
+          slot.appendChild(iconDiv);
+        }
       } else {
         const numberDiv = document.createElement("div");
         numberDiv.className = "slot-number";
@@ -690,19 +556,10 @@ export class ShopUI {
   }
 
   /**
-   * Set the champion reference for the shop.
-   */
-  setChampion(champion: Champion): void {
-    this.champion = champion;
-    this.updateInventorySlots();
-  }
-
-  /**
-   * Set the game context reference.
+   * Set the game context reference (for UI callbacks).
    */
   setGameContext(gameContext: GameContext): void {
     this.gameContext = gameContext;
-    this.updateGoldDisplay();
   }
 
   /**
@@ -757,9 +614,6 @@ export class ShopUI {
     this.state.isOpen = true;
     this.overlay?.classList.remove("hidden");
 
-    // Clear undo stack when opening
-    this.undoStack = [];
-
     // Refresh UI
     this.refreshUI();
   }
@@ -812,9 +666,9 @@ export class ShopUI {
    * This preserves event listeners and allows clicks to work properly.
    */
   private updateItemAffordability(): void {
-    if (!this.itemsGrid || !this.gameContext) return;
+    if (!this.itemsGrid) return;
 
-    const gold = this.gameContext.money;
+    const gold = this.onlineGold;
     const itemEls = this.itemsGrid.querySelectorAll(".shop-item");
 
     itemEls.forEach((el) => {

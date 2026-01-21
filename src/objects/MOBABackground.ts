@@ -26,9 +26,9 @@ export const BACKGROUND_ID = "bg";
 // ASSET PATHS
 // =============================================================================
 const ASSETS = {
-  TILEMAP: '/assets/sprites/Map/Tilemap_Grass.png',
-  WATER_BACKGROUND: '/assets/sprites/Map/Water_Background.png',
-  WATER_FOAM: '/assets/sprites/Map/Water_Foam.png',
+  TILEMAP: "/assets/sprites/Map/Tilemap_Grass.png",
+  WATER_BACKGROUND: "/assets/sprites/Map/Water_Background.png",
+  WATER_FOAM: "/assets/sprites/Map/Water_Foam.png",
 };
 
 const TILE_SIZE = 64;
@@ -77,17 +77,17 @@ const TILES = {
    */
   grass: {
     // Row 0 - top row
-    topLeft: { col: 0, row: 0 },      // Corner: water above and left
-    topCenter: { col: 1, row: 0 },    // Edge: water above
-    topRight: { col: 2, row: 0 },     // Corner: water above and right
+    topLeft: { col: 0, row: 0 }, // Corner: water above and left
+    topCenter: { col: 1, row: 0 }, // Edge: water above
+    topRight: { col: 2, row: 0 }, // Corner: water above and right
     // Row 1 - middle row
-    middleLeft: { col: 0, row: 1 },   // Edge: water left
+    middleLeft: { col: 0, row: 1 }, // Edge: water left
     middleCenter: { col: 1, row: 1 }, // Interior: no water edges
-    middleRight: { col: 2, row: 1 },  // Edge: water right
+    middleRight: { col: 2, row: 1 }, // Edge: water right
     // Row 2 - bottom row
-    bottomLeft: { col: 0, row: 2 },   // Corner: water below and left
+    bottomLeft: { col: 0, row: 2 }, // Corner: water below and left
     bottomCenter: { col: 1, row: 2 }, // Edge: water below
-    bottomRight: { col: 2, row: 2 },  // Corner: water below and right
+    bottomRight: { col: 2, row: 2 }, // Corner: water below and right
   },
 
   /**
@@ -266,10 +266,13 @@ class MOBABackground extends BaseObject {
 
       // Render the full background
       if (this.canvasRenderingContext) {
-        this.renderBackground(this.canvasRenderingContext, this.worldDimensions);
+        this.renderBackground(
+          this.canvasRenderingContext,
+          this.worldDimensions
+        );
       }
     } catch (error) {
-      console.error('Failed to load background assets:', error);
+      console.error("Failed to load background assets:", error);
     }
   }
 
@@ -293,10 +296,10 @@ class MOBABackground extends BaseObject {
   private createSeamlessGrassTile(): void {
     if (!this.tilemap) return;
 
-    const canvas = document.createElement('canvas');
+    const canvas = document.createElement("canvas");
     canvas.width = TILE_SIZE;
     canvas.height = TILE_SIZE;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     ctx.imageSmoothingEnabled = false;
@@ -310,10 +313,14 @@ class MOBABackground extends BaseObject {
 
     ctx.drawImage(
       this.tilemap,
-      srcX + margin, srcY + margin,
-      innerSize, innerSize,
-      0, 0,
-      TILE_SIZE, TILE_SIZE
+      srcX + margin,
+      srcY + margin,
+      innerSize,
+      innerSize,
+      0,
+      0,
+      TILE_SIZE,
+      TILE_SIZE
     );
 
     this.seamlessGrassTile = canvas;
@@ -328,10 +335,10 @@ class MOBABackground extends BaseObject {
 
     // Water_Background.png is already designed to tile, so we use it directly
     // We create a TILE_SIZE canvas to maintain consistent sizing
-    const canvas = document.createElement('canvas');
+    const canvas = document.createElement("canvas");
     canvas.width = TILE_SIZE;
     canvas.height = TILE_SIZE;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     ctx.imageSmoothingEnabled = false;
@@ -339,10 +346,14 @@ class MOBABackground extends BaseObject {
     // Draw the water background scaled to tile size
     ctx.drawImage(
       this.waterBackground,
-      0, 0,
-      this.waterBackground.width, this.waterBackground.height,
-      0, 0,
-      TILE_SIZE, TILE_SIZE
+      0,
+      0,
+      this.waterBackground.width,
+      this.waterBackground.height,
+      0,
+      0,
+      TILE_SIZE,
+      TILE_SIZE
     );
 
     this.seamlessWaterTile = canvas;
@@ -355,7 +366,10 @@ class MOBABackground extends BaseObject {
   /**
    * Fallback background when assets aren't loaded yet.
    */
-  private renderFallbackBackground(ctx: CanvasRenderingContext2D, dimensions: Rectangle): void {
+  private renderFallbackBackground(
+    ctx: CanvasRenderingContext2D,
+    dimensions: Rectangle
+  ): void {
     ctx.fillStyle = "#4ba3a3"; // Water color fallback
     ctx.fillRect(0, 0, dimensions.w, dimensions.h);
   }
@@ -364,7 +378,10 @@ class MOBABackground extends BaseObject {
    * Main background rendering method.
    * Draws in order: Water → Grass Platform → Walls → Lanes → Jungle
    */
-  private renderBackground(ctx: CanvasRenderingContext2D, dimensions: Rectangle): void {
+  private renderBackground(
+    ctx: CanvasRenderingContext2D,
+    dimensions: Rectangle
+  ): void {
     const { width, height } = MOBAConfig.MAP_SIZE;
     const halfWidth = width / 2;
     const halfHeight = height / 2;
@@ -718,31 +735,10 @@ class MOBABackground extends BaseObject {
 
   /**
    * Draw subtle lane path indicators on the grass.
+   * NOTE: Lane rendering removed - server entities are rendered by EntityRenderer.
    */
-  private drawLanes(ctx: CanvasRenderingContext2D): void {
-    const lanes = this.mobaMap.getAllLanes();
-
-    ctx.globalAlpha = 0.25;
-    ctx.strokeStyle = "#8bc878"; // Lighter green for paths
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-
-    for (const lane of lanes) {
-      const waypoints = lane.waypoints;
-      if (waypoints.length < 2) continue;
-
-      ctx.beginPath();
-      ctx.moveTo(waypoints[0].x, waypoints[0].y);
-
-      for (let i = 1; i < waypoints.length; i++) {
-        ctx.lineTo(waypoints[i].x, waypoints[i].y);
-      }
-
-      ctx.lineWidth = lane.width;
-      ctx.stroke();
-    }
-
-    ctx.globalAlpha = 1.0;
+  private drawLanes(_ctx: CanvasRenderingContext2D): void {
+    // Lane paths are no longer drawn - minions are rendered from server state
   }
 
   /**

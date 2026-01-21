@@ -10,15 +10,46 @@ import type { OnlineStateManager } from '@/core/OnlineStateManager';
 import {
   type ChampionSnapshot,
   type AbilityState,
-  type AbilityDefinition as SharedAbilityDefinition,
+  type ChampionStats,
+  type StatModifier,
+  type AbilitySlot,
+  type ItemSlot,
+  type ItemDefinition,
   getAbilityDefinition as getSharedAbilityDefinition,
   getChampionDefinition,
 } from '@siege/shared';
-import type { ChampionStats, StatModifier } from '@/champions/types';
-import type { ChampionInventory, EquippedItem, ItemDefinition, ItemSlot } from '@/items/types';
-import type { AbilitySlot } from '@/abilities/types';
 import type { HUDTrinket } from '@/ui/ChampionHUD';
-import { getEffectDisplayInfo } from '@/effects/EffectDisplayRegistry';
+
+/**
+ * Local interface for inventory display.
+ */
+interface ChampionInventory {
+  items: Map<ItemSlot, EquippedItem>;
+  totalGoldSpent: number;
+}
+
+/**
+ * Local interface for equipped item display.
+ */
+interface EquippedItem {
+  definition: ItemDefinition;
+  slot: ItemSlot;
+  passiveCooldowns: Map<string, number>;
+  nextIntervalTick: Map<string, number>;
+}
+
+/**
+ * Stub for effect display info.
+ * Returns basic info for effects - can be enhanced later.
+ */
+function getEffectDisplayInfo(effectId: string): { name: string; flat?: Record<string, number>; percent?: Record<string, number> } | null {
+  // Return basic info based on effect ID
+  return {
+    name: effectId,
+    flat: {},
+    percent: {},
+  };
+}
 
 // DEBUG: Log when module loads and verify imports work
 console.log('[OnlineChampionAdapter] Module loaded!');
@@ -226,7 +257,7 @@ class OnlineInventoryAdapter implements ChampionInventory {
       stats: {},
       isUnique: false,
       tags: [],
-      passives: [],
+      passiveIds: [],
     };
 
     return {

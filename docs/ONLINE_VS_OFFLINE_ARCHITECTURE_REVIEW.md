@@ -1,14 +1,29 @@
 # Architectural Review: Online vs Offline Game Modes
 
 > **Date:** January 2025
-> **Status:** Analysis Only (No Code Changes)
+> **Status:** ⚠️ HISTORICAL DOCUMENT - Offline mode has been removed
 > **Author:** Architecture Review
 
-## Executive Summary
+## Update Notice
+
+**This document is now historical reference only.**
+
+The offline mode has been removed from the codebase. Siege is now an **online-only multiplayer game**. The code duplication issues identified in this review have been resolved by removing the client-side simulation code entirely.
+
+For current architecture documentation, see:
+- [Architecture README](architecture/README.md)
+- [Infrastructure](architecture/infrastructure.md)
+- [Networking](architecture/networking.md)
+
+---
+
+## Original Executive Summary (Historical)
 
 The Siege codebase has evolved from a single-player tower defense game into a multiplayer MOBA with both offline (local simulation) and online (server-authoritative) modes. While functional, the current architecture exhibits **significant code duplication** between client and server, with approximately 60-70% of simulation logic existing in two separate implementations.
 
 **Key Finding:** The offline and online modes were built as parallel systems rather than a unified architecture with different backends. This creates maintenance burden and risk of behavioral divergence.
+
+**Resolution:** Offline mode was removed entirely. The game is now online-only with server-authoritative simulation.
 
 ---
 

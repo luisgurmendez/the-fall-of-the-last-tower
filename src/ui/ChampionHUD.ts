@@ -13,8 +13,27 @@ import RenderElement from '@/render/renderElement';
 import RenderUtils from '@/render/utils';
 import GameContext from '@/core/gameContext';
 import { InputManager } from '@/core/input/InputManager';
-import { StatModifier, ChampionStats } from '@/champions/types';
-import { EquippedItem, ItemDefinition, ChampionInventory } from '@/items/types';
+import { type StatModifier, type ChampionStats, type ItemSlot, type ItemDefinition, type AbilitySlot } from '@siege/shared';
+// Re-export for external use
+export type { ItemSlot, AbilitySlot };
+
+/**
+ * Local interface for equipped item display.
+ */
+interface EquippedItem {
+  definition: ItemDefinition;
+  slot: ItemSlot;
+  passiveCooldowns: Map<string, number>;
+  nextIntervalTick: Map<string, number>;
+}
+
+/**
+ * Local interface for inventory display.
+ */
+interface ChampionInventory {
+  items: Map<ItemSlot, EquippedItem>;
+  totalGoldSpent: number;
+}
 import Vector from '@/physics/vector';
 /**
  * Interface for trinket data needed by HUD.
@@ -54,12 +73,6 @@ export interface HUDChampionData {
   getTrinket(): HUDTrinket | null;
   getPosition(): Vector;
 }
-
-/** Ability slot type */
-export type AbilitySlot = 'Q' | 'W' | 'E' | 'R';
-
-/** Item slot type (0-5) */
-export type ItemSlot = 0 | 1 | 2 | 3 | 4 | 5;
 
 /** Hover state for HUD elements */
 export interface HUDHoverState {
@@ -1392,16 +1405,16 @@ export class ChampionHUD extends ScreenEntity {
     const descLines = this.wrapText(item.description, tooltipWidth - padding * 2, 16, 0.45);
     const descHeight = descLines.length * lineHeight + 4;
 
-    // Wrap passive descriptions (use smaller char width for pixel font)
-    const passiveData = item.passives.map((passive) => ({
-      name: passive.name,
-      descLines: this.wrapText(passive.description, tooltipWidth - padding * 2, 16, 0.45),
+    // Passive display - passiveIds are just string IDs, display them simply
+    const passiveData = (item.passiveIds || []).map((passiveId: string) => ({
+      name: passiveId,
+      descLines: [] as string[],
     }));
     let passivesHeight = 0;
-    passiveData.forEach((p) => {
+    passiveData.forEach((p: { name: string; descLines: string[] }) => {
       passivesHeight += lineHeight + p.descLines.length * lineHeight + 4;
     });
-    if (item.passives.length > 0) passivesHeight += 4; // Extra spacing before passives
+    if (passiveData.length > 0) passivesHeight += 4; // Extra spacing before passives
 
     const tooltipHeight = padding * 2 + headerHeight + descHeight + statsHeight + passivesHeight + sellHeight;
 
@@ -1472,7 +1485,7 @@ export class ChampionHUD extends ScreenEntity {
     // Passives (with wrapped descriptions)
     if (passiveData.length > 0) {
       currentY += 4;
-      passiveData.forEach((passive) => {
+      passiveData.forEach((passive: { name: string; descLines: string[] }) => {
         RenderUtils.renderBitmapText(
           ctx,
           passive.name,
@@ -1481,7 +1494,7 @@ export class ChampionHUD extends ScreenEntity {
           { color: '#FFD700', size: 18, shadow: false }
         );
         currentY += lineHeight;
-        passive.descLines.forEach((line) => {
+        passive.descLines.forEach((line: string) => {
           RenderUtils.renderBitmapText(
             ctx,
             line,

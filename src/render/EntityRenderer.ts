@@ -8,7 +8,7 @@
  * - Nexus (with sprite images)
  * - Projectiles
  *
- * Uses the same sprite system as the local game for consistent visuals.
+ * Uses the sprite system for consistent visuals across all entities.
  */
 
 import type { GameObject } from '@/core/GameObject';

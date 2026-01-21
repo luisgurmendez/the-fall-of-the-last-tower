@@ -1,8 +1,7 @@
 /**
  * OnlineGame - Game class for multiplayer that uses server-authoritative state.
  *
- * Unlike the regular Game class which runs local simulation,
- * this class:
+ * This class:
  * - Uses NetworkClient for server communication
  * - Renders entities based on server state
  * - Sends inputs to server instead of applying locally
@@ -19,7 +18,7 @@ import { OnlineStateManager } from './OnlineStateManager';
 import { EntityType, type ChampionSnapshot } from '@siege/shared';
 import type { NetworkClient } from '@siege/client';
 import type { MatchData } from '@/ui/matchmaking/MatchmakingUI';
-import type { GameApi } from './game';
+import type { GameApi } from './gameContext';
 
 /**
  * Configuration for online game.
