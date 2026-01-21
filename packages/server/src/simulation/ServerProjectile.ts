@@ -144,7 +144,7 @@ export class ServerProjectile extends ServerEntity {
     this.hitEntityIds.add(entity.id);
 
     // Deal damage
-    entity.takeDamage(this.damage, this.damageType, this.sourceId);
+    entity.takeDamage(this.damage, this.damageType, this.sourceId, context);
 
     // Apply effects
     if (this.appliesEffects.length > 0 && 'applyEffect' in entity) {

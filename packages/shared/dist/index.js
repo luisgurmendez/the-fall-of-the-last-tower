@@ -10,7 +10,7 @@ export { Rectangle, Circle, Square, NullShape } from './math/shapes';
 // Type definitions
 export * from './types';
 // Configuration
-export { MOBAConfig, GameConfig } from './config';
+export { MOBAConfig, GameConfig, calculateBushGroupBounds, calculateIndividualBushPositions, isPointInBushGroup } from './config';
 // Utility functions
 export * from './utils';
 // Champion registry

@@ -38,13 +38,18 @@ export interface EntityPrioritizerConfig {
   mediumDistance?: number;
   /** Max ticks before forcing an update (ensures eventual consistency) */
   maxTicksWithoutUpdate?: number;
+  /** Movement threshold to force an update (prevents stale positions) */
+  movementThreshold?: number;
 }
 
 const DEFAULT_CONFIG: Required<EntityPrioritizerConfig> = {
-  criticalDistance: 500,   // ~1/7 of map
-  highDistance: 1000,      // ~1/4 of map
-  mediumDistance: 1500,    // ~1/3 of map
-  maxTicksWithoutUpdate: 125, // 1 second at 125Hz
+  // FIXED: Increased distances to match sight range (~800 units)
+  // This prevents entities from being de-prioritized while still visible
+  criticalDistance: 800,   // Always update (matches typical sight range)
+  highDistance: 1200,      // Every 2 ticks
+  mediumDistance: 1600,    // Every 5 ticks
+  maxTicksWithoutUpdate: 60, // ~0.5 second (was 125, reduced for faster updates)
+  movementThreshold: 50,   // Force update if entity moved more than 50 units
 };
 
 /**
@@ -53,6 +58,8 @@ const DEFAULT_CONFIG: Required<EntityPrioritizerConfig> = {
 interface EntityUpdateTracker {
   lastTick: number;
   priority: UpdatePriority;
+  /** Last known position for movement detection */
+  lastPosition: { x: number; y: number };
 }
 
 /**
@@ -93,7 +100,13 @@ export class EntityPrioritizer {
       // Always send entities that haven't been tracked yet (new to this player)
       const isNewEntity = !lastUpdate;
 
-      const shouldUpdate = isNewEntity || this.shouldUpdateEntity(
+      // Check if entity moved significantly since last update
+      const movedSignificantly = lastUpdate && this.hasMovedSignificantly(
+        entity,
+        lastUpdate.lastPosition
+      );
+
+      const shouldUpdate = isNewEntity || movedSignificantly || this.shouldUpdateEntity(
         priority,
         lastUpdate!.lastTick,
         currentTick
@@ -101,11 +114,29 @@ export class EntityPrioritizer {
 
       if (shouldUpdate) {
         result.push(entity);
-        playerStates.set(entity.id, { lastTick: currentTick, priority });
+        playerStates.set(entity.id, {
+          lastTick: currentTick,
+          priority,
+          lastPosition: { x: entity.position.x, y: entity.position.y },
+        });
       }
     }
 
     return result;
+  }
+
+  /**
+   * Check if entity has moved significantly since last update.
+   * This prevents "frozen" entities when they move but are de-prioritized.
+   */
+  private hasMovedSignificantly(
+    entity: ServerEntity,
+    lastPosition: { x: number; y: number }
+  ): boolean {
+    const dx = entity.position.x - lastPosition.x;
+    const dy = entity.position.y - lastPosition.y;
+    const distanceMoved = Math.sqrt(dx * dx + dy * dy);
+    return distanceMoved >= this.config.movementThreshold;
   }
 
   /**

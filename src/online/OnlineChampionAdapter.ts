@@ -59,12 +59,16 @@ const testChampion = getChampionDefinition('elara');
 console.log('[OnlineChampionAdapter] Test lookup elara:', testChampion ? `found: ${testChampion.name}` : 'NOT FOUND');
 
 /**
- * Client-side ability definition for tooltips.
+ * Client-side ability definition for tooltips and targeting.
  */
 interface ClientAbilityDefinition {
   name: string;
   description: string;
   range: number;
+  targetType: string;
+  shape?: string;
+  aoeRadius?: number;
+  coneAngle?: number;
 }
 
 // Debug: track which champion abilities have been logged to avoid spam
@@ -90,6 +94,7 @@ function getAbilityDefinition(championId: string, slot: AbilitySlot): ClientAbil
       name: `Ability ${slot}`,
       description: 'An ability.',
       range: 600,
+      targetType: 'no_target',
     };
   }
 
@@ -105,6 +110,7 @@ function getAbilityDefinition(championId: string, slot: AbilitySlot): ClientAbil
       name: `Ability ${slot}`,
       description: 'An ability.',
       range: 600,
+      targetType: 'no_target',
     };
   }
 
@@ -113,6 +119,10 @@ function getAbilityDefinition(championId: string, slot: AbilitySlot): ClientAbil
     name: abilityDef.name,
     description: abilityDef.description,
     range: abilityDef.range ?? 0,
+    targetType: abilityDef.targetType,
+    shape: abilityDef.shape,
+    aoeRadius: abilityDef.aoeRadius,
+    coneAngle: abilityDef.coneAngle,
   };
 }
 
@@ -147,8 +157,24 @@ class OnlineAbilityAdapter {
     return 1 - (this.state.cooldownRemaining / this.state.cooldownTotal);
   }
 
-  getTargetDescription(): { range: number } | null {
-    return { range: this.abilityDef.range };
+  get cooldownRemaining(): number {
+    return this.state.cooldownRemaining;
+  }
+
+  getTargetDescription(): {
+    range: number;
+    targetType: string;
+    shape?: string;
+    aoeRadius?: number;
+    coneAngle?: number;
+  } | null {
+    return {
+      range: this.abilityDef.range,
+      targetType: this.abilityDef.targetType,
+      shape: this.abilityDef.shape,
+      aoeRadius: this.abilityDef.aoeRadius,
+      coneAngle: this.abilityDef.coneAngle,
+    };
   }
 }
 
@@ -275,8 +301,6 @@ class OnlineInventoryAdapter implements ChampionInventory {
 export class OnlineChampionAdapter {
   private stateManager: OnlineStateManager;
   private _position: Vector = new Vector(0, 0);
-  private _lastLoggedChampionId: string | null = null;
-  private _lastAbilityLogTime: number = 0;
   private _fallbackChampionId: string;
 
   constructor(stateManager: OnlineStateManager, fallbackChampionId: string = 'warrior') {
@@ -401,13 +425,6 @@ export class OnlineChampionAdapter {
     // Use snapshot championId if available, otherwise use the fallback from matchmaking
     const championId = snapshot?.championId || this._fallbackChampionId;
 
-    // DEBUG: Always log (throttled per second)
-    const now = Date.now();
-    if (!this._lastAbilityLogTime || now - this._lastAbilityLogTime > 1000) {
-      console.log(`[OnlineChampionAdapter.getAbility] slot=${slot}, snapshot=${!!snapshot}, championId="${championId}", fallback="${this._fallbackChampionId}"`);
-      this._lastAbilityLogTime = now;
-    }
-
     // If we have server ability data, use it
     if (snapshot?.abilities?.[slot]) {
       return new OnlineAbilityAdapter(snapshot.abilities[slot], slot, championId);
@@ -511,6 +528,40 @@ export class OnlineChampionAdapter {
    */
   hasValidState(): boolean {
     return this.getSnapshot() !== null;
+  }
+
+  /**
+   * Get current level.
+   */
+  getLevel(): number {
+    return this.getSnapshot()?.level ?? 1;
+  }
+
+  /**
+   * Get current experience.
+   */
+  getExperience(): number {
+    return this.getSnapshot()?.experience ?? 0;
+  }
+
+  /**
+   * Get experience needed for next level.
+   */
+  getExperienceToNextLevel(): number {
+    return this.getSnapshot()?.experienceToNextLevel ?? 280;
+  }
+
+  /**
+   * Get available skill points.
+   */
+  getSkillPoints(): number {
+    const snapshot = this.getSnapshot();
+    const skillPoints = snapshot?.skillPoints ?? 0;
+    // Debug: log occasionally
+    if (Math.random() < 0.01) {
+      console.log(`[OnlineChampionAdapter.getSkillPoints] snapshot=${!!snapshot}, skillPoints=${skillPoints}, raw=${snapshot?.skillPoints}`);
+    }
+    return skillPoints;
   }
 }
 

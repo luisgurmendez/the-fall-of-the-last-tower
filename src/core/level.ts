@@ -159,7 +159,27 @@ class Level {
     const objects = gameContext.objects;
     objects.forEach((obj) => {
       if (isStepable(obj)) {
+        // Profile individual object steps (only track objects that might be slow)
+        const objName = obj.constructor?.name || 'Unknown';
+        const shouldProfile = [
+          'OnlineFogProvider',
+          'OnlineInputHandler',
+          'OnlineMinimap',
+          'ChampionHUD',
+          'MOBAMap',
+          'BushManager',
+          'Camera',
+        ].includes(objName);
+
+        if (shouldProfile) {
+          profiler.begin(`Step:${objName}`, { threshold: 2 });
+        }
+
         obj.step(gameContext);
+
+        if (shouldProfile) {
+          profiler.end(`Step:${objName}`);
+        }
       }
     });
   }

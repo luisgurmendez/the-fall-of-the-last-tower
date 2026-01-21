@@ -20,8 +20,10 @@ import { OnlineInputHandler } from '@/core/input/OnlineInputHandler';
 import { EntityRenderer } from '@/render/EntityRenderer';
 import { OnlineChampionAdapter } from '@/online/OnlineChampionAdapter';
 import { OnlineFogProvider } from '@/online/OnlineFogProvider';
+import { AbilityRangeIndicator } from '@/ui/AbilityRangeIndicator';
 import { DebugInspector } from '@/debug';
 import { getChampionDefinition } from '@siege/shared';
+import { InputManager } from '@/core/input/InputManager';
 import type { OnlineStateManager } from '@/core/OnlineStateManager';
 import type { NetworkClient } from '@siege/client';
 import type { MatchData } from '@/ui/matchmaking/MatchmakingUI';
@@ -90,6 +92,18 @@ export function generateOnlineLevel(config: OnlineLevelConfig): Level {
 
   // Create debug inspector for entity inspection (toggle with F3)
   const debugInspector = new DebugInspector(stateManager);
+  debugInspector.setBushManager(mobaMap.getBushManager());
+
+  // Create champion HUD and wire up level-up handler
+  const championHUD = new ChampionHUD(hudConfig, championAdapter);
+  championHUD.setLevelUpHandler((slot) => {
+    console.log(`[OnlineLevel] Level up ability ${slot} requested`);
+    networkClient.sendLevelUpInput(slot);
+  });
+
+  // Create ability range indicator (shows range/AOE when hovering abilities)
+  const inputManager = InputManager.getInstance();
+  const abilityRangeIndicator = new AbilityRangeIndicator(stateManager, championHUD, inputManager);
 
   // Build objects list
   const objects: GameObject[] = [
@@ -99,6 +113,8 @@ export function generateOnlineLevel(config: OnlineLevelConfig): Level {
     mobaMap,
     // Fog of war provider (updates fog based on server entities)
     fogProvider,
+    // Ability range indicator (renders under entities)
+    abilityRangeIndicator,
     // Entity renderer (renders all server entities)
     entityRenderer,
     // Input handler (captures and sends inputs)
@@ -106,7 +122,7 @@ export function generateOnlineLevel(config: OnlineLevelConfig): Level {
     // Camera controller
     cameraController,
     // HUD layers
-    new ChampionHUD(hudConfig, championAdapter),
+    championHUD,
     new GameStatsHUD({ getLatency: () => networkClient.getLatency() }),
     // OnlineMinimap reads from server state instead of local objects
     new OnlineMinimap(stateManager, matchData.yourSide, { size: 200 }),

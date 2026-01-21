@@ -19,6 +19,7 @@ import {
 describe('Vex', () => {
   let arena: TestArena;
 
+  // Default arena with abilities learned (for ability tests)
   beforeEach(() => {
     arena = createTestArena({
       blueChampion: 'vex',
@@ -29,25 +30,38 @@ describe('Vex', () => {
   });
 
   describe('Base Stats', () => {
+    // Base stat tests need level 1 (learnAbilities sets level to 6)
+    let level1Arena: TestArena;
+
+    beforeEach(() => {
+      level1Arena = createTestArena({
+        blueChampion: 'vex',
+        redChampion: 'magnus',
+        bluePosition: new Vector(0, 0),
+        redPosition: new Vector(300, 0),
+        learnAbilities: false, // Keep level 1 for base stat tests
+      });
+    });
+
     test('should have moderate health (520)', () => {
-      expect(arena.blue.maxHealth).toBe(520);
+      expect(level1Arena.blue.maxHealth).toBe(520);
     });
 
     test('should have melee attack range (125)', () => {
-      expect(arena.blue.getStats().attackRange).toBe(125);
+      expect(level1Arena.blue.getStats().attackRange).toBe(125);
     });
 
     test('should have high base attack damage (65)', () => {
-      expect(arena.blue.getStats().attackDamage).toBe(65);
+      expect(level1Arena.blue.getStats().attackDamage).toBe(65);
     });
 
     test('should have high movement speed (350)', () => {
-      expect(arena.blue.getStats().movementSpeed).toBe(350);
+      expect(level1Arena.blue.getStats().movementSpeed).toBe(350);
     });
 
     test('should use energy (260 resource)', () => {
-      expect(arena.blue.maxResource).toBe(260);
-      expect(arena.blue.definition.resourceType).toBe('energy');
+      expect(level1Arena.blue.maxResource).toBe(260);
+      expect(level1Arena.blue.definition.resourceType).toBe('energy');
     });
   });
 

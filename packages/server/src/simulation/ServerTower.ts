@@ -12,11 +12,14 @@ import {
   Side,
   EntityType,
   TowerSnapshot,
+  GameEventType,
 } from '@siege/shared';
 import type { TowerTier, TowerLane, TowerStats, TowerReward, DamageType } from '@siege/shared';
 import { DEFAULT_TOWER_STATS, DEFAULT_TOWER_REWARDS, TowerTargetPriority } from '@siege/shared';
 import { ServerEntity, type ServerEntityConfig } from './ServerEntity';
 import type { ServerGameContext } from '../game/ServerGameContext';
+import { RewardSystem } from '../systems/RewardSystem';
+import { ServerTargetedProjectile } from './ServerTargetedProjectile';
 
 /**
  * Configuration for creating a tower.
@@ -178,17 +181,42 @@ export class ServerTower extends ServerEntity {
     return bestTarget?.id ?? null;
   }
 
+  /** Tower projectile speed */
+  private static readonly PROJECTILE_SPEED = 1200;
+  /** Tower projectile radius */
+  private static readonly PROJECTILE_RADIUS = 12;
+
   /**
-   * Attack a target.
+   * Attack a target by firing a projectile.
    */
   private attack(target: ServerEntity, context: ServerGameContext): void {
-    // Calculate damage with warmup
+    // Calculate damage with warmup (damage is locked in when projectile is fired)
     const baseDamage = this.stats.attackDamage;
     const warmupBonus = this.warmupStacks * this.stats.warmupDamagePerStack;
     const totalDamage = baseDamage + warmupBonus;
 
-    // Deal damage
-    target.takeDamage(totalDamage, 'physical', this.id);
+    // Fire projectile at target
+    const projectile = new ServerTargetedProjectile({
+      id: `proj_${this.id}_${Date.now()}`,
+      position: this.position.clone(),
+      side: this.side,
+      targetId: target.id,
+      speed: ServerTower.PROJECTILE_SPEED,
+      radius: ServerTower.PROJECTILE_RADIUS,
+      sourceId: this.id,
+      projectileType: 'tower',
+      damage: totalDamage,
+      damageType: 'physical',
+    });
+
+    context.addEntity(projectile);
+
+    // Emit attack event for client-side animation (tower firing animation)
+    context.addEvent(GameEventType.BASIC_ATTACK, {
+      entityId: this.id,
+      targetId: target.id,
+      animationDuration: 0.3,
+    });
 
     // Increment warmup stacks
     if (this.warmupStacks < this.stats.maxWarmupStacks) {
@@ -220,9 +248,16 @@ export class ServerTower extends ServerEntity {
   /**
    * Called when the tower is destroyed - overrides base implementation.
    */
-  protected onDeath(killerId?: string): void {
-    super.onDeath(killerId);
+  protected onDeath(killerId?: string, context?: ServerGameContext): void {
+    super.onDeath(killerId, context);
     this._isDestroyed = true;
+
+    // Award XP/gold to killer and nearby allies
+    if (context) {
+      RewardSystem.awardKillRewards(this, killerId, context);
+      // Also award global gold to all allied champions
+      RewardSystem.awardGlobalTowerGold(this.side, context);
+    }
   }
 
   /**

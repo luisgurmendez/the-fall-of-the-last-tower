@@ -9,6 +9,7 @@
  */
 
 import { GameConfig } from '@siege/shared';
+import { Logger } from '../utils/Logger';
 
 export interface ServerGameConfig {
   tickRate?: number;
@@ -56,7 +57,6 @@ export class ServerGame {
    */
   start(): void {
     if (this.running) {
-      console.warn('ServerGame is already running');
       return;
     }
 
@@ -64,7 +64,7 @@ export class ServerGame {
     this.tick = 0;
     this.lastTickTime = Date.now();
 
-    console.log(`[ServerGame] Starting at ${this.tickRate} Hz (${this.tickMs.toFixed(2)}ms per tick)`);
+    Logger.game.debug(`Game loop starting at ${this.tickRate} Hz`);
 
     // Use setInterval for consistent timing
     // In production, consider using a more precise timer
@@ -88,8 +88,10 @@ export class ServerGame {
       this.tickInterval = null;
     }
 
-    console.log(`[ServerGame] Stopped at tick ${this.tick}`);
+    // Log final metrics summary
     this.logMetrics();
+
+    Logger.game.info(`Game loop stopped at tick ${this.tick}`);
   }
 
   /**
@@ -119,7 +121,7 @@ export class ServerGame {
 
       this.tick++;
     } catch (error) {
-      console.error(`[ServerGame] Error in tick ${this.tick}:`, error);
+      Logger.game.error(`Error in tick ${this.tick}:`, error);
     }
 
     // Track timing
@@ -165,12 +167,6 @@ export class ServerGame {
       this.budgetOverruns++;
     }
 
-    // Warn if tick is taking too long
-    if (duration > this.tickMs * 0.8) {
-      console.warn(
-        `[ServerGame] Tick ${this.tick} took ${duration}ms (budget: ${this.tickMs}ms)`
-      );
-    }
   }
 
   /**
@@ -219,7 +215,7 @@ export class ServerGame {
   }
 
   /**
-   * Log performance metrics.
+   * Log performance metrics in a detailed table format.
    */
   private logMetrics(): void {
     if (this.allTickDurations.length === 0) return;
@@ -243,47 +239,69 @@ export class ServerGame {
       maxJitter = Math.max(...jitters);
     }
 
-    // Calculate memory stats
-    let memoryStats = '';
-    if (this.memorySnapshots.length > 0) {
-      const avgMem =
-        this.memorySnapshots.reduce((a, b) => a + b, 0) / this.memorySnapshots.length;
-      const maxMem = Math.max(...this.memorySnapshots);
-      const minMem = Math.min(...this.memorySnapshots);
-      memoryStats = `
-  Memory:
-    - Current heap: ${this.formatBytes(this.memorySnapshots[this.memorySnapshots.length - 1])}
-    - Avg heap: ${this.formatBytes(avgMem)}
-    - Min heap: ${this.formatBytes(minMem)}
-    - Max heap: ${this.formatBytes(maxMem)}`;
-    }
-
     const gameTimeSeconds = this.tick / this.tickRate;
     const minutes = Math.floor(gameTimeSeconds / 60);
     const seconds = (gameTimeSeconds % 60).toFixed(1);
+    const overrunPercent = this.tick > 0 ? ((this.budgetOverruns / this.tick) * 100).toFixed(3) : '0';
+    const utilizationPercent = this.tickMs > 0 ? ((avg / this.tickMs) * 100).toFixed(1) : '0';
 
-    console.log(`[ServerGame] Metrics:
-  General:
-    - Game duration: ${minutes}m ${seconds}s
-    - Ticks processed: ${this.tick}
-    - Budget per tick: ${this.tickMs.toFixed(2)}ms
+    // Build the table
+    const line = '─'.repeat(50);
+    const doubleLine = '═'.repeat(50);
 
-  Tick Duration:
-    - Min: ${this.minTickDuration === Infinity ? 0 : this.minTickDuration}ms
-    - Avg: ${avg.toFixed(2)}ms
-    - Median: ${median}ms
-    - Max: ${this.maxTickDuration}ms
-    - Std Dev: ${stdDev.toFixed(2)}ms
-    - P95: ${p95}ms
-    - P99: ${p99}ms
+    console.log('');
+    console.log(`╔${doubleLine}╗`);
+    console.log(`║${'SERVER GAME STATISTICS'.padStart(36).padEnd(50)}║`);
+    console.log(`╠${doubleLine}╣`);
 
-  Budget:
-    - Overruns: ${this.budgetOverruns} (${((this.budgetOverruns / this.tick) * 100).toFixed(2)}%)
-    - Avg utilization: ${((avg / this.tickMs) * 100).toFixed(1)}%
+    // Game Time
+    console.log(`║${'  Game Duration'.padEnd(25)}│${`${minutes}m ${seconds}s`.padStart(24)}║`);
+    console.log(`║${'  Total Ticks'.padEnd(25)}│${this.tick.toLocaleString().padStart(24)}║`);
+    console.log(`║${'  Tick Rate'.padEnd(25)}│${`${this.tickRate} Hz`.padStart(24)}║`);
+    console.log(`║${'  Tick Budget'.padEnd(25)}│${`${this.tickMs.toFixed(2)} ms`.padStart(24)}║`);
 
-  Timing Jitter:
-    - Avg jitter: ${avgJitter.toFixed(2)}ms
-    - Max jitter: ${maxJitter.toFixed(2)}ms${memoryStats}`);
+    console.log(`╟${'─'.repeat(25)}┼${'─'.repeat(24)}╢`);
+    console.log(`║${'  TICK DURATION'.padEnd(50)}║`);
+    console.log(`╟${'─'.repeat(25)}┼${'─'.repeat(24)}╢`);
+    console.log(`║${'  Min'.padEnd(25)}│${`${this.minTickDuration === Infinity ? 0 : this.minTickDuration.toFixed(3)} ms`.padStart(24)}║`);
+    console.log(`║${'  Avg'.padEnd(25)}│${`${avg.toFixed(3)} ms`.padStart(24)}║`);
+    console.log(`║${'  Median (p50)'.padEnd(25)}│${`${median.toFixed(3)} ms`.padStart(24)}║`);
+    console.log(`║${'  p95'.padEnd(25)}│${`${p95.toFixed(3)} ms`.padStart(24)}║`);
+    console.log(`║${'  p99'.padEnd(25)}│${`${p99.toFixed(3)} ms`.padStart(24)}║`);
+    console.log(`║${'  Max'.padEnd(25)}│${`${this.maxTickDuration.toFixed(3)} ms`.padStart(24)}║`);
+    console.log(`║${'  Std Dev'.padEnd(25)}│${`${stdDev.toFixed(3)} ms`.padStart(24)}║`);
+
+    console.log(`╟${'─'.repeat(25)}┼${'─'.repeat(24)}╢`);
+    console.log(`║${'  BUDGET & PERFORMANCE'.padEnd(50)}║`);
+    console.log(`╟${'─'.repeat(25)}┼${'─'.repeat(24)}╢`);
+    console.log(`║${'  Budget Utilization'.padEnd(25)}│${`${utilizationPercent}%`.padStart(24)}║`);
+    console.log(`║${'  Budget Overruns'.padEnd(25)}│${this.budgetOverruns.toLocaleString().padStart(24)}║`);
+    console.log(`║${'  Overrun Rate'.padEnd(25)}│${`${overrunPercent}%`.padStart(24)}║`);
+
+    console.log(`╟${'─'.repeat(25)}┼${'─'.repeat(24)}╢`);
+    console.log(`║${'  TIMING JITTER'.padEnd(50)}║`);
+    console.log(`╟${'─'.repeat(25)}┼${'─'.repeat(24)}╢`);
+    console.log(`║${'  Avg Jitter'.padEnd(25)}│${`${avgJitter.toFixed(3)} ms`.padStart(24)}║`);
+    console.log(`║${'  Max Jitter'.padEnd(25)}│${`${maxJitter.toFixed(3)} ms`.padStart(24)}║`);
+
+    // Memory stats
+    if (this.memorySnapshots.length > 0) {
+      const currentMem = this.memorySnapshots[this.memorySnapshots.length - 1];
+      const avgMem = this.memorySnapshots.reduce((a, b) => a + b, 0) / this.memorySnapshots.length;
+      const minMem = Math.min(...this.memorySnapshots);
+      const maxMem = Math.max(...this.memorySnapshots);
+
+      console.log(`╟${'─'.repeat(25)}┼${'─'.repeat(24)}╢`);
+      console.log(`║${'  MEMORY'.padEnd(50)}║`);
+      console.log(`╟${'─'.repeat(25)}┼${'─'.repeat(24)}╢`);
+      console.log(`║${'  Current Heap'.padEnd(25)}│${this.formatBytes(currentMem).padStart(24)}║`);
+      console.log(`║${'  Avg Heap'.padEnd(25)}│${this.formatBytes(avgMem).padStart(24)}║`);
+      console.log(`║${'  Min Heap'.padEnd(25)}│${this.formatBytes(minMem).padStart(24)}║`);
+      console.log(`║${'  Max Heap'.padEnd(25)}│${this.formatBytes(maxMem).padStart(24)}║`);
+    }
+
+    console.log(`╚${doubleLine}╝`);
+    console.log('');
   }
 
   /**

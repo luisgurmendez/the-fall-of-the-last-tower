@@ -25,6 +25,7 @@ import {
 import type { ServerChampion } from '../simulation/ServerChampion';
 import type { ServerGameContext } from '../game/ServerGameContext';
 import { abilityExecutor } from '../simulation/ServerAbilityExecutor';
+import { Logger } from '../utils/Logger';
 
 export interface InputValidationResult {
   valid: boolean;
@@ -249,8 +250,7 @@ export class InputHandler {
     });
 
     if (!result.success) {
-      // Log failure for debugging (could also send feedback to client)
-      console.log(`[InputHandler] ${champion.playerId} failed to cast ${input.slot}: ${result.failReason}`);
+      Logger.input.debug(`${champion.playerId} failed to cast ${input.slot}: ${result.failReason}`);
     }
   }
 
@@ -296,7 +296,6 @@ export class InputHandler {
   ): void {
     // Check if champion has trinket charges available
     if (!champion.canPlaceWard()) {
-      console.log(`[InputHandler] Cannot place ward: no charges available (${champion.trinketCharges}/${champion.trinketMaxCharges}) or on cooldown (${champion.trinketCooldown.toFixed(1)}s)`);
       return;
     }
 
@@ -308,7 +307,6 @@ export class InputHandler {
     const halfHeight = mapSize.height / 2;
 
     if (Math.abs(targetPos.x) > halfWidth || Math.abs(targetPos.y) > halfHeight) {
-      console.log(`[InputHandler] Ward placement out of bounds: (${input.x}, ${input.y})`);
       return;
     }
 
@@ -319,18 +317,17 @@ export class InputHandler {
     const distance = champion.position.distanceTo(targetPos);
 
     if (distance > maxPlacementRange) {
-      console.log(`[InputHandler] Ward placement too far: ${distance.toFixed(0)} > ${maxPlacementRange}`);
       return;
     }
 
     // Consume trinket charge
     if (!champion.consumeTrinketCharge()) {
-      console.log(`[InputHandler] Failed to consume trinket charge`);
       return;
     }
 
     // Place the ward
     context.placeWard(champion.playerId, input.wardType, targetPos);
+    Logger.input.info(`${champion.playerId} placed ${input.wardType} ward at (${input.x.toFixed(0)}, ${input.y.toFixed(0)})`);
   }
 
   /**

@@ -15,7 +15,7 @@ import type { GameObject } from '@/core/GameObject';
 import type GameContext from '@/core/gameContext';
 import RenderElement from '@/render/renderElement';
 import Vector from '@/physics/vector';
-import type { OnlineStateManager, InterpolatedEntity } from '@/core/OnlineStateManager';
+import type { OnlineStateManager, InterpolatedEntity, DamageNumber, GoldNumber } from '@/core/OnlineStateManager';
 import { EntityType, getChampionDefinition } from '@siege/shared';
 
 /**
@@ -25,6 +25,36 @@ const TEAM_COLORS = {
   BLUE: '#3498db',
   RED: '#e74c3c',
   NEUTRAL: '#95a5a6',
+};
+
+/**
+ * Colors for damage number types.
+ */
+const DAMAGE_COLORS = {
+  physical: '#ffffff',   // White for physical
+  magic: '#7B68EE',      // Purple-blue for magic
+  true: '#FFD700',       // Gold for true damage
+  pure: '#FFD700',       // Gold for pure damage
+  shield: '#808080',     // Gray for shield absorbed
+};
+
+/**
+ * Damage number display settings.
+ */
+const DAMAGE_NUMBER_CONFIG = {
+  FONT: '16px m5x7',
+  FLOAT_DISTANCE: 30,   // How far up the number floats
+  FONT_SIZE: 16,
+};
+
+/**
+ * Gold number display settings.
+ */
+const GOLD_NUMBER_CONFIG = {
+  FONT: '14px m5x7',
+  FLOAT_DISTANCE: 25,
+  COLOR: '#FFD700',      // Gold color
+  FONT_SIZE: 14,
 };
 
 /**
@@ -95,6 +125,11 @@ const SPRITES = {
     ATTACK_FRAMES: 9,
     SCALE: 0.4,
   },
+  ARROW: {
+    BLUE: '/assets/sprites/units/Archer_Blue/Arrow.png',
+    RED: '/assets/sprites/units/Archer_Red/Arrow.png',
+    SCALE: 0.3,
+  },
 };
 
 /**
@@ -136,6 +171,9 @@ function loadImages(): void {
     SPRITES.BEAR.IDLE,
     SPRITES.BEAR.RUN,
     SPRITES.BEAR.ATTACK,
+    // Projectiles
+    SPRITES.ARROW.BLUE,
+    SPRITES.ARROW.RED,
   ];
 
   for (const src of imagesToLoad) {
@@ -209,7 +247,7 @@ export class EntityRenderer implements GameObject {
 
   /**
    * Update entity render state based on movement and actions.
-   * @param serverIsAttacking - Optional server-provided attack state (more accurate than targetEntityId)
+   * @param serverIsAttacking - Server-provided attack state (only true during attack animation)
    */
   private updateEntityState(
     state: EntityRenderState,
@@ -224,22 +262,23 @@ export class EntityRenderer implements GameObject {
     // Determine facing direction from movement or target
     const dx = x - state.lastX;
 
-    // If moving horizontally, update facing direction
+    // If moving horizontally, update facing direction based on movement
     if (Math.abs(dx) > 0.5) {
       state.facingRight = dx > 0;
     } else if (targetX !== undefined && targetY !== undefined) {
-      // If not moving but has a target, face toward target
+      // If has a target position (either move target or resolved attack target position),
+      // face toward that position
       const targetDx = targetX - x;
       if (Math.abs(targetDx) > 5) {
         state.facingRight = targetDx > 0;
       }
     }
 
-    // Track attacking state
-    // Use server's isAttacking flag if provided (more accurate timing),
-    // otherwise fall back to checking targetEntityId
+    // Track attacking state - only use server's isAttacking flag
+    // The server sets isAttacking=true only during the brief attack animation (0.4s)
+    // Don't fall back to targetEntityId - that just means "has a target", not "currently attacking"
     const wasAttacking = state.isAttacking;
-    state.isAttacking = serverIsAttacking !== undefined ? serverIsAttacking : !!targetEntityId;
+    state.isAttacking = serverIsAttacking === true;
 
     // Reset or continue attack animation
     if (state.isAttacking) {
@@ -332,18 +371,42 @@ export class EntityRenderer implements GameObject {
         // Update entity render state for animation tracking
         const side = snapshot.side ?? 0;
         const state = this.getEntityState(entity.snapshot.entityId, interpolatedPos.x, interpolatedPos.y, side);
+
+        // Resolve target entity position for facing direction
+        let resolvedTargetX = snapshot.targetX;
+        let resolvedTargetY = snapshot.targetY;
+        if (snapshot.targetEntityId && resolvedTargetX === undefined) {
+          // Has attack target but no move target - look up target position for facing
+          const targetEntity = this.stateManager.getEntity(snapshot.targetEntityId);
+          if (targetEntity) {
+            resolvedTargetX = targetEntity.position.x;
+            resolvedTargetY = targetEntity.position.y;
+          }
+        }
+
+        // Get attack state from event-based animation system
+        // Fall back to snapshot's isAttacking for reconnections (when events might be missed)
+        const isAttacking = this.stateManager.isEntityAttacking(snapshot.entityId)
+          || (snapshot as any).isAttacking === true;
+
         this.updateEntityState(
           state,
           interpolatedPos.x,
           interpolatedPos.y,
           snapshot.targetEntityId,
-          snapshot.targetX,
-          snapshot.targetY,
+          resolvedTargetX,
+          resolvedTargetY,
           clientDt,
-          (snapshot as any).isAttacking  // Server-provided attack animation state
+          isAttacking
         );
         this.renderEntity(canvasRenderingContext, entity, isLocalPlayer, state);
       }
+
+      // Render floating damage numbers on top of all entities
+      this.renderDamageNumbers(canvasRenderingContext);
+
+      // Render floating gold numbers
+      this.renderGoldNumbers(canvasRenderingContext);
     }, true);
 
     element.positionType = 'normal';
@@ -666,18 +729,76 @@ export class EntityRenderer implements GameObject {
    * Render a projectile.
    */
   private renderProjectile(ctx: CanvasRenderingContext2D, snapshot: any): void {
-    ctx.fillStyle = '#ffff00';
-    ctx.beginPath();
-    ctx.arc(0, 0, 5, 0, Math.PI * 2);
-    ctx.fill();
+    const side = snapshot.side;
+    const projectileType = snapshot.abilityId || 'default';
+    const teamColor = side === 0 ? TEAM_COLORS.BLUE : TEAM_COLORS.RED;
 
-    // Glow effect
-    ctx.globalAlpha = 0.5;
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(0, 0, 3, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.globalAlpha = 1;
+    // Get direction for rotation
+    const dirX = snapshot.directionX || 1;
+    const dirY = snapshot.directionY || 0;
+    const angle = Math.atan2(dirY, dirX);
+
+    // Render based on projectile type
+    if (projectileType === 'minion_caster' || projectileType === 'tower') {
+      // Use arrow sprite for caster minions and towers
+      const arrowSrc = side === 0 ? SPRITES.ARROW.BLUE : SPRITES.ARROW.RED;
+      const arrowImg = imageCache.get(arrowSrc);
+
+      if (arrowImg && arrowImg.complete && arrowImg.naturalWidth > 0) {
+        ctx.save();
+        ctx.rotate(angle);
+
+        // Scale: tower arrows are larger
+        const scale = projectileType === 'tower'
+          ? SPRITES.ARROW.SCALE * 1.5
+          : SPRITES.ARROW.SCALE;
+
+        const width = arrowImg.naturalWidth * scale;
+        const height = arrowImg.naturalHeight * scale;
+
+        // Draw centered on the projectile position
+        ctx.drawImage(arrowImg, -width / 2, -height / 2, width, height);
+
+        // Tower projectiles get a glow effect
+        if (projectileType === 'tower') {
+          ctx.globalAlpha = 0.3;
+          ctx.fillStyle = teamColor;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, width / 2 + 8, height / 2 + 4, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+
+        ctx.restore();
+      } else {
+        // Fallback: draw simple arrow shape if image not loaded
+        ctx.save();
+        ctx.rotate(angle);
+        ctx.fillStyle = teamColor;
+        ctx.beginPath();
+        ctx.moveTo(8, 0);
+        ctx.lineTo(-4, -3);
+        ctx.lineTo(-2, 0);
+        ctx.lineTo(-4, 3);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+    } else {
+      // Default projectile - energy ball
+      ctx.fillStyle = teamColor;
+      ctx.beginPath();
+      ctx.arc(0, 0, 5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Glow effect
+      ctx.globalAlpha = 0.5;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(0, 0, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
   }
 
   /**
@@ -950,6 +1071,116 @@ export class EntityRenderer implements GameObject {
    */
   getTeamId(): number {
     return this.localSide === 0 ? 0 : 1;
+  }
+
+  /**
+   * Render floating damage numbers.
+   */
+  private renderDamageNumbers(ctx: CanvasRenderingContext2D): void {
+    const damageNumbers = this.stateManager.getDamageNumbers();
+
+    for (const dn of damageNumbers) {
+      const progress = this.stateManager.getDamageNumberProgress(dn);
+
+      // Ease out for smooth deceleration
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+
+      // Calculate position (float upward)
+      const yOffset = -DAMAGE_NUMBER_CONFIG.FLOAT_DISTANCE * easeOut;
+
+      // Calculate alpha (fade out in the last 30%)
+      const fadeStart = 0.7;
+      const alpha = progress < fadeStart
+        ? 1
+        : 1 - ((progress - fadeStart) / (1 - fadeStart));
+
+      ctx.save();
+      ctx.translate(dn.x, dn.y + yOffset);
+
+      // Set up font
+      ctx.font = DAMAGE_NUMBER_CONFIG.FONT;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.globalAlpha = alpha;
+
+      // Render shield absorbed amount first (gray, slightly left and up)
+      if (dn.shieldAbsorbed > 0) {
+        const shieldText = Math.round(dn.shieldAbsorbed).toString();
+
+        // Draw shadow/outline for readability
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 3;
+        ctx.strokeText(shieldText, -15, -8);
+
+        // Draw shield absorbed text
+        ctx.fillStyle = DAMAGE_COLORS.shield;
+        ctx.fillText(shieldText, -15, -8);
+      }
+
+      // Render damage amount
+      if (dn.amount > 0) {
+        const damageText = Math.round(dn.amount).toString();
+        const xOffset = dn.shieldAbsorbed > 0 ? 15 : 0;
+
+        // Draw shadow/outline for readability
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 3;
+        ctx.strokeText(damageText, xOffset, 0);
+
+        // Draw damage text with appropriate color
+        ctx.fillStyle = DAMAGE_COLORS[dn.damageType] || DAMAGE_COLORS.physical;
+        ctx.fillText(damageText, xOffset, 0);
+      }
+
+      ctx.restore();
+    }
+  }
+
+  /**
+   * Render floating gold numbers.
+   */
+  private renderGoldNumbers(ctx: CanvasRenderingContext2D): void {
+    const goldNumbers = this.stateManager.getGoldNumbers();
+
+    for (const gn of goldNumbers) {
+      const progress = this.stateManager.getGoldNumberProgress(gn);
+
+      // Ease out for smooth deceleration
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+
+      // Calculate position (float upward, offset to the right to not overlap damage)
+      const yOffset = -GOLD_NUMBER_CONFIG.FLOAT_DISTANCE * easeOut;
+      const xOffset = 25; // Offset to the right of the entity
+
+      // Calculate alpha (fade out in the last 30%)
+      const fadeStart = 0.7;
+      const alpha = progress < fadeStart
+        ? 1
+        : 1 - ((progress - fadeStart) / (1 - fadeStart));
+
+      ctx.save();
+      ctx.translate(gn.x + xOffset, gn.y + yOffset);
+
+      // Set up font
+      ctx.font = GOLD_NUMBER_CONFIG.FONT;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.globalAlpha = alpha;
+
+      // Format gold text with + prefix
+      const goldText = `+${gn.amount}`;
+
+      // Draw shadow/outline for readability
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 2;
+      ctx.strokeText(goldText, 0, 0);
+
+      // Draw gold text
+      ctx.fillStyle = GOLD_NUMBER_CONFIG.COLOR;
+      ctx.fillText(goldText, 0, 0);
+
+      ctx.restore();
+    }
   }
 }
 

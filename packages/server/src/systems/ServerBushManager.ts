@@ -14,7 +14,7 @@
  * 5. Otherwise → hidden (even if within sight range)
  */
 
-import { Vector, Side, MOBAConfig } from '@siege/shared';
+import { Vector, Side, MOBAConfig, EntityType, isPointInBushGroup } from '@siege/shared';
 import type { ServerEntity } from '../simulation/ServerEntity';
 import type { ServerGameContext } from '../game/ServerGameContext';
 
@@ -23,13 +23,8 @@ import type { ServerGameContext } from '../game/ServerGameContext';
  */
 interface ServerBushGroup {
   id: string;
+  index: number;  // Index in BUSH_GROUPS array for individual bush lookup
   center: Vector;
-  bounds: {
-    minX: number;
-    minY: number;
-    maxX: number;
-    maxY: number;
-  };
 }
 
 /**
@@ -66,69 +61,20 @@ export class ServerBushManager {
 
   /**
    * Initialize bush groups from shared MOBAConfig.
+   * Stores index for individual bush position lookup via shared function.
    */
   private initializeBushGroups(): void {
-    const { BUSH_GROUPS, BUSH_SETTINGS } = MOBAConfig;
+    const { BUSH_GROUPS } = MOBAConfig;
 
     for (let i = 0; i < BUSH_GROUPS.length; i++) {
       const groupConfig = BUSH_GROUPS[i];
       const center = new Vector(groupConfig.center.x, groupConfig.center.y);
 
-      // Calculate bounds based on bush count and spread
-      const { bushCount, spread } = groupConfig;
-      const spacing = BUSH_SETTINGS.SPACING;
-      const bushWidth = 100;  // Large bush width
-      const bushHeight = 60;  // Large bush height
-      const variance = BUSH_SETTINGS.OFFSET_VARIANCE;
-
-      // Add padding to account for:
-      // 1. Random variance in client-side bush positions
-      // 2. Entity collision radius (champions are ~30 units radius)
-      // 3. Some margin for safety
-      const padding = variance * 2 + 50;
-
-      let bounds: ServerBushGroup['bounds'];
-
-      switch (spread) {
-        case 'horizontal': {
-          const totalWidth = bushCount * (bushWidth + spacing);
-          const halfW = totalWidth / 2 + padding;
-          const halfH = bushHeight / 2 + padding;
-          bounds = {
-            minX: center.x - halfW,
-            maxX: center.x + halfW,
-            minY: center.y - halfH,
-            maxY: center.y + halfH,
-          };
-          break;
-        }
-        case 'diagonal':
-        case 'cluster':
-        default: {
-          // For cluster/diagonal, use a circular-ish bounds
-          const radius = Math.max(bushCount * spacing, 80) + padding;
-          bounds = {
-            minX: center.x - radius,
-            maxX: center.x + radius,
-            minY: center.y - radius,
-            maxY: center.y + radius,
-          };
-          break;
-        }
-      }
-
       this.bushGroups.push({
         id: `bush_group_${i}`,
+        index: i,
         center,
-        bounds,
       });
-    }
-
-    console.log(`[ServerBushManager] Initialized ${this.bushGroups.length} bush groups`);
-    // Log first few bush group bounds for debugging
-    for (let i = 0; i < Math.min(3, this.bushGroups.length); i++) {
-      const g = this.bushGroups[i];
-      console.log(`  - ${g.id}: center(${g.center.x}, ${g.center.y}), bounds(${g.bounds.minX.toFixed(0)}, ${g.bounds.minY.toFixed(0)}) to (${g.bounds.maxX.toFixed(0)}, ${g.bounds.maxY.toFixed(0)})`);
     }
   }
 
@@ -164,23 +110,16 @@ export class ServerBushManager {
       }
     }
 
-    // Debug log every 60 ticks (about every 2 seconds at 30Hz)
-    if (tick % 60 === 0 && entitiesInBushes > 0) {
-      console.log(`[ServerBushManager] Tick ${tick}: ${entitiesInBushes} entities in bushes`);
-    }
   }
 
   /**
    * Find which bush group contains a position.
+   * Uses shared isPointInBushGroup to check against individual bush hitboxes.
    */
   getBushGroupAtPosition(position: Vector): ServerBushGroup | undefined {
     for (const group of this.bushGroups) {
-      if (
-        position.x >= group.bounds.minX &&
-        position.x <= group.bounds.maxX &&
-        position.y >= group.bounds.minY &&
-        position.y <= group.bounds.maxY
-      ) {
+      // Check if position is inside any individual bush in this group
+      if (isPointInBushGroup(position, group.index)) {
         return group;
       }
     }
@@ -260,6 +199,12 @@ export class ServerBushManager {
     viewingSide: Side,
     context: ServerGameContext
   ): BushVisibilityResult {
+    // Jungle camps are neutral entities that don't hide in bushes
+    // They should always be visible when in range (standard fog rules apply)
+    if (target.entityType === EntityType.JUNGLE_CAMP) {
+      return { isVisible: true, reason: 'not_in_bush' };
+    }
+
     const targetBushGroupId = this.entityToBushGroup.get(target.id);
 
     // 1. Not in a bush - visible (let standard fog handle it)

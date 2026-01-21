@@ -15,13 +15,15 @@
 
 import type { GameObject } from '@/core/GameObject';
 import type GameContext from '@/core/gameContext';
-import type { OnlineStateManager } from '@/core/OnlineStateManager';
+import type { OnlineStateManager, InterpolatedEntity } from '@/core/OnlineStateManager';
 import { InputManager, MouseButton } from '@/core/input/InputManager';
 import Vector from '@/physics/vector';
 import RenderElement from '@/render/renderElement';
 import { EntityClickDetector } from './EntityClickDetector';
 import { DebugPanel } from './DebugPanel';
 import { DEFAULT_DEBUG_CONFIG, type DebugInspectorConfig, type InspectedEntity } from './types';
+import { EntityType, MOBAConfig, calculateIndividualBushPositions } from '@siege/shared';
+import type { BushManager } from '@/vision';
 
 /**
  * DebugInspector coordinates the debug system.
@@ -46,12 +48,22 @@ export class DebugInspector implements GameObject {
   // Highlight for selected entity
   private highlightPulse = 0;
 
+  // Bush manager for rendering bush collision masks
+  private bushManager: BushManager | null = null;
+
   constructor(stateManager: OnlineStateManager, config: Partial<DebugInspectorConfig> = {}) {
     this.stateManager = stateManager;
     this.config = { ...DEFAULT_DEBUG_CONFIG, ...config };
     this.clickDetector = new EntityClickDetector(stateManager);
     this.panel = new DebugPanel(this.config);
     this.inputManager = InputManager.getInstance();
+  }
+
+  /**
+   * Set the bush manager for rendering bush collision masks.
+   */
+  setBushManager(bushManager: BushManager): void {
+    this.bushManager = bushManager;
   }
 
   init(ctx: GameContext): void {
@@ -179,38 +191,39 @@ export class DebugInspector implements GameObject {
 
   /**
    * Render the debug overlay and panel.
+   * Returns a parent element with children for different render layers.
    */
-  render(): RenderElement[] {
-    const elements: RenderElement[] = [];
+  render(): RenderElement {
+    // Create a container element that holds all debug render elements
+    const containerElement = new RenderElement((ctx: GameContext) => {
+      if (!this.config.enabled) return;
 
-    if (!this.config.enabled) return elements;
+      // Render collision masks in world space
+      this.renderCollisionMasks(ctx.canvasRenderingContext);
 
-    // Render entity highlight (in world space)
-    const inspected = this.panel.getInspectedEntity();
-    if (inspected) {
-      const highlightElement = new RenderElement((ctx: GameContext) => {
+      // Render entity highlight in world space
+      const inspected = this.panel.getInspectedEntity();
+      if (inspected) {
         this.renderEntityHighlight(ctx.canvasRenderingContext, inspected);
-      }, true);
-      highlightElement.positionType = 'normal';
-      highlightElement.zIndex = 0; // Render below entities
-      elements.push(highlightElement);
-    }
-
-    // Render debug panel (in screen space)
-    const panelElement = new RenderElement((ctx: GameContext) => {
-      this.panel.render(ctx.canvasRenderingContext);
+      }
     }, true);
-    panelElement.positionType = 'overlay';
-    elements.push(panelElement);
+    containerElement.positionType = 'normal';
 
-    // Render debug mode indicator
-    const indicatorElement = new RenderElement((ctx: GameContext) => {
+    // Add overlay elements as children
+    const overlayElement = new RenderElement((ctx: GameContext) => {
+      if (!this.config.enabled) return;
+
+      // Render debug panel
+      this.panel.render(ctx.canvasRenderingContext);
+
+      // Render debug mode indicator
       this.renderDebugIndicator(ctx.canvasRenderingContext, ctx.canvasRenderingContext.canvas);
     }, true);
-    indicatorElement.positionType = 'overlay';
-    elements.push(indicatorElement);
+    overlayElement.positionType = 'overlay';
 
-    return elements;
+    containerElement.children = [overlayElement];
+
+    return containerElement;
   }
 
   /**
@@ -288,7 +301,8 @@ export class DebugInspector implements GameObject {
     ctx.font = 'bold 12px "Courier New", monospace';
     const metrics = ctx.measureText(text);
     const padding = 6;
-    const x = canvas.width - metrics.width - padding * 2 - 10;
+    // Position at top-left to avoid overlap with debug panel on top-right
+    const x = 10;
     const y = 10;
 
     // Background
@@ -301,6 +315,273 @@ export class DebugInspector implements GameObject {
     ctx.fillText(text, x + padding, y + 10);
 
     ctx.restore();
+  }
+
+  /**
+   * Get sight/vision radius for an entity type.
+   */
+  private getSightRadius(entity: InterpolatedEntity): number {
+    const snapshot = entity.snapshot as any;
+
+    switch (snapshot.entityType) {
+      case EntityType.CHAMPION:
+        return snapshot.sightRange ?? 800; // Default champion sight range
+      case EntityType.MINION:
+        return 500; // All minions have 500 sight range
+      case EntityType.TOWER:
+        return 750; // Tower sight range
+      case EntityType.NEXUS:
+        return 1000; // Nexus has large sight range
+      case EntityType.JUNGLE_CAMP:
+        // Jungle creatures have varying sight ranges
+        return snapshot.sightRange ?? 200;
+      case EntityType.WARD:
+        return snapshot.sightRange ?? 600; // Ward sight range
+      default:
+        return 0; // No vision for projectiles, etc.
+    }
+  }
+
+  /**
+   * Get color for sight radius based on entity type.
+   */
+  private getSightRadiusColor(entity: InterpolatedEntity): string {
+    const snapshot = entity.snapshot as any;
+
+    switch (snapshot.entityType) {
+      case EntityType.CHAMPION:
+        return snapshot.side === 0 ? 'rgba(52, 152, 219, 0.15)' : 'rgba(231, 76, 60, 0.15)';
+      case EntityType.MINION:
+        return snapshot.side === 0 ? 'rgba(52, 152, 219, 0.08)' : 'rgba(231, 76, 60, 0.08)';
+      case EntityType.TOWER:
+        return snapshot.side === 0 ? 'rgba(52, 152, 219, 0.12)' : 'rgba(231, 76, 60, 0.12)';
+      case EntityType.NEXUS:
+        return snapshot.side === 0 ? 'rgba(52, 152, 219, 0.1)' : 'rgba(231, 76, 60, 0.1)';
+      case EntityType.JUNGLE_CAMP:
+        return 'rgba(149, 165, 166, 0.1)'; // Neutral gray
+      case EntityType.WARD:
+        return 'rgba(46, 204, 113, 0.2)'; // Green for wards - more visible
+      default:
+        return 'rgba(255, 255, 255, 0.1)';
+    }
+  }
+
+  /**
+   * Get collision radius for an entity type.
+   */
+  private getCollisionRadius(entity: InterpolatedEntity): number {
+    const snapshot = entity.snapshot as any;
+
+    switch (snapshot.entityType) {
+      case EntityType.CHAMPION:
+        return 50; // Standard champion collision radius
+      case EntityType.MINION:
+        // Melee minions are slightly larger than casters
+        return snapshot.minionType === 'melee' ? 36 : 24;
+      case EntityType.TOWER:
+        return 88; // Tower collision radius
+      case EntityType.NEXUS:
+        return 120; // Nexus collision radius
+      case EntityType.JUNGLE_CAMP:
+        // Vary by creature type
+        return snapshot.creatureType === 'bear' ? 60 : 40;
+      case EntityType.PROJECTILE:
+        return 10; // Small projectile collision
+      case EntityType.WARD:
+        return 15; // Ward collision
+      default:
+        return 30; // Default
+    }
+  }
+
+  /**
+   * Get color for collision mask based on entity type.
+   */
+  private getCollisionColor(entity: InterpolatedEntity): string {
+    const snapshot = entity.snapshot as any;
+
+    switch (snapshot.entityType) {
+      case EntityType.CHAMPION:
+        return snapshot.side === 0 ? 'rgba(52, 152, 219, 0.4)' : 'rgba(231, 76, 60, 0.4)';
+      case EntityType.MINION:
+        return snapshot.side === 0 ? 'rgba(52, 152, 219, 0.3)' : 'rgba(231, 76, 60, 0.3)';
+      case EntityType.TOWER:
+        return snapshot.side === 0 ? 'rgba(52, 152, 219, 0.5)' : 'rgba(231, 76, 60, 0.5)';
+      case EntityType.NEXUS:
+        return snapshot.side === 0 ? 'rgba(52, 152, 219, 0.5)' : 'rgba(231, 76, 60, 0.5)';
+      case EntityType.JUNGLE_CAMP:
+        return 'rgba(149, 165, 166, 0.4)'; // Neutral gray
+      case EntityType.PROJECTILE:
+        return 'rgba(241, 196, 15, 0.5)'; // Yellow for projectiles
+      case EntityType.WARD:
+        return 'rgba(46, 204, 113, 0.4)'; // Green for wards
+      default:
+        return 'rgba(255, 255, 255, 0.3)';
+    }
+  }
+
+  /**
+   * Render collision masks and sight radius for all entities.
+   */
+  private renderCollisionMasks(ctx: CanvasRenderingContext2D): void {
+    const entities = this.stateManager.getEntities();
+
+    // Render bush hitboxes first (behind everything)
+    this.renderBushMasks(ctx);
+
+    // First pass: render sight radius circles (behind everything)
+    for (const entity of entities) {
+      const snapshot = entity.snapshot as any;
+
+      // Skip dead/destroyed entities
+      if (snapshot.isDead || snapshot.isDestroyed) continue;
+
+      const pos = entity.position;
+      const sightRadius = this.getSightRadius(entity);
+
+      // Only render sight radius if entity has vision
+      if (sightRadius > 0) {
+        const sightColor = this.getSightRadiusColor(entity);
+
+        ctx.save();
+
+        // Draw sight radius fill
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, sightRadius, 0, Math.PI * 2);
+        ctx.fillStyle = sightColor;
+        ctx.fill();
+
+        // Draw sight radius border (dashed)
+        ctx.setLineDash([10, 10]);
+        ctx.strokeStyle = sightColor.replace('0.08)', '0.4)').replace('0.1)', '0.4)').replace('0.12)', '0.5)').replace('0.15)', '0.5)').replace('0.2)', '0.6)');
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.restore();
+      }
+    }
+
+    // Second pass: render collision circles (on top of sight radius)
+    for (const entity of entities) {
+      const snapshot = entity.snapshot as any;
+
+      // Skip dead/destroyed entities
+      if (snapshot.isDead || snapshot.isDestroyed) continue;
+
+      const pos = entity.position;
+      const radius = this.getCollisionRadius(entity);
+      const color = this.getCollisionColor(entity);
+
+      ctx.save();
+
+      // Draw collision circle
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+
+      // Draw border
+      ctx.strokeStyle = color.replace('0.3)', '0.8)').replace('0.4)', '0.8)').replace('0.5)', '1)');
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Draw center point
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, 3, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+
+      // Draw entity ID label
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '10px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(snapshot.entityId.slice(-6), pos.x, pos.y - radius - 5);
+
+      ctx.restore();
+    }
+  }
+
+  /**
+   * Render bush and bush group collision masks.
+   * Shows both:
+   * - Server visibility bounds (orange) - what server uses for fog of war (individual bush hitboxes)
+   * - Client bush hitboxes (green) - actual rendered bush positions (may differ due to random variance)
+   */
+  private renderBushMasks(ctx: CanvasRenderingContext2D): void {
+    if (!this.bushManager) return;
+
+    const clientBushes = this.bushManager.getBushes();
+
+    // First: render SERVER visibility bounds (individual bush hitboxes from shared function)
+    // These are the EXACT hitboxes the server uses for visibility checks
+    for (let groupIndex = 0; groupIndex < MOBAConfig.BUSH_GROUPS.length; groupIndex++) {
+      const serverBushes = calculateIndividualBushPositions(groupIndex);
+
+      for (const bush of serverBushes) {
+        const halfW = bush.width / 2;
+        const halfH = bush.height / 2;
+
+        ctx.save();
+
+        // Draw server bush hitbox with orange fill
+        ctx.fillStyle = 'rgba(255, 140, 0, 0.2)';
+        ctx.fillRect(bush.x - halfW, bush.y - halfH, bush.width, bush.height);
+
+        // Draw border (dashed to distinguish from client)
+        ctx.setLineDash([4, 2]);
+        ctx.strokeStyle = 'rgba(255, 140, 0, 0.8)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(bush.x - halfW, bush.y - halfH, bush.width, bush.height);
+        ctx.setLineDash([]);
+
+        // Draw center point
+        ctx.beginPath();
+        ctx.arc(bush.x, bush.y, 2, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 140, 0, 1)';
+        ctx.fill();
+
+        ctx.restore();
+      }
+
+      // Draw group label at center of first bush
+      if (serverBushes.length > 0) {
+        const groupConfig = MOBAConfig.BUSH_GROUPS[groupIndex];
+        ctx.save();
+        ctx.fillStyle = 'rgba(255, 140, 0, 1)';
+        ctx.font = 'bold 9px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(`Server ${groupIndex}`, groupConfig.center.x, groupConfig.center.y - 40);
+        ctx.restore();
+      }
+    }
+
+    // Second: render CLIENT bush hitboxes (actual rendered positions)
+    // These may differ from server due to Math.random() in client placement
+    for (const bush of clientBushes) {
+      const bounds = bush.getBounds();
+
+      ctx.save();
+
+      // Draw client bush hitbox rectangle
+      ctx.fillStyle = 'rgba(34, 139, 34, 0.25)';
+      ctx.fillRect(bounds.x, bounds.y, bounds.width, bounds.height);
+
+      // Draw border (solid to distinguish from server)
+      ctx.strokeStyle = 'rgba(34, 139, 34, 0.8)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height);
+
+      // Draw center point
+      const centerX = bounds.x + bounds.width / 2;
+      const centerY = bounds.y + bounds.height / 2;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 3, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(34, 139, 34, 1)';
+      ctx.fill();
+
+      ctx.restore();
+    }
   }
 
   /**

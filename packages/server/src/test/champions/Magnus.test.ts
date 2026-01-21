@@ -20,6 +20,7 @@ import {
 describe('Magnus', () => {
   let arena: TestArena;
 
+  // Default arena with abilities learned (for ability tests)
   beforeEach(() => {
     arena = createTestArena({
       blueChampion: 'magnus',
@@ -30,25 +31,38 @@ describe('Magnus', () => {
   });
 
   describe('Base Stats', () => {
+    // Base stat tests need level 1 (learnAbilities sets level to 6)
+    let level1Arena: TestArena;
+
+    beforeEach(() => {
+      level1Arena = createTestArena({
+        blueChampion: 'magnus',
+        redChampion: 'warrior',
+        bluePosition: new Vector(0, 0),
+        redPosition: new Vector(400, 0),
+        learnAbilities: false, // Keep level 1 for base stat tests
+      });
+    });
+
     test('should have correct base health (425)', () => {
-      expect(arena.blue.maxHealth).toBe(425);
+      expect(level1Arena.blue.maxHealth).toBe(425);
     });
 
     test('should have ranged attack range (550)', () => {
-      expect(arena.blue.getStats().attackRange).toBe(550);
+      expect(level1Arena.blue.getStats().attackRange).toBe(550);
     });
 
     test('should have low base armor (20)', () => {
-      expect(arena.blue.getStats().armor).toBe(20);
+      expect(level1Arena.blue.getStats().armor).toBe(20);
     });
 
     test('should have high base mana (375)', () => {
-      expect(arena.blue.maxResource).toBe(375);
+      expect(level1Arena.blue.maxResource).toBe(375);
     });
 
     test('should have high mana regen (12)', () => {
       // This is set in champion definition
-      expect(arena.blue.definition.baseStats.resourceRegen).toBe(12);
+      expect(level1Arena.blue.definition.baseStats.resourceRegen).toBe(12);
     });
   });
 
@@ -341,7 +355,7 @@ describe('Magnus', () => {
       arena.blue.resetCooldowns();
       const result = arena.castAbility(arena.blue, 'Q', { targetPosition: new Vector(500, 0) });
       expect(result.success).toBe(false);
-      expect(result.failReason).toBe('insufficient_resource');
+      expect(result.failReason).toBe('not_enough_mana');
     });
   });
 });

@@ -3,3 +3,4 @@
  */
 
 export * from './ChampionRegistry';
+export * from './definitions';

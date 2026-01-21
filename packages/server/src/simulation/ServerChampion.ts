@@ -34,6 +34,7 @@ import {
   calculatePhysicalDamage,
   calculateMagicDamage,
   GameConfig,
+  GameEventType,
 } from '@siege/shared';
 import { ServerEntity, ServerEntityConfig } from './ServerEntity';
 import type { ServerGameContext } from '../game/ServerGameContext';
@@ -51,6 +52,8 @@ import {
   type ServerStatEffectDef,
   type ServerOverTimeEffectDef,
 } from '../data/effects';
+import { RewardSystem } from '../systems/RewardSystem';
+import { Logger } from '../utils/Logger';
 
 export interface ServerChampionConfig extends Omit<ServerEntityConfig, 'entityType'> {
   definition: ChampionDefinition;
@@ -148,9 +151,6 @@ export class ServerChampion extends ServerEntity {
     this.playerId = config.playerId;
     this.definition = config.definition;
 
-    // DEBUG: Log champion creation
-    console.log(`[ServerChampion] Created champion for player ${this.playerId}: id="${this.definition.id}", name="${this.definition.name}", Q=${this.definition.abilities.Q}`);
-
     // Initialize from definition
     const baseStats = this.definition.baseStats;
     this.health = baseStats.health;
@@ -202,7 +202,7 @@ export class ServerChampion extends ServerEntity {
     this.updateAbilities(dt);
 
     // Update effects
-    this.updateEffects(dt);
+    this.updateEffects(dt, context);
 
     // Update shields
     this.updateShields(dt);
@@ -345,11 +345,22 @@ export class ServerChampion extends ServerEntity {
     // Calculate damage
     const damage = calculatePhysicalDamage(baseDamage, 0); // TODO: Get target armor
 
-    // Deal damage
-    target.takeDamage(damage, 'physical', this.id);
+    // Deal damage (pass context for death handling/rewards)
+    target.takeDamage(damage, 'physical', this.id, context);
 
     // Set attack cooldown
     this.attackCooldown = 1 / stats.attackSpeed;
+
+    // Attack animation duration scales with attack speed (faster attacks = shorter animation)
+    // Base duration is 0.4s at 1.0 AS, minimum 0.15s at very high AS
+    const animationDuration = Math.max(0.15, 0.4 / stats.attackSpeed);
+
+    // Emit attack event for client-side animation
+    context.addEvent(GameEventType.BASIC_ATTACK, {
+      entityId: this.id,
+      targetId: target.id,
+      animationDuration,
+    });
 
     // Enter combat
     this.enterCombat();
@@ -377,14 +388,14 @@ export class ServerChampion extends ServerEntity {
   /**
    * Update effects.
    */
-  private updateEffects(dt: number): void {
+  private updateEffects(dt: number, context: ServerGameContext): void {
     // Process over-time effects and update timers
     this.activeEffects = this.activeEffects.filter(effect => {
       const def = getServerEffectById(effect.definitionId);
 
       // Handle over-time effects (DoT/HoT)
       if (def && isOverTimeEffect(def)) {
-        this.processOverTimeEffect(effect, def, dt);
+        this.processOverTimeEffect(effect, def, dt, context);
       }
 
       // Update timer
@@ -405,7 +416,8 @@ export class ServerChampion extends ServerEntity {
   private processOverTimeEffect(
     effect: ActiveEffectState,
     def: ServerOverTimeEffectDef,
-    dt: number
+    dt: number,
+    context: ServerGameContext
   ): void {
     // Initialize nextTickIn if not set
     if (effect.nextTickIn === undefined) {
@@ -422,7 +434,7 @@ export class ServerChampion extends ServerEntity {
       switch (def.otType) {
         case 'damage':
           // Apply damage (DoT)
-          this.takeDamage(tickValue, def.damageType || 'magic', effect.sourceId);
+          this.takeDamage(tickValue, def.damageType || 'magic', effect.sourceId, context);
           break;
         case 'heal':
           // Apply healing (HoT)
@@ -644,30 +656,50 @@ export class ServerChampion extends ServerEntity {
   /**
    * Take damage (override for shields and resistances).
    */
-  override takeDamage(amount: number, type: DamageType, sourceId?: string): number {
+  override takeDamage(amount: number, type: DamageType, sourceId?: string, context?: ServerGameContext): number {
     if (this.isDead) return 0;
 
     this.enterCombat();
 
     // Calculate damage after resistances
     let damage = this.calculateDamage(amount, type);
+    const damageAfterResist = damage;
+
+    // Track shield absorption
+    let shieldAbsorbed = 0;
 
     // Apply shields first
     for (const shield of this.shields) {
       if (shield.amount >= damage) {
+        shieldAbsorbed += damage;
         shield.amount -= damage;
-        return 0; // All damage absorbed
+        damage = 0;
+        break;
       } else {
+        shieldAbsorbed += shield.amount;
         damage -= shield.amount;
         shield.amount = 0;
       }
     }
 
     // Apply remaining damage to health
-    this.health = Math.max(0, this.health - damage);
+    if (damage > 0) {
+      this.health = Math.max(0, this.health - damage);
+    }
+
+    // Emit damage event for client-side floating numbers
+    if (context && (damage > 0 || shieldAbsorbed > 0)) {
+      context.addEvent(GameEventType.DAMAGE, {
+        entityId: this.id,
+        amount: damage,
+        damageType: type,
+        sourceId,
+        shieldAbsorbed,
+      });
+    }
 
     if (this.health <= 0) {
-      this.onDeath(sourceId);
+      this.onDeath(sourceId, context);
     }
 
     return damage;
@@ -694,9 +726,14 @@ export class ServerChampion extends ServerEntity {
   /**
    * Handle death.
    */
-  protected override onDeath(killerId?: string): void {
-    super.onDeath(killerId);
+  protected override onDeath(killerId?: string, context?: ServerGameContext): void {
+    super.onDeath(killerId, context);
     this.deaths++;
+
+    // Award XP/gold to killer and nearby allies
+    if (context) {
+      RewardSystem.awardKillRewards(this, killerId, context);
+    }
 
     // Calculate respawn time
     const baseRespawn = GameConfig.RESPAWN.BASE_RESPAWN_TIME;
@@ -881,7 +918,7 @@ export class ServerChampion extends ServerEntity {
   applyEffect(effectId: string, duration: number, sourceId?: string, stacks = 1): void {
     const def = getServerEffectById(effectId);
     if (!def) {
-      console.warn(`[ServerChampion] Unknown effect: ${effectId}`);
+      Logger.champion.warn(`Unknown effect: ${effectId}`);
       return;
     }
 
@@ -1019,7 +1056,9 @@ export class ServerChampion extends ServerEntity {
    * Level up an ability.
    */
   levelUpAbility(slot: AbilitySlot): boolean {
-    if (this.skillPoints <= 0) return false;
+    if (this.skillPoints <= 0) {
+      return false;
+    }
 
     const currentRank = this.abilityRanks[slot];
     const maxRank = 5; // TODO: Get from ability definition
@@ -1033,13 +1072,25 @@ export class ServerChampion extends ServerEntity {
       }
     }
 
-    if (currentRank >= maxRank) return false;
+    if (currentRank >= maxRank) {
+      return false;
+    }
 
     this.abilityRanks[slot]++;
     this.abilityStates[slot].rank = this.abilityRanks[slot];
     this.skillPoints--;
 
+    Logger.champion.info(`${this.playerId} leveled ${slot} to rank ${this.abilityRanks[slot]}`);
     return true;
+  }
+
+  /**
+   * Grant gold to the champion.
+   */
+  grantGold(amount: number): void {
+    if (amount > 0) {
+      this.gold += amount;
+    }
   }
 
   /**
@@ -1082,26 +1133,22 @@ export class ServerChampion extends ServerEntity {
   buyItem(itemId: string): boolean {
     const itemDef = getServerItemById(itemId);
     if (!itemDef) {
-      console.log(`[ServerChampion] Item not found: ${itemId}`);
       return false;
     }
 
     // Check gold
     if (this.gold < itemDef.cost) {
-      console.log(`[ServerChampion] Not enough gold for ${itemDef.name}: have ${this.gold}, need ${itemDef.cost}`);
       return false;
     }
 
     // Check if unique and already owned
     if (itemDef.isUnique && this.hasItem(itemId)) {
-      console.log(`[ServerChampion] Already owns unique item: ${itemDef.name}`);
       return false;
     }
 
     // Find empty slot
     const emptySlot = this.findEmptySlot();
     if (emptySlot === null) {
-      console.log(`[ServerChampion] Inventory full, cannot buy ${itemDef.name}`);
       return false;
     }
 
@@ -1118,7 +1165,7 @@ export class ServerChampion extends ServerEntity {
     // Invalidate cached stats
     this.cachedStats = null;
 
-    console.log(`[ServerChampion] ${this.playerId} bought ${itemDef.name} for ${itemDef.cost}g (remaining: ${this.gold}g)`);
+    Logger.champion.info(`${this.playerId} bought ${itemDef.name} for ${itemDef.cost}g`);
     return true;
   }
 
@@ -1128,19 +1175,16 @@ export class ServerChampion extends ServerEntity {
    */
   sellItem(slot: number): number {
     if (slot < 0 || slot >= 6) {
-      console.log(`[ServerChampion] Invalid slot: ${slot}`);
       return 0;
     }
 
     const item = this.items[slot];
     if (!item) {
-      console.log(`[ServerChampion] No item in slot ${slot}`);
       return 0;
     }
 
     const itemDef = getServerItemById(item.definitionId);
     if (!itemDef) {
-      console.log(`[ServerChampion] Item definition not found: ${item.definitionId}`);
       return 0;
     }
 
@@ -1152,7 +1196,7 @@ export class ServerChampion extends ServerEntity {
     // Invalidate cached stats
     this.cachedStats = null;
 
-    console.log(`[ServerChampion] ${this.playerId} sold ${itemDef.name} for ${goldGained}g (total: ${this.gold}g)`);
+    Logger.champion.info(`${this.playerId} sold ${itemDef.name} for ${goldGained}g`);
     return goldGained;
   }
 
@@ -1226,6 +1270,8 @@ export class ServerChampion extends ServerEntity {
       maxResource: stats.maxResource,
       level: this.level,
       experience: this.experience,
+      experienceToNextLevel: this.experienceToNextLevel,
+      skillPoints: this.skillPoints,
 
       attackDamage: stats.attackDamage,
       abilityPower: stats.abilityPower,
@@ -1239,9 +1285,14 @@ export class ServerChampion extends ServerEntity {
       isRecalling: this.isRecalling,
       recallProgress: this.recallProgress,
 
-      abilities: this.abilityStates,
-      activeEffects: this.activeEffects,
-      items: this.items,
+      abilities: {
+        Q: { ...this.abilityStates.Q },
+        W: { ...this.abilityStates.W },
+        E: { ...this.abilityStates.E },
+        R: { ...this.abilityStates.R },
+      },
+      activeEffects: this.activeEffects.map(e => ({ ...e })),
+      items: this.items.map(i => i ? { ...i } : null),
       gold: this.gold,
 
       kills: this.kills,

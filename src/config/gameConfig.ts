@@ -22,9 +22,9 @@ export const GameConfig = {
     EDGE_SCROLL_SPEED: 20,
   },
 
-  // Economy settings
+  // Economy settings (LEGACY - online mode uses packages/shared/src/config/GameConfig.ts)
   ECONOMY: {
-    STARTING_MONEY: 8000 as number,
+    STARTING_MONEY: 300 as number, // Kept in sync with shared GameConfig.ECONOMY.STARTING_GOLD
     PASSIVE_INCOME: 10 as number,
     PASSIVE_INCOME_INTERVAL: 1 as number, // seconds
     KILL_REWARD: 2500 as number,

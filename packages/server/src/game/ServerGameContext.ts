@@ -24,6 +24,7 @@ import { ServerJungleCamp } from '../simulation/ServerJungleCamp';
 import { ServerWard } from '../simulation/ServerWard';
 import { FogOfWarServer } from '../systems/FogOfWarServer';
 import { CollisionSystem } from '../systems/CollisionSystem';
+import { Logger } from '../utils/Logger';
 
 export interface GameContextConfig {
   gameId: string;
@@ -90,7 +91,7 @@ export class ServerGameContext {
       });
       this.jungleCamps.push(camp);
     }
-    console.log(`[ServerGameContext] Initialized ${this.jungleCamps.length} jungle camps`);
+    Logger.game.debug(`Initialized ${this.jungleCamps.length} jungle camps`);
   }
 
   /**
@@ -146,7 +147,6 @@ export class ServerGameContext {
     this.entities.set(champion.id, champion);
     this.champions.set(champion.id, champion);
     this.playerChampions.set(playerId, champion.id);
-    console.log(`[ServerGameContext] Added champion ${champion.id} for player ${playerId}, side ${champion.side}. Total entities: ${this.entities.size}`);
   }
 
   /**
@@ -189,7 +189,6 @@ export class ServerGameContext {
   placeWard(playerId: string, wardType: WardType, position: Vector): ServerWard | null {
     const champion = this.getChampionByPlayerId(playerId);
     if (!champion) {
-      console.log(`[ServerGameContext] Cannot place ward: No champion for player ${playerId}`);
       return null;
     }
 
@@ -198,7 +197,6 @@ export class ServerGameContext {
     if (playerWards.length >= this.MAX_WARDS_PER_PLAYER) {
       // Remove oldest ward
       const oldestWard = playerWards[0];
-      console.log(`[ServerGameContext] Player ${playerId} has max wards, removing oldest: ${oldestWard.id}`);
       this.removeWard(oldestWard.id);
     }
 
@@ -214,7 +212,6 @@ export class ServerGameContext {
     this.wards.set(ward.id, ward);
     this.entities.set(ward.id, ward);
 
-    console.log(`[ServerGameContext] Player ${playerId} placed ${wardType} ward at (${position.x.toFixed(0)}, ${position.y.toFixed(0)})`);
     return ward;
   }
 
@@ -301,7 +298,7 @@ export class ServerGameContext {
    * Spawn a minion wave for both teams.
    */
   private spawnMinionWave(): void {
-    console.log(`[ServerGameContext] Spawning minion wave ${this.minionWaveCount + 1}`);
+    Logger.game.debug(`Minion wave ${this.minionWaveCount + 1} spawning`);
 
     const lanes: LaneId[] = ['top', 'mid', 'bot'];
     const waveConfig = this.mapConfig.MINION_WAVES.WAVE_COMPOSITION;
@@ -412,8 +409,6 @@ export class ServerGameContext {
 
       this.addEntity(minion);
     }
-
-    console.log(`[ServerGameContext] Spawned ${waveConfig.swordsmen + waveConfig.archers} minions for ${side === 0 ? 'Blue' : 'Red'} ${lane} lane (staggered formation)`);
   }
 
   /**
@@ -517,15 +512,6 @@ export class ServerGameContext {
 
     // Get visible entities (fog of war)
     const visibleEntities = this.getVisibleEntities(side);
-
-    // DEBUG: Log tower positions in snapshot
-    const towers = visibleEntities.filter(e => e.entityType === EntityType.TOWER);
-    if (towers.length > 0) {
-      console.log(`[ServerGameContext] createSnapshot: ${towers.length} towers for player ${forPlayerId}`);
-      for (const tower of towers) {
-        console.log(`  - Tower ${tower.id}: side=${tower.side}, pos=(${tower.position.x.toFixed(0)}, ${tower.position.y.toFixed(0)})`);
-      }
-    }
 
     // Create snapshots
     return visibleEntities.map(entity => entity.toSnapshot());

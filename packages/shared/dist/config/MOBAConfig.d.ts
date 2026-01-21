@@ -354,6 +354,14 @@ export declare const MOBAConfig: {
         readonly SPACING: 35;
         /** Random offset variance for natural look */
         readonly OFFSET_VARIANCE: 10;
+        /** Large bush hitbox dimensions */
+        readonly LARGE_BUSH_WIDTH: 100;
+        readonly LARGE_BUSH_HEIGHT: 60;
+        /** Small bush hitbox dimensions */
+        readonly SMALL_BUSH_WIDTH: 60;
+        readonly SMALL_BUSH_HEIGHT: 40;
+        /** Extra padding for visibility bounds (accounts for entity collision radius) */
+        readonly VISIBILITY_PADDING: 30;
     };
     /**
      * Wall configuration (tile-aligned to 64 unit grid).
@@ -541,5 +549,57 @@ export declare const MOBAConfig: {
 };
 export type LaneId = 'top' | 'mid' | 'bot';
 export type JungleCreatureType = keyof typeof MOBAConfig.JUNGLE.CREATURE_STATS;
+export type BushSpread = 'horizontal' | 'vertical' | 'diagonal' | 'cluster';
+/**
+ * Individual bush position and dimensions.
+ */
+export interface BushPosition {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}
+/**
+ * Calculate individual bush positions for a group deterministically.
+ * Used by both server (for visibility checks) and can be used by client.
+ *
+ * @param groupIndex - Index of the bush group in BUSH_GROUPS array
+ * @returns Array of individual bush positions with their dimensions
+ */
+export declare function calculateIndividualBushPositions(groupIndex: number): BushPosition[];
+/**
+ * Check if a point is inside any individual bush in a group.
+ * This is the correct way to check bush visibility - not bounding box!
+ *
+ * @param point - Position to check
+ * @param groupIndex - Index of the bush group
+ * @returns true if point is inside any bush in the group
+ */
+export declare function isPointInBushGroup(point: {
+    x: number;
+    y: number;
+}, groupIndex: number): boolean;
+/**
+ * Bush group visibility bounds (for fog of war calculations).
+ */
+export interface BushGroupBounds {
+    minX: number;
+    minY: number;
+    maxX: number;
+    maxY: number;
+}
+/**
+ * Calculate the visibility bounds for a bush group.
+ * Used by both server (for visibility checks) and client (for debug rendering).
+ *
+ * @param center - Center position of the bush group
+ * @param bushCount - Number of bushes in the group
+ * @param spread - Layout type of the bushes
+ * @returns The bounding box for visibility checks
+ */
+export declare function calculateBushGroupBounds(center: {
+    x: number;
+    y: number;
+}, bushCount: number, spread: BushSpread): BushGroupBounds;
 export default MOBAConfig;
 //# sourceMappingURL=MOBAConfig.d.ts.map

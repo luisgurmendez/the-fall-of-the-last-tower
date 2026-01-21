@@ -51,7 +51,7 @@ export declare const GameConfig: {
      */
     readonly ECONOMY: {
         /** Starting gold */
-        readonly STARTING_GOLD: 500;
+        readonly STARTING_GOLD: 300;
         /** Passive gold per second */
         readonly PASSIVE_GOLD_PER_SECOND: 1.9;
         /** Gold for last-hitting a minion */

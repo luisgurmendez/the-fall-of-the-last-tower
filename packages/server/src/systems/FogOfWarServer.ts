@@ -13,7 +13,7 @@
  * - Validating targeting (can't target invisible enemies)
  */
 
-import { Vector, Side, EntityType } from '@siege/shared';
+import { Vector, Side, EntityType, GameConfig } from '@siege/shared';
 import type { ServerEntity } from '../simulation/ServerEntity';
 import type { ServerGameContext } from '../game/ServerGameContext';
 import { ServerBushManager, type BushVisibilityResult } from './ServerBushManager';
@@ -101,13 +101,14 @@ export class FogOfWarServer {
       let sightRange = 0;
 
       // Get sight range based on entity type
+      // IMPORTANT: These values must match the client's OnlineFogProvider.ts
       if (entity.entityType === EntityType.CHAMPION) {
-        // Champions have their own sight range
-        sightRange = (entity as any).sightRange ?? 1200;
+        // Champions have their own sight range (default from GAME_CONFIG)
+        sightRange = (entity as any).sightRange ?? GameConfig.VISION.CHAMPION_SIGHT_RANGE;
         championCount++;
       } else if (entity.entityType === EntityType.MINION) {
         // Minions have sight range from stats
-        sightRange = (entity as any).stats?.sightRange ?? 800;
+        sightRange = (entity as any).stats?.sightRange ?? 500;
         minionCount++;
       } else if (entity.entityType === EntityType.TOWER) {
         // Towers have fixed sight range
@@ -115,7 +116,7 @@ export class FogOfWarServer {
         towerCount++;
       } else if (entity.entityType === EntityType.WARD) {
         // Wards provide vision
-        sightRange = 900;
+        sightRange = (entity as any).sightRange ?? GameConfig.VISION.WARD_SIGHT_RANGE;
       }
 
       if (sightRange > 0) {
@@ -131,12 +132,6 @@ export class FogOfWarServer {
       }
     }
 
-    // Debug log once per second (every 30 ticks at 30Hz)
-    if (tick % 30 === 0) {
-      const side0Sources = this.visionSources.get(0)?.length ?? 0;
-      const side1Sources = this.visionSources.get(1)?.length ?? 0;
-      console.log(`[FogOfWar] Tick ${tick}: ${championCount} champions, ${minionCount} minions, ${towerCount} towers providing vision. Side0: ${side0Sources}, Side1: ${side1Sources}`);
-    }
   }
 
   /**
@@ -196,10 +191,6 @@ export class FogOfWarServer {
 
       // If hidden in bush, not visible
       if (!bushResult.isVisible) {
-        // Debug: Log when entity is hidden by bush
-        if (this.currentTick % 60 === 0) {
-          console.log(`[FogOfWar] Entity ${entity.id} hidden in bush ${bushResult.bushGroupId} from side ${viewingSide}`);
-        }
         return { isVisible: false };
       }
     }
@@ -232,14 +223,6 @@ export class FogOfWarServer {
       const isVisible = this.isVisibleTo(entity, viewingSide);
       if (isVisible) {
         visible.push(entity);
-      }
-    }
-
-    // DEBUG: Log if no entities visible but entities exist
-    if (entities.length > 0 && visible.length === 0) {
-      console.log(`[FogOfWar] WARNING: ${entities.length} entities exist but 0 visible to side ${viewingSide}`);
-      for (const entity of entities.slice(0, 3)) {
-        console.log(`  - Entity ${entity.id}: side=${entity.side}, entityType=${entity.entityType}`);
       }
     }
 

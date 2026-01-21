@@ -10,6 +10,7 @@
 
 import { GameRoom, type GameRoomConfig, type PlayerInfo, type GameRoomState } from './GameRoom';
 import type { ClientInput, StateUpdate, FullStateSnapshot, ChampionDefinition, Side } from '@siege/shared';
+import { Logger } from '../utils/Logger';
 
 /**
  * Callback for sending state updates to players.
@@ -87,7 +88,7 @@ export class GameRoomManager {
       this.playerToRoom.set(player.playerId, gameId);
     }
 
-    console.log(`[GameRoomManager] Created room ${gameId} with ${players.length} players`);
+    Logger.game.debug(`Created room ${gameId} with ${players.length} players`);
     return room;
   }
 
@@ -120,7 +121,6 @@ export class GameRoomManager {
   handleInput(playerId: string, input: ClientInput): boolean {
     const room = this.getRoomByPlayer(playerId);
     if (!room) {
-      console.warn(`[GameRoomManager] No room found for player ${playerId}`);
       return false;
     }
 
@@ -173,7 +173,7 @@ export class GameRoomManager {
     // Remove the room
     this.rooms.delete(gameId);
 
-    console.log(`[GameRoomManager] Cleaned up room ${gameId}`);
+    Logger.game.debug(`Cleaned up room ${gameId}`);
   }
 
   /**
@@ -230,7 +230,7 @@ export class GameRoomManager {
    * Stop all rooms and clean up.
    */
   shutdown(): void {
-    console.log(`[GameRoomManager] Shutting down ${this.rooms.size} rooms`);
+    Logger.game.info(`Shutting down ${this.rooms.size} active rooms`);
 
     for (const gameId of this.rooms.keys()) {
       this.cleanupRoom(gameId);

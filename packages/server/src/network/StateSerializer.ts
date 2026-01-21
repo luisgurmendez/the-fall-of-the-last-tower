@@ -15,6 +15,7 @@ import {
   type ChampionSnapshot,
   type MinionSnapshot,
   type TowerSnapshot,
+  type JungleCreatureSnapshot,
   type StateUpdate,
 } from '@siege/shared';
 import type { ServerEntity } from '../simulation/ServerEntity';
@@ -150,17 +151,7 @@ export class StateSerializer {
     events: { type: number; timestamp: number; data: Record<string, unknown> }[],
     allVisibleEntities?: ServerEntity[]
   ): StateUpdate {
-    // DEBUG: Log entities being serialized
-    if (tick % 30 === 0) {
-      console.log(`[StateSerializer] createStateUpdate for ${playerId}: ${entities.length} entities to serialize`);
-    }
-
     const deltas = this.createDeltaUpdates(entities, playerId, tick, allVisibleEntities);
-
-    // DEBUG: Log deltas created
-    if (tick % 30 === 0) {
-      console.log(`[StateSerializer] Created ${deltas.length} deltas for ${playerId}`);
-    }
 
     return {
       tick,
@@ -199,7 +190,8 @@ export class StateSerializer {
         mask |= EntityChangeMask.RESOURCE;
       }
 
-      if (prevChamp.level !== currChamp.level) {
+      if (prevChamp.level !== currChamp.level ||
+          prevChamp.skillPoints !== currChamp.skillPoints) {
         mask |= EntityChangeMask.LEVEL;
       }
 
@@ -230,6 +222,18 @@ export class StateSerializer {
           prevChamp.isRecalling !== currChamp.isRecalling) {
         mask |= EntityChangeMask.STATE;
       }
+
+      // Check trinket (ward charges, cooldown)
+      if (prevChamp.trinketCharges !== currChamp.trinketCharges ||
+          prevChamp.trinketCooldown !== currChamp.trinketCooldown ||
+          prevChamp.trinketRechargeProgress !== currChamp.trinketRechargeProgress) {
+        mask |= EntityChangeMask.TRINKET;
+      }
+
+      // Check gold
+      if (prevChamp.gold !== currChamp.gold) {
+        mask |= EntityChangeMask.GOLD;
+      }
     }
 
     // For minions/towers
@@ -243,6 +247,22 @@ export class StateSerializer {
 
       if ((prev as any).isDead !== (curr as any).isDead ||
           (prev as any).isDestroyed !== (curr as any).isDestroyed) {
+        mask |= EntityChangeMask.STATE;
+      }
+    }
+
+    // For jungle creatures
+    if (current.entityType === EntityType.JUNGLE_CAMP) {
+      const prev = previous as JungleCreatureSnapshot;
+      const curr = current as JungleCreatureSnapshot;
+
+      if (prev.targetEntityId !== curr.targetEntityId ||
+          prev.targetX !== curr.targetX ||
+          prev.targetY !== curr.targetY) {
+        mask |= EntityChangeMask.TARGET;
+      }
+
+      if (prev.isDead !== curr.isDead) {
         mask |= EntityChangeMask.STATE;
       }
     }
@@ -287,6 +307,7 @@ export class StateSerializer {
       if (mask & EntityChangeMask.LEVEL) {
         (result as any).level = currChamp.level;
         (result as any).experience = currChamp.experience;
+        (result as any).skillPoints = currChamp.skillPoints;
       }
 
       if (mask & EntityChangeMask.ABILITIES) {
@@ -314,6 +335,17 @@ export class StateSerializer {
         (result as any).isRecalling = currChamp.isRecalling;
         (result as any).recallProgress = currChamp.recallProgress;
       }
+
+      if (mask & EntityChangeMask.TRINKET) {
+        (result as any).trinketCharges = currChamp.trinketCharges;
+        (result as any).trinketMaxCharges = currChamp.trinketMaxCharges;
+        (result as any).trinketCooldown = currChamp.trinketCooldown;
+        (result as any).trinketRechargeProgress = currChamp.trinketRechargeProgress;
+      }
+
+      if (mask & EntityChangeMask.GOLD) {
+        (result as any).gold = currChamp.gold;
+      }
     }
 
     if (current.entityType === EntityType.MINION) {
@@ -339,6 +371,20 @@ export class StateSerializer {
 
       if (mask & EntityChangeMask.STATE) {
         (result as any).isDestroyed = currTower.isDestroyed;
+      }
+    }
+
+    if (current.entityType === EntityType.JUNGLE_CAMP) {
+      const currCreature = current as JungleCreatureSnapshot;
+
+      if (mask & EntityChangeMask.TARGET) {
+        (result as any).targetX = currCreature.targetX;
+        (result as any).targetY = currCreature.targetY;
+        (result as any).targetEntityId = currCreature.targetEntityId;
+      }
+
+      if (mask & EntityChangeMask.STATE) {
+        (result as any).isDead = currCreature.isDead;
       }
     }
 

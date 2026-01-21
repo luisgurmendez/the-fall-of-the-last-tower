@@ -270,6 +270,7 @@ export class NetworkClient {
    * Send a level up input.
    */
   sendLevelUpInput(slot: AbilitySlot): void {
+    console.log(`[NetworkClient] Sending level up input for slot ${slot}`);
     this.sendInput({
       seq: ++this.inputSeq,
       clientTime: Date.now(),

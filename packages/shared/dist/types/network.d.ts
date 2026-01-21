@@ -159,7 +159,9 @@ export declare enum EntityChangeMask {
     ABILITIES = 32,
     ITEMS = 64,
     TARGET = 128,
-    STATE = 256
+    STATE = 256,
+    TRINKET = 512,
+    GOLD = 1024
 }
 /**
  * Snapshot of a champion's state for network sync.
@@ -181,6 +183,8 @@ export interface ChampionSnapshot {
     maxResource: number;
     level: number;
     experience: number;
+    experienceToNextLevel: number;
+    skillPoints: number;
     attackDamage: number;
     abilityPower: number;
     armor: number;
@@ -333,7 +337,13 @@ export declare enum GameEventType {
     MULTI_KILL = 9,
     ABILITY_CAST = 10,
     ITEM_PURCHASED = 11,
-    LEVEL_UP = 12
+    LEVEL_UP = 12,
+    /** Basic attack animation event */
+    BASIC_ATTACK = 13,
+    /** Damage dealt to an entity */
+    DAMAGE = 14,
+    /** Gold earned by a champion (non-passive) */
+    GOLD_EARNED = 15
 }
 /**
  * Game event for important occurrences.

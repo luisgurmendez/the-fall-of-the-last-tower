@@ -61,9 +61,10 @@ describe('ServerAbilityExecutor', () => {
 
   describe('Ability Learning', () => {
     test('cannot cast unlearned ability', () => {
+      // Note: Q is auto-learned on champion creation, so test with W
       const result = abilityExecutor.castAbility({
         champion: blueChampion,
-        slot: 'Q',
+        slot: 'W',
         targetPosition: new Vector(100, 0),
         context,
       });
@@ -210,16 +211,19 @@ describe('ServerAbilityExecutor', () => {
   describe('Self-Target Abilities', () => {
     test('shield ability grants a shield', () => {
       // Warrior W is Iron Will (shield)
+      // Give skill point since Q was auto-learned at creation
+      blueChampion.skillPoints = 1;
       blueChampion.levelUpAbility('W');
 
       expect(blueChampion.shields.length).toBe(0);
 
-      abilityExecutor.castAbility({
+      const result = abilityExecutor.castAbility({
         champion: blueChampion,
         slot: 'W',
         context,
       });
 
+      expect(result.success).toBe(true);
       expect(blueChampion.shields.length).toBe(1);
       expect(blueChampion.shields[0].amount).toBeGreaterThan(0);
     });
@@ -359,16 +363,19 @@ describe('ServerAbilityExecutor', () => {
   describe('Dash Abilities', () => {
     test('dash ability moves champion', () => {
       // Warrior E is Valiant Charge (dash)
+      // Give skill point since Q was auto-learned at creation
+      blueChampion.skillPoints = 1;
       blueChampion.levelUpAbility('E');
       const initialX = blueChampion.position.x;
 
-      abilityExecutor.castAbility({
+      const result = abilityExecutor.castAbility({
         champion: blueChampion,
         slot: 'E',
         targetPosition: new Vector(500, 0),
         context,
       });
 
+      expect(result.success).toBe(true);
       // Champion should have forced movement set
       expect(blueChampion.forcedMovement).not.toBeNull();
       expect(blueChampion.forcedMovement?.type).toBe('dash');
@@ -378,16 +385,19 @@ describe('ServerAbilityExecutor', () => {
   describe('Teleport Abilities', () => {
     test('blink ability teleports champion', () => {
       // Magnus E is Blink (teleport)
+      // Give skill point since Q was auto-learned at creation
+      redChampion.skillPoints = 1;
       redChampion.levelUpAbility('E');
       const originalPos = redChampion.position.clone();
 
-      abilityExecutor.castAbility({
+      const result = abilityExecutor.castAbility({
         champion: redChampion,
         slot: 'E',
         targetPosition: new Vector(0, 300),
         context,
       });
 
+      expect(result.success).toBe(true);
       // Champion should have teleported
       expect(redChampion.position.x).not.toBe(originalPos.x);
       expect(redChampion.position.y).not.toBe(originalPos.y);

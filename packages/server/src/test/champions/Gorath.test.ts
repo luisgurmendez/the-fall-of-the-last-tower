@@ -19,6 +19,7 @@ import {
 describe('Gorath', () => {
   let arena: TestArena;
 
+  // Default arena with abilities learned (for ability tests)
   beforeEach(() => {
     arena = createTestArena({
       blueChampion: 'gorath',
@@ -29,30 +30,43 @@ describe('Gorath', () => {
   });
 
   describe('Base Stats', () => {
+    // Base stat tests need level 1 (learnAbilities sets level to 6)
+    let level1Arena: TestArena;
+
+    beforeEach(() => {
+      level1Arena = createTestArena({
+        blueChampion: 'gorath',
+        redChampion: 'vex',
+        bluePosition: new Vector(0, 0),
+        redPosition: new Vector(200, 0),
+        learnAbilities: false, // Keep level 1 for base stat tests
+      });
+    });
+
     test('should have highest base health (650)', () => {
-      expect(arena.blue.maxHealth).toBe(650);
+      expect(level1Arena.blue.maxHealth).toBe(650);
     });
 
     test('should have melee attack range (150)', () => {
-      expect(arena.blue.getStats().attackRange).toBe(150);
+      expect(level1Arena.blue.getStats().attackRange).toBe(150);
     });
 
     test('should have highest base armor (40)', () => {
-      expect(arena.blue.getStats().armor).toBe(40);
+      expect(level1Arena.blue.getStats().armor).toBe(40);
     });
 
     test('should have high magic resist (35)', () => {
-      expect(arena.blue.getStats().magicResist).toBe(35);
+      expect(level1Arena.blue.getStats().magicResist).toBe(35);
     });
 
     test('should have lower movement speed (330)', () => {
-      expect(arena.blue.getStats().movementSpeed).toBe(330);
+      expect(level1Arena.blue.getStats().movementSpeed).toBe(330);
     });
 
     test('should have highest health growth per level', () => {
-      const level1Health = arena.blue.maxHealth;
-      arena.blue.setLevel(10);
-      const level10Health = arena.blue.maxHealth;
+      const level1Health = level1Arena.blue.maxHealth;
+      level1Arena.blue.setLevel(10);
+      const level10Health = level1Arena.blue.maxHealth;
 
       // Health growth is 110 per level
       const expectedGrowth = 110 * 9; // 9 levels gained

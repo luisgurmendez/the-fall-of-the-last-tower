@@ -13,11 +13,14 @@ import {
   Side,
   EntityType,
   MinionSnapshot,
+  GameEventType,
 } from '@siege/shared';
 import type { MinionType, LaneId, MinionStats, DamageType } from '@siege/shared';
 import { DEFAULT_MINION_STATS } from '@siege/shared';
 import { ServerEntity, type ServerEntityConfig } from './ServerEntity';
 import type { ServerGameContext } from '../game/ServerGameContext';
+import { RewardSystem } from '../systems/RewardSystem';
+import { ServerTargetedProjectile } from './ServerTargetedProjectile';
 
 /**
  * Configuration for creating a minion.
@@ -195,21 +198,58 @@ export class ServerMinion extends ServerEntity {
     return bestTarget?.id ?? null;
   }
 
+  /** Projectile speed for ranged minions (caster) */
+  private static readonly PROJECTILE_SPEED = 650;
+  /** Projectile radius for collision */
+  private static readonly PROJECTILE_RADIUS = 8;
+
   /**
    * Attack a target.
    */
   private attack(target: ServerEntity, context: ServerGameContext): void {
-    // Deal damage
-    target.takeDamage(this.stats.attackDamage, 'physical', this.id);
-
     // Reset cooldown
     this.attackCooldown = this.stats.attackCooldown;
 
     // Start attack animation
     this.attackAnimationTimer = ServerMinion.ATTACK_ANIMATION_DURATION;
 
+    // Emit attack event for client-side animation
+    context.addEvent(GameEventType.BASIC_ATTACK, {
+      entityId: this.id,
+      targetId: target.id,
+      animationDuration: ServerMinion.ATTACK_ANIMATION_DURATION,
+    });
+
     // Stop moving while attacking
     this.moveTarget = null;
+
+    // Caster minions fire projectiles, melee minions deal instant damage
+    if (this.minionType === 'caster') {
+      this.fireProjectile(target, context);
+    } else {
+      // Melee - deal damage instantly
+      target.takeDamage(this.stats.attackDamage, 'physical', this.id, context);
+    }
+  }
+
+  /**
+   * Fire a projectile at a target (for caster minions).
+   */
+  private fireProjectile(target: ServerEntity, context: ServerGameContext): void {
+    const projectile = new ServerTargetedProjectile({
+      id: `proj_${this.id}_${Date.now()}`,
+      position: this.position.clone(),
+      side: this.side,
+      targetId: target.id,
+      speed: ServerMinion.PROJECTILE_SPEED,
+      radius: ServerMinion.PROJECTILE_RADIUS,
+      sourceId: this.id,
+      projectileType: 'minion_caster',
+      damage: this.stats.attackDamage,
+      damageType: 'physical',
+    });
+
+    context.addEntity(projectile);
   }
 
   /**
@@ -222,7 +262,9 @@ export class ServerMinion extends ServerEntity {
       if (target && !this.isInRange(target, this.stats.attackRange)) {
         this.moveTarget = target.position.clone();
       } else {
-        return; // In range, don't move
+        // In range - stop moving and clear move target
+        this.moveTarget = null;
+        return;
       }
     } else if (!this.moveTarget && this.currentWaypointIndex < this.waypoints.length) {
       // Resume waypoint following
@@ -266,8 +308,14 @@ export class ServerMinion extends ServerEntity {
   /**
    * Called when the minion dies - overrides base implementation.
    */
-  protected onDeath(killerId?: string): void {
-    super.onDeath(killerId);
+  protected onDeath(killerId?: string, context?: ServerGameContext): void {
+    super.onDeath(killerId, context);
+
+    // Award XP/gold to killer and nearby allies
+    if (context) {
+      RewardSystem.awardKillRewards(this, killerId, context);
+    }
+
     // Clear attack target
     this.attackTarget = null;
     this.moveTarget = null;

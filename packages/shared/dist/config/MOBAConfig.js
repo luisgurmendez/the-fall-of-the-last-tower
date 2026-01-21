@@ -258,6 +258,14 @@ export const MOBAConfig = {
         SPACING: 35,
         /** Random offset variance for natural look */
         OFFSET_VARIANCE: 10,
+        /** Large bush hitbox dimensions */
+        LARGE_BUSH_WIDTH: 100,
+        LARGE_BUSH_HEIGHT: 60,
+        /** Small bush hitbox dimensions */
+        SMALL_BUSH_WIDTH: 60,
+        SMALL_BUSH_HEIGHT: 40,
+        /** Extra padding for visibility bounds (accounts for entity collision radius) */
+        VISIBILITY_PADDING: 30,
     },
     /**
      * Wall configuration (tile-aligned to 64 unit grid).
@@ -331,5 +339,139 @@ export const MOBAConfig = {
         { position: new Vector(1050, -1050), type: 'scarecrow', scale: 0.5, flipX: true },
     ],
 };
+/**
+ * Simple seeded random number generator for deterministic bush positions.
+ * Uses a linear congruential generator (LCG).
+ */
+function seededRandom(seed) {
+    let state = seed;
+    return () => {
+        state = (state * 1664525 + 1013904223) >>> 0;
+        return (state / 0xFFFFFFFF);
+    };
+}
+/**
+ * Calculate individual bush positions for a group deterministically.
+ * Used by both server (for visibility checks) and can be used by client.
+ *
+ * @param groupIndex - Index of the bush group in BUSH_GROUPS array
+ * @returns Array of individual bush positions with their dimensions
+ */
+export function calculateIndividualBushPositions(groupIndex) {
+    const groupConfig = MOBAConfig.BUSH_GROUPS[groupIndex];
+    if (!groupConfig)
+        return [];
+    const { SPACING, OFFSET_VARIANCE, LARGE_BUSH_WIDTH, LARGE_BUSH_HEIGHT, SMALL_BUSH_WIDTH, SMALL_BUSH_HEIGHT } = MOBAConfig.BUSH_SETTINGS;
+    const { center, bushCount, spread } = groupConfig;
+    const positions = [];
+    const halfCount = (bushCount - 1) / 2;
+    // Create seeded random for this group (deterministic based on group index)
+    const random = seededRandom(groupIndex * 12345 + 67890);
+    for (let i = 0; i < bushCount; i++) {
+        const offset = (i - halfCount) * SPACING;
+        const randX = (random() - 0.5) * OFFSET_VARIANCE * 2;
+        const randY = (random() - 0.5) * OFFSET_VARIANCE * 2;
+        let x = center.x;
+        let y = center.y;
+        switch (spread) {
+            case 'horizontal':
+                x += offset + randX;
+                y += randY;
+                break;
+            case 'vertical':
+                x += randX;
+                y += offset + randY;
+                break;
+            case 'diagonal':
+                x += offset * 0.7 + randX;
+                y += offset * 0.7 + randY;
+                break;
+            case 'cluster':
+                const angle = (i / bushCount) * Math.PI * 2 + random() * 0.5;
+                const radius = SPACING * 0.8 + random() * SPACING * 0.4;
+                x += Math.cos(angle) * radius + randX;
+                y += Math.sin(angle) * radius + randY;
+                break;
+        }
+        // Alternate between small and large bushes (every 3rd is small)
+        const isSmall = i % 3 === 0;
+        const width = isSmall ? SMALL_BUSH_WIDTH : LARGE_BUSH_WIDTH;
+        const height = isSmall ? SMALL_BUSH_HEIGHT : LARGE_BUSH_HEIGHT;
+        positions.push({ x, y, width, height });
+    }
+    return positions;
+}
+/**
+ * Check if a point is inside any individual bush in a group.
+ * This is the correct way to check bush visibility - not bounding box!
+ *
+ * @param point - Position to check
+ * @param groupIndex - Index of the bush group
+ * @returns true if point is inside any bush in the group
+ */
+export function isPointInBushGroup(point, groupIndex) {
+    const bushes = calculateIndividualBushPositions(groupIndex);
+    for (const bush of bushes) {
+        const halfW = bush.width / 2;
+        const halfH = bush.height / 2;
+        if (point.x >= bush.x - halfW &&
+            point.x <= bush.x + halfW &&
+            point.y >= bush.y - halfH &&
+            point.y <= bush.y + halfH) {
+            return true;
+        }
+    }
+    return false;
+}
+/**
+ * Calculate the visibility bounds for a bush group.
+ * Used by both server (for visibility checks) and client (for debug rendering).
+ *
+ * @param center - Center position of the bush group
+ * @param bushCount - Number of bushes in the group
+ * @param spread - Layout type of the bushes
+ * @returns The bounding box for visibility checks
+ */
+export function calculateBushGroupBounds(center, bushCount, spread) {
+    const { SPACING, OFFSET_VARIANCE, LARGE_BUSH_WIDTH, LARGE_BUSH_HEIGHT, VISIBILITY_PADDING } = MOBAConfig.BUSH_SETTINGS;
+    // Padding accounts for random variance in bush positions and entity collision radius
+    const padding = OFFSET_VARIANCE + VISIBILITY_PADDING;
+    switch (spread) {
+        case 'horizontal': {
+            const totalWidth = bushCount * (LARGE_BUSH_WIDTH + SPACING);
+            const halfW = totalWidth / 2 + padding;
+            const halfH = LARGE_BUSH_HEIGHT / 2 + padding;
+            return {
+                minX: center.x - halfW,
+                maxX: center.x + halfW,
+                minY: center.y - halfH,
+                maxY: center.y + halfH,
+            };
+        }
+        case 'vertical': {
+            const totalHeight = bushCount * (LARGE_BUSH_HEIGHT + SPACING);
+            const halfW = LARGE_BUSH_WIDTH / 2 + padding;
+            const halfH = totalHeight / 2 + padding;
+            return {
+                minX: center.x - halfW,
+                maxX: center.x + halfW,
+                minY: center.y - halfH,
+                maxY: center.y + halfH,
+            };
+        }
+        case 'diagonal':
+        case 'cluster':
+        default: {
+            // For cluster/diagonal, use a circular-ish bounds
+            const radius = Math.max(bushCount * SPACING, LARGE_BUSH_WIDTH) + padding;
+            return {
+                minX: center.x - radius,
+                maxX: center.x + radius,
+                minY: center.y - radius,
+                maxY: center.y + radius,
+            };
+        }
+    }
+}
 export default MOBAConfig;
 //# sourceMappingURL=MOBAConfig.js.map

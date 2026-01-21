@@ -143,11 +143,33 @@ export class OnlineInputHandler implements GameObject {
       this.networkClient.sendStopInput();
     }
 
-    // Handle abilities (Q, W, E, R)
-    this.handleAbilityInput('q', 'Q', camera);
-    this.handleAbilityInput('w', 'W', camera);
-    this.handleAbilityInput('e', 'E', camera);
-    this.handleAbilityInput('r', 'R', camera);
+    // Handle abilities (Q, W, E, R) or level-up with Ctrl held
+    // Note: e.key returns 'Control' (capital C) for the control key
+    if (this.inputManager.isKeyDown('Control')) {
+      // Ctrl + QWER = Level up ability
+      if (this.inputManager.isKeyJustPressed('q')) {
+        console.log('[OnlineInputHandler] Ctrl+Q pressed - sending level up Q');
+        this.networkClient.sendLevelUpInput('Q');
+      }
+      if (this.inputManager.isKeyJustPressed('w')) {
+        console.log('[OnlineInputHandler] Ctrl+W pressed - sending level up W');
+        this.networkClient.sendLevelUpInput('W');
+      }
+      if (this.inputManager.isKeyJustPressed('e')) {
+        console.log('[OnlineInputHandler] Ctrl+E pressed - sending level up E');
+        this.networkClient.sendLevelUpInput('E');
+      }
+      if (this.inputManager.isKeyJustPressed('r')) {
+        console.log('[OnlineInputHandler] Ctrl+R pressed - sending level up R');
+        this.networkClient.sendLevelUpInput('R');
+      }
+    } else {
+      // Normal ability cast
+      this.handleAbilityInput('q', 'Q', camera);
+      this.handleAbilityInput('w', 'W', camera);
+      this.handleAbilityInput('e', 'E', camera);
+      this.handleAbilityInput('r', 'R', camera);
+    }
 
     // Handle recall (B key)
     if (this.inputManager.isKeyJustPressed('b')) {

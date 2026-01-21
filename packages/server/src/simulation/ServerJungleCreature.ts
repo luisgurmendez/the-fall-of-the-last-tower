@@ -12,11 +12,13 @@ import {
   Vector,
   EntityType,
   MOBAConfig,
+  GameEventType,
   type JungleCreatureSnapshot,
   type DamageType,
 } from '@siege/shared';
 import { ServerEntity, type ServerEntityConfig } from './ServerEntity';
 import type { ServerGameContext } from '../game/ServerGameContext';
+import { RewardSystem } from '../systems/RewardSystem';
 
 type JungleCreatureType = keyof typeof MOBAConfig.JUNGLE.CREATURE_STATS;
 
@@ -221,7 +223,15 @@ export class ServerJungleCreature extends ServerEntity {
         // In range - attack
         this.moveTarget = null;
         if (this.attackCooldownTimer <= 0) {
-          target.takeDamage(this.damage, 'physical', this.id);
+          target.takeDamage(this.damage, 'physical', this.id, context);
+
+          // Emit attack event for client-side animation
+          context.addEvent(GameEventType.BASIC_ATTACK, {
+            entityId: this.id,
+            targetId: target.id,
+            animationDuration: 0.4,
+          });
+
           this.attackCooldownTimer = this.attackCooldown;
         }
       } else {
@@ -270,8 +280,8 @@ export class ServerJungleCreature extends ServerEntity {
   /**
    * Override takeDamage to handle aggro.
    */
-  override takeDamage(amount: number, type: DamageType, sourceId?: string): number {
-    const actualDamage = super.takeDamage(amount, type, sourceId);
+  override takeDamage(amount: number, type: DamageType, sourceId?: string, context?: ServerGameContext): number {
+    const actualDamage = super.takeDamage(amount, type, sourceId, context);
 
     // Aggro on attacker if idle
     if (actualDamage > 0 && sourceId && this.aiState === 'idle') {
@@ -285,14 +295,17 @@ export class ServerJungleCreature extends ServerEntity {
   /**
    * Called when creature dies.
    */
-  protected onDeath(killerId?: string): void {
-    super.onDeath(killerId);
+  protected onDeath(killerId?: string, context?: ServerGameContext): void {
+    super.onDeath(killerId, context);
+
+    // Award XP/gold to killer and nearby allies
+    if (context) {
+      RewardSystem.awardKillRewards(this, killerId, context);
+    }
+
     this.attackTarget = null;
     this.moveTarget = null;
     this.markForRemoval();
-
-    // TODO: Grant gold/XP to killer
-    console.log(`[ServerJungleCreature] ${this.creatureType} killed by ${killerId}, gold: ${this.goldReward}, exp: ${this.expReward}`);
   }
 
   /**

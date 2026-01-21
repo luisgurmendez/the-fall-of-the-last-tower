@@ -31,7 +31,7 @@ export interface DebugInspectorConfig {
  */
 export const DEFAULT_DEBUG_CONFIG: DebugInspectorConfig = {
   enabled: false,
-  position: 'top-left',
+  position: 'top-right',
   panelWidth: 320,
   maxPanelHeight: 500,
   opacity: 0.9,

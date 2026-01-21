@@ -11,20 +11,23 @@ import type GameContext from '@/core/gameContext';
 import Vector from '@/physics/vector';
 import type { OnlineStateManager } from '@/core/OnlineStateManager';
 import type { FogRevealer } from '@/core/FogOfWar';
-import { EntityType } from '@siege/shared';
+import { EntityType, GameConfig } from '@siege/shared';
 import { Bush } from '@/vision/Bush';
 import type { BushManager, BushGroup } from '@/vision';
 
 /**
  * Sight ranges for different entity types.
+ * IMPORTANT: These must match the server values in FogOfWarServer.ts
+ * Entities with 0 sight range don't provide vision.
  */
 const SIGHT_RANGES: Record<number, number> = {
-  [EntityType.CHAMPION]: 1000,
-  [EntityType.MINION]: 600,
-  [EntityType.TOWER]: 800,
+  [EntityType.CHAMPION]: GameConfig.VISION.CHAMPION_SIGHT_RANGE, // 800
+  [EntityType.MINION]: 500, // Matches DEFAULT_MINION_STATS.melee.sightRange
+  [EntityType.TOWER]: 750, // Matches server tower sight range
   [EntityType.NEXUS]: 1000,
   [EntityType.JUNGLE_CAMP]: 400,
-  [EntityType.WARD]: 900, // Default ward sight range
+  [EntityType.WARD]: GameConfig.VISION.WARD_SIGHT_RANGE, // 600
+  [EntityType.PROJECTILE]: 0, // Projectiles don't provide vision
 };
 
 /**
@@ -70,7 +73,7 @@ export class OnlineFogProvider implements GameObject, FogRevealer {
 
   // For implementing FogRevealer on this object (reveals at local player position)
   private localPlayerPos: Vector = new Vector(0, 0);
-  private localPlayerSightRange: number = 1000;
+  private localPlayerSightRange: number = GameConfig.VISION.CHAMPION_SIGHT_RANGE;
 
   // Bush manager reference for updating bush transparency
   private bushManager: BushManager | null = null;
@@ -132,7 +135,7 @@ export class OnlineFogProvider implements GameObject, FogRevealer {
       if (localEntity) {
         this.localPlayerPos.x = localEntity.position.x;
         this.localPlayerPos.y = localEntity.position.y;
-        this.localPlayerSightRange = SIGHT_RANGES[(localEntity.snapshot as any).entityType] ?? 1000;
+        this.localPlayerSightRange = SIGHT_RANGES[(localEntity.snapshot as any).entityType] ?? GameConfig.VISION.CHAMPION_SIGHT_RANGE;
 
         // Update bush manager with local player position for transparency effect
         if (this.bushManager) {
@@ -182,13 +185,19 @@ export class OnlineFogProvider implements GameObject, FogRevealer {
         continue;
       }
 
+      // Get sight range for this entity type
       // For wards, use the sightRange from the snapshot if available
-      // This allows different ward types to have different vision ranges
       let sightRange: number;
       if (snapshot.entityType === EntityType.WARD && snapshot.sightRange) {
         sightRange = snapshot.sightRange;
       } else {
-        sightRange = SIGHT_RANGES[snapshot.entityType] ?? 600;
+        // Use 0 as fallback - unknown entity types don't provide vision
+        sightRange = SIGHT_RANGES[snapshot.entityType] ?? 0;
+      }
+
+      // Skip entities that don't provide vision (e.g., projectiles)
+      if (sightRange <= 0) {
+        continue;
       }
 
       // Count by type

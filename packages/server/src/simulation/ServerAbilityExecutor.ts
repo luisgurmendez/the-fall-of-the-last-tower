@@ -17,11 +17,12 @@ import {
   getAbilityDefinition,
   DamageType,
   GameEventType,
-} from '@siege/shared';
-import type { ServerChampion } from './ServerChampion';
-import type { ServerEntity } from './ServerEntity';
-import type { ServerGameContext } from '../game/ServerGameContext';
-import { ServerProjectile } from './ServerProjectile';
+} from "@siege/shared";
+import type { ServerChampion } from "./ServerChampion";
+import type { ServerEntity } from "./ServerEntity";
+import type { ServerGameContext } from "../game/ServerGameContext";
+import { ServerProjectile } from "./ServerProjectile";
+import { Logger } from "../utils/Logger";
 
 export interface AbilityCastParams {
   /** The champion casting the ability */
@@ -38,7 +39,14 @@ export interface AbilityCastParams {
 
 export interface AbilityCastResult {
   success: boolean;
-  failReason?: 'not_learned' | 'on_cooldown' | 'not_enough_mana' | 'invalid_target' | 'out_of_range' | 'silenced' | 'stunned';
+  failReason?:
+    | "not_learned"
+    | "on_cooldown"
+    | "not_enough_mana"
+    | "invalid_target"
+    | "out_of_range"
+    | "silenced"
+    | "stunned";
   manaCost?: number;
   cooldown?: number;
 }
@@ -57,39 +65,32 @@ export class ServerAbilityExecutor {
 
     // Get ability definition
     const abilityId = this.getAbilityId(champion, slot);
-
-    // DEBUG: Log ability lookup
-    console.log(`[AbilityExecutor] Casting ability for champion "${champion.definition.id}": slot=${slot}, abilityId="${abilityId}"`);
-
     const definition = getAbilityDefinition(abilityId);
 
     if (!definition) {
-      console.warn(`[AbilityExecutor] No definition found for ability: ${abilityId}`);
-      return { success: false, failReason: 'not_learned' };
+      Logger.debug("Ability", `No definition found for ability: ${abilityId}`);
+      return { success: false, failReason: "not_learned" };
     }
-
-    // DEBUG: Log ability definition
-    console.log(`[AbilityExecutor] Found ability definition: targetType=${definition.targetType}, shape=${definition.shape || 'none'}`);
 
     // Check if ability is learned
     const state = champion.abilityStates[slot];
     if (state.rank <= 0) {
-      return { success: false, failReason: 'not_learned' };
+      return { success: false, failReason: "not_learned" };
     }
 
     // Check CC status
     if (!champion.ccStatus.canCast) {
       if (champion.ccStatus.isStunned) {
-        return { success: false, failReason: 'stunned' };
+        return { success: false, failReason: "stunned" };
       }
       if (champion.ccStatus.isSilenced) {
-        return { success: false, failReason: 'silenced' };
+        return { success: false, failReason: "silenced" };
       }
     }
 
     // Check cooldown
     if (state.cooldownRemaining > 0) {
-      return { success: false, failReason: 'on_cooldown' };
+      return { success: false, failReason: "on_cooldown" };
     }
 
     // Calculate mana cost
@@ -98,7 +99,7 @@ export class ServerAbilityExecutor {
 
     // Check mana
     if (champion.resource < manaCost) {
-      return { success: false, failReason: 'not_enough_mana' };
+      return { success: false, failReason: "not_enough_mana" };
     }
 
     // Validate target based on ability type
@@ -120,9 +121,6 @@ export class ServerAbilityExecutor {
 
     // Enter combat
     champion.enterCombat();
-
-    // Cancel recall
-    champion.cancelRecall();
 
     // Add event for ability cast
     context.addEvent(GameEventType.ABILITY_CAST, {
@@ -154,76 +152,76 @@ export class ServerAbilityExecutor {
   private validateTarget(
     params: AbilityCastParams,
     definition: AbilityDefinition
-  ): { valid: boolean; reason?: 'invalid_target' | 'out_of_range' } {
+  ): { valid: boolean; reason?: "invalid_target" | "out_of_range" } {
     const { champion, targetPosition, targetEntityId, context } = params;
 
     switch (definition.targetType) {
-      case 'self':
-      case 'no_target':
+      case "self":
+      case "no_target":
         // No target validation needed
         return { valid: true };
 
-      case 'target_enemy': {
+      case "target_enemy": {
         if (!targetEntityId) {
-          return { valid: false, reason: 'invalid_target' };
+          return { valid: false, reason: "invalid_target" };
         }
         const target = context.getEntity(targetEntityId);
         if (!target || target.isDead || target.side === champion.side) {
-          return { valid: false, reason: 'invalid_target' };
+          return { valid: false, reason: "invalid_target" };
         }
         // Check range
         if (definition.range) {
           if (!champion.isInRange(target, definition.range)) {
-            return { valid: false, reason: 'out_of_range' };
+            return { valid: false, reason: "out_of_range" };
           }
         }
         return { valid: true };
       }
 
-      case 'target_ally': {
+      case "target_ally": {
         if (!targetEntityId) {
-          return { valid: false, reason: 'invalid_target' };
+          return { valid: false, reason: "invalid_target" };
         }
         const target = context.getEntity(targetEntityId);
         if (!target || target.isDead || target.side !== champion.side) {
-          return { valid: false, reason: 'invalid_target' };
+          return { valid: false, reason: "invalid_target" };
         }
         // Check range
         if (definition.range) {
           if (!champion.isInRange(target, definition.range)) {
-            return { valid: false, reason: 'out_of_range' };
+            return { valid: false, reason: "out_of_range" };
           }
         }
         return { valid: true };
       }
 
-      case 'target_unit': {
+      case "target_unit": {
         if (!targetEntityId) {
-          return { valid: false, reason: 'invalid_target' };
+          return { valid: false, reason: "invalid_target" };
         }
         const target = context.getEntity(targetEntityId);
         if (!target || target.isDead) {
-          return { valid: false, reason: 'invalid_target' };
+          return { valid: false, reason: "invalid_target" };
         }
         // Check range
         if (definition.range) {
           if (!champion.isInRange(target, definition.range)) {
-            return { valid: false, reason: 'out_of_range' };
+            return { valid: false, reason: "out_of_range" };
           }
         }
         return { valid: true };
       }
 
-      case 'skillshot':
-      case 'ground_target': {
+      case "skillshot":
+      case "ground_target": {
         if (!targetPosition) {
-          return { valid: false, reason: 'invalid_target' };
+          return { valid: false, reason: "invalid_target" };
         }
         // Check range for ground target
-        if (definition.range && definition.targetType === 'ground_target') {
+        if (definition.range && definition.targetType === "ground_target") {
           const distance = champion.position.distanceTo(targetPosition);
           if (distance > definition.range) {
-            return { valid: false, reason: 'out_of_range' };
+            return { valid: false, reason: "out_of_range" };
           }
         }
         return { valid: true };
@@ -253,36 +251,28 @@ export class ServerAbilityExecutor {
     }
 
     // Execute based on target type
-    console.log(`[AbilityExecutor] Executing ability: targetType=${definition.targetType}`);
-
     switch (definition.targetType) {
-      case 'self':
-        console.log(`[AbilityExecutor] -> executeSelfAbility`);
+      case "self":
         this.executeSelfAbility(params, definition, rank);
         break;
 
-      case 'no_target':
-        console.log(`[AbilityExecutor] -> executeNoTargetAbility`);
+      case "no_target":
         this.executeNoTargetAbility(params, definition, rank);
         break;
 
-      case 'target_enemy':
-        console.log(`[AbilityExecutor] -> executeTargetEnemyAbility`);
+      case "target_enemy":
         this.executeTargetEnemyAbility(params, definition, rank);
         break;
 
-      case 'target_ally':
-        console.log(`[AbilityExecutor] -> executeTargetAllyAbility`);
+      case "target_ally":
         this.executeTargetAllyAbility(params, definition, rank);
         break;
 
-      case 'skillshot':
-        console.log(`[AbilityExecutor] -> executeSkillshot (spawning projectile)`);
+      case "skillshot":
         this.executeSkillshot(params, definition, rank);
         break;
 
-      case 'ground_target':
-        console.log(`[AbilityExecutor] -> executeGroundTarget (shape=${definition.shape}, coneAngle=${definition.coneAngle})`);
+      case "ground_target":
         this.executeGroundTarget(params, definition, rank);
         break;
     }
@@ -311,12 +301,16 @@ export class ServerAbilityExecutor {
 
     // Apply shield
     if (definition.shield) {
-      const shieldAmount = calculateAbilityValue(definition.shield.scaling, rank, {
-        attackDamage: stats.attackDamage,
-        abilityPower: stats.abilityPower,
-        bonusHealth: stats.maxHealth - champion.definition.baseStats.health,
-        maxHealth: stats.maxHealth,
-      });
+      const shieldAmount = calculateAbilityValue(
+        definition.shield.scaling,
+        rank,
+        {
+          attackDamage: stats.attackDamage,
+          abilityPower: stats.abilityPower,
+          bonusHealth: stats.maxHealth - champion.definition.baseStats.health,
+          maxHealth: stats.maxHealth,
+        }
+      );
 
       champion.shields.push({
         amount: shieldAmount,
@@ -328,7 +322,11 @@ export class ServerAbilityExecutor {
     // Apply effects
     if (definition.appliesEffects) {
       for (const effectId of definition.appliesEffects) {
-        champion.applyEffect(effectId, definition.effectDuration ?? 0, champion.id);
+        champion.applyEffect(
+          effectId,
+          definition.effectDuration ?? 0,
+          champion.id
+        );
       }
     }
   }
@@ -379,17 +377,22 @@ export class ServerAbilityExecutor {
 
       // Apply damage to enemies
       if (isEnemy && damageAmount > 0 && definition.damage) {
-        entity.takeDamage(damageAmount, definition.damage.type, champion.id);
+        entity.takeDamage(damageAmount, definition.damage.type, champion.id, context);
 
         // Apply effects to enemies
         if (definition.appliesEffects) {
-          this.applyEffectsToEntity(entity, definition.appliesEffects, definition.effectDuration ?? 0, champion.id);
+          this.applyEffectsToEntity(
+            entity,
+            definition.appliesEffects,
+            definition.effectDuration ?? 0,
+            champion.id
+          );
         }
       }
 
       // Apply healing to allies
       if (isAlly && healAmount > 0) {
-        if ('heal' in entity && typeof entity.heal === 'function') {
+        if ("heal" in entity && typeof entity.heal === "function") {
           (entity as { heal: (amount: number) => void }).heal(healAmount);
         }
       }
@@ -397,7 +400,12 @@ export class ServerAbilityExecutor {
       // Apply ally effects (like speed buff from Elara's E)
       if (isAlly && definition.appliesEffects) {
         // Only apply ally-friendly effects (buffs)
-        this.applyEffectsToEntity(entity, definition.appliesEffects, definition.effectDuration ?? 0, champion.id);
+        this.applyEffectsToEntity(
+          entity,
+          definition.appliesEffects,
+          definition.effectDuration ?? 0,
+          champion.id
+        );
       }
     }
   }
@@ -421,19 +429,28 @@ export class ServerAbilityExecutor {
 
     // Calculate and apply damage
     if (definition.damage) {
-      const damageAmount = calculateAbilityValue(definition.damage.scaling, rank, {
-        attackDamage: stats.attackDamage,
-        abilityPower: stats.abilityPower,
-        bonusHealth: stats.maxHealth - champion.definition.baseStats.health,
-        maxHealth: stats.maxHealth,
-      });
+      const damageAmount = calculateAbilityValue(
+        definition.damage.scaling,
+        rank,
+        {
+          attackDamage: stats.attackDamage,
+          abilityPower: stats.abilityPower,
+          bonusHealth: stats.maxHealth - champion.definition.baseStats.health,
+          maxHealth: stats.maxHealth,
+        }
+      );
 
-      target.takeDamage(damageAmount, definition.damage.type, champion.id);
+      target.takeDamage(damageAmount, definition.damage.type, champion.id, context);
     }
 
     // Apply effects
     if (definition.appliesEffects) {
-      this.applyEffectsToEntity(target, definition.appliesEffects, definition.effectDuration ?? 0, champion.id);
+      this.applyEffectsToEntity(
+        target,
+        definition.appliesEffects,
+        definition.effectDuration ?? 0,
+        champion.id
+      );
     }
   }
 
@@ -455,7 +472,11 @@ export class ServerAbilityExecutor {
     const stats = champion.getStats();
 
     // Apply healing
-    if (definition.heal && 'heal' in target && typeof target.heal === 'function') {
+    if (
+      definition.heal &&
+      "heal" in target &&
+      typeof target.heal === "function"
+    ) {
       const healAmount = calculateAbilityValue(definition.heal.scaling, rank, {
         attackDamage: stats.attackDamage,
         abilityPower: stats.abilityPower,
@@ -467,13 +488,17 @@ export class ServerAbilityExecutor {
     }
 
     // Apply shield
-    if (definition.shield && 'shields' in target) {
-      const shieldAmount = calculateAbilityValue(definition.shield.scaling, rank, {
-        attackDamage: stats.attackDamage,
-        abilityPower: stats.abilityPower,
-        bonusHealth: stats.maxHealth - champion.definition.baseStats.health,
-        maxHealth: stats.maxHealth,
-      });
+    if (definition.shield && "shields" in target) {
+      const shieldAmount = calculateAbilityValue(
+        definition.shield.scaling,
+        rank,
+        {
+          attackDamage: stats.attackDamage,
+          abilityPower: stats.abilityPower,
+          bonusHealth: stats.maxHealth - champion.definition.baseStats.health,
+          maxHealth: stats.maxHealth,
+        }
+      );
 
       (target as ServerChampion).shields.push({
         amount: shieldAmount,
@@ -484,7 +509,12 @@ export class ServerAbilityExecutor {
 
     // Apply effects
     if (definition.appliesEffects) {
-      this.applyEffectsToEntity(target, definition.appliesEffects, definition.effectDuration ?? 0, champion.id);
+      this.applyEffectsToEntity(
+        target,
+        definition.appliesEffects,
+        definition.effectDuration ?? 0,
+        champion.id
+      );
     }
   }
 
@@ -496,7 +526,6 @@ export class ServerAbilityExecutor {
     definition: AbilityDefinition,
     rank: number
   ): void {
-    console.log(`[AbilityExecutor] *** SPAWNING PROJECTILE *** for ability ${definition.id}`);
     const { champion, targetPosition, context } = params;
 
     if (!targetPosition) return;
@@ -513,7 +542,7 @@ export class ServerAbilityExecutor {
 
     // Calculate damage
     let damageAmount = 0;
-    let damageType: DamageType = 'physical';
+    let damageType: DamageType = "physical";
     if (definition.damage) {
       damageAmount = calculateAbilityValue(definition.damage.scaling, rank, {
         attackDamage: stats.attackDamage,
@@ -558,7 +587,7 @@ export class ServerAbilityExecutor {
     if (!targetPosition) return;
 
     // Handle cone-shaped abilities
-    if (definition.shape === 'cone' && definition.coneAngle) {
+    if (definition.shape === "cone" && definition.coneAngle) {
       this.executeConeAbility(params, definition, rank);
       return;
     }
@@ -611,12 +640,17 @@ export class ServerAbilityExecutor {
 
       // Apply damage
       if (damageAmount > 0 && definition.damage) {
-        entity.takeDamage(damageAmount, definition.damage.type, champion.id);
+        entity.takeDamage(damageAmount, definition.damage.type, champion.id, context);
       }
 
       // Apply effects
       if (definition.appliesEffects) {
-        this.applyEffectsToEntity(entity, definition.appliesEffects, definition.effectDuration ?? 0, champion.id);
+        this.applyEffectsToEntity(
+          entity,
+          definition.appliesEffects,
+          definition.effectDuration ?? 0,
+          champion.id
+        );
       }
     }
   }
@@ -629,7 +663,6 @@ export class ServerAbilityExecutor {
     definition: AbilityDefinition,
     rank: number
   ): void {
-    console.log(`[AbilityExecutor] *** EXECUTING CONE ABILITY *** ${definition.id}`);
     const { champion, targetPosition, context } = params;
 
     if (!targetPosition) return;
@@ -669,11 +702,16 @@ export class ServerAbilityExecutor {
       if (angleDiff <= coneAngle / 2) {
         // Entity is in cone
         if (damageAmount > 0 && definition.damage) {
-          entity.takeDamage(damageAmount, definition.damage.type, champion.id);
+          entity.takeDamage(damageAmount, definition.damage.type, champion.id, context);
         }
 
         if (definition.appliesEffects) {
-          this.applyEffectsToEntity(entity, definition.appliesEffects, definition.effectDuration ?? 0, champion.id);
+          this.applyEffectsToEntity(
+            entity,
+            definition.appliesEffects,
+            definition.effectDuration ?? 0,
+            champion.id
+          );
         }
       }
     }
@@ -701,7 +739,7 @@ export class ServerAbilityExecutor {
       distance: dashDistance,
       duration: dashDistance / definition.dash.speed,
       elapsed: 0,
-      type: 'dash',
+      type: "dash",
     };
 
     // Update facing direction
@@ -742,9 +780,13 @@ export class ServerAbilityExecutor {
     duration: number,
     sourceId: string
   ): void {
-    if (!('applyEffect' in entity)) return;
+    if (!("applyEffect" in entity)) return;
 
-    const applyEffect = (entity as { applyEffect: (id: string, duration: number, sourceId?: string) => void }).applyEffect;
+    const applyEffect = (
+      entity as {
+        applyEffect: (id: string, duration: number, sourceId?: string) => void;
+      }
+    ).applyEffect;
 
     for (const effectId of effectIds) {
       applyEffect.call(entity, effectId, duration, sourceId);

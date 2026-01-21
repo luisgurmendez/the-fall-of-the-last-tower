@@ -60,6 +60,8 @@ export var EntityChangeMask;
     EntityChangeMask[EntityChangeMask["ITEMS"] = 64] = "ITEMS";
     EntityChangeMask[EntityChangeMask["TARGET"] = 128] = "TARGET";
     EntityChangeMask[EntityChangeMask["STATE"] = 256] = "STATE";
+    EntityChangeMask[EntityChangeMask["TRINKET"] = 512] = "TRINKET";
+    EntityChangeMask[EntityChangeMask["GOLD"] = 1024] = "GOLD";
 })(EntityChangeMask || (EntityChangeMask = {}));
 /**
  * Game event types.
@@ -79,6 +81,12 @@ export var GameEventType;
     GameEventType[GameEventType["ABILITY_CAST"] = 10] = "ABILITY_CAST";
     GameEventType[GameEventType["ITEM_PURCHASED"] = 11] = "ITEM_PURCHASED";
     GameEventType[GameEventType["LEVEL_UP"] = 12] = "LEVEL_UP";
+    /** Basic attack animation event */
+    GameEventType[GameEventType["BASIC_ATTACK"] = 13] = "BASIC_ATTACK";
+    /** Damage dealt to an entity */
+    GameEventType[GameEventType["DAMAGE"] = 14] = "DAMAGE";
+    /** Gold earned by a champion (non-passive) */
+    GameEventType[GameEventType["GOLD_EARNED"] = 15] = "GOLD_EARNED";
 })(GameEventType || (GameEventType = {}));
 /**
  * Server message types.

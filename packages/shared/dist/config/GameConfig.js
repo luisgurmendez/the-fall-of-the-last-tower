@@ -51,7 +51,7 @@ export const GameConfig = {
      */
     ECONOMY: {
         /** Starting gold */
-        STARTING_GOLD: 500,
+        STARTING_GOLD: 300,
         /** Passive gold per second */
         PASSIVE_GOLD_PER_SECOND: 1.9,
         /** Gold for last-hitting a minion */

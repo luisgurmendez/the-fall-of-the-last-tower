@@ -3,17 +3,15 @@
  * Shared between client and server.
  */
 
-import type { Side } from './units';
-
 /**
  * Minion types in the game.
  */
-export type MinionType = 'melee' | 'caster' | 'siege' | 'super';
+export type MinionType = "melee" | "caster" | "siege" | "super";
 
 /**
  * Lane identifiers.
  */
-export type LaneId = 'top' | 'mid' | 'bot';
+export type LaneId = "top" | "mid" | "bot";
 
 /**
  * Minion base stats by type.
@@ -53,7 +51,7 @@ export interface MinionConfig {
   spawnDelayBetween: number;
   /** Wave composition (per side per lane) */
   normalWave: WaveComposition;
-  siegeWave: WaveComposition;  // Every 3rd wave
+  siegeWave: WaveComposition; // Every 3rd wave
 }
 
 /**
@@ -63,26 +61,26 @@ export const DEFAULT_MINION_STATS: Record<MinionType, MinionStats> = {
   melee: {
     health: 477,
     maxHealth: 477,
-    armor: 0,
-    magicResist: 0,
-    attackDamage: 12,
-    attackRange: 50,       // Reduced from 110 - true melee range
-    attackCooldown: 1.25,
-    movementSpeed: 200,    // Increased from 100 for better pacing
-    sightRange: 500,
+    armor: 10,
+    magicResist: 10,
+    attackDamage: 23,
+    attackRange: 50,
+    attackCooldown: 2,
+    movementSpeed: 100,
+    sightRange: 200,
     goldReward: 21,
     experienceReward: 60,
   },
   caster: {
     health: 296,
     maxHealth: 296,
-    armor: 0,
-    magicResist: 0,
-    attackDamage: 23,
-    attackRange: 300,      // Reduced from 550 - reasonable ranged attack
-    attackCooldown: 1.6,
-    movementSpeed: 200,    // Increased from 100 for better pacing
-    sightRange: 500,
+    armor: 5,
+    magicResist: 5,
+    attackDamage: 12,
+    attackRange: 300,
+    attackCooldown: 2.4,
+    movementSpeed: 100,
+    sightRange: 200,
     goldReward: 14,
     experienceReward: 32,
   },
@@ -94,7 +92,7 @@ export const DEFAULT_MINION_STATS: Record<MinionType, MinionStats> = {
     attackDamage: 50,
     attackRange: 300,
     attackCooldown: 2.0,
-    movementSpeed: 180,    // Slightly slower than regular minions
+    movementSpeed: 180,
     sightRange: 500,
     goldReward: 60,
     experienceReward: 93,
@@ -105,9 +103,9 @@ export const DEFAULT_MINION_STATS: Record<MinionType, MinionStats> = {
     armor: 30,
     magicResist: 0,
     attackDamage: 180,
-    attackRange: 100,      // Reduced from 170 - melee super minion
+    attackRange: 100, // Reduced from 170 - melee super minion
     attackCooldown: 0.85,
-    movementSpeed: 220,    // Faster than regular minions
+    movementSpeed: 220, // Faster than regular minions
     sightRange: 500,
     goldReward: 60,
     experienceReward: 97,
@@ -118,9 +116,9 @@ export const DEFAULT_MINION_STATS: Record<MinionType, MinionStats> = {
  * Default minion wave configuration.
  */
 export const DEFAULT_MINION_WAVE_CONFIG = {
-  waveInterval: 30,  // seconds between waves
-  firstWaveDelay: 65,  // seconds until first wave (1:05)
-  spawnDelayBetween: 0.8,  // seconds between each minion spawn
+  waveInterval: 30,
+  firstWaveDelay: 65,
+  spawnDelayBetween: 1.4,
   normalWave: {
     melee: 3,
     caster: 3,

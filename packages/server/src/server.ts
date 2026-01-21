@@ -23,6 +23,7 @@ import { BunWebSocketServer } from './network/BunWebSocketServer';
 import { GameRoomManager } from './game/GameRoomManager';
 import { Matchmaker, type MatchResult } from './matchmaking/Matchmaker';
 import type { WebSocketConnection, ParsedMessage } from './network/WebSocketServer';
+import { Logger } from './utils/Logger';
 
 // ============================================================================
 // Configuration
@@ -39,27 +40,11 @@ const CHAMPION_DEFINITIONS: Map<string, ChampionDefinition> = new Map(
   Object.entries(CHAMPION_REGISTRY)
 );
 
-// DEBUG: Log loaded champion definitions
-console.log('[Server] Loaded champion definitions:');
-console.log(`[Server] CHAMPION_REGISTRY keys: ${Object.keys(CHAMPION_REGISTRY)}`);
-console.log(`[Server] CHAMPION_DEFINITIONS size: ${CHAMPION_DEFINITIONS.size}`);
-for (const [id, def] of CHAMPION_DEFINITIONS.entries()) {
-  console.log(`  - KEY="${id}" => id="${def.id}", name="${def.name}", class="${def.class}", Q="${def.abilities.Q}"`);
-}
-
-// Validate that definitions look correct
+// Validate champion definitions on startup
 if (CHAMPION_DEFINITIONS.size === 0) {
-  console.error('[Server] ERROR: No champion definitions loaded!');
-}
-
-const warrior = CHAMPION_DEFINITIONS.get('warrior');
-if (!warrior) {
-  console.error('[Server] ERROR: warrior champion not found!');
-} else if (warrior.name !== 'Kael') {
-  console.error(`[Server] ERROR: warrior.name is "${warrior.name}" instead of "Kael"!`);
-}
-if (warrior && warrior.abilities.Q !== 'warrior_slash') {
-  console.error(`[Server] ERROR: warrior.abilities.Q is "${warrior.abilities.Q}" instead of "warrior_slash"!`);
+  Logger.server.error('No champion definitions loaded!');
+} else {
+  Logger.server.info(`Loaded ${CHAMPION_DEFINITIONS.size} champions: ${Array.from(CHAMPION_DEFINITIONS.keys()).join(', ')}`);
 }
 
 // ============================================================================
@@ -93,14 +78,14 @@ function handleMessage(connection: WebSocketConnection, message: ParsedMessage):
       break;
 
     default:
-      console.warn(`[Server] Unknown message type: ${message.type}`);
+      Logger.server.warn(`Unknown message type: ${message.type}`);
   }
 }
 
 function handleInputMessage(connection: WebSocketConnection, input: ClientInput): void {
   const playerId = connectionToPlayer.get(connection.id);
   if (!playerId) {
-    console.warn(`[Server] Input from unregistered connection ${connection.id}`);
+    Logger.server.warn(`Input from unregistered connection: ${connection.id}`);
     return;
   }
 
@@ -118,23 +103,21 @@ function handlePingMessage(connection: WebSocketConnection, data: { timestamp: n
 }
 
 function handleReadyMessage(connection: WebSocketConnection, data: { playerId: string; championId?: string }): void {
-  console.log(`[Server] handleReadyMessage: playerId="${data.playerId}", raw championId="${data.championId}"`);
   const { playerId, championId = 'warrior' } = data;
-  console.log(`[Server] After destructuring: playerId="${playerId}", championId="${championId}"`);
 
   // Register player
   connectionToPlayer.set(connection.id, playerId);
   playerToConnection.set(playerId, connection);
   connection.playerId = playerId;
 
-  console.log(`[Server] Player ${playerId} registered (connection ${connection.id})`);
+  Logger.server.info(`Player joined: ${playerId} (champion: ${championId})`);
 
   // Check if player is reconnecting to an existing game
   if (roomManager.isPlayerInGame(playerId)) {
     const gameId = roomManager.getGameIdByPlayer(playerId);
     connection.gameId = gameId || null;
 
-    console.log(`[Server] Player ${playerId} reconnecting to game ${gameId}`);
+    Logger.server.info(`Player reconnecting: ${playerId} -> game ${gameId}`);
     const snapshot = roomManager.handleReconnect(playerId);
 
     if (snapshot) {
@@ -165,7 +148,7 @@ function handleReadyMessage(connection: WebSocketConnection, data: { playerId: s
 // ============================================================================
 
 function handleConnect(connection: WebSocketConnection): void {
-  console.log(`[Server] New connection: ${connection.id}`);
+  Logger.server.debug(`New connection: ${connection.id}`);
 }
 
 function handleDisconnect(connection: WebSocketConnection, code: number, reason: string): void {
@@ -183,7 +166,7 @@ function handleDisconnect(connection: WebSocketConnection, code: number, reason:
     playerToConnection.delete(playerId);
   }
 
-  console.log(`[Server] Connection ${connection.id} disconnected (${code}: ${reason})`);
+  Logger.server.info(`Player disconnected: ${playerId || 'unknown'} (code: ${code})`);
 }
 
 // ============================================================================
@@ -196,7 +179,7 @@ function handleMatchFound(match: MatchResult): void {
   const gameId = room.getState() === 'waiting' ? room.gameId : null;
 
   if (!gameId) {
-    console.error('[Server] Failed to create game room');
+    Logger.server.error('Failed to create game room');
     return;
   }
 
@@ -236,7 +219,8 @@ function handleMatchFound(match: MatchResult): void {
     });
   }
 
-  console.log(`[Server] Game ${gameId} started with players:`, playersWithEntityIds);
+  const playerNames = playersWithEntityIds.map(p => `${p.playerId}(${p.championId})`).join(' vs ');
+  Logger.game.info(`Game started: ${gameId} - ${playerNames}`);
 }
 
 // ============================================================================
@@ -262,9 +246,8 @@ function handleFullState(playerId: string, snapshot: FullStateSnapshot): void {
 // ============================================================================
 
 async function startServer(): Promise<void> {
-  console.log('========================================');
-  console.log('       SIEGE GAME SERVER - MVP');
-  console.log('========================================');
+  console.log('');
+  console.log('  ⚔️  SIEGE GAME SERVER');
   console.log('');
 
   // Initialize WebSocket server
@@ -280,7 +263,7 @@ async function startServer(): Promise<void> {
     onStateUpdate: handleStateUpdate,
     onFullState: handleFullState,
     onGameEnd: (gameId, winningSide) => {
-      console.log(`[Server] Game ${gameId} ended. Winner: ${winningSide === 0 ? 'Blue' : 'Red'}`);
+      Logger.game.info(`Game ended: ${gameId} - Winner: ${winningSide === 0 ? 'Blue' : 'Red'}`);
 
       // Notify players
       const room = roomManager.getRoom(gameId);
@@ -309,15 +292,8 @@ async function startServer(): Promise<void> {
   // Start the WebSocket server
   await wsServer.start(PORT);
 
-  console.log('');
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Match mode: ${PLAYERS_PER_TEAM}v${PLAYERS_PER_TEAM}`);
-  console.log('');
-  console.log('To connect:');
+  Logger.server.info(`Server started on port ${PORT} (${PLAYERS_PER_TEAM}v${PLAYERS_PER_TEAM} mode)`);
   console.log(`  WebSocket: ws://localhost:${PORT}/ws`);
-  console.log(`  Health:    http://localhost:${PORT}/health`);
-  console.log('');
-  console.log('Waiting for players...');
   console.log('');
 }
 
@@ -326,21 +302,16 @@ async function startServer(): Promise<void> {
 // ============================================================================
 
 process.on('SIGINT', async () => {
-  console.log('\n[Server] Shutting down...');
-
+  Logger.server.info('Shutting down...');
   roomManager.shutdown();
   await wsServer.stop();
-
-  console.log('[Server] Goodbye!');
   process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
-  console.log('\n[Server] Received SIGTERM, shutting down...');
-
+  Logger.server.info('Received SIGTERM, shutting down...');
   roomManager.shutdown();
   await wsServer.stop();
-
   process.exit(0);
 });
 
@@ -349,6 +320,6 @@ process.on('SIGTERM', async () => {
 // ============================================================================
 
 startServer().catch(error => {
-  console.error('[Server] Failed to start:', error);
+  Logger.server.error('Failed to start:', error);
   process.exit(1);
 });

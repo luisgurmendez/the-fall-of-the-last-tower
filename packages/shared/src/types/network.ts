@@ -188,6 +188,8 @@ export enum EntityChangeMask {
   ITEMS = 1 << 6,
   TARGET = 1 << 7,
   STATE = 1 << 8,
+  TRINKET = 1 << 9,
+  GOLD = 1 << 10,
 }
 
 /**
@@ -214,6 +216,8 @@ export interface ChampionSnapshot {
   maxResource: number;
   level: number;
   experience: number;
+  experienceToNextLevel: number;
+  skillPoints: number;
 
   // Combat
   attackDamage: number;
@@ -416,6 +420,12 @@ export enum GameEventType {
   ABILITY_CAST = 10,
   ITEM_PURCHASED = 11,
   LEVEL_UP = 12,
+  /** Basic attack animation event */
+  BASIC_ATTACK = 13,
+  /** Damage dealt to an entity */
+  DAMAGE = 14,
+  /** Gold earned by a champion (non-passive) */
+  GOLD_EARNED = 15,
 }
 
 /**

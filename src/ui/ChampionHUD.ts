@@ -12,7 +12,7 @@ import { Dimensions } from '@/core/canvas';
 import RenderElement from '@/render/renderElement';
 import RenderUtils from '@/render/utils';
 import GameContext from '@/core/gameContext';
-import { InputManager } from '@/core/input/InputManager';
+import { InputManager, MouseButton } from '@/core/input/InputManager';
 import { type StatModifier, type ChampionStats, type ItemSlot, type ItemDefinition, type AbilitySlot } from '@siege/shared';
 // Re-export for external use
 export type { ItemSlot, AbilitySlot };
@@ -56,7 +56,15 @@ export interface HUDAbility {
   readonly rank: number;
   readonly isReady: boolean;
   readonly cooldownProgress: number;
-  getTargetDescription?(): { range?: number; aoeRadius?: number; width?: number } | null;
+  readonly cooldownRemaining: number;
+  getTargetDescription?(): {
+    range?: number;
+    targetType?: string;
+    shape?: string;
+    aoeRadius?: number;
+    coneAngle?: number;
+    width?: number;
+  } | null;
 }
 
 /**
@@ -72,6 +80,10 @@ export interface HUDChampionData {
   getInventory(): ChampionInventory;
   getTrinket(): HUDTrinket | null;
   getPosition(): Vector;
+  getLevel(): number;
+  getExperience(): number;
+  getExperienceToNextLevel(): number;
+  getSkillPoints(): number;
 }
 
 /** Hover state for HUD elements */
@@ -117,6 +129,10 @@ const HUD_COLORS = {
   cooldownOverlay: 'rgba(0, 0, 0, 0.7)',
   abilityReady: '#FFD700',
   abilityNotReady: '#666666',
+  xpBar: '#8b5cf6',
+  xpBarBg: '#2d1f3d',
+  levelUpButton: '#ffd700',
+  levelUpButtonHover: '#ffec8b',
 };
 
 /** Panel dimensions */
@@ -141,6 +157,11 @@ const PANEL = {
   wardBoxSize: 48,
   tooltipWidth: 320,
   tooltipPadding: 12,
+  xpBarHeight: 8,
+  xpBarSpacing: 4,
+  levelUpButtonWidth: 20,
+  levelUpButtonHeight: 16,
+  levelUpButtonGap: 4,
 };
 
 export class ChampionHUD extends ScreenEntity {
@@ -159,6 +180,21 @@ export class ChampionHUD extends ScreenEntity {
 
   /** Cached buff box positions for hit testing */
   private buffBoxes: Map<number, { x: number; y: number; size: number }> = new Map();
+
+  /** Cached level-up button positions for hit testing */
+  private levelUpButtons: Map<AbilitySlot, { x: number; y: number; width: number; height: number }> = new Map();
+
+  /** Hovered level-up button */
+  private hoveredLevelUpButton: AbilitySlot | null = null;
+
+  /** Callback for level-up button clicks */
+  private onLevelUp?: (slot: AbilitySlot) => void;
+
+  /** Animation state for level-up button pulse */
+  private levelUpPulseTime: number = 0;
+
+  /** Debug: last time we logged skill points */
+  private _lastSkillPointsLogTime: number = 0;
 
   /**
    * Create a ChampionHUD.
@@ -186,6 +222,13 @@ export class ChampionHUD extends ScreenEntity {
     this.champion = champion;
   }
 
+  /**
+   * Set the level-up handler callback.
+   */
+  setLevelUpHandler(handler: (slot: AbilitySlot) => void): void {
+    this.onLevelUp = handler;
+  }
+
   /** Get current hover state */
   getHoverState(): HUDHoverState {
     return { ...this.hoverState };
@@ -203,6 +246,9 @@ export class ChampionHUD extends ScreenEntity {
 
   /** Update hover detection */
   override step(gctx: GameContext): void {
+    // Update pulse animation time
+    this.levelUpPulseTime += gctx.dt;
+
     const mousePos = this.inputManager.getMousePosition();
     if (!mousePos) return;
 
@@ -230,6 +276,33 @@ export class ChampionHUD extends ScreenEntity {
       if (this.isPointInBox(mousePos.x, mousePos.y, box)) {
         newHoveredBuff = index;
         break;
+      }
+    }
+
+    // Check level-up button hover
+    let newHoveredLevelUpButton: AbilitySlot | null = null;
+    for (const [slot, box] of this.levelUpButtons) {
+      if (this.isPointInRect(mousePos.x, mousePos.y, box)) {
+        newHoveredLevelUpButton = slot;
+        break;
+      }
+    }
+    this.hoveredLevelUpButton = newHoveredLevelUpButton;
+
+    // Handle level-up button click
+    if (this.hoveredLevelUpButton && this.inputManager.isMouseButtonJustPressed(MouseButton.LEFT)) {
+      console.log(`[ChampionHUD] Level-up button ${this.hoveredLevelUpButton} clicked`);
+      if (this.onLevelUp && this.champion) {
+        const skillPoints = this.champion.getSkillPoints();
+        console.log(`[ChampionHUD] Skill points available: ${skillPoints}`);
+        if (skillPoints > 0) {
+          console.log(`[ChampionHUD] Calling onLevelUp for slot ${this.hoveredLevelUpButton}`);
+          this.onLevelUp(this.hoveredLevelUpButton);
+        } else {
+          console.log(`[ChampionHUD] No skill points available, cannot level up`);
+        }
+      } else {
+        console.log(`[ChampionHUD] Missing onLevelUp handler or champion`);
       }
     }
 
@@ -263,6 +336,15 @@ export class ChampionHUD extends ScreenEntity {
     return px >= box.x && px <= box.x + box.size && py >= box.y && py <= box.y + box.size;
   }
 
+  /** Check if a point is inside a rectangle */
+  private isPointInRect(
+    px: number,
+    py: number,
+    rect: { x: number; y: number; width: number; height: number }
+  ): boolean {
+    return px >= rect.x && px <= rect.x + rect.width && py >= rect.y && py <= rect.y + rect.height;
+  }
+
   /** Get the items container width */
   private getItemsContainerWidth(): number {
     const innerPadding = 6;
@@ -288,8 +370,16 @@ export class ChampionHUD extends ScreenEntity {
 
   /** Get the abilities section total height (abilities + bars) */
   private getAbilitiesSectionHeight(): number {
-    // Abilities + health bar + mana bar (if shown)
-    let height = PANEL.abilitiesHeight + PANEL.barSpacing + PANEL.barHeight;
+    // Level-up buttons (if skill points available) + Abilities + health bar + mana bar (if shown)
+    const skillPoints = this.champion?.getSkillPoints() ?? 0;
+    let height = 0;
+
+    // Add space for level-up buttons when skill points are available
+    if (skillPoints > 0) {
+      height += PANEL.levelUpButtonHeight + PANEL.levelUpButtonGap;
+    }
+
+    height += PANEL.abilitiesHeight + PANEL.barSpacing + PANEL.barHeight;
     if (this.config.showManaBar) {
       height += PANEL.barSpacing + PANEL.barHeight;
     }
@@ -486,9 +576,16 @@ export class ChampionHUD extends ScreenEntity {
     });
   }
 
-  /** Draw the champion portrait panel */
+  /** Draw the champion portrait panel with XP bar */
   private drawPortraitPanel(ctx: CanvasRenderingContext2D, x: number, y: number): void {
+    if (!this.champion) return;
+
     const size = PANEL.portraitSize;
+    const level = this.champion.getLevel();
+    const experience = this.champion.getExperience();
+    const expToNext = this.champion.getExperienceToNextLevel();
+    const skillPoints = this.champion.getSkillPoints();
+    const xpPercent = expToNext > 0 ? experience / expToNext : 0;
 
     // Portrait background (black placeholder)
     ctx.fillStyle = '#000000';
@@ -508,11 +605,14 @@ export class ChampionHUD extends ScreenEntity {
       { color: HUD_COLORS.text, size: 22, centered: true, shadow: true }
     );
 
-    // Level badge
-    const level = (this.champion as any).state?.level || 1;
-    ctx.fillStyle = this.config.accentColor;
+    // Level badge with pulse effect when skill points available
+    const pulseScale = skillPoints > 0 ? 1 + Math.sin(this.levelUpPulseTime * 4) * 0.1 : 1;
+    const badgeRadius = 14 * pulseScale;
+    const badgeColor = skillPoints > 0 ? HUD_COLORS.levelUpButton : this.config.accentColor;
+
+    ctx.fillStyle = badgeColor;
     ctx.beginPath();
-    ctx.arc(x + size - 10, y + size - 10, 14, 0, Math.PI * 2);
+    ctx.arc(x + size - 10, y + size - 10, badgeRadius, 0, Math.PI * 2);
     ctx.fill();
     ctx.strokeStyle = HUD_COLORS.background;
     ctx.lineWidth = 2;
@@ -525,11 +625,40 @@ export class ChampionHUD extends ScreenEntity {
       y + size - 21,
       { color: HUD_COLORS.text, size: 22, centered: true, shadow: false }
     );
+
+    // XP Bar below portrait
+    const xpBarY = y + size + PANEL.xpBarSpacing;
+    const xpBarWidth = size;
+    const xpBarHeight = PANEL.xpBarHeight;
+
+    // XP bar background
+    ctx.fillStyle = HUD_COLORS.xpBarBg;
+    ctx.fillRect(x, xpBarY, xpBarWidth, xpBarHeight);
+
+    // XP bar fill
+    ctx.fillStyle = HUD_COLORS.xpBar;
+    ctx.fillRect(x, xpBarY, xpBarWidth * xpPercent, xpBarHeight);
+
+    // XP bar border
+    ctx.strokeStyle = HUD_COLORS.border;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x, xpBarY, xpBarWidth, xpBarHeight);
   }
 
-  /** Draw the abilities panel with health/mana bars */
+  /** Draw the abilities panel with health/mana bars and level-up buttons */
   private drawAbilitiesPanel(ctx: CanvasRenderingContext2D, x: number, y: number): void {
     const width = PANEL.abilitiesWidth;
+    const skillPoints = this.champion?.getSkillPoints() ?? 0;
+
+    // Debug: Log skill points once per second
+    const now = Date.now();
+    if (!this._lastSkillPointsLogTime || now - this._lastSkillPointsLogTime > 1000) {
+      console.log(`[ChampionHUD.drawAbilitiesPanel] skillPoints=${skillPoints}, hasChampion=${!!this.champion}`);
+      this._lastSkillPointsLogTime = now;
+    }
+
+    // Clear level-up buttons cache
+    this.levelUpButtons.clear();
 
     // Draw ability boxes
     const slots: AbilitySlot[] = ['Q', 'W', 'E', 'R'];
@@ -538,15 +667,24 @@ export class ChampionHUD extends ScreenEntity {
     const totalAbilitiesWidth = slots.length * boxSize + (slots.length - 1) * spacing;
     const abilitiesStartX = x + (width - totalAbilitiesWidth) / 2;
 
+    // Calculate ability Y position (with space for level-up buttons above)
+    const levelUpButtonHeight = skillPoints > 0 ? PANEL.levelUpButtonHeight + PANEL.levelUpButtonGap : 0;
+    const abilityY = y + levelUpButtonHeight;
+
     slots.forEach((slot, i) => {
       const boxX = abilitiesStartX + i * (boxSize + spacing);
       // Cache position for hit testing
-      this.abilityBoxes.set(slot, { x: boxX, y, size: boxSize });
-      this.drawAbilityBox(ctx, boxX, y, boxSize, slot);
+      this.abilityBoxes.set(slot, { x: boxX, y: abilityY, size: boxSize });
+      this.drawAbilityBox(ctx, boxX, abilityY, boxSize, slot);
+
+      // Draw level-up button above ability if skill points available
+      if (skillPoints > 0) {
+        this.drawLevelUpButton(ctx, boxX, y, boxSize, slot);
+      }
     });
 
     // Health bar below abilities
-    const barY = y + PANEL.abilitiesHeight + PANEL.barSpacing;
+    const barY = abilityY + PANEL.abilitiesHeight + PANEL.barSpacing;
     this.drawHealthBar(ctx, x, barY, width);
 
     // Mana/Resource bar below health
@@ -554,6 +692,81 @@ export class ChampionHUD extends ScreenEntity {
       const manaBarY = barY + PANEL.barHeight + PANEL.barSpacing;
       this.drawResourceBar(ctx, x, manaBarY, width);
     }
+  }
+
+  /** Draw a level-up button above an ability */
+  private drawLevelUpButton(
+    ctx: CanvasRenderingContext2D,
+    abilityX: number,
+    y: number,
+    abilitySize: number,
+    slot: AbilitySlot
+  ): void {
+    if (!this.champion) {
+      console.log(`[drawLevelUpButton] No champion for slot ${slot}`);
+      return;
+    }
+
+    const ability = this.champion.getAbility(slot);
+    const currentRank = ability?.rank ?? 0;
+    const maxRank = slot === 'R' ? 3 : 5;
+
+    // Debug logging (throttled)
+    if (slot === 'Q' && Math.random() < 0.01) {
+      console.log(`[drawLevelUpButton] Q: currentRank=${currentRank}, maxRank=${maxRank}, level=${this.champion.getLevel()}`);
+    }
+
+    // Don't show button if ability is maxed
+    if (currentRank >= maxRank) return;
+
+    // Check R level requirements
+    if (slot === 'R') {
+      const level = this.champion.getLevel();
+      const rRequiredLevels = [6, 11, 16];
+      if (level < rRequiredLevels[currentRank]) return;
+    }
+
+    // Debug: We're actually drawing a button
+    if (Math.random() < 0.01) {
+      console.log(`[drawLevelUpButton] Drawing button for slot ${slot} at (${abilityX}, ${y})`);
+    }
+
+    const buttonWidth = PANEL.levelUpButtonWidth;
+    const buttonHeight = PANEL.levelUpButtonHeight;
+    const buttonX = abilityX + (abilitySize - buttonWidth) / 2;
+    const buttonY = y;
+
+    // Cache button position for hit testing
+    this.levelUpButtons.set(slot, { x: buttonX, y: buttonY, width: buttonWidth, height: buttonHeight });
+
+    const isHovered = this.hoveredLevelUpButton === slot;
+    const pulseIntensity = Math.sin(this.levelUpPulseTime * 4) * 0.5 + 0.5;
+
+    // Button background with pulse
+    if (isHovered) {
+      ctx.fillStyle = HUD_COLORS.levelUpButtonHover;
+    } else {
+      // Interpolate between gold and bright gold based on pulse
+      const r = Math.floor(255);
+      const g = Math.floor(215 + pulseIntensity * 40);
+      const b = Math.floor(0 + pulseIntensity * 100);
+      ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+    }
+    ctx.fillRect(buttonX, buttonY, buttonWidth, buttonHeight);
+
+    // Button border
+    ctx.strokeStyle = isHovered ? '#ffffff' : HUD_COLORS.background;
+    ctx.lineWidth = isHovered ? 2 : 1;
+    ctx.strokeRect(buttonX, buttonY, buttonWidth, buttonHeight);
+
+    // Plus sign
+    RenderUtils.renderBitmapText(
+      ctx,
+      '+',
+      buttonX + buttonWidth / 2,
+      buttonY - 2,
+      { color: HUD_COLORS.background, size: 18, centered: true, shadow: false }
+    );
   }
 
   /** Draw a single ability box */
@@ -610,8 +823,8 @@ export class ChampionHUD extends ScreenEntity {
     );
 
     // Cooldown text
-    if (!isReady) {
-      const cooldownRemaining = (1 - progress) * this.getAbilityCooldown(slot);
+    if (!isReady && ability) {
+      const cooldownRemaining = ability.cooldownRemaining ?? 0;
       RenderUtils.renderBitmapText(
         ctx,
         cooldownRemaining.toFixed(1),

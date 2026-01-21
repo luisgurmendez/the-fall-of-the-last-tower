@@ -15,6 +15,7 @@
 
 import type { Side } from '@siege/shared';
 import type { PlayerInfo } from '../game/GameRoom';
+import { Logger } from '../utils/Logger';
 
 /**
  * Player waiting in queue.
@@ -69,7 +70,6 @@ export class Matchmaker {
   addToQueue(playerId: string, championId: string): boolean {
     // Check if already in queue
     if (this.queuedPlayerIds.has(playerId)) {
-      console.warn(`[Matchmaker] Player ${playerId} is already in queue`);
       return false;
     }
 
@@ -82,7 +82,7 @@ export class Matchmaker {
     this.queue.push(queuedPlayer);
     this.queuedPlayerIds.add(playerId);
 
-    console.log(`[Matchmaker] Player ${playerId} joined queue (${this.queue.length} in queue)`);
+    Logger.server.info(`Player ${playerId} joined queue (${this.queue.length} in queue)`);
 
     // Try to create a match
     this.tryMatch();
@@ -102,7 +102,7 @@ export class Matchmaker {
     this.queue.splice(index, 1);
     this.queuedPlayerIds.delete(playerId);
 
-    console.log(`[Matchmaker] Player ${playerId} left queue (${this.queue.length} in queue)`);
+    Logger.server.info(`Player ${playerId} left queue (${this.queue.length} in queue)`);
     return true;
   }
 
@@ -156,7 +156,7 @@ export class Matchmaker {
 
     const match: MatchResult = { players };
 
-    console.log(`[Matchmaker] Match found! Blue: ${players.filter(p => p.side === 0).map(p => p.playerId).join(', ')} vs Red: ${players.filter(p => p.side === 1).map(p => p.playerId).join(', ')}`);
+    Logger.server.info(`Match found: ${players.filter(p => p.side === 0).map(p => p.playerId).join(', ')} vs ${players.filter(p => p.side === 1).map(p => p.playerId).join(', ')}`);
 
     // Notify callback
     this.onMatchFound?.(match);
@@ -181,7 +181,7 @@ export class Matchmaker {
     });
 
     if (timedOut.length > 0) {
-      console.log(`[Matchmaker] Removed ${timedOut.length} timed out players from queue`);
+      Logger.server.info(`Removed ${timedOut.length} timed out players from queue`);
     }
 
     return timedOut.length;
@@ -204,6 +204,6 @@ export class Matchmaker {
   clear(): void {
     this.queue = [];
     this.queuedPlayerIds.clear();
-    console.log('[Matchmaker] Queue cleared');
+    Logger.server.debug('Queue cleared');
   }
 }
