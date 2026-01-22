@@ -266,7 +266,7 @@ export class AbilityRangeIndicator implements GameObject {
     const endX = origin.x + direction.x * range;
     const endY = origin.y + direction.y * range;
 
-    // Draw rectangle
+    // Draw rectangle path
     ctx.fillStyle = INDICATOR_COLORS.SKILLSHOT;
     ctx.beginPath();
     ctx.moveTo(origin.x + perpX, origin.y + perpY);
@@ -278,6 +278,17 @@ export class AbilityRangeIndicator implements GameObject {
 
     // Border
     ctx.strokeStyle = INDICATOR_COLORS.SKILLSHOT_BORDER;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Draw circle at the end to show projectile impact area
+    ctx.fillStyle = INDICATOR_COLORS.AOE;
+    ctx.beginPath();
+    ctx.arc(endX, endY, halfWidth, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Circle border
+    ctx.strokeStyle = INDICATOR_COLORS.AOE_BORDER;
     ctx.lineWidth = 2;
     ctx.stroke();
 

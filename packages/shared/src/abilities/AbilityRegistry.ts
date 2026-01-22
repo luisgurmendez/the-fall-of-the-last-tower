@@ -20,7 +20,7 @@ import {
   MagnusAbilities,
   MagnusFireball,
   MagnusShield,
-  MagnusBlink,
+  MagnusMudGround,
   MagnusMeteor,
   ElaraAbilities,
   ElaraHeal,
@@ -49,7 +49,7 @@ export {
   // Magnus
   MagnusFireball,
   MagnusShield,
-  MagnusBlink,
+  MagnusMudGround,
   MagnusMeteor,
   // Elara
   ElaraHeal,

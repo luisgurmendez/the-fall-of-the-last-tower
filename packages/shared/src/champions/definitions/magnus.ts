@@ -96,23 +96,27 @@ export const MagnusShield: AbilityDefinition = {
   },
 };
 
-export const MagnusBlink: AbilityDefinition = {
-  id: 'magnus_blink',
-  name: 'Blink',
-  description: 'Teleport to target location.',
+export const MagnusMudGround: AbilityDefinition = {
+  id: 'magnus_mud',
+  name: 'Quagmire',
+  description: 'Create a pool of mud at target location, slowing enemies inside by 20% for 2 seconds.',
   type: 'active',
   targetType: 'ground_target',
   maxRank: 5,
-  manaCost: [90, 85, 80, 75, 70],
-  cooldown: [22, 20, 18, 16, 14],
-  range: 450,
-  teleport: true,
+  manaCost: [70, 75, 80, 85, 90],
+  cooldown: [14, 13, 12, 11, 10],
+  range: 600,
+  aoeRadius: 200,
+  shape: 'circle',
+  appliesEffects: ['slow_20'],
+  effectDuration: 2,
+  zoneDuration: 2, // Zone persists for 2 seconds
 };
 
 export const MagnusMeteor: AbilityDefinition = {
   id: 'magnus_meteor',
-  name: 'Meteor Strike',
-  description: 'Call down a meteor at target location after 1 second, dealing {damage} magic damage to all enemies in the area.',
+  name: 'Inferno Zone',
+  description: 'Create a burning zone at target location that deals {damage} magic damage every second for 5 seconds and slows enemies by 10%.',
   type: 'active',
   targetType: 'ground_target',
   maxRank: 3,
@@ -120,12 +124,15 @@ export const MagnusMeteor: AbilityDefinition = {
   cooldown: [120, 100, 80],
   range: 800,
   aoeRadius: 250,
-  aoeDelay: 1,
   shape: 'circle',
   damage: {
     type: 'magic',
-    scaling: scaling([200, 350, 500], { apRatio: 0.9 }),
+    scaling: scaling([60, 100, 140], { apRatio: 0.25 }), // Per tick damage (5 ticks = 300/500/700 + 125% AP total)
   },
+  appliesEffects: ['slow_10'],
+  effectDuration: 1, // Slow refreshes each tick
+  zoneDuration: 5, // Zone persists for 5 seconds
+  zoneTickRate: 1, // Damage every 1 second
 };
 
 // =============================================================================
@@ -165,7 +172,7 @@ export const MagnusDefinition: ChampionDefinition = {
   abilities: {
     Q: 'magnus_fireball',
     W: 'magnus_shield',
-    E: 'magnus_blink',
+    E: 'magnus_mud',
     R: 'magnus_meteor',
   },
   passive: 'magnus_passive',
@@ -178,6 +185,6 @@ export const MagnusDefinition: ChampionDefinition = {
 export const MagnusAbilities: Record<string, AbilityDefinition> = {
   magnus_fireball: MagnusFireball,
   magnus_shield: MagnusShield,
-  magnus_blink: MagnusBlink,
+  magnus_mud: MagnusMudGround,
   magnus_meteor: MagnusMeteor,
 };

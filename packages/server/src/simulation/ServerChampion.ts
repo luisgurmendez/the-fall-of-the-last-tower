@@ -39,6 +39,8 @@ import {
   GameEventType,
   getPassiveDefinition,
   createDefaultPassiveState,
+  getAbilityDefinition,
+  calculateAbilityValue,
 } from '@siege/shared';
 import { ServerEntity, ServerEntityConfig } from './ServerEntity';
 import type { ServerGameContext } from '../game/ServerGameContext';
@@ -451,6 +453,9 @@ export class ServerChampion extends ServerEntity {
    * Perform a basic attack on a target.
    */
   private performBasicAttack(target: ServerEntity, context: ServerGameContext): void {
+    // Break stealth on attack (Vex's Shadow Shroud)
+    this.breakStealth();
+
     const stats = this.getStats();
     const baseDamage = stats.attackDamage;
 
@@ -462,6 +467,37 @@ export class ServerChampion extends ServerEntity {
 
     // Deal damage (pass context for death handling/rewards)
     target.takeDamage(damage, 'physical', this.id, context);
+
+    // Check for empowered attack (Vex Shadow Step)
+    const empoweredEffect = this.activeEffects.find(e => e.definitionId === 'vex_empowered');
+    if (empoweredEffect) {
+      // Get VexDash ability definition for bonus damage calculation
+      const dashAbility = getAbilityDefinition('vex_dash');
+      if (dashAbility?.damage) {
+        // Get ability rank (E slot)
+        const abilityRank = this.abilityStates.E.rank;
+        if (abilityRank > 0) {
+          const bonusDamage = calculateAbilityValue(
+            dashAbility.damage.scaling,
+            abilityRank,
+            {
+              attackDamage: stats.attackDamage,
+              abilityPower: stats.abilityPower,
+            }
+          );
+
+          // Deal bonus damage
+          target.takeDamage(bonusDamage, dashAbility.damage.type, this.id, context);
+
+          Logger.champion.debug(
+            `${this.playerId} empowered attack dealt ${bonusDamage} bonus damage`
+          );
+        }
+      }
+
+      // Remove the empowered effect (consumed on attack)
+      this.activeEffects = this.activeEffects.filter(e => e.definitionId !== 'vex_empowered');
+    }
 
     // Dispatch on_hit trigger AFTER attack lands
     passiveTriggerSystem.dispatchTrigger('on_hit', this, context, {
@@ -773,6 +809,18 @@ export class ServerChampion extends ServerEntity {
     this.inCombat = true;
     this.timeSinceCombat = 0;
     this.cancelRecall();
+  }
+
+  /**
+   * Break stealth effect (called when attacking or using abilities).
+   */
+  breakStealth(): void {
+    // Remove stealth effects
+    this.activeEffects = this.activeEffects.filter(
+      e => e.definitionId !== 'vex_stealth' &&
+           !e.definitionId.includes('stealth') &&
+           !e.definitionId.includes('invisible')
+    );
   }
 
   /**

@@ -99,7 +99,7 @@ export const VexShroud: AbilityDefinition = {
 export const VexDash: AbilityDefinition = {
   id: 'vex_dash',
   name: 'Shadow Step',
-  description: 'Dash to target location. If an enemy is marked, dash resets its cooldown.',
+  description: 'Dash to target location and empower your next basic attack to deal {damage} bonus physical damage. If an enemy is marked, dash resets its cooldown.',
   type: 'active',
   targetType: 'ground_target',
   maxRank: 5,
@@ -110,6 +110,13 @@ export const VexDash: AbilityDefinition = {
     speed: 1400,
     distance: 400,
   },
+  // Empowered attack bonus damage
+  damage: {
+    type: 'physical',
+    scaling: scaling([30, 50, 70, 90, 110], { adRatio: 0.5 }),
+  },
+  appliesEffects: ['vex_empowered'],
+  effectDuration: 4, // 4 seconds to use empowered attack
 };
 
 export const VexExecute: AbilityDefinition = {

@@ -160,6 +160,9 @@ export interface AbilityDefinition {
   // Area of Effect configuration
   // ===================
 
+  /** Width for line/dash abilities */
+  width?: number;
+
   /** Cone angle in radians (for cone-shaped abilities) */
   coneAngle?: number;
 
@@ -171,6 +174,16 @@ export interface AbilityDefinition {
 
   /** Tick rate for persistent AoEs */
   aoeTickRate?: number;
+
+  // ===================
+  // Zone configuration (persistent ground effects)
+  // ===================
+
+  /** Duration for zone abilities (creates persistent ground effect) */
+  zoneDuration?: number;
+
+  /** Tick rate for zone damage/effects in seconds */
+  zoneTickRate?: number;
 
   // ===================
   // Movement configuration

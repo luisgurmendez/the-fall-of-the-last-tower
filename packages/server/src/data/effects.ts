@@ -343,6 +343,28 @@ export const HealingOverTime: ServerOverTimeEffectDef = {
 // ===================
 
 // Slow effects at specific percentages
+export const Slow10Effect: ServerStatEffectDef = {
+  id: 'slow_10',
+  name: 'Slowed',
+  category: 'debuff',
+  stackBehavior: 'refresh',
+  cleansable: true,
+  persistsThroughDeath: false,
+  stat: 'movement_speed',
+  percentValue: -0.10, // -10% movement speed
+};
+
+export const Slow20Effect: ServerStatEffectDef = {
+  id: 'slow_20',
+  name: 'Slowed',
+  category: 'debuff',
+  stackBehavior: 'refresh',
+  cleansable: true,
+  persistsThroughDeath: false,
+  stat: 'movement_speed',
+  percentValue: -0.20, // -20% movement speed
+};
+
 export const Slow30Effect: ServerStatEffectDef = {
   id: 'slow_30',
   name: 'Slowed',
@@ -467,6 +489,16 @@ export const VexDeathMarkEffect: ServerEffectDefinition = {
   persistsThroughDeath: false,
 };
 
+// Vex's empowered attack buff (from Shadow Step E)
+export const VexEmpoweredEffect: ServerEffectDefinition = {
+  id: 'vex_empowered',
+  name: 'Shadow Step',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+};
+
 // ===================
 // Effect Registry
 // ===================
@@ -499,6 +531,8 @@ export const ALL_SERVER_EFFECTS: AnyServerEffectDef[] = [
   MagicResistReduction,
   MovementSpeedSlow,
   AttackSpeedSlow,
+  Slow10Effect,
+  Slow20Effect,
   Slow30Effect,
   Slow40Effect,
   // Over-time
@@ -510,6 +544,7 @@ export const ALL_SERVER_EFFECTS: AnyServerEffectDef[] = [
   VexMarkEffect,
   VexStealthEffect,
   VexDeathMarkEffect,
+  VexEmpoweredEffect,
 ];
 
 const EFFECT_BY_ID = new Map<string, AnyServerEffectDef>(

@@ -20,7 +20,7 @@ export {
   MagnusDefinition,
   MagnusFireball,
   MagnusShield,
-  MagnusBlink,
+  MagnusMudGround,
   MagnusMeteor,
   MagnusAbilities,
   MagnusPassive,

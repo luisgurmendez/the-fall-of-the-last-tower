@@ -176,9 +176,15 @@ export class FogOfWarServer {
 
   /**
    * Calculate visibility for an entity.
-   * Combines range-based visibility with bush visibility rules.
+   * Combines range-based visibility with bush visibility rules and stealth.
    */
   private calculateVisibility(entity: ServerEntity, viewingSide: Side): VisibilityResult {
+    // Check for stealth effects (like Vex's Shadow Shroud)
+    // Stealthed entities are invisible to enemies
+    if (this.isStealthed(entity)) {
+      return { isVisible: false };
+    }
+
     // First check bush visibility
     // If entity is hidden in a bush and viewer doesn't have vision in that bush,
     // the entity is not visible regardless of range
@@ -279,5 +285,29 @@ export class FogOfWarServer {
 
     // Can only target visible enemies
     return this.isVisibleTo(target, source.side);
+  }
+
+  /**
+   * Check if an entity is stealthed (has stealth effect active).
+   */
+  private isStealthed(entity: ServerEntity): boolean {
+    // Only champions can have stealth effects
+    if (entity.entityType !== EntityType.CHAMPION) {
+      return false;
+    }
+
+    // Check for stealth effects in activeEffects
+    const champion = entity as any;
+    if (!champion.activeEffects || !Array.isArray(champion.activeEffects)) {
+      return false;
+    }
+
+    // Check for any stealth effect
+    return champion.activeEffects.some(
+      (effect: { definitionId: string }) =>
+        effect.definitionId === 'vex_stealth' ||
+        effect.definitionId.includes('stealth') ||
+        effect.definitionId.includes('invisible')
+    );
   }
 }

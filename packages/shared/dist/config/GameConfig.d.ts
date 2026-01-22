@@ -160,6 +160,18 @@ export declare const GameConfig: {
         /** Maximum game duration (seconds) */
         readonly MAX_GAME_DURATION: number;
     };
+    /**
+     * Debug/testing configuration.
+     * Set these for easier testing during development.
+     */
+    readonly DEBUG: {
+        /** Starting champion level (1-18). Set higher for testing ultimates. */
+        readonly STARTING_LEVEL: 6;
+        /** Starting skill points (normally equals level) */
+        readonly STARTING_SKILL_POINTS: 6;
+        /** Starting gold override (0 = use ECONOMY.STARTING_GOLD) */
+        readonly STARTING_GOLD_OVERRIDE: 0;
+    };
 };
 export default GameConfig;
 //# sourceMappingURL=GameConfig.d.ts.map

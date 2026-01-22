@@ -127,6 +127,7 @@ export type {
   NexusSnapshot,
   JungleCreatureSnapshot,
   WardSnapshot,
+  ZoneSnapshot,
   EntitySnapshot,
   EntityDelta,
   GameEvent,

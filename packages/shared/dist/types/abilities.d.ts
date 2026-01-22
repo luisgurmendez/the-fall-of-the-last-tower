@@ -92,6 +92,8 @@ export interface AbilityDefinition {
     projectileRadius?: number;
     /** Whether projectile passes through targets */
     piercing?: boolean;
+    /** Width for line/dash abilities */
+    width?: number;
     /** Cone angle in radians (for cone-shaped abilities) */
     coneAngle?: number;
     /** Delay before AoE applies damage (for abilities like Meteor) */
@@ -100,6 +102,10 @@ export interface AbilityDefinition {
     aoeDuration?: number;
     /** Tick rate for persistent AoEs */
     aoeTickRate?: number;
+    /** Duration for zone abilities (creates persistent ground effect) */
+    zoneDuration?: number;
+    /** Tick rate for zone damage/effects in seconds */
+    zoneTickRate?: number;
     /** Dash configuration (for mobility abilities) */
     dash?: {
         speed: number;

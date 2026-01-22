@@ -45,6 +45,7 @@ export var EntityType;
     EntityType[EntityType["JUNGLE_CAMP"] = 5] = "JUNGLE_CAMP";
     EntityType[EntityType["PROJECTILE"] = 6] = "PROJECTILE";
     EntityType[EntityType["WARD"] = 7] = "WARD";
+    EntityType[EntityType["ZONE"] = 8] = "ZONE";
 })(EntityType || (EntityType = {}));
 /**
  * Bitmask for which entity fields have changed.
@@ -62,6 +63,8 @@ export var EntityChangeMask;
     EntityChangeMask[EntityChangeMask["STATE"] = 256] = "STATE";
     EntityChangeMask[EntityChangeMask["TRINKET"] = 512] = "TRINKET";
     EntityChangeMask[EntityChangeMask["GOLD"] = 1024] = "GOLD";
+    EntityChangeMask[EntityChangeMask["SHIELDS"] = 2048] = "SHIELDS";
+    EntityChangeMask[EntityChangeMask["PASSIVE"] = 4096] = "PASSIVE";
 })(EntityChangeMask || (EntityChangeMask = {}));
 /**
  * Game event types.

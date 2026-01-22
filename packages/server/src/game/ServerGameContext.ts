@@ -24,6 +24,7 @@ import { ServerJungleCamp } from '../simulation/ServerJungleCamp';
 import { ServerWard } from '../simulation/ServerWard';
 import { FogOfWarServer } from '../systems/FogOfWarServer';
 import { CollisionSystem } from '../systems/CollisionSystem';
+import { passiveTriggerSystem } from '../systems/PassiveTriggerSystem';
 import { Logger } from '../utils/Logger';
 
 export interface GameContextConfig {
@@ -260,6 +261,11 @@ export class ServerGameContext {
     for (const entity of this.entities.values()) {
       entity.update(dt, this);
     }
+
+    // Process passive abilities (auras, interval effects)
+    const allChampions = Array.from(this.champions.values());
+    passiveTriggerSystem.processAlwaysPassives(dt, allChampions, this);
+    passiveTriggerSystem.processIntervalPassives(dt, allChampions, this);
 
     // Resolve collisions (after movement, before fog of war)
     this.collisionSystem.resolveCollisions(this.getAllEntities());

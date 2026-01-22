@@ -213,6 +213,7 @@ export enum EntityType {
   JUNGLE_CAMP = 5,
   PROJECTILE = 6,
   WARD = 7,
+  ZONE = 8,
 }
 
 /**
@@ -431,6 +432,30 @@ export interface WardSnapshot {
 }
 
 /**
+ * Snapshot of a zone effect (persistent ground AoE) for network sync.
+ */
+export interface ZoneSnapshot {
+  entityId: string;
+  entityType: EntityType.ZONE;
+  side: Side;
+  sourceId: string;  // Champion who created the zone
+  abilityId: string; // Ability that created the zone
+
+  x: number;
+  y: number;
+  radius: number;
+
+  // Zone state
+  remainingDuration: number;
+  totalDuration: number;
+  isDead: boolean;
+
+  // Visual info
+  zoneType: 'damage' | 'slow' | 'heal' | 'buff';
+  color?: string;  // Optional color override
+}
+
+/**
  * Union type for all entity snapshots.
  */
 export type EntitySnapshot =
@@ -440,7 +465,8 @@ export type EntitySnapshot =
   | ProjectileSnapshot
   | NexusSnapshot
   | JungleCreatureSnapshot
-  | WardSnapshot;
+  | WardSnapshot
+  | ZoneSnapshot;
 
 /**
  * Delta update for an entity (only changed fields).

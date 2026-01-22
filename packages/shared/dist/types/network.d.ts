@@ -176,7 +176,8 @@ export declare enum EntityType {
     NEXUS = 4,
     JUNGLE_CAMP = 5,
     PROJECTILE = 6,
-    WARD = 7
+    WARD = 7,
+    ZONE = 8
 }
 /**
  * Bitmask for which entity fields have changed.
@@ -192,7 +193,9 @@ export declare enum EntityChangeMask {
     TARGET = 128,
     STATE = 256,
     TRINKET = 512,
-    GOLD = 1024
+    GOLD = 1024,
+    SHIELDS = 2048,
+    PASSIVE = 4096
 }
 /**
  * Snapshot of a champion's state for network sync.
@@ -343,9 +346,27 @@ export interface WardSnapshot {
     placedAt: number;
 }
 /**
+ * Snapshot of a zone effect (persistent ground AoE) for network sync.
+ */
+export interface ZoneSnapshot {
+    entityId: string;
+    entityType: EntityType.ZONE;
+    side: Side;
+    sourceId: string;
+    abilityId: string;
+    x: number;
+    y: number;
+    radius: number;
+    remainingDuration: number;
+    totalDuration: number;
+    isDead: boolean;
+    zoneType: 'damage' | 'slow' | 'heal' | 'buff';
+    color?: string;
+}
+/**
  * Union type for all entity snapshots.
  */
-export type EntitySnapshot = ChampionSnapshot | MinionSnapshot | TowerSnapshot | ProjectileSnapshot | NexusSnapshot | JungleCreatureSnapshot | WardSnapshot;
+export type EntitySnapshot = ChampionSnapshot | MinionSnapshot | TowerSnapshot | ProjectileSnapshot | NexusSnapshot | JungleCreatureSnapshot | WardSnapshot | ZoneSnapshot;
 /**
  * Delta update for an entity (only changed fields).
  */

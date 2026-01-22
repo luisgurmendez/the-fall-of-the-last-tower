@@ -15,6 +15,7 @@ import {
   AbilityDefinition,
   calculateAbilityValue,
   getAbilityDefinition,
+  getPassiveDefinition,
   DamageType,
   GameEventType,
 } from "@siege/shared";
@@ -23,6 +24,7 @@ import type { ServerChampion } from "./ServerChampion";
 import type { ServerEntity } from "./ServerEntity";
 import type { ServerGameContext } from "../game/ServerGameContext";
 import { ServerProjectile } from "./ServerProjectile";
+import { ServerZone, ZoneEffectType } from "./ServerZone";
 import { Logger } from "../utils/Logger";
 
 export interface AbilityCastParams {
@@ -57,6 +59,56 @@ export interface AbilityCastResult {
  * Handles all ability execution logic.
  */
 export class ServerAbilityExecutor {
+  /**
+   * Get the ability damage multiplier from champion's active passive.
+   * Returns > 1.0 if the champion has an active damage-amp passive (like Arcane Surge).
+   */
+  private getPassiveDamageMultiplier(champion: ServerChampion): number {
+    // Check if passive is active
+    if (!champion.passiveState.isActive) {
+      return 1.0;
+    }
+
+    // Get the passive definition
+    const passiveId = champion.definition.passive;
+    if (!passiveId) return 1.0;
+
+    const passiveDef = getPassiveDefinition(passiveId);
+    if (!passiveDef) return 1.0;
+
+    // Check if this is a stack-based damage amp passive (like Arcane Surge)
+    // These passives have: usesStacks, consumeStacksOnActivation, but no direct damage
+    if (
+      passiveDef.usesStacks &&
+      passiveDef.consumeStacksOnActivation &&
+      !passiveDef.damage
+    ) {
+      // Arcane Surge: 30% bonus damage
+      return 1.3;
+    }
+
+    return 1.0;
+  }
+
+  /**
+   * Consume the champion's passive stacks after using the empowered ability.
+   */
+  private consumePassiveStacks(champion: ServerChampion): void {
+    const passiveId = champion.definition.passive;
+    if (!passiveId) return;
+
+    const passiveDef = getPassiveDefinition(passiveId);
+    if (!passiveDef) return;
+
+    // Only consume for stack-based damage amp passives
+    if (passiveDef.usesStacks && passiveDef.consumeStacksOnActivation) {
+      champion.passiveState.stacks = 0;
+      champion.passiveState.stackTimeRemaining = 0;
+      champion.passiveState.isActive = false;
+      Logger.champion.debug(`${champion.playerId} ${passiveDef.name} consumed - bonus damage applied`);
+    }
+  }
+
   /**
    * Attempt to cast an ability.
    * Returns result indicating success or failure with reason.
@@ -109,8 +161,21 @@ export class ServerAbilityExecutor {
       return { success: false, failReason: targetValidation.reason };
     }
 
+    // Check for passive damage amplification (e.g., Magnus's Arcane Surge)
+    const damageMultiplier = this.getPassiveDamageMultiplier(champion);
+
+    // Break stealth when casting abilities (except stealth ability itself)
+    if (abilityId !== 'vex_shroud' && 'breakStealth' in champion) {
+      (champion as any).breakStealth();
+    }
+
     // All checks passed - execute the ability
-    this.executeAbility(params, definition);
+    this.executeAbility(params, definition, damageMultiplier);
+
+    // Consume passive stacks if damage amp was used
+    if (damageMultiplier > 1.0) {
+      this.consumePassiveStacks(champion);
+    }
 
     // Deduct mana
     champion.resource -= manaCost;
@@ -119,6 +184,15 @@ export class ServerAbilityExecutor {
     const cooldown = definition.cooldown?.[rank - 1] ?? 0;
     state.cooldownRemaining = cooldown;
     state.cooldownTotal = cooldown;
+
+    // Special case: Vex's Shadow Step (E) - reset cooldown if enemy is marked
+    if (abilityId === 'vex_dash') {
+      const hasMarkedEnemy = this.checkForMarkedEnemy(champion, context);
+      if (hasMarkedEnemy) {
+        state.cooldownRemaining = 0;
+        Logger.debug("Ability", `${champion.playerId} Vex dash cooldown reset - marked enemy nearby`);
+      }
+    }
 
     // Enter combat
     champion.enterCombat();
@@ -240,10 +314,12 @@ export class ServerAbilityExecutor {
 
   /**
    * Execute the ability effect.
+   * @param damageMultiplier - Multiplier from passive abilities (e.g., 1.3 for Arcane Surge)
    */
   private executeAbility(
     params: AbilityCastParams,
-    definition: AbilityDefinition
+    definition: AbilityDefinition,
+    damageMultiplier: number = 1.0
   ): void {
     const { champion, slot } = params;
     const rank = champion.abilityStates[slot].rank;
@@ -263,11 +339,11 @@ export class ServerAbilityExecutor {
         break;
 
       case "no_target":
-        this.executeNoTargetAbility(params, definition, rank);
+        this.executeNoTargetAbility(params, definition, rank, damageMultiplier);
         break;
 
       case "target_enemy":
-        this.executeTargetEnemyAbility(params, definition, rank);
+        this.executeTargetEnemyAbility(params, definition, rank, damageMultiplier);
         break;
 
       case "target_ally":
@@ -275,11 +351,11 @@ export class ServerAbilityExecutor {
         break;
 
       case "skillshot":
-        this.executeSkillshot(params, definition, rank);
+        this.executeSkillshot(params, definition, rank, damageMultiplier);
         break;
 
       case "ground_target":
-        this.executeGroundTarget(params, definition, rank);
+        this.executeGroundTarget(params, definition, rank, damageMultiplier);
         break;
     }
 
@@ -294,7 +370,7 @@ export class ServerAbilityExecutor {
         }
       }
       if (dashTargetPosition) {
-        this.executeDash({ ...params, targetPosition: dashTargetPosition }, definition, rank);
+        this.executeDash({ ...params, targetPosition: dashTargetPosition }, definition, rank, damageMultiplier);
       }
     }
 
@@ -364,7 +440,8 @@ export class ServerAbilityExecutor {
   private executeNoTargetAbility(
     params: AbilityCastParams,
     definition: AbilityDefinition,
-    rank: number
+    rank: number,
+    damageMultiplier: number = 1.0
   ): void {
     const { champion, context } = params;
     const stats = champion.getStats();
@@ -374,7 +451,7 @@ export class ServerAbilityExecutor {
     // Get entities in range
     const entities = context.getEntitiesInRadius(champion.position, radius);
 
-    // Calculate damage if applicable
+    // Calculate damage if applicable (with passive multiplier)
     let damageAmount = 0;
     if (definition.damage) {
       damageAmount = calculateAbilityValue(definition.damage.scaling, rank, {
@@ -382,7 +459,7 @@ export class ServerAbilityExecutor {
         abilityPower: stats.abilityPower,
         bonusHealth: stats.maxHealth - champion.definition.baseStats.health,
         maxHealth: stats.maxHealth,
-      });
+      }) * damageMultiplier;
     }
 
     // Calculate heal if applicable
@@ -443,7 +520,8 @@ export class ServerAbilityExecutor {
   private executeTargetEnemyAbility(
     params: AbilityCastParams,
     definition: AbilityDefinition,
-    rank: number
+    rank: number,
+    damageMultiplier: number = 1.0
   ): void {
     const { champion, targetEntityId, context } = params;
 
@@ -454,7 +532,7 @@ export class ServerAbilityExecutor {
 
     const stats = champion.getStats();
 
-    // Calculate and apply damage
+    // Calculate and apply damage (with passive multiplier)
     if (definition.damage) {
       const damageAmount = calculateAbilityValue(
         definition.damage.scaling,
@@ -465,7 +543,7 @@ export class ServerAbilityExecutor {
           bonusHealth: stats.maxHealth - champion.definition.baseStats.health,
           maxHealth: stats.maxHealth,
         }
-      );
+      ) * damageMultiplier;
 
       target.takeDamage(damageAmount, definition.damage.type, champion.id, context);
     }
@@ -552,7 +630,8 @@ export class ServerAbilityExecutor {
   private executeSkillshot(
     params: AbilityCastParams,
     definition: AbilityDefinition,
-    rank: number
+    rank: number,
+    damageMultiplier: number = 1.0
   ): void {
     const { champion, targetPosition, context } = params;
 
@@ -574,7 +653,7 @@ export class ServerAbilityExecutor {
       direction.y = champion.direction.y;
     }
 
-    // Calculate damage
+    // Calculate damage (with passive multiplier)
     let damageAmount = 0;
     let damageType: DamageType = "physical";
     if (definition.damage) {
@@ -583,7 +662,7 @@ export class ServerAbilityExecutor {
         abilityPower: stats.abilityPower,
         bonusHealth: stats.maxHealth - champion.definition.baseStats.health,
         maxHealth: stats.maxHealth,
-      });
+      }) * damageMultiplier;
       damageType = definition.damage.type;
     }
 
@@ -614,7 +693,8 @@ export class ServerAbilityExecutor {
   private executeGroundTarget(
     params: AbilityCastParams,
     definition: AbilityDefinition,
-    rank: number
+    rank: number,
+    damageMultiplier: number = 1.0
   ): void {
     const { champion, targetPosition, context } = params;
 
@@ -622,7 +702,7 @@ export class ServerAbilityExecutor {
 
     // Handle cone-shaped abilities
     if (definition.shape === "cone" && definition.coneAngle) {
-      this.executeConeAbility(params, definition, rank);
+      this.executeConeAbility(params, definition, rank, damageMultiplier);
       return;
     }
 
@@ -630,12 +710,12 @@ export class ServerAbilityExecutor {
     if (definition.aoeDelay && definition.aoeDelay > 0) {
       // TODO: Implement delayed AoE with scheduled execution
       // For now, execute immediately
-      this.executeCircleAoE(params, definition, rank);
+      this.executeCircleAoE(params, definition, rank, damageMultiplier);
       return;
     }
 
     // Default: immediate circular AoE
-    this.executeCircleAoE(params, definition, rank);
+    this.executeCircleAoE(params, definition, rank, damageMultiplier);
   }
 
   /**
@@ -644,7 +724,8 @@ export class ServerAbilityExecutor {
   private executeCircleAoE(
     params: AbilityCastParams,
     definition: AbilityDefinition,
-    rank: number
+    rank: number,
+    damageMultiplier: number = 1.0
   ): void {
     const { champion, targetPosition, context } = params;
 
@@ -653,10 +734,16 @@ export class ServerAbilityExecutor {
     const stats = champion.getStats();
     const radius = definition.aoeRadius ?? 200;
 
+    // If this is a zone ability (has zoneDuration), create a persistent zone
+    if (definition.zoneDuration && definition.zoneDuration > 0) {
+      this.createZone(params, definition, rank, damageMultiplier);
+      return;
+    }
+
     // Get entities in the AoE
     const entities = context.getEntitiesInRadius(targetPosition, radius);
 
-    // Calculate damage
+    // Calculate damage (with passive multiplier)
     let damageAmount = 0;
     if (definition.damage) {
       damageAmount = calculateAbilityValue(definition.damage.scaling, rank, {
@@ -664,7 +751,7 @@ export class ServerAbilityExecutor {
         abilityPower: stats.abilityPower,
         bonusHealth: stats.maxHealth - champion.definition.baseStats.health,
         maxHealth: stats.maxHealth,
-      });
+      }) * damageMultiplier;
     }
 
     // Apply to enemies
@@ -690,12 +777,68 @@ export class ServerAbilityExecutor {
   }
 
   /**
+   * Create a persistent zone at target position.
+   */
+  private createZone(
+    params: AbilityCastParams,
+    definition: AbilityDefinition,
+    rank: number,
+    damageMultiplier: number = 1.0
+  ): void {
+    const { champion, targetPosition, context } = params;
+
+    if (!targetPosition) return;
+
+    const stats = champion.getStats();
+    const radius = definition.aoeRadius ?? 200;
+
+    // Calculate damage per tick (with passive multiplier)
+    let damageAmount = 0;
+    if (definition.damage) {
+      damageAmount = calculateAbilityValue(definition.damage.scaling, rank, {
+        attackDamage: stats.attackDamage,
+        abilityPower: stats.abilityPower,
+        bonusHealth: stats.maxHealth - champion.definition.baseStats.health,
+        maxHealth: stats.maxHealth,
+      }) * damageMultiplier;
+    }
+
+    // Determine zone type for visual
+    let zoneType: ZoneEffectType = 'slow';
+    if (damageAmount > 0) {
+      zoneType = 'damage';
+    } else if (definition.heal) {
+      zoneType = 'heal';
+    }
+
+    // Create the zone
+    const zone = new ServerZone({
+      id: context.generateEntityId(),
+      position: targetPosition.clone(),
+      side: champion.side,
+      radius,
+      duration: definition.zoneDuration ?? 2,
+      sourceId: champion.id,
+      abilityId: definition.id,
+      zoneType,
+      damage: damageAmount,
+      damageType: definition.damage?.type ?? 'magic',
+      appliesEffects: definition.appliesEffects,
+      effectDuration: definition.effectDuration ?? 0,
+      tickRate: definition.zoneTickRate ?? 0,
+    });
+
+    context.addEntity(zone);
+  }
+
+  /**
    * Execute a cone-shaped ability.
    */
   private executeConeAbility(
     params: AbilityCastParams,
     definition: AbilityDefinition,
-    rank: number
+    rank: number,
+    damageMultiplier: number = 1.0
   ): void {
     const { champion, targetPosition, context } = params;
 
@@ -712,7 +855,7 @@ export class ServerAbilityExecutor {
     // Get entities in range
     const entities = context.getEntitiesInRadius(champion.position, radius);
 
-    // Calculate damage
+    // Calculate damage (with passive multiplier)
     let damageAmount = 0;
     if (definition.damage) {
       damageAmount = calculateAbilityValue(definition.damage.scaling, rank, {
@@ -720,7 +863,7 @@ export class ServerAbilityExecutor {
         abilityPower: stats.abilityPower,
         bonusHealth: stats.maxHealth - champion.definition.baseStats.health,
         maxHealth: stats.maxHealth,
-      });
+      }) * damageMultiplier;
     }
 
     for (const entity of entities) {
@@ -757,7 +900,8 @@ export class ServerAbilityExecutor {
   private executeDash(
     params: AbilityCastParams,
     definition: AbilityDefinition,
-    rank: number = 1
+    rank: number = 1,
+    damageMultiplier: number = 1.0
   ): void {
     const { champion, targetPosition } = params;
 
@@ -769,16 +913,33 @@ export class ServerAbilityExecutor {
     const normalizedDir = direction.normalized();
     const dashDistance = Math.min(direction.length(), definition.dash.distance);
 
-    // Calculate damage for collision if ability has damage
+    // Apply self-buff effects (like Vex's empowered attack)
+    // Check for effects that should be applied to caster (buff effects)
+    if (definition.appliesEffects) {
+      for (const effectId of definition.appliesEffects) {
+        // Check if this is a self-buff effect (like vex_empowered)
+        if (effectId === 'vex_empowered' || effectId.includes('_empowered') || effectId.includes('_buff')) {
+          champion.applyEffect(
+            effectId,
+            definition.effectDuration ?? 4,
+            champion.id
+          );
+        }
+      }
+    }
+
+    // Calculate damage for collision if ability has damage (with passive multiplier)
+    // For Vex dash, damage is used for empowered attack, not dash collision
     let damageAmount = 0;
-    if (definition.damage) {
+    const dashHasDamageOnCollision = definition.damage && definition.aoeRadius;
+    if (dashHasDamageOnCollision) {
       const stats = champion.getStats();
-      damageAmount = calculateAbilityValue(definition.damage.scaling, rank, {
+      damageAmount = calculateAbilityValue(definition.damage!.scaling, rank, {
         attackDamage: stats.attackDamage,
         abilityPower: stats.abilityPower,
         bonusHealth: stats.maxHealth - champion.definition.baseStats.health,
         maxHealth: stats.maxHealth,
-      });
+      }) * damageMultiplier;
     }
 
     champion.forcedMovement = {
@@ -787,11 +948,14 @@ export class ServerAbilityExecutor {
       duration: dashDistance / definition.dash.speed,
       elapsed: 0,
       type: "dash",
-      // Collision data for dash abilities that damage/apply effects
+      // Collision data for dash abilities that damage/apply effects on hit
       hitbox: definition.aoeRadius ?? 60,
       damage: damageAmount,
       damageType: definition.damage?.type,
-      appliesEffects: definition.appliesEffects,
+      // Only pass debuff effects to be applied on collision (not self-buffs)
+      appliesEffects: definition.appliesEffects?.filter(
+        e => !e.includes('_empowered') && !e.includes('_buff')
+      ),
       effectDuration: definition.effectDuration,
       hitEntities: new Set(),
     };
@@ -854,6 +1018,34 @@ export class ServerAbilityExecutor {
     while (angle > Math.PI) angle -= 2 * Math.PI;
     while (angle < -Math.PI) angle += 2 * Math.PI;
     return angle;
+  }
+
+  /**
+   * Check if there's an enemy with vex_mark effect nearby.
+   * Used for Vex's Shadow Step cooldown reset mechanic.
+   */
+  private checkForMarkedEnemy(
+    champion: ServerChampion,
+    context: ServerGameContext
+  ): boolean {
+    // Check radius around champion (dash range + some buffer)
+    const checkRadius = 500;
+    const entities = context.getEntitiesInRadius(champion.position, checkRadius);
+
+    for (const entity of entities) {
+      // Skip allies and dead entities
+      if (entity.side === champion.side || entity.isDead) continue;
+
+      // Check if entity has vex_mark effect
+      if ('activeEffects' in entity) {
+        const activeEffects = (entity as any).activeEffects as Array<{ definitionId: string }>;
+        if (activeEffects?.some(e => e.definitionId === 'vex_mark')) {
+          return true;
+        }
+      }
+    }
+
+    return false;
   }
 }
 
