@@ -75,9 +75,13 @@ export type {
   AbilityState,
   AbilityCastResult,
   AbilityAIConditions,
+  PassiveStatModifier,
+  PassiveAbilityDefinition,
+  PassiveState,
 } from './abilities';
 export {
   calculateAbilityValue,
+  getPassiveLevelValue,
 } from './abilities';
 
 // Item types
@@ -113,6 +117,9 @@ export type {
   PlaceWardInput,
   WardType,
   ClientInput,
+  PassiveStateSnapshot,
+  ShieldType,
+  ShieldSnapshot,
   ChampionSnapshot,
   MinionSnapshot,
   TowerSnapshot,

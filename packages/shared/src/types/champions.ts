@@ -134,6 +134,9 @@ export interface ChampionDefinition {
 
   /** Ability IDs for each slot */
   abilities: Record<AbilitySlot, string>;
+
+  /** Passive ability ID (slot "P") */
+  passive: string;
 }
 
 /**

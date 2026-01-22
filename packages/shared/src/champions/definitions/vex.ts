@@ -8,7 +8,7 @@ import type {
   ChampionBaseStats,
   ChampionGrowthStats,
 } from '../../types/champions';
-import type { AbilityDefinition, AbilityScaling } from '../../types/abilities';
+import type { AbilityDefinition, AbilityScaling, PassiveAbilityDefinition } from '../../types/abilities';
 
 // =============================================================================
 // Helper function for creating scaling
@@ -131,6 +131,31 @@ export const VexExecute: AbilityDefinition = {
 };
 
 // =============================================================================
+// Passive Ability
+// =============================================================================
+
+/**
+ * Assassin's Mark - Every 3rd basic attack deals bonus true damage
+ * based on target's max health.
+ */
+export const VexPassive: PassiveAbilityDefinition = {
+  id: 'vex_passive',
+  name: "Assassin's Mark",
+  description: 'Every 3rd basic attack deals bonus true damage equal to 4% of the target\'s max health.',
+  trigger: 'on_hit',
+  usesStacks: true,
+  maxStacks: 3,
+  stacksPerTrigger: 1,
+  stackDuration: 5,
+  requiredStacks: 3,
+  consumeStacksOnActivation: true,
+  damage: {
+    type: 'true',
+    scaling: scaling([0], { maxHealthRatio: 0.04 }),
+  },
+};
+
+// =============================================================================
 // Champion Definition
 // =============================================================================
 
@@ -149,6 +174,7 @@ export const VexDefinition: ChampionDefinition = {
     E: 'vex_dash',
     R: 'vex_execute',
   },
+  passive: 'vex_passive',
 };
 
 // =============================================================================

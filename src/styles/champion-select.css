@@ -534,3 +534,102 @@
     max-width: 600px;
   }
 }
+
+/* ============================================ */
+/* Champion Passive Section                     */
+/* ============================================ */
+
+.champion-passive-section {
+  width: 100%;
+  border-top: 3px solid var(--pixel-border);
+  padding-top: 16px;
+  margin-bottom: 8px;
+}
+
+.passive-title {
+  font-family: var(--pixel-font);
+  font-size: 28px;
+  color: #FFD700;
+  text-shadow: 2px 2px 0 #000;
+  margin-bottom: 12px;
+  letter-spacing: 3px;
+}
+
+.champion-passive {
+  width: 100%;
+}
+
+/* Passive Card */
+.passive-card {
+  background: linear-gradient(135deg, #2a2a1e 0%, #1a1a12 100%);
+  border: 3px solid #B8860B;
+  border-radius: 4px;
+  padding: 16px 20px;
+  text-align: left;
+  transition: border-color 0.2s, transform 0.1s;
+}
+
+.passive-card:hover {
+  border-color: #FFD700;
+  transform: translateY(-2px);
+}
+
+.passive-card-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+
+.passive-slot {
+  font-family: var(--pixel-font);
+  font-size: 28px;
+  font-weight: bold;
+  color: #1a1a12;
+  text-shadow: none;
+  background: linear-gradient(135deg, #FFD700 0%, #B8860B 100%);
+  border: 3px solid #8B6914;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4);
+}
+
+.passive-name {
+  font-family: var(--pixel-font);
+  font-size: 24px;
+  color: #FFD700;
+  text-shadow: 2px 2px 0 #000;
+  flex: 1;
+}
+
+.passive-trigger {
+  font-family: var(--pixel-font);
+  font-size: 17px;
+  color: #B8860B;
+  text-shadow: 1px 1px 0 #000;
+  margin-bottom: 10px;
+  padding: 6px 12px;
+  background: rgba(184, 134, 11, 0.15);
+  border-left: 3px solid #B8860B;
+}
+
+.passive-description {
+  font-family: var(--pixel-font);
+  font-size: 18px;
+  color: #cccccc;
+  text-shadow: 1px 1px 0 #000;
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.passive-stats-row {
+  font-family: var(--pixel-font);
+  font-size: 16px;
+  color: #B8860B;
+  text-shadow: 1px 1px 0 #000;
+  padding: 6px 0;
+}

@@ -91,6 +91,30 @@ export interface HUDAbility {
 }
 
 /**
+ * Passive ability definition interface for HUD display.
+ */
+export interface HUDPassiveDefinition {
+  id: string;
+  name: string;
+  description: string;
+  trigger: string;
+  internalCooldown?: number;
+  maxStacks?: number;
+}
+
+/**
+ * Interface for passive ability data needed by HUD.
+ */
+export interface HUDPassive {
+  readonly definition: HUDPassiveDefinition;
+  readonly isActive: boolean;
+  readonly cooldownRemaining: number;
+  readonly stacks: number;
+  readonly maxStacks: number;
+  readonly stackTimeRemaining: number;
+}
+
+/**
  * Interface for champion data needed by HUD.
  * Both Champion and OnlineChampionAdapter implement this.
  */
@@ -99,6 +123,7 @@ export interface HUDChampionData {
   getCurrentHealth(): number;
   getCurrentResource(): number;
   getAbility(slot: AbilitySlot): HUDAbility | undefined;
+  getPassive(): HUDPassive | null;
   getBuffs(): StatModifier[];
   getActiveEffects(): HUDActiveEffect[];
   getInventory(): ChampionInventory;
@@ -134,6 +159,8 @@ export interface HUDHoverState {
   buff: number | null;
   /** Currently hovered effect index, or null if none */
   effect: number | null;
+  /** Currently hovered passive, or null if none */
+  passive: boolean;
 }
 
 /** HUD configuration options */
@@ -180,6 +207,7 @@ const PANEL = {
   statsWidth: 140,
   statsHeight: 140,
   portraitSize: 110,
+  passiveBoxSize: 52,
   abilitiesWidth: 280,
   abilitiesHeight: 80,
   abilityBoxSize: 64,
@@ -212,7 +240,10 @@ export class ChampionHUD extends ScreenEntity {
   private inputManager: InputManager;
 
   /** Current hover state */
-  private hoverState: HUDHoverState = { ability: null, item: null, buff: null, effect: null };
+  private hoverState: HUDHoverState = { ability: null, item: null, buff: null, effect: null, passive: false };
+
+  /** Cached passive box position for hit testing */
+  private passiveBox: { x: number; y: number; size: number } | null = null;
 
   /** Cached ability box positions for hit testing (updated each frame) */
   private abilityBoxes: Map<AbilitySlot, { x: number; y: number; size: number }> = new Map();
@@ -333,6 +364,12 @@ export class ChampionHUD extends ScreenEntity {
       }
     }
 
+    // Check passive hover
+    let newHoveredPassive = false;
+    if (this.passiveBox && this.isPointInBox(mousePos.x, mousePos.y, this.passiveBox)) {
+      newHoveredPassive = true;
+    }
+
     // Check level-up button hover
     let newHoveredLevelUpButton: AbilitySlot | null = null;
     for (const [slot, box] of this.levelUpButtons) {
@@ -384,6 +421,11 @@ export class ChampionHUD extends ScreenEntity {
     if (newHoveredEffect !== this.hoverState.effect) {
       this.hoverState.effect = newHoveredEffect;
     }
+
+    // Update passive hover state
+    if (newHoveredPassive !== this.hoverState.passive) {
+      this.hoverState.passive = newHoveredPassive;
+    }
   }
 
   /** Check if a point is inside a box */
@@ -417,6 +459,8 @@ export class ChampionHUD extends ScreenEntity {
       PANEL.statsWidth +
       PANEL.margin +
       PANEL.portraitSize +
+      PANEL.margin +
+      PANEL.passiveBoxSize +
       PANEL.margin +
       PANEL.abilitiesWidth +
       PANEL.margin +
@@ -489,30 +533,35 @@ export class ChampionHUD extends ScreenEntity {
       this.drawPortraitPanel(ctx, currentX, portraitY);
       currentX += PANEL.portraitSize + PANEL.margin;
 
-      // 3. Abilities Panel + Health/Mana Bars (this is the reference height)
+      // 3. Passive Panel (centered vertically)
+      const passiveY = contentTop + (centerHeight - PANEL.passiveBoxSize) / 2;
+      this.drawPassivePanel(ctx, currentX, passiveY);
+      currentX += PANEL.passiveBoxSize + PANEL.margin;
+
+      // 4. Abilities Panel + Health/Mana Bars (this is the reference height)
       this.drawAbilitiesPanel(ctx, currentX, contentTop);
       currentX += PANEL.abilitiesWidth + PANEL.margin;
 
-      // 4. Items Panel + Gold + Ward (centered vertically)
+      // 5. Items Panel + Gold + Ward (centered vertically)
       const itemsContainerHeight = this.getItemsContainerHeight();
       const goldHeight = 20;
       const itemsTotalHeight = itemsContainerHeight + goldHeight;
       const itemsY = contentTop + (centerHeight - itemsTotalHeight) / 2;
       this.drawItemsPanel(ctx, currentX, itemsY, gctx.money);
 
-      // 5. Ward count (next to items)
+      // 6. Ward count (next to items)
       const wardX = currentX + this.getItemsContainerWidth() + PANEL.margin;
       const wardY = contentTop + (centerHeight - PANEL.wardBoxSize) / 2;
       this.drawWardPanel(ctx, wardX, wardY);
 
-      // 6. Draw active effects on top of HUD (from the right)
+      // 7. Draw active effects on top of HUD (from the right)
       this.drawActiveEffects(ctx, startX + hudWidth - PANEL.padding, startY - PANEL.effectSize - 8);
 
-      // 7. Draw legacy buffs (stat modifiers, if any)
+      // 8. Draw legacy buffs (stat modifiers, if any)
       // These are separate from active effects and displayed in a second row if needed
       this.drawBuffs(ctx, startX + hudWidth - PANEL.padding, startY - PANEL.effectSize - PANEL.buffSize - 14);
 
-      // 8. Draw ability tooltip if hovering
+      // 9. Draw ability tooltip if hovering
       if (this.hoverState.ability) {
         const abilityBox = this.abilityBoxes.get(this.hoverState.ability);
         if (abilityBox) {
@@ -520,7 +569,15 @@ export class ChampionHUD extends ScreenEntity {
         }
       }
 
-      // 9. Draw effect tooltip if hovering
+      // 10. Draw passive tooltip if hovering
+      if (this.hoverState.passive && this.passiveBox && this.champion) {
+        const passive = this.champion.getPassive();
+        if (passive) {
+          this.drawPassiveTooltip(ctx, this.passiveBox.x, this.passiveBox.y, passive);
+        }
+      }
+
+      // 11. Draw effect tooltip if hovering
       if (this.hoverState.effect !== null && this.champion) {
         const effectBox = this.effectBoxes.get(this.hoverState.effect);
         const effects = this.champion.getActiveEffects();
@@ -529,7 +586,7 @@ export class ChampionHUD extends ScreenEntity {
         }
       }
 
-      // 10. Draw buff tooltip if hovering
+      // 12. Draw buff tooltip if hovering
       if (this.hoverState.buff !== null && this.champion) {
         const buffBox = this.buffBoxes.get(this.hoverState.buff);
         const buffs = this.champion.getBuffs();
@@ -538,7 +595,7 @@ export class ChampionHUD extends ScreenEntity {
         }
       }
 
-      // 11. Draw item tooltip if hovering
+      // 13. Draw item tooltip if hovering
       if (this.hoverState.item !== null && this.champion) {
         const itemBox = this.itemBoxes.get(this.hoverState.item);
         const inventory = this.champion.getInventory();
@@ -715,6 +772,84 @@ export class ChampionHUD extends ScreenEntity {
     ctx.strokeStyle = HUD_COLORS.border;
     ctx.lineWidth = 1;
     ctx.strokeRect(x, xpBarY, xpBarWidth, xpBarHeight);
+  }
+
+  /** Draw the passive ability panel */
+  private drawPassivePanel(ctx: CanvasRenderingContext2D, x: number, y: number): void {
+    if (!this.champion) return;
+    const passive = this.champion.getPassive();
+    const size = PANEL.passiveBoxSize;
+    const isHovered = this.hoverState.passive;
+
+    // Cache position for hit testing
+    this.passiveBox = { x, y, size };
+
+    // Background (gold tint for passive, brighter when hovered)
+    ctx.fillStyle = isHovered ? '#4a4a3c' : '#2a2a1e';
+    ctx.fillRect(x, y, size, size);
+
+    // Cooldown overlay if on cooldown
+    if (passive && passive.cooldownRemaining > 0 && passive.definition.internalCooldown) {
+      const cooldownProgress = 1 - (passive.cooldownRemaining / passive.definition.internalCooldown);
+      ctx.fillStyle = HUD_COLORS.cooldownOverlay;
+      ctx.fillRect(x, y, size, size * (1 - cooldownProgress));
+    }
+
+    // Border (gold for passive, highlight when hovered or active)
+    if (isHovered) {
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 3;
+    } else if (passive?.isActive) {
+      ctx.strokeStyle = '#FFD700';
+      ctx.lineWidth = 2;
+    } else {
+      ctx.strokeStyle = '#B8860B'; // Dark gold
+      ctx.lineWidth = 2;
+    }
+    ctx.strokeRect(x, y, size, size);
+
+    // "P" label for passive
+    const labelColor = passive?.isActive ? '#FFD700' : (passive ? HUD_COLORS.text : HUD_COLORS.textDim);
+    RenderUtils.renderBitmapText(
+      ctx,
+      'P',
+      x + size / 2,
+      y + size / 2 - 18,
+      { color: labelColor, size: 28, centered: true }
+    );
+
+    // Stack counter (bottom right) if passive has stacks
+    if (passive && passive.maxStacks > 0) {
+      const stackText = `${passive.stacks}`;
+      RenderUtils.renderBitmapText(
+        ctx,
+        stackText,
+        x + size - 6,
+        y + size - 20,
+        { color: passive.stacks > 0 ? '#FFD700' : HUD_COLORS.textDim, size: 18, rightAlign: true }
+      );
+    }
+
+    // Cooldown timer (center bottom)
+    if (passive && passive.cooldownRemaining > 0) {
+      RenderUtils.renderBitmapText(
+        ctx,
+        passive.cooldownRemaining.toFixed(0),
+        x + size / 2,
+        y + size - 18,
+        { color: HUD_COLORS.text, size: 18, centered: true }
+      );
+    }
+
+    // Active indicator glow
+    if (passive?.isActive) {
+      ctx.shadowColor = '#FFD700';
+      ctx.shadowBlur = 8;
+      ctx.strokeStyle = '#FFD700';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x + 2, y + 2, size - 4, size - 4);
+      ctx.shadowBlur = 0;
+    }
   }
 
   /** Draw the abilities panel with health/mana bars and level-up buttons */
@@ -1644,6 +1779,128 @@ export class ChampionHUD extends ScreenEntity {
     );
 
     ctx.restore();
+  }
+
+  /** Draw passive ability tooltip above the passive box */
+  private drawPassiveTooltip(
+    ctx: CanvasRenderingContext2D,
+    passiveX: number,
+    passiveY: number,
+    passive: HUDPassive
+  ): void {
+    const padding = PANEL.tooltipPadding;
+    const lineHeight = 18;
+
+    // Tooltip dimensions
+    const tooltipWidth = PANEL.tooltipWidth;
+
+    // Calculate tooltip height based on content
+    const descriptionLines = this.wrapText(passive.definition.description, tooltipWidth - padding * 2, 14);
+    const headerHeight = lineHeight + 4;
+    const triggerHeight = lineHeight;
+    const descHeight = descriptionLines.length * lineHeight;
+    const stackHeight = passive.maxStacks > 0 ? lineHeight : 0;
+    const cooldownHeight = passive.definition.internalCooldown ? lineHeight + 4 : 0;
+    const tooltipHeight = padding * 2 + headerHeight + triggerHeight + descHeight + stackHeight + cooldownHeight;
+
+    // Position tooltip above the passive box
+    const tooltipX = passiveX + PANEL.passiveBoxSize / 2 - tooltipWidth / 2;
+    const tooltipY = passiveY - tooltipHeight - 10;
+
+    // Clamp to screen bounds
+    const clampedX = Math.max(10, Math.min(tooltipX, Dimensions.w - tooltipWidth - 10));
+    const clampedY = Math.max(10, tooltipY);
+
+    ctx.save();
+
+    // Background
+    ctx.fillStyle = 'rgba(20, 20, 40, 0.95)';
+    ctx.fillRect(clampedX, clampedY, tooltipWidth, tooltipHeight);
+
+    // Border (gold for passive)
+    ctx.strokeStyle = '#FFD700';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(clampedX, clampedY, tooltipWidth, tooltipHeight);
+
+    let currentY = clampedY + padding;
+
+    // Passive name
+    RenderUtils.renderBitmapText(
+      ctx,
+      `P - ${passive.definition.name}`,
+      clampedX + padding,
+      currentY,
+      { color: '#FFD700', size: 26, shadow: false }
+    );
+    currentY += headerHeight;
+
+    // Trigger type
+    const triggerLabel = this.formatTriggerType(passive.definition.trigger);
+    RenderUtils.renderBitmapText(
+      ctx,
+      `Trigger: ${triggerLabel}`,
+      clampedX + padding,
+      currentY,
+      { color: '#B8860B', size: 20, shadow: false }
+    );
+    currentY += triggerHeight;
+
+    // Description
+    descriptionLines.forEach((line) => {
+      RenderUtils.renderBitmapText(
+        ctx,
+        line,
+        clampedX + padding,
+        currentY,
+        { color: HUD_COLORS.text, size: 20, shadow: false }
+      );
+      currentY += lineHeight;
+    });
+
+    // Stack info
+    if (passive.maxStacks > 0) {
+      RenderUtils.renderBitmapText(
+        ctx,
+        `Stacks: ${passive.stacks}/${passive.maxStacks}`,
+        clampedX + padding,
+        currentY,
+        { color: passive.stacks > 0 ? '#FFD700' : HUD_COLORS.textDim, size: 20, shadow: false }
+      );
+      currentY += lineHeight;
+    }
+
+    // Cooldown info
+    if (passive.definition.internalCooldown) {
+      currentY += 4;
+      const cooldownText = passive.cooldownRemaining > 0
+        ? `Cooldown: ${passive.cooldownRemaining.toFixed(1)}s / ${passive.definition.internalCooldown}s`
+        : `Cooldown: ${passive.definition.internalCooldown}s`;
+      RenderUtils.renderBitmapText(
+        ctx,
+        cooldownText,
+        clampedX + tooltipWidth / 2,
+        currentY,
+        { color: '#AAAAAA', size: 20, shadow: false, centered: true }
+      );
+    }
+
+    ctx.restore();
+  }
+
+  /** Format trigger type for display */
+  private formatTriggerType(trigger: string): string {
+    const triggerLabels: Record<string, string> = {
+      'on_attack': 'On Attack',
+      'on_hit': 'On Hit',
+      'on_take_damage': 'On Taking Damage',
+      'on_ability_cast': 'On Ability Cast',
+      'on_ability_hit': 'On Ability Hit',
+      'on_kill': 'On Kill',
+      'on_low_health': 'Low Health',
+      'always': 'Always Active',
+      'on_interval': 'Periodic',
+    };
+    return triggerLabels[trigger] || trigger;
   }
 
   /** Wrap text to fit within a given width */

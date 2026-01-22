@@ -8,7 +8,7 @@ import type {
   ChampionBaseStats,
   ChampionGrowthStats,
 } from '../../types/champions';
-import type { AbilityDefinition, AbilityScaling } from '../../types/abilities';
+import type { AbilityDefinition, AbilityScaling, PassiveAbilityDefinition } from '../../types/abilities';
 
 // =============================================================================
 // Helper function for creating scaling
@@ -125,6 +125,25 @@ export const ElaraResurrection: AbilityDefinition = {
 };
 
 // =============================================================================
+// Passive Ability
+// =============================================================================
+
+/**
+ * Blessed Presence - Allies within 600 units passively heal 1% max HP per second.
+ */
+export const ElaraPassive: PassiveAbilityDefinition = {
+  id: 'elara_passive',
+  name: 'Blessed Presence',
+  description: 'Nearby allies within 600 units heal 1% of their max health per second.',
+  trigger: 'always',
+  auraRadius: 600,
+  heal: {
+    scaling: scaling([0], { maxHealthRatio: 0.01 }),
+  },
+  intervalSeconds: 1,
+};
+
+// =============================================================================
 // Champion Definition
 // =============================================================================
 
@@ -143,6 +162,7 @@ export const ElaraDefinition: ChampionDefinition = {
     E: 'elara_speed',
     R: 'elara_resurrection',
   },
+  passive: 'elara_passive',
 };
 
 // =============================================================================

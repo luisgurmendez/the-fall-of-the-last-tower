@@ -233,6 +233,173 @@ export interface AbilityState {
 }
 
 /**
+ * Stat modifier for passive abilities.
+ */
+export interface PassiveStatModifier {
+  /** Which stat to modify */
+  stat: keyof import('./champions').ChampionBaseStats;
+  /** Flat value bonus */
+  flatValue?: number;
+  /** Percentage bonus (0.2 = +20%) */
+  percentValue?: number;
+}
+
+/**
+ * Passive ability definition (champion-specific, slot "P").
+ * Unlike active abilities, passives trigger automatically based on game events.
+ */
+export interface PassiveAbilityDefinition {
+  /** Unique identifier */
+  id: string;
+
+  /** Display name */
+  name: string;
+
+  /** Description with placeholders for values */
+  description: string;
+
+  // ===================
+  // Trigger configuration
+  // ===================
+
+  /** Primary trigger for this passive */
+  trigger: PassiveTrigger;
+
+  /** Additional triggers (some passives can proc from multiple sources) */
+  additionalTriggers?: PassiveTrigger[];
+
+  /** Internal cooldown between triggers (seconds) */
+  internalCooldown?: number;
+
+  // ===================
+  // Conditional triggers
+  // ===================
+
+  /** For on_low_health: health percentage threshold (0.3 = 30%) */
+  healthThreshold?: number;
+
+  /** For on_interval: trigger every X seconds */
+  intervalSeconds?: number;
+
+  // ===================
+  // Stack mechanics
+  // ===================
+
+  /** Whether this passive uses stacks */
+  usesStacks?: boolean;
+
+  /** Maximum stacks */
+  maxStacks?: number;
+
+  /** Stacks gained per trigger */
+  stacksPerTrigger?: number;
+
+  /** Duration before stacks expire (seconds) */
+  stackDuration?: number;
+
+  /** Number of stacks required to activate the effect */
+  requiredStacks?: number;
+
+  /** Whether to consume stacks when effect activates */
+  consumeStacksOnActivation?: boolean;
+
+  // ===================
+  // Effects
+  // ===================
+
+  /** Damage configuration */
+  damage?: {
+    type: DamageType;
+    scaling: AbilityScaling;
+  };
+
+  /** Heal configuration */
+  heal?: {
+    scaling: AbilityScaling;
+  };
+
+  /** Shield configuration */
+  shield?: {
+    scaling: AbilityScaling;
+    duration: number;
+  };
+
+  /** Stat modifiers applied when active */
+  statModifiers?: PassiveStatModifier[];
+
+  /** Effect IDs to apply to targets */
+  appliesEffects?: string[];
+
+  /** Duration for applied effects */
+  effectDuration?: number;
+
+  /** Radius for aura-based passives */
+  auraRadius?: number;
+
+  // ===================
+  // Level scaling
+  // ===================
+
+  /** Whether this passive scales with champion level (not ability ranks) */
+  scalesWithLevel?: boolean;
+
+  /** Level scaling configuration: values at specific levels */
+  levelScaling?: {
+    levels: number[];
+    values: number[];
+  };
+}
+
+/**
+ * Runtime state of a passive ability (for network sync).
+ */
+export interface PassiveState {
+  /** Whether the passive effect is currently active */
+  isActive: boolean;
+
+  /** Time remaining on internal cooldown (0 = ready) */
+  cooldownRemaining: number;
+
+  /** Current number of stacks */
+  stacks: number;
+
+  /** Time remaining before stacks expire */
+  stackTimeRemaining: number;
+
+  /** Time until next interval trigger (for on_interval passives) */
+  nextIntervalIn: number;
+
+  /** Custom data for complex passives */
+  customData?: Record<string, unknown>;
+}
+
+/**
+ * Get the passive value at a specific champion level.
+ */
+export function getPassiveLevelValue(
+  passive: PassiveAbilityDefinition,
+  level: number
+): number {
+  if (!passive.levelScaling) {
+    return passive.damage?.scaling.base[0] ??
+           passive.heal?.scaling.base[0] ??
+           passive.shield?.scaling.base[0] ??
+           0;
+  }
+
+  const { levels, values } = passive.levelScaling;
+
+  // Find the appropriate level bracket
+  for (let i = levels.length - 1; i >= 0; i--) {
+    if (level >= levels[i]) {
+      return values[i];
+    }
+  }
+
+  return values[0];
+}
+
+/**
  * Result of an ability cast attempt.
  */
 export interface AbilityCastResult {

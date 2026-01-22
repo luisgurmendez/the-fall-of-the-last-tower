@@ -16,9 +16,11 @@ import {
   CHAMPION_DEFINITIONS,
   getAllChampionDefinitions,
   getAbilityDefinition,
+  getPassiveDefinition,
   ABILITY_DEFINITIONS,
   type ChampionDefinition,
   type AbilityDefinition,
+  type PassiveAbilityDefinition,
   type AbilityScaling,
 } from "@siege/shared";
 
@@ -124,6 +126,7 @@ export class MatchmakingUI {
   private detailTitle: HTMLElement;
   private detailClass: HTMLElement;
   private detailStats: HTMLElement;
+  private detailPassive: HTMLElement;
   private detailAbilities: HTMLElement;
   private lockInButton: HTMLButtonElement;
 
@@ -191,6 +194,7 @@ export class MatchmakingUI {
     this.detailTitle = getEl("detail-title");
     this.detailClass = getEl("detail-class");
     this.detailStats = getEl("detail-stats");
+    this.detailPassive = getEl("detail-passive");
     this.detailAbilities = getEl("detail-abilities");
     this.lockInButton = getEl("btn-lock-in") as HTMLButtonElement;
 
@@ -380,6 +384,19 @@ export class MatchmakingUI {
       `;
     }
 
+    // Update passive
+    if (this.detailPassive) {
+      this.detailPassive.innerHTML = "";
+      const passiveId = champion.passive;
+      if (passiveId) {
+        const passiveDef = getPassiveDefinition(passiveId);
+        if (passiveDef) {
+          const passiveCard = this.createPassiveCard(passiveDef);
+          this.detailPassive.appendChild(passiveCard);
+        }
+      }
+    }
+
     // Update abilities
     if (this.detailAbilities) {
       this.detailAbilities.innerHTML = "";
@@ -473,6 +490,75 @@ export class MatchmakingUI {
     }
 
     return card;
+  }
+
+  /**
+   * Create a passive card element for the champion select screen.
+   */
+  private createPassiveCard(passive: PassiveAbilityDefinition): HTMLElement {
+    const card = document.createElement("div");
+    card.className = "passive-card";
+
+    // Passive header with slot (P) and name
+    const header = document.createElement("div");
+    header.className = "passive-card-header";
+    header.innerHTML = `
+      <span class="passive-slot">P</span>
+      <span class="passive-name">${passive.name}</span>
+    `;
+    card.appendChild(header);
+
+    // Trigger type
+    const trigger = document.createElement("div");
+    trigger.className = "passive-trigger";
+    trigger.textContent = `Trigger: ${this.formatPassiveTrigger(passive.trigger)}`;
+    card.appendChild(trigger);
+
+    // Description
+    const description = document.createElement("div");
+    description.className = "passive-description";
+    description.textContent = passive.description;
+    card.appendChild(description);
+
+    // Stats row (cooldown, stacks)
+    const statsRow = document.createElement("div");
+    statsRow.className = "passive-stats-row";
+
+    const statParts: string[] = [];
+    if (passive.internalCooldown) {
+      statParts.push(`Cooldown: ${passive.internalCooldown}s`);
+    }
+    if (passive.maxStacks) {
+      statParts.push(`Max Stacks: ${passive.maxStacks}`);
+    }
+    if (passive.healthThreshold) {
+      statParts.push(`Threshold: ${Math.round(passive.healthThreshold * 100)}% HP`);
+    }
+
+    statsRow.textContent = statParts.join("  •  ");
+    if (statParts.length > 0) {
+      card.appendChild(statsRow);
+    }
+
+    return card;
+  }
+
+  /**
+   * Format passive trigger type for display.
+   */
+  private formatPassiveTrigger(trigger: string): string {
+    const triggerLabels: Record<string, string> = {
+      'on_attack': 'On Attack',
+      'on_hit': 'On Hit',
+      'on_take_damage': 'On Taking Damage',
+      'on_ability_cast': 'On Ability Cast',
+      'on_ability_hit': 'On Ability Hit',
+      'on_kill': 'On Kill',
+      'on_low_health': 'Low Health',
+      'always': 'Always Active',
+      'on_interval': 'Periodic',
+    };
+    return triggerLabels[trigger] || trigger;
   }
 
   /**

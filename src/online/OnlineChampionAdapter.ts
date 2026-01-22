@@ -18,10 +18,12 @@ import {
   type AbilityScaling,
   type DamageType,
   type ActiveEffectState,
+  type PassiveStateSnapshot,
   getAbilityDefinition as getSharedAbilityDefinition,
   getChampionDefinition,
+  getPassiveDefinition,
 } from '@siege/shared';
-import type { HUDTrinket, HUDActiveEffect } from '@/ui/ChampionHUD';
+import type { HUDTrinket, HUDActiveEffect, HUDPassive, HUDPassiveDefinition } from '@/ui/ChampionHUD';
 
 /**
  * Local interface for inventory display.
@@ -320,6 +322,49 @@ class OnlineInventoryAdapter implements ChampionInventory {
 }
 
 /**
+ * Passive adapter that wraps PassiveStateSnapshot for HUD rendering.
+ */
+class OnlinePassiveAdapter implements HUDPassive {
+  readonly definition: HUDPassiveDefinition;
+  private state: PassiveStateSnapshot;
+  private _maxStacks: number;
+
+  constructor(state: PassiveStateSnapshot, passiveId: string) {
+    this.state = state;
+    const passiveDef = getPassiveDefinition(passiveId);
+    this.definition = {
+      id: passiveDef?.id ?? passiveId,
+      name: passiveDef?.name ?? 'Passive',
+      description: passiveDef?.description ?? 'A passive ability.',
+      trigger: passiveDef?.trigger ?? 'always',
+      internalCooldown: passiveDef?.internalCooldown,
+      maxStacks: passiveDef?.maxStacks,
+    };
+    this._maxStacks = passiveDef?.maxStacks ?? 0;
+  }
+
+  get isActive(): boolean {
+    return this.state.isActive;
+  }
+
+  get cooldownRemaining(): number {
+    return this.state.cooldownRemaining;
+  }
+
+  get stacks(): number {
+    return this.state.stacks;
+  }
+
+  get maxStacks(): number {
+    return this._maxStacks;
+  }
+
+  get stackTimeRemaining(): number {
+    return this.state.stackTimeRemaining;
+  }
+}
+
+/**
  * OnlineChampionAdapter wraps server state to provide Champion interface.
  */
 export class OnlineChampionAdapter {
@@ -467,6 +512,36 @@ export class OnlineChampionAdapter {
     };
 
     return new OnlineAbilityAdapter(defaultAbilityState, slot, championId);
+  }
+
+  /**
+   * Get the passive ability state.
+   * Returns an adapter with server passive data if available.
+   */
+  getPassive(): HUDPassive | null {
+    const snapshot = this.getSnapshot();
+    const championId = snapshot?.championId || this._fallbackChampionId;
+
+    // Get champion definition to find passive ID
+    const championDef = getChampionDefinition(championId);
+    if (!championDef) {
+      return null;
+    }
+
+    const passiveId = championDef.passive;
+    if (!passiveId) {
+      return null;
+    }
+
+    // Use server passive state if available, otherwise create default
+    const passiveState: PassiveStateSnapshot = snapshot?.passive ?? {
+      isActive: false,
+      cooldownRemaining: 0,
+      stacks: 0,
+      stackTimeRemaining: 0,
+    };
+
+    return new OnlinePassiveAdapter(passiveState, passiveId);
   }
 
   /**

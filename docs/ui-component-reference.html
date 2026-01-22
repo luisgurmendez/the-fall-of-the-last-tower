@@ -1,0 +1,1313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Siege MOBA - UI Component Reference</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @font-face {
+      font-family: 'm5x7';
+      src: url('../assets/fonts/m5x7.ttf') format('truetype');
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #0f0f1a;
+      color: #e5e5e5;
+    }
+
+    .pixel-font {
+      font-family: 'm5x7', 'Courier New', monospace;
+      image-rendering: pixelated;
+    }
+
+    .component-box {
+      border: 2px dashed #3a3a5c;
+      position: relative;
+    }
+
+    .component-label {
+      position: absolute;
+      top: -10px;
+      left: 8px;
+      background: #0f0f1a;
+      padding: 0 6px;
+      font-size: 10px;
+      color: #00ced1;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .code-name {
+      font-family: 'JetBrains Mono', monospace;
+      background: #1a1a2e;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #ffd700;
+    }
+
+    .file-path {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: #666;
+    }
+
+    .color-swatch {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      border: 1px solid #3a3a5c;
+    }
+
+    /* Simulated HUD styles */
+    .hud-bg { background: #1a1a2e; }
+    .hud-bg-light { background: #252540; }
+    .hud-border { border-color: #3a3a5c; }
+    .hud-border-highlight { border-color: #5a5a8c; }
+
+    /* Navigation */
+    .nav-link {
+      transition: all 0.2s;
+    }
+    .nav-link:hover {
+      color: #00ced1;
+    }
+
+    /* Section styling */
+    .section-divider {
+      height: 2px;
+      background: linear-gradient(to right, transparent, #3a3a5c, transparent);
+    }
+  </style>
+</head>
+<body class="min-h-screen p-8">
+  <!-- Header -->
+  <header class="max-w-7xl mx-auto mb-12">
+    <h1 class="text-4xl font-bold text-white mb-2">⚔️ Siege MOBA - UI Component Reference</h1>
+    <p class="text-gray-400 mb-6">Visual guide to all UI components, their code names, and file locations</p>
+
+    <!-- Navigation -->
+    <nav class="flex flex-wrap gap-4 text-sm">
+      <a href="#hud" class="nav-link text-cyan-400">HUD Components</a>
+      <a href="#world" class="nav-link text-cyan-400">World Rendering</a>
+      <a href="#effects" class="nav-link text-cyan-400">Effects & Numbers</a>
+      <a href="#matchmaking" class="nav-link text-cyan-400">Matchmaking UI</a>
+      <a href="#shop" class="nav-link text-cyan-400">Shop UI</a>
+      <a href="#colors" class="nav-link text-cyan-400">Color Palette</a>
+      <a href="#css" class="nav-link text-cyan-400">CSS Classes</a>
+    </nav>
+  </header>
+
+  <main class="max-w-7xl mx-auto space-y-16">
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- HUD COMPONENTS SECTION -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <section id="hud">
+      <h2 class="text-2xl font-bold text-white mb-2">HUD Components</h2>
+      <p class="file-path mb-6">src/ui/ChampionHUD.ts</p>
+
+      <!-- Full HUD Layout -->
+      <div class="mb-8">
+        <h3 class="text-lg font-semibold text-cyan-400 mb-4">Complete HUD Layout</h3>
+        <div class="hud-bg p-4 rounded-lg border hud-border">
+          <div class="flex items-end gap-3">
+
+            <!-- Stats Panel -->
+            <div class="component-box p-3 rounded" style="width: 140px; height: 140px; background: #252540;">
+              <span class="component-label">StatsPanel</span>
+              <div class="grid grid-cols-2 gap-1 text-xs">
+                <div class="flex items-center gap-1"><span class="text-red-400">⚔</span> <span class="text-white">120</span></div>
+                <div class="flex items-center gap-1"><span class="text-purple-400">✦</span> <span class="text-white">80</span></div>
+                <div class="flex items-center gap-1"><span class="text-yellow-400">⚡</span> <span class="text-white">1.2</span></div>
+                <div class="flex items-center gap-1"><span class="text-cyan-400">👢</span> <span class="text-white">345</span></div>
+                <div class="flex items-center gap-1"><span class="text-orange-400">🛡</span> <span class="text-white">45</span></div>
+                <div class="flex items-center gap-1"><span class="text-blue-400">✧</span> <span class="text-white">32</span></div>
+              </div>
+              <div class="mt-2 text-xs text-gray-500">
+                <code class="code-name">drawStatsPanel()</code>
+              </div>
+            </div>
+
+            <!-- Portrait Panel -->
+            <div class="component-box rounded flex flex-col items-center justify-center" style="width: 110px; height: 110px; background: #252540;">
+              <span class="component-label">PortraitPanel</span>
+              <div class="w-16 h-16 bg-gray-800 rounded border-2 border-cyan-500 flex items-center justify-center text-2xl">🗡️</div>
+              <div class="text-xs text-white mt-1">Warrior</div>
+              <!-- Level Badge -->
+              <div class="absolute -bottom-2 -right-2 w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center text-xs font-bold text-black">
+                8
+              </div>
+              <div class="mt-1 text-xs text-gray-500">
+                <code class="code-name">drawPortraitPanel()</code>
+              </div>
+            </div>
+
+            <!-- Passive Box -->
+            <div class="component-box rounded flex flex-col items-center justify-center" style="width: 52px; height: 52px; background: #252540; border-color: #B8860B;">
+              <span class="component-label">PassiveBox</span>
+              <div class="text-yellow-500 font-bold text-lg">P</div>
+              <div class="absolute bottom-0 right-0 text-xs bg-black/70 px-1 rounded text-yellow-400">3</div>
+              <div class="mt-8 text-xs text-gray-500 whitespace-nowrap">
+                <code class="code-name">drawPassivePanel()</code>
+              </div>
+            </div>
+
+            <!-- Abilities Panel -->
+            <div class="component-box p-2 rounded" style="width: 280px; background: #252540;">
+              <span class="component-label">AbilitiesPanel</span>
+              <div class="flex gap-2 mb-2">
+                <!-- Ability Box Q -->
+                <div class="relative" style="width: 64px; height: 64px;">
+                  <div class="component-box w-full h-full rounded bg-gray-800 border-2 border-cyan-500 flex flex-col items-center justify-center">
+                    <span class="component-label text-[8px]">AbilityBox</span>
+                    <span class="text-cyan-400 font-bold">Q</span>
+                    <span class="text-xs text-gray-400">3.2s</span>
+                  </div>
+                  <!-- Level-up Button -->
+                  <div class="absolute -top-2 left-1/2 -translate-x-1/2 bg-yellow-500 px-2 py-0.5 rounded text-[8px] font-bold text-black">
+                    +
+                  </div>
+                </div>
+                <!-- Ability Box W -->
+                <div style="width: 64px; height: 64px;">
+                  <div class="w-full h-full rounded bg-gray-800 border-2 border-green-500 flex flex-col items-center justify-center">
+                    <span class="text-green-400 font-bold">W</span>
+                    <span class="text-xs text-green-300">Ready</span>
+                  </div>
+                </div>
+                <!-- Ability Box E -->
+                <div style="width: 64px; height: 64px;">
+                  <div class="w-full h-full rounded bg-gray-800 border-2 border-gray-600 flex flex-col items-center justify-center relative overflow-hidden">
+                    <div class="absolute inset-0 bg-black/70" style="clip-path: polygon(0 0, 100% 0, 100% 60%, 0 60%);"></div>
+                    <span class="text-gray-400 font-bold relative z-10">E</span>
+                    <span class="text-xs text-gray-400 relative z-10">5.8s</span>
+                  </div>
+                </div>
+                <!-- Ability Box R -->
+                <div style="width: 64px; height: 64px;">
+                  <div class="w-full h-full rounded bg-gray-800 border-2 border-gray-700 flex flex-col items-center justify-center opacity-50">
+                    <span class="text-gray-500 font-bold">R</span>
+                    <span class="text-xs text-gray-600">Lv 6</span>
+                  </div>
+                </div>
+              </div>
+              <div class="text-xs text-gray-500">
+                <code class="code-name">drawAbilitiesPanel()</code>
+              </div>
+            </div>
+
+            <!-- Health & Mana Bars -->
+            <div class="flex flex-col gap-1 -ml-2" style="width: 280px;">
+              <!-- Health Bar -->
+              <div class="component-box rounded overflow-hidden" style="height: 28px; background: #1a472a;">
+                <span class="component-label">HealthBar</span>
+                <div class="h-full bg-green-500" style="width: 75%;"></div>
+                <div class="absolute inset-0 flex items-center justify-center text-xs text-white font-bold">
+                  750 / 1000
+                </div>
+              </div>
+              <!-- Mana Bar -->
+              <div class="component-box rounded overflow-hidden" style="height: 28px; background: #1a3a4a;">
+                <span class="component-label">ResourceBar</span>
+                <div class="h-full bg-blue-500" style="width: 60%;"></div>
+                <div class="absolute inset-0 flex items-center justify-center text-xs text-white font-bold">
+                  300 / 500
+                </div>
+              </div>
+              <!-- XP Bar -->
+              <div class="component-box rounded overflow-hidden" style="height: 8px; background: #2d1f3d;">
+                <span class="component-label text-[8px]">XPBar</span>
+                <div class="h-full bg-purple-500" style="width: 45%;"></div>
+              </div>
+            </div>
+
+            <!-- Items Panel -->
+            <div class="component-box p-2 rounded" style="width: 170px; background: #252540;">
+              <span class="component-label">ItemsPanel</span>
+              <div class="grid grid-cols-3 gap-1">
+                <div class="w-12 h-12 rounded bg-gray-800 border border-red-500 flex items-center justify-center text-lg">⚔</div>
+                <div class="w-12 h-12 rounded bg-gray-800 border border-purple-500 flex items-center justify-center text-lg">✦</div>
+                <div class="w-12 h-12 rounded bg-gray-800 border border-gray-600 flex items-center justify-center text-xs text-gray-500">3</div>
+                <div class="w-12 h-12 rounded bg-gray-800 border border-orange-500 flex items-center justify-center text-lg">🛡</div>
+                <div class="w-12 h-12 rounded bg-gray-800 border border-gray-600 flex items-center justify-center text-xs text-gray-500">5</div>
+                <div class="w-12 h-12 rounded bg-gray-800 border border-gray-600 flex items-center justify-center text-xs text-gray-500">6</div>
+              </div>
+              <div class="flex items-center justify-center mt-2 text-yellow-400 text-sm">
+                <span>🪙</span> <span class="ml-1">2450</span>
+              </div>
+              <div class="mt-1 text-xs text-gray-500">
+                <code class="code-name">drawItemsPanel()</code>
+              </div>
+            </div>
+
+            <!-- Ward Panel -->
+            <div class="component-box rounded flex flex-col items-center justify-center" style="width: 48px; height: 48px; background: #252540;">
+              <span class="component-label text-[8px]">WardPanel</span>
+              <div class="text-green-400 text-xl">👁</div>
+              <div class="absolute bottom-0 right-0 text-[10px] bg-black/70 px-1 rounded">2/2</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Buffs & Effects -->
+      <div class="grid grid-cols-2 gap-6 mb-8">
+        <!-- Buffs Display -->
+        <div>
+          <h3 class="text-lg font-semibold text-cyan-400 mb-4">Buffs Display</h3>
+          <div class="hud-bg p-4 rounded-lg border hud-border">
+            <div class="component-box p-3 rounded inline-flex gap-2" style="background: #252540;">
+              <span class="component-label">BuffsDisplay</span>
+              <div class="w-8 h-8 rounded bg-cyan-500/30 border border-cyan-500 flex items-center justify-center text-xs font-bold">
+                I
+                <span class="absolute -bottom-1 -right-1 bg-cyan-600 text-white text-[8px] px-1 rounded">x3</span>
+              </div>
+              <div class="w-8 h-8 rounded bg-red-500/30 border border-red-500 flex items-center justify-center text-xs font-bold">
+                P
+              </div>
+              <div class="w-8 h-8 rounded bg-yellow-500/30 border border-yellow-500 flex items-center justify-center text-xs font-bold">
+                E
+              </div>
+            </div>
+            <div class="mt-2 text-xs text-gray-500">
+              <code class="code-name">drawBuffs()</code> · Size: 32×32px each
+            </div>
+          </div>
+        </div>
+
+        <!-- Active Effects Display -->
+        <div>
+          <h3 class="text-lg font-semibold text-cyan-400 mb-4">Active Effects Display</h3>
+          <div class="hud-bg p-4 rounded-lg border hud-border">
+            <div class="component-box p-3 rounded inline-flex gap-1" style="background: #252540;">
+              <span class="component-label">EffectsDisplay</span>
+              <div class="w-9 h-9 rounded bg-green-500/20 border border-green-500 flex flex-col items-center justify-center relative">
+                <span class="text-[10px]">🛡️</span>
+                <span class="text-[8px] text-green-300">4.2s</span>
+                <span class="absolute -top-1 -right-1 bg-green-600 text-white text-[8px] w-4 h-4 rounded-full flex items-center justify-center">2</span>
+              </div>
+              <div class="w-9 h-9 rounded bg-red-500/20 border border-red-500 flex flex-col items-center justify-center">
+                <span class="text-[10px]">🔥</span>
+                <span class="text-[8px] text-red-300">2.1s</span>
+              </div>
+              <div class="w-9 h-9 rounded bg-purple-500/20 border border-purple-500 flex flex-col items-center justify-center">
+                <span class="text-[10px]">⚡</span>
+                <span class="text-[8px] text-purple-300">1.5s</span>
+              </div>
+            </div>
+            <div class="mt-2 text-xs text-gray-500">
+              <code class="code-name">drawActiveEffects()</code> · Size: 36×36px each
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tooltips -->
+      <div class="mb-8">
+        <h3 class="text-lg font-semibold text-cyan-400 mb-4">Tooltips</h3>
+        <div class="grid grid-cols-3 gap-4">
+
+          <!-- Ability Tooltip -->
+          <div class="component-box p-4 rounded" style="width: 320px; background: #1a1a2e; border: 2px solid #3a3a5c;">
+            <span class="component-label">AbilityTooltip</span>
+            <div class="flex items-center gap-2 mb-2">
+              <span class="text-cyan-400 font-bold">Q</span>
+              <span class="text-white font-semibold">Shield Bash</span>
+              <span class="text-gray-400 text-xs">●●●○○</span>
+            </div>
+            <p class="text-sm text-gray-300 mb-3">Bash enemies with your shield, dealing 80 (+0.6 AD) physical damage and stunning for 1s.</p>
+            <div class="flex gap-4 text-xs">
+              <span class="text-blue-400">40 Mana</span>
+              <span class="text-gray-400">Range: 200</span>
+              <span class="text-yellow-400">CD: 8s</span>
+            </div>
+            <div class="mt-2 text-xs text-gray-500">
+              <code class="code-name">drawAbilityTooltip()</code>
+            </div>
+          </div>
+
+          <!-- Passive Tooltip -->
+          <div class="component-box p-4 rounded" style="width: 320px; background: #1a1a2e; border: 2px solid #B8860B;">
+            <span class="component-label" style="color: #FFD700;">PassiveTooltip</span>
+            <div class="flex items-center gap-2 mb-2">
+              <span class="text-yellow-500 font-bold">P</span>
+              <span class="text-white font-semibold">Undying Resolve</span>
+            </div>
+            <div class="text-xs text-yellow-600 mb-2">Trigger: ON_LOW_HEALTH</div>
+            <p class="text-sm text-gray-300 mb-3">When below 30% HP, gain a shield and 20% bonus armor for 5s.</p>
+            <div class="flex gap-4 text-xs">
+              <span class="text-yellow-400">Stacks: 0/4</span>
+              <span class="text-gray-400">CD: 60s</span>
+            </div>
+            <div class="mt-2 text-xs text-gray-500">
+              <code class="code-name">drawPassiveTooltip()</code>
+            </div>
+          </div>
+
+          <!-- Item Tooltip -->
+          <div class="component-box p-4 rounded" style="width: 340px; background: #1a1a2e; border: 2px solid #3a3a5c;">
+            <span class="component-label">ItemTooltip</span>
+            <div class="flex items-center gap-2 mb-2">
+              <div class="w-8 h-8 bg-red-500/30 border border-red-500 rounded flex items-center justify-center">⚔</div>
+              <span class="text-white font-semibold">Bloodthirster</span>
+            </div>
+            <p class="text-sm text-gray-300 mb-2">A legendary weapon that thirsts for blood.</p>
+            <div class="space-y-1 text-sm mb-2">
+              <div class="flex justify-between">
+                <span class="text-gray-400">Attack Damage</span>
+                <span class="text-red-400">+75</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-400">Lifesteal</span>
+                <span class="text-green-400">+20%</span>
+              </div>
+            </div>
+            <div class="text-xs text-purple-400 mb-2">
+              PASSIVE: Overheal creates a shield
+            </div>
+            <div class="text-xs text-yellow-400">
+              Sell: 2100g
+            </div>
+            <div class="mt-2 text-xs text-gray-500">
+              <code class="code-name">drawItemTooltip()</code>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Range Indicators -->
+      <div class="mb-8">
+        <h3 class="text-lg font-semibold text-cyan-400 mb-4">Ability Range Indicators</h3>
+        <p class="file-path mb-4">src/ui/AbilityRangeIndicator.ts</p>
+        <div class="grid grid-cols-4 gap-4">
+          <div class="hud-bg p-4 rounded-lg border hud-border text-center">
+            <div class="w-24 h-24 mx-auto rounded-full border-2 border-dashed border-cyan-400 bg-cyan-400/20 mb-2"></div>
+            <code class="code-name">RangeCircle</code>
+            <p class="text-xs text-gray-400 mt-1">Ability cast range</p>
+          </div>
+          <div class="hud-bg p-4 rounded-lg border hud-border text-center">
+            <div class="w-16 h-16 mx-auto rounded-full border-2 border-blue-500 bg-blue-500/30 mb-2"></div>
+            <code class="code-name">AoECircle</code>
+            <p class="text-xs text-gray-400 mt-1">Area of effect</p>
+          </div>
+          <div class="hud-bg p-4 rounded-lg border hud-border text-center">
+            <div class="w-24 h-8 mx-auto bg-cyan-400/20 border border-cyan-400 mb-2"></div>
+            <code class="code-name">SkillshotLine</code>
+            <p class="text-xs text-gray-400 mt-1">Skillshot preview</p>
+          </div>
+          <div class="hud-bg p-4 rounded-lg border hud-border text-center">
+            <div class="w-0 h-0 mx-auto border-l-[40px] border-r-[40px] border-b-[60px] border-l-transparent border-r-transparent border-b-cyan-400/30 mb-2"></div>
+            <code class="code-name">ConeIndicator</code>
+            <p class="text-xs text-gray-400 mt-1">Cone ability area</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider my-12"></div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- WORLD RENDERING SECTION -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <section id="world">
+      <h2 class="text-2xl font-bold text-white mb-2">World Rendering</h2>
+      <p class="file-path mb-6">src/render/EntityRenderer.ts</p>
+
+      <!-- Entity Types -->
+      <div class="grid grid-cols-4 gap-4 mb-8">
+
+        <!-- Champion (Local Player - Green) -->
+        <div class="hud-bg p-4 rounded-lg border hud-border">
+          <div class="component-box p-4 rounded flex flex-col items-center" style="background: #252540;">
+            <span class="component-label">Champion (Self)</span>
+            <div class="w-20 h-20 rounded-full bg-gradient-to-b from-blue-400 to-blue-600 border-2 border-white flex items-center justify-center text-white font-bold">
+              8
+            </div>
+            <!-- Health Bar - GREEN for local player -->
+            <div class="w-20 h-2 mt-2 rounded overflow-hidden bg-gray-700 relative">
+              <div class="h-full" style="width: 70%; background: #2ecc71;"></div>
+              <div class="absolute top-0 h-full" style="left: 70%; width: 20%; background: repeating-linear-gradient(45deg, #e5e5e5, #e5e5e5 2px, #9ca3af 2px, #9ca3af 4px);"></div>
+            </div>
+            <!-- Selection Ring -->
+            <div class="absolute w-24 h-24 rounded-full border-2 border-dashed border-white animate-spin" style="animation-duration: 4s;"></div>
+          </div>
+          <div class="mt-2 text-xs text-gray-500">
+            <code class="code-name">renderChampion()</code> · <span class="text-green-400">Green = Self</span>
+          </div>
+        </div>
+
+        <!-- Champion (Ally - Blue) -->
+        <div class="hud-bg p-4 rounded-lg border hud-border">
+          <div class="component-box p-4 rounded flex flex-col items-center" style="background: #252540;">
+            <span class="component-label">Champion (Ally)</span>
+            <div class="w-20 h-20 rounded-full bg-gradient-to-b from-blue-400 to-blue-600 border-2 border-gray-600 flex items-center justify-center text-white font-bold">
+              6
+            </div>
+            <!-- Health Bar - BLUE for ally -->
+            <div class="w-20 h-2 mt-2 rounded overflow-hidden bg-gray-700 relative">
+              <div class="h-full" style="width: 85%; background: #3498db;"></div>
+            </div>
+          </div>
+          <div class="mt-2 text-xs text-gray-500">
+            <code class="code-name">renderChampion()</code> · <span class="text-blue-400">Blue = Ally</span>
+          </div>
+        </div>
+
+        <!-- Champion (Enemy - Red) -->
+        <div class="hud-bg p-4 rounded-lg border hud-border">
+          <div class="component-box p-4 rounded flex flex-col items-center" style="background: #252540;">
+            <span class="component-label">Champion (Enemy)</span>
+            <div class="w-20 h-20 rounded-full bg-gradient-to-b from-red-400 to-red-600 border-2 border-gray-600 flex items-center justify-center text-white font-bold">
+              7
+            </div>
+            <!-- Health Bar - RED for enemy -->
+            <div class="w-20 h-2 mt-2 rounded overflow-hidden bg-gray-700 relative">
+              <div class="h-full" style="width: 60%; background: #e74c3c;"></div>
+            </div>
+          </div>
+          <div class="mt-2 text-xs text-gray-500">
+            <code class="code-name">renderChampion()</code> · <span class="text-red-400">Red = Enemy</span>
+          </div>
+        </div>
+
+        <!-- Minion (Ally - Blue) -->
+        <div class="hud-bg p-4 rounded-lg border hud-border">
+          <div class="component-box p-4 rounded flex flex-col items-center" style="background: #252540;">
+            <span class="component-label">Minion (Ally)</span>
+            <div class="w-12 h-12 bg-blue-500 rounded flex items-center justify-center text-xs">🗡️</div>
+            <div class="w-12 h-1 mt-1 rounded overflow-hidden bg-gray-700">
+              <div class="h-full" style="width: 100%; background: #3498db;"></div>
+            </div>
+          </div>
+          <div class="mt-2 text-xs text-gray-500">
+            <code class="code-name">renderMinion()</code> · <span class="text-blue-400">Blue</span>
+          </div>
+        </div>
+
+        <!-- Minion (Enemy - Red) -->
+        <div class="hud-bg p-4 rounded-lg border hud-border">
+          <div class="component-box p-4 rounded flex flex-col items-center" style="background: #252540;">
+            <span class="component-label">Minion (Enemy)</span>
+            <div class="w-12 h-12 bg-red-500 rounded flex items-center justify-center text-xs">🗡️</div>
+            <div class="w-12 h-1 mt-1 rounded overflow-hidden bg-gray-700">
+              <div class="h-full" style="width: 80%; background: #e74c3c;"></div>
+            </div>
+          </div>
+          <div class="mt-2 text-xs text-gray-500">
+            <code class="code-name">renderMinion()</code> · <span class="text-red-400">Red</span>
+          </div>
+        </div>
+
+        <!-- Tower -->
+        <div class="hud-bg p-4 rounded-lg border hud-border">
+          <div class="component-box p-4 rounded flex flex-col items-center" style="background: #252540;">
+            <span class="component-label">Tower</span>
+            <div class="w-12 h-20 bg-gradient-to-b from-blue-300 to-blue-600 rounded-t flex items-end justify-center pb-1">🏰</div>
+            <div class="w-16 h-2 mt-1 rounded overflow-hidden bg-gray-700">
+              <div class="h-full bg-blue-400" style="width: 85%;"></div>
+            </div>
+          </div>
+          <div class="mt-2 text-xs text-gray-500">
+            <code class="code-name">renderTower()</code>
+          </div>
+        </div>
+
+        <!-- Nexus -->
+        <div class="hud-bg p-4 rounded-lg border hud-border">
+          <div class="component-box p-4 rounded flex flex-col items-center" style="background: #252540;">
+            <span class="component-label">Nexus</span>
+            <div class="w-16 h-16 bg-gradient-to-b from-blue-400 to-blue-700 rounded flex items-center justify-center text-2xl">💎</div>
+            <div class="w-20 h-2 mt-1 rounded overflow-hidden bg-gray-700">
+              <div class="h-full bg-blue-400" style="width: 100%;"></div>
+            </div>
+            <div class="text-[10px] text-white mt-1">5000 / 5000</div>
+          </div>
+          <div class="mt-2 text-xs text-gray-500">
+            <code class="code-name">renderNexus()</code>
+          </div>
+        </div>
+
+        <!-- Projectile -->
+        <div class="hud-bg p-4 rounded-lg border hud-border">
+          <div class="component-box p-4 rounded flex flex-col items-center" style="background: #252540;">
+            <span class="component-label">Projectile</span>
+            <div class="w-6 h-6 bg-blue-400 rounded-full shadow-lg shadow-blue-400/50"></div>
+          </div>
+          <div class="mt-2 text-xs text-gray-500">
+            <code class="code-name">renderProjectile()</code>
+          </div>
+        </div>
+
+        <!-- Jungle Camp -->
+        <div class="hud-bg p-4 rounded-lg border hud-border">
+          <div class="component-box p-4 rounded flex flex-col items-center" style="background: #252540;">
+            <span class="component-label">JungleCamp</span>
+            <div class="w-14 h-14 bg-gray-600 rounded-full flex items-center justify-center text-xl">🐻</div>
+            <div class="w-12 h-1 mt-1 rounded overflow-hidden bg-gray-700">
+              <div class="h-full bg-gray-400" style="width: 100%;"></div>
+            </div>
+          </div>
+          <div class="mt-2 text-xs text-gray-500">
+            <code class="code-name">renderJungleCamp()</code>
+          </div>
+        </div>
+
+        <!-- Ward -->
+        <div class="hud-bg p-4 rounded-lg border hud-border">
+          <div class="component-box p-4 rounded flex flex-col items-center" style="background: #252540;">
+            <span class="component-label">Ward</span>
+            <div class="w-6 h-6 bg-green-400 rotate-45 shadow-lg shadow-green-400/50"></div>
+          </div>
+          <div class="mt-2 text-xs text-gray-500">
+            <code class="code-name">renderWard()</code>
+          </div>
+        </div>
+
+        <!-- Generic Fallback -->
+        <div class="hud-bg p-4 rounded-lg border hud-border">
+          <div class="component-box p-4 rounded flex flex-col items-center" style="background: #252540;">
+            <span class="component-label">Generic</span>
+            <div class="w-8 h-8 bg-gray-500 border border-gray-600"></div>
+          </div>
+          <div class="mt-2 text-xs text-gray-500">
+            <code class="code-name">renderGeneric()</code>
+          </div>
+        </div>
+      </div>
+
+      <!-- Health Bars -->
+      <div class="mb-8">
+        <h3 class="text-lg font-semibold text-cyan-400 mb-4">Health Bar Rendering</h3>
+        <div class="hud-bg p-4 rounded-lg border hud-border">
+          <div class="space-y-4">
+            <!-- Local Player Health Bar (Green) -->
+            <div class="flex items-center gap-4">
+              <div class="w-32">
+                <span class="text-sm text-gray-400">Local Player:</span>
+              </div>
+              <div class="component-box flex-1 h-3 rounded overflow-hidden bg-gray-700 relative" style="max-width: 200px;">
+                <span class="component-label text-[8px]">SELF</span>
+                <div class="h-full" style="width: 75%; background: #2ecc71;"></div>
+              </div>
+              <code class="code-name text-xs">HEALTH_BAR_COLORS.SELF</code>
+            </div>
+
+            <!-- Ally Health Bar (Blue) -->
+            <div class="flex items-center gap-4">
+              <div class="w-32">
+                <span class="text-sm text-gray-400">Ally:</span>
+              </div>
+              <div class="flex-1 h-3 rounded overflow-hidden bg-gray-700 relative" style="max-width: 200px;">
+                <div class="h-full" style="width: 85%; background: #3498db;"></div>
+              </div>
+              <code class="code-name text-xs">HEALTH_BAR_COLORS.ALLY</code>
+            </div>
+
+            <!-- Enemy Health Bar (Red) -->
+            <div class="flex items-center gap-4">
+              <div class="w-32">
+                <span class="text-sm text-gray-400">Enemy:</span>
+              </div>
+              <div class="flex-1 h-3 rounded overflow-hidden bg-gray-700 relative" style="max-width: 200px;">
+                <div class="h-full" style="width: 60%; background: #e74c3c;"></div>
+              </div>
+              <code class="code-name text-xs">HEALTH_BAR_COLORS.ENEMY</code>
+            </div>
+
+            <!-- Neutral Health Bar (Gray) -->
+            <div class="flex items-center gap-4">
+              <div class="w-32">
+                <span class="text-sm text-gray-400">Neutral (Jungle):</span>
+              </div>
+              <div class="flex-1 h-3 rounded overflow-hidden bg-gray-700 relative" style="max-width: 200px;">
+                <div class="h-full" style="width: 100%; background: #95a5a6;"></div>
+              </div>
+              <code class="code-name text-xs">HEALTH_BAR_COLORS.NEUTRAL</code>
+            </div>
+
+            <!-- Health with Shield -->
+            <div class="flex items-center gap-4">
+              <div class="w-32">
+                <span class="text-sm text-gray-400">With Shield:</span>
+              </div>
+              <div class="component-box flex-1 h-3 rounded overflow-hidden bg-gray-700 relative" style="max-width: 240px;">
+                <span class="component-label text-[8px]">HealthBar+Shield</span>
+                <div class="h-full" style="width: 62.5%; background: #2ecc71;"></div>
+                <div class="absolute top-0 h-full" style="left: 62.5%; width: 15%; background: repeating-linear-gradient(45deg, #e5e5e5, #e5e5e5 2px, #9ca3af 2px, #9ca3af 4px);"></div>
+              </div>
+              <code class="code-name text-xs">renderShieldSegment()</code>
+            </div>
+
+            <!-- Low Health -->
+            <div class="flex items-center gap-4">
+              <div class="w-32">
+                <span class="text-sm text-gray-400">Low Health (&lt;25%):</span>
+              </div>
+              <div class="flex-1 h-3 rounded overflow-hidden bg-gray-700 relative" style="max-width: 200px;">
+                <div class="h-full bg-red-500" style="width: 15%;"></div>
+              </div>
+              <span class="text-xs text-gray-500">Always red when critical</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Minimap -->
+      <div class="mb-8">
+        <h3 class="text-lg font-semibold text-cyan-400 mb-4">Minimap</h3>
+        <p class="file-path mb-4">src/ui/OnlineMinimap.ts</p>
+        <div class="hud-bg p-4 rounded-lg border hud-border inline-block">
+          <div class="component-box rounded" style="width: 200px; height: 200px; background: #1a1a2e; border: 3px solid #3a3a5c;">
+            <span class="component-label">OnlineMinimap</span>
+            <!-- Blue Nexus -->
+            <div class="absolute bottom-4 left-4 w-4 h-4 rounded-full bg-blue-500" title="Blue Nexus"></div>
+            <!-- Red Nexus -->
+            <div class="absolute top-4 right-4 w-4 h-4 rounded-full bg-red-500" title="Red Nexus"></div>
+            <!-- Lane paths -->
+            <div class="absolute inset-0 opacity-30">
+              <div class="absolute left-4 bottom-4 w-full h-0.5 bg-green-800 origin-bottom-left rotate-45" style="width: 70%;"></div>
+            </div>
+            <!-- Champions -->
+            <div class="absolute bottom-12 left-12 w-3 h-3 rounded-full bg-green-400 border border-white" title="Local Player"></div>
+            <div class="absolute bottom-16 left-10 w-2.5 h-2.5 rounded-full bg-green-400" title="Ally Champion"></div>
+            <div class="absolute top-12 right-12 w-2.5 h-2.5 rounded-full bg-red-400" title="Enemy Champion"></div>
+            <!-- Camera viewport -->
+            <div class="absolute border border-white/30 bg-white/5" style="width: 60px; height: 40px; top: 50%; left: 50%; transform: translate(-50%, -50%);"></div>
+          </div>
+          <div class="mt-2 text-xs text-gray-500">
+            <code class="code-name">OnlineMinimap</code> · 200×200px
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider my-12"></div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- EFFECTS & NUMBERS SECTION -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <section id="effects">
+      <h2 class="text-2xl font-bold text-white mb-2">Effects & Floating Numbers</h2>
+      <p class="file-path mb-6">src/render/EntityRenderer.ts</p>
+
+      <div class="grid grid-cols-2 gap-6">
+        <!-- Damage Numbers -->
+        <div class="hud-bg p-4 rounded-lg border hud-border">
+          <h3 class="text-lg font-semibold text-cyan-400 mb-4">Damage Numbers</h3>
+          <div class="component-box p-4 rounded flex gap-6 items-end" style="background: #252540;">
+            <span class="component-label">DamageNumbers</span>
+            <div class="text-center">
+              <div class="text-xl font-bold text-white" style="text-shadow: 2px 2px 0 #000;">-120</div>
+              <div class="text-xs text-gray-400">Physical</div>
+            </div>
+            <div class="text-center">
+              <div class="text-xl font-bold text-purple-400" style="text-shadow: 2px 2px 0 #000;">-85</div>
+              <div class="text-xs text-gray-400">Magic</div>
+            </div>
+            <div class="text-center">
+              <div class="text-xl font-bold text-yellow-400" style="text-shadow: 2px 2px 0 #000;">-50</div>
+              <div class="text-xs text-gray-400">True</div>
+            </div>
+            <div class="text-center">
+              <div class="text-xl font-bold text-gray-400" style="text-shadow: 2px 2px 0 #000;">-30</div>
+              <div class="text-xs text-gray-400">Shield</div>
+            </div>
+          </div>
+          <div class="mt-2 text-xs text-gray-500">
+            <code class="code-name">renderDamageNumbers()</code> · Floats up 30px
+          </div>
+        </div>
+
+        <!-- Gold Numbers -->
+        <div class="hud-bg p-4 rounded-lg border hud-border">
+          <h3 class="text-lg font-semibold text-cyan-400 mb-4">Gold Numbers</h3>
+          <div class="component-box p-4 rounded flex gap-6 items-end" style="background: #252540;">
+            <span class="component-label">GoldNumbers</span>
+            <div class="text-center">
+              <div class="text-lg font-bold text-yellow-400" style="text-shadow: 2px 2px 0 #000;">+21</div>
+              <div class="text-xs text-gray-400">Minion</div>
+            </div>
+            <div class="text-center">
+              <div class="text-lg font-bold text-yellow-400" style="text-shadow: 2px 2px 0 #000;">+300</div>
+              <div class="text-xs text-gray-400">Kill</div>
+            </div>
+            <div class="text-center">
+              <div class="text-lg font-bold text-yellow-400" style="text-shadow: 2px 2px 0 #000;">+150</div>
+              <div class="text-xs text-gray-400">Assist</div>
+            </div>
+          </div>
+          <div class="mt-2 text-xs text-gray-500">
+            <code class="code-name">renderGoldNumbers()</code> · Floats up 25px
+          </div>
+        </div>
+      </div>
+
+      <!-- Shield Types -->
+      <div class="mt-6">
+        <h3 class="text-lg font-semibold text-cyan-400 mb-4">Shield Visual Types</h3>
+        <div class="grid grid-cols-4 gap-4">
+          <div class="hud-bg p-4 rounded-lg border hud-border text-center">
+            <div class="w-20 h-4 mx-auto rounded" style="background: repeating-linear-gradient(45deg, #e5e5e5, #e5e5e5 3px, #9ca3af 3px, #9ca3af 6px);"></div>
+            <div class="mt-2"><code class="code-name">normal</code></div>
+            <div class="text-xs text-gray-400 mt-1">Ability shields</div>
+          </div>
+          <div class="hud-bg p-4 rounded-lg border hud-border text-center">
+            <div class="w-20 h-4 mx-auto rounded" style="background: repeating-linear-gradient(45deg, #c4b5fd, #c4b5fd 3px, #8b5cf6 3px, #8b5cf6 6px);"></div>
+            <div class="mt-2"><code class="code-name">magic</code></div>
+            <div class="text-xs text-gray-400 mt-1">Magic-only shields</div>
+          </div>
+          <div class="hud-bg p-4 rounded-lg border hud-border text-center">
+            <div class="w-20 h-4 mx-auto rounded" style="background: repeating-linear-gradient(45deg, #fcd34d, #fcd34d 3px, #f59e0b 3px, #f59e0b 6px);"></div>
+            <div class="mt-2"><code class="code-name">physical</code></div>
+            <div class="text-xs text-gray-400 mt-1">Physical-only shields</div>
+          </div>
+          <div class="hud-bg p-4 rounded-lg border hud-border text-center">
+            <div class="w-20 h-4 mx-auto rounded" style="background: repeating-linear-gradient(45deg, #fef08a, #fef08a 3px, #ca8a04 3px, #ca8a04 6px);"></div>
+            <div class="mt-2"><code class="code-name">passive</code></div>
+            <div class="text-xs text-gray-400 mt-1">Passive shields</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider my-12"></div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- MATCHMAKING UI SECTION -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <section id="matchmaking">
+      <h2 class="text-2xl font-bold text-white mb-2">Matchmaking UI</h2>
+      <p class="file-path mb-6">src/ui/matchmaking/MatchmakingUI.ts · src/styles/matchmaking.css</p>
+
+      <div class="grid grid-cols-2 gap-6">
+
+        <!-- Main Menu -->
+        <div class="hud-bg p-4 rounded-lg border hud-border">
+          <h3 class="text-lg font-semibold text-cyan-400 mb-4">Main Menu Screen</h3>
+          <div class="component-box p-4 rounded text-center" style="background: #1a1a2e;">
+            <span class="component-label">#screen-menu</span>
+            <div class="text-2xl mb-4">⚔️ SIEGE</div>
+            <button class="bg-gradient-to-b from-yellow-400 to-yellow-600 text-black font-bold px-8 py-3 rounded mb-2 block mx-auto">
+              PLAY
+            </button>
+            <div class="space-x-4 text-sm text-cyan-400">
+              <span>Settings</span>
+              <span>How to Play</span>
+            </div>
+          </div>
+          <div class="mt-2 text-xs text-gray-500">
+            <code class="code-name">#btn-play</code> · <code class="code-name">.play-button</code>
+          </div>
+        </div>
+
+        <!-- Champion Select -->
+        <div class="hud-bg p-4 rounded-lg border hud-border">
+          <h3 class="text-lg font-semibold text-cyan-400 mb-4">Champion Select Screen</h3>
+          <div class="component-box p-4 rounded" style="background: #1a1a2e;">
+            <span class="component-label">#screen-champion-select</span>
+            <div class="flex gap-2 mb-3">
+              <!-- Champion Cards -->
+              <div class="w-16 h-20 bg-gray-800 rounded border-2 border-yellow-500 flex flex-col items-center justify-center">
+                <div class="w-10 h-10 bg-gray-700 rounded">🗡️</div>
+                <div class="text-[8px] mt-1">Warrior</div>
+              </div>
+              <div class="w-16 h-20 bg-gray-800 rounded border border-gray-600 flex flex-col items-center justify-center">
+                <div class="w-10 h-10 bg-gray-700 rounded">✨</div>
+                <div class="text-[8px] mt-1">Magnus</div>
+              </div>
+              <div class="w-16 h-20 bg-gray-800 rounded border border-gray-600 flex flex-col items-center justify-center">
+                <div class="w-10 h-10 bg-gray-700 rounded">💚</div>
+                <div class="text-[8px] mt-1">Elara</div>
+              </div>
+            </div>
+            <button class="bg-gradient-to-b from-yellow-400 to-yellow-600 text-black font-bold px-4 py-1 rounded text-sm">
+              LOCK IN
+            </button>
+          </div>
+          <div class="mt-2 text-xs text-gray-500">
+            <code class="code-name">.champion-card</code> · <code class="code-name">.champion-grid</code>
+          </div>
+        </div>
+
+        <!-- Queue Screen -->
+        <div class="hud-bg p-4 rounded-lg border hud-border">
+          <h3 class="text-lg font-semibold text-cyan-400 mb-4">Queue Screen</h3>
+          <div class="component-box p-4 rounded text-center" style="background: #1a1a2e;">
+            <span class="component-label">#screen-queue</span>
+            <div class="text-lg text-yellow-400 mb-2">FINDING MATCH</div>
+            <div class="w-8 h-8 mx-auto border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mb-2"></div>
+            <div class="text-2xl text-white font-mono mb-2">01:23</div>
+            <div class="text-xs text-gray-400">Position: 1 of 5</div>
+            <button class="mt-3 border border-red-500 text-red-400 px-4 py-1 rounded text-sm">
+              CANCEL
+            </button>
+          </div>
+          <div class="mt-2 text-xs text-gray-500">
+            <code class="code-name">#queue-timer</code> · <code class="code-name">.spinner</code>
+          </div>
+        </div>
+
+        <!-- Match Found -->
+        <div class="hud-bg p-4 rounded-lg border hud-border">
+          <h3 class="text-lg font-semibold text-cyan-400 mb-4">Match Found Screen</h3>
+          <div class="component-box p-4 rounded" style="background: #1a1a2e;">
+            <span class="component-label">#screen-match-found</span>
+            <div class="flex items-center justify-between mb-3">
+              <div class="text-center">
+                <div class="text-blue-400 text-sm font-bold">BLUE TEAM</div>
+                <div class="w-12 h-12 bg-blue-500/30 rounded border border-blue-500 flex items-center justify-center">🗡️</div>
+              </div>
+              <div class="text-2xl text-gray-400 font-bold">VS</div>
+              <div class="text-center">
+                <div class="text-red-400 text-sm font-bold">RED TEAM</div>
+                <div class="w-12 h-12 bg-red-500/30 rounded border border-red-500 flex items-center justify-center">✨</div>
+              </div>
+            </div>
+            <div class="h-2 bg-gray-700 rounded overflow-hidden">
+              <div class="h-full bg-gradient-to-r from-cyan-400 to-blue-500" style="width: 60%;"></div>
+            </div>
+          </div>
+          <div class="mt-2 text-xs text-gray-500">
+            <code class="code-name">.teams-display</code> · <code class="code-name">.loading-bar</code>
+          </div>
+        </div>
+      </div>
+
+      <!-- Status Bar -->
+      <div class="mt-6">
+        <h3 class="text-lg font-semibold text-cyan-400 mb-4">Status Bar</h3>
+        <div class="hud-bg p-4 rounded-lg border hud-border inline-block">
+          <div class="component-box px-4 py-2 rounded flex items-center gap-4" style="background: #1a1a2e;">
+            <span class="component-label">.status-bar</span>
+            <div class="flex items-center gap-2">
+              <div class="w-2 h-2 rounded-full bg-green-400"></div>
+              <span class="text-xs text-gray-400">Connected</span>
+            </div>
+            <div class="text-xs text-gray-400">Ping: <span class="text-green-400">23ms</span></div>
+          </div>
+          <div class="mt-2 text-xs text-gray-500">
+            <code class="code-name">#status-dot</code> · <code class="code-name">#ping-value</code>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider my-12"></div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- SHOP UI SECTION -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <section id="shop">
+      <h2 class="text-2xl font-bold text-white mb-2">Shop UI</h2>
+      <p class="file-path mb-6">src/ui/shop/ShopUI.ts · #shop-overlay</p>
+
+      <div class="hud-bg p-4 rounded-lg border hud-border">
+        <div class="component-box p-4 rounded" style="background: #1a1a2e;">
+          <span class="component-label">#shop-overlay</span>
+
+          <!-- Header -->
+          <div class="flex justify-between items-center mb-4 pb-2 border-b border-gray-700">
+            <div class="text-xl font-bold">SHOP</div>
+            <div class="flex items-center gap-4">
+              <span class="text-yellow-400">🪙 2450</span>
+              <button class="text-gray-400 hover:text-white">✕</button>
+            </div>
+          </div>
+
+          <!-- Categories -->
+          <div class="flex gap-2 mb-4 flex-wrap">
+            <span class="px-3 py-1 bg-cyan-500/20 border border-cyan-500 rounded text-xs">All</span>
+            <span class="px-3 py-1 bg-gray-700 rounded text-xs text-red-400">AD</span>
+            <span class="px-3 py-1 bg-gray-700 rounded text-xs text-purple-400">AP</span>
+            <span class="px-3 py-1 bg-gray-700 rounded text-xs text-yellow-400">AS</span>
+            <span class="px-3 py-1 bg-gray-700 rounded text-xs text-orange-400">Armor</span>
+            <span class="px-3 py-1 bg-gray-700 rounded text-xs text-blue-400">MR</span>
+            <span class="px-3 py-1 bg-gray-700 rounded text-xs text-green-400">Health</span>
+            <span class="px-3 py-1 bg-gray-700 rounded text-xs text-gray-400">Utility</span>
+          </div>
+
+          <div class="flex gap-4">
+            <!-- Items Grid -->
+            <div class="flex-1">
+              <div class="grid grid-cols-6 gap-2">
+                <div class="w-14 h-14 bg-gray-800 rounded border border-red-500 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-700">
+                  <span>⚔</span>
+                  <span class="text-[10px] text-yellow-400">350</span>
+                </div>
+                <div class="w-14 h-14 bg-gray-800 rounded border border-purple-500 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-700">
+                  <span>✦</span>
+                  <span class="text-[10px] text-yellow-400">435</span>
+                </div>
+                <div class="w-14 h-14 bg-gray-800 rounded border border-yellow-500 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-700">
+                  <span>⚡</span>
+                  <span class="text-[10px] text-yellow-400">300</span>
+                </div>
+                <div class="w-14 h-14 bg-gray-800 rounded border border-orange-500 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-700">
+                  <span>🛡</span>
+                  <span class="text-[10px] text-yellow-400">300</span>
+                </div>
+                <div class="w-14 h-14 bg-gray-800 rounded border border-green-500 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-700">
+                  <span>♥</span>
+                  <span class="text-[10px] text-yellow-400">400</span>
+                </div>
+                <div class="w-14 h-14 bg-gray-800 rounded border border-gray-500 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-700 opacity-50">
+                  <span>⚔</span>
+                  <span class="text-[10px] text-red-400">3000</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Item Details -->
+            <div class="w-48 bg-gray-800 rounded p-3">
+              <div class="flex items-center gap-2 mb-2">
+                <div class="w-10 h-10 bg-red-500/30 border border-red-500 rounded flex items-center justify-center">⚔</div>
+                <div>
+                  <div class="font-semibold text-sm">Long Sword</div>
+                  <div class="text-yellow-400 text-xs">350g</div>
+                </div>
+              </div>
+              <div class="text-xs text-red-400 mb-2">+10 Attack Damage</div>
+              <button class="w-full bg-yellow-500 text-black font-bold py-1 rounded text-sm">BUY</button>
+            </div>
+          </div>
+
+          <!-- Inventory -->
+          <div class="mt-4 pt-4 border-t border-gray-700">
+            <div class="text-sm text-gray-400 mb-2">Inventory</div>
+            <div class="flex gap-2">
+              <div class="w-12 h-12 bg-gray-800 rounded border border-red-500 flex items-center justify-center">⚔</div>
+              <div class="w-12 h-12 bg-gray-800 rounded border border-gray-600 flex items-center justify-center text-gray-600">2</div>
+              <div class="w-12 h-12 bg-gray-800 rounded border border-gray-600 flex items-center justify-center text-gray-600">3</div>
+              <div class="w-12 h-12 bg-gray-800 rounded border border-gray-600 flex items-center justify-center text-gray-600">4</div>
+              <div class="w-12 h-12 bg-gray-800 rounded border border-gray-600 flex items-center justify-center text-gray-600">5</div>
+              <div class="w-12 h-12 bg-gray-800 rounded border border-gray-600 flex items-center justify-center text-gray-600">6</div>
+              <button class="ml-2 px-3 py-1 bg-gray-700 rounded text-xs">Undo</button>
+            </div>
+          </div>
+        </div>
+        <div class="mt-2 text-xs text-gray-500">
+          <code class="code-name">#shop-items-grid</code> · <code class="code-name">.shop-item</code> · <code class="code-name">.inventory-slot</code>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider my-12"></div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- COLOR PALETTE SECTION -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <section id="colors">
+      <h2 class="text-2xl font-bold text-white mb-2">Color Palette</h2>
+      <p class="file-path mb-6">src/styles/pixel-ui-base.css (CSS Variables)</p>
+
+      <div class="grid grid-cols-4 gap-4">
+        <!-- Backgrounds -->
+        <div class="space-y-2">
+          <h3 class="font-semibold text-gray-400 text-sm">Backgrounds</h3>
+          <div class="flex items-center gap-2">
+            <div class="color-swatch" style="background: #1a1a2e;"></div>
+            <div>
+              <div class="text-xs text-white">--pixel-bg-dark</div>
+              <div class="text-[10px] text-gray-500">#1a1a2e</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="color-swatch" style="background: #0a0a12;"></div>
+            <div>
+              <div class="text-xs text-white">--pixel-bg-darker</div>
+              <div class="text-[10px] text-gray-500">#0a0a12</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="color-swatch" style="background: #252540;"></div>
+            <div>
+              <div class="text-xs text-white">--pixel-bg-light</div>
+              <div class="text-[10px] text-gray-500">#252540</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Borders -->
+        <div class="space-y-2">
+          <h3 class="font-semibold text-gray-400 text-sm">Borders</h3>
+          <div class="flex items-center gap-2">
+            <div class="color-swatch" style="background: #3a3a5c;"></div>
+            <div>
+              <div class="text-xs text-white">--pixel-border</div>
+              <div class="text-[10px] text-gray-500">#3a3a5c</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="color-swatch" style="background: #5a5a8c;"></div>
+            <div>
+              <div class="text-xs text-white">--pixel-border-highlight</div>
+              <div class="text-[10px] text-gray-500">#5a5a8c</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Health Bar Colors -->
+        <div class="space-y-2">
+          <h3 class="font-semibold text-gray-400 text-sm">Health Bar Colors</h3>
+          <div class="flex items-center gap-2">
+            <div class="color-swatch" style="background: #2ecc71;"></div>
+            <div>
+              <div class="text-xs text-white">SELF (Player)</div>
+              <div class="text-[10px] text-gray-500">#2ecc71</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="color-swatch" style="background: #3498db;"></div>
+            <div>
+              <div class="text-xs text-white">ALLY</div>
+              <div class="text-[10px] text-gray-500">#3498db</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="color-swatch" style="background: #e74c3c;"></div>
+            <div>
+              <div class="text-xs text-white">ENEMY</div>
+              <div class="text-[10px] text-gray-500">#e74c3c</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="color-swatch" style="background: #95a5a6;"></div>
+            <div>
+              <div class="text-xs text-white">NEUTRAL</div>
+              <div class="text-[10px] text-gray-500">#95a5a6</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stat Colors -->
+        <div class="space-y-2">
+          <h3 class="font-semibold text-gray-400 text-sm">Stat Colors</h3>
+          <div class="flex items-center gap-2">
+            <div class="color-swatch" style="background: #3498db;"></div>
+            <div>
+              <div class="text-xs text-white">Mana</div>
+              <div class="text-[10px] text-gray-500">#3498db</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="color-swatch" style="background: #ff6b6b;"></div>
+            <div>
+              <div class="text-xs text-white">Attack Damage</div>
+              <div class="text-[10px] text-gray-500">#ff6b6b</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="color-swatch" style="background: #a855f7;"></div>
+            <div>
+              <div class="text-xs text-white">Ability Power</div>
+              <div class="text-[10px] text-gray-500">#a855f7</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="color-swatch" style="background: #f59e0b;"></div>
+            <div>
+              <div class="text-xs text-white">Armor</div>
+              <div class="text-[10px] text-gray-500">#f59e0b</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="color-swatch" style="background: #8b5cf6;"></div>
+            <div>
+              <div class="text-xs text-white">Magic Resist</div>
+              <div class="text-[10px] text-gray-500">#8b5cf6</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Team Colors -->
+        <div class="space-y-2">
+          <h3 class="font-semibold text-gray-400 text-sm">Team Colors</h3>
+          <div class="flex items-center gap-2">
+            <div class="color-swatch" style="background: #3498db;"></div>
+            <div>
+              <div class="text-xs text-white">Blue Team</div>
+              <div class="text-[10px] text-gray-500">#3498db</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="color-swatch" style="background: #e74c3c;"></div>
+            <div>
+              <div class="text-xs text-white">Red Team</div>
+              <div class="text-[10px] text-gray-500">#e74c3c</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="color-swatch" style="background: #ffd700;"></div>
+            <div>
+              <div class="text-xs text-white">Gold / Passive</div>
+              <div class="text-[10px] text-gray-500">#ffd700</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="color-swatch" style="background: #00ced1;"></div>
+            <div>
+              <div class="text-xs text-white">Accent / Cyan</div>
+              <div class="text-[10px] text-gray-500">#00ced1</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider my-12"></div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- CSS CLASSES SECTION -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <section id="css">
+      <h2 class="text-2xl font-bold text-white mb-2">CSS Classes Reference</h2>
+      <p class="file-path mb-6">src/styles/pixel-ui-base.css · src/styles/matchmaking.css · src/styles/champion-select.css</p>
+
+      <div class="grid grid-cols-3 gap-6">
+        <!-- Buttons -->
+        <div class="hud-bg p-4 rounded-lg border hud-border">
+          <h3 class="font-semibold text-cyan-400 mb-3">Buttons</h3>
+          <div class="space-y-2">
+            <div>
+              <button class="bg-gradient-to-b from-yellow-400 to-yellow-600 text-black font-bold px-4 py-2 rounded">Primary</button>
+              <code class="code-name ml-2">.pixel-button.primary</code>
+            </div>
+            <div>
+              <button class="border border-gray-500 text-white px-4 py-2 rounded">Secondary</button>
+              <code class="code-name ml-2">.pixel-button.secondary</code>
+            </div>
+            <div>
+              <button class="bg-red-600 text-white px-4 py-2 rounded">Danger</button>
+              <code class="code-name ml-2">.pixel-button.danger</code>
+            </div>
+            <div>
+              <button class="bg-green-600 text-white px-4 py-2 rounded">Success</button>
+              <code class="code-name ml-2">.pixel-button.success</code>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panels -->
+        <div class="hud-bg p-4 rounded-lg border hud-border">
+          <h3 class="font-semibold text-cyan-400 mb-3">Panels & Containers</h3>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between">
+              <span class="text-gray-300">.pixel-panel</span>
+              <span class="text-gray-500">Container with border</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-300">.pixel-border</span>
+              <span class="text-gray-500">Border styling</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-300">.pixel-backdrop</span>
+              <span class="text-gray-500">Semi-transparent bg</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-300">.hud-bg</span>
+              <span class="text-gray-500">HUD background</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-300">.hud-bg-light</span>
+              <span class="text-gray-500">Light HUD bg</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- States -->
+        <div class="hud-bg p-4 rounded-lg border hud-border">
+          <h3 class="font-semibold text-cyan-400 mb-3">State Classes</h3>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between">
+              <span class="text-gray-300">.active</span>
+              <span class="text-gray-500">Active state</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-300">.selected</span>
+              <span class="text-gray-500">Selected item</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-300">.hidden</span>
+              <span class="text-gray-500">Hidden element</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-300">.cannot-afford</span>
+              <span class="text-gray-500">Not enough gold</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-300">.locked</span>
+              <span class="text-gray-500">Unavailable</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Animations -->
+      <div class="mt-6">
+        <h3 class="font-semibold text-cyan-400 mb-3">Animations</h3>
+        <div class="flex gap-6">
+          <div class="text-center">
+            <div class="w-12 h-12 bg-cyan-500 rounded animate-pulse mx-auto mb-2"></div>
+            <code class="code-name">.animate-pulse</code>
+          </div>
+          <div class="text-center">
+            <div class="w-12 h-12 bg-cyan-500 rounded mx-auto mb-2" style="animation: pixel-fade-in 1s ease-out infinite;"></div>
+            <code class="code-name">.animate-fade-in</code>
+          </div>
+          <div class="text-center">
+            <div class="w-8 h-8 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+            <code class="code-name">.spinner</code>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider my-12"></div>
+
+    <!-- Quick Reference Table -->
+    <section class="mb-12">
+      <h2 class="text-2xl font-bold text-white mb-6">Quick Reference Table</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-gray-700">
+              <th class="text-left py-2 px-3 text-cyan-400">Component</th>
+              <th class="text-left py-2 px-3 text-cyan-400">Code Name</th>
+              <th class="text-left py-2 px-3 text-cyan-400">File</th>
+              <th class="text-left py-2 px-3 text-cyan-400">Size</th>
+            </tr>
+          </thead>
+          <tbody class="text-gray-300">
+            <tr class="border-b border-gray-800"><td class="py-2 px-3">Stats Panel</td><td class="py-2 px-3"><code class="code-name">drawStatsPanel()</code></td><td class="py-2 px-3 text-gray-500">ChampionHUD.ts</td><td class="py-2 px-3">140×140px</td></tr>
+            <tr class="border-b border-gray-800"><td class="py-2 px-3">Portrait Panel</td><td class="py-2 px-3"><code class="code-name">drawPortraitPanel()</code></td><td class="py-2 px-3 text-gray-500">ChampionHUD.ts</td><td class="py-2 px-3">110×110px</td></tr>
+            <tr class="border-b border-gray-800"><td class="py-2 px-3">Passive Box</td><td class="py-2 px-3"><code class="code-name">drawPassivePanel()</code></td><td class="py-2 px-3 text-gray-500">ChampionHUD.ts</td><td class="py-2 px-3">52×52px</td></tr>
+            <tr class="border-b border-gray-800"><td class="py-2 px-3">Abilities Panel</td><td class="py-2 px-3"><code class="code-name">drawAbilitiesPanel()</code></td><td class="py-2 px-3 text-gray-500">ChampionHUD.ts</td><td class="py-2 px-3">280×80px</td></tr>
+            <tr class="border-b border-gray-800"><td class="py-2 px-3">Ability Box</td><td class="py-2 px-3"><code class="code-name">PANEL.abilityBoxSize</code></td><td class="py-2 px-3 text-gray-500">ChampionHUD.ts</td><td class="py-2 px-3">64×64px</td></tr>
+            <tr class="border-b border-gray-800"><td class="py-2 px-3">Health Bar</td><td class="py-2 px-3"><code class="code-name">PANEL.barHeight</code></td><td class="py-2 px-3 text-gray-500">ChampionHUD.ts</td><td class="py-2 px-3">28px height</td></tr>
+            <tr class="border-b border-gray-800"><td class="py-2 px-3">Items Panel</td><td class="py-2 px-3"><code class="code-name">drawItemsPanel()</code></td><td class="py-2 px-3 text-gray-500">ChampionHUD.ts</td><td class="py-2 px-3">170×120px</td></tr>
+            <tr class="border-b border-gray-800"><td class="py-2 px-3">Item Box</td><td class="py-2 px-3"><code class="code-name">PANEL.itemBoxSize</code></td><td class="py-2 px-3 text-gray-500">ChampionHUD.ts</td><td class="py-2 px-3">48×48px</td></tr>
+            <tr class="border-b border-gray-800"><td class="py-2 px-3">Ward Panel</td><td class="py-2 px-3"><code class="code-name">PANEL.wardBoxSize</code></td><td class="py-2 px-3 text-gray-500">ChampionHUD.ts</td><td class="py-2 px-3">48×48px</td></tr>
+            <tr class="border-b border-gray-800"><td class="py-2 px-3">Buff Icon</td><td class="py-2 px-3"><code class="code-name">PANEL.buffSize</code></td><td class="py-2 px-3 text-gray-500">ChampionHUD.ts</td><td class="py-2 px-3">32×32px</td></tr>
+            <tr class="border-b border-gray-800"><td class="py-2 px-3">Effect Icon</td><td class="py-2 px-3"><code class="code-name">PANEL.effectSize</code></td><td class="py-2 px-3 text-gray-500">ChampionHUD.ts</td><td class="py-2 px-3">36×36px</td></tr>
+            <tr class="border-b border-gray-800"><td class="py-2 px-3">Minimap</td><td class="py-2 px-3"><code class="code-name">OnlineMinimap</code></td><td class="py-2 px-3 text-gray-500">OnlineMinimap.ts</td><td class="py-2 px-3">200×200px</td></tr>
+            <tr class="border-b border-gray-800"><td class="py-2 px-3">Champion (world)</td><td class="py-2 px-3"><code class="code-name">renderChampion()</code></td><td class="py-2 px-3 text-gray-500">EntityRenderer.ts</td><td class="py-2 px-3">40px radius</td></tr>
+            <tr class="border-b border-gray-800"><td class="py-2 px-3">World Health Bar</td><td class="py-2 px-3"><code class="code-name">renderHealthBar()</code></td><td class="py-2 px-3 text-gray-500">EntityRenderer.ts</td><td class="py-2 px-3">6px height</td></tr>
+            <tr class="border-b border-gray-800"><td class="py-2 px-3">Damage Numbers</td><td class="py-2 px-3"><code class="code-name">renderDamageNumbers()</code></td><td class="py-2 px-3 text-gray-500">EntityRenderer.ts</td><td class="py-2 px-3">16px font</td></tr>
+            <tr class="border-b border-gray-800"><td class="py-2 px-3">Gold Numbers</td><td class="py-2 px-3"><code class="code-name">renderGoldNumbers()</code></td><td class="py-2 px-3 text-gray-500">EntityRenderer.ts</td><td class="py-2 px-3">14px font</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="max-w-7xl mx-auto mt-12 pt-8 border-t border-gray-800 text-center text-gray-500 text-sm">
+    <p>Siege MOBA - UI Component Reference</p>
+    <p class="mt-1">Generated for improved prompt accuracy</p>
+  </footer>
+</body>
+</html>

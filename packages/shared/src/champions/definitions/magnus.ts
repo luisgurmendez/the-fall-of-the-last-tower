@@ -8,7 +8,7 @@ import type {
   ChampionBaseStats,
   ChampionGrowthStats,
 } from '../../types/champions';
-import type { AbilityDefinition, AbilityScaling } from '../../types/abilities';
+import type { AbilityDefinition, AbilityScaling, PassiveAbilityDefinition } from '../../types/abilities';
 
 // =============================================================================
 // Helper function for creating scaling
@@ -129,6 +129,27 @@ export const MagnusMeteor: AbilityDefinition = {
 };
 
 // =============================================================================
+// Passive Ability
+// =============================================================================
+
+/**
+ * Arcane Surge - Gain stacks on ability casts. At 4 stacks, next ability
+ * deals 30% bonus damage and consumes all stacks.
+ */
+export const MagnusPassive: PassiveAbilityDefinition = {
+  id: 'magnus_passive',
+  name: 'Arcane Surge',
+  description: 'After casting 4 abilities, your next ability deals 30% bonus damage.',
+  trigger: 'on_ability_cast',
+  usesStacks: true,
+  maxStacks: 4,
+  stacksPerTrigger: 1,
+  stackDuration: 10,
+  requiredStacks: 4,
+  consumeStacksOnActivation: true,
+};
+
+// =============================================================================
 // Champion Definition
 // =============================================================================
 
@@ -147,6 +168,7 @@ export const MagnusDefinition: ChampionDefinition = {
     E: 'magnus_blink',
     R: 'magnus_meteor',
   },
+  passive: 'magnus_passive',
 };
 
 // =============================================================================

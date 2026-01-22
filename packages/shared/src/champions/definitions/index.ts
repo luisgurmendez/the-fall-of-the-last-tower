@@ -12,6 +12,7 @@ export {
   WarriorCharge,
   WarriorUltimate,
   WarriorAbilities,
+  WarriorPassive,
 } from './warrior';
 
 // Magnus
@@ -22,6 +23,7 @@ export {
   MagnusBlink,
   MagnusMeteor,
   MagnusAbilities,
+  MagnusPassive,
 } from './magnus';
 
 // Elara
@@ -32,6 +34,7 @@ export {
   ElaraSpeed,
   ElaraResurrection,
   ElaraAbilities,
+  ElaraPassive,
 } from './elara';
 
 // Vex
@@ -42,6 +45,7 @@ export {
   VexDash,
   VexExecute,
   VexAbilities,
+  VexPassive,
 } from './vex';
 
 // Gorath
@@ -52,4 +56,5 @@ export {
   GorathTaunt,
   GorathEarthquake,
   GorathAbilities,
+  GorathPassive,
 } from './gorath';

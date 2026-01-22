@@ -8,7 +8,7 @@ import type {
   ChampionBaseStats,
   ChampionGrowthStats,
 } from '../../types/champions';
-import type { AbilityDefinition, AbilityScaling } from '../../types/abilities';
+import type { AbilityDefinition, AbilityScaling, PassiveAbilityDefinition } from '../../types/abilities';
 
 // =============================================================================
 // Helper function for creating scaling
@@ -138,6 +138,35 @@ export const WarriorUltimate: AbilityDefinition = {
 };
 
 // =============================================================================
+// Passive Ability
+// =============================================================================
+
+/**
+ * Undying Resolve - When below 30% health, gain a shield and bonus armor.
+ * 60 second internal cooldown.
+ */
+export const WarriorPassive: PassiveAbilityDefinition = {
+  id: 'warrior_passive',
+  name: 'Undying Resolve',
+  description: 'When below 30% health, gain a shield absorbing {shield} damage and 20% bonus armor for 5 seconds. 60 second cooldown.',
+  trigger: 'on_low_health',
+  healthThreshold: 0.3,
+  internalCooldown: 60,
+  shield: {
+    scaling: scaling([80, 120, 160, 200], { bonusHealthRatio: 0.1 }),
+    duration: 5,
+  },
+  statModifiers: [
+    { stat: 'armor', percentValue: 0.2 },
+  ],
+  scalesWithLevel: true,
+  levelScaling: {
+    levels: [1, 6, 11, 16],
+    values: [80, 120, 160, 200],
+  },
+};
+
+// =============================================================================
 // Champion Definition
 // =============================================================================
 
@@ -156,6 +185,7 @@ export const WarriorDefinition: ChampionDefinition = {
     E: 'warrior_charge',
     R: 'warrior_ultimate',
   },
+  passive: 'warrior_passive',
 };
 
 // =============================================================================

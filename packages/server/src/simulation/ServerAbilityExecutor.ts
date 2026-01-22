@@ -18,6 +18,7 @@ import {
   DamageType,
   GameEventType,
 } from "@siege/shared";
+import { passiveTriggerSystem } from "../systems/PassiveTriggerSystem";
 import type { ServerChampion } from "./ServerChampion";
 import type { ServerEntity } from "./ServerEntity";
 import type { ServerGameContext } from "../game/ServerGameContext";
@@ -130,6 +131,11 @@ export class ServerAbilityExecutor {
       targetX: params.targetPosition?.x,
       targetY: params.targetPosition?.y,
       targetEntityId: params.targetEntityId,
+    });
+
+    // Dispatch on_ability_cast trigger for passive abilities
+    passiveTriggerSystem.dispatchTrigger('on_ability_cast', champion, context, {
+      abilityId,
     });
 
     return {
@@ -315,7 +321,8 @@ export class ServerAbilityExecutor {
       champion.shields.push({
         amount: shieldAmount,
         remainingDuration: definition.shield.duration,
-        sourceId: champion.id,
+        sourceId: definition.id,
+        shieldType: 'normal',
       });
     }
 
@@ -503,7 +510,8 @@ export class ServerAbilityExecutor {
       (target as ServerChampion).shields.push({
         amount: shieldAmount,
         remainingDuration: definition.shield.duration,
-        sourceId: champion.id,
+        sourceId: definition.id,
+        shieldType: 'normal',
       });
     }
 

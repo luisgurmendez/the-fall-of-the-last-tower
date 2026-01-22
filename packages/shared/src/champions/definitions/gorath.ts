@@ -8,7 +8,7 @@ import type {
   ChampionBaseStats,
   ChampionGrowthStats,
 } from '../../types/champions';
-import type { AbilityDefinition, AbilityScaling } from '../../types/abilities';
+import type { AbilityDefinition, AbilityScaling, PassiveAbilityDefinition } from '../../types/abilities';
 
 // =============================================================================
 // Helper function for creating scaling
@@ -130,6 +130,29 @@ export const GorathEarthquake: AbilityDefinition = {
 };
 
 // =============================================================================
+// Passive Ability
+// =============================================================================
+
+/**
+ * Immovable - Gain armor stacks when taking damage. Stacks decay after
+ * being out of combat for 4 seconds.
+ */
+export const GorathPassive: PassiveAbilityDefinition = {
+  id: 'gorath_passive',
+  name: 'Immovable',
+  description: 'When taking damage, gain 5 armor (max 10 stacks). Stacks decay after 4 seconds out of combat.',
+  trigger: 'on_take_damage',
+  usesStacks: true,
+  maxStacks: 10,
+  stacksPerTrigger: 1,
+  stackDuration: 4,
+  internalCooldown: 0.5, // Can't gain stacks faster than every 0.5s
+  statModifiers: [
+    { stat: 'armor', flatValue: 5 }, // Per stack
+  ],
+};
+
+// =============================================================================
 // Champion Definition
 // =============================================================================
 
@@ -148,6 +171,7 @@ export const GorathDefinition: ChampionDefinition = {
     E: 'gorath_taunt',
     R: 'gorath_earthquake',
   },
+  passive: 'gorath_passive',
 };
 
 // =============================================================================

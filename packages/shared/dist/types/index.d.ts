@@ -7,11 +7,11 @@ export type { ChampionClass, AttackType, ResourceType, ChampionBaseStats, Champi
 export { LEVEL_EXPERIENCE, calculateStat, calculateAttackSpeed, calculateStatsAtLevel, } from './champions';
 export type { EffectCategory, CrowdControlType, StatModificationType, OverTimeType, StackBehavior, EffectDefinition, CrowdControlEffectDef, StatModificationEffectDef, OverTimeEffectDef, ShieldEffectDef, ActiveEffectState, CrowdControlStatus, } from './effects';
 export { computeCCStatus, defaultCCStatus, } from './effects';
-export type { AbilitySlot, AbilityType, AbilityTargetType, AbilityShape, PassiveTrigger, AbilityScaling, AbilityDefinition, AbilityState, AbilityCastResult, AbilityAIConditions, } from './abilities';
-export { calculateAbilityValue, } from './abilities';
+export type { AbilitySlot, AbilityType, AbilityTargetType, AbilityShape, PassiveTrigger, AbilityScaling, AbilityDefinition, AbilityState, AbilityCastResult, AbilityAIConditions, PassiveStatModifier, PassiveAbilityDefinition, PassiveState, } from './abilities';
+export { calculateAbilityValue, getPassiveLevelValue, } from './abilities';
 export type { ItemSlot, ItemCategory, ItemPassiveTrigger, ItemPassiveDef, ItemDefinition, EquippedItemState, InventoryState, ItemPurchaseResult, ItemSellResult, } from './items';
 export { calculateItemStats, findEmptySlot, hasItem, } from './items';
-export type { InputMessage, MoveInput, TargetUnitInput, StopInput, AbilityInput, LevelUpInput, BuyItemInput, SellItemInput, RecallInput, PingInput, PlaceWardInput, WardType, ClientInput, ChampionSnapshot, MinionSnapshot, TowerSnapshot, ProjectileSnapshot, NexusSnapshot, JungleCreatureSnapshot, WardSnapshot, EntitySnapshot, EntityDelta, GameEvent, StateUpdate, FullStateSnapshot, } from './network';
+export type { InputMessage, MoveInput, TargetUnitInput, StopInput, AbilityInput, LevelUpInput, BuyItemInput, SellItemInput, RecallInput, PingInput, PlaceWardInput, WardType, ClientInput, PassiveStateSnapshot, ShieldType, ShieldSnapshot, ChampionSnapshot, MinionSnapshot, TowerSnapshot, ProjectileSnapshot, NexusSnapshot, JungleCreatureSnapshot, WardSnapshot, EntitySnapshot, EntityDelta, GameEvent, StateUpdate, FullStateSnapshot, } from './network';
 export { InputType, EntityType, EntityChangeMask, GameEventType, ServerMessageType, ClientMessageType, } from './network';
 export type { MinionType, LaneId, MinionStats, WaveComposition, MinionConfig, } from './minions';
 export { DEFAULT_MINION_STATS, DEFAULT_MINION_WAVE_CONFIG, } from './minions';

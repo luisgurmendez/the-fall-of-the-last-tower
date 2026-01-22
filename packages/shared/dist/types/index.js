@@ -4,7 +4,7 @@
 export { TEAM_BLUE, TEAM_RED, isSided, isTargetable, isDamageable, oppositeSide, } from './units';
 export { LEVEL_EXPERIENCE, calculateStat, calculateAttackSpeed, calculateStatsAtLevel, } from './champions';
 export { computeCCStatus, defaultCCStatus, } from './effects';
-export { calculateAbilityValue, } from './abilities';
+export { calculateAbilityValue, getPassiveLevelValue, } from './abilities';
 export { calculateItemStats, findEmptySlot, hasItem, } from './items';
 export { InputType, EntityType, EntityChangeMask, GameEventType, ServerMessageType, ClientMessageType, } from './network';
 export { DEFAULT_MINION_STATS, DEFAULT_MINION_WAVE_CONFIG, } from './minions';

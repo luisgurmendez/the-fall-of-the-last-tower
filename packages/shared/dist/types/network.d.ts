@@ -7,6 +7,37 @@ import type { AbilitySlot, AbilityState } from './abilities';
 import type { ActiveEffectState } from './effects';
 import type { EquippedItemState } from './items';
 /**
+ * Snapshot of a passive ability's state for network sync.
+ */
+export interface PassiveStateSnapshot {
+    /** Whether the passive effect is currently active */
+    isActive: boolean;
+    /** Time remaining on internal cooldown (0 = ready) */
+    cooldownRemaining: number;
+    /** Current number of stacks */
+    stacks: number;
+    /** Time remaining before stacks expire */
+    stackTimeRemaining: number;
+}
+/**
+ * Shield type for visual differentiation.
+ * Extensible for future shield types (magic shields, etc.)
+ */
+export type ShieldType = 'normal' | 'magic' | 'physical' | 'passive';
+/**
+ * Snapshot of an active shield for network sync.
+ */
+export interface ShieldSnapshot {
+    /** Current shield amount */
+    amount: number;
+    /** Remaining duration in seconds (0 = permanent until depleted) */
+    remainingDuration: number;
+    /** Source identifier (ability ID, item ID, or passive ID) */
+    sourceId: string;
+    /** Shield type for visual styling */
+    shieldType: ShieldType;
+}
+/**
  * Input message types from client to server.
  */
 export declare enum InputType {
@@ -196,7 +227,9 @@ export interface ChampionSnapshot {
     isRecalling: boolean;
     recallProgress: number;
     abilities: Record<AbilitySlot, AbilityState>;
+    passive: PassiveStateSnapshot;
     activeEffects: ActiveEffectState[];
+    shields: ShieldSnapshot[];
     items: (EquippedItemState | null)[];
     gold: number;
     kills: number;

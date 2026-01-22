@@ -28,6 +28,46 @@ const TEAM_COLORS = {
 };
 
 /**
+ * Health bar colors based on relationship to local player.
+ * - SELF: Green for the local player's champion
+ * - ALLY: Blue for allied units (champions, minions, towers)
+ * - ENEMY: Red for enemy units
+ */
+const HEALTH_BAR_COLORS = {
+  SELF: '#2ecc71',    // Green - local player
+  ALLY: '#3498db',    // Blue - allied units
+  ENEMY: '#e74c3c',   // Red - enemy units
+  NEUTRAL: '#95a5a6', // Gray - neutral units (jungle camps)
+};
+
+/**
+ * Shield visual configuration by type.
+ * Extensible: add new shield types here with their colors and stripe patterns.
+ */
+const SHIELD_STYLES: Record<string, { baseColor: string; stripeColor: string; stripeWidth: number }> = {
+  normal: {
+    baseColor: '#e5e5e5',    // Light gray
+    stripeColor: '#9ca3af',   // Darker gray
+    stripeWidth: 3,
+  },
+  magic: {
+    baseColor: '#c4b5fd',    // Light purple
+    stripeColor: '#8b5cf6',   // Purple
+    stripeWidth: 3,
+  },
+  physical: {
+    baseColor: '#fcd34d',    // Light yellow/gold
+    stripeColor: '#f59e0b',   // Amber
+    stripeWidth: 3,
+  },
+  passive: {
+    baseColor: '#fef08a',    // Pale gold
+    stripeColor: '#ca8a04',   // Dark gold
+    stripeWidth: 3,
+  },
+};
+
+/**
  * Colors for damage number types.
  */
 const DAMAGE_COLORS = {
@@ -514,9 +554,22 @@ export class EntityRenderer implements GameObject {
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // Draw health bar
+    // Draw health bar with shields
     if (snapshot.health !== undefined && snapshot.maxHealth !== undefined) {
-      this.renderHealthBar(ctx, snapshot.health, snapshot.maxHealth, size, -size * 0.7, color);
+      // Determine health bar color based on relationship to local player
+      // Green for self, blue for ally, red for enemy
+      let healthBarColor: string;
+      if (isLocalPlayer) {
+        healthBarColor = HEALTH_BAR_COLORS.SELF;  // Green
+      } else if (side === this.localSide) {
+        healthBarColor = HEALTH_BAR_COLORS.ALLY;  // Blue
+      } else {
+        healthBarColor = HEALTH_BAR_COLORS.ENEMY; // Red
+      }
+
+      // Extract shields from snapshot (if available)
+      const shields = snapshot.shields as Array<{ amount: number; shieldType: string }> | undefined;
+      this.renderHealthBar(ctx, snapshot.health, snapshot.maxHealth, size, -size * 0.7, healthBarColor, shields);
     }
 
     // Draw mana bar for local player
@@ -630,10 +683,12 @@ export class EntityRenderer implements GameObject {
       ctx.stroke();
     }
 
-    // Draw health bar
+    // Draw health bar - blue for ally minions, red for enemy minions
     if (snapshot.health !== undefined && snapshot.maxHealth !== undefined) {
-      const color = side === 0 ? TEAM_COLORS.BLUE : TEAM_COLORS.RED;
-      this.renderHealthBar(ctx, snapshot.health, snapshot.maxHealth, 30, -25, color);
+      const healthBarColor = side === this.localSide
+        ? HEALTH_BAR_COLORS.ALLY   // Blue for allied minions
+        : HEALTH_BAR_COLORS.ENEMY; // Red for enemy minions
+      this.renderHealthBar(ctx, snapshot.health, snapshot.maxHealth, 30, -25, healthBarColor);
     }
   }
 
@@ -670,11 +725,13 @@ export class EntityRenderer implements GameObject {
       ctx.strokeRect(-25, -60, 50, 80);
     }
 
-    // Draw health bar
+    // Draw health bar - blue for ally towers, red for enemy towers
     if (snapshot.health !== undefined && snapshot.maxHealth !== undefined) {
       const barY = -SPRITES.TOWER.HEIGHT * SPRITES.TOWER.SCALE + 10;
-      const color = side === 0 ? TEAM_COLORS.BLUE : TEAM_COLORS.RED;
-      this.renderHealthBar(ctx, snapshot.health, snapshot.maxHealth, 60, barY, color);
+      const healthBarColor = side === this.localSide
+        ? HEALTH_BAR_COLORS.ALLY   // Blue for allied towers
+        : HEALTH_BAR_COLORS.ENEMY; // Red for enemy towers
+      this.renderHealthBar(ctx, snapshot.health, snapshot.maxHealth, 60, barY, healthBarColor);
     }
   }
 
@@ -706,12 +763,14 @@ export class EntityRenderer implements GameObject {
       ctx.strokeRect(-50, -80, 100, 100);
     }
 
-    // Draw health bar
+    // Draw health bar - blue for ally nexus, red for enemy nexus
     if (snapshot.health !== undefined && snapshot.maxHealth !== undefined) {
       const radius = 75;
       const barY = -radius - 30;
-      const color = side === 0 ? TEAM_COLORS.BLUE : TEAM_COLORS.RED;
-      this.renderHealthBar(ctx, snapshot.health, snapshot.maxHealth, radius * 2, barY, color);
+      const healthBarColor = side === this.localSide
+        ? HEALTH_BAR_COLORS.ALLY   // Blue for allied nexus
+        : HEALTH_BAR_COLORS.ENEMY; // Red for enemy nexus
+      this.renderHealthBar(ctx, snapshot.health, snapshot.maxHealth, radius * 2, barY, healthBarColor);
 
       // Health text
       ctx.fillStyle = '#ffffff';
@@ -868,7 +927,7 @@ export class EntityRenderer implements GameObject {
 
     // Draw health bar
     if (snapshot.health !== undefined && snapshot.maxHealth !== undefined) {
-      this.renderHealthBar(ctx, snapshot.health, snapshot.maxHealth, 40, -30, TEAM_COLORS.NEUTRAL);
+      this.renderHealthBar(ctx, snapshot.health, snapshot.maxHealth, 40, -30, HEALTH_BAR_COLORS.NEUTRAL);
     }
   }
 
@@ -982,7 +1041,10 @@ export class EntityRenderer implements GameObject {
   }
 
   /**
-   * Render a health bar.
+   * Render a health bar with optional shields.
+   * Shields extend beyond the health bar with diagonal stripes.
+   *
+   * @param healthBarColor - The color for the health fill (green=self, blue=ally, red=enemy)
    */
   private renderHealthBar(
     ctx: CanvasRenderingContext2D,
@@ -990,25 +1052,120 @@ export class EntityRenderer implements GameObject {
     maxHealth: number,
     width: number,
     yOffset: number,
-    teamColor: string
+    healthBarColor: string,
+    shields?: Array<{ amount: number; shieldType: string }>
   ): void {
     const barWidth = width;
     const barHeight = 6;
     const healthPercent = Math.max(0, Math.min(1, health / maxHealth));
 
-    // Background
-    ctx.fillStyle = '#333333';
-    ctx.fillRect(-barWidth / 2, yOffset, barWidth, barHeight);
+    // Calculate total shield amount
+    const totalShield = shields?.reduce((sum, s) => sum + s.amount, 0) ?? 0;
+    const shieldPercent = totalShield / maxHealth;
 
-    // Health fill - use team color or health-based color
-    const healthColor = healthPercent > 0.5 ? teamColor : healthPercent > 0.25 ? '#f39c12' : '#e74c3c';
+    // Background (extends to include shield portion)
+    const totalWidth = barWidth * Math.min(1 + shieldPercent, 2); // Cap at 2x width
+    ctx.fillStyle = '#333333';
+    ctx.fillRect(-barWidth / 2, yOffset, totalWidth, barHeight);
+
+    // Health fill - use provided color, but switch to orange/red at low health
+    const healthColor = healthPercent > 0.25 ? healthBarColor : '#e74c3c';
     ctx.fillStyle = healthColor;
     ctx.fillRect(-barWidth / 2, yOffset, barWidth * healthPercent, barHeight);
 
-    // Border
+    // Render shields extending beyond health (with diagonal stripes)
+    if (shields && shields.length > 0 && totalShield > 0) {
+      const shieldStartX = -barWidth / 2 + barWidth * healthPercent;
+      let currentShieldX = shieldStartX;
+
+      // Group shields by type for visual consistency
+      const shieldsByType = new Map<string, number>();
+      for (const shield of shields) {
+        const existing = shieldsByType.get(shield.shieldType) ?? 0;
+        shieldsByType.set(shield.shieldType, existing + shield.amount);
+      }
+
+      // Render each shield type
+      for (const [shieldType, amount] of shieldsByType) {
+        const shieldWidth = (amount / maxHealth) * barWidth;
+        if (shieldWidth <= 0) continue;
+
+        // Get style for this shield type
+        const style = SHIELD_STYLES[shieldType] || SHIELD_STYLES.normal;
+
+        // Create diagonal stripe pattern
+        this.renderShieldSegment(
+          ctx,
+          currentShieldX,
+          yOffset,
+          shieldWidth,
+          barHeight,
+          style.baseColor,
+          style.stripeColor,
+          style.stripeWidth
+        );
+
+        currentShieldX += shieldWidth;
+      }
+
+      // Divider line between health and shield
+      ctx.strokeStyle = '#666666';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(shieldStartX, yOffset);
+      ctx.lineTo(shieldStartX, yOffset + barHeight);
+      ctx.stroke();
+    }
+
+    // Border around entire bar (health + shield)
     ctx.strokeStyle = '#000000';
     ctx.lineWidth = 1;
-    ctx.strokeRect(-barWidth / 2, yOffset, barWidth, barHeight);
+    const actualTotalWidth = barWidth * (healthPercent + Math.min(shieldPercent, 1));
+    ctx.strokeRect(-barWidth / 2, yOffset, Math.max(barWidth, actualTotalWidth), barHeight);
+  }
+
+  /**
+   * Render a shield segment with diagonal stripes.
+   */
+  private renderShieldSegment(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    baseColor: string,
+    stripeColor: string,
+    stripeWidth: number
+  ): void {
+    // Save context for clipping
+    ctx.save();
+
+    // Create clipping region for this segment
+    ctx.beginPath();
+    ctx.rect(x, y, width, height);
+    ctx.clip();
+
+    // Fill with base color first
+    ctx.fillStyle = baseColor;
+    ctx.fillRect(x, y, width, height);
+
+    // Draw diagonal stripes
+    ctx.fillStyle = stripeColor;
+    const stripeSpacing = stripeWidth * 2;
+    const diagonalLength = Math.sqrt(width * width + height * height) * 2;
+
+    // Draw stripes from top-left to bottom-right
+    for (let i = -diagonalLength; i < diagonalLength; i += stripeSpacing) {
+      ctx.beginPath();
+      ctx.moveTo(x + i, y);
+      ctx.lineTo(x + i + height, y + height);
+      ctx.lineTo(x + i + height + stripeWidth, y + height);
+      ctx.lineTo(x + i + stripeWidth, y);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    ctx.restore();
   }
 
   /**

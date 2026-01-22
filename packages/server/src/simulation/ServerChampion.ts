@@ -27,6 +27,8 @@ import {
   CrowdControlStatus,
   EquippedItemState,
   ItemSlot,
+  PassiveState,
+  PassiveStateSnapshot,
   calculateStat,
   calculateAttackSpeed,
   LEVEL_EXPERIENCE,
@@ -35,6 +37,8 @@ import {
   calculateMagicDamage,
   GameConfig,
   GameEventType,
+  getPassiveDefinition,
+  createDefaultPassiveState,
 } from '@siege/shared';
 import { ServerEntity, ServerEntityConfig } from './ServerEntity';
 import type { ServerGameContext } from '../game/ServerGameContext';
@@ -53,6 +57,7 @@ import {
   type ServerOverTimeEffectDef,
 } from '../data/effects';
 import { RewardSystem } from '../systems/RewardSystem';
+import { passiveTriggerSystem } from '../systems/PassiveTriggerSystem';
 import { Logger } from '../utils/Logger';
 
 export interface ServerChampionConfig extends Omit<ServerEntityConfig, 'entityType'> {
@@ -63,7 +68,9 @@ export interface ServerChampionConfig extends Omit<ServerEntityConfig, 'entityTy
 export interface ActiveShield {
   amount: number;
   remainingDuration: number;
-  sourceId?: string;
+  sourceId: string;
+  /** Shield type for visual styling - defaults to 'normal' if not specified */
+  shieldType?: 'normal' | 'magic' | 'physical' | 'passive';
 }
 
 export interface ForcedMovement {
@@ -130,6 +137,9 @@ export class ServerChampion extends ServerEntity {
   // Direction facing
   direction: Vector = new Vector(1, 0);
 
+  // Passive ability state
+  passiveState: PassiveState = createDefaultPassiveState();
+
   // Vision - champions provide fog of war vision
   sightRange = 800;
 
@@ -162,8 +172,31 @@ export class ServerChampion extends ServerEntity {
     // Set initial direction based on side
     this.direction = new Vector(config.side === 0 ? 1 : -1, 0);
 
+    // Initialize passive state
+    this.initializePassive();
+
     // Auto-level Q ability at start so players can cast abilities immediately
     this.levelUpAbility('Q');
+  }
+
+  /**
+   * Initialize passive ability.
+   */
+  private initializePassive(): void {
+    const passiveId = this.definition.passive;
+    const passiveDef = getPassiveDefinition(passiveId);
+
+    if (passiveDef) {
+      // Register passive with trigger system
+      passiveTriggerSystem.registerPassive(this.definition.id, passiveDef);
+
+      // Initialize interval timer if needed
+      if (passiveDef.intervalSeconds) {
+        this.passiveState.nextIntervalIn = passiveDef.intervalSeconds;
+      }
+
+      Logger.champion.debug(`Initialized passive ${passiveDef.name} for ${this.playerId}`);
+    }
   }
 
   private createDefaultAbilityState(): AbilityState {
@@ -218,11 +251,31 @@ export class ServerChampion extends ServerEntity {
     // Update trinket (ward) charges
     this.updateTrinket(dt);
 
+    // Update passive state
+    this.updatePassiveState(dt, context);
+
     // Passive gold income
     this.gold += GameConfig.ECONOMY.PASSIVE_GOLD_PER_SECOND * dt;
 
     // Invalidate cached stats
     this.cachedStats = null;
+  }
+
+  /**
+   * Update passive ability state.
+   */
+  private updatePassiveState(dt: number, context: ServerGameContext): void {
+    passiveTriggerSystem.updatePassiveState(dt, this, context);
+
+    // Check for low health trigger
+    const healthPercent = this.health / this.maxHealth;
+    const passiveDef = getPassiveDefinition(this.definition.passive);
+
+    if (passiveDef?.trigger === 'on_low_health' && passiveDef.healthThreshold) {
+      if (healthPercent <= passiveDef.healthThreshold && this.passiveState.cooldownRemaining <= 0) {
+        passiveTriggerSystem.dispatchTrigger('on_low_health', this, context);
+      }
+    }
   }
 
   /**
@@ -342,11 +395,21 @@ export class ServerChampion extends ServerEntity {
     const stats = this.getStats();
     const baseDamage = stats.attackDamage;
 
+    // Dispatch on_attack trigger BEFORE attack
+    passiveTriggerSystem.dispatchTrigger('on_attack', this, context, { target });
+
     // Calculate damage
     const damage = calculatePhysicalDamage(baseDamage, 0); // TODO: Get target armor
 
     // Deal damage (pass context for death handling/rewards)
     target.takeDamage(damage, 'physical', this.id, context);
+
+    // Dispatch on_hit trigger AFTER attack lands
+    passiveTriggerSystem.dispatchTrigger('on_hit', this, context, {
+      target,
+      damageAmount: damage,
+      damageType: 'physical',
+    });
 
     // Set attack cooldown
     this.attackCooldown = 1 / stats.attackSpeed;
@@ -660,6 +723,15 @@ export class ServerChampion extends ServerEntity {
     if (this.isDead) return 0;
 
     this.enterCombat();
+
+    // Dispatch on_take_damage trigger
+    if (context) {
+      passiveTriggerSystem.dispatchTrigger('on_take_damage', this, context, {
+        damageAmount: amount,
+        damageType: type,
+        sourceId,
+      });
+    }
 
     // Calculate damage after resistances
     let damage = this.calculateDamage(amount, type);
@@ -1291,7 +1363,19 @@ export class ServerChampion extends ServerEntity {
         E: { ...this.abilityStates.E },
         R: { ...this.abilityStates.R },
       },
+      passive: {
+        isActive: this.passiveState.isActive,
+        cooldownRemaining: this.passiveState.cooldownRemaining,
+        stacks: this.passiveState.stacks,
+        stackTimeRemaining: this.passiveState.stackTimeRemaining,
+      },
       activeEffects: this.activeEffects.map(e => ({ ...e })),
+      shields: this.shields.map(s => ({
+        amount: s.amount,
+        remainingDuration: s.remainingDuration,
+        sourceId: s.sourceId ?? 'unknown',
+        shieldType: s.shieldType ?? 'normal',
+      })),
       items: this.items.map(i => i ? { ...i } : null),
       gold: this.gold,
 

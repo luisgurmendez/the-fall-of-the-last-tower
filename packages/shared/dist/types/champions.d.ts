@@ -91,6 +91,8 @@ export interface ChampionDefinition {
     growthStats: ChampionGrowthStats;
     /** Ability IDs for each slot */
     abilities: Record<AbilitySlot, string>;
+    /** Passive ability ID (slot "P") */
+    passive: string;
 }
 /**
  * Runtime state of a champion (for network sync).

@@ -3,3 +3,4 @@
  */
 
 export * from './AbilityRegistry';
+export * from './PassiveRegistry';

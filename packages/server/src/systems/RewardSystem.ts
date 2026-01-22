@@ -17,6 +17,7 @@ import { GameConfig, EntityType, GameEventType } from '@siege/shared';
 import type { ServerGameContext } from '../game/ServerGameContext';
 import type { ServerEntity } from '../simulation/ServerEntity';
 import type { ServerChampion } from '../simulation/ServerChampion';
+import { passiveTriggerSystem } from './PassiveTriggerSystem';
 import { Logger } from '../utils/Logger';
 
 /** Tower XP reward constant (not in GameConfig yet) */
@@ -54,6 +55,11 @@ export class RewardSystem {
           entityId: killerChampion.id,
           amount: gold,
           sourceType: killedEntity.entityType, // What was killed to earn gold
+        });
+
+        // Dispatch on_kill trigger for passive abilities
+        passiveTriggerSystem.dispatchTrigger('on_kill', killerChampion, context, {
+          target: killedEntity,
         });
       }
     }
