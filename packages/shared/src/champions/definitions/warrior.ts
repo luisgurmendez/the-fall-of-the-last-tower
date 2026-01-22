@@ -129,6 +129,10 @@ export const WarriorUltimate: AbilityDefinition = {
   manaCost: [100, 100, 100],
   cooldown: [120, 100, 80],
   range: 600,
+  dash: {
+    speed: 1500,  // Fast leap
+    distance: 600, // Matches ability range
+  },
   damage: {
     type: 'physical',
     scaling: scaling([150, 250, 350], { adRatio: 1.0 }),

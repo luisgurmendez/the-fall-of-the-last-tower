@@ -297,6 +297,13 @@ const EFFECT_DISPLAY_INFO: Record<string, EffectDisplayInfo> = {
     icon: 'W',
     color: '#3498db',
   },
+  warrior_undying_resolve: {
+    name: 'Undying Resolve',
+    description: 'Armor increased by 20%.',
+    category: 'buff',
+    icon: 'R',
+    color: '#f59e0b',
+  },
 
   // ===================
   // Magnus Effects

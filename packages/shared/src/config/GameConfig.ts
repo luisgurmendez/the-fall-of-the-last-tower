@@ -170,6 +170,19 @@ export const GameConfig = {
     /** Maximum game duration (seconds) */
     MAX_GAME_DURATION: 60 * 60,  // 1 hour
   },
+
+  /**
+   * Debug/testing configuration.
+   * Set these for easier testing during development.
+   */
+  DEBUG: {
+    /** Starting champion level (1-18). Set higher for testing ultimates. */
+    STARTING_LEVEL: 6,
+    /** Starting skill points (normally equals level) */
+    STARTING_SKILL_POINTS: 6,
+    /** Starting gold override (0 = use ECONOMY.STARTING_GOLD) */
+    STARTING_GOLD_OVERRIDE: 0,
+  },
 } as const;
 
 export default GameConfig;

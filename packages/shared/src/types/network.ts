@@ -230,6 +230,8 @@ export enum EntityChangeMask {
   STATE = 1 << 8,
   TRINKET = 1 << 9,
   GOLD = 1 << 10,
+  SHIELDS = 1 << 11,
+  PASSIVE = 1 << 12,
 }
 
 /**

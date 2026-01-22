@@ -334,20 +334,27 @@ export class PassiveTriggerSystem {
         amount: shieldAmount,
         remainingDuration: definition.shield.duration,
         sourceId: `passive_${definition.id}`,
-        shieldType: 'passive',
+        shieldType: 'normal',
       });
     }
 
-    // Apply stat modifiers
+    // Apply stat modifiers via effects (so they show in HUD)
     if (definition.statModifiers) {
+      const effectDuration = definition.shield?.duration ?? 5;
       for (const mod of definition.statModifiers) {
-        champion.addModifier({
-          source: `passive_${definition.id}`,
-          flat: mod.flatValue ? { [mod.stat]: mod.flatValue } as any : undefined,
-          percent: mod.percentValue ? { [mod.stat]: 1 + mod.percentValue } as any : undefined,
-          duration: definition.shield?.duration ?? 5,
-          timeRemaining: definition.shield?.duration ?? 5,
-        });
+        // For warrior passive, apply the undying resolve effect
+        if (definition.id === 'warrior_passive' && mod.stat === 'armor') {
+          champion.applyEffect('warrior_undying_resolve', effectDuration, `passive_${definition.id}`);
+        } else {
+          // Fallback to direct modifier for other passives
+          champion.addModifier({
+            source: `passive_${definition.id}`,
+            flat: mod.flatValue ? { [mod.stat]: mod.flatValue } as any : undefined,
+            percent: mod.percentValue ? { [mod.stat]: 1 + mod.percentValue } as any : undefined,
+            duration: effectDuration,
+            timeRemaining: effectDuration,
+          });
+        }
       }
     }
 

@@ -425,6 +425,18 @@ export const GorathFortifyMRBuff: ServerStatEffectDef = {
   percentValue: 0.30, // +30% magic resist
 };
 
+// Warrior's Undying Resolve armor buff
+export const WarriorUndyingResolveEffect: ServerStatEffectDef = {
+  id: 'warrior_undying_resolve',
+  name: 'Undying Resolve',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+  stat: 'armor',
+  percentValue: 0.20, // +20% armor
+};
+
 // Vex's mark for tracking damage
 export const VexMarkEffect: ServerEffectDefinition = {
   id: 'vex_mark',
@@ -481,6 +493,7 @@ export const ALL_SERVER_EFFECTS: AnyServerEffectDef[] = [
   Speed30Effect,
   GorathFortifyBuff,
   GorathFortifyMRBuff,
+  WarriorUndyingResolveEffect,
   // Stat debuffs
   ArmorReduction,
   MagicResistReduction,

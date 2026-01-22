@@ -74,6 +74,8 @@ export interface ClientAbilityDefinition {
   shape?: string;
   aoeRadius?: number;
   coneAngle?: number;
+  width?: number;
+  dash?: { speed: number; distance: number };
   maxRank?: number;
   manaCost?: number[];
   cooldown?: number[];
@@ -145,6 +147,8 @@ function getAbilityDefinition(championId: string, slot: AbilitySlot): ClientAbil
     shape: abilityDef.shape,
     aoeRadius: abilityDef.aoeRadius,
     coneAngle: abilityDef.coneAngle,
+    width: abilityDef.width,
+    dash: abilityDef.dash,
     maxRank: abilityDef.maxRank,
     manaCost: abilityDef.manaCost,
     cooldown: abilityDef.cooldown,
@@ -193,6 +197,8 @@ class OnlineAbilityAdapter {
     shape?: string;
     aoeRadius?: number;
     coneAngle?: number;
+    width?: number;
+    dash?: { speed: number; distance: number };
   } | null {
     return {
       range: this.abilityDef.range,
@@ -200,6 +206,8 @@ class OnlineAbilityAdapter {
       shape: this.abilityDef.shape,
       aoeRadius: this.abilityDef.aoeRadius,
       coneAngle: this.abilityDef.coneAngle,
+      width: this.abilityDef.width,
+      dash: this.abilityDef.dash,
     };
   }
 }
@@ -606,6 +614,7 @@ export class OnlineChampionAdapter {
     return snapshot.activeEffects.map(effect => ({
       definitionId: effect.definitionId,
       timeRemaining: effect.timeRemaining,
+      totalDuration: effect.totalDuration,
       stacks: effect.stacks,
       shieldRemaining: effect.shieldRemaining,
     }));

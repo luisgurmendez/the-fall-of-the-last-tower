@@ -96,6 +96,8 @@ export interface ActiveEffectState {
     sourceId?: string;
     /** Time remaining in seconds */
     timeRemaining: number;
+    /** Total duration when effect was applied (for progress calculation) */
+    totalDuration?: number;
     /** Current stack count */
     stacks: number;
     /** For shields: remaining shield amount */

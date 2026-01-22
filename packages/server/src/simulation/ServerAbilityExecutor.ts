@@ -284,13 +284,33 @@ export class ServerAbilityExecutor {
     }
 
     // Handle dash if the ability has one
-    if (definition.dash && params.targetPosition) {
-      this.executeDash(params, definition);
+    // For target_enemy abilities, get position from target entity
+    if (definition.dash) {
+      let dashTargetPosition = params.targetPosition;
+      if (!dashTargetPosition && params.targetEntityId) {
+        const target = params.context.getEntity(params.targetEntityId);
+        if (target) {
+          dashTargetPosition = target.position.clone();
+        }
+      }
+      if (dashTargetPosition) {
+        this.executeDash({ ...params, targetPosition: dashTargetPosition }, definition, rank);
+      }
     }
 
     // Handle teleport/blink
-    if (definition.teleport && params.targetPosition) {
-      this.executeTeleport(params, definition);
+    // For target_enemy abilities, get position from target entity
+    if (definition.teleport) {
+      let teleportTargetPosition = params.targetPosition;
+      if (!teleportTargetPosition && params.targetEntityId) {
+        const target = params.context.getEntity(params.targetEntityId);
+        if (target) {
+          teleportTargetPosition = target.position.clone();
+        }
+      }
+      if (teleportTargetPosition) {
+        this.executeTeleport({ ...params, targetPosition: teleportTargetPosition }, definition);
+      }
     }
   }
 
@@ -538,6 +558,12 @@ export class ServerAbilityExecutor {
 
     if (!targetPosition) return;
 
+    // If this ability has a dash, skip projectile - the dash handles damage
+    // The dash is executed separately in executeAbilityByType()
+    if (definition.dash) {
+      return;
+    }
+
     const stats = champion.getStats();
 
     // Calculate direction
@@ -730,7 +756,8 @@ export class ServerAbilityExecutor {
    */
   private executeDash(
     params: AbilityCastParams,
-    definition: AbilityDefinition
+    definition: AbilityDefinition,
+    rank: number = 1
   ): void {
     const { champion, targetPosition } = params;
 
@@ -742,12 +769,31 @@ export class ServerAbilityExecutor {
     const normalizedDir = direction.normalized();
     const dashDistance = Math.min(direction.length(), definition.dash.distance);
 
+    // Calculate damage for collision if ability has damage
+    let damageAmount = 0;
+    if (definition.damage) {
+      const stats = champion.getStats();
+      damageAmount = calculateAbilityValue(definition.damage.scaling, rank, {
+        attackDamage: stats.attackDamage,
+        abilityPower: stats.abilityPower,
+        bonusHealth: stats.maxHealth - champion.definition.baseStats.health,
+        maxHealth: stats.maxHealth,
+      });
+    }
+
     champion.forcedMovement = {
       direction: normalizedDir,
       distance: dashDistance,
       duration: dashDistance / definition.dash.speed,
       elapsed: 0,
       type: "dash",
+      // Collision data for dash abilities that damage/apply effects
+      hitbox: definition.aoeRadius ?? 60,
+      damage: damageAmount,
+      damageType: definition.damage?.type,
+      appliesEffects: definition.appliesEffects,
+      effectDuration: definition.effectDuration,
+      hitEntities: new Set(),
     };
 
     // Update facing direction

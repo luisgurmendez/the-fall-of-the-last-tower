@@ -108,22 +108,24 @@ describe('Warrior (Kael)', () => {
       expect(arena.blue.getAbilityCooldown('Q')).toBeGreaterThan(0);
     });
 
-    test.skip('should not hit enemies behind caster', () => {
-      // TODO: Investigate cone targeting in ability executor
+    test('should not hit enemies behind caster', () => {
       const initialHealth = arena.red.health;
 
-      // Position red champion behind blue
+      // Position blue at origin, red behind blue
+      arena.blue.position.x = 0;
+      arena.blue.position.y = 0;
       arena.red.position.x = -150;
       arena.red.position.y = 0;
 
       arena.castAbility(arena.blue, 'Q', {
-        targetPosition: new Vector(150, 0), // Cast forward
+        targetPosition: new Vector(150, 0), // Cast forward (right)
       });
 
       arena.tick();
 
       // Should NOT have taken damage (behind caster)
-      expect(arena.red.health).toBe(initialHealth);
+      // Health may have regenerated slightly, so check >= initial
+      expect(arena.red.health).toBeGreaterThanOrEqual(initialHealth);
     });
   });
 
@@ -149,16 +151,15 @@ describe('Warrior (Kael)', () => {
       expect(arena.blue.resource).toBe(initialMana - 60);
     });
 
-    test.skip('shield should absorb damage', () => {
-      // TODO: Investigate shield absorption in applyDamage
+    test('shield should absorb damage', () => {
       arena.castAbility(arena.blue, 'W');
       arena.tick();
 
       const shieldAmount = arena.blue.getTotalShieldAmount();
       const initialHealth = arena.blue.health;
 
-      // Apply damage less than shield
-      arena.blue.applyDamage(50, 'physical', arena.red);
+      // Apply damage less than shield (use takeDamage, not applyDamage)
+      arena.blue.takeDamage(50, 'physical', arena.red.id, arena.context);
 
       // Health should be unchanged (shield absorbed damage)
       expect(arena.blue.health).toBe(initialHealth);
@@ -195,8 +196,7 @@ describe('Warrior (Kael)', () => {
       expect(arena.blue.position.x).toBeGreaterThan(initialX);
     });
 
-    test.skip('should apply slow to enemies hit', () => {
-      // TODO: Investigate dash collision and effect application
+    test('should apply slow to enemies hit', () => {
       // Position red in the dash path
       arena.red.position.x = 250;
       arena.red.position.y = 0;
@@ -226,16 +226,15 @@ describe('Warrior (Kael)', () => {
   });
 
   describe('R - Heroic Strike', () => {
-    test.skip('should require a target', () => {
-      // TODO: Investigate target_enemy ability behavior without explicit target
+    test('should require a target', () => {
       const result = arena.castAbility(arena.blue, 'R', {
         targetPosition: new Vector(500, 0),
         // No targetId provided
       });
 
       // Should fail without a target for target_enemy ability
-      // (depending on implementation, this might need targetId)
-      expect(result.success).toBe(true); // Might auto-target nearest enemy
+      expect(result.success).toBe(false);
+      expect(result.failReason).toBe('invalid_target');
     });
 
     test('should stun the target', () => {

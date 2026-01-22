@@ -281,8 +281,15 @@ export class OnlineInputHandler implements GameObject {
         this.inputManager.getMousePosition(),
         camera
       );
-      // For now, send position-targeted abilities
-      this.networkClient.sendAbilityInput(slot, 'position', worldPos.x, worldPos.y);
+
+      // If hovering over an enemy, send as unit-targeted ability
+      // This allows target_enemy abilities (like Warrior R) to work
+      if (this.hoveredEnemyId) {
+        this.networkClient.sendAbilityInput(slot, 'unit', worldPos.x, worldPos.y, this.hoveredEnemyId);
+      } else {
+        // Otherwise send as position-targeted ability
+        this.networkClient.sendAbilityInput(slot, 'position', worldPos.x, worldPos.y);
+      }
     }
   }
 

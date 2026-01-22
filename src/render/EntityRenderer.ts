@@ -15,7 +15,7 @@ import type { GameObject } from '@/core/GameObject';
 import type GameContext from '@/core/gameContext';
 import RenderElement from '@/render/renderElement';
 import Vector from '@/physics/vector';
-import type { OnlineStateManager, InterpolatedEntity, DamageNumber, GoldNumber } from '@/core/OnlineStateManager';
+import type { OnlineStateManager, InterpolatedEntity, DamageNumber, GoldNumber, AbilityEffect } from '@/core/OnlineStateManager';
 import { EntityType, getChampionDefinition } from '@siege/shared';
 
 /**
@@ -65,6 +65,129 @@ const SHIELD_STYLES: Record<string, { baseColor: string; stripeColor: string; st
     stripeColor: '#ca8a04',   // Dark gold
     stripeWidth: 3,
   },
+};
+
+/**
+ * Mark indicator visual configuration.
+ * Used for showing debuff marks, stacks, and other indicators above champions.
+ */
+interface MarkVisualConfig {
+  icon: string;          // Icon character or emoji
+  bgColor: string;       // Background color
+  borderColor: string;   // Border color
+  iconColor: string;     // Icon text color
+  showTimer?: boolean;   // Whether to show countdown timer
+  showStacks?: boolean;  // Whether to show stack count
+  isDebuff?: boolean;    // True for debuffs (shown on enemies)
+  isBuff?: boolean;      // True for buffs (shown on self/allies)
+}
+
+/**
+ * Visual configurations for different mark types.
+ * These show as small icons above health bars.
+ */
+const MARK_VISUALS: Record<string, MarkVisualConfig> = {
+  // Vex marks
+  vex_mark: {
+    icon: 'X',
+    bgColor: 'rgba(155, 89, 182, 0.8)',  // Purple
+    borderColor: '#9b59b6',
+    iconColor: '#ffffff',
+    showTimer: true,
+    isDebuff: true,
+  },
+  vex_death_mark: {
+    icon: '!',
+    bgColor: 'rgba(44, 62, 80, 0.9)',    // Dark
+    borderColor: '#e74c3c',               // Red border (danger)
+    iconColor: '#e74c3c',
+    showTimer: true,
+    isDebuff: true,
+  },
+  vex_stealth: {
+    icon: '?',
+    bgColor: 'rgba(44, 62, 80, 0.8)',
+    borderColor: '#2c3e50',
+    iconColor: '#ffffff',
+    showTimer: true,
+    isBuff: true,
+  },
+  // CC marks
+  stun: {
+    icon: '!',
+    bgColor: 'rgba(231, 76, 60, 0.8)',
+    borderColor: '#e74c3c',
+    iconColor: '#ffffff',
+    showTimer: true,
+    isDebuff: true,
+  },
+  taunt: {
+    icon: 'T',
+    bgColor: 'rgba(233, 30, 99, 0.8)',
+    borderColor: '#e91e63',
+    iconColor: '#ffffff',
+    showTimer: true,
+    isDebuff: true,
+  },
+  slow_30: {
+    icon: 'v',
+    bgColor: 'rgba(52, 152, 219, 0.8)',
+    borderColor: '#3498db',
+    iconColor: '#ffffff',
+    showTimer: true,
+    isDebuff: true,
+  },
+  slow_40: {
+    icon: 'v',
+    bgColor: 'rgba(41, 128, 185, 0.8)',
+    borderColor: '#2980b9',
+    iconColor: '#ffffff',
+    showTimer: true,
+    isDebuff: true,
+  },
+  // Gorath buffs
+  gorath_fortify_buff: {
+    icon: 'S',
+    bgColor: 'rgba(139, 115, 85, 0.8)',
+    borderColor: '#8b7355',
+    iconColor: '#ffffff',
+    showTimer: true,
+    isBuff: true,
+  },
+  gorath_fortify_mr_buff: {
+    icon: 'S',
+    bgColor: 'rgba(139, 92, 246, 0.8)',
+    borderColor: '#8b5cf6',
+    iconColor: '#ffffff',
+    showTimer: true,
+    isBuff: true,
+  },
+  // Speed buffs
+  speed_20: {
+    icon: '>',
+    bgColor: 'rgba(46, 204, 113, 0.8)',
+    borderColor: '#2ecc71',
+    iconColor: '#ffffff',
+    showTimer: true,
+    isBuff: true,
+  },
+  speed_30: {
+    icon: '>',
+    bgColor: 'rgba(39, 174, 96, 0.8)',
+    borderColor: '#27ae60',
+    iconColor: '#ffffff',
+    showTimer: true,
+    isBuff: true,
+  },
+};
+
+/** Default visual for unknown marks */
+const DEFAULT_MARK_VISUAL: MarkVisualConfig = {
+  icon: '?',
+  bgColor: 'rgba(149, 165, 166, 0.8)',
+  borderColor: '#95a5a6',
+  iconColor: '#ffffff',
+  showTimer: true,
 };
 
 /**
@@ -442,6 +565,9 @@ export class EntityRenderer implements GameObject {
         this.renderEntity(canvasRenderingContext, entity, isLocalPlayer, state);
       }
 
+      // Render ability visual effects
+      this.renderAbilityEffects(canvasRenderingContext);
+
       // Render floating damage numbers on top of all entities
       this.renderDamageNumbers(canvasRenderingContext);
 
@@ -555,6 +681,7 @@ export class EntityRenderer implements GameObject {
     ctx.stroke();
 
     // Draw health bar with shields
+    const healthBarY = -size * 0.7;
     if (snapshot.health !== undefined && snapshot.maxHealth !== undefined) {
       // Determine health bar color based on relationship to local player
       // Green for self, blue for ally, red for enemy
@@ -569,8 +696,18 @@ export class EntityRenderer implements GameObject {
 
       // Extract shields from snapshot (if available)
       const shields = snapshot.shields as Array<{ amount: number; shieldType: string }> | undefined;
-      this.renderHealthBar(ctx, snapshot.health, snapshot.maxHealth, size, -size * 0.7, healthBarColor, shields);
+      this.renderHealthBar(ctx, snapshot.health, snapshot.maxHealth, size, healthBarY, healthBarColor, shields);
     }
+
+    // Draw mark indicators above health bar (debuffs on enemies, buffs on self)
+    const isEnemy = side !== this.localSide;
+    const activeEffects = snapshot.activeEffects as Array<{
+      definitionId: string;
+      timeRemaining: number;
+      totalDuration?: number;
+      stacks: number;
+    }> | undefined;
+    this.renderMarkIndicators(ctx, activeEffects, size, healthBarY, isLocalPlayer, isEnemy);
 
     // Draw mana bar for local player
     if (isLocalPlayer && snapshot.resource !== undefined && snapshot.maxResource !== undefined) {
@@ -1057,25 +1194,41 @@ export class EntityRenderer implements GameObject {
   ): void {
     const barWidth = width;
     const barHeight = 6;
-    const healthPercent = Math.max(0, Math.min(1, health / maxHealth));
 
     // Calculate total shield amount
     const totalShield = shields?.reduce((sum, s) => sum + s.amount, 0) ?? 0;
-    const shieldPercent = totalShield / maxHealth;
 
-    // Background (extends to include shield portion)
-    const totalWidth = barWidth * Math.min(1 + shieldPercent, 2); // Cap at 2x width
+    // Calculate display percentages
+    // When health + shield > maxHealth, scale both down to fit within the bar
+    const totalEffectiveHealth = health + totalShield;
+    let healthDisplayPercent: number;
+    let shieldDisplayPercent: number;
+
+    if (totalEffectiveHealth > maxHealth) {
+      // Scale down: both health and shield proportionally fit within bar
+      healthDisplayPercent = health / totalEffectiveHealth;
+      shieldDisplayPercent = totalShield / totalEffectiveHealth;
+    } else {
+      // Normal case: use maxHealth as the scale
+      healthDisplayPercent = health / maxHealth;
+      shieldDisplayPercent = totalShield / maxHealth;
+    }
+
+    // Clamp values
+    healthDisplayPercent = Math.max(0, Math.min(1, healthDisplayPercent));
+    shieldDisplayPercent = Math.max(0, Math.min(1 - healthDisplayPercent, shieldDisplayPercent));
+
+    // Background - always fixed width
     ctx.fillStyle = '#333333';
-    ctx.fillRect(-barWidth / 2, yOffset, totalWidth, barHeight);
+    ctx.fillRect(-barWidth / 2, yOffset, barWidth, barHeight);
 
-    // Health fill - use provided color, but switch to orange/red at low health
-    const healthColor = healthPercent > 0.25 ? healthBarColor : '#e74c3c';
-    ctx.fillStyle = healthColor;
-    ctx.fillRect(-barWidth / 2, yOffset, barWidth * healthPercent, barHeight);
+    // Health fill - use provided color
+    ctx.fillStyle = healthBarColor;
+    ctx.fillRect(-barWidth / 2, yOffset, barWidth * healthDisplayPercent, barHeight);
 
-    // Render shields extending beyond health (with diagonal stripes)
-    if (shields && shields.length > 0 && totalShield > 0) {
-      const shieldStartX = -barWidth / 2 + barWidth * healthPercent;
+    // Render shields to the right of health
+    if (shields && shields.length > 0 && totalShield > 0 && shieldDisplayPercent > 0) {
+      const shieldStartX = -barWidth / 2 + barWidth * healthDisplayPercent;
       let currentShieldX = shieldStartX;
 
       // Group shields by type for visual consistency
@@ -1085,9 +1238,14 @@ export class EntityRenderer implements GameObject {
         shieldsByType.set(shield.shieldType, existing + shield.amount);
       }
 
-      // Render each shield type
+      // Calculate total shield for proportional rendering
+      const totalShieldAmount = Array.from(shieldsByType.values()).reduce((a, b) => a + b, 0);
+
+      // Render each shield type proportionally within the shield display area
       for (const [shieldType, amount] of shieldsByType) {
-        const shieldWidth = (amount / maxHealth) * barWidth;
+        // Each shield type gets its proportion of the shield display area
+        const shieldProportion = amount / totalShieldAmount;
+        const shieldWidth = barWidth * shieldDisplayPercent * shieldProportion;
         if (shieldWidth <= 0) continue;
 
         // Get style for this shield type
@@ -1117,11 +1275,10 @@ export class EntityRenderer implements GameObject {
       ctx.stroke();
     }
 
-    // Border around entire bar (health + shield)
+    // Border around bar (always fixed width)
     ctx.strokeStyle = '#000000';
     ctx.lineWidth = 1;
-    const actualTotalWidth = barWidth * (healthPercent + Math.min(shieldPercent, 1));
-    ctx.strokeRect(-barWidth / 2, yOffset, Math.max(barWidth, actualTotalWidth), barHeight);
+    ctx.strokeRect(-barWidth / 2, yOffset, barWidth, barHeight);
   }
 
   /**
@@ -1197,6 +1354,131 @@ export class EntityRenderer implements GameObject {
   }
 
   /**
+   * Render mark indicators above a champion's health bar.
+   * Shows active effects like vex_mark, stun, slow, etc. as small icons.
+   *
+   * @param activeEffects - Array of active effects on the champion
+   * @param width - Width of the health bar (for positioning)
+   * @param healthBarY - Y offset of the health bar
+   * @param isLocalPlayer - Whether this is the local player
+   * @param isEnemy - Whether this is an enemy champion
+   */
+  private renderMarkIndicators(
+    ctx: CanvasRenderingContext2D,
+    activeEffects: Array<{ definitionId: string; timeRemaining: number; totalDuration?: number; stacks: number }> | undefined,
+    width: number,
+    healthBarY: number,
+    isLocalPlayer: boolean,
+    isEnemy: boolean
+  ): void {
+    if (!activeEffects || activeEffects.length === 0) return;
+
+    // Filter effects to show: debuffs on enemies, buffs on self/allies
+    const visibleEffects = activeEffects.filter(effect => {
+      const visual = MARK_VISUALS[effect.definitionId] || DEFAULT_MARK_VISUAL;
+      if (isEnemy) {
+        // On enemies, show debuffs
+        return visual.isDebuff;
+      } else {
+        // On self/allies, show buffs
+        return visual.isBuff || isLocalPlayer; // Local player sees all their effects
+      }
+    });
+
+    if (visibleEffects.length === 0) return;
+
+    const iconSize = 14;
+    const iconSpacing = 2;
+    const totalWidth = visibleEffects.length * iconSize + (visibleEffects.length - 1) * iconSpacing;
+    const startX = -totalWidth / 2;
+    const markY = healthBarY - iconSize - 4; // Above health bar
+
+    visibleEffects.forEach((effect, index) => {
+      const visual = MARK_VISUALS[effect.definitionId] || DEFAULT_MARK_VISUAL;
+      const x = startX + index * (iconSize + iconSpacing);
+
+      // Background
+      ctx.fillStyle = visual.bgColor;
+      ctx.fillRect(x, markY, iconSize, iconSize);
+
+      // Radial timer overlay (drains clockwise as time expires)
+      if (visual.showTimer && effect.timeRemaining > 0 && effect.totalDuration && effect.totalDuration > 0) {
+        const progress = effect.timeRemaining / effect.totalDuration;
+        const expiredAngle = (1 - progress) * Math.PI * 2;
+        const centerX = x + iconSize / 2;
+        const centerY = markY + iconSize / 2;
+
+        ctx.save();
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.arc(centerX, centerY, iconSize / 2, -Math.PI / 2, -Math.PI / 2 + expiredAngle, false);
+        ctx.lineTo(centerX, centerY);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // Border
+      ctx.strokeStyle = visual.borderColor;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x, markY, iconSize, iconSize);
+
+      // Icon
+      ctx.fillStyle = visual.iconColor;
+      ctx.font = 'bold 10px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(visual.icon, x + iconSize / 2, markY + iconSize / 2);
+
+      // Stack count (small number in corner)
+      if (visual.showStacks && effect.stacks > 1) {
+        ctx.fillStyle = '#FFD700';
+        ctx.font = 'bold 8px Arial';
+        ctx.textAlign = 'right';
+        ctx.fillText(effect.stacks.toString(), x + iconSize - 1, markY + iconSize - 2);
+      }
+    });
+  }
+
+  /**
+   * Render passive stack indicator below health bar.
+   * Shows stacks like Magnus's Arcane Surge (0-4) or Gorath's Immovable (0-10).
+   *
+   * @param stacks - Current stack count
+   * @param maxStacks - Maximum stacks possible
+   * @param width - Width of the health bar (for positioning)
+   * @param healthBarY - Y offset of the health bar
+   * @param color - Color for filled stacks
+   */
+  private renderStackIndicator(
+    ctx: CanvasRenderingContext2D,
+    stacks: number,
+    maxStacks: number,
+    width: number,
+    healthBarY: number,
+    color: string = '#FFD700'
+  ): void {
+    if (maxStacks <= 0) return;
+
+    const pipSize = 4;
+    const pipSpacing = 2;
+    const totalWidth = maxStacks * pipSize + (maxStacks - 1) * pipSpacing;
+    const startX = -totalWidth / 2;
+    const pipY = healthBarY + 8; // Below health bar
+
+    for (let i = 0; i < maxStacks; i++) {
+      const isFilled = i < stacks;
+      ctx.fillStyle = isFilled ? color : '#333333';
+      ctx.fillRect(startX + i * (pipSize + pipSpacing), pipY, pipSize, pipSize);
+
+      // Border
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 0.5;
+      ctx.strokeRect(startX + i * (pipSize + pipSpacing), pipY, pipSize, pipSize);
+    }
+  }
+
+  /**
    * Render waiting message when no state received yet.
    */
   private renderWaitingMessage(ctx: CanvasRenderingContext2D): void {
@@ -1228,6 +1510,163 @@ export class EntityRenderer implements GameObject {
    */
   getTeamId(): number {
     return this.localSide === 0 ? 0 : 1;
+  }
+
+  /**
+   * Render ability visual effects (cone sweeps, circles, etc.)
+   */
+  private renderAbilityEffects(ctx: CanvasRenderingContext2D): void {
+    const effects = this.stateManager.getAbilityEffects();
+
+    if (effects.length > 0) {
+      console.log('[EntityRenderer] Rendering', effects.length, 'ability effects');
+    }
+
+    for (const effect of effects) {
+      const progress = this.stateManager.getAbilityEffectProgress(effect);
+
+      // Fade out effect as it progresses
+      const alpha = 1 - progress * 0.7; // Keep some visibility until end
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+
+      // Calculate direction from origin to target
+      const dx = effect.targetX - effect.originX;
+      const dy = effect.targetY - effect.originY;
+      const angle = Math.atan2(dy, dx);
+
+      switch (effect.shape) {
+        case 'cone':
+          this.renderConeEffect(ctx, effect, angle, progress);
+          break;
+        case 'circle':
+          this.renderCircleEffect(ctx, effect, progress);
+          break;
+        case 'line':
+          this.renderLineEffect(ctx, effect, angle, progress);
+          break;
+        case 'point':
+          this.renderPointEffect(ctx, effect, progress);
+          break;
+      }
+
+      ctx.restore();
+    }
+  }
+
+  /**
+   * Render a cone-shaped ability effect.
+   */
+  private renderConeEffect(
+    ctx: CanvasRenderingContext2D,
+    effect: AbilityEffect,
+    angle: number,
+    progress: number
+  ): void {
+    const halfAngle = (effect.coneAngle || Math.PI / 2) / 2;
+
+    // Animate the cone expanding outward
+    const currentRange = effect.range * Math.min(1, progress * 2 + 0.3);
+
+    // Draw filled cone
+    ctx.fillStyle = effect.color;
+    ctx.beginPath();
+    ctx.moveTo(effect.originX, effect.originY);
+    ctx.arc(effect.originX, effect.originY, currentRange, angle - halfAngle, angle + halfAngle);
+    ctx.closePath();
+    ctx.fill();
+
+    // Draw edge highlight
+    ctx.strokeStyle = effect.color.replace(/[\d.]+\)$/, '0.9)');
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  /**
+   * Render a circle-shaped ability effect (AoE).
+   */
+  private renderCircleEffect(
+    ctx: CanvasRenderingContext2D,
+    effect: AbilityEffect,
+    progress: number
+  ): void {
+    const radius = effect.aoeRadius || effect.range;
+
+    // Animate expanding ring
+    const innerRadius = radius * progress * 0.8;
+    const outerRadius = radius * Math.min(1, progress * 1.2);
+
+    // Draw outer circle
+    ctx.fillStyle = effect.color;
+    ctx.beginPath();
+    ctx.arc(effect.targetX, effect.targetY, outerRadius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Draw inner highlight ring
+    ctx.strokeStyle = effect.color.replace(/[\d.]+\)$/, '0.8)');
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(effect.targetX, effect.targetY, innerRadius, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  /**
+   * Render a line-shaped ability effect (skillshot).
+   */
+  private renderLineEffect(
+    ctx: CanvasRenderingContext2D,
+    effect: AbilityEffect,
+    angle: number,
+    progress: number
+  ): void {
+    const width = effect.width || 60;
+    const halfWidth = width / 2;
+
+    // Animate the line extending
+    const currentRange = effect.range * Math.min(1, progress * 2 + 0.3);
+
+    // Calculate perpendicular direction for width
+    const perpX = -Math.sin(angle) * halfWidth;
+    const perpY = Math.cos(angle) * halfWidth;
+
+    // Calculate end point
+    const endX = effect.originX + Math.cos(angle) * currentRange;
+    const endY = effect.originY + Math.sin(angle) * currentRange;
+
+    // Draw filled rectangle
+    ctx.fillStyle = effect.color;
+    ctx.beginPath();
+    ctx.moveTo(effect.originX + perpX, effect.originY + perpY);
+    ctx.lineTo(endX + perpX, endY + perpY);
+    ctx.lineTo(endX - perpX, endY - perpY);
+    ctx.lineTo(effect.originX - perpX, effect.originY - perpY);
+    ctx.closePath();
+    ctx.fill();
+
+    // Draw edge highlight
+    ctx.strokeStyle = effect.color.replace(/[\d.]+\)$/, '0.8)');
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  /**
+   * Render a point-based ability effect (impact).
+   */
+  private renderPointEffect(
+    ctx: CanvasRenderingContext2D,
+    effect: AbilityEffect,
+    progress: number
+  ): void {
+    // Expanding ring effect
+    const maxRadius = 50;
+    const currentRadius = maxRadius * progress;
+
+    ctx.strokeStyle = effect.color;
+    ctx.lineWidth = 4 * (1 - progress);
+    ctx.beginPath();
+    ctx.arc(effect.targetX, effect.targetY, currentRadius, 0, Math.PI * 2);
+    ctx.stroke();
   }
 
   /**

@@ -205,6 +205,16 @@ export class StateSerializer {
         mask |= EntityChangeMask.EFFECTS;
       }
 
+      // Check shields
+      if (JSON.stringify(prevChamp.shields) !== JSON.stringify(currChamp.shields)) {
+        mask |= EntityChangeMask.SHIELDS;
+      }
+
+      // Check passive state
+      if (JSON.stringify(prevChamp.passive) !== JSON.stringify(currChamp.passive)) {
+        mask |= EntityChangeMask.PASSIVE;
+      }
+
       // Check items
       if (JSON.stringify(prevChamp.items) !== JSON.stringify(currChamp.items)) {
         mask |= EntityChangeMask.ITEMS;
@@ -316,6 +326,14 @@ export class StateSerializer {
 
       if (mask & EntityChangeMask.EFFECTS) {
         (result as any).activeEffects = currChamp.activeEffects;
+      }
+
+      if (mask & EntityChangeMask.SHIELDS) {
+        (result as any).shields = currChamp.shields;
+      }
+
+      if (mask & EntityChangeMask.PASSIVE) {
+        (result as any).passive = currChamp.passive;
       }
 
       if (mask & EntityChangeMask.ITEMS) {

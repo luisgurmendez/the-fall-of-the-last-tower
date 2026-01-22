@@ -79,6 +79,13 @@ export interface ForcedMovement {
   duration: number;
   elapsed: number;
   type: 'dash' | 'knockback';
+  // Dash collision data (for abilities that damage/apply effects during dash)
+  hitbox?: number;           // Collision radius
+  damage?: number;           // Damage to apply on hit
+  damageType?: DamageType;   // Type of damage
+  appliesEffects?: string[]; // Effect IDs to apply
+  effectDuration?: number;   // Duration of applied effects
+  hitEntities?: Set<string>; // Track already-hit entities
 }
 
 export class ServerChampion extends ServerEntity {
@@ -172,6 +179,19 @@ export class ServerChampion extends ServerEntity {
     // Set initial direction based on side
     this.direction = new Vector(config.side === 0 ? 1 : -1, 0);
 
+    // Apply debug starting level if configured
+    const debugLevel = GameConfig.DEBUG?.STARTING_LEVEL ?? 1;
+    if (debugLevel > 1) {
+      this.level = debugLevel;
+      this.skillPoints = GameConfig.DEBUG?.STARTING_SKILL_POINTS ?? debugLevel;
+      // Recalculate stats for new level
+      const stats = this.getStats();
+      this.maxHealth = stats.maxHealth;
+      this.health = stats.maxHealth;
+      this.maxResource = stats.maxResource;
+      this.resource = stats.maxResource;
+    }
+
     // Initialize passive state
     this.initializePassive();
 
@@ -222,7 +242,7 @@ export class ServerChampion extends ServerEntity {
 
     // Update forced movement first
     if (this.forcedMovement) {
-      this.updateForcedMovement(dt);
+      this.updateForcedMovement(dt, context);
     } else if (this.ccStatus.canMove) {
       // Normal movement
       this.updateMovement(dt, context);
@@ -345,7 +365,7 @@ export class ServerChampion extends ServerEntity {
   /**
    * Update forced movement (dash/knockback).
    */
-  private updateForcedMovement(dt: number): void {
+  private updateForcedMovement(dt: number, context: ServerGameContext): void {
     if (!this.forcedMovement) return;
 
     const fm = this.forcedMovement;
@@ -357,8 +377,47 @@ export class ServerChampion extends ServerEntity {
     const movement = fm.direction.clone().scalar(moveDistance);
     this.position.add(movement);
 
+    // Check for collisions during dash (not knockback)
+    if (fm.type === 'dash' && fm.hitbox && fm.hitbox > 0) {
+      this.checkDashCollisions(context, fm);
+    }
+
     if (fm.elapsed >= fm.duration) {
       this.forcedMovement = null;
+    }
+  }
+
+  /**
+   * Check for collisions during dash and apply damage/effects.
+   */
+  private checkDashCollisions(context: ServerGameContext, fm: ForcedMovement): void {
+    if (!fm.hitEntities) {
+      fm.hitEntities = new Set();
+    }
+
+    const entities = context.getEntitiesInRadius(this.position, fm.hitbox!);
+
+    for (const entity of entities) {
+      if (entity.side === this.side) continue;
+      if (entity.isDead) continue;
+      if (entity.id === this.id) continue;
+      if (fm.hitEntities.has(entity.id)) continue; // Already hit
+
+      // Mark as hit
+      fm.hitEntities.add(entity.id);
+
+      // Apply damage
+      if (fm.damage && fm.damage > 0 && fm.damageType) {
+        entity.takeDamage(fm.damage, fm.damageType, this.id, context);
+      }
+
+      // Apply effects
+      if (fm.appliesEffects && fm.effectDuration && 'applyEffect' in entity) {
+        const applyEffect = (entity as { applyEffect: (id: string, duration: number, sourceId?: string) => void }).applyEffect;
+        for (const effectId of fm.appliesEffects) {
+          applyEffect.call(entity, effectId, fm.effectDuration, this.id);
+        }
+      }
     }
   }
 
@@ -1002,18 +1061,22 @@ export class ServerChampion extends ServerEntity {
       switch (def.stackBehavior) {
         case 'refresh':
           existing.timeRemaining = duration;
+          existing.totalDuration = duration; // Update total for timer display
           break;
         case 'extend':
           existing.timeRemaining += duration;
+          existing.totalDuration = existing.timeRemaining; // Total becomes extended duration
           break;
         case 'stack':
           if (!def.maxStacks || existing.stacks < def.maxStacks) {
             existing.stacks += stacks;
           }
           existing.timeRemaining = duration; // Usually refresh on stack
+          existing.totalDuration = duration;
           break;
         case 'replace':
           existing.timeRemaining = duration;
+          existing.totalDuration = duration;
           existing.stacks = stacks;
           break;
         case 'ignore':
@@ -1026,6 +1089,7 @@ export class ServerChampion extends ServerEntity {
         definitionId: effectId,
         sourceId,
         timeRemaining: duration,
+        totalDuration: duration, // Track initial duration for timer display
         stacks,
         instanceId: `${effectId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       };

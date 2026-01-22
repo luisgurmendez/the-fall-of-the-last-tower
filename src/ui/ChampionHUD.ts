@@ -143,6 +143,8 @@ export interface HUDActiveEffect {
   definitionId: string;
   /** Time remaining in seconds */
   timeRemaining: number;
+  /** Total duration when effect was applied (for progress bar) */
+  totalDuration?: number;
   /** Current stack count */
   stacks: number;
   /** For shields: remaining shield amount */
@@ -1347,7 +1349,7 @@ export class ChampionHUD extends ScreenEntity {
     });
   }
 
-  /** Draw a single effect icon */
+  /** Draw a single effect icon with radial cooldown-style timer */
   private drawEffectIcon(
     ctx: CanvasRenderingContext2D,
     x: number,
@@ -1357,6 +1359,9 @@ export class ChampionHUD extends ScreenEntity {
     isHovered: boolean = false
   ): void {
     const displayInfo = getEffectDisplayInfo(effect.definitionId);
+    const centerX = x + size / 2;
+    const centerY = y + size / 2;
+    const radius = size / 2 - 2;
 
     // Background based on category
     const bgColor = isHovered
@@ -1366,6 +1371,23 @@ export class ChampionHUD extends ScreenEntity {
          'rgba(155, 89, 182, 0.3)');
     ctx.fillStyle = bgColor;
     ctx.fillRect(x, y, size, size);
+
+    // Draw radial cooldown sweep (drains clockwise from top as time expires)
+    if (effect.timeRemaining > 0 && effect.totalDuration && effect.totalDuration > 0) {
+      const progress = effect.timeRemaining / effect.totalDuration; // 1 = full, 0 = expired
+
+      // Draw the "remaining time" arc as a semi-transparent overlay
+      ctx.save();
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      // Arc from top (-π/2) clockwise by the expired portion
+      const expiredAngle = (1 - progress) * Math.PI * 2;
+      ctx.arc(centerX, centerY, radius + 2, -Math.PI / 2, -Math.PI / 2 + expiredAngle, false);
+      ctx.lineTo(centerX, centerY);
+      ctx.fill();
+      ctx.restore();
+    }
 
     // Border with effect color (highlight when hovered)
     if (isHovered) {
@@ -1381,12 +1403,12 @@ export class ChampionHUD extends ScreenEntity {
     RenderUtils.renderBitmapText(
       ctx,
       displayInfo.icon,
-      x + size / 2,
-      y + size / 2 - 14,
+      centerX,
+      centerY - 14,
       { color: displayInfo.color, size: 26, centered: true, shadow: true }
     );
 
-    // Duration timer at bottom
+    // Duration timer at bottom (only show text for longer durations)
     if (effect.timeRemaining > 0) {
       const timerText = effect.timeRemaining >= 10
         ? Math.floor(effect.timeRemaining).toString()
@@ -1394,7 +1416,7 @@ export class ChampionHUD extends ScreenEntity {
       RenderUtils.renderBitmapText(
         ctx,
         timerText,
-        x + size / 2,
+        centerX,
         y + size - 16,
         { color: HUD_COLORS.text, size: 16, centered: true, shadow: false }
       );
@@ -1557,8 +1579,12 @@ export class ChampionHUD extends ScreenEntity {
 
     ctx.save();
 
-    // Draw cast range circle
-    if (targetDesc.range && targetDesc.range > 0) {
+    // Get shape info early so we can skip range circle for cones
+    const aoeRadius = (targetDesc as any).aoeRadius;
+    const shape = (targetDesc as any).shape;
+
+    // Draw cast range circle (skip for cone abilities - the cone itself shows the range)
+    if (targetDesc.range && targetDesc.range > 0 && shape !== 'cone') {
       const rangeScreenRadius = targetDesc.range * camera.zoom;
 
       // Cast range (dashed cyan circle)
@@ -1579,10 +1605,11 @@ export class ChampionHUD extends ScreenEntity {
         { color: '#00CED1', size: 20, centered: true }
       );
     }
+    // Check if this is a dash ability (aoeRadius is the dash hitbox, not AoE)
+    const hasDash = !!(targetDesc as any).dash;
 
-    // Draw AoE radius for ground target abilities
-    const aoeRadius = (targetDesc as any).aoeRadius;
-    if (aoeRadius && aoeRadius > 0) {
+    // Draw AoE circle for ground target abilities (skip for cone and dash - they have their own indicators)
+    if (aoeRadius && aoeRadius > 0 && shape !== 'cone' && !hasDash) {
       const aoeScreenRadius = aoeRadius * camera.zoom;
 
       // Get mouse position to show AoE preview at cursor
@@ -1609,11 +1636,45 @@ export class ChampionHUD extends ScreenEntity {
       }
     }
 
-    // Draw skillshot width for skillshot abilities
-    const width = (targetDesc as any).width;
-    if (width && width > 0 && targetDesc.range) {
-      const widthScreen = width * camera.zoom;
-      const rangeScreen = targetDesc.range * camera.zoom;
+    // Draw cone for cone-shaped abilities
+    // Note: For cones, aoeRadius is the actual damage range, not the cast range
+    const coneAngle = (targetDesc as any).coneAngle;
+    const coneRadius = aoeRadius || targetDesc.range;  // Use aoeRadius if available
+    if (shape === 'cone' && coneAngle && coneRadius) {
+      const rangeScreenRadius = coneRadius * camera.zoom;
+
+      // Get mouse position for direction
+      const mousePos = this.inputManager.getMousePosition();
+      if (mousePos) {
+        const dx = mousePos.x - screenX;
+        const dy = mousePos.y - screenY;
+        const baseAngle = Math.atan2(dy, dx);
+        const halfAngle = coneAngle / 2;
+
+        // Draw cone indicator
+        ctx.fillStyle = 'rgba(255, 165, 0, 0.25)';
+        ctx.strokeStyle = 'rgba(255, 165, 0, 0.8)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.moveTo(screenX, screenY);
+        ctx.arc(screenX, screenY, rangeScreenRadius, baseAngle - halfAngle, baseAngle + halfAngle);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      }
+    }
+
+    // Draw skillshot/dash line indicator
+    // For dash abilities, use aoeRadius as the width (it's the dash hitbox)
+    // For regular skillshots, use width property
+    const skillshotWidth = (targetDesc as any).width || (hasDash ? aoeRadius : 0);
+    const dashDistance = hasDash ? (targetDesc as any).dash?.distance : 0;
+    const skillshotRange = dashDistance || targetDesc.range;
+
+    if (skillshotWidth && skillshotWidth > 0 && skillshotRange) {
+      const widthScreen = skillshotWidth * camera.zoom;
+      const rangeScreen = skillshotRange * camera.zoom;
 
       // Get mouse position for direction
       const mousePos = this.inputManager.getMousePosition();
@@ -1622,27 +1683,20 @@ export class ChampionHUD extends ScreenEntity {
         const dy = mousePos.y - screenY;
         const angle = Math.atan2(dy, dx);
 
-        // Draw skillshot rectangle preview
+        // Draw skillshot/dash rectangle preview
         ctx.save();
         ctx.translate(screenX, screenY);
         ctx.rotate(angle);
 
-        ctx.fillStyle = 'rgba(255, 100, 100, 0.2)';
-        ctx.strokeStyle = 'rgba(255, 100, 100, 0.8)';
+        // Use different color for dash vs skillshot
+        const color = hasDash ? 'rgba(255, 200, 50' : 'rgba(255, 100, 100';
+        ctx.fillStyle = color + ', 0.2)';
+        ctx.strokeStyle = color + ', 0.8)';
         ctx.lineWidth = 2;
         ctx.fillRect(0, -widthScreen / 2, rangeScreen, widthScreen);
         ctx.strokeRect(0, -widthScreen / 2, rangeScreen, widthScreen);
 
         ctx.restore();
-
-        // Width label
-        RenderUtils.renderBitmapText(
-          ctx,
-          `Width: ${width}`,
-          screenX + Math.cos(angle) * rangeScreen / 2,
-          screenY + Math.sin(angle) * rangeScreen / 2 - widthScreen / 2 - 15,
-          { color: '#FF6464', size: 20, centered: true }
-        );
       }
     }
 

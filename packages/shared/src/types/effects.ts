@@ -164,6 +164,9 @@ export interface ActiveEffectState {
   /** Time remaining in seconds */
   timeRemaining: number;
 
+  /** Total duration when effect was applied (for progress calculation) */
+  totalDuration?: number;
+
   /** Current stack count */
   stacks: number;
 
