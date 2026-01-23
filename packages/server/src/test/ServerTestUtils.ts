@@ -10,6 +10,8 @@
 
 import { ServerChampion, type ServerChampionConfig } from '../simulation/ServerChampion';
 import { ServerMinion } from '../simulation/ServerMinion';
+import { ServerTower } from '../simulation/ServerTower';
+import { ServerJungleCreature } from '../simulation/ServerJungleCreature';
 import { ServerGameContext } from '../game/ServerGameContext';
 import { abilityExecutor } from '../simulation/ServerAbilityExecutor';
 import {
@@ -19,6 +21,7 @@ import {
   type ChampionDefinition,
   type Side,
   type AbilitySlot,
+  type MinionType,
   TEAM_BLUE,
   TEAM_RED,
 } from '@siege/shared';
@@ -203,6 +206,12 @@ export interface TestArena {
   /** Tick multiple frames */
   tickFrames: (frames: number, dt?: number) => void;
 
+  /** Tick all entities including minions, towers, and jungle creatures */
+  tickAll: (dt?: number) => void;
+
+  /** Tick all entities for multiple frames */
+  tickAllFrames: (frames: number, dt?: number) => void;
+
   /** Cast ability from one champion */
   castAbility: (
     caster: TestChampion,
@@ -214,7 +223,13 @@ export interface TestArena {
   ) => ReturnType<typeof abilityExecutor.castAbility>;
 
   /** Add a minion to the arena */
-  addMinion: (side: Side, position: Vector) => ServerMinion;
+  addMinion: (side: Side, position: Vector, minionType?: MinionType) => ServerMinion;
+
+  /** Add a tower to the arena */
+  addTower: (side: Side, position: Vector, lane?: 'top' | 'mid' | 'bot', tier?: 1 | 2 | 3) => ServerTower;
+
+  /** Add a jungle creature to the arena */
+  addJungleCreature: (position: Vector, creatureType?: string) => ServerJungleCreature;
 }
 
 export interface TestArenaOptions {
@@ -281,6 +296,8 @@ export function createTestArena(options: TestArenaOptions = {}): TestArena {
   }
 
   let minionCounter = 0;
+  let towerCounter = 0;
+  let jungleCreatureCounter = 0;
 
   return {
     context,
@@ -299,6 +316,30 @@ export function createTestArena(options: TestArenaOptions = {}): TestArena {
       }
     },
 
+    tickAll: (dt = 1 / 60) => {
+      // Update champions
+      blue.update(dt, context);
+      red.update(dt, context);
+      // Update all entities (minions, towers, jungle creatures, projectiles, zones)
+      for (const entity of context.getAllEntities()) {
+        if (entity.id !== blue.id && entity.id !== red.id) {
+          entity.update(dt, context);
+        }
+      }
+    },
+
+    tickAllFrames: (frames, dt = 1 / 60) => {
+      for (let i = 0; i < frames; i++) {
+        blue.update(dt, context);
+        red.update(dt, context);
+        for (const entity of context.getAllEntities()) {
+          if (entity.id !== blue.id && entity.id !== red.id) {
+            entity.update(dt, context);
+          }
+        }
+      }
+    },
+
     castAbility: (caster, slot, castOptions = {}) => {
       const { targetPosition, targetId } = castOptions;
       return abilityExecutor.castAbility({
@@ -310,17 +351,41 @@ export function createTestArena(options: TestArenaOptions = {}): TestArena {
       });
     },
 
-    addMinion: (side, position) => {
+    addMinion: (side, position, minionType = 'melee') => {
       const minion = new ServerMinion({
         id: `test-minion-${minionCounter++}`,
         position: position.clone(),
         side,
-        minionType: 'melee',
+        minionType,
         lane: 'mid',
         waypoints: [],
       });
       context.addEntity(minion);
       return minion;
+    },
+
+    addTower: (side, position, lane = 'mid', tier = 1) => {
+      const tower = new ServerTower({
+        id: `test-tower-${towerCounter++}`,
+        position: position.clone(),
+        side,
+        lane,
+        tier,
+      });
+      context.addEntity(tower);
+      return tower;
+    },
+
+    addJungleCreature: (position, creatureType = 'gromp') => {
+      const creature = new ServerJungleCreature({
+        id: `test-jungle-${jungleCreatureCounter++}`,
+        position: position.clone(),
+        campId: `test-camp-${jungleCreatureCounter}`,
+        creatureType: creatureType as any,
+        homePosition: position.clone(),
+      });
+      context.addEntity(creature);
+      return creature;
     },
   };
 }

@@ -14,6 +14,7 @@ import {
   EntityType,
   MinionSnapshot,
   GameEventType,
+  ActiveEffectState,
 } from '@siege/shared';
 import type { MinionType, LaneId, MinionStats, DamageType } from '@siege/shared';
 import { DEFAULT_MINION_STATS } from '@siege/shared';
@@ -21,6 +22,26 @@ import { ServerEntity, type ServerEntityConfig } from './ServerEntity';
 import type { ServerGameContext } from '../game/ServerGameContext';
 import { RewardSystem } from '../systems/RewardSystem';
 import { ServerTargetedProjectile } from './ServerTargetedProjectile';
+import {
+  getServerEffectById,
+  isCCEffect,
+  isOverTimeEffect,
+  isStatEffect,
+  type ServerCCEffectDef,
+  type ServerOverTimeEffectDef,
+  type ServerStatEffectDef,
+} from '../data/effects';
+
+/**
+ * Simplified CC status for minions.
+ */
+export interface MinionCCStatus {
+  isStunned: boolean;
+  isRooted: boolean;
+  slowPercent: number;
+  canMove: boolean;
+  canAttack: boolean;
+}
 
 /**
  * Configuration for creating a minion.
@@ -54,6 +75,16 @@ export class ServerMinion extends ServerEntity {
   readonly goldReward: number;
   readonly experienceReward: number;
 
+  // Effects system (simplified from champions)
+  activeEffects: ActiveEffectState[] = [];
+  ccStatus: MinionCCStatus = {
+    isStunned: false,
+    isRooted: false,
+    slowPercent: 0,
+    canMove: true,
+    canAttack: true,
+  };
+
   constructor(config: ServerMinionConfig) {
     super({
       ...config,
@@ -76,6 +107,171 @@ export class ServerMinion extends ServerEntity {
       this.currentWaypointIndex = 0;
       this.moveTarget = this.waypoints[0].clone();
     }
+  }
+
+  // =====================
+  // Effects System
+  // =====================
+
+  /**
+   * Apply an effect to this minion.
+   * Simplified version of champion effect system.
+   */
+  applyEffect(effectId: string, duration: number, sourceId?: string, stacks = 1): void {
+    const def = getServerEffectById(effectId);
+    if (!def) return;
+
+    // Check for existing effect
+    const existing = this.activeEffects.find(e => e.definitionId === effectId);
+
+    if (existing) {
+      // Simple refresh behavior for minions - take max duration
+      existing.timeRemaining = Math.max(existing.timeRemaining, duration);
+      existing.stacks = Math.min((existing.stacks || 1) + stacks, def.maxStacks || 5);
+    } else {
+      // Add new effect with unique instance ID
+      this.activeEffects.push({
+        instanceId: `${this.id}_${effectId}_${Date.now()}`,
+        definitionId: effectId,
+        sourceId,
+        timeRemaining: duration,
+        totalDuration: duration,
+        stacks,
+      });
+    }
+  }
+
+  /**
+   * Update active effects - process timers and DoT ticks.
+   */
+  private updateEffects(dt: number, context: ServerGameContext): void {
+    // Process effects and update timers
+    this.activeEffects = this.activeEffects.filter(effect => {
+      const def = getServerEffectById(effect.definitionId);
+
+      // Handle DoT effects
+      if (def && isOverTimeEffect(def)) {
+        this.processOverTimeEffect(effect, def as ServerOverTimeEffectDef, dt, context);
+      }
+
+      // Update timer
+      effect.timeRemaining -= dt;
+      return effect.timeRemaining > 0;
+    });
+
+    // Recalculate CC status after processing effects
+    this.ccStatus = this.calculateCCStatus();
+  }
+
+  /**
+   * Process a damage/heal over time effect tick.
+   */
+  private processOverTimeEffect(
+    effect: ActiveEffectState,
+    def: ServerOverTimeEffectDef,
+    dt: number,
+    context: ServerGameContext
+  ): void {
+    if (effect.nextTickIn === undefined) {
+      effect.nextTickIn = def.tickInterval;
+    }
+
+    effect.nextTickIn -= dt;
+
+    while (effect.nextTickIn <= 0) {
+      const tickValue = def.valuePerTick * (effect.stacks || 1);
+
+      if (def.otType === 'damage') {
+        this.takeDamage(tickValue, def.damageType || 'magic', effect.sourceId || '', context);
+      } else if (def.otType === 'heal') {
+        this.heal(tickValue);
+      }
+
+      effect.nextTickIn += def.tickInterval;
+    }
+  }
+
+  /**
+   * Calculate CC status from active effects.
+   */
+  private calculateCCStatus(): MinionCCStatus {
+    const status: MinionCCStatus = {
+      isStunned: false,
+      isRooted: false,
+      slowPercent: 0,
+      canMove: true,
+      canAttack: true,
+    };
+
+    for (const effect of this.activeEffects) {
+      const def = getServerEffectById(effect.definitionId);
+      if (!def) continue;
+
+      // Handle CC effects
+      if (isCCEffect(def)) {
+        const ccDef = def as ServerCCEffectDef;
+        switch (ccDef.ccType) {
+          case 'stun':
+          case 'knockup':
+          case 'knockback':
+          case 'suppress':
+            status.isStunned = true;
+            break;
+          case 'root':
+            status.isRooted = true;
+            break;
+          case 'slow':
+            // CC slow - extract from effect ID if needed
+            const match = effect.definitionId.match(/slow_(\d+)/);
+            if (match) {
+              const slowAmount = parseInt(match[1]) / 100;
+              status.slowPercent = Math.max(status.slowPercent, slowAmount);
+            }
+            break;
+          case 'taunt':
+            // Taunt doesn't affect minions' CC status
+            break;
+        }
+      }
+
+      // Handle stat effects (slows are often stat effects that reduce movement speed)
+      if (isStatEffect(def)) {
+        const statDef = def as ServerStatEffectDef;
+        if (statDef.stat === 'movement_speed' && statDef.percentValue !== undefined) {
+          // Negative percentValue means slow (e.g., -0.3 means 30% slow)
+          if (statDef.percentValue < 0) {
+            const slowAmount = Math.abs(statDef.percentValue);
+            status.slowPercent = Math.max(status.slowPercent, slowAmount);
+          }
+        }
+      }
+    }
+
+    // Compute derived flags
+    status.canMove = !status.isStunned && !status.isRooted;
+    status.canAttack = !status.isStunned;
+
+    return status;
+  }
+
+  /**
+   * Get movement speed after applying slow effects.
+   */
+  getEffectiveMovementSpeed(): number {
+    const baseSpeed = this.stats.movementSpeed;
+    const slowReduction = 1 - this.ccStatus.slowPercent;
+    return baseSpeed * slowReduction;
+  }
+
+  /**
+   * Heal the minion (for heal over time effects).
+   * Override to match base class signature.
+   */
+  override heal(amount: number): number {
+    if (this.isDead) return 0;
+    const previousHealth = this.health;
+    this.health = Math.min(this.health + amount, this.maxHealth);
+    return this.health - previousHealth;
   }
 
   // =====================
@@ -111,6 +307,9 @@ export class ServerMinion extends ServerEntity {
   update(dt: number, context: ServerGameContext): void {
     if (this.isDead) return;
 
+    // Update effects first (processes CC, DoT, etc.)
+    this.updateEffects(dt, context);
+
     // Update cooldowns
     if (this.attackCooldown > 0) {
       this.attackCooldown -= dt;
@@ -121,11 +320,15 @@ export class ServerMinion extends ServerEntity {
       this.attackAnimationTimer -= dt;
     }
 
-    // Find and attack targets
-    this.updateCombat(dt, context);
+    // Only do combat if not stunned
+    if (this.ccStatus.canAttack) {
+      this.updateCombat(dt, context);
+    }
 
-    // Move toward target
-    this.updateMovement(dt, context);
+    // Only move if not stunned/rooted
+    if (this.ccStatus.canMove) {
+      this.updateMovement(dt, context);
+    }
   }
 
   /**
@@ -172,6 +375,11 @@ export class ServerMinion extends ServerEntity {
 
       // Skip jungle creatures - minions only fight lane units
       if (entity.entityType === EntityType.JUNGLE_CAMP) continue;
+
+      // Skip projectiles, zones, and wards - minions only fight units
+      if (entity.entityType === EntityType.PROJECTILE) continue;
+      if (entity.entityType === EntityType.ZONE) continue;
+      if (entity.entityType === EntityType.WARD) continue;
 
       // Calculate priority
       let priority = 0;
@@ -273,9 +481,9 @@ export class ServerMinion extends ServerEntity {
 
     if (!this.moveTarget) return;
 
-    // Move toward target
+    // Move toward target (using effective speed with slows applied)
     const distance = this.position.distanceTo(this.moveTarget);
-    const speed = this.stats.movementSpeed * dt;
+    const speed = this.getEffectiveMovementSpeed() * dt;
 
     if (distance <= speed) {
       // Reached target
@@ -359,6 +567,10 @@ export class ServerMinion extends ServerEntity {
       maxHealth: this.maxHealth,
       isDead: this.isDead,
       isAttacking: this.attackAnimationTimer > 0,
+      // CC status for visual feedback
+      isStunned: this.ccStatus.isStunned || undefined,
+      isRooted: this.ccStatus.isRooted || undefined,
+      slowPercent: this.ccStatus.slowPercent > 0 ? this.ccStatus.slowPercent : undefined,
     };
   }
 }

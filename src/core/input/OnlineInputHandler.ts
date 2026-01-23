@@ -29,6 +29,12 @@ const ATTACKABLE_ENTITY_TYPES: Set<number> = new Set([
   5, // EntityType.JUNGLE_CAMP
 ]);
 
+/** Entity types that can be targeted as allies */
+const ALLY_TARGETABLE_ENTITY_TYPES: Set<number> = new Set([
+  0, // EntityType.CHAMPION
+  1, // EntityType.MINION
+]);
+
 /** Move marker sprite configuration */
 const MOVE_MARKER_CONFIG = {
   SPRITE_PATH: '/assets/sprites/Move_To.png',
@@ -57,10 +63,11 @@ interface MoveMarker {
   startTime: number;
 }
 
-/** Hovered enemy info for rendering */
-interface HoveredEnemyInfo {
+/** Hovered entity info for rendering */
+interface HoveredEntityInfo {
   position: Vector;
   pulseTime: number;
+  isAlly: boolean;
 }
 
 /**
@@ -80,8 +87,11 @@ export class OnlineInputHandler implements GameObject {
   /** Currently hovered enemy entity ID */
   private hoveredEnemyId: string | null = null;
 
-  /** Currently hovered enemy info for rendering */
-  private hoveredEnemyInfo: HoveredEnemyInfo | null = null;
+  /** Currently hovered ally entity ID */
+  private hoveredAllyId: string | null = null;
+
+  /** Currently hovered entity info for rendering */
+  private hoveredEntityInfo: HoveredEntityInfo | null = null;
 
   /** Active move markers */
   private moveMarkers: MoveMarker[] = [];
@@ -197,7 +207,7 @@ export class OnlineInputHandler implements GameObject {
   }
 
   /**
-   * Update hover detection for enemies and set cursor accordingly.
+   * Update hover detection for enemies and allies, set cursor accordingly.
    */
   private updateHoveredEnemy(camera: any): void {
     const mouseWorldPos = this.screenToWorld(
@@ -207,44 +217,72 @@ export class OnlineInputHandler implements GameObject {
 
     const hitRadius = 30; // How close mouse needs to be to target
     let closestEnemy: InterpolatedEntity | null = null;
-    let closestDistance = hitRadius;
+    let closestAlly: InterpolatedEntity | null = null;
+    let closestEnemyDistance = hitRadius;
+    let closestAllyDistance = hitRadius;
+
+    // Get local player entity for self-targeting detection
+    const localPlayer = this.stateManager.getLocalPlayerEntity();
+    const localPlayerId = localPlayer?.snapshot.entityId;
 
     // Check all entities from state manager
     const entities = this.stateManager.getEntities();
     for (const entity of entities) {
       const snapshot = entity.snapshot;
 
-      // Skip non-attackable entities
-      if (!ATTACKABLE_ENTITY_TYPES.has(snapshot.entityType)) continue;
-
-      // Skip entities without side property or same side as local player
+      // Skip entities without side property
       if (!('side' in snapshot)) continue;
-      if ((snapshot as any).side === this.localSide) continue;
 
       // Skip dead entities
       if ('isDead' in snapshot && (snapshot as any).isDead) continue;
       if ('isDestroyed' in snapshot && (snapshot as any).isDestroyed) continue;
 
-      // Check distance to mouse
+      const isAlly = (snapshot as any).side === this.localSide;
       const distance = mouseWorldPos.distanceTo(entity.position);
-      if (distance < closestDistance) {
-        closestEnemy = entity;
-        closestDistance = distance;
+
+      if (isAlly) {
+        // Check ally targetable types (including self for self-cast abilities like Elara heal)
+        if (!ALLY_TARGETABLE_ENTITY_TYPES.has(snapshot.entityType)) continue;
+
+        if (distance < closestAllyDistance) {
+          closestAlly = entity;
+          closestAllyDistance = distance;
+        }
+      } else {
+        // Check attackable enemy types
+        if (!ATTACKABLE_ENTITY_TYPES.has(snapshot.entityType)) continue;
+
+        if (distance < closestEnemyDistance) {
+          closestEnemy = entity;
+          closestEnemyDistance = distance;
+        }
       }
     }
 
-    // Update cursor state and hovered enemy info
+    // Priority: Enemy > Ally (for targeting purposes)
     const cursorManager = getCursorManager();
     if (closestEnemy) {
       this.hoveredEnemyId = closestEnemy.snapshot.entityId;
-      this.hoveredEnemyInfo = {
+      this.hoveredAllyId = null;
+      this.hoveredEntityInfo = {
         position: new Vector(closestEnemy.position.x, closestEnemy.position.y),
         pulseTime: performance.now() / 1000,
+        isAlly: false,
       };
       cursorManager.setCursor('attack');
+    } else if (closestAlly) {
+      this.hoveredEnemyId = null;
+      this.hoveredAllyId = closestAlly.snapshot.entityId;
+      this.hoveredEntityInfo = {
+        position: new Vector(closestAlly.position.x, closestAlly.position.y),
+        pulseTime: performance.now() / 1000,
+        isAlly: true,
+      };
+      cursorManager.setCursor('ally'); // Will show default if 'ally' cursor doesn't exist
     } else {
       this.hoveredEnemyId = null;
-      this.hoveredEnemyInfo = null;
+      this.hoveredAllyId = null;
+      this.hoveredEntityInfo = null;
       cursorManager.setCursor('default');
     }
   }
@@ -286,6 +324,10 @@ export class OnlineInputHandler implements GameObject {
       // This allows target_enemy abilities (like Warrior R) to work
       if (this.hoveredEnemyId) {
         this.networkClient.sendAbilityInput(slot, 'unit', worldPos.x, worldPos.y, this.hoveredEnemyId);
+      } else if (this.hoveredAllyId) {
+        // If hovering over an ally, send as unit-targeted ability
+        // This allows target_ally abilities (like Elara Q/W) to work
+        this.networkClient.sendAbilityInput(slot, 'unit', worldPos.x, worldPos.y, this.hoveredAllyId);
       } else {
         // Otherwise send as position-targeted ability
         this.networkClient.sendAbilityInput(slot, 'position', worldPos.x, worldPos.y);
@@ -312,15 +354,15 @@ export class OnlineInputHandler implements GameObject {
   }
 
   /**
-   * Render visual feedback (enemy hover ellipse, move markers).
+   * Render visual feedback (entity hover ellipse, move markers).
    */
   render(): RenderElement {
     const element = new RenderElement((ctx: GameContext) => {
       const { canvasRenderingContext } = ctx;
 
-      // Render hovered enemy ellipse
-      if (this.hoveredEnemyInfo) {
-        this.renderHoveredEnemyEllipse(canvasRenderingContext, this.hoveredEnemyInfo);
+      // Render hovered entity ellipse (enemy=red, ally=green)
+      if (this.hoveredEntityInfo) {
+        this.renderHoveredEntityEllipse(canvasRenderingContext, this.hoveredEntityInfo);
       }
 
       // Render move markers
@@ -334,9 +376,10 @@ export class OnlineInputHandler implements GameObject {
   }
 
   /**
-   * Render a red pulsing ellipse under the hovered enemy.
+   * Render a pulsing ellipse under the hovered entity.
+   * Red for enemies, green for allies.
    */
-  private renderHoveredEnemyEllipse(ctx: CanvasRenderingContext2D, info: HoveredEnemyInfo): void {
+  private renderHoveredEntityEllipse(ctx: CanvasRenderingContext2D, info: HoveredEntityInfo): void {
     const currentTime = performance.now() / 1000;
     const pulsePhase = (currentTime - info.pulseTime) * 4; // 4 Hz pulse
     const pulseScale = 1 + Math.sin(pulsePhase) * 0.15; // Subtle pulse
@@ -347,8 +390,9 @@ export class OnlineInputHandler implements GameObject {
     ctx.save();
     ctx.translate(info.position.x, info.position.y + 15); // Offset down to be under the unit
 
-    // Draw pixelated red ellipse
-    const drawUtils = new PixelArtDrawUtils(ctx, 'rgba(220, 50, 50, 0.6)', 3);
+    // Draw pixelated ellipse - red for enemies, green for allies
+    const color = info.isAlly ? 'rgba(50, 200, 50, 0.6)' : 'rgba(220, 50, 50, 0.6)';
+    const drawUtils = new PixelArtDrawUtils(ctx, color, 3);
     drawUtils.drawPixelatedEllipse(0, 0, rx, ry);
 
     ctx.restore();

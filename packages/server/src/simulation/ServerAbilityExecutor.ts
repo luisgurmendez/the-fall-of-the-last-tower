@@ -16,6 +16,7 @@ import {
   calculateAbilityValue,
   getAbilityDefinition,
   getPassiveDefinition,
+  canAbilityAffectEntityType,
   DamageType,
   GameEventType,
 } from "@siege/shared";
@@ -249,6 +250,10 @@ export class ServerAbilityExecutor {
         if (!target || target.isDead || target.side === champion.side) {
           return { valid: false, reason: "invalid_target" };
         }
+        // Check if ability can target this entity type
+        if (!canAbilityAffectEntityType(definition, target.entityType)) {
+          return { valid: false, reason: "invalid_target" };
+        }
         // Check range
         if (definition.range) {
           if (!champion.isInRange(target, definition.range)) {
@@ -281,6 +286,10 @@ export class ServerAbilityExecutor {
         }
         const target = context.getEntity(targetEntityId);
         if (!target || target.isDead) {
+          return { valid: false, reason: "invalid_target" };
+        }
+        // Check if ability can target this entity type
+        if (!canAbilityAffectEntityType(definition, target.entityType)) {
           return { valid: false, reason: "invalid_target" };
         }
         // Check range
@@ -473,25 +482,43 @@ export class ServerAbilityExecutor {
       });
     }
 
+    // Apply ally effects to self (caster) first
+    if (definition.appliesEffects) {
+      // Check if this is a buff (apply to self) or debuff (don't apply to self)
+      // For no_target ally buffs, apply to caster
+      this.applyEffectsToEntity(
+        champion,
+        definition.appliesEffects,
+        definition.effectDuration ?? 0,
+        champion.id
+      );
+    }
+
     for (const entity of entities) {
       if (entity.id === champion.id) continue;
 
       const isEnemy = entity.side !== champion.side;
       const isAlly = entity.side === champion.side;
 
+      // Check if ability can affect this entity type
+      if (isEnemy && !canAbilityAffectEntityType(definition, entity.entityType)) {
+        continue;
+      }
+
       // Apply damage to enemies
       if (isEnemy && damageAmount > 0 && definition.damage) {
         entity.takeDamage(damageAmount, definition.damage.type, champion.id, context);
+      }
 
-        // Apply effects to enemies
-        if (definition.appliesEffects) {
-          this.applyEffectsToEntity(
-            entity,
-            definition.appliesEffects,
-            definition.effectDuration ?? 0,
-            champion.id
-          );
-        }
+      // Apply effects to enemies (debuffs like stun, slow, taunt)
+      // Applied regardless of whether ability does damage
+      if (isEnemy && definition.appliesEffects) {
+        this.applyEffectsToEntity(
+          entity,
+          definition.appliesEffects,
+          definition.effectDuration ?? 0,
+          champion.id
+        );
       }
 
       // Apply healing to allies
@@ -503,7 +530,6 @@ export class ServerAbilityExecutor {
 
       // Apply ally effects (like speed buff from Elara's E)
       if (isAlly && definition.appliesEffects) {
-        // Only apply ally-friendly effects (buffs)
         this.applyEffectsToEntity(
           entity,
           definition.appliesEffects,
@@ -759,6 +785,11 @@ export class ServerAbilityExecutor {
       if (entity.side === champion.side) continue;
       if (entity.isDead) continue;
 
+      // Check if ability can affect this entity type
+      if (!canAbilityAffectEntityType(definition, entity.entityType)) {
+        continue;
+      }
+
       // Apply damage
       if (damageAmount > 0 && definition.damage) {
         entity.takeDamage(damageAmount, definition.damage.type, champion.id, context);
@@ -870,6 +901,11 @@ export class ServerAbilityExecutor {
       if (entity.side === champion.side) continue;
       if (entity.isDead) continue;
       if (entity.id === champion.id) continue;
+
+      // Check if ability can affect this entity type
+      if (!canAbilityAffectEntityType(definition, entity.entityType)) {
+        continue;
+      }
 
       // Check if entity is in cone
       const toEntity = entity.position.subtracted(champion.position);

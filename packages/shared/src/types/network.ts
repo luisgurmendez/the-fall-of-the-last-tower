@@ -326,6 +326,11 @@ export interface MinionSnapshot {
 
   // Attack animation state - true when minion is actively in attack animation
   isAttacking?: boolean;
+
+  // CC status for visual feedback
+  isStunned?: boolean;
+  isRooted?: boolean;
+  slowPercent?: number;
 }
 
 /**

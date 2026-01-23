@@ -187,10 +187,9 @@ class OnlineCameraController implements GameObject {
         }
       }
 
-      // Space key: Instantly snap camera to champion (also enables lock)
+      // Space key: Instantly snap camera to champion (without enabling lock)
       if (e.key === ' ') {
         e.preventDefault(); // Prevent page scroll
-        this.isLocked = true;
         if (this.camera) {
           this.snapToPlayer();
         }

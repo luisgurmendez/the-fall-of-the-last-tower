@@ -11,6 +11,8 @@ import {
   Side,
   DamageType,
   ZoneSnapshot,
+  getAbilityDefinition,
+  canAbilityAffectEntityType,
 } from '@siege/shared';
 import { ServerEntity, ServerEntityConfig } from './ServerEntity';
 import type { ServerGameContext } from '../game/ServerGameContext';
@@ -120,6 +122,9 @@ export class ServerZone extends ServerEntity {
   private applyEffectsToEntitiesInside(context: ServerGameContext, dealDamage: boolean): void {
     const entities = context.getEntitiesInRadius(this.position, this.radius);
 
+    // Get ability definition for entity type filtering
+    const abilityDef = getAbilityDefinition(this.abilityId);
+
     for (const entity of entities) {
       // Skip allies (zones affect enemies)
       // Skip dead entities
@@ -129,6 +134,11 @@ export class ServerZone extends ServerEntity {
         entity.isDead ||
         this.tickedEntityIds.has(entity.id)
       ) {
+        continue;
+      }
+
+      // Check if ability can affect this entity type
+      if (!canAbilityAffectEntityType(abilityDef, entity.entityType)) {
         continue;
       }
 

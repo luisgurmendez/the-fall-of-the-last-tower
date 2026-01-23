@@ -261,6 +261,9 @@ export interface MinionSnapshot {
     maxHealth: number;
     isDead: boolean;
     isAttacking?: boolean;
+    isStunned?: boolean;
+    isRooted?: boolean;
+    slowPercent?: number;
 }
 /**
  * Snapshot of a tower's state for network sync.

@@ -107,6 +107,8 @@ export const GorathTaunt: AbilityDefinition = {
   shape: 'circle',
   appliesEffects: ['taunt'],
   effectDuration: 1.5,
+  // Taunt only affects champions and jungle camps (minions don't need to be taunted)
+  affectsMinions: false,
 };
 
 export const GorathEarthquake: AbilityDefinition = {

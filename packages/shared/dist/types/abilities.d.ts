@@ -117,6 +117,16 @@ export interface AbilityDefinition {
     appliesEffects?: string[];
     /** Duration for applied effects */
     effectDuration?: number;
+    /** Whether this ability affects enemy champions (default: true) */
+    affectsChampions?: boolean;
+    /** Whether this ability affects minions (default: true) */
+    affectsMinions?: boolean;
+    /** Whether this ability affects towers/structures (default: false) */
+    affectsTowers?: boolean;
+    /** Whether this ability affects jungle camps (default: true) */
+    affectsJungleCamps?: boolean;
+    /** Whether this ability affects wards (default: false) */
+    affectsWards?: boolean;
     /** For passive abilities: what triggers it */
     passiveTrigger?: PassiveTrigger;
     /** For passive abilities: internal cooldown between triggers */
@@ -270,6 +280,31 @@ export interface AbilityAIConditions {
     /** Priority score for AI decision making (higher = cast sooner) */
     priority?: number;
 }
+/**
+ * Entity types for ability targeting checks.
+ * Must match EntityType enum from network.ts
+ */
+export declare const AbilityEntityType: {
+    readonly CHAMPION: 0;
+    readonly MINION: 1;
+    readonly TOWER: 2;
+    readonly INHIBITOR: 3;
+    readonly NEXUS: 4;
+    readonly JUNGLE_CAMP: 5;
+    readonly WARD: 7;
+};
+/**
+ * Check if an ability can affect a specific entity type.
+ * Returns true if the ability can damage/affect the given entity type.
+ *
+ * Default behavior:
+ * - Champions: true
+ * - Minions: true
+ * - Towers/Structures: false (most abilities don't damage towers)
+ * - Jungle camps: true
+ * - Wards: false
+ */
+export declare function canAbilityAffectEntityType(ability: AbilityDefinition | undefined, entityType: number): boolean;
 /**
  * Calculate scaled ability value.
  */

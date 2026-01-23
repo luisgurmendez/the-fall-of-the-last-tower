@@ -82,6 +82,8 @@ export type {
 export {
   calculateAbilityValue,
   getPassiveLevelValue,
+  canAbilityAffectEntityType,
+  AbilityEntityType,
 } from './abilities';
 
 // Item types

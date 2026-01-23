@@ -11,6 +11,8 @@ import {
   Side,
   DamageType,
   ProjectileSnapshot,
+  getAbilityDefinition,
+  canAbilityAffectEntityType,
 } from '@siege/shared';
 import { ServerEntity, ServerEntityConfig } from './ServerEntity';
 import type { ServerGameContext } from '../game/ServerGameContext';
@@ -108,9 +110,14 @@ export class ServerProjectile extends ServerEntity {
   private checkCollisions(context: ServerGameContext): void {
     const entities = context.getEntitiesInRadius(this.position, this.radius + 50);
 
+    // Get ability definition for entity type filtering
+    const abilityDef = getAbilityDefinition(this.abilityId);
+
     for (const entity of entities) {
-      // Skip self, allies, and already-hit entities
+      // Skip self (by ID), allies, and already-hit entities
+      // IMPORTANT: Also skip the projectile itself by ID (not just side)
       if (
+        entity.id === this.id ||  // Skip self by ID
         entity.id === this.sourceId ||
         entity.side === this.side ||
         this.hitEntityIds.has(entity.id)
@@ -120,6 +127,11 @@ export class ServerProjectile extends ServerEntity {
 
       // Skip dead or untargetable entities
       if (entity.isDead) continue;
+
+      // Check if ability can affect this entity type
+      if (!canAbilityAffectEntityType(abilityDef, entity.entityType)) {
+        continue;
+      }
 
       // Check collision
       const distance = this.position.distanceTo(entity.position);

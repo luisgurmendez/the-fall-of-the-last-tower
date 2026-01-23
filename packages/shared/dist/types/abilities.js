@@ -22,6 +22,50 @@ export function getPassiveLevelValue(passive, level) {
     return values[0];
 }
 /**
+ * Entity types for ability targeting checks.
+ * Must match EntityType enum from network.ts
+ */
+export const AbilityEntityType = {
+    CHAMPION: 0,
+    MINION: 1,
+    TOWER: 2,
+    INHIBITOR: 3,
+    NEXUS: 4,
+    JUNGLE_CAMP: 5,
+    WARD: 7,
+};
+/**
+ * Check if an ability can affect a specific entity type.
+ * Returns true if the ability can damage/affect the given entity type.
+ *
+ * Default behavior:
+ * - Champions: true
+ * - Minions: true
+ * - Towers/Structures: false (most abilities don't damage towers)
+ * - Jungle camps: true
+ * - Wards: false
+ */
+export function canAbilityAffectEntityType(ability, entityType) {
+    if (!ability)
+        return false;
+    switch (entityType) {
+        case AbilityEntityType.CHAMPION:
+            return ability.affectsChampions !== false; // Default true
+        case AbilityEntityType.MINION:
+            return ability.affectsMinions !== false; // Default true
+        case AbilityEntityType.TOWER:
+        case AbilityEntityType.INHIBITOR:
+        case AbilityEntityType.NEXUS:
+            return ability.affectsTowers === true; // Default false
+        case AbilityEntityType.JUNGLE_CAMP:
+            return ability.affectsJungleCamps !== false; // Default true
+        case AbilityEntityType.WARD:
+            return ability.affectsWards === true; // Default false
+        default:
+            return true; // Unknown types: allow by default
+    }
+}
+/**
  * Calculate scaled ability value.
  */
 export function calculateAbilityValue(scaling, rank, stats) {

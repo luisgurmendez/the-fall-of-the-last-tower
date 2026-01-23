@@ -8,7 +8,7 @@ export { LEVEL_EXPERIENCE, calculateStat, calculateAttackSpeed, calculateStatsAt
 export type { EffectCategory, CrowdControlType, StatModificationType, OverTimeType, StackBehavior, EffectDefinition, CrowdControlEffectDef, StatModificationEffectDef, OverTimeEffectDef, ShieldEffectDef, ActiveEffectState, CrowdControlStatus, } from './effects';
 export { computeCCStatus, defaultCCStatus, } from './effects';
 export type { AbilitySlot, AbilityType, AbilityTargetType, AbilityShape, PassiveTrigger, AbilityScaling, AbilityDefinition, AbilityState, AbilityCastResult, AbilityAIConditions, PassiveStatModifier, PassiveAbilityDefinition, PassiveState, } from './abilities';
-export { calculateAbilityValue, getPassiveLevelValue, } from './abilities';
+export { calculateAbilityValue, getPassiveLevelValue, canAbilityAffectEntityType, AbilityEntityType, } from './abilities';
 export type { ItemSlot, ItemCategory, ItemPassiveTrigger, ItemPassiveDef, ItemDefinition, EquippedItemState, InventoryState, ItemPurchaseResult, ItemSellResult, } from './items';
 export { calculateItemStats, findEmptySlot, hasItem, } from './items';
 export type { InputMessage, MoveInput, TargetUnitInput, StopInput, AbilityInput, LevelUpInput, BuyItemInput, SellItemInput, RecallInput, PingInput, PlaceWardInput, WardType, ClientInput, PassiveStateSnapshot, ShieldType, ShieldSnapshot, ChampionSnapshot, MinionSnapshot, TowerSnapshot, ProjectileSnapshot, NexusSnapshot, JungleCreatureSnapshot, WardSnapshot, ZoneSnapshot, EntitySnapshot, EntityDelta, GameEvent, StateUpdate, FullStateSnapshot, } from './network';

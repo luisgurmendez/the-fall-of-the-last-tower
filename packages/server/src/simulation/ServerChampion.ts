@@ -344,6 +344,21 @@ export class ServerChampion extends ServerEntity {
     if (this.targetEntityId) {
       const target = context.getEntity(this.targetEntityId);
       if (target && !target.isDead) {
+        // Update facing direction toward target
+        const dir = target.position.subtracted(this.position);
+        if (dir.length() > 0.1) {
+          this.direction = dir.normalized();
+        }
+
+        // Check if we're in attack range - if so, stop moving to attack
+        const attackRange = this.getStats().attackRange;
+        if (this.isInRange(target, attackRange)) {
+          // In range - stop moving, let updateCombat handle attacking
+          this.targetPosition = null;
+          return;
+        }
+
+        // Not in range - continue moving toward target
         this.targetPosition = target.position.clone();
       } else {
         this.targetEntityId = null;

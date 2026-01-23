@@ -135,6 +135,9 @@ export const VexExecute: AbilityDefinition = {
   },
   appliesEffects: ['vex_death_mark'],
   effectDuration: 2,
+  // Champion-only ultimate - can't be used on minions or jungle camps
+  affectsMinions: false,
+  affectsJungleCamps: false,
 };
 
 // =============================================================================
