@@ -41,6 +41,14 @@ export declare const MOBAConfig: {
         };
         readonly RADIUS: 75;
         readonly HEALTH: 5000;
+        readonly collision: {
+            readonly type: "circle";
+            readonly radius: 75;
+            readonly offset: {
+                readonly x: 0;
+                readonly y: 0;
+            };
+        };
     };
     /**
      * Lane waypoints from Blue base to Red base.
@@ -146,6 +154,14 @@ export declare const MOBAConfig: {
                 readonly leashRange: 300;
                 readonly goldReward: 80;
                 readonly expReward: 50;
+                readonly collision: {
+                    readonly type: "circle";
+                    readonly radius: 20;
+                    readonly offset: {
+                        readonly x: 0;
+                        readonly y: 0;
+                    };
+                };
             };
             readonly wolf: {
                 readonly health: 350;
@@ -157,6 +173,14 @@ export declare const MOBAConfig: {
                 readonly leashRange: 300;
                 readonly goldReward: 60;
                 readonly expReward: 40;
+                readonly collision: {
+                    readonly type: "circle";
+                    readonly radius: 14;
+                    readonly offset: {
+                        readonly x: 0;
+                        readonly y: 0;
+                    };
+                };
             };
             readonly raptor: {
                 readonly health: 200;
@@ -168,6 +192,14 @@ export declare const MOBAConfig: {
                 readonly leashRange: 300;
                 readonly goldReward: 40;
                 readonly expReward: 30;
+                readonly collision: {
+                    readonly type: "circle";
+                    readonly radius: 10;
+                    readonly offset: {
+                        readonly x: 0;
+                        readonly y: 0;
+                    };
+                };
             };
             readonly krug: {
                 readonly health: 600;
@@ -179,6 +211,14 @@ export declare const MOBAConfig: {
                 readonly leashRange: 300;
                 readonly goldReward: 90;
                 readonly expReward: 55;
+                readonly collision: {
+                    readonly type: "circle";
+                    readonly radius: 22;
+                    readonly offset: {
+                        readonly x: 0;
+                        readonly y: 0;
+                    };
+                };
             };
             readonly blue_buff: {
                 readonly health: 1200;
@@ -190,6 +230,14 @@ export declare const MOBAConfig: {
                 readonly leashRange: 350;
                 readonly goldReward: 120;
                 readonly expReward: 100;
+                readonly collision: {
+                    readonly type: "circle";
+                    readonly radius: 28;
+                    readonly offset: {
+                        readonly x: 0;
+                        readonly y: 0;
+                    };
+                };
             };
             readonly red_buff: {
                 readonly health: 1200;
@@ -201,6 +249,14 @@ export declare const MOBAConfig: {
                 readonly leashRange: 350;
                 readonly goldReward: 120;
                 readonly expReward: 100;
+                readonly collision: {
+                    readonly type: "circle";
+                    readonly radius: 28;
+                    readonly offset: {
+                        readonly x: 0;
+                        readonly y: 0;
+                    };
+                };
             };
             readonly dragon: {
                 readonly health: 2500;
@@ -212,6 +268,14 @@ export declare const MOBAConfig: {
                 readonly leashRange: 400;
                 readonly goldReward: 200;
                 readonly expReward: 250;
+                readonly collision: {
+                    readonly type: "circle";
+                    readonly radius: 40;
+                    readonly offset: {
+                        readonly x: 0;
+                        readonly y: 0;
+                    };
+                };
             };
             readonly baron: {
                 readonly health: 5000;
@@ -223,6 +287,14 @@ export declare const MOBAConfig: {
                 readonly leashRange: 450;
                 readonly goldReward: 500;
                 readonly expReward: 500;
+                readonly collision: {
+                    readonly type: "circle";
+                    readonly radius: 55;
+                    readonly offset: {
+                        readonly x: 0;
+                        readonly y: 0;
+                    };
+                };
             };
             readonly spider: {
                 readonly health: 300;
@@ -234,6 +306,14 @@ export declare const MOBAConfig: {
                 readonly leashRange: 300;
                 readonly goldReward: 50;
                 readonly expReward: 35;
+                readonly collision: {
+                    readonly type: "circle";
+                    readonly radius: 8;
+                    readonly offset: {
+                        readonly x: 0;
+                        readonly y: 0;
+                    };
+                };
             };
         };
     };
@@ -384,6 +464,14 @@ export declare const MOBAConfig: {
             readonly attackCooldown: 1;
             readonly armor: 60;
             readonly magicResist: 60;
+            readonly collision: {
+                readonly type: "circle";
+                readonly radius: 50;
+                readonly offset: {
+                    readonly x: 0;
+                    readonly y: 0;
+                };
+            };
         };
         /** Tower positions by side and lane */
         readonly POSITIONS: readonly [{

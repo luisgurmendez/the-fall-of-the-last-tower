@@ -51,9 +51,14 @@ export class ServerNexus extends ServerEntity {
 
   /**
    * Get nexus radius for collision.
+   * Uses the collision shape from MOBAConfig, defaulting to RADIUS.
    */
   getRadius(): number {
-    return this.radius;
+    const collision = MOBAConfig.NEXUS.collision;
+    if (collision && collision.type === 'circle') {
+      return collision.radius;
+    }
+    return this.radius; // Fallback to MOBAConfig.NEXUS.RADIUS
   }
 
   /**

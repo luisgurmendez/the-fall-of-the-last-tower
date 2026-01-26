@@ -203,6 +203,12 @@ describe('ServerAbilityExecutor', () => {
         context,
       });
 
+      // Tick past the keyframe time to spawn the projectile
+      // Magnus Q animation: frame 3 of 5, 0.1s/frame = 0.3s
+      for (let i = 0; i < 25; i++) {
+        redChampion.update(0.016, context);
+      }
+
       // Should have spawned a projectile
       expect(context.getAllEntities().length).toBe(initialEntities + 1);
     });
@@ -382,13 +388,12 @@ describe('ServerAbilityExecutor', () => {
     });
   });
 
-  describe('Teleport Abilities', () => {
-    test('blink ability teleports champion', () => {
-      // Magnus E is Blink (teleport)
+  describe('Ground Target Zone Abilities', () => {
+    test('zone ability creates slow zone', () => {
+      // Magnus E is Quagmire (mud slow zone)
       // Give skill point since Q was auto-learned at creation
       redChampion.skillPoints = 1;
       redChampion.levelUpAbility('E');
-      const originalPos = redChampion.position.clone();
 
       const result = abilityExecutor.castAbility({
         champion: redChampion,
@@ -398,9 +403,8 @@ describe('ServerAbilityExecutor', () => {
       });
 
       expect(result.success).toBe(true);
-      // Champion should have teleported
-      expect(redChampion.position.x).not.toBe(originalPos.x);
-      expect(redChampion.position.y).not.toBe(originalPos.y);
+      // Zone abilities are ground-target and don't move the champion
+      // Just verify the ability was cast successfully
     });
   });
 

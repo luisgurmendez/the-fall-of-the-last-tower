@@ -9,6 +9,8 @@ import type {
   ChampionGrowthStats,
 } from '../../types/champions';
 import type { AbilityDefinition, AbilityScaling, PassiveAbilityDefinition } from '../../types/abilities';
+import type { CircleCollision } from '../../types/collision';
+import type { ChampionAnimations } from '../../types/animation';
 
 // =============================================================================
 // Helper function for creating scaling
@@ -171,6 +173,94 @@ export const WarriorPassive: PassiveAbilityDefinition = {
 };
 
 // =============================================================================
+// Collision & Animation
+// =============================================================================
+
+const WARRIOR_COLLISION: CircleCollision = {
+  type: 'circle',
+  radius: 20,  // Melee champion, slightly smaller hitbox
+  offset: { x: 0, y: 2 },  // Slightly offset down for feet
+};
+
+const WARRIOR_ANIMATIONS: ChampionAnimations = {
+  idle: {
+    id: 'idle',
+    totalFrames: 4,
+    baseFrameDuration: 0.2,
+    loop: true,
+    keyframes: [],
+  },
+  walk: {
+    id: 'walk',
+    totalFrames: 8,
+    baseFrameDuration: 0.1,
+    loop: true,
+    keyframes: [],
+  },
+  attack: {
+    id: 'attack',
+    totalFrames: 6,
+    baseFrameDuration: 0.083,  // ~500ms total at 1.0 AS
+    loop: false,
+    keyframes: [
+      { frame: 0, trigger: { type: 'sound', soundId: 'sword_swing' } },
+      { frame: 3, trigger: { type: 'damage' } },  // Damage at frame 3 (50%)
+      { frame: 3, trigger: { type: 'sound', soundId: 'sword_hit' } },
+    ],
+  },
+  death: {
+    id: 'death',
+    totalFrames: 8,
+    baseFrameDuration: 0.125,
+    loop: false,
+    keyframes: [],
+  },
+  abilities: {
+    warrior_slash: {
+      id: 'warrior_slash',
+      totalFrames: 8,
+      baseFrameDuration: 0.05,  // 400ms total
+      loop: false,
+      keyframes: [
+        { frame: 4, trigger: { type: 'damage' } },
+        { frame: 4, trigger: { type: 'vfx', vfxId: 'slash_arc' } },
+      ],
+    },
+    warrior_shield: {
+      id: 'warrior_shield',
+      totalFrames: 4,
+      baseFrameDuration: 0.075,  // 300ms total
+      loop: false,
+      keyframes: [
+        { frame: 1, trigger: { type: 'effect', effectId: 'shield' } },
+      ],
+    },
+    warrior_charge: {
+      id: 'warrior_charge',
+      totalFrames: 6,
+      baseFrameDuration: 0.067,  // 400ms total
+      loop: false,
+      keyframes: [
+        { frame: 0, trigger: { type: 'sound', soundId: 'charge_start' } },
+        { frame: 5, trigger: { type: 'damage' } },  // Damage at end of dash
+      ],
+    },
+    warrior_ultimate: {
+      id: 'warrior_ultimate',
+      totalFrames: 10,
+      baseFrameDuration: 0.06,  // 600ms total
+      loop: false,
+      keyframes: [
+        { frame: 0, trigger: { type: 'sound', soundId: 'leap_start' } },
+        { frame: 7, trigger: { type: 'damage' } },  // Damage on landing
+        { frame: 7, trigger: { type: 'effect', effectId: 'stun' } },
+        { frame: 7, trigger: { type: 'vfx', vfxId: 'slam_impact' } },
+      ],
+    },
+  },
+};
+
+// =============================================================================
 // Champion Definition
 // =============================================================================
 
@@ -190,6 +280,9 @@ export const WarriorDefinition: ChampionDefinition = {
     R: 'warrior_ultimate',
   },
   passive: 'warrior_passive',
+  collision: WARRIOR_COLLISION,
+  animations: WARRIOR_ANIMATIONS,
+  attackAnimationSpeedScale: true,
 };
 
 // =============================================================================

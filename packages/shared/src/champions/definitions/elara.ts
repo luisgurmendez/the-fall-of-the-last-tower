@@ -9,6 +9,8 @@ import type {
   ChampionGrowthStats,
 } from '../../types/champions';
 import type { AbilityDefinition, AbilityScaling, PassiveAbilityDefinition } from '../../types/abilities';
+import type { CircleCollision } from '../../types/collision';
+import type { ChampionAnimations } from '../../types/animation';
 
 // =============================================================================
 // Helper function for creating scaling
@@ -144,6 +146,98 @@ export const ElaraPassive: PassiveAbilityDefinition = {
 };
 
 // =============================================================================
+// Collision & Animation
+// =============================================================================
+
+const ELARA_COLLISION: CircleCollision = {
+  type: 'circle',
+  radius: 18,  // Ranged support, smaller hitbox
+  offset: { x: 0, y: 2 },
+};
+
+const ELARA_ANIMATIONS: ChampionAnimations = {
+  idle: {
+    id: 'idle',
+    totalFrames: 4,
+    baseFrameDuration: 0.2,
+    loop: true,
+    keyframes: [],
+  },
+  walk: {
+    id: 'walk',
+    totalFrames: 6,
+    baseFrameDuration: 0.1,
+    loop: true,
+    keyframes: [],
+  },
+  attack: {
+    id: 'attack',
+    totalFrames: 6,
+    baseFrameDuration: 0.1,  // ~600ms total at 1.0 AS
+    loop: false,
+    keyframes: [
+      { frame: 0, trigger: { type: 'sound', soundId: 'light_cast' } },
+      { frame: 3, trigger: { type: 'projectile' } },  // Ranged attack spawns projectile
+      { frame: 3, trigger: { type: 'sound', soundId: 'light_release' } },
+    ],
+  },
+  death: {
+    id: 'death',
+    totalFrames: 8,
+    baseFrameDuration: 0.125,
+    loop: false,
+    keyframes: [],
+  },
+  abilities: {
+    elara_heal: {
+      id: 'elara_heal',
+      totalFrames: 6,
+      baseFrameDuration: 0.083,  // 500ms total
+      loop: false,
+      keyframes: [
+        { frame: 0, trigger: { type: 'sound', soundId: 'heal_charge' } },
+        { frame: 3, trigger: { type: 'effect', effectId: 'heal' } },
+        { frame: 3, trigger: { type: 'vfx', vfxId: 'radiant_blessing' } },
+      ],
+    },
+    elara_barrier: {
+      id: 'elara_barrier',
+      totalFrames: 5,
+      baseFrameDuration: 0.08,  // 400ms total
+      loop: false,
+      keyframes: [
+        { frame: 0, trigger: { type: 'sound', soundId: 'shield_cast' } },
+        { frame: 2, trigger: { type: 'effect', effectId: 'shield' } },
+        { frame: 2, trigger: { type: 'vfx', vfxId: 'sacred_shield' } },
+      ],
+    },
+    elara_speed: {
+      id: 'elara_speed',
+      totalFrames: 4,
+      baseFrameDuration: 0.075,  // 300ms total
+      loop: false,
+      keyframes: [
+        { frame: 0, trigger: { type: 'sound', soundId: 'speed_cast' } },
+        { frame: 2, trigger: { type: 'effect', effectId: 'speed_buff' } },
+        { frame: 2, trigger: { type: 'vfx', vfxId: 'swift_grace' } },
+      ],
+    },
+    elara_resurrection: {
+      id: 'elara_resurrection',
+      totalFrames: 12,
+      baseFrameDuration: 0.083,  // 1000ms total (long cast)
+      loop: false,
+      keyframes: [
+        { frame: 0, trigger: { type: 'sound', soundId: 'divine_charge' } },
+        { frame: 8, trigger: { type: 'effect', effectId: 'heal' } },
+        { frame: 8, trigger: { type: 'effect', effectId: 'cleanse' } },
+        { frame: 8, trigger: { type: 'vfx', vfxId: 'divine_intervention' } },
+      ],
+    },
+  },
+};
+
+// =============================================================================
 // Champion Definition
 // =============================================================================
 
@@ -163,6 +257,9 @@ export const ElaraDefinition: ChampionDefinition = {
     R: 'elara_resurrection',
   },
   passive: 'elara_passive',
+  collision: ELARA_COLLISION,
+  animations: ELARA_ANIMATIONS,
+  attackAnimationSpeedScale: true,
 };
 
 // =============================================================================

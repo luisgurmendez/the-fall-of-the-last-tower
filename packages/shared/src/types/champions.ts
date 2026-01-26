@@ -4,6 +4,8 @@
  */
 
 import type { AbilitySlot } from './abilities';
+import type { EntityCollision } from './collision';
+import type { ChampionAnimations } from './animation';
 
 /**
  * Champion class/role archetype.
@@ -137,6 +139,17 @@ export interface ChampionDefinition {
 
   /** Passive ability ID (slot "P") */
   passive: string;
+
+  // ============== Collision & Animation (Optional) ==============
+
+  /** Collision shape for this champion (defaults to circle with radius 25) */
+  collision?: EntityCollision;
+
+  /** Animation data with keyframe triggers (optional - server uses for action scheduling) */
+  animations?: ChampionAnimations;
+
+  /** Whether attack animation speed scales with attack speed stat (default: true) */
+  attackAnimationSpeedScale?: boolean;
 }
 
 /**

@@ -30,7 +30,6 @@ export declare class GameRoom {
     private context;
     private inputHandler;
     private stateSerializer;
-    private entityPrioritizer;
     private reliableEventQueue;
     private players;
     private championDefinitions;

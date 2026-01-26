@@ -4,7 +4,7 @@
  * Unlike client entities, these have no rendering logic.
  * They are purely simulation objects.
  */
-import { Vector, } from '@siege/shared';
+import { Vector, GameEventType, } from '@siege/shared';
 export class ServerEntity {
     constructor(config) {
         this.targetPosition = null;
@@ -25,15 +25,29 @@ export class ServerEntity {
     }
     /**
      * Take damage from a source.
+     * @param amount - Amount of damage to deal
+     * @param type - Type of damage (physical, magic, true, pure)
+     * @param sourceId - ID of the entity that dealt the damage
+     * @param context - Optional game context for death handling (rewards, etc.)
      */
-    takeDamage(amount, type, sourceId) {
+    takeDamage(amount, type, sourceId, context) {
         if (this.isDead)
             return 0;
         // Calculate actual damage based on resistances
         const actualDamage = this.calculateDamage(amount, type);
         this.health = Math.max(0, this.health - actualDamage);
+        // Emit damage event for client-side floating numbers
+        if (context && actualDamage > 0) {
+            context.addEvent(GameEventType.DAMAGE, {
+                entityId: this.id,
+                amount: actualDamage,
+                damageType: type,
+                sourceId,
+                shieldAbsorbed: 0,
+            });
+        }
         if (this.health <= 0) {
-            this.onDeath(sourceId);
+            this.onDeath(sourceId, context);
         }
         return actualDamage;
     }
@@ -49,8 +63,10 @@ export class ServerEntity {
     }
     /**
      * Called when entity dies.
+     * @param killerId - ID of the entity that dealt the killing blow
+     * @param context - Optional game context for reward distribution
      */
-    onDeath(killerId) {
+    onDeath(killerId, context) {
         this.isDead = true;
         this.health = 0;
     }

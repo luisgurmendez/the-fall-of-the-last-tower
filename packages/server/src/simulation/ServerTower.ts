@@ -74,9 +74,14 @@ export class ServerTower extends ServerEntity {
 
   /**
    * Get tower radius for collision.
+   * Uses the collision shape from tower stats, defaulting to 50.
    */
   getRadius(): number {
-    return 50; // Tower collision radius
+    const collision = this.stats.collision;
+    if (collision && collision.type === 'circle') {
+      return collision.radius;
+    }
+    return 50; // Default if no collision defined
   }
 
   /**
@@ -129,6 +134,9 @@ export class ServerTower extends ServerEntity {
   /**
    * Find a target to attack.
    * Priority: Champions attacking allied champions > Champions > Minions
+   *
+   * Note: Towers have TRUE SIGHT - they can see and target enemies in bushes
+   * and stealthed enemies. No visibility check is performed intentionally.
    */
   private findTarget(context: ServerGameContext): string | null {
     const nearbyEntities = context.getEntitiesInRadius(this.position, this.stats.attackRange);

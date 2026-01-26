@@ -4,6 +4,7 @@
  */
 
 import type { Side } from './units';
+import type { CircleCollision } from './collision';
 
 /**
  * Tower tier (outer = 1, inner = 2, inhibitor = 3).
@@ -29,6 +30,8 @@ export interface TowerStats {
   /** Damage ramp per consecutive hit on same target */
   warmupDamagePerStack: number;
   maxWarmupStacks: number;
+  /** Collision shape for the tower */
+  collision?: CircleCollision;
 }
 
 /**
@@ -45,6 +48,7 @@ export const DEFAULT_TOWER_STATS: Record<TowerTier, TowerStats> = {
     attackCooldown: 0.83,
     warmupDamagePerStack: 40,
     maxWarmupStacks: 5,
+    collision: { type: 'circle', radius: 50, offset: { x: 0, y: 0 } },
   },
   2: {
     health: 3500,
@@ -56,6 +60,7 @@ export const DEFAULT_TOWER_STATS: Record<TowerTier, TowerStats> = {
     attackCooldown: 0.83,
     warmupDamagePerStack: 45,
     maxWarmupStacks: 5,
+    collision: { type: 'circle', radius: 55, offset: { x: 0, y: 0 } },
   },
   3: {
     health: 4000,
@@ -67,6 +72,7 @@ export const DEFAULT_TOWER_STATS: Record<TowerTier, TowerStats> = {
     attackCooldown: 0.83,
     warmupDamagePerStack: 50,
     maxWarmupStacks: 5,
+    collision: { type: 'circle', radius: 60, offset: { x: 0, y: 0 } },
   },
 };
 
@@ -93,6 +99,8 @@ export interface InhibitorStats {
   armor: number;
   magicResist: number;
   respawnTime: number;
+  /** Collision shape for the inhibitor */
+  collision?: CircleCollision;
 }
 
 /**
@@ -104,6 +112,7 @@ export const DEFAULT_INHIBITOR_STATS: InhibitorStats = {
   armor: 20,
   magicResist: 20,
   respawnTime: 300, // 5 minutes
+  collision: { type: 'circle', radius: 45, offset: { x: 0, y: 0 } },
 };
 
 /**
@@ -114,6 +123,8 @@ export interface NexusStats {
   maxHealth: number;
   armor: number;
   magicResist: number;
+  /** Collision shape for the nexus */
+  collision?: CircleCollision;
 }
 
 /**
@@ -124,6 +135,7 @@ export const DEFAULT_NEXUS_STATS: NexusStats = {
   maxHealth: 5500,
   armor: 20,
   magicResist: 20,
+  collision: { type: 'circle', radius: 75, offset: { x: 0, y: 0 } },
 };
 
 /**

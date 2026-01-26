@@ -9,6 +9,8 @@ import type {
   ChampionGrowthStats,
 } from '../../types/champions';
 import type { AbilityDefinition, AbilityScaling, PassiveAbilityDefinition } from '../../types/abilities';
+import type { CircleCollision } from '../../types/collision';
+import type { ChampionAnimations } from '../../types/animation';
 
 // =============================================================================
 // Helper function for creating scaling
@@ -157,6 +159,96 @@ export const MagnusPassive: PassiveAbilityDefinition = {
 };
 
 // =============================================================================
+// Collision & Animation
+// =============================================================================
+
+const MAGNUS_COLLISION: CircleCollision = {
+  type: 'circle',
+  radius: 18,  // Ranged mage, slightly smaller hitbox
+  offset: { x: 0, y: 2 },
+};
+
+const MAGNUS_ANIMATIONS: ChampionAnimations = {
+  idle: {
+    id: 'idle',
+    totalFrames: 4,
+    baseFrameDuration: 0.2,
+    loop: true,
+    keyframes: [],
+  },
+  walk: {
+    id: 'walk',
+    totalFrames: 6,
+    baseFrameDuration: 0.1,
+    loop: true,
+    keyframes: [],
+  },
+  attack: {
+    id: 'attack',
+    totalFrames: 6,
+    baseFrameDuration: 0.1,  // ~600ms total at 1.0 AS
+    loop: false,
+    keyframes: [
+      { frame: 0, trigger: { type: 'sound', soundId: 'staff_charge' } },
+      { frame: 3, trigger: { type: 'projectile' } },  // Ranged attack spawns projectile
+      { frame: 3, trigger: { type: 'sound', soundId: 'staff_fire' } },
+    ],
+  },
+  death: {
+    id: 'death',
+    totalFrames: 8,
+    baseFrameDuration: 0.125,
+    loop: false,
+    keyframes: [],
+  },
+  abilities: {
+    magnus_fireball: {
+      id: 'magnus_fireball',
+      totalFrames: 8,
+      baseFrameDuration: 0.0625,  // 500ms total
+      loop: false,
+      keyframes: [
+        { frame: 0, trigger: { type: 'sound', soundId: 'fireball_charge' } },
+        { frame: 4, trigger: { type: 'projectile' } },
+        { frame: 4, trigger: { type: 'vfx', vfxId: 'fireball_cast' } },
+      ],
+    },
+    magnus_shield: {
+      id: 'magnus_shield',
+      totalFrames: 4,
+      baseFrameDuration: 0.075,  // 300ms total
+      loop: false,
+      keyframes: [
+        { frame: 1, trigger: { type: 'effect', effectId: 'shield' } },
+        { frame: 1, trigger: { type: 'vfx', vfxId: 'arcane_barrier' } },
+      ],
+    },
+    magnus_mud: {
+      id: 'magnus_mud',
+      totalFrames: 6,
+      baseFrameDuration: 0.083,  // 500ms total
+      loop: false,
+      keyframes: [
+        { frame: 0, trigger: { type: 'sound', soundId: 'mud_cast' } },
+        { frame: 3, trigger: { type: 'effect', effectId: 'zone' } },
+        { frame: 3, trigger: { type: 'vfx', vfxId: 'mud_pool' } },
+      ],
+    },
+    magnus_meteor: {
+      id: 'magnus_meteor',
+      totalFrames: 10,
+      baseFrameDuration: 0.08,  // 800ms total
+      loop: false,
+      keyframes: [
+        { frame: 0, trigger: { type: 'sound', soundId: 'meteor_summon' } },
+        { frame: 6, trigger: { type: 'effect', effectId: 'zone' } },
+        { frame: 6, trigger: { type: 'vfx', vfxId: 'inferno_zone' } },
+      ],
+    },
+  },
+};
+
+// =============================================================================
 // Champion Definition
 // =============================================================================
 
@@ -176,6 +268,9 @@ export const MagnusDefinition: ChampionDefinition = {
     R: 'magnus_meteor',
   },
   passive: 'magnus_passive',
+  collision: MAGNUS_COLLISION,
+  animations: MAGNUS_ANIMATIONS,
+  attackAnimationSpeedScale: true,
 };
 
 // =============================================================================

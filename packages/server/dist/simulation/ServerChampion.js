@@ -9,10 +9,13 @@
  *
  * NO RENDERING - purely simulation.
  */
-import { Vector, EntityType, calculateStat, calculateAttackSpeed, LEVEL_EXPERIENCE, defaultCCStatus, calculatePhysicalDamage, calculateMagicDamage, GameConfig, } from '@siege/shared';
+import { Vector, EntityType, calculateStat, calculateAttackSpeed, LEVEL_EXPERIENCE, defaultCCStatus, calculatePhysicalDamage, calculateMagicDamage, GameConfig, GameEventType, getPassiveDefinition, createDefaultPassiveState, getAbilityDefinition, calculateAbilityValue, } from '@siege/shared';
 import { ServerEntity } from './ServerEntity';
 import { getServerItemById, } from '../data/items';
 import { getServerEffectById, isCCEffect, isStatEffect, isOverTimeEffect, } from '../data/effects';
+import { RewardSystem } from '../systems/RewardSystem';
+import { passiveTriggerSystem } from '../systems/PassiveTriggerSystem';
+import { Logger } from '../utils/Logger';
 export class ServerChampion extends ServerEntity {
     constructor(config) {
         super({
@@ -64,6 +67,8 @@ export class ServerChampion extends ServerEntity {
         this.forcedMovement = null;
         // Direction facing
         this.direction = new Vector(1, 0);
+        // Passive ability state
+        this.passiveState = createDefaultPassiveState();
         // Vision - champions provide fog of war vision
         this.sightRange = 800;
         // Trinket (ward placement) state
@@ -74,8 +79,6 @@ export class ServerChampion extends ServerEntity {
         this.trinketRechargeTime = 120; // 120 seconds to recharge one ward
         this.playerId = config.playerId;
         this.definition = config.definition;
-        // DEBUG: Log champion creation
-        console.log(`[ServerChampion] Created champion for player ${this.playerId}: id="${this.definition.id}", name="${this.definition.name}", Q=${this.definition.abilities.Q}`);
         // Initialize from definition
         const baseStats = this.definition.baseStats;
         this.health = baseStats.health;
@@ -85,8 +88,38 @@ export class ServerChampion extends ServerEntity {
         this.movementSpeed = baseStats.movementSpeed;
         // Set initial direction based on side
         this.direction = new Vector(config.side === 0 ? 1 : -1, 0);
+        // Apply debug starting level if configured
+        const debugLevel = GameConfig.DEBUG?.STARTING_LEVEL ?? 1;
+        if (debugLevel > 1) {
+            this.level = debugLevel;
+            this.skillPoints = GameConfig.DEBUG?.STARTING_SKILL_POINTS ?? debugLevel;
+            // Recalculate stats for new level
+            const stats = this.getStats();
+            this.maxHealth = stats.maxHealth;
+            this.health = stats.maxHealth;
+            this.maxResource = stats.maxResource;
+            this.resource = stats.maxResource;
+        }
+        // Initialize passive state
+        this.initializePassive();
         // Auto-level Q ability at start so players can cast abilities immediately
         this.levelUpAbility('Q');
+    }
+    /**
+     * Initialize passive ability.
+     */
+    initializePassive() {
+        const passiveId = this.definition.passive;
+        const passiveDef = getPassiveDefinition(passiveId);
+        if (passiveDef) {
+            // Register passive with trigger system
+            passiveTriggerSystem.registerPassive(this.definition.id, passiveDef);
+            // Initialize interval timer if needed
+            if (passiveDef.intervalSeconds) {
+                this.passiveState.nextIntervalIn = passiveDef.intervalSeconds;
+            }
+            Logger.champion.debug(`Initialized passive ${passiveDef.name} for ${this.playerId}`);
+        }
     }
     createDefaultAbilityState() {
         return {
@@ -109,7 +142,7 @@ export class ServerChampion extends ServerEntity {
         }
         // Update forced movement first
         if (this.forcedMovement) {
-            this.updateForcedMovement(dt);
+            this.updateForcedMovement(dt, context);
         }
         else if (this.ccStatus.canMove) {
             // Normal movement
@@ -120,7 +153,7 @@ export class ServerChampion extends ServerEntity {
         // Update abilities
         this.updateAbilities(dt);
         // Update effects
-        this.updateEffects(dt);
+        this.updateEffects(dt, context);
         // Update shields
         this.updateShields(dt);
         // Update recall
@@ -131,10 +164,26 @@ export class ServerChampion extends ServerEntity {
         this.updateRegeneration(dt);
         // Update trinket (ward) charges
         this.updateTrinket(dt);
+        // Update passive state
+        this.updatePassiveState(dt, context);
         // Passive gold income
         this.gold += GameConfig.ECONOMY.PASSIVE_GOLD_PER_SECOND * dt;
         // Invalidate cached stats
         this.cachedStats = null;
+    }
+    /**
+     * Update passive ability state.
+     */
+    updatePassiveState(dt, context) {
+        passiveTriggerSystem.updatePassiveState(dt, this, context);
+        // Check for low health trigger
+        const healthPercent = this.health / this.maxHealth;
+        const passiveDef = getPassiveDefinition(this.definition.passive);
+        if (passiveDef?.trigger === 'on_low_health' && passiveDef.healthThreshold) {
+            if (healthPercent <= passiveDef.healthThreshold && this.passiveState.cooldownRemaining <= 0) {
+                passiveTriggerSystem.dispatchTrigger('on_low_health', this, context);
+            }
+        }
     }
     /**
      * Update while dead (respawn timer).
@@ -175,6 +224,19 @@ export class ServerChampion extends ServerEntity {
         if (this.targetEntityId) {
             const target = context.getEntity(this.targetEntityId);
             if (target && !target.isDead) {
+                // Update facing direction toward target
+                const dir = target.position.subtracted(this.position);
+                if (dir.length() > 0.1) {
+                    this.direction = dir.normalized();
+                }
+                // Check if we're in attack range - if so, stop moving to attack
+                const attackRange = this.getStats().attackRange;
+                if (this.isInRange(target, attackRange)) {
+                    // In range - stop moving, let updateCombat handle attacking
+                    this.targetPosition = null;
+                    return;
+                }
+                // Not in range - continue moving toward target
                 this.targetPosition = target.position.clone();
             }
             else {
@@ -196,7 +258,7 @@ export class ServerChampion extends ServerEntity {
     /**
      * Update forced movement (dash/knockback).
      */
-    updateForcedMovement(dt) {
+    updateForcedMovement(dt, context) {
         if (!this.forcedMovement)
             return;
         const fm = this.forcedMovement;
@@ -205,8 +267,44 @@ export class ServerChampion extends ServerEntity {
         const moveDistance = fm.distance * (progress - (fm.elapsed - dt) / fm.duration);
         const movement = fm.direction.clone().scalar(moveDistance);
         this.position.add(movement);
+        // Check for collisions during dash (not knockback)
+        if (fm.type === 'dash' && fm.hitbox && fm.hitbox > 0) {
+            this.checkDashCollisions(context, fm);
+        }
         if (fm.elapsed >= fm.duration) {
             this.forcedMovement = null;
+        }
+    }
+    /**
+     * Check for collisions during dash and apply damage/effects.
+     */
+    checkDashCollisions(context, fm) {
+        if (!fm.hitEntities) {
+            fm.hitEntities = new Set();
+        }
+        const entities = context.getEntitiesInRadius(this.position, fm.hitbox);
+        for (const entity of entities) {
+            if (entity.side === this.side)
+                continue;
+            if (entity.isDead)
+                continue;
+            if (entity.id === this.id)
+                continue;
+            if (fm.hitEntities.has(entity.id))
+                continue; // Already hit
+            // Mark as hit
+            fm.hitEntities.add(entity.id);
+            // Apply damage
+            if (fm.damage && fm.damage > 0 && fm.damageType) {
+                entity.takeDamage(fm.damage, fm.damageType, this.id, context);
+            }
+            // Apply effects
+            if (fm.appliesEffects && fm.effectDuration && 'applyEffect' in entity) {
+                const applyEffect = entity.applyEffect;
+                for (const effectId of fm.appliesEffects) {
+                    applyEffect.call(entity, effectId, fm.effectDuration, this.id);
+                }
+            }
         }
     }
     /**
@@ -224,6 +322,13 @@ export class ServerChampion extends ServerEntity {
                 this.inCombat = false;
             }
         }
+        // Validate and clear target if not visible (entered bush/stealth)
+        if (this.targetEntityId) {
+            const target = context.getEntity(this.targetEntityId);
+            if (!target || target.isDead || !context.isVisibleTo(target, this.side)) {
+                this.targetEntityId = null;
+            }
+        }
         // Auto-attack target if in range and can attack
         if (this.targetEntityId && this.attackCooldown <= 0 && this.ccStatus.canAttack) {
             const target = context.getEntity(this.targetEntityId);
@@ -236,14 +341,54 @@ export class ServerChampion extends ServerEntity {
      * Perform a basic attack on a target.
      */
     performBasicAttack(target, context) {
+        // Break stealth on attack (Vex's Shadow Shroud)
+        this.breakStealth();
         const stats = this.getStats();
         const baseDamage = stats.attackDamage;
+        // Dispatch on_attack trigger BEFORE attack
+        passiveTriggerSystem.dispatchTrigger('on_attack', this, context, { target });
         // Calculate damage
         const damage = calculatePhysicalDamage(baseDamage, 0); // TODO: Get target armor
-        // Deal damage
-        target.takeDamage(damage, 'physical', this.id);
+        // Deal damage (pass context for death handling/rewards)
+        target.takeDamage(damage, 'physical', this.id, context);
+        // Check for empowered attack (Vex Shadow Step)
+        const empoweredEffect = this.activeEffects.find(e => e.definitionId === 'vex_empowered');
+        if (empoweredEffect) {
+            // Get VexDash ability definition for bonus damage calculation
+            const dashAbility = getAbilityDefinition('vex_dash');
+            if (dashAbility?.damage) {
+                // Get ability rank (E slot)
+                const abilityRank = this.abilityStates.E.rank;
+                if (abilityRank > 0) {
+                    const bonusDamage = calculateAbilityValue(dashAbility.damage.scaling, abilityRank, {
+                        attackDamage: stats.attackDamage,
+                        abilityPower: stats.abilityPower,
+                    });
+                    // Deal bonus damage
+                    target.takeDamage(bonusDamage, dashAbility.damage.type, this.id, context);
+                    Logger.champion.debug(`${this.playerId} empowered attack dealt ${bonusDamage} bonus damage`);
+                }
+            }
+            // Remove the empowered effect (consumed on attack)
+            this.activeEffects = this.activeEffects.filter(e => e.definitionId !== 'vex_empowered');
+        }
+        // Dispatch on_hit trigger AFTER attack lands
+        passiveTriggerSystem.dispatchTrigger('on_hit', this, context, {
+            target,
+            damageAmount: damage,
+            damageType: 'physical',
+        });
         // Set attack cooldown
         this.attackCooldown = 1 / stats.attackSpeed;
+        // Attack animation duration scales with attack speed (faster attacks = shorter animation)
+        // Base duration is 0.4s at 1.0 AS, minimum 0.15s at very high AS
+        const animationDuration = Math.max(0.15, 0.4 / stats.attackSpeed);
+        // Emit attack event for client-side animation
+        context.addEvent(GameEventType.BASIC_ATTACK, {
+            entityId: this.id,
+            targetId: target.id,
+            animationDuration,
+        });
         // Enter combat
         this.enterCombat();
     }
@@ -268,13 +413,13 @@ export class ServerChampion extends ServerEntity {
     /**
      * Update effects.
      */
-    updateEffects(dt) {
+    updateEffects(dt, context) {
         // Process over-time effects and update timers
         this.activeEffects = this.activeEffects.filter(effect => {
             const def = getServerEffectById(effect.definitionId);
             // Handle over-time effects (DoT/HoT)
             if (def && isOverTimeEffect(def)) {
-                this.processOverTimeEffect(effect, def, dt);
+                this.processOverTimeEffect(effect, def, dt, context);
             }
             // Update timer
             effect.timeRemaining -= dt;
@@ -288,7 +433,7 @@ export class ServerChampion extends ServerEntity {
     /**
      * Process an over-time effect tick.
      */
-    processOverTimeEffect(effect, def, dt) {
+    processOverTimeEffect(effect, def, dt, context) {
         // Initialize nextTickIn if not set
         if (effect.nextTickIn === undefined) {
             effect.nextTickIn = def.tickInterval;
@@ -301,7 +446,7 @@ export class ServerChampion extends ServerEntity {
             switch (def.otType) {
                 case 'damage':
                     // Apply damage (DoT)
-                    this.takeDamage(tickValue, def.damageType || 'magic', effect.sourceId);
+                    this.takeDamage(tickValue, def.damageType || 'magic', effect.sourceId, context);
                     break;
                 case 'heal':
                     // Apply healing (HoT)
@@ -491,29 +636,64 @@ export class ServerChampion extends ServerEntity {
         this.cancelRecall();
     }
     /**
+     * Break stealth effect (called when attacking or using abilities).
+     */
+    breakStealth() {
+        // Remove stealth effects
+        this.activeEffects = this.activeEffects.filter(e => e.definitionId !== 'vex_stealth' &&
+            !e.definitionId.includes('stealth') &&
+            !e.definitionId.includes('invisible'));
+    }
+    /**
      * Take damage (override for shields and resistances).
      */
-    takeDamage(amount, type, sourceId) {
+    takeDamage(amount, type, sourceId, context) {
         if (this.isDead)
             return 0;
         this.enterCombat();
+        // Dispatch on_take_damage trigger
+        if (context) {
+            passiveTriggerSystem.dispatchTrigger('on_take_damage', this, context, {
+                damageAmount: amount,
+                damageType: type,
+                sourceId,
+            });
+        }
         // Calculate damage after resistances
         let damage = this.calculateDamage(amount, type);
+        const damageAfterResist = damage;
+        // Track shield absorption
+        let shieldAbsorbed = 0;
         // Apply shields first
         for (const shield of this.shields) {
             if (shield.amount >= damage) {
+                shieldAbsorbed += damage;
                 shield.amount -= damage;
-                return 0; // All damage absorbed
+                damage = 0;
+                break;
             }
             else {
+                shieldAbsorbed += shield.amount;
                 damage -= shield.amount;
                 shield.amount = 0;
             }
         }
         // Apply remaining damage to health
-        this.health = Math.max(0, this.health - damage);
+        if (damage > 0) {
+            this.health = Math.max(0, this.health - damage);
+        }
+        // Emit damage event for client-side floating numbers
+        if (context && (damage > 0 || shieldAbsorbed > 0)) {
+            context.addEvent(GameEventType.DAMAGE, {
+                entityId: this.id,
+                amount: damage,
+                damageType: type,
+                sourceId,
+                shieldAbsorbed,
+            });
+        }
         if (this.health <= 0) {
-            this.onDeath(sourceId);
+            this.onDeath(sourceId, context);
         }
         return damage;
     }
@@ -536,9 +716,13 @@ export class ServerChampion extends ServerEntity {
     /**
      * Handle death.
      */
-    onDeath(killerId) {
-        super.onDeath(killerId);
+    onDeath(killerId, context) {
+        super.onDeath(killerId, context);
         this.deaths++;
+        // Award XP/gold to killer and nearby allies
+        if (context) {
+            RewardSystem.awardKillRewards(this, killerId, context);
+        }
         // Calculate respawn time
         const baseRespawn = GameConfig.RESPAWN.BASE_RESPAWN_TIME;
         const levelBonus = GameConfig.RESPAWN.RESPAWN_TIME_PER_LEVEL * (this.level - 1);
@@ -700,7 +884,7 @@ export class ServerChampion extends ServerEntity {
     applyEffect(effectId, duration, sourceId, stacks = 1) {
         const def = getServerEffectById(effectId);
         if (!def) {
-            console.warn(`[ServerChampion] Unknown effect: ${effectId}`);
+            Logger.champion.warn(`Unknown effect: ${effectId}`);
             return;
         }
         // Check for existing effect
@@ -710,18 +894,22 @@ export class ServerChampion extends ServerEntity {
             switch (def.stackBehavior) {
                 case 'refresh':
                     existing.timeRemaining = duration;
+                    existing.totalDuration = duration; // Update total for timer display
                     break;
                 case 'extend':
                     existing.timeRemaining += duration;
+                    existing.totalDuration = existing.timeRemaining; // Total becomes extended duration
                     break;
                 case 'stack':
                     if (!def.maxStacks || existing.stacks < def.maxStacks) {
                         existing.stacks += stacks;
                     }
                     existing.timeRemaining = duration; // Usually refresh on stack
+                    existing.totalDuration = duration;
                     break;
                 case 'replace':
                     existing.timeRemaining = duration;
+                    existing.totalDuration = duration;
                     existing.stacks = stacks;
                     break;
                 case 'ignore':
@@ -735,6 +923,7 @@ export class ServerChampion extends ServerEntity {
                 definitionId: effectId,
                 sourceId,
                 timeRemaining: duration,
+                totalDuration: duration,
                 stacks,
                 instanceId: `${effectId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             };
@@ -825,8 +1014,9 @@ export class ServerChampion extends ServerEntity {
      * Level up an ability.
      */
     levelUpAbility(slot) {
-        if (this.skillPoints <= 0)
+        if (this.skillPoints <= 0) {
             return false;
+        }
         const currentRank = this.abilityRanks[slot];
         const maxRank = 5; // TODO: Get from ability definition
         // R ability has special level requirements
@@ -837,12 +1027,22 @@ export class ServerChampion extends ServerEntity {
                 return false;
             }
         }
-        if (currentRank >= maxRank)
+        if (currentRank >= maxRank) {
             return false;
+        }
         this.abilityRanks[slot]++;
         this.abilityStates[slot].rank = this.abilityRanks[slot];
         this.skillPoints--;
+        Logger.champion.info(`${this.playerId} leveled ${slot} to rank ${this.abilityRanks[slot]}`);
         return true;
+    }
+    /**
+     * Grant gold to the champion.
+     */
+    grantGold(amount) {
+        if (amount > 0) {
+            this.gold += amount;
+        }
     }
     /**
      * Gain experience.
@@ -878,23 +1078,19 @@ export class ServerChampion extends ServerEntity {
     buyItem(itemId) {
         const itemDef = getServerItemById(itemId);
         if (!itemDef) {
-            console.log(`[ServerChampion] Item not found: ${itemId}`);
             return false;
         }
         // Check gold
         if (this.gold < itemDef.cost) {
-            console.log(`[ServerChampion] Not enough gold for ${itemDef.name}: have ${this.gold}, need ${itemDef.cost}`);
             return false;
         }
         // Check if unique and already owned
         if (itemDef.isUnique && this.hasItem(itemId)) {
-            console.log(`[ServerChampion] Already owns unique item: ${itemDef.name}`);
             return false;
         }
         // Find empty slot
         const emptySlot = this.findEmptySlot();
         if (emptySlot === null) {
-            console.log(`[ServerChampion] Inventory full, cannot buy ${itemDef.name}`);
             return false;
         }
         // Deduct gold and add item
@@ -908,7 +1104,7 @@ export class ServerChampion extends ServerEntity {
         };
         // Invalidate cached stats
         this.cachedStats = null;
-        console.log(`[ServerChampion] ${this.playerId} bought ${itemDef.name} for ${itemDef.cost}g (remaining: ${this.gold}g)`);
+        Logger.champion.info(`${this.playerId} bought ${itemDef.name} for ${itemDef.cost}g`);
         return true;
     }
     /**
@@ -917,17 +1113,14 @@ export class ServerChampion extends ServerEntity {
      */
     sellItem(slot) {
         if (slot < 0 || slot >= 6) {
-            console.log(`[ServerChampion] Invalid slot: ${slot}`);
             return 0;
         }
         const item = this.items[slot];
         if (!item) {
-            console.log(`[ServerChampion] No item in slot ${slot}`);
             return 0;
         }
         const itemDef = getServerItemById(item.definitionId);
         if (!itemDef) {
-            console.log(`[ServerChampion] Item definition not found: ${item.definitionId}`);
             return 0;
         }
         // Add gold and remove item
@@ -936,7 +1129,7 @@ export class ServerChampion extends ServerEntity {
         this.items[slot] = null;
         // Invalidate cached stats
         this.cachedStats = null;
-        console.log(`[ServerChampion] ${this.playerId} sold ${itemDef.name} for ${goldGained}g (total: ${this.gold}g)`);
+        Logger.champion.info(`${this.playerId} sold ${itemDef.name} for ${goldGained}g`);
         return goldGained;
     }
     /**
@@ -967,9 +1160,14 @@ export class ServerChampion extends ServerEntity {
     }
     /**
      * Champion collision radius.
+     * Uses the collision shape from champion definition, defaulting to 25.
      */
     getRadius() {
-        return 25; // Standard champion collision radius
+        const collision = this.definition.collision;
+        if (collision && collision.type === 'circle') {
+            return collision.radius;
+        }
+        return 25; // Default if no collision defined
     }
     /**
      * Champion collision mass.
@@ -1000,6 +1198,8 @@ export class ServerChampion extends ServerEntity {
             maxResource: stats.maxResource,
             level: this.level,
             experience: this.experience,
+            experienceToNextLevel: this.experienceToNextLevel,
+            skillPoints: this.skillPoints,
             attackDamage: stats.attackDamage,
             abilityPower: stats.abilityPower,
             armor: stats.armor,
@@ -1010,9 +1210,26 @@ export class ServerChampion extends ServerEntity {
             respawnTimer: this.respawnTimer,
             isRecalling: this.isRecalling,
             recallProgress: this.recallProgress,
-            abilities: this.abilityStates,
-            activeEffects: this.activeEffects,
-            items: this.items,
+            abilities: {
+                Q: { ...this.abilityStates.Q },
+                W: { ...this.abilityStates.W },
+                E: { ...this.abilityStates.E },
+                R: { ...this.abilityStates.R },
+            },
+            passive: {
+                isActive: this.passiveState.isActive,
+                cooldownRemaining: this.passiveState.cooldownRemaining,
+                stacks: this.passiveState.stacks,
+                stackTimeRemaining: this.passiveState.stackTimeRemaining,
+            },
+            activeEffects: this.activeEffects.map(e => ({ ...e })),
+            shields: this.shields.map(s => ({
+                amount: s.amount,
+                remainingDuration: s.remainingDuration,
+                sourceId: s.sourceId ?? 'unknown',
+                shieldType: s.shieldType ?? 'normal',
+            })),
+            items: this.items.map(i => i ? { ...i } : null),
             gold: this.gold,
             kills: this.kills,
             deaths: this.deaths,

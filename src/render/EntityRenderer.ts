@@ -17,6 +17,7 @@ import RenderElement from '@/render/renderElement';
 import Vector from '@/physics/vector';
 import type { OnlineStateManager, InterpolatedEntity, DamageNumber, GoldNumber, AbilityEffect } from '@/core/OnlineStateManager';
 import { EntityType, getChampionDefinition } from '@siege/shared';
+import { BitmapFont } from '@/render/BitmapFont';
 
 /**
  * Colors for different teams.
@@ -1136,6 +1137,44 @@ export class EntityRenderer implements GameObject {
     if (snapshot.health !== undefined && snapshot.maxHealth !== undefined) {
       this.renderHealthBar(ctx, snapshot.health, snapshot.maxHealth, 40, -30, HEALTH_BAR_COLORS.NEUTRAL);
     }
+
+    // Draw aggro indicator (red "!") when creature has a target
+    if (snapshot.targetEntityId) {
+      this.renderAggroIndicator(ctx, -45);
+    }
+  }
+
+  /**
+   * Render a red "!" aggro indicator above an entity.
+   */
+  private renderAggroIndicator(ctx: CanvasRenderingContext2D, yOffset: number): void {
+    const x = 0;
+    const y = yOffset;
+
+    // Pulsing effect
+    const pulseScale = 1 + Math.sin(this.animationTime * 8) * 0.1;
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(pulseScale, pulseScale);
+
+    // Red circle background
+    ctx.beginPath();
+    ctx.arc(0, 0, 10, 0, Math.PI * 2);
+    ctx.fillStyle = '#ff3333';
+    ctx.fill();
+    ctx.strokeStyle = '#aa0000';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // White "!" text (using pixel font)
+    ctx.fillStyle = '#ffffff';
+    ctx.font = BitmapFont.getFont(18);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('!', 0, -3);
+
+    ctx.restore();
   }
 
   /**

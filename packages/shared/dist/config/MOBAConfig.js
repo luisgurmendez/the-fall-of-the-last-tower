@@ -29,6 +29,7 @@ export const MOBAConfig = {
         RED: { x: 1200, y: -1200 },
         RADIUS: 75,
         HEALTH: 5000,
+        collision: { type: 'circle', radius: 75, offset: { x: 0, y: 0 } },
     },
     /**
      * Lane waypoints from Blue base to Red base.
@@ -103,6 +104,7 @@ export const MOBAConfig = {
                 leashRange: 300,
                 goldReward: 80,
                 expReward: 50,
+                collision: { type: 'circle', radius: 20, offset: { x: 0, y: 0 } },
             },
             wolf: {
                 health: 350,
@@ -114,6 +116,7 @@ export const MOBAConfig = {
                 leashRange: 300,
                 goldReward: 60,
                 expReward: 40,
+                collision: { type: 'circle', radius: 14, offset: { x: 0, y: 0 } },
             },
             raptor: {
                 health: 200,
@@ -125,6 +128,7 @@ export const MOBAConfig = {
                 leashRange: 300,
                 goldReward: 40,
                 expReward: 30,
+                collision: { type: 'circle', radius: 10, offset: { x: 0, y: 0 } },
             },
             krug: {
                 health: 600,
@@ -136,6 +140,7 @@ export const MOBAConfig = {
                 leashRange: 300,
                 goldReward: 90,
                 expReward: 55,
+                collision: { type: 'circle', radius: 22, offset: { x: 0, y: 0 } },
             },
             blue_buff: {
                 health: 1200,
@@ -147,6 +152,7 @@ export const MOBAConfig = {
                 leashRange: 350,
                 goldReward: 120,
                 expReward: 100,
+                collision: { type: 'circle', radius: 28, offset: { x: 0, y: 0 } },
             },
             red_buff: {
                 health: 1200,
@@ -158,6 +164,7 @@ export const MOBAConfig = {
                 leashRange: 350,
                 goldReward: 120,
                 expReward: 100,
+                collision: { type: 'circle', radius: 28, offset: { x: 0, y: 0 } },
             },
             dragon: {
                 health: 2500,
@@ -169,6 +176,7 @@ export const MOBAConfig = {
                 leashRange: 400,
                 goldReward: 200,
                 expReward: 250,
+                collision: { type: 'circle', radius: 40, offset: { x: 0, y: 0 } },
             },
             baron: {
                 health: 5000,
@@ -180,6 +188,7 @@ export const MOBAConfig = {
                 leashRange: 450,
                 goldReward: 500,
                 expReward: 500,
+                collision: { type: 'circle', radius: 55, offset: { x: 0, y: 0 } },
             },
             spider: {
                 health: 300,
@@ -191,6 +200,7 @@ export const MOBAConfig = {
                 leashRange: 300,
                 goldReward: 50,
                 expReward: 35,
+                collision: { type: 'circle', radius: 8, offset: { x: 0, y: 0 } },
             },
         },
     },
@@ -284,6 +294,7 @@ export const MOBAConfig = {
             attackCooldown: 1.0,
             armor: 60,
             magicResist: 60,
+            collision: { type: 'circle', radius: 50, offset: { x: 0, y: 0 } },
         },
         /** Tower positions by side and lane */
         POSITIONS: [

@@ -9,7 +9,7 @@
  *
  * NO RENDERING - purely simulation.
  */
-import { Vector, DamageType, ChampionSnapshot, AbilitySlot, AbilityState, ChampionDefinition, ChampionStats, StatModifier, ActiveEffectState, CrowdControlStatus, EquippedItemState } from '@siege/shared';
+import { Vector, DamageType, ChampionSnapshot, AbilitySlot, AbilityState, ChampionDefinition, ChampionStats, StatModifier, ActiveEffectState, CrowdControlStatus, EquippedItemState, PassiveState } from '@siege/shared';
 import { ServerEntity, ServerEntityConfig } from './ServerEntity';
 import type { ServerGameContext } from '../game/ServerGameContext';
 export interface ServerChampionConfig extends Omit<ServerEntityConfig, 'entityType'> {
@@ -19,7 +19,9 @@ export interface ServerChampionConfig extends Omit<ServerEntityConfig, 'entityTy
 export interface ActiveShield {
     amount: number;
     remainingDuration: number;
-    sourceId?: string;
+    sourceId: string;
+    /** Shield type for visual styling - defaults to 'normal' if not specified */
+    shieldType?: 'normal' | 'magic' | 'physical' | 'passive';
 }
 export interface ForcedMovement {
     direction: Vector;
@@ -27,6 +29,12 @@ export interface ForcedMovement {
     duration: number;
     elapsed: number;
     type: 'dash' | 'knockback';
+    hitbox?: number;
+    damage?: number;
+    damageType?: DamageType;
+    appliesEffects?: string[];
+    effectDuration?: number;
+    hitEntities?: Set<string>;
 }
 export declare class ServerChampion extends ServerEntity {
     readonly playerId: string;
@@ -50,7 +58,7 @@ export declare class ServerChampion extends ServerEntity {
     activeEffects: ActiveEffectState[];
     ccStatus: CrowdControlStatus;
     items: (EquippedItemState | null)[];
-    gold: 500;
+    gold: 300;
     totalGoldSpent: number;
     private attackCooldown;
     kills: number;
@@ -60,6 +68,7 @@ export declare class ServerChampion extends ServerEntity {
     shields: ActiveShield[];
     forcedMovement: ForcedMovement | null;
     direction: Vector;
+    passiveState: PassiveState;
     sightRange: number;
     trinketCharges: number;
     trinketMaxCharges: number;
@@ -67,11 +76,19 @@ export declare class ServerChampion extends ServerEntity {
     trinketRechargeTimer: number;
     trinketRechargeTime: number;
     constructor(config: ServerChampionConfig);
+    /**
+     * Initialize passive ability.
+     */
+    private initializePassive;
     private createDefaultAbilityState;
     /**
      * Update champion for one tick.
      */
     update(dt: number, context: ServerGameContext): void;
+    /**
+     * Update passive ability state.
+     */
+    private updatePassiveState;
     /**
      * Update while dead (respawn timer).
      */
@@ -88,6 +105,10 @@ export declare class ServerChampion extends ServerEntity {
      * Update forced movement (dash/knockback).
      */
     private updateForcedMovement;
+    /**
+     * Check for collisions during dash and apply damage/effects.
+     */
+    private checkDashCollisions;
     /**
      * Update combat state.
      */
@@ -158,9 +179,13 @@ export declare class ServerChampion extends ServerEntity {
      */
     enterCombat(): void;
     /**
+     * Break stealth effect (called when attacking or using abilities).
+     */
+    breakStealth(): void;
+    /**
      * Take damage (override for shields and resistances).
      */
-    takeDamage(amount: number, type: DamageType, sourceId?: string): number;
+    takeDamage(amount: number, type: DamageType, sourceId?: string, context?: ServerGameContext): number;
     /**
      * Calculate damage after resistances.
      */
@@ -168,7 +193,7 @@ export declare class ServerChampion extends ServerEntity {
     /**
      * Handle death.
      */
-    protected onDeath(killerId?: string): void;
+    protected onDeath(killerId?: string, context?: ServerGameContext): void;
     /**
      * Get current stats (with modifiers).
      */
@@ -234,6 +259,10 @@ export declare class ServerChampion extends ServerEntity {
      */
     levelUpAbility(slot: AbilitySlot): boolean;
     /**
+     * Grant gold to the champion.
+     */
+    grantGold(amount: number): void;
+    /**
      * Gain experience.
      */
     gainExperience(amount: number): void;
@@ -265,6 +294,7 @@ export declare class ServerChampion extends ServerEntity {
     isCollidable(): boolean;
     /**
      * Champion collision radius.
+     * Uses the collision shape from champion definition, defaulting to 25.
      */
     getRadius(): number;
     /**

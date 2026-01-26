@@ -66,7 +66,7 @@ export declare class ServerGame {
      */
     private formatBytes;
     /**
-     * Log performance metrics.
+     * Log performance metrics in a detailed table format.
      */
     private logMetrics;
     /**

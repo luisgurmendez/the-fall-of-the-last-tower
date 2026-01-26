@@ -9,6 +9,7 @@
  */
 import { Vector, InputType, } from '@siege/shared';
 import { abilityExecutor } from '../simulation/ServerAbilityExecutor';
+import { Logger } from '../utils/Logger';
 /**
  * Rate limiting configuration per input type.
  */
@@ -176,8 +177,7 @@ export class InputHandler {
             context,
         });
         if (!result.success) {
-            // Log failure for debugging (could also send feedback to client)
-            console.log(`[InputHandler] ${champion.playerId} failed to cast ${input.slot}: ${result.failReason}`);
+            Logger.input.debug(`${champion.playerId} failed to cast ${input.slot}: ${result.failReason}`);
         }
     }
     /**
@@ -210,7 +210,6 @@ export class InputHandler {
     handlePlaceWardInput(champion, input, context) {
         // Check if champion has trinket charges available
         if (!champion.canPlaceWard()) {
-            console.log(`[InputHandler] Cannot place ward: no charges available (${champion.trinketCharges}/${champion.trinketMaxCharges}) or on cooldown (${champion.trinketCooldown.toFixed(1)}s)`);
             return;
         }
         const targetPos = new Vector(input.x, input.y);
@@ -219,7 +218,6 @@ export class InputHandler {
         const halfWidth = mapSize.width / 2;
         const halfHeight = mapSize.height / 2;
         if (Math.abs(targetPos.x) > halfWidth || Math.abs(targetPos.y) > halfHeight) {
-            console.log(`[InputHandler] Ward placement out of bounds: (${input.x}, ${input.y})`);
             return;
         }
         // Check if position is within placement range (depends on ward type)
@@ -228,16 +226,15 @@ export class InputHandler {
         const maxPlacementRange = input.wardType === 'farsight' ? 4000 : 600;
         const distance = champion.position.distanceTo(targetPos);
         if (distance > maxPlacementRange) {
-            console.log(`[InputHandler] Ward placement too far: ${distance.toFixed(0)} > ${maxPlacementRange}`);
             return;
         }
         // Consume trinket charge
         if (!champion.consumeTrinketCharge()) {
-            console.log(`[InputHandler] Failed to consume trinket charge`);
             return;
         }
         // Place the ward
         context.placeWard(champion.playerId, input.wardType, targetPos);
+        Logger.input.info(`${champion.playerId} placed ${input.wardType} ward at (${input.x.toFixed(0)}, ${input.y.toFixed(0)})`);
     }
     /**
      * Basic input validation.

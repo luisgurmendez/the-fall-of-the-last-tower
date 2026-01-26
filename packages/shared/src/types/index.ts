@@ -174,3 +174,61 @@ export {
   DEFAULT_NEXUS_STATS,
   TowerTargetPriority,
 } from './structures';
+
+// Collision types
+export type {
+  Vector2D,
+  CollisionBounds,
+  BaseCollisionShape,
+  CircleCollision,
+  RectangleCollision,
+  CapsuleCollision,
+  EntityCollision,
+} from './collision';
+export {
+  isCircleCollision,
+  isRectangleCollision,
+  isCapsuleCollision,
+  getCollisionBounds,
+  getEffectiveRadius,
+  getCollisionCenter,
+  collisionShapesOverlap,
+  calculateCollisionSeparation,
+  DEFAULT_CHAMPION_COLLISION,
+  DEFAULT_MINION_COLLISION,
+  DEFAULT_TOWER_COLLISION,
+} from './collision';
+
+// Animation types
+export type {
+  DamageTrigger,
+  ProjectileTrigger,
+  EffectTrigger,
+  SoundTrigger,
+  VfxTrigger,
+  KeyframeTrigger,
+  AnimationKeyframe,
+  AnimationData,
+  EntityAnimations,
+  ChampionAnimations,
+  AnimationPlayback,
+} from './animation';
+export {
+  isDamageTrigger,
+  isProjectileTrigger,
+  isEffectTrigger,
+  isSoundTrigger,
+  isVfxTrigger,
+  calculateAnimationPlayback,
+  getTriggerTime,
+  getKeyframeAtTime,
+  getKeyframesInRange,
+  scaleAnimationSpeed,
+  getFrameAtTime,
+  isAnimationComplete,
+  getAttackAnimationSpeed,
+  getAttackAnimationDuration,
+  createDefaultAttackAnimation,
+  createDefaultIdleAnimation,
+  createDefaultWalkAnimation,
+} from './animation';

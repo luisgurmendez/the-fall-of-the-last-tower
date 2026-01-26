@@ -692,25 +692,58 @@ export class ServerAbilityExecutor {
       damageType = definition.damage.type;
     }
 
-    // Spawn projectile
-    const projectile = new ServerProjectile({
-      id: context.generateEntityId(),
-      position: champion.position.clone(),
-      side: champion.side,
+    // Check if ability has animation with projectile keyframe
+    const abilityAnimation = champion.definition.animations?.abilities?.[definition.id];
+    let projectileDelay = 0;
+
+    if (abilityAnimation) {
+      // Find the projectile keyframe
+      const projectileKeyframe = abilityAnimation.keyframes.find(
+        k => k.trigger.type === 'projectile'
+      );
+      if (projectileKeyframe) {
+        // Calculate delay based on animation timing
+        projectileDelay = projectileKeyframe.frame * abilityAnimation.baseFrameDuration;
+      }
+    }
+
+    // Prepare projectile config
+    const projectileConfig = {
       direction: direction.normalized(),
       speed: definition.projectileSpeed ?? 1000,
       radius: definition.projectileRadius ?? 30,
       maxDistance: definition.range ?? 800,
-      sourceId: champion.id,
-      abilityId: definition.id,
       damage: damageAmount,
       damageType,
       piercing: definition.piercing ?? false,
       appliesEffects: definition.appliesEffects,
       effectDuration: definition.effectDuration,
-    });
+    };
 
-    context.addEntity(projectile);
+    if (projectileDelay > 0) {
+      // Schedule projectile spawn at keyframe time
+      champion.scheduleAbilityProjectile(definition.id, projectileDelay, projectileConfig);
+    } else {
+      // No animation delay - spawn immediately (fallback for abilities without animations)
+      const projectile = new ServerProjectile({
+        id: context.generateEntityId(),
+        position: champion.position.clone(),
+        side: champion.side,
+        direction: projectileConfig.direction,
+        speed: projectileConfig.speed,
+        radius: projectileConfig.radius,
+        maxDistance: projectileConfig.maxDistance,
+        sourceId: champion.id,
+        abilityId: definition.id,
+        damage: projectileConfig.damage,
+        damageType: projectileConfig.damageType,
+        piercing: projectileConfig.piercing,
+        appliesEffects: projectileConfig.appliesEffects,
+        effectDuration: projectileConfig.effectDuration,
+      });
+
+      context.addEntity(projectile);
+    }
   }
 
   /**

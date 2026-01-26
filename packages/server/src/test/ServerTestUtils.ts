@@ -283,6 +283,9 @@ export function createTestArena(options: TestArenaOptions = {}): TestArena {
   context.addChampion(blue, 'player-blue');
   context.addChampion(red, 'player-red');
 
+  // Update fog of war so champions can see each other
+  context.getFogOfWar().updateVision(context, 1);
+
   if (learnAbilities) {
     blue.learnAllAbilities();
     red.learnAllAbilities();

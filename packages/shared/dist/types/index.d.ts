@@ -17,4 +17,8 @@ export type { MinionType, LaneId, MinionStats, WaveComposition, MinionConfig, } 
 export { DEFAULT_MINION_STATS, DEFAULT_MINION_WAVE_CONFIG, } from './minions';
 export type { TowerTier, TowerLane, TowerStats, TowerReward, InhibitorStats, NexusStats, } from './structures';
 export { DEFAULT_TOWER_STATS, DEFAULT_TOWER_REWARDS, DEFAULT_INHIBITOR_STATS, DEFAULT_NEXUS_STATS, TowerTargetPriority, } from './structures';
+export type { Vector2D, CollisionBounds, BaseCollisionShape, CircleCollision, RectangleCollision, CapsuleCollision, EntityCollision, } from './collision';
+export { isCircleCollision, isRectangleCollision, isCapsuleCollision, getCollisionBounds, getEffectiveRadius, getCollisionCenter, collisionShapesOverlap, calculateCollisionSeparation, DEFAULT_CHAMPION_COLLISION, DEFAULT_MINION_COLLISION, DEFAULT_TOWER_COLLISION, } from './collision';
+export type { DamageTrigger, ProjectileTrigger, EffectTrigger, SoundTrigger, VfxTrigger, KeyframeTrigger, AnimationKeyframe, AnimationData, EntityAnimations, ChampionAnimations, AnimationPlayback, } from './animation';
+export { isDamageTrigger, isProjectileTrigger, isEffectTrigger, isSoundTrigger, isVfxTrigger, calculateAnimationPlayback, getTriggerTime, getKeyframeAtTime, getKeyframesInRange, scaleAnimationSpeed, getFrameAtTime, isAnimationComplete, getAttackAnimationSpeed, getAttackAnimationDuration, createDefaultAttackAnimation, createDefaultIdleAnimation, createDefaultWalkAnimation, } from './animation';
 //# sourceMappingURL=index.d.ts.map

@@ -9,6 +9,8 @@ import type {
   ChampionGrowthStats,
 } from '../../types/champions';
 import type { AbilityDefinition, AbilityScaling, PassiveAbilityDefinition } from '../../types/abilities';
+import type { CircleCollision } from '../../types/collision';
+import type { ChampionAnimations } from '../../types/animation';
 
 // =============================================================================
 // Helper function for creating scaling
@@ -166,6 +168,97 @@ export const VexPassive: PassiveAbilityDefinition = {
 };
 
 // =============================================================================
+// Collision & Animation
+// =============================================================================
+
+const VEX_COLLISION: CircleCollision = {
+  type: 'circle',
+  radius: 18,  // Agile assassin, smaller hitbox
+  offset: { x: 0, y: 2 },
+};
+
+const VEX_ANIMATIONS: ChampionAnimations = {
+  idle: {
+    id: 'idle',
+    totalFrames: 4,
+    baseFrameDuration: 0.175,  // Slightly faster idle for assassin
+    loop: true,
+    keyframes: [],
+  },
+  walk: {
+    id: 'walk',
+    totalFrames: 8,
+    baseFrameDuration: 0.08,  // Fast walk animation
+    loop: true,
+    keyframes: [],
+  },
+  attack: {
+    id: 'attack',
+    totalFrames: 5,
+    baseFrameDuration: 0.08,  // ~400ms total, fast melee attacks
+    loop: false,
+    keyframes: [
+      { frame: 0, trigger: { type: 'sound', soundId: 'blade_slash' } },
+      { frame: 2, trigger: { type: 'damage' } },  // Fast damage frame
+      { frame: 2, trigger: { type: 'sound', soundId: 'blade_hit' } },
+    ],
+  },
+  death: {
+    id: 'death',
+    totalFrames: 8,
+    baseFrameDuration: 0.125,
+    loop: false,
+    keyframes: [],
+  },
+  abilities: {
+    vex_shuriken: {
+      id: 'vex_shuriken',
+      totalFrames: 6,
+      baseFrameDuration: 0.05,  // 300ms total, fast throw
+      loop: false,
+      keyframes: [
+        { frame: 0, trigger: { type: 'sound', soundId: 'shuriken_throw' } },
+        { frame: 2, trigger: { type: 'projectile' } },
+        { frame: 2, trigger: { type: 'vfx', vfxId: 'shadow_shuriken' } },
+      ],
+    },
+    vex_shroud: {
+      id: 'vex_shroud',
+      totalFrames: 4,
+      baseFrameDuration: 0.075,  // 300ms total
+      loop: false,
+      keyframes: [
+        { frame: 0, trigger: { type: 'sound', soundId: 'shroud_activate' } },
+        { frame: 1, trigger: { type: 'effect', effectId: 'stealth' } },
+        { frame: 1, trigger: { type: 'vfx', vfxId: 'shadow_shroud' } },
+      ],
+    },
+    vex_dash: {
+      id: 'vex_dash',
+      totalFrames: 5,
+      baseFrameDuration: 0.06,  // 300ms total
+      loop: false,
+      keyframes: [
+        { frame: 0, trigger: { type: 'sound', soundId: 'dash_start' } },
+        { frame: 4, trigger: { type: 'effect', effectId: 'empower' } },
+        { frame: 4, trigger: { type: 'vfx', vfxId: 'shadow_step' } },
+      ],
+    },
+    vex_execute: {
+      id: 'vex_execute',
+      totalFrames: 8,
+      baseFrameDuration: 0.0625,  // 500ms total
+      loop: false,
+      keyframes: [
+        { frame: 0, trigger: { type: 'sound', soundId: 'death_mark_cast' } },
+        { frame: 4, trigger: { type: 'effect', effectId: 'death_mark' } },
+        { frame: 4, trigger: { type: 'vfx', vfxId: 'death_mark' } },
+      ],
+    },
+  },
+};
+
+// =============================================================================
 // Champion Definition
 // =============================================================================
 
@@ -185,6 +278,9 @@ export const VexDefinition: ChampionDefinition = {
     R: 'vex_execute',
   },
   passive: 'vex_passive',
+  collision: VEX_COLLISION,
+  animations: VEX_ANIMATIONS,
+  attackAnimationSpeedScale: true,
 };
 
 // =============================================================================

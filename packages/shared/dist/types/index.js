@@ -9,4 +9,6 @@ export { calculateItemStats, findEmptySlot, hasItem, } from './items';
 export { InputType, EntityType, EntityChangeMask, GameEventType, ServerMessageType, ClientMessageType, } from './network';
 export { DEFAULT_MINION_STATS, DEFAULT_MINION_WAVE_CONFIG, } from './minions';
 export { DEFAULT_TOWER_STATS, DEFAULT_TOWER_REWARDS, DEFAULT_INHIBITOR_STATS, DEFAULT_NEXUS_STATS, TowerTargetPriority, } from './structures';
+export { isCircleCollision, isRectangleCollision, isCapsuleCollision, getCollisionBounds, getEffectiveRadius, getCollisionCenter, collisionShapesOverlap, calculateCollisionSeparation, DEFAULT_CHAMPION_COLLISION, DEFAULT_MINION_COLLISION, DEFAULT_TOWER_COLLISION, } from './collision';
+export { isDamageTrigger, isProjectileTrigger, isEffectTrigger, isSoundTrigger, isVfxTrigger, calculateAnimationPlayback, getTriggerTime, getKeyframeAtTime, getKeyframesInRange, scaleAnimationSpeed, getFrameAtTime, isAnimationComplete, getAttackAnimationSpeed, getAttackAnimationDuration, createDefaultAttackAnimation, createDefaultIdleAnimation, createDefaultWalkAnimation, } from './animation';
 //# sourceMappingURL=index.js.map

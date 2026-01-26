@@ -37,16 +37,22 @@ export declare abstract class ServerEntity {
     abstract toSnapshot(): EntitySnapshot;
     /**
      * Take damage from a source.
+     * @param amount - Amount of damage to deal
+     * @param type - Type of damage (physical, magic, true, pure)
+     * @param sourceId - ID of the entity that dealt the damage
+     * @param context - Optional game context for death handling (rewards, etc.)
      */
-    takeDamage(amount: number, type: DamageType, sourceId?: string): number;
+    takeDamage(amount: number, type: DamageType, sourceId?: string, context?: ServerGameContext): number;
     /**
      * Calculate damage after resistances.
      */
     protected calculateDamage(amount: number, type: DamageType): number;
     /**
      * Called when entity dies.
+     * @param killerId - ID of the entity that dealt the killing blow
+     * @param context - Optional game context for reward distribution
      */
-    protected onDeath(killerId?: string): void;
+    protected onDeath(killerId?: string, context?: ServerGameContext): void;
     /**
      * Heal the entity.
      */

@@ -15,8 +15,8 @@ import { ServerTower } from '../simulation/ServerTower';
 import { ServerNexus } from '../simulation/ServerNexus';
 import { InputHandler } from '../network/InputHandler';
 import { StateSerializer } from '../network/StateSerializer';
-import { EntityPrioritizer } from '../network/EntityPrioritizer';
 import { ReliableEventQueue, shouldSendReliably } from '../network/ReliableEventQueue';
+import { Logger } from '../utils/Logger';
 export class GameRoom {
     constructor(config) {
         this.state = 'waiting';
@@ -39,8 +39,6 @@ export class GameRoom {
         this.inputHandler = new InputHandler();
         // Create state serializer for delta compression
         this.stateSerializer = new StateSerializer();
-        // Create entity prioritizer for bandwidth optimization
-        this.entityPrioritizer = new EntityPrioritizer();
         // Create reliable event queue for important events
         this.reliableEventQueue = new ReliableEventQueue();
         // Create game loop
@@ -54,11 +52,11 @@ export class GameRoom {
      */
     start() {
         if (this.state !== 'waiting') {
-            console.warn(`[GameRoom ${this.gameId}] Cannot start, state is ${this.state}`);
+            Logger.game.warn(`Cannot start game ${this.gameId}, state is ${this.state}`);
             return;
         }
         this.state = 'starting';
-        console.log(`[GameRoom ${this.gameId}] Starting game with ${this.players.size} players`);
+        Logger.game.info(`Starting game ${this.gameId} with ${this.players.size} players`);
         // Spawn structures first (nexuses and towers)
         this.spawnStructures();
         // Spawn jungle camps
@@ -81,14 +79,12 @@ export class GameRoom {
             side: 0,
         });
         this.context.addEntity(blueNexus);
-        console.log(`[GameRoom ${this.gameId}] Spawned Blue nexus at (${MOBAConfig.NEXUS.BLUE.x}, ${MOBAConfig.NEXUS.BLUE.y})`);
         const redNexus = new ServerNexus({
             id: this.context.generateEntityId(),
             position: new Vector(MOBAConfig.NEXUS.RED.x, MOBAConfig.NEXUS.RED.y),
             side: 1,
         });
         this.context.addEntity(redNexus);
-        console.log(`[GameRoom ${this.gameId}] Spawned Red nexus at (${MOBAConfig.NEXUS.RED.x}, ${MOBAConfig.NEXUS.RED.y})`);
         // Spawn towers from MOBAConfig
         // Group towers by side and lane to determine tier (1=outer, 2=inner)
         const towersBySideLane = new Map();
@@ -107,9 +103,8 @@ export class GameRoom {
                 tier,
             });
             this.context.addEntity(tower);
-            console.log(`[GameRoom ${this.gameId}] Spawned tower: side=${towerConfig.side}, lane=${towerConfig.lane}, tier=${tier}, pos=(${towerConfig.position.x}, ${towerConfig.position.y})`);
         }
-        console.log(`[GameRoom ${this.gameId}] Spawned ${MOBAConfig.TOWERS.POSITIONS.length} towers total`);
+        Logger.game.debug(`Spawned ${MOBAConfig.TOWERS.POSITIONS.length} towers and 2 nexuses`);
     }
     /**
      * Stop the game.
@@ -122,16 +117,12 @@ export class GameRoom {
      * Spawn all champions.
      */
     spawnChampions() {
-        // DEBUG: Log available definitions
-        console.log(`[GameRoom ${this.gameId}] Available champion definitions:`, Array.from(this.championDefinitions.keys()));
         for (const [playerId, playerInfo] of this.players) {
-            console.log(`[GameRoom ${this.gameId}] Player ${playerId} selected championId: "${playerInfo.championId}"`);
             const definition = this.championDefinitions.get(playerInfo.championId);
             if (!definition) {
-                console.error(`[GameRoom ${this.gameId}] Unknown champion: ${playerInfo.championId}`);
+                Logger.game.error(`Unknown champion: ${playerInfo.championId} for player ${playerId}`);
                 continue;
             }
-            console.log(`[GameRoom ${this.gameId}] Found definition: id=${definition.id}, name=${definition.name}, Q=${definition.abilities.Q}`);
             const spawnPos = playerInfo.side === 0
                 ? MOBAConfig.CHAMPION_SPAWN.BLUE
                 : MOBAConfig.CHAMPION_SPAWN.RED;
@@ -143,7 +134,7 @@ export class GameRoom {
                 playerId,
             });
             this.context.addChampion(champion, playerId);
-            console.log(`[GameRoom ${this.gameId}] Spawned ${definition.name} for player ${playerId}`);
+            Logger.champion.info(`Spawned ${definition.name} for player ${playerId}`);
         }
     }
     /**
@@ -154,7 +145,7 @@ export class GameRoom {
             return;
         const result = this.inputHandler.queueInput(playerId, input);
         if (!result.valid) {
-            console.warn(`[GameRoom ${this.gameId}] Invalid input from ${playerId}: ${result.reason}`);
+            Logger.input.debug(`Invalid input from ${playerId}: ${result.reason}`);
         }
     }
     /**
@@ -176,11 +167,6 @@ export class GameRoom {
     broadcastState(tick) {
         if (!this.onStateUpdate)
             return;
-        // DEBUG: Log entity counts
-        const allEntities = this.context.getAllEntities();
-        if (tick % 30 === 0) { // Log every second
-            console.log(`[GameRoom ${this.gameId}] Tick ${tick}: ${allEntities.length} total entities, ${this.context.getAllChampions().length} champions`);
-        }
         const allEvents = this.context.flushEvents();
         const inputAcks = this.inputHandler.getAllAckedSeqs();
         const playerIds = Array.from(this.players.keys());
@@ -198,28 +184,15 @@ export class GameRoom {
             }
         }
         for (const [playerId, playerInfo] of this.players) {
-            // Get player's champion for distance-based prioritization
-            const playerChampion = this.context.getChampionByPlayerId(playerId);
             // Get visible entities for this player (based on fog of war)
+            // Send ALL visible entities every tick - simpler and no disappearing entity bugs
             const visibleEntities = this.context.getVisibleEntities(playerInfo.side);
-            // DEBUG: Log visible entities count
-            if (tick % 30 === 0) {
-                console.log(`[GameRoom ${this.gameId}] Player ${playerId} (side ${playerInfo.side}): ${visibleEntities.length} visible entities, champion exists: ${!!playerChampion}`);
-            }
-            // Apply priority-based filtering (nearby entities update more frequently)
-            const prioritizedEntities = this.entityPrioritizer.prioritizeEntities(visibleEntities, playerChampion ?? null, playerId, tick);
-            // DEBUG: Log prioritized entities count
-            if (tick % 30 === 0) {
-                console.log(`[GameRoom ${this.gameId}] After prioritization for ${playerId}: ${prioritizedEntities.length} entities`);
-            }
             // Get reliable events to send (new + retries)
             const reliableEventsToSend = this.reliableEventQueue.getEventsToSend(playerId, tick);
             // Combine reliable events with unreliable ones
             const eventsForPlayer = [...reliableEventsToSend, ...unreliableEvents];
             // Use StateSerializer for delta compression
-            // Pass both prioritized entities (for updates) and full visible list (for removal detection)
-            const update = this.stateSerializer.createStateUpdate(prioritizedEntities, playerId, tick, this.context.getGameTime(), inputAcks, eventsForPlayer, visibleEntities // Full visible list for detecting removed entities
-            );
+            const update = this.stateSerializer.createStateUpdate(visibleEntities, playerId, tick, this.context.getGameTime(), inputAcks, eventsForPlayer, visibleEntities);
             // Include the last event ID for acknowledgment
             if (reliableEventsToSend.length > 0) {
                 const lastReliableEvent = reliableEventsToSend[reliableEventsToSend.length - 1];
@@ -251,11 +224,10 @@ export class GameRoom {
             playerInfo.connected = false;
         }
         this.inputHandler.clearPlayer(playerId);
-        // Clear serializer, prioritizer, and reliable event queue state
+        // Clear serializer and reliable event queue state
         this.stateSerializer.clearPlayerState(playerId);
-        this.entityPrioritizer.clearPlayer(playerId);
         this.reliableEventQueue.clearPlayer(playerId);
-        console.log(`[GameRoom ${this.gameId}] Player ${playerId} disconnected`);
+        Logger.game.info(`Player ${playerId} disconnected from game ${this.gameId}`);
     }
     /**
      * Handle player reconnect.
@@ -266,7 +238,7 @@ export class GameRoom {
             return null;
         }
         playerInfo.connected = true;
-        console.log(`[GameRoom ${this.gameId}] Player ${playerId} reconnected`);
+        Logger.game.info(`Player ${playerId} reconnected to game ${this.gameId}`);
         // Send full state snapshot
         return {
             tick: this.game.getCurrentTick(),

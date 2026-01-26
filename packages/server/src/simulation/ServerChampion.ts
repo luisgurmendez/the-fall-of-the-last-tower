@@ -48,6 +48,7 @@ import {
   getServerItemById,
   type ServerItemDefinition,
 } from '../data/items';
+import { AnimationScheduler, type ScheduledAction } from '../systems/AnimationScheduler';
 import {
   getServerEffectById,
   isCCEffect,
@@ -61,6 +62,7 @@ import {
 import { RewardSystem } from '../systems/RewardSystem';
 import { passiveTriggerSystem } from '../systems/PassiveTriggerSystem';
 import { Logger } from '../utils/Logger';
+import { ServerProjectile } from './ServerProjectile';
 
 export interface ServerChampionConfig extends Omit<ServerEntityConfig, 'entityType'> {
   definition: ChampionDefinition;
@@ -134,6 +136,11 @@ export class ServerChampion extends ServerEntity {
 
   // Combat tracking
   private attackCooldown = 0;
+  private animationScheduler = new AnimationScheduler();
+  private currentAttackTargetId: string | null = null;  // Track target for pending attack
+
+  // Ability animation tracking
+  private abilityAnimationScheduler = new AnimationScheduler();  // Separate scheduler for abilities
   kills = 0;
   deaths = 0;
   assists = 0;
@@ -252,6 +259,12 @@ export class ServerChampion extends ServerEntity {
 
     // Update combat state
     this.updateCombat(dt, context);
+
+    // Process scheduled animation actions (attack damage, etc.)
+    this.processScheduledActions(dt, context);
+
+    // Process scheduled ability actions (projectile spawns, etc.)
+    this.processScheduledAbilityActions(dt, context);
 
     // Update abilities
     this.updateAbilities(dt);
@@ -455,6 +468,14 @@ export class ServerChampion extends ServerEntity {
       }
     }
 
+    // Validate and clear target if not visible (entered bush/stealth)
+    if (this.targetEntityId) {
+      const target = context.getEntity(this.targetEntityId);
+      if (!target || target.isDead || !context.isVisibleTo(target, this.side)) {
+        this.targetEntityId = null;
+      }
+    }
+
     // Auto-attack target if in range and can attack
     if (this.targetEntityId && this.attackCooldown <= 0 && this.ccStatus.canAttack) {
       const target = context.getEntity(this.targetEntityId);
@@ -466,66 +487,56 @@ export class ServerChampion extends ServerEntity {
 
   /**
    * Perform a basic attack on a target.
+   * Schedules damage to occur at the attack animation's damage keyframe.
    */
   private performBasicAttack(target: ServerEntity, context: ServerGameContext): void {
     // Break stealth on attack (Vex's Shadow Shroud)
     this.breakStealth();
 
     const stats = this.getStats();
-    const baseDamage = stats.attackDamage;
 
-    // Dispatch on_attack trigger BEFORE attack
+    // Dispatch on_attack trigger BEFORE attack (immediately when attack starts)
     passiveTriggerSystem.dispatchTrigger('on_attack', this, context, { target });
 
-    // Calculate damage
-    const damage = calculatePhysicalDamage(baseDamage, 0); // TODO: Get target armor
-
-    // Deal damage (pass context for death handling/rewards)
-    target.takeDamage(damage, 'physical', this.id, context);
-
-    // Check for empowered attack (Vex Shadow Step)
-    const empoweredEffect = this.activeEffects.find(e => e.definitionId === 'vex_empowered');
-    if (empoweredEffect) {
-      // Get VexDash ability definition for bonus damage calculation
-      const dashAbility = getAbilityDefinition('vex_dash');
-      if (dashAbility?.damage) {
-        // Get ability rank (E slot)
-        const abilityRank = this.abilityStates.E.rank;
-        if (abilityRank > 0) {
-          const bonusDamage = calculateAbilityValue(
-            dashAbility.damage.scaling,
-            abilityRank,
-            {
-              attackDamage: stats.attackDamage,
-              abilityPower: stats.abilityPower,
-            }
-          );
-
-          // Deal bonus damage
-          target.takeDamage(bonusDamage, dashAbility.damage.type, this.id, context);
-
-          Logger.champion.debug(
-            `${this.playerId} empowered attack dealt ${bonusDamage} bonus damage`
-          );
-        }
-      }
-
-      // Remove the empowered effect (consumed on attack)
-      this.activeEffects = this.activeEffects.filter(e => e.definitionId !== 'vex_empowered');
-    }
-
-    // Dispatch on_hit trigger AFTER attack lands
-    passiveTriggerSystem.dispatchTrigger('on_hit', this, context, {
-      target,
-      damageAmount: damage,
-      damageType: 'physical',
-    });
-
-    // Set attack cooldown
+    // Set attack cooldown immediately (can't attack again until cooldown expires)
     this.attackCooldown = 1 / stats.attackSpeed;
 
-    // Attack animation duration scales with attack speed (faster attacks = shorter animation)
-    // Base duration is 0.4s at 1.0 AS, minimum 0.15s at very high AS
+    // Store target for pending attack damage
+    this.currentAttackTargetId = target.id;
+
+    // Get attack animation and schedule damage at keyframe
+    const attackAnim = this.definition.animations?.attack;
+    let damageDelay = 0;
+
+    if (attackAnim) {
+      // Find the damage keyframe
+      const damageKeyframe = attackAnim.keyframes.find(k => k.trigger.type === 'damage');
+      if (damageKeyframe) {
+        // Calculate animation speed (scales with attack speed if enabled)
+        const animSpeed = this.definition.attackAnimationSpeedScale ? stats.attackSpeed : 1.0;
+        damageDelay = (damageKeyframe.frame * attackAnim.baseFrameDuration) / animSpeed;
+      }
+    }
+
+    // If no animation or keyframe, use a default delay (50% of attack animation)
+    if (damageDelay === 0) {
+      const animationDuration = Math.max(0.15, 0.4 / stats.attackSpeed);
+      damageDelay = animationDuration * 0.5;
+    }
+
+    // Schedule the damage action
+    this.animationScheduler.schedule({
+      entityId: this.id,
+      actionType: 'damage',
+      triggerTime: damageDelay,
+      data: {
+        targetId: target.id,
+        attackDamage: stats.attackDamage,
+        abilityPower: stats.abilityPower,
+      },
+    });
+
+    // Attack animation duration scales with attack speed
     const animationDuration = Math.max(0.15, 0.4 / stats.attackSpeed);
 
     // Emit attack event for client-side animation
@@ -537,6 +548,171 @@ export class ServerChampion extends ServerEntity {
 
     // Enter combat
     this.enterCombat();
+  }
+
+  /**
+   * Process scheduled animation actions (attack damage, etc.)
+   */
+  private processScheduledActions(dt: number, context: ServerGameContext): void {
+    // Cancel pending attacks if stunned or can't attack
+    if (!this.ccStatus.canAttack) {
+      this.animationScheduler.cancelForEntity(this.id, 'damage');
+      this.currentAttackTargetId = null;
+      return;
+    }
+
+    // Process scheduled actions
+    this.animationScheduler.update(dt, (action) => {
+      if (action.actionType === 'damage') {
+        this.applyScheduledAttackDamage(action, context);
+      }
+    });
+  }
+
+  /**
+   * Apply damage from a scheduled attack action.
+   */
+  private applyScheduledAttackDamage(action: ScheduledAction, context: ServerGameContext): void {
+    const targetId = action.data.targetId as string;
+    const target = context.getEntity(targetId);
+
+    // Validate target is still valid
+    if (!target || target.isDead) {
+      this.currentAttackTargetId = null;
+      return;
+    }
+
+    // Check if target is still in range (leeway for movement during animation)
+    const attackRange = this.getStats().attackRange;
+    const leewayRange = attackRange + 50; // Small leeway for target movement
+    if (!this.isInRange(target, leewayRange)) {
+      this.currentAttackTargetId = null;
+      return;
+    }
+
+    const attackDamage = action.data.attackDamage as number;
+    const abilityPower = action.data.abilityPower as number;
+
+    // Calculate and deal damage
+    const damage = calculatePhysicalDamage(attackDamage, 0); // TODO: Get target armor
+    target.takeDamage(damage, 'physical', this.id, context);
+
+    // Check for empowered attack (Vex Shadow Step)
+    const empoweredEffect = this.activeEffects.find(e => e.definitionId === 'vex_empowered');
+    if (empoweredEffect) {
+      const dashAbility = getAbilityDefinition('vex_dash');
+      if (dashAbility?.damage) {
+        const abilityRank = this.abilityStates.E.rank;
+        if (abilityRank > 0) {
+          const bonusDamage = calculateAbilityValue(
+            dashAbility.damage.scaling,
+            abilityRank,
+            { attackDamage, abilityPower }
+          );
+          target.takeDamage(bonusDamage, dashAbility.damage.type, this.id, context);
+          Logger.champion.debug(
+            `${this.playerId} empowered attack dealt ${bonusDamage} bonus damage`
+          );
+        }
+      }
+      // Remove the empowered effect (consumed on attack)
+      this.activeEffects = this.activeEffects.filter(e => e.definitionId !== 'vex_empowered');
+    }
+
+    // Dispatch on_hit trigger AFTER attack lands
+    passiveTriggerSystem.dispatchTrigger('on_hit', this, context, {
+      target,
+      damageAmount: damage,
+      damageType: 'physical',
+    });
+
+    this.currentAttackTargetId = null;
+  }
+
+  /**
+   * Schedule an ability projectile to spawn at the animation keyframe time.
+   * Called by ServerAbilityExecutor for skillshot abilities with animations.
+   */
+  scheduleAbilityProjectile(
+    abilityId: string,
+    triggerTime: number,
+    projectileConfig: {
+      direction: Vector;
+      speed: number;
+      radius: number;
+      maxDistance: number;
+      damage: number;
+      damageType: DamageType;
+      piercing: boolean;
+      appliesEffects?: string[];
+      effectDuration?: number;
+    }
+  ): void {
+    this.abilityAnimationScheduler.schedule({
+      entityId: this.id,
+      actionType: 'projectile',
+      triggerTime,
+      data: {
+        abilityId,
+        direction: { x: projectileConfig.direction.x, y: projectileConfig.direction.y },
+        speed: projectileConfig.speed,
+        radius: projectileConfig.radius,
+        maxDistance: projectileConfig.maxDistance,
+        damage: projectileConfig.damage,
+        damageType: projectileConfig.damageType,
+        piercing: projectileConfig.piercing,
+        appliesEffects: projectileConfig.appliesEffects,
+        effectDuration: projectileConfig.effectDuration,
+        // Store caster position at time of scheduling for projectile spawn position
+        spawnPosition: { x: this.position.x, y: this.position.y },
+      },
+    });
+  }
+
+  /**
+   * Process scheduled ability actions (projectile spawns, etc.)
+   */
+  private processScheduledAbilityActions(dt: number, context: ServerGameContext): void {
+    // Cancel pending ability actions if silenced or stunned
+    if (!this.ccStatus.canCast) {
+      this.abilityAnimationScheduler.cancelForEntity(this.id, 'projectile');
+      return;
+    }
+
+    // Process scheduled ability actions
+    this.abilityAnimationScheduler.update(dt, (action) => {
+      if (action.actionType === 'projectile') {
+        this.spawnScheduledProjectile(action, context);
+      }
+    });
+  }
+
+  /**
+   * Spawn a projectile from a scheduled ability action.
+   */
+  private spawnScheduledProjectile(action: ScheduledAction, context: ServerGameContext): void {
+    const data = action.data;
+
+    // Create projectile at the caster's current position (not where they were when cast started)
+    // This allows "leading" shots if the caster moves during cast
+    const projectile = new ServerProjectile({
+      id: context.generateEntityId(),
+      position: this.position.clone(),
+      side: this.side,
+      direction: new Vector(data.direction.x as number, data.direction.y as number).normalized(),
+      speed: data.speed as number,
+      radius: data.radius as number,
+      maxDistance: data.maxDistance as number,
+      sourceId: this.id,
+      abilityId: data.abilityId as string,
+      damage: data.damage as number,
+      damageType: data.damageType as DamageType,
+      piercing: data.piercing as boolean,
+      appliesEffects: data.appliesEffects as string[] | undefined,
+      effectDuration: data.effectDuration as number | undefined,
+    });
+
+    context.addEntity(projectile);
   }
 
   /**
@@ -1431,9 +1607,14 @@ export class ServerChampion extends ServerEntity {
 
   /**
    * Champion collision radius.
+   * Uses the collision shape from champion definition, defaulting to 25.
    */
   override getRadius(): number {
-    return 25; // Standard champion collision radius
+    const collision = this.definition.collision;
+    if (collision && collision.type === 'circle') {
+      return collision.radius;
+    }
+    return 25; // Default if no collision defined
   }
 
   /**

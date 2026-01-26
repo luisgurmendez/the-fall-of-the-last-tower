@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Siege - Collision Masks & Animation Sync Plan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 1; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+        @keyframes attack-swing {
+            0% { transform: translateX(0) rotate(0deg); }
+            40% { transform: translateX(-10px) rotate(-30deg); }
+            60% { transform: translateX(10px) rotate(20deg); }
+            100% { transform: translateX(0) rotate(0deg); }
+        }
+        @keyframes projectile-fly {
+            0% { transform: translateX(0); opacity: 1; }
+            100% { transform: translateX(200px); opacity: 0.5; }
+        }
+        .pulse-animation {
+            animation: pulse-ring 1s ease-out infinite;
+        }
+        .attack-animation {
+            animation: attack-swing 0.5s ease-in-out;
+        }
+        .projectile-animation {
+            animation: projectile-fly 0.8s ease-out forwards;
+        }
+        .collision-overlay {
+            position: absolute;
+            border: 2px dashed;
+            pointer-events: none;
+        }
+        .sprite-container {
+            position: relative;
+            display: inline-block;
+            image-rendering: pixelated;
+        }
+        .timeline-marker {
+            transition: all 0.3s ease;
+        }
+        .damage-flash {
+            animation: damage-pulse 0.3s ease-out;
+        }
+        @keyframes damage-pulse {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(2) saturate(0) brightness(1.5); }
+        }
+        .code-block {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            font-family: 'Fira Code', 'Consolas', monospace;
+        }
+        .keyword { color: #569cd6; }
+        .string { color: #ce9178; }
+        .number { color: #b5cea8; }
+        .comment { color: #6a9955; }
+        .type { color: #4ec9b0; }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen">
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-purple-900 via-indigo-900 to-blue-900 py-8 px-4 border-b-4 border-yellow-500">
+        <div class="max-w-6xl mx-auto">
+            <h1 class="text-4xl font-bold text-center mb-2">Collision Masks & Animation Sync</h1>
+            <p class="text-xl text-center text-gray-300">Technical Implementation Plan for Siege</p>
+            <div class="flex justify-center gap-4 mt-4">
+                <span class="px-3 py-1 bg-red-600 rounded-full text-sm">Collision</span>
+                <span class="px-3 py-1 bg-green-600 rounded-full text-sm">Animation</span>
+                <span class="px-3 py-1 bg-blue-600 rounded-full text-sm">Networking</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Table of Contents -->
+    <nav class="bg-gray-800 py-4 sticky top-0 z-50 shadow-lg">
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="flex flex-wrap justify-center gap-4 text-sm">
+                <a href="#problems" class="hover:text-yellow-400 transition-colors">Problems</a>
+                <span class="text-gray-600">|</span>
+                <a href="#collision" class="hover:text-yellow-400 transition-colors">Collision Masks</a>
+                <span class="text-gray-600">|</span>
+                <a href="#attack-sync" class="hover:text-yellow-400 transition-colors">Attack Sync</a>
+                <span class="text-gray-600">|</span>
+                <a href="#ability-sync" class="hover:text-yellow-400 transition-colors">Ability Sync</a>
+                <span class="text-gray-600">|</span>
+                <a href="#architecture" class="hover:text-yellow-400 transition-colors">Architecture</a>
+                <span class="text-gray-600">|</span>
+                <a href="#phases" class="hover:text-yellow-400 transition-colors">Phases</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto px-4 py-8">
+
+        <!-- Problems Section -->
+        <section id="problems" class="mb-16">
+            <h2 class="text-3xl font-bold mb-8 text-center border-b border-gray-700 pb-4">
+                <span class="text-red-400">The Three Problems</span>
+            </h2>
+
+            <div class="grid md:grid-cols-3 gap-6">
+                <!-- Problem 1 -->
+                <div class="bg-gray-800 rounded-lg p-6 border-2 border-red-500/50">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="text-4xl">1</span>
+                        <h3 class="text-xl font-semibold text-red-400">Collision Size Mismatch</h3>
+                    </div>
+                    <div class="bg-gray-900 rounded-lg p-4 mb-4">
+                        <div class="sprite-container mx-auto" style="width: 128px; height: 128px;">
+                            <!-- Simulated sprite with collision overlay -->
+                            <div class="relative w-full h-full flex items-center justify-center">
+                                <img src="../../public/assets/sprites/units/Warrior_Blue/Warrior_Idle.png"
+                                     alt="Warrior sprite"
+                                     class="w-20 h-20 object-contain"
+                                     style="image-rendering: pixelated;"
+                                     onerror="this.parentElement.innerHTML='<div class=\'w-20 h-20 bg-blue-600 rounded-lg flex items-center justify-center\'>Warrior</div>'">
+                                <!-- Sprite bounds (red dashed) -->
+                                <div class="collision-overlay border-red-500 rounded" style="top: 10%; left: 10%; right: 10%; bottom: 10%;"></div>
+                                <!-- Actual collision (green solid) -->
+                                <div class="absolute border-2 border-green-500 rounded-full" style="width: 50%; height: 70%; top: 15%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-gray-300 text-sm">
+                        <span class="text-red-400 font-mono">Current:</span> Uses sprite dimensions<br>
+                        <span class="text-green-400 font-mono">Ideal:</span> Custom collision shape
+                    </p>
+                </div>
+
+                <!-- Problem 2 -->
+                <div class="bg-gray-800 rounded-lg p-6 border-2 border-orange-500/50">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="text-4xl">2</span>
+                        <h3 class="text-xl font-semibold text-orange-400">Attack Timing Desync</h3>
+                    </div>
+                    <div class="bg-gray-900 rounded-lg p-4 mb-4">
+                        <!-- Timeline visualization -->
+                        <div class="relative h-24">
+                            <div class="absolute top-0 left-0 right-0 text-xs text-gray-500">
+                                Time
+                            </div>
+                            <!-- Timeline bar -->
+                            <div class="absolute top-8 left-0 right-0 h-2 bg-gray-700 rounded"></div>
+                            <!-- Server damage marker (wrong) -->
+                            <div class="absolute top-6 left-[10%] flex flex-col items-center">
+                                <div class="w-4 h-4 bg-red-500 rounded-full"></div>
+                                <span class="text-xs text-red-400 mt-1">Damage</span>
+                            </div>
+                            <!-- Client animation hit (visual) -->
+                            <div class="absolute top-6 left-[60%] flex flex-col items-center">
+                                <div class="w-4 h-4 bg-blue-500 rounded-full"></div>
+                                <span class="text-xs text-blue-400 mt-1">Visual Hit</span>
+                            </div>
+                            <!-- Animation bar -->
+                            <div class="absolute top-16 left-[5%] right-[20%] h-6 bg-gradient-to-r from-yellow-600 to-yellow-800 rounded flex items-center px-2 text-xs">
+                                Attack Animation
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-gray-300 text-sm">
+                        <span class="text-red-400 font-mono">Current:</span> Damage at frame 0<br>
+                        <span class="text-green-400 font-mono">Ideal:</span> Damage at hit frame
+                    </p>
+                </div>
+
+                <!-- Problem 3 -->
+                <div class="bg-gray-800 rounded-lg p-6 border-2 border-yellow-500/50">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="text-4xl">3</span>
+                        <h3 class="text-xl font-semibold text-yellow-400">Projectile Spawn Desync</h3>
+                    </div>
+                    <div class="bg-gray-900 rounded-lg p-4 mb-4">
+                        <!-- Timeline visualization -->
+                        <div class="relative h-24">
+                            <div class="absolute top-0 left-0 right-0 text-xs text-gray-500">
+                                Time
+                            </div>
+                            <!-- Timeline bar -->
+                            <div class="absolute top-8 left-0 right-0 h-2 bg-gray-700 rounded"></div>
+                            <!-- Server projectile spawn (wrong) -->
+                            <div class="absolute top-6 left-[10%] flex flex-col items-center">
+                                <div class="w-4 h-4 bg-red-500 rounded-full"></div>
+                                <span class="text-xs text-red-400 mt-1">Spawn</span>
+                            </div>
+                            <!-- Client animation cast point -->
+                            <div class="absolute top-6 left-[50%] flex flex-col items-center">
+                                <div class="w-4 h-4 bg-blue-500 rounded-full"></div>
+                                <span class="text-xs text-blue-400 mt-1">Cast Point</span>
+                            </div>
+                            <!-- Animation bar -->
+                            <div class="absolute top-16 left-[5%] right-[30%] h-6 bg-gradient-to-r from-purple-600 to-purple-800 rounded flex items-center px-2 text-xs">
+                                Cast Animation
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-gray-300 text-sm">
+                        <span class="text-red-400 font-mono">Current:</span> Projectile at cast start<br>
+                        <span class="text-green-400 font-mono">Ideal:</span> Projectile at cast point
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Collision Masks Section -->
+        <section id="collision" class="mb-16">
+            <h2 class="text-3xl font-bold mb-8 text-center border-b border-gray-700 pb-4">
+                <span class="text-green-400">Collision Mask System</span>
+            </h2>
+
+            <div class="grid md:grid-cols-2 gap-8">
+                <!-- Visual Examples -->
+                <div class="bg-gray-800 rounded-lg p-6">
+                    <h3 class="text-xl font-semibold mb-4 text-green-400">Collision Shape Types</h3>
+
+                    <div class="grid grid-cols-3 gap-4">
+                        <!-- Circle -->
+                        <div class="bg-gray-900 rounded-lg p-4 text-center">
+                            <div class="w-16 h-16 mx-auto mb-2 relative">
+                                <div class="absolute inset-0 border-2 border-green-500 rounded-full"></div>
+                                <div class="absolute inset-2 bg-green-500/20 rounded-full"></div>
+                            </div>
+                            <span class="text-sm font-mono">Circle</span>
+                            <p class="text-xs text-gray-500 mt-1">Champions, Minions</p>
+                        </div>
+
+                        <!-- Rectangle -->
+                        <div class="bg-gray-900 rounded-lg p-4 text-center">
+                            <div class="w-12 h-16 mx-auto mb-2 relative">
+                                <div class="absolute inset-0 border-2 border-blue-500 rounded"></div>
+                                <div class="absolute inset-1 bg-blue-500/20 rounded"></div>
+                            </div>
+                            <span class="text-sm font-mono">Rectangle</span>
+                            <p class="text-xs text-gray-500 mt-1">Bushes, Large units</p>
+                        </div>
+
+                        <!-- Capsule -->
+                        <div class="bg-gray-900 rounded-lg p-4 text-center">
+                            <div class="w-10 h-16 mx-auto mb-2 relative">
+                                <div class="absolute inset-0 border-2 border-purple-500 rounded-full"></div>
+                                <div class="absolute inset-1 bg-purple-500/20 rounded-full"></div>
+                            </div>
+                            <span class="text-sm font-mono">Capsule</span>
+                            <p class="text-xs text-gray-500 mt-1">Tall champions</p>
+                        </div>
+                    </div>
+
+                    <!-- Entity Examples -->
+                    <div class="mt-6 space-y-4">
+                        <h4 class="font-semibold text-gray-300">Entity Examples:</h4>
+
+                        <div class="flex items-center gap-4 bg-gray-900 rounded p-3">
+                            <div class="w-16 h-16 relative flex-shrink-0">
+                                <img src="../../public/assets/sprites/units/Warrior_Blue/Warrior_Idle.png"
+                                     class="w-full h-full object-contain"
+                                     style="image-rendering: pixelated;"
+                                     onerror="this.parentElement.innerHTML='<div class=\'w-full h-full bg-blue-600 rounded flex items-center justify-center text-xs\'>Warrior</div>'">
+                                <div class="absolute inset-0 border-2 border-dashed border-red-500/50 rounded"></div>
+                                <div class="absolute border-2 border-green-500 rounded-full" style="width: 60%; height: 80%; top: 10%; left: 20%;"></div>
+                            </div>
+                            <div>
+                                <span class="font-mono text-sm">Warrior Champion</span>
+                                <p class="text-xs text-gray-500">Sprite: 64x64 | Collision: Circle r=14</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-4 bg-gray-900 rounded p-3">
+                            <div class="w-16 h-16 relative flex-shrink-0">
+                                <img src="../../public/assets/sprites/Bear/Bear_Idle.png"
+                                     class="w-full h-full object-contain"
+                                     style="image-rendering: pixelated;"
+                                     onerror="this.parentElement.innerHTML='<div class=\'w-full h-full bg-amber-700 rounded flex items-center justify-center text-xs\'>Bear</div>'">
+                                <div class="absolute inset-0 border-2 border-dashed border-red-500/50 rounded"></div>
+                                <div class="absolute border-2 border-green-500 rounded-full" style="width: 70%; height: 70%; top: 15%; left: 15%;"></div>
+                            </div>
+                            <div>
+                                <span class="font-mono text-sm">Bear (Jungle)</span>
+                                <p class="text-xs text-gray-500">Sprite: 96x96 | Collision: Circle r=24</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-4 bg-gray-900 rounded p-3">
+                            <div class="w-24 h-12 relative flex-shrink-0">
+                                <img src="../../public/assets/sprites/Bushes/Bushe1.png"
+                                     class="w-full h-full object-contain"
+                                     style="image-rendering: pixelated;"
+                                     onerror="this.parentElement.innerHTML='<div class=\'w-full h-full bg-green-700 rounded flex items-center justify-center text-xs\'>Bush</div>'">
+                                <div class="absolute inset-0 border-2 border-dashed border-red-500/50 rounded"></div>
+                                <div class="absolute border-2 border-green-500 rounded" style="width: 80%; height: 60%; top: 20%; left: 10%;"></div>
+                            </div>
+                            <div>
+                                <span class="font-mono text-sm">Bush</span>
+                                <p class="text-xs text-gray-500">Sprite: 100x60 | Collision: Rect 80x36</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Code Example -->
+                <div>
+                    <h3 class="text-xl font-semibold mb-4 text-green-400">Collision in Entity Definitions</h3>
+                    <div class="code-block rounded-lg p-4 text-sm overflow-x-auto">
+<pre><span class="comment">// packages/shared/src/champions/definitions/warrior.ts</span>
+
+<span class="keyword">const</span> collision: <span class="type">CircleCollision</span> = {
+  <span class="keyword">type</span>: <span class="string">'circle'</span>,
+  <span class="keyword">radius</span>: <span class="number">14</span>,
+  <span class="keyword">offset</span>: { <span class="keyword">x</span>: <span class="number">0</span>, <span class="keyword">y</span>: <span class="number">4</span> }
+};
+
+<span class="keyword">export const</span> WarriorDefinition = {
+  <span class="keyword">id</span>: <span class="string">'warrior'</span>,
+  <span class="keyword">name</span>: <span class="string">'Kael'</span>,
+  <span class="comment">// ... existing stats ...</span>
+
+  <span class="comment">// Collision lives WITH the entity!</span>
+  <span class="keyword">collision</span>,
+  <span class="keyword">animations</span>,
+};</pre>
+                    </div>
+
+                    <div class="mt-4 code-block rounded-lg p-4 text-sm overflow-x-auto">
+<pre><span class="comment">// packages/shared/src/types/minions.ts</span>
+
+<span class="keyword">export const</span> DEFAULT_MINION_STATS = {
+  <span class="keyword">melee</span>: {
+    <span class="keyword">health</span>: <span class="number">477</span>,
+    <span class="comment">// ... existing stats ...</span>
+    <span class="keyword">collision</span>: { <span class="keyword">type</span>: <span class="string">'circle'</span>, <span class="keyword">radius</span>: <span class="number">10</span> }
+  },
+  <span class="keyword">caster</span>: {
+    <span class="keyword">collision</span>: { <span class="keyword">type</span>: <span class="string">'circle'</span>, <span class="keyword">radius</span>: <span class="number">8</span> }
+  }
+};</pre>
+                    </div>
+
+                    <div class="mt-4 bg-gray-800 rounded-lg p-4">
+                        <h4 class="font-semibold text-gray-300 mb-2">Key Points:</h4>
+                        <ul class="list-disc list-inside text-sm text-gray-400 space-y-1">
+                            <li><span class="text-green-400">Colocated</span> - Data lives with entity definition</li>
+                            <li><span class="text-green-400">Single file</span> - All entity data in one place</li>
+                            <li><span class="text-green-400">Easy to add</span> - New entities just add collision field</li>
+                            <li><span class="text-green-400">No sync issues</span> - No separate registry to maintain</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Attack Sync Section -->
+        <section id="attack-sync" class="mb-16">
+            <h2 class="text-3xl font-bold mb-8 text-center border-b border-gray-700 pb-4">
+                <span class="text-orange-400">Attack Animation Synchronization</span>
+            </h2>
+
+            <div class="grid md:grid-cols-2 gap-8">
+                <!-- Current vs Ideal Comparison -->
+                <div class="space-y-6">
+                    <h3 class="text-xl font-semibold text-orange-400">Current vs Ideal Flow</h3>
+
+                    <!-- Current Flow -->
+                    <div class="bg-gray-800 rounded-lg p-4">
+                        <h4 class="font-semibold text-red-400 mb-3 flex items-center gap-2">
+                            <span class="w-3 h-3 bg-red-500 rounded-full"></span>
+                            Current (Broken)
+                        </h4>
+                        <div class="relative">
+                            <!-- Timeline -->
+                            <div class="flex items-center gap-2 mb-2 text-xs text-gray-500">
+                                <span>0ms</span>
+                                <div class="flex-1 h-px bg-gray-600"></div>
+                                <span>500ms</span>
+                            </div>
+                            <!-- Server row -->
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="w-16 text-xs text-gray-500">Server:</span>
+                                <div class="flex-1 h-8 bg-gray-700 rounded relative">
+                                    <div class="absolute left-[5%] top-1/2 -translate-y-1/2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold">
+                                        DMG
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Client row -->
+                            <div class="flex items-center gap-2">
+                                <span class="w-16 text-xs text-gray-500">Client:</span>
+                                <div class="flex-1 h-8 bg-gradient-to-r from-yellow-700 via-yellow-600 to-yellow-700 rounded relative">
+                                    <div class="absolute left-[60%] top-1/2 -translate-y-1/2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-xs font-bold">
+                                        HIT
+                                    </div>
+                                    <span class="absolute inset-0 flex items-center justify-center text-xs">Attack Animation</span>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="mt-2 text-xs text-red-300">Damage applied before visual hit!</p>
+                    </div>
+
+                    <!-- Ideal Flow -->
+                    <div class="bg-gray-800 rounded-lg p-4">
+                        <h4 class="font-semibold text-green-400 mb-3 flex items-center gap-2">
+                            <span class="w-3 h-3 bg-green-500 rounded-full"></span>
+                            Ideal (Synchronized)
+                        </h4>
+                        <div class="relative">
+                            <!-- Timeline -->
+                            <div class="flex items-center gap-2 mb-2 text-xs text-gray-500">
+                                <span>0ms</span>
+                                <div class="flex-1 h-px bg-gray-600"></div>
+                                <span>500ms</span>
+                            </div>
+                            <!-- Server row -->
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="w-16 text-xs text-gray-500">Server:</span>
+                                <div class="flex-1 h-8 bg-gray-700 rounded relative">
+                                    <div class="absolute left-[5%] top-1/2 -translate-y-1/2 w-6 h-6 bg-yellow-600 rounded-full flex items-center justify-center text-xs font-bold">
+                                        START
+                                    </div>
+                                    <div class="absolute left-[60%] top-1/2 -translate-y-1/2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-xs font-bold">
+                                        DMG
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Client row -->
+                            <div class="flex items-center gap-2">
+                                <span class="w-16 text-xs text-gray-500">Client:</span>
+                                <div class="flex-1 h-8 bg-gradient-to-r from-yellow-700 via-yellow-600 to-yellow-700 rounded relative">
+                                    <div class="absolute left-[60%] top-1/2 -translate-y-1/2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-xs font-bold">
+                                        HIT
+                                    </div>
+                                    <span class="absolute inset-0 flex items-center justify-center text-xs">Attack Animation</span>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="mt-2 text-xs text-green-300">Damage and visual aligned at frame 3!</p>
+                    </div>
+                </div>
+
+                <!-- Animation Metadata -->
+                <div>
+                    <h3 class="text-xl font-semibold mb-4 text-orange-400">Animation Metadata</h3>
+                    <div class="code-block rounded-lg p-4 text-sm overflow-x-auto">
+<pre><span class="comment">// Attack animation with keyframe triggers</span>
+
+<span class="keyword">const</span> warriorAttack: <span class="type">AnimationData</span> = {
+  <span class="keyword">id</span>: <span class="string">'attack'</span>,
+  <span class="keyword">totalFrames</span>: <span class="number">6</span>,
+  <span class="keyword">baseFrameDuration</span>: <span class="number">0.083</span>, <span class="comment">// 500ms total</span>
+  <span class="keyword">loop</span>: <span class="keyword">false</span>,
+  <span class="keyword">keyframes</span>: [
+    {
+      <span class="keyword">frame</span>: <span class="number">0</span>,
+      <span class="keyword">trigger</span>: {
+        <span class="keyword">type</span>: <span class="string">'sound'</span>,
+        <span class="keyword">soundId</span>: <span class="string">'sword_swing'</span>
+      }
+    },
+    {
+      <span class="keyword">frame</span>: <span class="number">3</span>,  <span class="comment">// Hit frame!</span>
+      <span class="keyword">trigger</span>: {
+        <span class="keyword">type</span>: <span class="string">'damage'</span>
+      }
+    },
+    {
+      <span class="keyword">frame</span>: <span class="number">3</span>,
+      <span class="keyword">trigger</span>: {
+        <span class="keyword">type</span>: <span class="string">'sound'</span>,
+        <span class="keyword">soundId</span>: <span class="string">'sword_hit'</span>
+      }
+    }
+  ]
+};</pre>
+                    </div>
+
+                    <!-- Animation Frame Visualization -->
+                    <div class="mt-4 bg-gray-800 rounded-lg p-4">
+                        <h4 class="font-semibold text-gray-300 mb-3">Frame Timeline:</h4>
+                        <div class="flex items-end gap-1">
+                            <div class="flex flex-col items-center">
+                                <div class="w-12 h-16 bg-yellow-900 rounded flex items-center justify-center mb-1">
+                                    <img src="../../public/assets/sprites/units/Warrior_Blue/Warrior_Attack1.png"
+                                         class="w-10 h-10 object-contain"
+                                         style="image-rendering: pixelated;"
+                                         onerror="this.textContent='F0'">
+                                </div>
+                                <span class="text-xs">0</span>
+                                <div class="w-2 h-2 bg-blue-500 rounded-full mt-1" title="Sound"></div>
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <div class="w-12 h-16 bg-yellow-900 rounded flex items-center justify-center mb-1">F1</div>
+                                <span class="text-xs">1</span>
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <div class="w-12 h-16 bg-yellow-900 rounded flex items-center justify-center mb-1">F2</div>
+                                <span class="text-xs">2</span>
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <div class="w-12 h-20 bg-red-900 rounded flex items-center justify-center mb-1 border-2 border-red-500">
+                                    <img src="../../public/assets/sprites/units/Warrior_Blue/Warrior_Attack2.png"
+                                         class="w-10 h-10 object-contain"
+                                         style="image-rendering: pixelated;"
+                                         onerror="this.textContent='F3'">
+                                </div>
+                                <span class="text-xs text-red-400 font-bold">3</span>
+                                <div class="w-2 h-2 bg-red-500 rounded-full mt-1" title="Damage!"></div>
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <div class="w-12 h-16 bg-yellow-900 rounded flex items-center justify-center mb-1">F4</div>
+                                <span class="text-xs">4</span>
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <div class="w-12 h-16 bg-yellow-900 rounded flex items-center justify-center mb-1">F5</div>
+                                <span class="text-xs">5</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4 mt-2 text-xs">
+                            <span class="flex items-center gap-1"><div class="w-2 h-2 bg-blue-500 rounded-full"></div> Sound</span>
+                            <span class="flex items-center gap-1"><div class="w-2 h-2 bg-red-500 rounded-full"></div> Damage</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attack Speed Scaling -->
+            <div class="mt-8 bg-gray-800 rounded-lg p-6">
+                <h3 class="text-xl font-semibold mb-4 text-orange-400">Attack Speed Scaling</h3>
+                <p class="text-gray-300 mb-4">
+                    Animation speed scales with attack speed stat, keeping the damage frame at the same relative position:
+                </p>
+                <div class="grid md:grid-cols-3 gap-4">
+                    <div class="bg-gray-900 rounded p-4 text-center">
+                        <div class="text-2xl font-bold text-blue-400">1.0 AS</div>
+                        <div class="text-sm text-gray-400">500ms animation</div>
+                        <div class="text-sm text-gray-400">Damage at 250ms</div>
+                    </div>
+                    <div class="bg-gray-900 rounded p-4 text-center">
+                        <div class="text-2xl font-bold text-green-400">1.5 AS</div>
+                        <div class="text-sm text-gray-400">333ms animation</div>
+                        <div class="text-sm text-gray-400">Damage at 166ms</div>
+                    </div>
+                    <div class="bg-gray-900 rounded p-4 text-center">
+                        <div class="text-2xl font-bold text-yellow-400">2.0 AS</div>
+                        <div class="text-sm text-gray-400">250ms animation</div>
+                        <div class="text-sm text-gray-400">Damage at 125ms</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Ability Sync Section -->
+        <section id="ability-sync" class="mb-16">
+            <h2 class="text-3xl font-bold mb-8 text-center border-b border-gray-700 pb-4">
+                <span class="text-purple-400">Ability Animation Synchronization</span>
+            </h2>
+
+            <div class="grid md:grid-cols-2 gap-8">
+                <!-- Projectile Example -->
+                <div class="bg-gray-800 rounded-lg p-6">
+                    <h3 class="text-xl font-semibold mb-4 text-purple-400">Projectile Ability: Fireball</h3>
+
+                    <!-- Animation Demo -->
+                    <div class="bg-gray-900 rounded-lg p-4 mb-4 relative h-32 overflow-hidden">
+                        <div class="absolute left-8 top-1/2 -translate-y-1/2">
+                            <img src="../../public/assets/sprites/units/Archer_Blue/Archer_Shoot.png"
+                                 class="w-12 h-12 object-contain"
+                                 style="image-rendering: pixelated;"
+                                 onerror="this.parentElement.innerHTML='<div class=\'w-12 h-12 bg-blue-600 rounded flex items-center justify-center\'>Mage</div>'">
+                        </div>
+                        <div id="projectile-demo" class="absolute left-20 top-1/2 -translate-y-1/2 opacity-0">
+                            <div class="w-4 h-4 bg-orange-500 rounded-full shadow-lg shadow-orange-500/50"></div>
+                        </div>
+                        <button onclick="playProjectileDemo()" class="absolute bottom-2 right-2 px-3 py-1 bg-purple-600 rounded text-sm hover:bg-purple-500">
+                            Play Demo
+                        </button>
+                    </div>
+
+                    <div class="code-block rounded-lg p-4 text-sm">
+<pre><span class="keyword">const</span> fireballAnim: <span class="type">AnimationData</span> = {
+  <span class="keyword">id</span>: <span class="string">'fireball'</span>,
+  <span class="keyword">totalFrames</span>: <span class="number">6</span>,
+  <span class="keyword">baseFrameDuration</span>: <span class="number">0.067</span>, <span class="comment">// 400ms</span>
+  <span class="keyword">keyframes</span>: [
+    {
+      <span class="keyword">frame</span>: <span class="number">3</span>,  <span class="comment">// Cast point!</span>
+      <span class="keyword">trigger</span>: { <span class="keyword">type</span>: <span class="string">'projectile'</span> }
+    },
+    {
+      <span class="keyword">frame</span>: <span class="number">3</span>,
+      <span class="keyword">trigger</span>: {
+        <span class="keyword">type</span>: <span class="string">'sound'</span>,
+        <span class="keyword">soundId</span>: <span class="string">'fireball_cast'</span>
+      }
+    }
+  ]
+};</pre>
+                    </div>
+                </div>
+
+                <!-- Instant Ability Example -->
+                <div class="bg-gray-800 rounded-lg p-6">
+                    <h3 class="text-xl font-semibold mb-4 text-purple-400">Instant Ability: Warrior Slash</h3>
+
+                    <!-- Animation Demo -->
+                    <div class="bg-gray-900 rounded-lg p-4 mb-4 relative h-32">
+                        <div class="flex items-center justify-center h-full gap-8">
+                            <div class="relative">
+                                <img src="../../public/assets/sprites/units/Warrior_Blue/Warrior_Attack2.png"
+                                     id="slash-attacker"
+                                     class="w-16 h-16 object-contain"
+                                     style="image-rendering: pixelated;"
+                                     onerror="this.parentElement.innerHTML='<div class=\'w-16 h-16 bg-blue-600 rounded flex items-center justify-center\'>Warrior</div>'">
+                            </div>
+                            <div id="slash-arc" class="w-16 h-8 border-t-4 border-yellow-400 rounded-full opacity-0"></div>
+                            <div class="relative">
+                                <img src="../../public/assets/sprites/units/Warrior_Red/Warrior_Idle.png"
+                                     id="slash-target"
+                                     class="w-16 h-16 object-contain"
+                                     style="image-rendering: pixelated;"
+                                     onerror="this.parentElement.innerHTML='<div class=\'w-16 h-16 bg-red-600 rounded flex items-center justify-center\'>Enemy</div>'">
+                            </div>
+                        </div>
+                        <button onclick="playSlashDemo()" class="absolute bottom-2 right-2 px-3 py-1 bg-purple-600 rounded text-sm hover:bg-purple-500">
+                            Play Demo
+                        </button>
+                    </div>
+
+                    <div class="code-block rounded-lg p-4 text-sm">
+<pre><span class="keyword">const</span> slashAnim: <span class="type">AnimationData</span> = {
+  <span class="keyword">id</span>: <span class="string">'warrior_slash'</span>,
+  <span class="keyword">totalFrames</span>: <span class="number">8</span>,
+  <span class="keyword">baseFrameDuration</span>: <span class="number">0.05</span>, <span class="comment">// 400ms</span>
+  <span class="keyword">keyframes</span>: [
+    {
+      <span class="keyword">frame</span>: <span class="number">4</span>,  <span class="comment">// Damage point</span>
+      <span class="keyword">trigger</span>: { <span class="keyword">type</span>: <span class="string">'damage'</span> }
+    },
+    {
+      <span class="keyword">frame</span>: <span class="number">4</span>,
+      <span class="keyword">trigger</span>: {
+        <span class="keyword">type</span>: <span class="string">'vfx'</span>,
+        <span class="keyword">vfxId</span>: <span class="string">'slash_arc'</span>
+      }
+    }
+  ]
+};</pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Architecture Section -->
+        <section id="architecture" class="mb-16">
+            <h2 class="text-3xl font-bold mb-8 text-center border-b border-gray-700 pb-4">
+                <span class="text-blue-400">System Architecture</span>
+            </h2>
+
+            <!-- Architecture Diagram -->
+            <div class="bg-gray-800 rounded-lg p-6 mb-8">
+                <h3 class="text-xl font-semibold mb-6 text-center text-blue-400">Colocated Data Architecture</h3>
+
+                <div class="flex flex-col items-center gap-4">
+                    <!-- Shared Package -->
+                    <div class="w-full max-w-3xl bg-purple-900/30 border-2 border-purple-500 rounded-lg p-4">
+                        <h4 class="text-center font-semibold text-purple-400 mb-3">packages/shared/src/</h4>
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <!-- Types -->
+                            <div class="bg-gray-800 rounded p-3">
+                                <div class="font-mono text-blue-400 mb-2">types/</div>
+                                <div class="text-xs text-gray-400 space-y-1">
+                                    <div><span class="text-green-400">collision.ts</span> - Shape types</div>
+                                    <div><span class="text-orange-400">animation.ts</span> - Timing types</div>
+                                    <div>minions.ts - <span class="text-yellow-400">+ collision/anim</span></div>
+                                    <div>structures.ts - <span class="text-yellow-400">+ collision</span></div>
+                                </div>
+                            </div>
+                            <!-- Champions -->
+                            <div class="bg-gray-800 rounded p-3">
+                                <div class="font-mono text-blue-400 mb-2">champions/definitions/</div>
+                                <div class="text-xs text-gray-400 space-y-1">
+                                    <div>warrior.ts - <span class="text-yellow-400">+ collision/anim</span></div>
+                                    <div>magnus.ts - <span class="text-yellow-400">+ collision/anim</span></div>
+                                    <div>elara.ts - <span class="text-yellow-400">+ collision/anim</span></div>
+                                    <div class="text-gray-500">... each champion owns its data</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-3 text-center text-xs text-gray-500">
+                            Entity definitions contain collision shapes and animation keyframes
+                        </div>
+                    </div>
+
+                    <!-- Arrow -->
+                    <div class="flex items-center gap-4">
+                        <div class="w-px h-8 bg-gray-600"></div>
+                        <div class="w-px h-8 bg-gray-600"></div>
+                    </div>
+
+                    <!-- Server & Client -->
+                    <div class="flex gap-8 w-full max-w-3xl">
+                        <!-- Server -->
+                        <div class="flex-1 bg-red-900/30 border-2 border-red-500 rounded-lg p-4">
+                            <h4 class="text-center font-semibold text-red-400 mb-3">Server</h4>
+                            <div class="space-y-2 text-sm">
+                                <div class="bg-gray-800 rounded p-2">
+                                    <div class="font-mono text-yellow-400">AnimationScheduler</div>
+                                    <div class="text-xs text-gray-500">Reads keyframes from definitions</div>
+                                </div>
+                                <div class="bg-gray-800 rounded p-2">
+                                    <div class="font-mono text-green-400">CollisionSystem</div>
+                                    <div class="text-xs text-gray-500">Uses entity.collision shape</div>
+                                </div>
+                                <div class="bg-gray-800 rounded p-2">
+                                    <div class="font-mono text-blue-400">ServerChampion</div>
+                                    <div class="text-xs text-gray-500">Has collision & animations</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Client -->
+                        <div class="flex-1 bg-blue-900/30 border-2 border-blue-500 rounded-lg p-4">
+                            <h4 class="text-center font-semibold text-blue-400 mb-3">Client</h4>
+                            <div class="space-y-2 text-sm">
+                                <div class="bg-gray-800 rounded p-2">
+                                    <div class="font-mono text-yellow-400">SpriteAnimator</div>
+                                    <div class="text-xs text-gray-500">Plays animations from definitions</div>
+                                </div>
+                                <div class="bg-gray-800 rounded p-2">
+                                    <div class="font-mono text-green-400">EntityRenderer</div>
+                                    <div class="text-xs text-gray-500">Debug collision visualization</div>
+                                </div>
+                                <div class="bg-gray-800 rounded p-2">
+                                    <div class="font-mono text-blue-400">StateManager</div>
+                                    <div class="text-xs text-gray-500">Handles events from server</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Animation Scheduler Flow -->
+            <div class="bg-gray-800 rounded-lg p-6">
+                <h3 class="text-xl font-semibold mb-6 text-center text-blue-400">Animation Scheduler Flow</h3>
+
+                <div class="flex flex-col md:flex-row items-center gap-4 justify-center">
+                    <div class="bg-gray-900 rounded-lg p-4 text-center w-40">
+                        <div class="text-3xl mb-2">1</div>
+                        <div class="font-semibold">Attack Start</div>
+                        <div class="text-xs text-gray-500">Server receives command</div>
+                    </div>
+                    <div class="text-2xl text-gray-600 hidden md:block">&rarr;</div>
+                    <div class="bg-gray-900 rounded-lg p-4 text-center w-40">
+                        <div class="text-3xl mb-2">2</div>
+                        <div class="font-semibold">Schedule Actions</div>
+                        <div class="text-xs text-gray-500">Queue damage at keyframe</div>
+                    </div>
+                    <div class="text-2xl text-gray-600 hidden md:block">&rarr;</div>
+                    <div class="bg-gray-900 rounded-lg p-4 text-center w-40">
+                        <div class="text-3xl mb-2">3</div>
+                        <div class="font-semibold">Emit Event</div>
+                        <div class="text-xs text-gray-500">Client plays animation</div>
+                    </div>
+                    <div class="text-2xl text-gray-600 hidden md:block">&rarr;</div>
+                    <div class="bg-gray-900 rounded-lg p-4 text-center w-40 border-2 border-green-500">
+                        <div class="text-3xl mb-2 text-green-400">4</div>
+                        <div class="font-semibold text-green-400">Execute</div>
+                        <div class="text-xs text-gray-400">Damage at keyframe time</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Phases Section -->
+        <section id="phases" class="mb-16">
+            <h2 class="text-3xl font-bold mb-8 text-center border-b border-gray-700 pb-4">
+                <span class="text-yellow-400">Implementation Phases</span>
+            </h2>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Phase 1 -->
+                <div class="bg-gray-800 rounded-lg p-6 border-l-4 border-green-500">
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center font-bold">1</span>
+                        <h3 class="text-lg font-semibold">Foundation</h3>
+                    </div>
+                    <ul class="space-y-2 text-sm text-gray-300">
+                        <li class="flex items-start gap-2">
+                            <span class="text-green-400">+</span>
+                            <span>Create types/collision.ts</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-green-400">+</span>
+                            <span>Create types/animation.ts</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-green-400">+</span>
+                            <span>Add animation timing utils</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-green-400">+</span>
+                            <span>Export from shared (ts + js!)</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Phase 2 -->
+                <div class="bg-gray-800 rounded-lg p-6 border-l-4 border-blue-500">
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center font-bold">2</span>
+                        <h3 class="text-lg font-semibold">Server Collision</h3>
+                    </div>
+                    <ul class="space-y-2 text-sm text-gray-300">
+                        <li class="flex items-start gap-2">
+                            <span class="text-blue-400">+</span>
+                            <span>Shape-aware collision functions</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-blue-400">+</span>
+                            <span>Update CollisionSystem</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-blue-400">+</span>
+                            <span>Add collision to champion defs</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-blue-400">+</span>
+                            <span>Add collision to minion/jungle</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Phase 3 -->
+                <div class="bg-gray-800 rounded-lg p-6 border-l-4 border-purple-500">
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center font-bold">3</span>
+                        <h3 class="text-lg font-semibold">Animation Scheduler</h3>
+                    </div>
+                    <ul class="space-y-2 text-sm text-gray-300">
+                        <li class="flex items-start gap-2">
+                            <span class="text-purple-400">+</span>
+                            <span>Implement AnimationScheduler</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-purple-400">+</span>
+                            <span>Integrate with GameRoom</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-purple-400">+</span>
+                            <span>Action execution logic</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-purple-400">+</span>
+                            <span>Cancellation/interrupt handling</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Phase 4 -->
+                <div class="bg-gray-800 rounded-lg p-6 border-l-4 border-orange-500">
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center font-bold">4</span>
+                        <h3 class="text-lg font-semibold">Attack Sync</h3>
+                    </div>
+                    <ul class="space-y-2 text-sm text-gray-300">
+                        <li class="flex items-start gap-2">
+                            <span class="text-orange-400">+</span>
+                            <span>Update BASIC_ATTACK event</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-orange-400">+</span>
+                            <span>Modify performBasicAttack()</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-orange-400">+</span>
+                            <span>Add attack anims to champion defs</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-orange-400">+</span>
+                            <span>Minion attack animations</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Phase 5 -->
+                <div class="bg-gray-800 rounded-lg p-6 border-l-4 border-yellow-500">
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center font-bold text-gray-900">5</span>
+                        <h3 class="text-lg font-semibold">Ability Sync</h3>
+                    </div>
+                    <ul class="space-y-2 text-sm text-gray-300">
+                        <li class="flex items-start gap-2">
+                            <span class="text-yellow-400">+</span>
+                            <span>Update ABILITY_CAST event</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-yellow-400">+</span>
+                            <span>Modify ability executor</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-yellow-400">+</span>
+                            <span>Add ability anims to champion defs</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-yellow-400">+</span>
+                            <span>Client keyframe handling</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Phase 6 -->
+                <div class="bg-gray-800 rounded-lg p-6 border-l-4 border-red-500">
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center font-bold">6</span>
+                        <h3 class="text-lg font-semibold">Polish</h3>
+                    </div>
+                    <ul class="space-y-2 text-sm text-gray-300">
+                        <li class="flex items-start gap-2">
+                            <span class="text-red-400">+</span>
+                            <span>Remove legacy code</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-red-400">+</span>
+                            <span>Performance profiling</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-red-400">+</span>
+                            <span>Edge case testing</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-red-400">+</span>
+                            <span>Documentation update</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Key Benefits -->
+        <section class="mb-16">
+            <h2 class="text-3xl font-bold mb-8 text-center border-b border-gray-700 pb-4">
+                <span class="text-green-400">Key Benefits</span>
+            </h2>
+
+            <div class="grid md:grid-cols-2 gap-6">
+                <div class="bg-gradient-to-br from-green-900/30 to-green-800/10 border border-green-500/50 rounded-lg p-6">
+                    <h3 class="text-xl font-semibold text-green-400 mb-4">Gameplay Feel</h3>
+                    <ul class="space-y-2 text-gray-300">
+                        <li class="flex items-center gap-2">
+                            <span class="text-green-400">&bull;</span>
+                            Attacks feel satisfying - damage syncs with visual
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="text-green-400">&bull;</span>
+                            Abilities feel responsive - projectiles spawn at cast point
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="text-green-400">&bull;</span>
+                            Collision feels accurate - hitboxes match sprites
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="bg-gradient-to-br from-blue-900/30 to-blue-800/10 border border-blue-500/50 rounded-lg p-6">
+                    <h3 class="text-xl font-semibold text-blue-400 mb-4">Technical Quality</h3>
+                    <ul class="space-y-2 text-gray-300">
+                        <li class="flex items-center gap-2">
+                            <span class="text-blue-400">&bull;</span>
+                            Server remains authoritative - no client exploits
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="text-blue-400">&bull;</span>
+                            Shared metadata - single source of truth
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="text-blue-400">&bull;</span>
+                            Easy to add new entities with proper config
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 py-8 mt-16 border-t border-gray-700">
+        <div class="max-w-6xl mx-auto px-4 text-center">
+            <p class="text-gray-400">Siege - Collision Masks & Animation Sync Plan</p>
+            <p class="text-sm text-gray-600 mt-2">View the full plan: <a href="collision-and-animation-sync-plan.md" class="text-blue-400 hover:underline">collision-and-animation-sync-plan.md</a></p>
+        </div>
+    </footer>
+
+    <script>
+        // Projectile demo animation
+        function playProjectileDemo() {
+            const projectile = document.getElementById('projectile-demo');
+            projectile.style.opacity = '1';
+            projectile.style.left = '80px';
+            projectile.classList.add('projectile-animation');
+
+            setTimeout(() => {
+                projectile.classList.remove('projectile-animation');
+                projectile.style.opacity = '0';
+                projectile.style.left = '80px';
+            }, 800);
+        }
+
+        // Slash demo animation
+        function playSlashDemo() {
+            const attacker = document.getElementById('slash-attacker');
+            const arc = document.getElementById('slash-arc');
+            const target = document.getElementById('slash-target');
+
+            attacker.classList.add('attack-animation');
+
+            setTimeout(() => {
+                arc.style.opacity = '1';
+                arc.style.transition = 'opacity 0.1s';
+                target.classList.add('damage-flash');
+            }, 200);
+
+            setTimeout(() => {
+                arc.style.opacity = '0';
+                attacker.classList.remove('attack-animation');
+                target.classList.remove('damage-flash');
+            }, 500);
+        }
+
+        // Smooth scroll for navigation
+        document.querySelectorAll('nav a').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                target.scrollIntoView({ behavior: 'smooth' });
+            });
+        });
+    </script>
+</body>
+</html>

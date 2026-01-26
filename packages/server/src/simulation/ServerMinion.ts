@@ -287,9 +287,14 @@ export class ServerMinion extends ServerEntity {
 
   /**
    * Get minion radius for collision.
+   * Uses the collision shape from minion stats, defaulting to 20.
    */
   override getRadius(): number {
-    return 20; // Standard minion collision radius
+    const collision = this.stats.collision;
+    if (collision && collision.type === 'circle') {
+      return collision.radius;
+    }
+    return 20; // Default if no collision defined
   }
 
   /**
@@ -338,7 +343,9 @@ export class ServerMinion extends ServerEntity {
     // Validate current target
     if (this.attackTarget) {
       const target = context.getEntity(this.attackTarget);
-      if (!target || target.isDead || !this.isInRange(target, this.stats.attackRange)) {
+      // Drop target if: doesn't exist, dead, out of range, or not visible (entered bush/stealth)
+      if (!target || target.isDead || !this.isInRange(target, this.stats.attackRange) ||
+          !context.isVisibleTo(target, this.side)) {
         this.attackTarget = null;
       }
     }
@@ -380,6 +387,9 @@ export class ServerMinion extends ServerEntity {
       if (entity.entityType === EntityType.PROJECTILE) continue;
       if (entity.entityType === EntityType.ZONE) continue;
       if (entity.entityType === EntityType.WARD) continue;
+
+      // Skip targets not visible (in bush or stealthed)
+      if (!context.isVisibleTo(entity, this.side)) continue;
 
       // Calculate priority
       let priority = 0;

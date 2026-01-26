@@ -452,6 +452,13 @@ export class ServerGameContext {
   }
 
   /**
+   * Alias for isEntityVisibleTo for compatibility.
+   */
+  isVisibleTo(entity: ServerEntity, side: Side): boolean {
+    return this.isEntityVisibleTo(entity, side);
+  }
+
+  /**
    * Check if a position is visible to a side.
    */
   isPositionVisibleTo(position: Vector, side: Side): boolean {

@@ -94,7 +94,12 @@ export class ServerJungleCreature extends ServerEntity {
   }
 
   override getRadius(): number {
-    // Different sizes based on creature type
+    // Use collision shape from creature stats
+    const stats = MOBAConfig.JUNGLE.CREATURE_STATS[this.creatureType];
+    if (stats.collision && stats.collision.type === 'circle') {
+      return stats.collision.radius;
+    }
+    // Fallback based on creature type
     if (this.creatureType === 'gromp' || this.creatureType === 'krug') {
       return 30;
     } else if (this.creatureType === 'dragon' || this.creatureType === 'baron') {
