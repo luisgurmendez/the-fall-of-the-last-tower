@@ -115,8 +115,8 @@ export class FogOfWarServer {
         sightRange = (entity as any).stats?.attackRange ?? 750;
         towerCount++;
       } else if (entity.entityType === EntityType.WARD) {
-        // Wards provide vision
-        sightRange = (entity as any).sightRange ?? GameConfig.VISION.WARD_SIGHT_RANGE;
+        // Wards provide vision (check stats.sightRange for consistency with other entities)
+        sightRange = (entity as any).stats?.sightRange ?? (entity as any).sightRange ?? GameConfig.VISION.WARD_SIGHT_RANGE;
       }
 
       if (sightRange > 0) {

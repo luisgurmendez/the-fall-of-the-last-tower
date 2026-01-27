@@ -13,7 +13,7 @@ export const GameConfig = {
     /** Client render rate (frames per second) */
     CLIENT_RENDER_RATE: 60,
     /** Milliseconds per server tick */
-    SERVER_TICK_MS: 8,  // 8ms = 125Hz
+    SERVER_TICK_MS: 8, // 8ms = 125Hz
     /** Input send rate from client */
     INPUT_SEND_RATE: 60,
   },
@@ -41,9 +41,9 @@ export const GameConfig = {
    */
   TIMING: {
     /** Game duration before surrender available (seconds) */
-    SURRENDER_AVAILABLE_AT: 15 * 60,  // 15 minutes
+    SURRENDER_AVAILABLE_AT: 15 * 60, // 15 minutes
     /** Reconnection grace period (seconds) */
-    RECONNECT_GRACE_PERIOD: 5 * 60,   // 5 minutes
+    RECONNECT_GRACE_PERIOD: 5 * 60, // 5 minutes
     /** AFK detection time (seconds) */
     AFK_TIMEOUT: 60,
     /** Recall time (seconds) */
@@ -106,7 +106,7 @@ export const GameConfig = {
     /** Out of combat health regen multiplier */
     OOC_REGEN_MULTIPLIER: 2.5,
     /** Armor/MR damage reduction formula cap */
-    RESIST_CAP: 0.9,  // Max 90% reduction
+    RESIST_CAP: 0.9, // Max 90% reduction
     /** Critical strike damage multiplier */
     CRIT_DAMAGE_MULTIPLIER: 2.0,
   },
@@ -168,7 +168,7 @@ export const GameConfig = {
     /** Maximum item slots */
     MAX_ITEM_SLOTS: 6,
     /** Maximum game duration (seconds) */
-    MAX_GAME_DURATION: 60 * 60,  // 1 hour
+    MAX_GAME_DURATION: 60 * 60, // 1 hour
   },
 
   /**

@@ -72,6 +72,7 @@ export function generateOnlineLevel(config: OnlineLevelConfig): Level {
   const hudConfig = {
     accentColor: matchData.yourSide === 0 ? '#3498db' : '#e74c3c',
     championName: championDisplayName,
+    championId: localChampionId,
     showManaBar: true,
     resourceColor: '#3498db',
     resourceName: 'Mana',

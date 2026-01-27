@@ -196,7 +196,7 @@ describe('Gorath', () => {
         redChampion: 'warrior',
       });
       arena1.blue.setHealth(arena1.blue.maxHealth);
-      arena1.blue.applyDamage(100, 'physical', arena1.red);
+      arena1.blue.takeDamage(100, 'physical', arena1.red.id, arena1.context);
       const damageWithoutW = arena1.blue.maxHealth - arena1.blue.health;
 
       // With W
@@ -207,7 +207,7 @@ describe('Gorath', () => {
       arena2.castAbility(arena2.blue, 'W');
       arena2.tick();
       arena2.blue.setHealth(arena2.blue.maxHealth);
-      arena2.blue.applyDamage(100, 'physical', arena2.red);
+      arena2.blue.takeDamage(100, 'physical', arena2.red.id, arena2.context);
       const damageWithW = arena2.blue.maxHealth - arena2.blue.health;
 
       // Should take less damage with W active
@@ -272,8 +272,8 @@ describe('Gorath', () => {
       const result = arena.castAbility(arena.blue, 'R');
       expect(result.success).toBe(true);
 
-      // Wait for wind-up (0.5s) and tick
-      arena.tickFrames(60);
+      // Tick 30 frames (0.5s) - effect lasts 1s so should still be active
+      arena.tickAllFrames(30);
 
       expect(arena.red.hasEffect('knockup')).toBe(true);
     });
@@ -282,14 +282,14 @@ describe('Gorath', () => {
       const initialHealth = arena.red.health;
 
       arena.castAbility(arena.blue, 'R');
-      arena.tickFrames(60);
+      arena.tickAllFrames(30);
 
       expect(arena.red.health).toBeLessThan(initialHealth);
     });
 
     test('knockup should prevent movement', () => {
       arena.castAbility(arena.blue, 'R');
-      arena.tickFrames(60);
+      arena.tickAllFrames(30);
 
       // Knockup should prevent movement
       expect(arena.red.ccStatus.canMove).toBe(false);
@@ -306,7 +306,7 @@ describe('Gorath', () => {
       const minion3Health = minion3.health;
 
       arena.castAbility(arena.blue, 'R');
-      arena.tickFrames(60);
+      arena.tickAllFrames(30);
 
       // Minions in range should take damage
       expect(minion1.health).toBeLessThan(minion1Health);
@@ -330,7 +330,7 @@ describe('Gorath', () => {
       });
       arena1.red.setHealth(arena1.red.maxHealth);
       arena1.castAbility(arena1.blue, 'R');
-      arena1.tickFrames(60);
+      arena1.tickAllFrames(30);
       const damageWithoutHealth = arena1.red.maxHealth - arena1.red.health;
 
       // With bonus health item
@@ -346,7 +346,7 @@ describe('Gorath', () => {
       };
       arena2.red.setHealth(arena2.red.maxHealth);
       arena2.castAbility(arena2.blue, 'R');
-      arena2.tickFrames(60);
+      arena2.tickAllFrames(30);
       const damageWithHealth = arena2.red.maxHealth - arena2.red.health;
 
       // Should deal more damage with bonus health
@@ -367,8 +367,8 @@ describe('Gorath', () => {
       });
 
       // Apply same raw damage
-      arena1.blue.applyDamage(500, 'physical', arena1.red);
-      arena2.blue.applyDamage(500, 'physical', arena2.red);
+      arena1.blue.takeDamage(500, 'physical', arena1.red.id, arena1.context);
+      arena2.blue.takeDamage(500, 'physical', arena2.red.id, arena2.context);
 
       // Gorath should have more health remaining (due to higher armor and health)
       expect(arena1.blue.health).toBeGreaterThan(arena2.blue.health);
@@ -387,10 +387,10 @@ describe('Gorath', () => {
       expect(minion1.health).toBeLessThanOrEqual(minion1.maxHealth);
       expect(minion2.health).toBeLessThanOrEqual(minion2.maxHealth);
 
-      // R - Knockup
+      // R - Knockup (tick 30 frames - 0.5s, effect lasts 1s)
       arena.blue.resetCooldowns();
       arena.castAbility(arena.blue, 'R');
-      arena.tickFrames(60);
+      arena.tickAllFrames(30);
 
       expect(arena.red.hasEffect('knockup')).toBe(true);
     });
@@ -402,7 +402,7 @@ describe('Gorath', () => {
 
       // Simulate being focused
       for (let i = 0; i < 5; i++) {
-        arena.blue.applyDamage(100, 'physical', arena.red);
+        arena.blue.takeDamage(100, 'physical', arena.red.id, arena.context);
       }
 
       // Should still be alive with significant health

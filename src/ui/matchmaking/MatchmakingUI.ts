@@ -391,7 +391,7 @@ export class MatchmakingUI {
       if (passiveId) {
         const passiveDef = getPassiveDefinition(passiveId);
         if (passiveDef) {
-          const passiveCard = this.createPassiveCard(passiveDef);
+          const passiveCard = this.createPassiveCard(passiveDef, championId);
           this.detailPassive.appendChild(passiveCard);
         }
       }
@@ -420,7 +420,7 @@ export class MatchmakingUI {
           continue;
         }
 
-        const abilityCard = this.createAbilityCard(slot, abilityDef, stats);
+        const abilityCard = this.createAbilityCard(slot, abilityDef, stats, championId);
         this.detailAbilities.appendChild(abilityCard);
         console.log(`[MatchmakingUI] Slot ${slot}: Added ability card`);
       }
@@ -436,17 +436,35 @@ export class MatchmakingUI {
     slot: string,
     ability: AbilityDefinition,
     baseStats: ChampionDefinition["baseStats"],
+    championId: string,
   ): HTMLElement {
     const card = document.createElement("div");
     card.className = "ability-card";
 
-    // Ability header with slot and name
+    // Ability header with icon, slot and name
     const header = document.createElement("div");
     header.className = "ability-card-header";
-    header.innerHTML = `
+
+    // Add ability icon
+    const iconSlot = slot.toLowerCase();
+    const iconPath = `/src/assets/abilities/${championId}/${iconSlot}.png`;
+    const icon = document.createElement("img");
+    icon.className = "ability-icon";
+    icon.src = iconPath;
+    icon.alt = `${slot} ability`;
+    icon.width = 48;
+    icon.height = 48;
+    // Hide if image fails to load
+    icon.onerror = () => { icon.style.display = 'none'; };
+    header.appendChild(icon);
+
+    const headerText = document.createElement("div");
+    headerText.className = "ability-card-header-text";
+    headerText.innerHTML = `
       <span class="ability-slot">${slot}</span>
       <span class="ability-name">${ability.name}</span>
     `;
+    header.appendChild(headerText);
     card.appendChild(header);
 
     // Description with interpolated values at rank 1
@@ -495,17 +513,33 @@ export class MatchmakingUI {
   /**
    * Create a passive card element for the champion select screen.
    */
-  private createPassiveCard(passive: PassiveAbilityDefinition): HTMLElement {
+  private createPassiveCard(passive: PassiveAbilityDefinition, championId: string): HTMLElement {
     const card = document.createElement("div");
     card.className = "passive-card";
 
-    // Passive header with slot (P) and name
+    // Passive header with icon, slot (P) and name
     const header = document.createElement("div");
     header.className = "passive-card-header";
-    header.innerHTML = `
+
+    // Add passive icon
+    const iconPath = `/src/assets/abilities/${championId}/passive.png`;
+    const icon = document.createElement("img");
+    icon.className = "passive-icon";
+    icon.src = iconPath;
+    icon.alt = "Passive ability";
+    icon.width = 48;
+    icon.height = 48;
+    // Hide if image fails to load
+    icon.onerror = () => { icon.style.display = 'none'; };
+    header.appendChild(icon);
+
+    const headerText = document.createElement("div");
+    headerText.className = "passive-card-header-text";
+    headerText.innerHTML = `
       <span class="passive-slot">P</span>
       <span class="passive-name">${passive.name}</span>
     `;
+    header.appendChild(headerText);
     card.appendChild(header);
 
     // Trigger type

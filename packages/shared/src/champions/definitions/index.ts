@@ -58,3 +58,14 @@ export {
   GorathAbilities,
   GorathPassive,
 } from './gorath';
+
+// Vile
+export {
+  VileDefinition,
+  VileBlackArrows,
+  VileVeilOfDarkness,
+  VileRootsOfVilix,
+  VileRestorationOfVilix,
+  VileAbilities,
+  VilePassive,
+} from './vile';

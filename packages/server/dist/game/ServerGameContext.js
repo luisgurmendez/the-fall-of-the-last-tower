@@ -343,6 +343,12 @@ export class ServerGameContext {
         return this.fogOfWar.isVisibleTo(entity, side);
     }
     /**
+     * Alias for isEntityVisibleTo for compatibility.
+     */
+    isVisibleTo(entity, side) {
+        return this.isEntityVisibleTo(entity, side);
+    }
+    /**
      * Check if a position is visible to a side.
      */
     isPositionVisibleTo(position, side) {

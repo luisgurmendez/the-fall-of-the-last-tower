@@ -61,6 +61,9 @@ export declare class ServerChampion extends ServerEntity {
     gold: 300;
     totalGoldSpent: number;
     private attackCooldown;
+    private animationScheduler;
+    private currentAttackTargetId;
+    private abilityAnimationScheduler;
     kills: number;
     deaths: number;
     assists: number;
@@ -115,8 +118,40 @@ export declare class ServerChampion extends ServerEntity {
     private updateCombat;
     /**
      * Perform a basic attack on a target.
+     * Schedules damage to occur at the attack animation's damage keyframe.
      */
     private performBasicAttack;
+    /**
+     * Process scheduled animation actions (attack damage, etc.)
+     */
+    private processScheduledActions;
+    /**
+     * Apply damage from a scheduled attack action.
+     */
+    private applyScheduledAttackDamage;
+    /**
+     * Schedule an ability projectile to spawn at the animation keyframe time.
+     * Called by ServerAbilityExecutor for skillshot abilities with animations.
+     */
+    scheduleAbilityProjectile(abilityId: string, triggerTime: number, projectileConfig: {
+        direction: Vector;
+        speed: number;
+        radius: number;
+        maxDistance: number;
+        damage: number;
+        damageType: DamageType;
+        piercing: boolean;
+        appliesEffects?: string[];
+        effectDuration?: number;
+    }): void;
+    /**
+     * Process scheduled ability actions (projectile spawns, etc.)
+     */
+    private processScheduledAbilityActions;
+    /**
+     * Spawn a projectile from a scheduled ability action.
+     */
+    private spawnScheduledProjectile;
     /**
      * Update abilities (cooldowns).
      */

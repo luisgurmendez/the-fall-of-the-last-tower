@@ -134,6 +134,10 @@ export declare class ServerGameContext {
      */
     isEntityVisibleTo(entity: ServerEntity, side: Side): boolean;
     /**
+     * Alias for isEntityVisibleTo for compatibility.
+     */
+    isVisibleTo(entity: ServerEntity, side: Side): boolean;
+    /**
      * Check if a position is visible to a side.
      */
     isPositionVisibleTo(position: Vector, side: Side): boolean;

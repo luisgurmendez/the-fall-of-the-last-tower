@@ -26,6 +26,7 @@ import type { ServerEntity } from "./ServerEntity";
 import type { ServerGameContext } from "../game/ServerGameContext";
 import { ServerProjectile } from "./ServerProjectile";
 import { ServerZone, ZoneEffectType } from "./ServerZone";
+import { ServerTrap, getPlayerTraps } from "./ServerTrap";
 import { Logger } from "../utils/Logger";
 
 export interface AbilityCastParams {
@@ -407,8 +408,14 @@ export class ServerAbilityExecutor {
     definition: AbilityDefinition,
     rank: number
   ): void {
-    const { champion } = params;
+    const { champion, context } = params;
     const stats = champion.getStats();
+
+    // Handle stat transform (like Vile's R)
+    if (definition.statTransform) {
+      this.executeStatTransform(params, definition, rank);
+      return;
+    }
 
     // Apply shield
     if (definition.shield) {
@@ -441,6 +448,114 @@ export class ServerAbilityExecutor {
         );
       }
     }
+  }
+
+  /**
+   * Execute a stat transform ability (like Vile's R).
+   */
+  private executeStatTransform(
+    params: AbilityCastParams,
+    definition: AbilityDefinition,
+    rank: number
+  ): void {
+    const { champion, context } = params;
+
+    if (!definition.statTransform) return;
+
+    const transform = definition.statTransform;
+
+    // Apply stat modifiers
+    if (transform.statModifiers) {
+      const duration = transform.duration;
+      const mods = transform.statModifiers;
+
+      // Apply flat stat bonuses
+      if (mods.maxHealth && mods.maxHealth[rank - 1] > 0) {
+        champion.addModifier({
+          source: `transform_${definition.id}`,
+          flat: { maxHealth: mods.maxHealth[rank - 1] },
+          duration,
+          timeRemaining: duration,
+        });
+        // Also heal for the bonus max health
+        champion.heal(mods.maxHealth[rank - 1]);
+      }
+
+      if (mods.attackDamage && mods.attackDamage[rank - 1] > 0) {
+        champion.addModifier({
+          source: `transform_${definition.id}`,
+          flat: { attackDamage: mods.attackDamage[rank - 1] },
+          duration,
+          timeRemaining: duration,
+        });
+      }
+
+      // Apply percent bonuses
+      if (mods.attackSpeed && mods.attackSpeed[rank - 1] > 0) {
+        champion.addModifier({
+          source: `transform_${definition.id}`,
+          percent: { attackSpeed: 1 + mods.attackSpeed[rank - 1] },
+          duration,
+          timeRemaining: duration,
+        });
+      }
+
+      if (mods.movementSpeed && mods.movementSpeed[rank - 1] > 0) {
+        champion.addModifier({
+          source: `transform_${definition.id}`,
+          percent: { movementSpeed: 1 + mods.movementSpeed[rank - 1] },
+          duration,
+          timeRemaining: duration,
+        });
+      }
+
+      if (mods.armor && mods.armor[rank - 1] > 0) {
+        champion.addModifier({
+          source: `transform_${definition.id}`,
+          flat: { armor: mods.armor[rank - 1] },
+          duration,
+          timeRemaining: duration,
+        });
+      }
+
+      if (mods.magicResist && mods.magicResist[rank - 1] > 0) {
+        champion.addModifier({
+          source: `transform_${definition.id}`,
+          flat: { magicResist: mods.magicResist[rank - 1] },
+          duration,
+          timeRemaining: duration,
+        });
+      }
+    }
+
+    // Apply attack range override
+    if (transform.attackRange) {
+      champion.setTransformAttackRange(transform.attackRange, transform.duration);
+    }
+
+    // Grant soul stacks (for Vile)
+    if (transform.soulStacksOnCast) {
+      champion.passiveState.stacks += transform.soulStacksOnCast;
+      Logger.debug("Ability", `${champion.playerId} gained ${transform.soulStacksOnCast} soul stacks from transform`);
+    }
+
+    // Trigger trap explosions (for Vile's R)
+    if (transform.triggersTrapExplosion) {
+      const traps = getPlayerTraps(champion.id, context);
+      for (const trap of traps) {
+        trap.explode(context);
+      }
+      if (traps.length > 0) {
+        Logger.debug("Ability", `${champion.playerId} triggered ${traps.length} trap explosions`);
+      }
+    }
+
+    // Start transform aura if defined
+    if (definition.aura) {
+      champion.startTransformAura(definition.id, definition.aura, rank, transform.duration);
+    }
+
+    Logger.champion.info(`${champion.playerId} transformed with ${definition.name}`);
   }
 
   /**
@@ -759,6 +874,12 @@ export class ServerAbilityExecutor {
 
     if (!targetPosition) return;
 
+    // Handle trap placement (like Vile's E)
+    if (definition.trap) {
+      this.executeTrapPlacement(params, definition, rank);
+      return;
+    }
+
     // Handle cone-shaped abilities
     if (definition.shape === "cone" && definition.coneAngle) {
       this.executeConeAbility(params, definition, rank, damageMultiplier);
@@ -775,6 +896,44 @@ export class ServerAbilityExecutor {
 
     // Default: immediate circular AoE
     this.executeCircleAoE(params, definition, rank, damageMultiplier);
+  }
+
+  /**
+   * Execute trap placement (like Vile's E).
+   */
+  private executeTrapPlacement(
+    params: AbilityCastParams,
+    definition: AbilityDefinition,
+    rank: number
+  ): void {
+    const { champion, targetPosition, context } = params;
+
+    if (!targetPosition || !definition.trap) return;
+
+    // Get R rank for explosion damage scaling
+    const rState = champion.abilityStates.R;
+    const rRank = Math.max(1, rState.rank); // Default to rank 1 if R not learned
+    const explosionDamage = definition.trap.explosionDamage?.[rRank - 1] ?? 0;
+
+    // Create the trap
+    const trap = new ServerTrap({
+      id: context.generateEntityId(),
+      position: targetPosition.clone(),
+      side: champion.side,
+      ownerId: champion.id,
+      triggerRadius: definition.trap.triggerRadius,
+      duration: definition.trap.duration,
+      isStealthed: definition.trap.isStealthed,
+      rootDuration: definition.trap.rootDuration,
+      soulStacksOnTrigger: definition.trap.soulStacksOnTrigger ?? 0,
+      explosionDamage: explosionDamage,
+      explosionRadius: definition.trap.explosionRadius ?? 300,
+      explosionRootDuration: definition.trap.explosionRootDuration ?? 1,
+    });
+
+    context.addEntity(trap);
+
+    Logger.debug("Ability", `${champion.playerId} placed trap at (${targetPosition.x}, ${targetPosition.y})`);
   }
 
   /**

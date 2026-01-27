@@ -17,6 +17,7 @@ import {
   ElaraPassive,
   VexPassive,
   GorathPassive,
+  VilePassive,
 } from '../champions/definitions';
 
 // Re-export individual passives for convenience
@@ -26,6 +27,7 @@ export {
   ElaraPassive,
   VexPassive,
   GorathPassive,
+  VilePassive,
 };
 
 // =============================================================================
@@ -41,6 +43,7 @@ export const PASSIVE_DEFINITIONS: Record<string, PassiveAbilityDefinition> = {
   elara_passive: ElaraPassive,
   vex_passive: VexPassive,
   gorath_passive: GorathPassive,
+  vile_passive: VilePassive,
 };
 
 /**

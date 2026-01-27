@@ -147,9 +147,9 @@ class RenderController {
     const overlayRenderElements = renderElements.filter(
       (element) => element.positionType === "overlay"
     );
-    const normalRenderElements = renderElements.filter(
-      (element) => element.positionType === "normal"
-    );
+    const normalRenderElements = renderElements
+      .filter((element) => element.positionType === "normal")
+      .sort((a, b) => a.zIndex - b.zIndex); // Sort by zIndex (lower = rendered first = behind)
 
     // Rendering
     profiler.begin('Render: Clear Canvas', { threshold: 1 });

@@ -81,6 +81,23 @@ export interface GoldNumber {
 }
 
 /**
+ * Floating XP number for visual feedback.
+ */
+export interface XpNumber {
+  /** Entity that earned XP */
+  entityId: string;
+  /** World position where XP was earned */
+  x: number;
+  y: number;
+  /** Amount of XP earned */
+  amount: number;
+  /** When the XP was earned (ms) */
+  startTime: number;
+  /** Duration to display (ms) */
+  duration: number;
+}
+
+/**
  * Ability visual effect for rendering.
  */
 export interface AbilityEffect {
@@ -152,6 +169,10 @@ export class OnlineStateManager {
   // Floating gold numbers
   private goldNumbers: GoldNumber[] = [];
   private static readonly GOLD_NUMBER_DURATION = 1200; // ms (slightly longer than damage)
+
+  // Floating XP numbers
+  private xpNumbers: XpNumber[] = [];
+  private static readonly XP_NUMBER_DURATION = 1200; // ms
 
   // Ability visual effects
   private abilityEffects: AbilityEffect[] = [];
@@ -314,6 +335,23 @@ export class OnlineStateManager {
             amount,
             startTime: now,
             duration: OnlineStateManager.GOLD_NUMBER_DURATION,
+          });
+        }
+        break;
+      }
+      case GameEventType.XP_EARNED: {
+        const entityId = event.data.entityId as string;
+        const amount = event.data.amount as number;
+        const entity = this.entities.get(entityId);
+
+        if (entity && amount > 0) {
+          this.xpNumbers.push({
+            entityId,
+            x: entity.position.x,
+            y: entity.position.y,
+            amount,
+            startTime: now,
+            duration: OnlineStateManager.XP_NUMBER_DURATION,
           });
         }
         break;
@@ -575,6 +613,28 @@ export class OnlineStateManager {
   getGoldNumberProgress(goldNumber: GoldNumber): number {
     const elapsed = Date.now() - goldNumber.startTime;
     return Math.min(1, elapsed / goldNumber.duration);
+  }
+
+  /**
+   * Get all active XP numbers and remove expired ones.
+   */
+  getXpNumbers(): XpNumber[] {
+    const now = Date.now();
+
+    // Remove expired XP numbers
+    this.xpNumbers = this.xpNumbers.filter(
+      (xn) => now - xn.startTime < xn.duration
+    );
+
+    return this.xpNumbers;
+  }
+
+  /**
+   * Get progress (0-1) for an XP number animation.
+   */
+  getXpNumberProgress(xpNumber: XpNumber): number {
+    const elapsed = Date.now() - xpNumber.startTime;
+    return Math.min(1, elapsed / xpNumber.duration);
   }
 
   /**

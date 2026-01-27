@@ -119,6 +119,37 @@ export interface TransformBehavior {
 }
 
 /**
+ * Stat transform behavior: Temporarily modifies champion stats.
+ * Examples: Nasus R, Renekton R, Vile R
+ */
+export interface StatTransformBehavior {
+  /** Duration of the transform (seconds) */
+  duration: number;
+
+  /** Attack range override during transform (e.g., 100 for melee) */
+  attackRange?: number;
+
+  /** Stat modifiers applied during transform (values at each rank) */
+  statModifiers?: {
+    maxHealth?: number[];
+    attackDamage?: number[];
+    attackSpeed?: number[]; // Percent bonus (0.3 = +30%)
+    movementSpeed?: number[]; // Percent bonus (0.2 = +20%)
+    armor?: number[];
+    magicResist?: number[];
+  };
+
+  /** Soul stacks granted on cast (for Vile) */
+  soulStacksOnCast?: number;
+
+  /** Whether casting triggers all owned traps to explode */
+  triggersTrapExplosion?: boolean;
+
+  /** Whether the transform can be ended early */
+  canEndEarly?: boolean;
+}
+
+/**
  * Toggle behavior configuration.
  * Examples: Aatrox E passive, Ashe Q
  */
@@ -432,8 +463,69 @@ export interface AbilityDefinition {
   /** Transform behavior: Changes champion form */
   transform?: TransformBehavior;
 
+  /** Stat transform behavior: Temporarily modifies stats (e.g., Nasus R, Vile R) */
+  statTransform?: StatTransformBehavior;
+
   /** Empowered behavior: Enhances next attack/ability */
   empowered?: EmpoweredBehavior;
+
+  // ===================
+  // Projectile wall interaction
+  // ===================
+
+  /** Whether projectile stops on wall collision (enables wall-hit recast for some abilities) */
+  stopsOnWall?: boolean;
+
+  // ===================
+  // Post-effect configuration
+  // ===================
+
+  /** Effects applied after the main ability duration ends (e.g., speed buff after stealth) */
+  postEffects?: {
+    effects: string[];
+    duration: number;
+  };
+
+  // ===================
+  // Trap configuration (for trap-placing abilities)
+  // ===================
+
+  /** Trap configuration for abilities that place invisible traps */
+  trap?: {
+    /** Radius within which enemy champions trigger the trap */
+    triggerRadius: number;
+    /** How long the trap lasts before expiring (seconds) */
+    duration: number;
+    /** Whether the trap is invisible to enemies */
+    isStealthed: boolean;
+    /** Duration of root effect when triggered (seconds) */
+    rootDuration: number;
+    /** Soul stacks granted to owner when trap triggers */
+    soulStacksOnTrigger?: number;
+    /** Damage dealt when trap explodes (from ultimate) at each R rank */
+    explosionDamage?: number[];
+    /** Radius of explosion */
+    explosionRadius?: number;
+    /** Root duration when trap explodes */
+    explosionRootDuration?: number;
+  };
+
+  // ===================
+  // Aura configuration (for abilities with persistent aura damage)
+  // ===================
+
+  /** Aura configuration for abilities that deal damage around the champion */
+  aura?: {
+    /** Radius of the aura */
+    radius: number;
+    /** Damage dealt per tick */
+    damage: {
+      type: DamageType;
+      scaling: AbilityScaling;
+    };
+    /** Time between damage ticks (seconds) */
+    tickRate: number;
+  };
 }
 
 /**
@@ -614,6 +706,26 @@ export interface PassiveAbilityDefinition {
   levelScaling?: {
     levels: number[];
     values: number[];
+  };
+
+  // ===================
+  // Soul stack configuration (for Vile)
+  // ===================
+
+  /** Soul stack scaling by level and target type */
+  soulScaling?: {
+    minion: {
+      levels: number[];
+      stacks: number[];
+    };
+    jungle: {
+      levels: number[];
+      stacks: number[];
+    };
+    champion: {
+      levels: number[];
+      stacks: number[];
+    };
   };
 }
 

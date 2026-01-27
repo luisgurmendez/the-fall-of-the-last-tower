@@ -500,6 +500,99 @@ export const VexEmpoweredEffect: ServerEffectDefinition = {
 };
 
 // ===================
+// Vile Effects
+// ===================
+
+// Vile Q - Slow effect (50% slow)
+export const VileQSlowEffect: ServerStatEffectDef = {
+  id: 'vile_q_slow',
+  name: 'Black Arrow',
+  category: 'debuff',
+  stackBehavior: 'refresh',
+  cleansable: true,
+  persistsThroughDeath: false,
+  stat: 'movement_speed',
+  percentValue: -0.50, // -50% movement speed
+};
+
+// Vile W - Invulnerability (cannot take damage)
+export const VileInvulnerableEffect: ServerEffectDefinition & { grantsInvulnerability: boolean } = {
+  id: 'vile_invulnerable',
+  name: 'Veil of Darkness',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+  grantsInvulnerability: true,
+};
+
+// Vile W - Self-root (cannot move during stealth)
+export const VileRootedSelfEffect: ServerCCEffectDef = {
+  id: 'vile_rooted_self',
+  name: 'Veil of Darkness',
+  category: 'debuff', // Self-debuff
+  stackBehavior: 'refresh',
+  cleansable: false, // Cannot cleanse own ability
+  persistsThroughDeath: false,
+  ccType: 'root',
+};
+
+// Vile W - Stealth effect
+export const VileStealthEffect: ServerEffectDefinition = {
+  id: 'vile_stealth',
+  name: 'Veil of Darkness',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+};
+
+// Vile W - Post-veil speed buff (+50% MS)
+export const VilePostVeilSpeedEffect: ServerStatEffectDef = {
+  id: 'vile_post_veil_speed',
+  name: 'Dark Swiftness',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+  stat: 'movement_speed',
+  percentValue: 0.50, // +50% movement speed
+};
+
+// Vile W - Post-veil slow resistance (reduces incoming slows by 50%)
+export const VileSlowResistEffect: ServerStatEffectDef = {
+  id: 'vile_slow_resist',
+  name: 'Dark Resilience',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+  stat: 'movement_speed', // Note: slow resist is tracked separately in effect processing
+  flatValue: 0, // Marker effect - slow resist handled in CC calculation
+};
+
+// Vile E - Root effect from trap trigger
+export const VileRootEffect: ServerCCEffectDef = {
+  id: 'vile_root',
+  name: 'Roots of Vilix',
+  category: 'debuff',
+  stackBehavior: 'refresh',
+  cleansable: true,
+  persistsThroughDeath: false,
+  ccType: 'root',
+};
+
+// Vile R - Transform aura damage marker (actual damage handled separately)
+export const VileTransformAuraEffect: ServerEffectDefinition = {
+  id: 'vile_transform_aura',
+  name: 'Restoration of Vilix',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+};
+
+// ===================
 // Effect Registry
 // ===================
 
@@ -540,11 +633,20 @@ export const ALL_SERVER_EFFECTS: AnyServerEffectDef[] = [
   PoisonEffect,
   BleedEffect,
   HealingOverTime,
-  // Ability-specific markers
+  // Ability-specific markers - Vex
   VexMarkEffect,
   VexStealthEffect,
   VexDeathMarkEffect,
   VexEmpoweredEffect,
+  // Ability-specific - Vile
+  VileQSlowEffect,
+  VileInvulnerableEffect,
+  VileRootedSelfEffect,
+  VileStealthEffect,
+  VilePostVeilSpeedEffect,
+  VileSlowResistEffect,
+  VileRootEffect,
+  VileTransformAuraEffect,
 ];
 
 const EFFECT_BY_ID = new Map<string, AnyServerEffectDef>(
@@ -584,4 +686,11 @@ export function isOverTimeEffect(effect: AnyServerEffectDef): effect is ServerOv
  */
 export function isShieldEffect(effect: AnyServerEffectDef): effect is ServerShieldEffectDef {
   return 'shieldAmount' in effect;
+}
+
+/**
+ * Check if an effect grants invulnerability.
+ */
+export function isInvulnerabilityEffect(effect: AnyServerEffectDef): boolean {
+  return 'grantsInvulnerability' in effect && (effect as any).grantsInvulnerability === true;
 }

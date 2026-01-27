@@ -489,6 +489,7 @@ var GameEventType;
   GameEventType2[GameEventType2["BASIC_ATTACK"] = 13] = "BASIC_ATTACK";
   GameEventType2[GameEventType2["DAMAGE"] = 14] = "DAMAGE";
   GameEventType2[GameEventType2["GOLD_EARNED"] = 15] = "GOLD_EARNED";
+  GameEventType2[GameEventType2["XP_EARNED"] = 16] = "XP_EARNED";
 })(GameEventType ||= {});
 var ServerMessageType;
 ((ServerMessageType2) => {

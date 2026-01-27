@@ -142,6 +142,17 @@ export class TestChampion extends ServerChampion {
     if (!abilityDef) return;
 
     const maxRank = abilityDef.maxRank;
+    const currentRank = this.abilityStates[slot].rank;
+    const ranksNeeded = maxRank - currentRank;
+
+    // Grant enough skill points to max the ability
+    this.skillPoints += ranksNeeded;
+
+    // For R ability, ensure level is high enough for max rank
+    if (slot === 'R') {
+      this.level = Math.max(this.level, 16);
+    }
+
     while (this.abilityStates[slot].rank < maxRank) {
       this.levelUpAbility(slot);
     }

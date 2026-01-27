@@ -165,6 +165,13 @@ export class RewardSystem {
           if (killerChampion.side !== killedSide) {
             killerChampion.gainExperience(totalXP);
             Logger.combat.debug(`${killerChampion.playerId} earned ${totalXP} XP (solo)`);
+
+            // Emit XP earned event for floating XP number
+            context.addEvent(GameEventType.XP_EARNED, {
+              entityId: killerChampion.id,
+              amount: totalXP,
+              sourceType: killedEntity.entityType,
+            });
           }
         }
       }
@@ -176,6 +183,13 @@ export class RewardSystem {
 
     for (const champion of nearbyAlliedChampions) {
       champion.gainExperience(xpPerChampion);
+
+      // Emit XP earned event for floating XP number
+      context.addEvent(GameEventType.XP_EARNED, {
+        entityId: champion.id,
+        amount: xpPerChampion,
+        sourceType: killedEntity.entityType,
+      });
     }
 
     Logger.combat.debug(`${xpPerChampion} XP each to ${nearbyAlliedChampions.length} champions`);

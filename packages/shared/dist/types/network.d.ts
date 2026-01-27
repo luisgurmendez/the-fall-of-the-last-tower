@@ -400,7 +400,9 @@ export declare enum GameEventType {
     /** Damage dealt to an entity */
     DAMAGE = 14,
     /** Gold earned by a champion (non-passive) */
-    GOLD_EARNED = 15
+    GOLD_EARNED = 15,
+    /** XP earned by a champion */
+    XP_EARNED = 16
 }
 /**
  * Game event for important occurrences.

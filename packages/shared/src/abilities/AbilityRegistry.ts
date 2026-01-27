@@ -37,6 +37,11 @@ import {
   GorathFortify,
   GorathTaunt,
   GorathEarthquake,
+  VileAbilities,
+  VileBlackArrows,
+  VileVeilOfDarkness,
+  VileRootsOfVilix,
+  VileRestorationOfVilix,
 } from '../champions/definitions';
 
 // Re-export individual abilities for backward compatibility
@@ -66,6 +71,11 @@ export {
   GorathFortify,
   GorathTaunt,
   GorathEarthquake,
+  // Vile
+  VileBlackArrows,
+  VileVeilOfDarkness,
+  VileRootsOfVilix,
+  VileRestorationOfVilix,
 };
 
 // =============================================================================
@@ -81,6 +91,7 @@ export const ABILITY_DEFINITIONS: Record<string, AbilityDefinition> = {
   ...ElaraAbilities,
   ...VexAbilities,
   ...GorathAbilities,
+  ...VileAbilities,
 };
 
 /**

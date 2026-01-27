@@ -13,6 +13,7 @@ import {
   getPassiveDefinition,
   calculateAbilityValue,
   DamageType,
+  EntityType,
 } from '@siege/shared';
 import type { ServerChampion } from '../simulation/ServerChampion';
 import type { ServerEntity } from '../simulation/ServerEntity';
@@ -85,6 +86,9 @@ export class PassiveTriggerSystem {
 
     // Default handler for aura passives (like Elara's Blessed Presence)
     this.defaultHandlers.set('aura_heal', this.handleAuraHeal.bind(this));
+
+    // Default handler for Vile's Souls of Vilix (dual-trigger: on_kill + on_hit)
+    this.defaultHandlers.set('soul_stacks', this.handleSoulStacks.bind(this));
   }
 
   /**
@@ -149,6 +153,11 @@ export class PassiveTriggerSystem {
 
     if (definition.trigger === 'always' && definition.auraRadius && definition.heal) {
       return this.defaultHandlers.get('aura_heal')!;
+    }
+
+    // Vile's soul stack passive (on_kill to gain, on_hit to consume)
+    if (definition.soulScaling && definition.usesStacks) {
+      return this.defaultHandlers.get('soul_stacks')!;
     }
 
     // Generic handler
@@ -535,6 +544,108 @@ export class PassiveTriggerSystem {
     }
 
     return values[0];
+  }
+
+  /**
+   * Handler for Vile's Souls of Vilix passive.
+   * Dual-trigger:
+   * - on_kill: Gain soul stacks based on target type and champion level
+   * - on_hit: Consume all stacks to deal bonus physical damage to champions
+   */
+  private handleSoulStacks(
+    champion: ServerChampion,
+    passiveState: PassiveState,
+    definition: PassiveAbilityDefinition,
+    context: ServerGameContext,
+    data?: PassiveTriggerData
+  ): void {
+    if (!definition.soulScaling) return;
+
+    // Determine which trigger this is
+    // on_kill data will have target (the killed entity)
+    // on_hit data will have target (the attacked entity) and will be a champion
+
+    if (!data?.target) return;
+
+    const target = data.target;
+
+    // Check if this is an on_hit trigger (target is a champion, not dead)
+    // If target is alive and is a champion, this is an on_hit (basic attack)
+    if (target.entityType === EntityType.CHAMPION && !target.isDead) {
+      // on_hit: Consume stacks to deal damage
+      if (passiveState.stacks > 0) {
+        const bonusDamage = passiveState.stacks;
+        target.takeDamage(bonusDamage, 'physical', champion.id, context);
+
+        Logger.champion.debug(
+          `${champion.playerId} Souls of Vilix consumed ${passiveState.stacks} stacks for ${bonusDamage} physical damage`
+        );
+
+        // Reset stacks
+        passiveState.stacks = 0;
+        passiveState.isActive = false;
+      }
+      return;
+    }
+
+    // on_kill: Gain stacks based on target type
+    // This triggers when target is dead
+    if (!target.isDead) return;
+
+    const level = champion.level;
+    let stacksToGain = 0;
+
+    // Determine stacks based on target type
+    switch (target.entityType) {
+      case EntityType.MINION: {
+        stacksToGain = this.getSoulStacksByLevel(
+          definition.soulScaling.minion.levels,
+          definition.soulScaling.minion.stacks,
+          level
+        );
+        break;
+      }
+      case EntityType.JUNGLE_CAMP: {
+        stacksToGain = this.getSoulStacksByLevel(
+          definition.soulScaling.jungle.levels,
+          definition.soulScaling.jungle.stacks,
+          level
+        );
+        break;
+      }
+      case EntityType.CHAMPION: {
+        stacksToGain = this.getSoulStacksByLevel(
+          definition.soulScaling.champion.levels,
+          definition.soulScaling.champion.stacks,
+          level
+        );
+        break;
+      }
+      default:
+        // Unknown target type, no stacks
+        return;
+    }
+
+    // Add stacks (no max cap for Vile, no decay)
+    passiveState.stacks += stacksToGain;
+    passiveState.isActive = passiveState.stacks > 0;
+
+    Logger.champion.debug(
+      `${champion.playerId} Souls of Vilix gained ${stacksToGain} stacks (total: ${passiveState.stacks})`
+    );
+  }
+
+  /**
+   * Get soul stacks based on champion level using the scaling table.
+   */
+  private getSoulStacksByLevel(levels: number[], stacks: number[], championLevel: number): number {
+    // Find the appropriate bracket for the champion's level
+    for (let i = levels.length - 1; i >= 0; i--) {
+      if (championLevel >= levels[i]) {
+        return stacks[i];
+      }
+    }
+    return stacks[0];
   }
 
   /**

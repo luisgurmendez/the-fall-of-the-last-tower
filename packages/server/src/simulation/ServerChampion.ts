@@ -54,6 +54,7 @@ import {
   isCCEffect,
   isStatEffect,
   isOverTimeEffect,
+  isInvulnerabilityEffect,
   type AnyServerEffectDef,
   type ServerCCEffectDef,
   type ServerStatEffectDef,
@@ -244,6 +245,9 @@ export class ServerChampion extends ServerEntity {
    * Update champion for one tick.
    */
   update(dt: number, context: ServerGameContext): void {
+    // Track accumulated game time for transform timing
+    this.gameTimeElapsed += dt;
+
     if (this.isDead) {
       this.updateDead(dt, context);
       return;
@@ -271,6 +275,9 @@ export class ServerChampion extends ServerEntity {
 
     // Update effects
     this.updateEffects(dt, context);
+
+    // Update transform aura (Vile's R)
+    this.updateTransformAura(context);
 
     // Update shields
     this.updateShields(dt);
@@ -1015,10 +1022,130 @@ export class ServerChampion extends ServerEntity {
   }
 
   /**
+   * Check if champion is currently invulnerable.
+   */
+  isInvulnerable(): boolean {
+    for (const effect of this.activeEffects) {
+      const def = getServerEffectById(effect.definitionId);
+      if (def && isInvulnerabilityEffect(def)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // Transform state for stat transforms (like Vile's R)
+  // Uses accumulated game time instead of Date.now() for testability
+  private gameTimeElapsed: number = 0; // Total elapsed game time in seconds
+  private transformAttackRange: number | null = null;
+  private transformAttackRangeExpiry: number = 0; // Game time when transform expires
+  private transformAura: {
+    abilityId: string;
+    radius: number;
+    damage: number;
+    damageType: 'physical' | 'magic' | 'true';
+    tickRate: number;
+    lastTickTime: number; // Game time of last tick
+    expiry: number; // Game time when aura expires
+  } | null = null;
+
+  /**
+   * Set temporary attack range override during transform.
+   * @param range - The new attack range
+   * @param duration - Duration in seconds
+   */
+  setTransformAttackRange(range: number, duration: number): void {
+    this.transformAttackRange = range;
+    this.transformAttackRangeExpiry = this.gameTimeElapsed + duration;
+  }
+
+  /**
+   * Start transform aura that deals damage to nearby enemies.
+   * @param abilityId - ID of the ability
+   * @param aura - Aura configuration
+   * @param rank - Ability rank
+   * @param duration - Duration in seconds
+   */
+  startTransformAura(
+    abilityId: string,
+    aura: { radius: number; damage: { type: 'physical' | 'magic' | 'true'; scaling: { base: number[] } }; tickRate: number },
+    rank: number,
+    duration: number
+  ): void {
+    const damagePerTick = aura.damage.scaling.base[rank - 1] ?? 0;
+
+    this.transformAura = {
+      abilityId,
+      radius: aura.radius,
+      damage: damagePerTick,
+      damageType: aura.damage.type,
+      tickRate: aura.tickRate,
+      lastTickTime: this.gameTimeElapsed,
+      expiry: this.gameTimeElapsed + duration,
+    };
+  }
+
+  /**
+   * Get current attack range (accounting for transform).
+   */
+  getAttackRange(): number {
+    // Check if transform attack range is still active
+    if (this.transformAttackRange !== null && this.gameTimeElapsed < this.transformAttackRangeExpiry) {
+      return this.transformAttackRange;
+    }
+    // Clear expired transform
+    if (this.transformAttackRange !== null && this.gameTimeElapsed >= this.transformAttackRangeExpiry) {
+      this.transformAttackRange = null;
+    }
+    return this.getStats().attackRange;
+  }
+
+  /**
+   * Check if currently transformed (melee mode for Vile).
+   */
+  isTransformed(): boolean {
+    return this.transformAttackRange !== null && this.gameTimeElapsed < this.transformAttackRangeExpiry;
+  }
+
+  /**
+   * Update transform aura (called each tick).
+   */
+  updateTransformAura(context: ServerGameContext): void {
+    if (!this.transformAura) return;
+
+    // Check if aura has expired
+    if (this.gameTimeElapsed >= this.transformAura.expiry) {
+      this.transformAura = null;
+      return;
+    }
+
+    // Check if it's time for a tick
+    const timeSinceLastTick = this.gameTimeElapsed - this.transformAura.lastTickTime;
+    if (timeSinceLastTick < this.transformAura.tickRate) return;
+
+    this.transformAura.lastTickTime = this.gameTimeElapsed;
+
+    // Deal damage to all nearby enemies
+    const entities = context.getEntitiesInRadius(this.position, this.transformAura.radius);
+    for (const entity of entities) {
+      if (entity.side === this.side) continue;
+      if (entity.isDead) continue;
+      if (entity.id === this.id) continue;
+
+      entity.takeDamage(this.transformAura.damage, this.transformAura.damageType, this.id, context);
+    }
+  }
+
+  /**
    * Take damage (override for shields and resistances).
    */
   override takeDamage(amount: number, type: DamageType, sourceId?: string, context?: ServerGameContext): number {
     if (this.isDead) return 0;
+
+    // Check for invulnerability (e.g., Vile's W)
+    if (this.isInvulnerable()) {
+      return 0;
+    }
 
     this.enterCombat();
 

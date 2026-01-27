@@ -90,6 +90,8 @@ export var GameEventType;
     GameEventType[GameEventType["DAMAGE"] = 14] = "DAMAGE";
     /** Gold earned by a champion (non-passive) */
     GameEventType[GameEventType["GOLD_EARNED"] = 15] = "GOLD_EARNED";
+    /** XP earned by a champion */
+    GameEventType[GameEventType["XP_EARNED"] = 16] = "XP_EARNED";
 })(GameEventType || (GameEventType = {}));
 /**
  * Server message types.

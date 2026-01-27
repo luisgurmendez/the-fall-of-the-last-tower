@@ -12,10 +12,12 @@
 import { Vector, EntityType, calculateStat, calculateAttackSpeed, LEVEL_EXPERIENCE, defaultCCStatus, calculatePhysicalDamage, calculateMagicDamage, GameConfig, GameEventType, getPassiveDefinition, createDefaultPassiveState, getAbilityDefinition, calculateAbilityValue, } from '@siege/shared';
 import { ServerEntity } from './ServerEntity';
 import { getServerItemById, } from '../data/items';
+import { AnimationScheduler } from '../systems/AnimationScheduler';
 import { getServerEffectById, isCCEffect, isStatEffect, isOverTimeEffect, } from '../data/effects';
 import { RewardSystem } from '../systems/RewardSystem';
 import { passiveTriggerSystem } from '../systems/PassiveTriggerSystem';
 import { Logger } from '../utils/Logger';
+import { ServerProjectile } from './ServerProjectile';
 export class ServerChampion extends ServerEntity {
     constructor(config) {
         super({
@@ -58,6 +60,10 @@ export class ServerChampion extends ServerEntity {
         this.totalGoldSpent = 0;
         // Combat tracking
         this.attackCooldown = 0;
+        this.animationScheduler = new AnimationScheduler();
+        this.currentAttackTargetId = null; // Track target for pending attack
+        // Ability animation tracking
+        this.abilityAnimationScheduler = new AnimationScheduler(); // Separate scheduler for abilities
         this.kills = 0;
         this.deaths = 0;
         this.assists = 0;
@@ -150,6 +156,10 @@ export class ServerChampion extends ServerEntity {
         }
         // Update combat state
         this.updateCombat(dt, context);
+        // Process scheduled animation actions (attack damage, etc.)
+        this.processScheduledActions(dt, context);
+        // Process scheduled ability actions (projectile spawns, etc.)
+        this.processScheduledAbilityActions(dt, context);
         // Update abilities
         this.updateAbilities(dt);
         // Update effects
@@ -339,32 +349,105 @@ export class ServerChampion extends ServerEntity {
     }
     /**
      * Perform a basic attack on a target.
+     * Schedules damage to occur at the attack animation's damage keyframe.
      */
     performBasicAttack(target, context) {
         // Break stealth on attack (Vex's Shadow Shroud)
         this.breakStealth();
         const stats = this.getStats();
-        const baseDamage = stats.attackDamage;
-        // Dispatch on_attack trigger BEFORE attack
+        // Dispatch on_attack trigger BEFORE attack (immediately when attack starts)
         passiveTriggerSystem.dispatchTrigger('on_attack', this, context, { target });
-        // Calculate damage
-        const damage = calculatePhysicalDamage(baseDamage, 0); // TODO: Get target armor
-        // Deal damage (pass context for death handling/rewards)
+        // Set attack cooldown immediately (can't attack again until cooldown expires)
+        this.attackCooldown = 1 / stats.attackSpeed;
+        // Store target for pending attack damage
+        this.currentAttackTargetId = target.id;
+        // Get attack animation and schedule damage at keyframe
+        const attackAnim = this.definition.animations?.attack;
+        let damageDelay = 0;
+        if (attackAnim) {
+            // Find the damage keyframe
+            const damageKeyframe = attackAnim.keyframes.find(k => k.trigger.type === 'damage');
+            if (damageKeyframe) {
+                // Calculate animation speed (scales with attack speed if enabled)
+                const animSpeed = this.definition.attackAnimationSpeedScale ? stats.attackSpeed : 1.0;
+                damageDelay = (damageKeyframe.frame * attackAnim.baseFrameDuration) / animSpeed;
+            }
+        }
+        // If no animation or keyframe, use a default delay (50% of attack animation)
+        if (damageDelay === 0) {
+            const animationDuration = Math.max(0.15, 0.4 / stats.attackSpeed);
+            damageDelay = animationDuration * 0.5;
+        }
+        // Schedule the damage action
+        this.animationScheduler.schedule({
+            entityId: this.id,
+            actionType: 'damage',
+            triggerTime: damageDelay,
+            data: {
+                targetId: target.id,
+                attackDamage: stats.attackDamage,
+                abilityPower: stats.abilityPower,
+            },
+        });
+        // Attack animation duration scales with attack speed
+        const animationDuration = Math.max(0.15, 0.4 / stats.attackSpeed);
+        // Emit attack event for client-side animation
+        context.addEvent(GameEventType.BASIC_ATTACK, {
+            entityId: this.id,
+            targetId: target.id,
+            animationDuration,
+        });
+        // Enter combat
+        this.enterCombat();
+    }
+    /**
+     * Process scheduled animation actions (attack damage, etc.)
+     */
+    processScheduledActions(dt, context) {
+        // Cancel pending attacks if stunned or can't attack
+        if (!this.ccStatus.canAttack) {
+            this.animationScheduler.cancelForEntity(this.id, 'damage');
+            this.currentAttackTargetId = null;
+            return;
+        }
+        // Process scheduled actions
+        this.animationScheduler.update(dt, (action) => {
+            if (action.actionType === 'damage') {
+                this.applyScheduledAttackDamage(action, context);
+            }
+        });
+    }
+    /**
+     * Apply damage from a scheduled attack action.
+     */
+    applyScheduledAttackDamage(action, context) {
+        const targetId = action.data.targetId;
+        const target = context.getEntity(targetId);
+        // Validate target is still valid
+        if (!target || target.isDead) {
+            this.currentAttackTargetId = null;
+            return;
+        }
+        // Check if target is still in range (leeway for movement during animation)
+        const attackRange = this.getStats().attackRange;
+        const leewayRange = attackRange + 50; // Small leeway for target movement
+        if (!this.isInRange(target, leewayRange)) {
+            this.currentAttackTargetId = null;
+            return;
+        }
+        const attackDamage = action.data.attackDamage;
+        const abilityPower = action.data.abilityPower;
+        // Calculate and deal damage
+        const damage = calculatePhysicalDamage(attackDamage, 0); // TODO: Get target armor
         target.takeDamage(damage, 'physical', this.id, context);
         // Check for empowered attack (Vex Shadow Step)
         const empoweredEffect = this.activeEffects.find(e => e.definitionId === 'vex_empowered');
         if (empoweredEffect) {
-            // Get VexDash ability definition for bonus damage calculation
             const dashAbility = getAbilityDefinition('vex_dash');
             if (dashAbility?.damage) {
-                // Get ability rank (E slot)
                 const abilityRank = this.abilityStates.E.rank;
                 if (abilityRank > 0) {
-                    const bonusDamage = calculateAbilityValue(dashAbility.damage.scaling, abilityRank, {
-                        attackDamage: stats.attackDamage,
-                        abilityPower: stats.abilityPower,
-                    });
-                    // Deal bonus damage
+                    const bonusDamage = calculateAbilityValue(dashAbility.damage.scaling, abilityRank, { attackDamage, abilityPower });
                     target.takeDamage(bonusDamage, dashAbility.damage.type, this.id, context);
                     Logger.champion.debug(`${this.playerId} empowered attack dealt ${bonusDamage} bonus damage`);
                 }
@@ -378,19 +461,73 @@ export class ServerChampion extends ServerEntity {
             damageAmount: damage,
             damageType: 'physical',
         });
-        // Set attack cooldown
-        this.attackCooldown = 1 / stats.attackSpeed;
-        // Attack animation duration scales with attack speed (faster attacks = shorter animation)
-        // Base duration is 0.4s at 1.0 AS, minimum 0.15s at very high AS
-        const animationDuration = Math.max(0.15, 0.4 / stats.attackSpeed);
-        // Emit attack event for client-side animation
-        context.addEvent(GameEventType.BASIC_ATTACK, {
+        this.currentAttackTargetId = null;
+    }
+    /**
+     * Schedule an ability projectile to spawn at the animation keyframe time.
+     * Called by ServerAbilityExecutor for skillshot abilities with animations.
+     */
+    scheduleAbilityProjectile(abilityId, triggerTime, projectileConfig) {
+        this.abilityAnimationScheduler.schedule({
             entityId: this.id,
-            targetId: target.id,
-            animationDuration,
+            actionType: 'projectile',
+            triggerTime,
+            data: {
+                abilityId,
+                direction: { x: projectileConfig.direction.x, y: projectileConfig.direction.y },
+                speed: projectileConfig.speed,
+                radius: projectileConfig.radius,
+                maxDistance: projectileConfig.maxDistance,
+                damage: projectileConfig.damage,
+                damageType: projectileConfig.damageType,
+                piercing: projectileConfig.piercing,
+                appliesEffects: projectileConfig.appliesEffects,
+                effectDuration: projectileConfig.effectDuration,
+                // Store caster position at time of scheduling for projectile spawn position
+                spawnPosition: { x: this.position.x, y: this.position.y },
+            },
         });
-        // Enter combat
-        this.enterCombat();
+    }
+    /**
+     * Process scheduled ability actions (projectile spawns, etc.)
+     */
+    processScheduledAbilityActions(dt, context) {
+        // Cancel pending ability actions if silenced or stunned
+        if (!this.ccStatus.canCast) {
+            this.abilityAnimationScheduler.cancelForEntity(this.id, 'projectile');
+            return;
+        }
+        // Process scheduled ability actions
+        this.abilityAnimationScheduler.update(dt, (action) => {
+            if (action.actionType === 'projectile') {
+                this.spawnScheduledProjectile(action, context);
+            }
+        });
+    }
+    /**
+     * Spawn a projectile from a scheduled ability action.
+     */
+    spawnScheduledProjectile(action, context) {
+        const data = action.data;
+        // Create projectile at the caster's current position (not where they were when cast started)
+        // This allows "leading" shots if the caster moves during cast
+        const projectile = new ServerProjectile({
+            id: context.generateEntityId(),
+            position: this.position.clone(),
+            side: this.side,
+            direction: new Vector(data.direction.x, data.direction.y).normalized(),
+            speed: data.speed,
+            radius: data.radius,
+            maxDistance: data.maxDistance,
+            sourceId: this.id,
+            abilityId: data.abilityId,
+            damage: data.damage,
+            damageType: data.damageType,
+            piercing: data.piercing,
+            appliesEffects: data.appliesEffects,
+            effectDuration: data.effectDuration,
+        });
+        context.addEntity(projectile);
     }
     /**
      * Update abilities (cooldowns).

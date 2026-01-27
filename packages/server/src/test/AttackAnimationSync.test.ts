@@ -41,9 +41,8 @@ describe('Attack Animation Sync', () => {
       // If animation-synced, damage shouldn't be applied yet
       // Warrior attack animation has damage at frame 3 of 6
       // At 0.083s per frame, damage comes at ~0.25s
-      // This test will FAIL with current immediate-damage implementation
-      // and PASS after animation sync is implemented
-      expect(target.health).toBe(initialHealth);
+      // Health might increase slightly due to regen, but should NOT decrease
+      expect(target.health).toBeGreaterThanOrEqual(initialHealth);
     });
 
     test('damage should be applied after keyframe time', () => {
@@ -105,7 +104,8 @@ describe('Attack Animation Sync', () => {
 
       // If animation sync is working, damage should NOT be applied
       // because attack was interrupted by stun
-      expect(target.health).toBe(initialHealth);
+      // Note: health might increase due to regen, so we check it's not LESS than initial
+      expect(target.health).toBeGreaterThanOrEqual(initialHealth);
     });
 
     test('attack should resume after stun ends', () => {

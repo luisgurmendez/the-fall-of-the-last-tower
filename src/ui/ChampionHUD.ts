@@ -15,6 +15,7 @@ import GameContext from '@/core/gameContext';
 import { InputManager, MouseButton } from '@/core/input/InputManager';
 import { type StatModifier, type ChampionStats, type ItemSlot, type ItemDefinition, type AbilitySlot, type AbilityScaling, type DamageType, type ActiveEffectState, calculateAbilityValue } from '@siege/shared';
 import { getEffectDisplayInfo, type EffectDisplayInfo, EFFECT_CATEGORY_COLORS } from '@/data/effectDisplayInfo';
+import AbilityIconLoader, { type AbilityIconSlot } from '@/ui/AbilityIconLoader';
 // Re-export for external use
 export type { ItemSlot, AbilitySlot };
 
@@ -171,6 +172,8 @@ export interface HUDConfig {
   accentColor: string;
   /** Champion name to display */
   championName: string;
+  /** Champion ID for loading ability icons (e.g., 'vex', 'gorath') */
+  championId?: string;
   /** Whether to show mana bar (false for energy/rage champions) */
   showManaBar?: boolean;
   /** Resource bar color (blue for mana, yellow for energy, red for rage) */
@@ -206,40 +209,41 @@ const HUD_COLORS = {
 
 /** Panel dimensions */
 const PANEL = {
-  statsWidth: 140,
-  statsHeight: 140,
-  portraitSize: 110,
-  passiveBoxSize: 52,
-  abilitiesWidth: 280,
-  abilitiesHeight: 80,
-  abilityBoxSize: 64,
-  abilitySpacing: 10,
-  barHeight: 28,
-  barSpacing: 6,
-  itemsWidth: 170,
-  itemsHeight: 120,
-  itemBoxSize: 48,
-  itemSpacing: 6,
-  padding: 14,
-  margin: 10,
-  buffSize: 32,
-  buffSpacing: 5,
-  effectSize: 36,
-  effectSpacing: 4,
-  wardBoxSize: 48,
+  statsWidth: 120,
+  statsHeight: 120,
+  portraitSize: 90,
+  passiveBoxSize: 44,
+  abilitiesWidth: 240,
+  abilitiesHeight: 65,
+  abilityBoxSize: 52,
+  abilitySpacing: 6,
+  barHeight: 22,
+  barSpacing: 4,
+  itemsWidth: 145,
+  itemsHeight: 100,
+  itemBoxSize: 40,
+  itemSpacing: 4,
+  padding: 8,
+  margin: 6,
+  buffSize: 28,
+  buffSpacing: 3,
+  effectSize: 30,
+  effectSpacing: 3,
+  wardBoxSize: 40,
   tooltipWidth: 320,
-  tooltipPadding: 12,
-  xpBarHeight: 8,
-  xpBarSpacing: 4,
-  levelUpButtonWidth: 20,
-  levelUpButtonHeight: 16,
-  levelUpButtonGap: 4,
+  tooltipPadding: 8,
+  xpBarHeight: 6,
+  xpBarSpacing: 2,
+  levelUpButtonWidth: 16,
+  levelUpButtonHeight: 14,
+  levelUpButtonGap: 2,
 };
 
 export class ChampionHUD extends ScreenEntity {
   private champion: HUDChampionData | null;
   private config: Required<HUDConfig>;
   private inputManager: InputManager;
+  private iconLoader: AbilityIconLoader;
 
   /** Current hover state */
   private hoverState: HUDHoverState = { ability: null, item: null, buff: null, effect: null, passive: false };
@@ -283,14 +287,21 @@ export class ChampionHUD extends ScreenEntity {
     super();
     this.champion = champion ?? null;
     this.inputManager = InputManager.getInstance();
+    this.iconLoader = AbilityIconLoader.getInstance();
     this.config = {
       showManaBar: true,
       resourceColor: HUD_COLORS.manaBar,
       resourceName: 'Mana',
       onAbilityHover: undefined,
       onItemHover: undefined,
+      championId: config.championName?.toLowerCase(),
       ...config,
     } as Required<HUDConfig>;
+
+    // Preload ability icons if championId is available
+    if (this.config.championId) {
+      this.iconLoader.preloadChampion(this.config.championId);
+    }
   }
 
   /**
@@ -790,6 +801,13 @@ export class ChampionHUD extends ScreenEntity {
     ctx.fillStyle = isHovered ? '#4a4a3c' : '#2a2a1e';
     ctx.fillRect(x, y, size, size);
 
+    // Try to draw passive icon
+    const championId = this.config.championId;
+    let iconDrawn = false;
+    if (championId) {
+      iconDrawn = this.iconLoader.drawIcon(ctx, championId, 'passive', x, y, size);
+    }
+
     // Cooldown overlay if on cooldown
     if (passive && passive.cooldownRemaining > 0 && passive.definition.internalCooldown) {
       const cooldownProgress = 1 - (passive.cooldownRemaining / passive.definition.internalCooldown);
@@ -810,15 +828,17 @@ export class ChampionHUD extends ScreenEntity {
     }
     ctx.strokeRect(x, y, size, size);
 
-    // "P" label for passive
-    const labelColor = passive?.isActive ? '#FFD700' : (passive ? HUD_COLORS.text : HUD_COLORS.textDim);
-    RenderUtils.renderBitmapText(
-      ctx,
-      'P',
-      x + size / 2,
-      y + size / 2 - 18,
-      { color: labelColor, size: 28, centered: true }
-    );
+    // Only show "P" label if no icon (fallback)
+    if (!iconDrawn) {
+      const labelColor = passive?.isActive ? '#FFD700' : (passive ? HUD_COLORS.text : HUD_COLORS.textDim);
+      RenderUtils.renderBitmapText(
+        ctx,
+        'P',
+        x + size / 2,
+        y + size / 2 - 18,
+        { color: labelColor, size: 28, centered: true }
+      );
+    }
 
     // Stack counter (bottom right) if passive has stacks
     if (passive && passive.maxStacks > 0) {
@@ -828,7 +848,7 @@ export class ChampionHUD extends ScreenEntity {
         stackText,
         x + size - 6,
         y + size - 20,
-        { color: passive.stacks > 0 ? '#FFD700' : HUD_COLORS.textDim, size: 18, rightAlign: true }
+        { color: passive.stacks > 0 ? '#FFD700' : HUD_COLORS.textDim, size: 18, rightAlign: true, shadow: true }
       );
     }
 
@@ -839,7 +859,7 @@ export class ChampionHUD extends ScreenEntity {
         passive.cooldownRemaining.toFixed(0),
         x + size / 2,
         y + size - 18,
-        { color: HUD_COLORS.text, size: 18, centered: true }
+        { color: HUD_COLORS.text, size: 18, centered: true, shadow: true }
       );
     }
 
@@ -1006,7 +1026,16 @@ export class ChampionHUD extends ScreenEntity {
     ctx.fillStyle = isHovered ? HUD_COLORS.borderHighlight : HUD_COLORS.backgroundLight;
     ctx.fillRect(x, y, size, size);
 
-    // Cooldown overlay
+    // Try to draw ability icon
+    const iconSlot = slot.toLowerCase() as AbilityIconSlot;
+    const championId = this.config.championId;
+    let iconDrawn = false;
+
+    if (championId) {
+      iconDrawn = this.iconLoader.drawIcon(ctx, championId, iconSlot, x, y, size);
+    }
+
+    // Cooldown overlay (drawn on top of icon)
     if (!isReady) {
       ctx.fillStyle = HUD_COLORS.cooldownOverlay;
       ctx.fillRect(x, y, size, size * (1 - progress));
@@ -1022,25 +1051,30 @@ export class ChampionHUD extends ScreenEntity {
     }
     ctx.strokeRect(x, y, size, size);
 
-    // Key label
-    RenderUtils.renderBitmapText(
-      ctx,
-      slot,
-      x + size / 2,
-      y + size / 2 - 18,
-      { color: isReady ? HUD_COLORS.text : HUD_COLORS.textDim, size: 32, centered: true }
-    );
-
-    // Cooldown text
-    if (!isReady && ability) {
-      const cooldownRemaining = ability.cooldownRemaining ?? 0;
+    // Only show key label if no icon (fallback)
+    if (!iconDrawn) {
       RenderUtils.renderBitmapText(
         ctx,
-        cooldownRemaining.toFixed(1),
+        slot,
         x + size / 2,
-        y + size - 24,
-        { color: HUD_COLORS.text, size: 22, centered: true }
+        y + size / 2 - 18,
+        { color: isReady ? HUD_COLORS.text : HUD_COLORS.textDim, size: 32, centered: true }
       );
+    }
+
+    // Cooldown text - only show if ability is learned (rank > 0) and actually on cooldown
+    const isLearned = ability && ability.rank > 0;
+    if (!isReady && isLearned) {
+      const cooldownRemaining = ability.cooldownRemaining ?? 0;
+      if (cooldownRemaining > 0) {
+        RenderUtils.renderBitmapText(
+          ctx,
+          cooldownRemaining.toFixed(1),
+          x + size / 2,
+          y + size - 24,
+          { color: HUD_COLORS.text, size: 22, centered: true, shadow: true }
+        );
+      }
     }
   }
 

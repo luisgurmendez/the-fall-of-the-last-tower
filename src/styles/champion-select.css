@@ -438,21 +438,28 @@
   margin-bottom: 12px;
 }
 
+.ability-icon {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  border: 3px solid var(--pixel-border);
+  background: var(--pixel-bg-darker);
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.ability-card-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .ability-slot {
   font-family: var(--pixel-font);
-  font-size: 28px;
+  font-size: 20px;
   font-weight: bold;
-  color: var(--pixel-bg-dark);
-  text-shadow: none;
-  background: linear-gradient(135deg, var(--pixel-gold) 0%, var(--pixel-gold-dark) 100%);
-  border: 3px solid var(--pixel-gold-darker);
-  width: 44px;
-  height: 44px;
-  min-width: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 8px rgba(201, 162, 39, 0.4);
+  color: var(--pixel-gold);
+  text-shadow: 1px 1px 0 #000;
 }
 
 .ability-name {
@@ -581,21 +588,28 @@
   margin-bottom: 10px;
 }
 
+.passive-icon {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  border: 3px solid #B8860B;
+  background: #1a1a12;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.passive-card-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .passive-slot {
   font-family: var(--pixel-font);
-  font-size: 28px;
+  font-size: 20px;
   font-weight: bold;
-  color: #1a1a12;
-  text-shadow: none;
-  background: linear-gradient(135deg, #FFD700 0%, #B8860B 100%);
-  border: 3px solid #8B6914;
-  width: 44px;
-  height: 44px;
-  min-width: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4);
+  color: #FFD700;
+  text-shadow: 1px 1px 0 #000;
 }
 
 .passive-name {

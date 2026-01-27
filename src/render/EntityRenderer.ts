@@ -15,7 +15,7 @@ import type { GameObject } from '@/core/GameObject';
 import type GameContext from '@/core/gameContext';
 import RenderElement from '@/render/renderElement';
 import Vector from '@/physics/vector';
-import type { OnlineStateManager, InterpolatedEntity, DamageNumber, GoldNumber, AbilityEffect } from '@/core/OnlineStateManager';
+import type { OnlineStateManager, InterpolatedEntity, DamageNumber, GoldNumber, XpNumber, AbilityEffect } from '@/core/OnlineStateManager';
 import { EntityType, getChampionDefinition } from '@siege/shared';
 import { BitmapFont } from '@/render/BitmapFont';
 
@@ -215,9 +215,19 @@ const DAMAGE_NUMBER_CONFIG = {
  * Gold number display settings.
  */
 const GOLD_NUMBER_CONFIG = {
-  FONT: '14px m5x7',
+  FONT: '18px m5x7',
   FLOAT_DISTANCE: 25,
   COLOR: '#FFD700',      // Gold color
+  FONT_SIZE: 18,
+};
+
+/**
+ * XP number display settings.
+ */
+const XP_NUMBER_CONFIG = {
+  FONT: '14px m5x7',
+  FLOAT_DISTANCE: 25,
+  COLOR: '#888888',      // Gray color
   FONT_SIZE: 14,
 };
 
@@ -577,6 +587,9 @@ export class EntityRenderer implements GameObject {
 
       // Render floating gold numbers
       this.renderGoldNumbers(canvasRenderingContext);
+
+      // Render floating XP numbers
+      this.renderXpNumbers(canvasRenderingContext);
     }, true);
 
     element.positionType = 'normal';
@@ -1967,6 +1980,53 @@ export class EntityRenderer implements GameObject {
       // Draw gold text
       ctx.fillStyle = GOLD_NUMBER_CONFIG.COLOR;
       ctx.fillText(goldText, 0, 0);
+
+      ctx.restore();
+    }
+  }
+
+  /**
+   * Render floating XP numbers.
+   */
+  private renderXpNumbers(ctx: CanvasRenderingContext2D): void {
+    const xpNumbers = this.stateManager.getXpNumbers();
+
+    for (const xn of xpNumbers) {
+      const progress = this.stateManager.getXpNumberProgress(xn);
+
+      // Ease out for smooth deceleration
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+
+      // Calculate position (float upward, offset to the left to not overlap gold)
+      const yOffset = -XP_NUMBER_CONFIG.FLOAT_DISTANCE * easeOut;
+      const xOffset = -25; // Offset to the left of the entity
+
+      // Calculate alpha (fade out in the last 30%)
+      const fadeStart = 0.7;
+      const alpha = progress < fadeStart
+        ? 1
+        : 1 - ((progress - fadeStart) / (1 - fadeStart));
+
+      ctx.save();
+      ctx.translate(xn.x + xOffset, xn.y + yOffset);
+
+      // Set up font
+      ctx.font = XP_NUMBER_CONFIG.FONT;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.globalAlpha = alpha;
+
+      // Format XP text with "xp" prefix
+      const xpText = `xp ${xn.amount}`;
+
+      // Draw shadow/outline for readability
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 2;
+      ctx.strokeText(xpText, 0, 0);
+
+      // Draw XP text
+      ctx.fillStyle = XP_NUMBER_CONFIG.COLOR;
+      ctx.fillText(xpText, 0, 0);
 
       ctx.restore();
     }
