@@ -18,6 +18,7 @@ import {
   VexDefinition,
   GorathDefinition,
   VileDefinition,
+  LumeDefinition,
 } from './definitions';
 
 // Re-export individual definitions for backward compatibility
@@ -28,6 +29,7 @@ export {
   VexDefinition,
   GorathDefinition,
   VileDefinition,
+  LumeDefinition,
 };
 
 // =============================================================================
@@ -44,6 +46,7 @@ export const CHAMPION_DEFINITIONS: Record<string, ChampionDefinition> = {
   vex: VexDefinition,
   gorath: GorathDefinition,
   vile: VileDefinition,
+  lume: LumeDefinition,
 };
 
 /**

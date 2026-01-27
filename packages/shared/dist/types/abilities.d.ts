@@ -1,8 +1,142 @@
 /**
  * Type definitions for the ability system.
  * Shared between client and server.
+ *
+ * Abilities use COMPOSITION over inheritance - abilities can combine
+ * multiple behaviors (charge, ammo, channel, recast, toggle, transform, empowered).
  */
 import type { DamageType } from './units';
+/**
+ * Charge behavior: Hold to charge, release to cast.
+ * Examples: Varus Q, Vi Q, Pantheon Q
+ */
+export interface ChargeBehavior {
+    /** Minimum charge time before release is valid (seconds) */
+    minChargeTime: number;
+    /** Maximum charge time (auto-releases at max) (seconds) */
+    maxChargeTime: number;
+    /** Whether movement is allowed while charging */
+    canMoveWhileCharging?: boolean;
+    /** Movement speed multiplier while charging (0-1) */
+    chargeMovementSpeed?: number;
+    /** Whether charging can be cancelled */
+    canCancel?: boolean;
+    /** Mana drain per second while charging (optional) */
+    manaDrainPerSecond?: number;
+    /** Scaling factor at min charge (e.g., 0.5 = 50% damage at min) */
+    minChargeMultiplier?: number;
+    /** Scaling factor at max charge (e.g., 1.5 = 150% damage at max) */
+    maxChargeMultiplier?: number;
+    /** Range increase at max charge (added to base range) */
+    maxChargeRangeBonus?: number;
+}
+/**
+ * Ammo/charges behavior: Limited uses that regenerate over time.
+ * Examples: Teemo R, Corki R, Akali R
+ */
+export interface AmmoBehavior {
+    /** Maximum charges that can be stored */
+    maxCharges: number;
+    /** Time to regenerate one charge (seconds) at each rank */
+    rechargeTime: number[];
+    /** Starting charges when ability is learned */
+    startingCharges?: number;
+    /** Whether all charges are consumed at once */
+    consumeAllOnCast?: boolean;
+}
+/**
+ * Channel behavior: Cast over time, interruptible.
+ * Examples: Katarina R, Nunu R, MF R
+ */
+export interface ChannelBehavior {
+    /** Channel duration (seconds) */
+    duration: number;
+    /** Whether champion can move while channeling */
+    canMove?: boolean;
+    /** Whether champion can change direction while channeling */
+    canRotate?: boolean;
+    /** Whether channel is cancelled by taking damage */
+    cancelOnDamage?: boolean;
+    /** Damage threshold to cancel (if cancelOnDamage is true) */
+    damageThreshold?: number;
+    /** Tick rate for channel effects (e.g., damage per tick) */
+    tickRate?: number;
+    /** Effect applied on early cancel (interrupt) */
+    interruptEffect?: string;
+}
+/**
+ * Conditions for when recast is available.
+ */
+export type RecastCondition = 'always' | 'on_hit' | 'on_kill' | 'on_dash_complete' | 'manual';
+/**
+ * Transform behavior: Changes champion form/abilities.
+ * Examples: Nidalee R, Elise R, Jayce R
+ */
+export interface TransformBehavior {
+    /** ID of the alternate form (champion variant) */
+    alternateFormId: string;
+    /** Whether transform has a cooldown */
+    hasCooldown?: boolean;
+    /** Duration of transform (undefined = permanent until recast) */
+    duration?: number;
+    /** Ability replacements in alternate form (Q/W/E/R -> new ability IDs) */
+    abilityReplacements?: Partial<Record<AbilitySlot, string>>;
+}
+/**
+ * Stat transform behavior: Temporarily modifies champion stats.
+ * Examples: Nasus R, Renekton R, Vile R
+ */
+export interface StatTransformBehavior {
+    /** Duration of the transform (seconds) */
+    duration: number;
+    /** Attack range override during transform (e.g., 100 for melee) */
+    attackRange?: number;
+    /** Stat modifiers applied during transform (values at each rank) */
+    statModifiers?: {
+        maxHealth?: number[];
+        attackDamage?: number[];
+        attackSpeed?: number[];
+        movementSpeed?: number[];
+        armor?: number[];
+        magicResist?: number[];
+    };
+    /** Soul stacks granted on cast (for Vile) */
+    soulStacksOnCast?: number;
+    /** Whether casting triggers all owned traps to explode */
+    triggersTrapExplosion?: boolean;
+    /** Whether the transform can be ended early */
+    canEndEarly?: boolean;
+}
+/**
+ * Toggle behavior configuration.
+ * Examples: Aatrox E passive, Ashe Q
+ */
+export interface ToggleBehavior {
+    /** Mana drain per second while active */
+    manaDrainPerSecond?: number;
+    /** Health drain per second while active */
+    healthDrainPerSecond?: number;
+    /** Whether toggle auto-deactivates at 0 mana */
+    deactivateOnNoMana?: boolean;
+    /** Minimum duration before can toggle off */
+    minActiveDuration?: number;
+}
+/**
+ * Empowered behavior: Next ability/attack is enhanced.
+ * Examples: Rengar Q, GP Q, Jax W
+ */
+export interface EmpoweredBehavior {
+    /** What is empowered: next attack, next ability, or both */
+    empowers: 'attack' | 'ability' | 'both';
+    /** Which ability slot is empowered (if specific) */
+    empoweredAbility?: AbilitySlot;
+    /** Duration the empowerment lasts (seconds) */
+    duration: number;
+    /** Bonus damage/effects when consumed */
+    bonusDamage?: AbilityScaling;
+    /** Effect ID applied when empowered action is used */
+    appliesEffect?: string;
+}
 /**
  * Ability slot identifiers (like LoL's Q, W, E, R).
  */
@@ -131,6 +265,76 @@ export interface AbilityDefinition {
     passiveTrigger?: PassiveTrigger;
     /** For passive abilities: internal cooldown between triggers */
     passiveCooldown?: number;
+    /**
+     * Recast behavior: Ability can be cast multiple times.
+     * - number: Recast same ability N times (e.g., 3 for Riven Q)
+     * - AbilityDefinition: Different ability on recast (e.g., Lee Sin Q1 -> Q2)
+     */
+    recast?: AbilityDefinition | number;
+    /** Time window to recast after first cast (seconds) */
+    recastWindow?: number;
+    /** Condition for when recast becomes available */
+    recastCondition?: RecastCondition;
+    /**
+     * Ammo/charges behavior: Limited uses that regenerate.
+     * - number: Simple max charges (uses default recharge = cooldown)
+     * - AmmoBehavior: Full configuration
+     */
+    ammo?: number | AmmoBehavior;
+    /** Charge behavior: Hold to charge, release to cast */
+    charge?: ChargeBehavior;
+    /** Channel behavior: Cast over time, interruptible */
+    channel?: ChannelBehavior;
+    /**
+     * Toggle behavior configuration.
+     * - true: Simple toggle (no mana drain)
+     * - ToggleBehavior: Full configuration with mana/health drain
+     */
+    toggle?: boolean | ToggleBehavior;
+    /** Transform behavior: Changes champion form */
+    transform?: TransformBehavior;
+    /** Stat transform behavior: Temporarily modifies stats (e.g., Nasus R, Vile R) */
+    statTransform?: StatTransformBehavior;
+    /** Empowered behavior: Enhances next attack/ability */
+    empowered?: EmpoweredBehavior;
+    /** Whether projectile stops on wall collision (enables wall-hit recast for some abilities) */
+    stopsOnWall?: boolean;
+    /** Effects applied after the main ability duration ends (e.g., speed buff after stealth) */
+    postEffects?: {
+        effects: string[];
+        duration: number;
+    };
+    /** Trap configuration for abilities that place invisible traps */
+    trap?: {
+        /** Radius within which enemy champions trigger the trap */
+        triggerRadius: number;
+        /** How long the trap lasts before expiring (seconds) */
+        duration: number;
+        /** Whether the trap is invisible to enemies */
+        isStealthed: boolean;
+        /** Duration of root effect when triggered (seconds) */
+        rootDuration: number;
+        /** Soul stacks granted to owner when trap triggers */
+        soulStacksOnTrigger?: number;
+        /** Damage dealt when trap explodes (from ultimate) at each R rank */
+        explosionDamage?: number[];
+        /** Radius of explosion */
+        explosionRadius?: number;
+        /** Root duration when trap explodes */
+        explosionRootDuration?: number;
+    };
+    /** Aura configuration for abilities that deal damage around the champion */
+    aura?: {
+        /** Radius of the aura */
+        radius: number;
+        /** Damage dealt per tick */
+        damage: {
+            type: DamageType;
+            scaling: AbilityScaling;
+        };
+        /** Time between damage ticks (seconds) */
+        tickRate: number;
+    };
 }
 /**
  * Runtime state of an ability (for network sync).
@@ -150,6 +354,28 @@ export interface AbilityState {
     isToggled: boolean;
     /** For passive abilities: internal cooldown remaining */
     passiveCooldownRemaining: number;
+    /** Current ammo/charges (for ammo abilities) */
+    charges?: number;
+    /** Time remaining until next charge regenerates */
+    chargeRegenRemaining?: number;
+    /** Current recast count (for multi-recast abilities) */
+    recastCount?: number;
+    /** Time remaining in recast window */
+    recastWindowRemaining?: number;
+    /** Current charge progress (0-1) for charge abilities */
+    chargeProgress?: number;
+    /** Whether currently charging */
+    isCharging?: boolean;
+    /** Whether currently channeling */
+    isChanneling?: boolean;
+    /** Channel progress (0-1) */
+    channelProgress?: number;
+    /** Whether currently transformed (for transform abilities) */
+    isTransformed?: boolean;
+    /** Whether empowerment is active */
+    isEmpowered?: boolean;
+    /** Time remaining on empowerment */
+    empoweredTimeRemaining?: number;
 }
 /**
  * Stat modifier for passive abilities.
@@ -223,6 +449,21 @@ export interface PassiveAbilityDefinition {
     levelScaling?: {
         levels: number[];
         values: number[];
+    };
+    /** Soul stack scaling by level and target type */
+    soulScaling?: {
+        minion: {
+            levels: number[];
+            stacks: number[];
+        };
+        jungle: {
+            levels: number[];
+            stacks: number[];
+        };
+        champion: {
+            levels: number[];
+            stacks: number[];
+        };
     };
 }
 /**
@@ -305,6 +546,62 @@ export declare const AbilityEntityType: {
  * - Wards: false
  */
 export declare function canAbilityAffectEntityType(ability: AbilityDefinition | undefined, entityType: number): boolean;
+/**
+ * Check if ability has charge behavior.
+ */
+export declare function hasChargeBehavior(ability: AbilityDefinition): ability is AbilityDefinition & {
+    charge: ChargeBehavior;
+};
+/**
+ * Check if ability has ammo/charges behavior.
+ */
+export declare function hasAmmoBehavior(ability: AbilityDefinition): boolean;
+/**
+ * Get normalized ammo behavior (handles number | AmmoBehavior).
+ */
+export declare function getAmmoBehavior(ability: AbilityDefinition): AmmoBehavior | undefined;
+/**
+ * Check if ability has channel behavior.
+ */
+export declare function hasChannelBehavior(ability: AbilityDefinition): ability is AbilityDefinition & {
+    channel: ChannelBehavior;
+};
+/**
+ * Check if ability has recast behavior.
+ */
+export declare function hasRecastBehavior(ability: AbilityDefinition): boolean;
+/**
+ * Get recast ability definition.
+ * Returns the same ability if recast is a number, or the specified ability if it's a definition.
+ */
+export declare function getRecastAbility(ability: AbilityDefinition): {
+    ability: AbilityDefinition;
+    maxRecasts: number;
+} | undefined;
+/**
+ * Check if ability has toggle behavior.
+ */
+export declare function hasToggleBehavior(ability: AbilityDefinition): boolean;
+/**
+ * Get normalized toggle behavior (handles boolean | ToggleBehavior).
+ */
+export declare function getToggleBehavior(ability: AbilityDefinition): ToggleBehavior | undefined;
+/**
+ * Check if ability has transform behavior.
+ */
+export declare function hasTransformBehavior(ability: AbilityDefinition): ability is AbilityDefinition & {
+    transform: TransformBehavior;
+};
+/**
+ * Check if ability has empowered behavior.
+ */
+export declare function hasEmpoweredBehavior(ability: AbilityDefinition): ability is AbilityDefinition & {
+    empowered: EmpoweredBehavior;
+};
+/**
+ * Check if ability has any complex behavior that requires special handling.
+ */
+export declare function hasComplexBehavior(ability: AbilityDefinition): boolean;
 /**
  * Calculate scaled ability value.
  */

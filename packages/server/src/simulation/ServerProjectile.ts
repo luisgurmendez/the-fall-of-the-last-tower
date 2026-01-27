@@ -13,9 +13,13 @@ import {
   ProjectileSnapshot,
   getAbilityDefinition,
   canAbilityAffectEntityType,
+  hasRecastBehavior,
+  getRecastAbility,
+  AbilitySlot,
 } from '@siege/shared';
 import { ServerEntity, ServerEntityConfig } from './ServerEntity';
 import type { ServerGameContext } from '../game/ServerGameContext';
+import type { ServerChampion } from './ServerChampion';
 
 export interface ServerProjectileConfig extends Omit<ServerEntityConfig, 'entityType'> {
   /** Direction the projectile travels (normalized) */
@@ -165,6 +169,53 @@ export class ServerProjectile extends ServerEntity {
         applyEffect.call(entity, effectId, this.effectDuration, this.sourceId);
       }
     }
+
+    // Check for recast behavior and notify source champion
+    this.notifyRecastOnHit(context);
+  }
+
+  /**
+   * Notify source champion of hit for abilities with recast behavior.
+   */
+  private notifyRecastOnHit(context: ServerGameContext): void {
+    const abilityDef = getAbilityDefinition(this.abilityId);
+    if (!abilityDef || !hasRecastBehavior(abilityDef)) return;
+
+    // Only trigger recast if condition is 'on_hit' or 'always'
+    if (abilityDef.recastCondition !== 'on_hit' && abilityDef.recastCondition !== 'always') {
+      return;
+    }
+
+    // Get the source champion
+    const sourceChampion = context.getEntity(this.sourceId) as ServerChampion | undefined;
+    if (!sourceChampion || !('enableRecast' in sourceChampion)) return;
+
+    // Find the ability slot from the ability ID
+    const slot = this.findAbilitySlot(sourceChampion, this.abilityId);
+    if (!slot) return;
+
+    // Get recast configuration
+    const recastConfig = getRecastAbility(abilityDef);
+    if (!recastConfig) return;
+
+    const recastWindow = abilityDef.recastWindow ?? 3.0;
+    const maxRecasts = recastConfig.maxRecasts;
+
+    // Enable recast on the champion
+    sourceChampion.enableRecast(slot, this.position.clone(), maxRecasts, recastWindow);
+  }
+
+  /**
+   * Find which ability slot maps to this ability ID.
+   */
+  private findAbilitySlot(champion: ServerChampion, abilityId: string): AbilitySlot | null {
+    const abilities = champion.definition.abilities;
+    for (const slot of ['Q', 'W', 'E', 'R'] as AbilitySlot[]) {
+      if (abilities[slot] === abilityId) {
+        return slot;
+      }
+    }
+    return null;
   }
 
   /**

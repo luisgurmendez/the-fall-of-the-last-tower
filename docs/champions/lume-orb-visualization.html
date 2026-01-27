@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lume - Light Orb Visualization</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background: #1a1a2e; }
+    .glow-text { text-shadow: 0 0 10px rgba(255, 220, 100, 0.8); }
+    .ability-key {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      border-radius: 6px;
+      transition: all 0.15s ease;
+    }
+    .ability-key:hover { transform: scale(1.05); }
+    .ability-key.disabled { opacity: 0.4; cursor: not-allowed; }
+    .ability-key.on-cooldown {
+      background: linear-gradient(180deg, #333 0%, #222 100%);
+      color: #666;
+    }
+  </style>
+</head>
+<body class="min-h-screen text-white">
+  <!-- Header -->
+  <header class="bg-gray-900/80 border-b border-yellow-500/30 p-4">
+    <div class="max-w-6xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-200 to-amber-500 flex items-center justify-center shadow-lg shadow-yellow-500/30">
+          <span class="text-2xl">&#9728;</span>
+        </div>
+        <div>
+          <h1 class="text-2xl font-bold glow-text text-yellow-100">Lume</h1>
+          <p class="text-sm text-yellow-300/70">The Wandering Light</p>
+        </div>
+      </div>
+      <div class="flex gap-2 text-sm">
+        <span class="px-3 py-1 bg-purple-600/30 border border-purple-500/50 rounded">Mage</span>
+        <span class="px-3 py-1 bg-blue-600/30 border border-blue-500/50 rounded">Utility</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto p-6">
+    <!-- Game Canvas -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+      <!-- Canvas Area -->
+      <div class="lg:col-span-2 bg-gray-900 rounded-lg border border-gray-700 p-4">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-lg font-semibold text-gray-300">Light Orb Visualization</h2>
+          <div id="orbState" class="px-3 py-1 bg-green-500/20 border border-green-500/50 rounded text-green-400 text-sm">
+            ORBITING
+          </div>
+        </div>
+        <canvas id="gameCanvas" class="w-full bg-gray-950 rounded-lg cursor-crosshair" width="800" height="500"></canvas>
+        <p class="text-sm text-gray-500 mt-2">Click anywhere to send the orb (Q). Click again to recall.</p>
+      </div>
+
+      <!-- Ability Panel -->
+      <div class="bg-gray-900 rounded-lg border border-gray-700 p-4">
+        <h2 class="text-lg font-semibold text-gray-300 mb-4">Abilities</h2>
+
+        <!-- Passive -->
+        <div class="mb-4 p-3 bg-gray-800 rounded-lg border border-gray-700">
+          <div class="flex items-center gap-2 mb-2">
+            <div class="w-8 h-8 rounded bg-gradient-to-br from-yellow-400/30 to-amber-600/30 flex items-center justify-center text-xs font-bold text-yellow-300">P</div>
+            <span class="font-medium text-yellow-200">Guiding Glow</span>
+          </div>
+          <p class="text-xs text-gray-400">Allies near the orb gain <span class="text-green-400">+15% MS</span>. Enemies take <span class="text-red-400">+8% magic damage</span> from Lume.</p>
+        </div>
+
+        <!-- Q -->
+        <div class="mb-3 p-3 bg-gray-800 rounded-lg border border-gray-700 hover:border-yellow-500/50 transition cursor-pointer" onclick="castQ()">
+          <div class="flex items-center gap-2 mb-2">
+            <div class="ability-key bg-gradient-to-br from-yellow-500 to-amber-600 text-gray-900" id="qKey">Q</div>
+            <div>
+              <span class="font-medium text-yellow-200">Send the Light</span>
+              <div class="text-xs text-gray-500">CD: <span id="qCooldown">Ready</span></div>
+            </div>
+          </div>
+          <p class="text-xs text-gray-400">Send orb to location. Deals <span class="text-purple-400">60-200 (+60% AP)</span> magic damage. Recast to recall.</p>
+        </div>
+
+        <!-- W -->
+        <div class="mb-3 p-3 bg-gray-800 rounded-lg border border-gray-700 hover:border-green-500/50 transition cursor-pointer" onclick="castW()">
+          <div class="flex items-center gap-2 mb-2">
+            <div class="ability-key bg-gradient-to-br from-green-500 to-emerald-600 text-gray-900" id="wKey">W</div>
+            <div>
+              <span class="font-medium text-green-200">Warmth</span>
+              <div class="text-xs text-gray-500">CD: <span id="wCooldown">Ready</span></div>
+            </div>
+          </div>
+          <p class="text-xs text-gray-400">Pulse from orb. Heals allies <span class="text-green-400">60-180 (+45% AP)</span>, damages enemies <span class="text-red-400">50-170 (+50% AP)</span>.</p>
+        </div>
+
+        <!-- E -->
+        <div class="mb-3 p-3 bg-gray-800 rounded-lg border border-gray-700 hover:border-blue-500/50 transition cursor-pointer" onclick="castE()">
+          <div class="flex items-center gap-2 mb-2">
+            <div class="ability-key bg-gradient-to-br from-blue-500 to-cyan-600 text-gray-900" id="eKey">E</div>
+            <div>
+              <span class="font-medium text-blue-200">Dazzle Step</span>
+              <div class="text-xs text-gray-500">CD: <span id="eCooldown">Ready</span></div>
+            </div>
+          </div>
+          <p class="text-xs text-gray-400">Dash toward orb. On arrival, <span class="text-purple-400">blinds</span> nearby enemies for 1.0-1.4s.</p>
+        </div>
+
+        <!-- R -->
+        <div class="mb-3 p-3 bg-gray-800 rounded-lg border border-red-500/30 hover:border-red-500/50 transition cursor-pointer" onclick="castR()">
+          <div class="flex items-center gap-2 mb-2">
+            <div class="ability-key bg-gradient-to-br from-red-500 to-orange-600 text-gray-900" id="rKey">R</div>
+            <div>
+              <span class="font-medium text-red-200">Beaconfall</span>
+              <div class="text-xs text-gray-500">CD: <span id="rCooldown">Ready</span></div>
+            </div>
+          </div>
+          <p class="text-xs text-gray-400">Orb explodes. <span class="text-red-400">200-400 (+80% AP)</span> damage, 40% slow. Orb destroyed for <span class="text-yellow-400">60s</span>.</p>
+        </div>
+
+        <!-- Respawn Timer -->
+        <div id="respawnTimer" class="hidden mt-4 p-3 bg-red-900/30 rounded-lg border border-red-500/50">
+          <div class="text-sm text-red-300 mb-2">Orb Destroyed</div>
+          <div class="w-full bg-gray-700 rounded-full h-2">
+            <div id="respawnBar" class="bg-red-500 h-2 rounded-full transition-all" style="width: 100%"></div>
+          </div>
+          <div class="text-xs text-red-400 mt-1">Respawns in: <span id="respawnTime">60s</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- State Machine Diagram -->
+    <div class="bg-gray-900 rounded-lg border border-gray-700 p-6 mb-6">
+      <h2 class="text-lg font-semibold text-gray-300 mb-4">Light Orb State Machine</h2>
+      <div class="flex flex-wrap items-center justify-center gap-4 text-sm">
+        <div id="stateOrbiting" class="px-4 py-2 rounded-lg border-2 border-green-500 bg-green-500/20 text-green-300">
+          ORBITING
+        </div>
+        <div class="text-gray-500">
+          <span class="text-yellow-400">Q</span> &#8594;
+        </div>
+        <div id="stateTraveling" class="px-4 py-2 rounded-lg border-2 border-gray-600 bg-gray-800 text-gray-400">
+          TRAVELING
+        </div>
+        <div class="text-gray-500">
+          &#8594; arrives &#8594;
+        </div>
+        <div id="stateStationed" class="px-4 py-2 rounded-lg border-2 border-gray-600 bg-gray-800 text-gray-400">
+          STATIONED
+        </div>
+        <div class="text-gray-500">
+          <span class="text-red-400">R</span> &#8594;
+        </div>
+        <div id="stateDestroyed" class="px-4 py-2 rounded-lg border-2 border-gray-600 bg-gray-800 text-gray-400">
+          DESTROYED
+        </div>
+      </div>
+      <div class="mt-4 flex justify-center gap-8 text-xs text-gray-500">
+        <div><span class="text-yellow-400">Q recast</span>: Recall to orbiting</div>
+        <div><span class="text-gray-400">Timeout</span>: Return to orbiting</div>
+        <div><span class="text-green-400">60s</span>: Respawn to orbiting</div>
+      </div>
+    </div>
+
+    <!-- Controls Info -->
+    <div class="bg-gray-900 rounded-lg border border-gray-700 p-6">
+      <h2 class="text-lg font-semibold text-gray-300 mb-4">Controls</h2>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+        <div class="p-3 bg-gray-800 rounded">
+          <div class="font-mono text-yellow-400 mb-1">Left Click</div>
+          <div class="text-gray-400">Send/Recall Orb (Q)</div>
+        </div>
+        <div class="p-3 bg-gray-800 rounded">
+          <div class="font-mono text-green-400 mb-1">W Key</div>
+          <div class="text-gray-400">Cast Warmth</div>
+        </div>
+        <div class="p-3 bg-gray-800 rounded">
+          <div class="font-mono text-blue-400 mb-1">E Key</div>
+          <div class="text-gray-400">Dash to Orb</div>
+        </div>
+        <div class="p-3 bg-gray-800 rounded">
+          <div class="font-mono text-red-400 mb-1">R Key</div>
+          <div class="text-gray-400">Explode Orb</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // ========================================================================
+    // CONFIGURATION
+    // ========================================================================
+    const CONFIG = {
+      orb: {
+        orbitRadius: 60,
+        orbitSpeed: 2.0,
+        travelSpeed: 800,
+        stationedDuration: 4000,
+        passiveAuraRadius: 150,
+        respawnTime: 10000, // 10s for demo (60s in real game)
+      },
+      champion: {
+        radius: 20,
+        moveSpeed: 200,
+      },
+      cooldowns: {
+        Q: 2000, // 2s for demo
+        W: 3000,
+        E: 4000,
+        R: 8000,
+      }
+    };
+
+    // ========================================================================
+    // GAME STATE
+    // ========================================================================
+    const state = {
+      lume: { x: 400, y: 250, targetX: null, targetY: null },
+      orb: {
+        state: 'orbiting', // orbiting, traveling, stationed, destroyed
+        x: 0,
+        y: 0,
+        orbitAngle: 0,
+        targetX: null,
+        targetY: null,
+        stationedTime: 0,
+        respawnTime: 0,
+      },
+      cooldowns: { Q: 0, W: 0, E: 0, R: 0 },
+      effects: [], // Visual effects
+      particles: [], // Trail particles
+      enemies: [
+        { x: 600, y: 150, radius: 18, health: 100, maxHealth: 100, inAura: false },
+        { x: 650, y: 300, radius: 18, health: 100, maxHealth: 100, inAura: false },
+      ],
+      allies: [
+        { x: 200, y: 350, radius: 18, inAura: false, speedBoosted: false },
+      ],
+      isDashing: false,
+      dashTarget: null,
+    };
+
+    // ========================================================================
+    // CANVAS SETUP
+    // ========================================================================
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    let lastTime = 0;
+
+    // ========================================================================
+    // UTILITY FUNCTIONS
+    // ========================================================================
+    function distance(x1, y1, x2, y2) {
+      return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+    }
+
+    function lerp(a, b, t) {
+      return a + (b - a) * t;
+    }
+
+    function normalizeAngle(angle) {
+      while (angle < 0) angle += Math.PI * 2;
+      while (angle >= Math.PI * 2) angle -= Math.PI * 2;
+      return angle;
+    }
+
+    // ========================================================================
+    // ORB STATE MACHINE
+    // ========================================================================
+    function updateOrbState(dt) {
+      const orb = state.orb;
+      const lume = state.lume;
+
+      switch (orb.state) {
+        case 'orbiting':
+          // Rotate around Lume
+          orb.orbitAngle += CONFIG.orb.orbitSpeed * dt;
+          orb.x = lume.x + Math.cos(orb.orbitAngle) * CONFIG.orb.orbitRadius;
+          orb.y = lume.y + Math.sin(orb.orbitAngle) * CONFIG.orb.orbitRadius;
+          break;
+
+        case 'traveling':
+          // Move toward target
+          const dx = orb.targetX - orb.x;
+          const dy = orb.targetY - orb.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist < 5) {
+            // Reached destination
+            if (orb.targetX === lume.x && orb.targetY === lume.y) {
+              // Returning to Lume
+              orb.state = 'orbiting';
+              orb.orbitAngle = Math.atan2(orb.y - lume.y, orb.x - lume.x);
+              updateStateDisplay();
+            } else {
+              // Arrived at target location
+              orb.state = 'stationed';
+              orb.stationedTime = CONFIG.orb.stationedDuration;
+              updateStateDisplay();
+              // Damage effect on arrival
+              addEffect('damage', orb.x, orb.y, 100);
+            }
+          } else {
+            const speed = CONFIG.orb.travelSpeed * dt;
+            orb.x += (dx / dist) * speed;
+            orb.y += (dy / dist) * speed;
+
+            // Add trail particle
+            if (Math.random() < 0.3) {
+              state.particles.push({
+                x: orb.x + (Math.random() - 0.5) * 10,
+                y: orb.y + (Math.random() - 0.5) * 10,
+                alpha: 1,
+                size: 3 + Math.random() * 3,
+              });
+            }
+          }
+          break;
+
+        case 'stationed':
+          orb.stationedTime -= dt * 1000;
+          if (orb.stationedTime <= 0) {
+            // Return to orbiting
+            orb.state = 'traveling';
+            orb.targetX = lume.x;
+            orb.targetY = lume.y;
+            updateStateDisplay();
+          }
+          break;
+
+        case 'destroyed':
+          orb.respawnTime -= dt * 1000;
+          updateRespawnUI();
+          if (orb.respawnTime <= 0) {
+            // Respawn
+            orb.state = 'orbiting';
+            orb.orbitAngle = 0;
+            document.getElementById('respawnTimer').classList.add('hidden');
+            updateStateDisplay();
+          }
+          break;
+      }
+
+      // Update passive aura effects
+      updatePassiveEffects();
+    }
+
+    function updatePassiveEffects() {
+      if (state.orb.state === 'destroyed') {
+        state.enemies.forEach(e => e.inAura = false);
+        state.allies.forEach(a => { a.inAura = false; a.speedBoosted = false; });
+        return;
+      }
+
+      const orb = state.orb;
+      const auraRadius = CONFIG.orb.passiveAuraRadius;
+
+      // Check enemies
+      state.enemies.forEach(enemy => {
+        enemy.inAura = distance(enemy.x, enemy.y, orb.x, orb.y) <= auraRadius;
+      });
+
+      // Check allies
+      state.allies.forEach(ally => {
+        const wasInAura = ally.inAura;
+        ally.inAura = distance(ally.x, ally.y, orb.x, orb.y) <= auraRadius;
+        ally.speedBoosted = ally.inAura;
+      });
+    }
+
+    // ========================================================================
+    // CHAMPION MOVEMENT
+    // ========================================================================
+    function updateChampionMovement(dt) {
+      const lume = state.lume;
+
+      if (state.isDashing && state.dashTarget) {
+        // Dash movement
+        const dx = state.dashTarget.x - lume.x;
+        const dy = state.dashTarget.y - lume.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < 10) {
+          // Dash complete
+          state.isDashing = false;
+          state.dashTarget = null;
+          // Check if near orb for blind effect
+          if (distance(lume.x, lume.y, state.orb.x, state.orb.y) <= 50) {
+            addEffect('blind', state.orb.x, state.orb.y, 100);
+          }
+        } else {
+          const speed = 1200 * dt;
+          lume.x += (dx / dist) * speed;
+          lume.y += (dy / dist) * speed;
+        }
+      } else if (lume.targetX !== null) {
+        // Normal movement
+        const dx = lume.targetX - lume.x;
+        const dy = lume.targetY - lume.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < 5) {
+          lume.targetX = null;
+          lume.targetY = null;
+        } else {
+          const speed = CONFIG.champion.moveSpeed * dt;
+          lume.x += (dx / dist) * speed;
+          lume.y += (dy / dist) * speed;
+        }
+      }
+    }
+
+    // ========================================================================
+    // ABILITY FUNCTIONS
+    // ========================================================================
+    function castQ(targetX = null, targetY = null) {
+      if (state.cooldowns.Q > 0) return;
+      if (state.orb.state === 'destroyed') return;
+
+      if (state.orb.state === 'orbiting') {
+        // First cast: send orb
+        if (targetX !== null) {
+          state.orb.state = 'traveling';
+          state.orb.targetX = targetX;
+          state.orb.targetY = targetY;
+          state.cooldowns.Q = CONFIG.cooldowns.Q;
+          updateStateDisplay();
+        }
+      } else if (state.orb.state === 'stationed' || state.orb.state === 'traveling') {
+        // Recast: recall orb
+        state.orb.state = 'traveling';
+        state.orb.targetX = state.lume.x;
+        state.orb.targetY = state.lume.y;
+        updateStateDisplay();
+      }
+    }
+
+    function castW() {
+      if (state.cooldowns.W > 0) return;
+      if (state.orb.state === 'destroyed') return;
+
+      state.cooldowns.W = CONFIG.cooldowns.W;
+      addEffect('warmth', state.orb.x, state.orb.y, 150);
+
+      // Heal allies, damage enemies in range
+      state.allies.forEach(ally => {
+        if (distance(ally.x, ally.y, state.orb.x, state.orb.y) <= 150) {
+          addEffect('heal', ally.x, ally.y, 30);
+        }
+      });
+
+      state.enemies.forEach(enemy => {
+        if (distance(enemy.x, enemy.y, state.orb.x, state.orb.y) <= 150) {
+          enemy.health = Math.max(0, enemy.health - 30);
+          addEffect('damage', enemy.x, enemy.y, 30);
+        }
+      });
+    }
+
+    function castE() {
+      if (state.cooldowns.E > 0) return;
+      if (state.orb.state === 'destroyed') return;
+
+      state.cooldowns.E = CONFIG.cooldowns.E;
+      state.isDashing = true;
+      state.dashTarget = { x: state.orb.x, y: state.orb.y };
+    }
+
+    function castR() {
+      if (state.cooldowns.R > 0) return;
+      if (state.orb.state === 'destroyed') return;
+
+      state.cooldowns.R = CONFIG.cooldowns.R;
+
+      // Explosion effect
+      addEffect('explosion', state.orb.x, state.orb.y, 200);
+
+      // Damage enemies in range
+      state.enemies.forEach(enemy => {
+        if (distance(enemy.x, enemy.y, state.orb.x, state.orb.y) <= 200) {
+          enemy.health = Math.max(0, enemy.health - 50);
+        }
+      });
+
+      // Destroy orb
+      state.orb.state = 'destroyed';
+      state.orb.respawnTime = CONFIG.orb.respawnTime;
+      document.getElementById('respawnTimer').classList.remove('hidden');
+      updateStateDisplay();
+    }
+
+    // ========================================================================
+    // VISUAL EFFECTS
+    // ========================================================================
+    function addEffect(type, x, y, radius) {
+      state.effects.push({
+        type,
+        x,
+        y,
+        radius,
+        maxRadius: radius,
+        alpha: 1,
+        time: 0,
+        duration: type === 'explosion' ? 0.8 : 0.5,
+      });
+    }
+
+    function updateEffects(dt) {
+      state.effects = state.effects.filter(effect => {
+        effect.time += dt;
+        effect.alpha = 1 - (effect.time / effect.duration);
+
+        if (effect.type === 'explosion') {
+          effect.radius = effect.maxRadius * (effect.time / effect.duration);
+        } else if (effect.type === 'warmth') {
+          effect.radius = effect.maxRadius * (1 + 0.2 * Math.sin(effect.time * 20));
+        }
+
+        return effect.time < effect.duration;
+      });
+
+      // Update particles
+      state.particles = state.particles.filter(p => {
+        p.alpha -= dt * 3;
+        p.size -= dt * 5;
+        return p.alpha > 0 && p.size > 0;
+      });
+    }
+
+    // ========================================================================
+    // COOLDOWN MANAGEMENT
+    // ========================================================================
+    function updateCooldowns(dt) {
+      const dtMs = dt * 1000;
+      ['Q', 'W', 'E', 'R'].forEach(key => {
+        if (state.cooldowns[key] > 0) {
+          state.cooldowns[key] = Math.max(0, state.cooldowns[key] - dtMs);
+        }
+        updateCooldownUI(key);
+      });
+    }
+
+    function updateCooldownUI(key) {
+      const elem = document.getElementById(key.toLowerCase() + 'Cooldown');
+      const keyElem = document.getElementById(key.toLowerCase() + 'Key');
+
+      if (state.cooldowns[key] > 0) {
+        elem.textContent = (state.cooldowns[key] / 1000).toFixed(1) + 's';
+        keyElem.classList.add('on-cooldown');
+      } else {
+        elem.textContent = 'Ready';
+        keyElem.classList.remove('on-cooldown');
+      }
+
+      // Disable if orb destroyed
+      if (state.orb.state === 'destroyed' && key !== 'R') {
+        keyElem.classList.add('disabled');
+      } else {
+        keyElem.classList.remove('disabled');
+      }
+    }
+
+    function updateRespawnUI() {
+      const remaining = Math.max(0, state.orb.respawnTime / 1000);
+      document.getElementById('respawnTime').textContent = remaining.toFixed(1) + 's';
+      const percent = (state.orb.respawnTime / CONFIG.orb.respawnTime) * 100;
+      document.getElementById('respawnBar').style.width = percent + '%';
+    }
+
+    function updateStateDisplay() {
+      const stateElem = document.getElementById('orbState');
+      const states = ['stateOrbiting', 'stateTraveling', 'stateStationed', 'stateDestroyed'];
+      const stateColors = {
+        orbiting: { bg: 'bg-green-500/20', border: 'border-green-500', text: 'text-green-400' },
+        traveling: { bg: 'bg-yellow-500/20', border: 'border-yellow-500', text: 'text-yellow-400' },
+        stationed: { bg: 'bg-blue-500/20', border: 'border-blue-500', text: 'text-blue-400' },
+        destroyed: { bg: 'bg-red-500/20', border: 'border-red-500', text: 'text-red-400' },
+      };
+
+      const colors = stateColors[state.orb.state];
+      stateElem.className = `px-3 py-1 ${colors.bg} border ${colors.border} rounded ${colors.text} text-sm`;
+      stateElem.textContent = state.orb.state.toUpperCase();
+
+      // Update state machine diagram
+      states.forEach(id => {
+        const elem = document.getElementById(id);
+        const stateName = id.replace('state', '').toLowerCase();
+        if (stateName === state.orb.state) {
+          elem.className = 'px-4 py-2 rounded-lg border-2 border-green-500 bg-green-500/20 text-green-300';
+        } else {
+          elem.className = 'px-4 py-2 rounded-lg border-2 border-gray-600 bg-gray-800 text-gray-400';
+        }
+      });
+    }
+
+    // ========================================================================
+    // RENDERING
+    // ========================================================================
+    function render() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw grid
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < canvas.width; x += 50) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+      for (let y = 0; y < canvas.height; y += 50) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+
+      // Draw passive aura range (if not destroyed)
+      if (state.orb.state !== 'destroyed') {
+        ctx.beginPath();
+        ctx.arc(state.orb.x, state.orb.y, CONFIG.orb.passiveAuraRadius, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255, 220, 100, 0.2)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Fill aura
+        const gradient = ctx.createRadialGradient(state.orb.x, state.orb.y, 0, state.orb.x, state.orb.y, CONFIG.orb.passiveAuraRadius);
+        gradient.addColorStop(0, 'rgba(255, 220, 100, 0.05)');
+        gradient.addColorStop(1, 'rgba(255, 220, 100, 0)');
+        ctx.fillStyle = gradient;
+        ctx.fill();
+      }
+
+      // Draw particles
+      state.particles.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 220, 100, ${p.alpha})`;
+        ctx.fill();
+      });
+
+      // Draw effects
+      state.effects.forEach(effect => {
+        ctx.beginPath();
+        ctx.arc(effect.x, effect.y, effect.radius, 0, Math.PI * 2);
+
+        switch (effect.type) {
+          case 'damage':
+            ctx.strokeStyle = `rgba(255, 100, 100, ${effect.alpha})`;
+            break;
+          case 'heal':
+            ctx.strokeStyle = `rgba(100, 255, 150, ${effect.alpha})`;
+            break;
+          case 'warmth':
+            const warmthGrad = ctx.createRadialGradient(effect.x, effect.y, 0, effect.x, effect.y, effect.radius);
+            warmthGrad.addColorStop(0, `rgba(100, 255, 150, ${effect.alpha * 0.3})`);
+            warmthGrad.addColorStop(0.5, `rgba(255, 220, 100, ${effect.alpha * 0.2})`);
+            warmthGrad.addColorStop(1, `rgba(255, 100, 100, ${effect.alpha * 0.1})`);
+            ctx.fillStyle = warmthGrad;
+            ctx.fill();
+            ctx.strokeStyle = `rgba(255, 220, 100, ${effect.alpha})`;
+            break;
+          case 'explosion':
+            const explodeGrad = ctx.createRadialGradient(effect.x, effect.y, 0, effect.x, effect.y, effect.radius);
+            explodeGrad.addColorStop(0, `rgba(255, 200, 50, ${effect.alpha})`);
+            explodeGrad.addColorStop(0.5, `rgba(255, 100, 50, ${effect.alpha * 0.5})`);
+            explodeGrad.addColorStop(1, `rgba(255, 50, 50, 0)`);
+            ctx.fillStyle = explodeGrad;
+            ctx.fill();
+            ctx.strokeStyle = `rgba(255, 150, 50, ${effect.alpha})`;
+            break;
+          case 'blind':
+            ctx.strokeStyle = `rgba(255, 255, 200, ${effect.alpha})`;
+            break;
+        }
+
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      });
+
+      // Draw enemies
+      state.enemies.forEach(enemy => {
+        // Body
+        ctx.beginPath();
+        ctx.arc(enemy.x, enemy.y, enemy.radius, 0, Math.PI * 2);
+        ctx.fillStyle = enemy.inAura ? '#ff6666' : '#cc4444';
+        ctx.fill();
+        ctx.strokeStyle = '#ff8888';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Health bar
+        const barWidth = 30;
+        const barHeight = 4;
+        ctx.fillStyle = '#333';
+        ctx.fillRect(enemy.x - barWidth / 2, enemy.y - enemy.radius - 10, barWidth, barHeight);
+        ctx.fillStyle = '#ff4444';
+        ctx.fillRect(enemy.x - barWidth / 2, enemy.y - enemy.radius - 10, barWidth * (enemy.health / enemy.maxHealth), barHeight);
+
+        // Damage amp indicator
+        if (enemy.inAura) {
+          ctx.fillStyle = '#ffaa00';
+          ctx.font = 'bold 10px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('+8% DMG', enemy.x, enemy.y - enemy.radius - 15);
+        }
+      });
+
+      // Draw allies
+      state.allies.forEach(ally => {
+        // Body
+        ctx.beginPath();
+        ctx.arc(ally.x, ally.y, ally.radius, 0, Math.PI * 2);
+        ctx.fillStyle = ally.speedBoosted ? '#66ff66' : '#44aa44';
+        ctx.fill();
+        ctx.strokeStyle = '#88ff88';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Speed boost indicator
+        if (ally.speedBoosted) {
+          ctx.fillStyle = '#88ff88';
+          ctx.font = 'bold 10px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('+15% MS', ally.x, ally.y - ally.radius - 8);
+        }
+      });
+
+      // Draw Lume
+      const lume = state.lume;
+
+      // Lume glow
+      const lumeGlow = ctx.createRadialGradient(lume.x, lume.y, 0, lume.x, lume.y, 40);
+      lumeGlow.addColorStop(0, 'rgba(255, 250, 200, 0.3)');
+      lumeGlow.addColorStop(1, 'rgba(255, 250, 200, 0)');
+      ctx.beginPath();
+      ctx.arc(lume.x, lume.y, 40, 0, Math.PI * 2);
+      ctx.fillStyle = lumeGlow;
+      ctx.fill();
+
+      // Lume body
+      ctx.beginPath();
+      ctx.arc(lume.x, lume.y, CONFIG.champion.radius, 0, Math.PI * 2);
+      ctx.fillStyle = '#6666cc';
+      ctx.fill();
+      ctx.strokeStyle = '#9999ff';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      // Lume name
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 12px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Lume', lume.x, lume.y + CONFIG.champion.radius + 15);
+
+      // Draw Light Orb (if not destroyed)
+      if (state.orb.state !== 'destroyed') {
+        const orb = state.orb;
+
+        // Orb outer glow
+        const outerGlow = ctx.createRadialGradient(orb.x, orb.y, 0, orb.x, orb.y, 35);
+        outerGlow.addColorStop(0, 'rgba(255, 220, 100, 0.4)');
+        outerGlow.addColorStop(0.5, 'rgba(255, 180, 50, 0.2)');
+        outerGlow.addColorStop(1, 'rgba(255, 150, 30, 0)');
+        ctx.beginPath();
+        ctx.arc(orb.x, orb.y, 35, 0, Math.PI * 2);
+        ctx.fillStyle = outerGlow;
+        ctx.fill();
+
+        // Orb inner glow
+        const innerGlow = ctx.createRadialGradient(orb.x, orb.y, 0, orb.x, orb.y, 15);
+        innerGlow.addColorStop(0, 'rgba(255, 255, 230, 1)');
+        innerGlow.addColorStop(0.5, 'rgba(255, 230, 150, 0.8)');
+        innerGlow.addColorStop(1, 'rgba(255, 200, 100, 0.4)');
+        ctx.beginPath();
+        ctx.arc(orb.x, orb.y, 15, 0, Math.PI * 2);
+        ctx.fillStyle = innerGlow;
+        ctx.fill();
+
+        // Orb core
+        ctx.beginPath();
+        ctx.arc(orb.x, orb.y, 6, 0, Math.PI * 2);
+        ctx.fillStyle = '#FFFDE8';
+        ctx.fill();
+
+        // Orbit path indicator when orbiting
+        if (state.orb.state === 'orbiting') {
+          ctx.beginPath();
+          ctx.arc(lume.x, lume.y, CONFIG.orb.orbitRadius, 0, Math.PI * 2);
+          ctx.strokeStyle = 'rgba(255, 220, 100, 0.15)';
+          ctx.lineWidth = 1;
+          ctx.setLineDash([3, 3]);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+
+        // Connection line to Lume
+        ctx.beginPath();
+        ctx.moveTo(lume.x, lume.y);
+        ctx.lineTo(orb.x, orb.y);
+        ctx.strokeStyle = 'rgba(255, 220, 100, 0.2)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    }
+
+    // ========================================================================
+    // GAME LOOP
+    // ========================================================================
+    function gameLoop(timestamp) {
+      const dt = Math.min((timestamp - lastTime) / 1000, 0.1);
+      lastTime = timestamp;
+
+      updateChampionMovement(dt);
+      updateOrbState(dt);
+      updateCooldowns(dt);
+      updateEffects(dt);
+      render();
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    // ========================================================================
+    // INPUT HANDLING
+    // ========================================================================
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+      const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+      castQ(x, y);
+    });
+
+    canvas.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+      const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+      state.lume.targetX = x;
+      state.lume.targetY = y;
+    });
+
+    document.addEventListener('keydown', (e) => {
+      switch (e.key.toLowerCase()) {
+        case 'q':
+          if (state.orb.state === 'stationed' || state.orb.state === 'traveling') {
+            castQ();
+          }
+          break;
+        case 'w':
+          castW();
+          break;
+        case 'e':
+          castE();
+          break;
+        case 'r':
+          castR();
+          break;
+      }
+    });
+
+    // ========================================================================
+    // INITIALIZATION
+    // ========================================================================
+    function init() {
+      // Initial orb position
+      state.orb.x = state.lume.x + CONFIG.orb.orbitRadius;
+      state.orb.y = state.lume.y;
+
+      updateStateDisplay();
+      requestAnimationFrame(gameLoop);
+    }
+
+    init();
+  </script>
+</body>
+</html>

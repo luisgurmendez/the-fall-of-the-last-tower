@@ -128,6 +128,8 @@ export interface AbilityInput extends InputMessage {
   targetY?: number;
   /** Target entity (for targeted abilities) */
   targetEntityId?: string;
+  /** Charge time in seconds (for charge abilities like Vile Q) */
+  chargeTime?: number;
 }
 
 /**
@@ -214,6 +216,7 @@ export enum EntityType {
   PROJECTILE = 6,
   WARD = 7,
   ZONE = 8,
+  LIGHT_ORB = 9,
 }
 
 /**
@@ -461,6 +464,38 @@ export interface ZoneSnapshot {
 }
 
 /**
+ * Light Orb state for Lume's passive mechanic.
+ */
+export type LightOrbState = 'orbiting' | 'traveling' | 'stationed' | 'destroyed';
+
+/**
+ * Snapshot of Lume's Light Orb for network sync.
+ */
+export interface LightOrbSnapshot {
+  entityId: string;
+  entityType: EntityType.LIGHT_ORB;
+  side: Side;
+  ownerId: string;  // Lume's champion ID
+
+  // Position
+  x: number;
+  y: number;
+
+  // State machine
+  state: LightOrbState;
+  orbitAngle: number;  // Current orbit angle in radians (for smooth client rendering)
+
+  // Timers
+  stationedTimeRemaining: number;  // Time left when stationed (0 if not stationed)
+  respawnTimeRemaining: number;    // Time until respawn when destroyed (0 if not destroyed)
+
+  // Passive aura info
+  auraRadius: number;
+
+  isDead: boolean;
+}
+
+/**
  * Union type for all entity snapshots.
  */
 export type EntitySnapshot =
@@ -471,7 +506,8 @@ export type EntitySnapshot =
   | NexusSnapshot
   | JungleCreatureSnapshot
   | WardSnapshot
-  | ZoneSnapshot;
+  | ZoneSnapshot
+  | LightOrbSnapshot;
 
 /**
  * Delta update for an entity (only changed fields).

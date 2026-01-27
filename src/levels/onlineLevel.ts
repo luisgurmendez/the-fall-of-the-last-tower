@@ -55,12 +55,12 @@ export function generateOnlineLevel(config: OnlineLevelConfig): Level {
   // Create entity renderer (renders entities based on server state)
   const entityRenderer = new EntityRenderer(stateManager, matchData.yourSide);
 
-  // Create online input handler (sends inputs to server, detects enemy hover for cursor)
-  const inputHandler = new OnlineInputHandler(networkClient, stateManager, matchData.yourSide);
-
   // Find local player's champion from match data
   const localPlayer = matchData.players.find(p => p.side === matchData.yourSide);
   const localChampionId = localPlayer?.championId || 'warrior';
+
+  // Create online input handler (sends inputs to server, detects enemy hover for cursor)
+  const inputHandler = new OnlineInputHandler(networkClient, stateManager, matchData.yourSide, localChampionId);
 
   // Get champion definition for display name
   const championDef = getChampionDefinition(localChampionId);
@@ -100,6 +100,11 @@ export function generateOnlineLevel(config: OnlineLevelConfig): Level {
   championHUD.setLevelUpHandler((slot) => {
     console.log(`[OnlineLevel] Level up ability ${slot} requested`);
     networkClient.sendLevelUpInput(slot);
+  });
+
+  // Wire up charge state callback from input handler to HUD
+  inputHandler.setChargeStateCallback((chargeState) => {
+    championHUD.setChargeState(chargeState);
   });
 
   // Create ability range indicator (shows range/AOE when hovering abilities)

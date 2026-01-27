@@ -246,13 +246,20 @@ export class NetworkClient {
 
   /**
    * Send an ability input.
+   * @param slot - Ability slot (Q, W, E, R)
+   * @param targetType - How the ability is targeted
+   * @param targetX - Target X position (for ground/skillshot)
+   * @param targetY - Target Y position (for ground/skillshot)
+   * @param targetEntityId - Target entity ID (for unit-targeted)
+   * @param chargeTime - Charge time in seconds (for charge abilities)
    */
   sendAbilityInput(
     slot: AbilitySlot,
     targetType: 'none' | 'position' | 'unit',
     targetX?: number,
     targetY?: number,
-    targetEntityId?: string
+    targetEntityId?: string,
+    chargeTime?: number
   ): void {
     this.sendInput({
       seq: ++this.inputSeq,
@@ -263,6 +270,7 @@ export class NetworkClient {
       targetX,
       targetY,
       targetEntityId,
+      chargeTime,
     });
   }
 

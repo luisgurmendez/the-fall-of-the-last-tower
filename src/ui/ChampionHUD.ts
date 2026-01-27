@@ -81,6 +81,8 @@ export interface HUDAbility {
   readonly isReady: boolean;
   readonly cooldownProgress: number;
   readonly cooldownRemaining: number;
+  /** Time remaining in recast window (> 0 means recast is available) */
+  readonly recastWindowRemaining?: number;
   getTargetDescription?(): {
     range?: number;
     targetType?: string;
@@ -278,6 +280,9 @@ export class ChampionHUD extends ScreenEntity {
   /** Debug: last time we logged skill points */
   private _lastSkillPointsLogTime: number = 0;
 
+  /** Current charge state (for charge abilities) */
+  private chargeState: { slot: AbilitySlot; progress: number } | null = null;
+
   /**
    * Create a ChampionHUD.
    * @param config - HUD configuration options
@@ -316,6 +321,14 @@ export class ChampionHUD extends ScreenEntity {
    */
   setLevelUpHandler(handler: (slot: AbilitySlot) => void): void {
     this.onLevelUp = handler;
+  }
+
+  /**
+   * Set the current charge state (for charge abilities).
+   * @param state - The charge state or null if not charging
+   */
+  setChargeState(state: { slot: AbilitySlot; progress: number } | null): void {
+    this.chargeState = state;
   }
 
   /** Get current hover state */
@@ -1010,20 +1023,30 @@ export class ChampionHUD extends ScreenEntity {
     const isHovered = this.hoverState.ability === slot;
     let progress = 1;
     let isReady = true;
+    let recastWindowRemaining = 0;
 
     if (ability) {
       try {
         progress = typeof ability.cooldownProgress === 'number' ? ability.cooldownProgress : 1;
         isReady = typeof ability.isReady === 'boolean' ? ability.isReady : progress >= 1;
+        recastWindowRemaining = ability.recastWindowRemaining ?? 0;
       } catch {
         // Fallback if getters throw
         progress = 1;
         isReady = true;
+        recastWindowRemaining = 0;
       }
     }
 
-    // Background (brighter when hovered)
-    ctx.fillStyle = isHovered ? HUD_COLORS.borderHighlight : HUD_COLORS.backgroundLight;
+    // Check if recast is available
+    const hasRecast = recastWindowRemaining > 0;
+
+    // Background (brighter when hovered, special color for recast)
+    if (hasRecast) {
+      ctx.fillStyle = '#2a3a2a'; // Greenish background for recast
+    } else {
+      ctx.fillStyle = isHovered ? HUD_COLORS.borderHighlight : HUD_COLORS.backgroundLight;
+    }
     ctx.fillRect(x, y, size, size);
 
     // Try to draw ability icon
@@ -1035,21 +1058,31 @@ export class ChampionHUD extends ScreenEntity {
       iconDrawn = this.iconLoader.drawIcon(ctx, championId, iconSlot, x, y, size);
     }
 
-    // Cooldown overlay (drawn on top of icon)
-    if (!isReady) {
+    // Cooldown overlay (drawn on top of icon) - but not when recast is available
+    if (!isReady && !hasRecast) {
       ctx.fillStyle = HUD_COLORS.cooldownOverlay;
       ctx.fillRect(x, y, size, size * (1 - progress));
     }
 
-    // Border (highlight when hovered)
-    if (isHovered) {
+    // Border (highlight when hovered, golden glow for recast)
+    if (hasRecast) {
+      // Golden glowing border for recast available
+      ctx.strokeStyle = '#FFD700';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(x, y, size, size);
+      // Inner glow effect
+      ctx.strokeStyle = 'rgba(255, 215, 0, 0.5)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x - 2, y - 2, size + 4, size + 4);
+    } else if (isHovered) {
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 3;
+      ctx.strokeRect(x, y, size, size);
     } else {
       ctx.strokeStyle = isReady ? this.config.accentColor : HUD_COLORS.abilityNotReady;
       ctx.lineWidth = 2;
+      ctx.strokeRect(x, y, size, size);
     }
-    ctx.strokeRect(x, y, size, size);
 
     // Only show key label if no icon (fallback)
     if (!iconDrawn) {
@@ -1058,22 +1091,81 @@ export class ChampionHUD extends ScreenEntity {
         slot,
         x + size / 2,
         y + size / 2 - 18,
-        { color: isReady ? HUD_COLORS.text : HUD_COLORS.textDim, size: 32, centered: true }
+        { color: isReady || hasRecast ? HUD_COLORS.text : HUD_COLORS.textDim, size: 32, centered: true }
       );
     }
 
-    // Cooldown text - only show if ability is learned (rank > 0) and actually on cooldown
-    const isLearned = ability && ability.rank > 0;
-    if (!isReady && isLearned) {
-      const cooldownRemaining = ability.cooldownRemaining ?? 0;
-      if (cooldownRemaining > 0) {
-        RenderUtils.renderBitmapText(
-          ctx,
-          cooldownRemaining.toFixed(1),
-          x + size / 2,
-          y + size - 24,
-          { color: HUD_COLORS.text, size: 22, centered: true, shadow: true }
-        );
+    // Check if this ability is being charged
+    const isCharging = this.chargeState?.slot === slot;
+
+    // Charge progress overlay (fills from bottom to top)
+    if (isCharging) {
+      const chargeProgress = this.chargeState!.progress;
+      // Draw dark overlay for uncharged portion
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+      ctx.fillRect(x, y, size, size * (1 - chargeProgress));
+      // Draw charge fill from bottom
+      ctx.fillStyle = 'rgba(255, 165, 0, 0.4)'; // Orange tint for charging
+      ctx.fillRect(x, y + size * (1 - chargeProgress), size, size * chargeProgress);
+      // Draw glowing border while charging
+      ctx.strokeStyle = '#FF8C00'; // Dark orange
+      ctx.lineWidth = 3;
+      ctx.strokeRect(x, y, size, size);
+      // Pulsing outer glow
+      const pulse = Math.sin(performance.now() / 100) * 0.3 + 0.7;
+      ctx.strokeStyle = `rgba(255, 140, 0, ${pulse})`;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x - 2, y - 2, size + 4, size + 4);
+      // Draw "CHARGING" label
+      RenderUtils.renderBitmapText(
+        ctx,
+        'CHARGING',
+        x + size / 2,
+        y + 12,
+        { color: '#FF8C00', size: 12, centered: true, shadow: true }
+      );
+      // Draw charge percentage
+      RenderUtils.renderBitmapText(
+        ctx,
+        `${Math.floor(chargeProgress * 100)}%`,
+        x + size / 2,
+        y + size - 12,
+        { color: '#FF8C00', size: 18, centered: true, shadow: true }
+      );
+    }
+    // Recast indicator text and countdown
+    else if (hasRecast) {
+      // Draw "RECAST" label at top
+      RenderUtils.renderBitmapText(
+        ctx,
+        'RECAST',
+        x + size / 2,
+        y + 12,
+        { color: '#FFD700', size: 14, centered: true, shadow: true }
+      );
+      // Draw recast window countdown at bottom
+      RenderUtils.renderBitmapText(
+        ctx,
+        recastWindowRemaining.toFixed(1),
+        x + size / 2,
+        y + size - 12,
+        { color: '#FFD700', size: 18, centered: true, shadow: true }
+      );
+    }
+    // Cooldown text - only show if ability is learned (rank > 0) and actually on cooldown (and no recast)
+    else {
+      const isLearned = ability && ability.rank > 0;
+      if (!isReady && isLearned) {
+        const cooldownRemaining = ability.cooldownRemaining ?? 0;
+        if (cooldownRemaining > 0) {
+          RenderUtils.renderBitmapText(
+            ctx,
+            cooldownRemaining.toFixed(1),
+            x + size / 2,
+            y + size - 24,
+            { color: HUD_COLORS.text, size: 22, centered: true, shadow: true }
+          );
+        }
       }
     }
   }

@@ -593,6 +593,35 @@ export const VileTransformAuraEffect: ServerEffectDefinition = {
 };
 
 // ===================
+// Lume Effects
+// ===================
+
+// Lume Passive - Movement speed buff for allies near orb
+export const LumeGuidingGlowSpeedEffect: ServerStatEffectDef = {
+  id: 'lume_guiding_glow_speed',
+  name: 'Guiding Glow',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+  stat: 'movement_speed',
+  percentValue: 0.15, // +15% movement speed
+};
+
+// Lume Passive - Damage amplification debuff for enemies near orb
+// Note: This effect marks enemies for increased magic damage from Lume
+// The actual damage amp is calculated in damage calculation
+export const LumeGuidingGlowAmpEffect: ServerEffectDefinition & { damageAmpMagic: number } = {
+  id: 'lume_guiding_glow_amp',
+  name: 'Exposed by Light',
+  category: 'debuff',
+  stackBehavior: 'refresh',
+  cleansable: true,
+  persistsThroughDeath: false,
+  damageAmpMagic: 0.08, // +8% magic damage taken from Lume
+};
+
+// ===================
 // Effect Registry
 // ===================
 
@@ -647,6 +676,9 @@ export const ALL_SERVER_EFFECTS: AnyServerEffectDef[] = [
   VileSlowResistEffect,
   VileRootEffect,
   VileTransformAuraEffect,
+  // Ability-specific - Lume
+  LumeGuidingGlowSpeedEffect,
+  LumeGuidingGlowAmpEffect,
 ];
 
 const EFFECT_BY_ID = new Map<string, AnyServerEffectDef>(

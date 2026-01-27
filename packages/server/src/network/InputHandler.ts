@@ -247,6 +247,7 @@ export class InputHandler {
       targetPosition,
       targetEntityId: input.targetEntityId,
       context,
+      chargeTime: input.chargeTime,
     });
 
     if (!result.success) {

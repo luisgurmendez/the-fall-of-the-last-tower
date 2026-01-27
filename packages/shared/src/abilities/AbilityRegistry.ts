@@ -42,6 +42,11 @@ import {
   VileVeilOfDarkness,
   VileRootsOfVilix,
   VileRestorationOfVilix,
+  LumeAbilities,
+  LumeQ,
+  LumeW,
+  LumeE,
+  LumeR,
 } from '../champions/definitions';
 
 // Re-export individual abilities for backward compatibility
@@ -76,6 +81,11 @@ export {
   VileVeilOfDarkness,
   VileRootsOfVilix,
   VileRestorationOfVilix,
+  // Lume
+  LumeQ,
+  LumeW,
+  LumeE,
+  LumeR,
 };
 
 // =============================================================================
@@ -92,6 +102,7 @@ export const ABILITY_DEFINITIONS: Record<string, AbilityDefinition> = {
   ...VexAbilities,
   ...GorathAbilities,
   ...VileAbilities,
+  ...LumeAbilities,
 };
 
 /**

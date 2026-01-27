@@ -191,6 +191,99 @@ describe('Vile', () => {
 
       expect(arena.red.hasEffect('vile_q_slow')).toBe(true);
     });
+
+    test('should enable recast when projectile hits enemy', () => {
+      // Position enemy in path of skillshot
+      arena.red.position.setFrom(new Vector(300, 0));
+
+      arena.castAbility(arena.blue, 'Q', {
+        targetPosition: new Vector(800, 0),
+      });
+
+      // Tick to let projectile travel and hit
+      arena.tickAllFrames(30);
+
+      // Recast should now be available
+      expect(arena.blue.hasRecastAvailable('Q')).toBe(true);
+      expect(arena.blue.abilityStates.Q.recastWindowRemaining).toBeGreaterThan(0);
+    });
+
+    test('should dash to hit location on recast', () => {
+      // Position enemy in path of skillshot
+      const hitPosition = new Vector(300, 0);
+      arena.red.position.setFrom(hitPosition);
+
+      const startPosition = arena.blue.position.clone();
+
+      arena.castAbility(arena.blue, 'Q', {
+        targetPosition: new Vector(800, 0),
+      });
+
+      // Tick to let projectile travel and hit
+      arena.tickAllFrames(30);
+
+      // Verify recast is available
+      expect(arena.blue.hasRecastAvailable('Q')).toBe(true);
+
+      // Recast Q to dash to hit location
+      const recastResult = arena.castAbility(arena.blue, 'Q', {
+        targetPosition: new Vector(800, 0), // Target position ignored for recast
+      });
+
+      expect(recastResult.success).toBe(true);
+      expect(recastResult.manaCost).toBe(0); // Recast should not cost mana
+
+      // Tick to let dash complete
+      arena.tickAllFrames(30);
+
+      // Champion should have moved towards hit position
+      const distanceToHit = arena.blue.position.distanceTo(hitPosition);
+      expect(distanceToHit).toBeLessThan(50); // Should be very close to hit position
+    });
+
+    test('recast should consume recast count', () => {
+      // Position enemy in path of skillshot
+      arena.red.position.setFrom(new Vector(300, 0));
+
+      arena.castAbility(arena.blue, 'Q', {
+        targetPosition: new Vector(800, 0),
+      });
+
+      // Tick to let projectile travel and hit
+      arena.tickAllFrames(30);
+
+      // Verify recast is available
+      expect(arena.blue.hasRecastAvailable('Q')).toBe(true);
+
+      // Recast Q
+      arena.castAbility(arena.blue, 'Q', {
+        targetPosition: new Vector(800, 0),
+      });
+
+      // Recast should no longer be available
+      expect(arena.blue.hasRecastAvailable('Q')).toBe(false);
+    });
+
+    test('recast window should expire after 3 seconds', () => {
+      // Position enemy in path of skillshot
+      arena.red.position.setFrom(new Vector(300, 0));
+
+      arena.castAbility(arena.blue, 'Q', {
+        targetPosition: new Vector(800, 0),
+      });
+
+      // Tick to let projectile travel and hit
+      arena.tickAllFrames(30);
+
+      // Verify recast is available
+      expect(arena.blue.hasRecastAvailable('Q')).toBe(true);
+
+      // Wait for recast window to expire (3.0 seconds + some buffer)
+      arena.tickFrames(200); // ~3.3 seconds
+
+      // Recast should no longer be available
+      expect(arena.blue.hasRecastAvailable('Q')).toBe(false);
+    });
   });
 
   describe('W - Veil of Darkness', () => {

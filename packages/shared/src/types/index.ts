@@ -84,6 +84,9 @@ export {
   getPassiveLevelValue,
   canAbilityAffectEntityType,
   AbilityEntityType,
+  hasRecastBehavior,
+  getRecastAbility,
+  hasChargeBehavior,
 } from './abilities';
 
 // Item types
@@ -130,6 +133,8 @@ export type {
   JungleCreatureSnapshot,
   WardSnapshot,
   ZoneSnapshot,
+  LightOrbState,
+  LightOrbSnapshot,
   EntitySnapshot,
   EntityDelta,
   GameEvent,

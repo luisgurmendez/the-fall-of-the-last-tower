@@ -191,6 +191,14 @@ class OnlineAbilityAdapter {
     return this.state.cooldownRemaining;
   }
 
+  /**
+   * Get time remaining in recast window.
+   * Returns value > 0 when recast is available.
+   */
+  get recastWindowRemaining(): number {
+    return this.state.recastWindowRemaining ?? 0;
+  }
+
   getTargetDescription(): {
     range: number;
     targetType: string;

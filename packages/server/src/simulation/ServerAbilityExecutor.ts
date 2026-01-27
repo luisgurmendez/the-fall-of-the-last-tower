@@ -17,6 +17,8 @@ import {
   getAbilityDefinition,
   getPassiveDefinition,
   canAbilityAffectEntityType,
+  hasRecastBehavior,
+  hasChargeBehavior,
   DamageType,
   GameEventType,
 } from "@siege/shared";
@@ -27,6 +29,7 @@ import type { ServerGameContext } from "../game/ServerGameContext";
 import { ServerProjectile } from "./ServerProjectile";
 import { ServerZone, ZoneEffectType } from "./ServerZone";
 import { ServerTrap, getPlayerTraps } from "./ServerTrap";
+import { ServerLightOrb, LUME_ORB_CONFIG } from "./ServerLightOrb";
 import { Logger } from "../utils/Logger";
 
 export interface AbilityCastParams {
@@ -40,6 +43,8 @@ export interface AbilityCastParams {
   targetEntityId?: string;
   /** Game context */
   context: ServerGameContext;
+  /** Charge time in seconds (for charge abilities) */
+  chargeTime?: number;
 }
 
 export interface AbilityCastResult {
@@ -143,6 +148,15 @@ export class ServerAbilityExecutor {
       }
     }
 
+    // Check for recast - if available, handle recast flow instead of normal cast
+    if (hasRecastBehavior(definition) && champion.hasRecastAvailable(slot)) {
+      // Special handling for Lume's Q recast (recall orb)
+      if (definition.id === 'lume_q') {
+        return this.handleLumeQRecast(params);
+      }
+      return this.handleRecast(params, definition);
+    }
+
     // Check cooldown
     if (state.cooldownRemaining > 0) {
       return { success: false, failReason: "on_cooldown" };
@@ -219,6 +233,83 @@ export class ServerAbilityExecutor {
       manaCost,
       cooldown,
     };
+  }
+
+  /**
+   * Handle recast of an ability (e.g., Vile's Q dash to hit location).
+   * Recast does not consume mana or start cooldown.
+   */
+  private handleRecast(params: AbilityCastParams, definition: AbilityDefinition): AbilityCastResult {
+    const { champion, slot, context } = params;
+    const abilityId = definition.id;
+
+    // Get the stored hit position
+    const hitPosition = champion.getRecastHitPosition(slot);
+    if (!hitPosition) {
+      Logger.debug("Ability", `${champion.playerId} ${slot} recast failed - no hit position stored`);
+      return { success: false, failReason: "invalid_target" };
+    }
+
+    // Break stealth when recasting
+    if ('breakStealth' in champion) {
+      (champion as any).breakStealth();
+    }
+
+    // Execute recast as a dash to the hit position
+    this.executeRecastDash(champion, hitPosition, definition);
+
+    // Consume the recast
+    champion.consumeRecast(slot);
+
+    // Enter combat
+    champion.enterCombat();
+
+    // Add event for recast
+    context.addEvent(GameEventType.ABILITY_CAST, {
+      entityId: champion.id,
+      abilityId: `${abilityId}_recast`,
+      slot,
+      targetX: hitPosition.x,
+      targetY: hitPosition.y,
+    });
+
+    Logger.champion.debug(`${champion.playerId} ${slot} recast - dashing to (${hitPosition.x.toFixed(0)}, ${hitPosition.y.toFixed(0)})`);
+
+    return {
+      success: true,
+      manaCost: 0,
+      cooldown: 0,
+    };
+  }
+
+  /**
+   * Execute the recast dash to the hit position.
+   */
+  private executeRecastDash(champion: ServerChampion, hitPosition: Vector, definition: AbilityDefinition): void {
+    const direction = hitPosition.subtracted(champion.position);
+    const distance = direction.length();
+
+    if (distance < 10) {
+      // Already at the position
+      return;
+    }
+
+    const normalizedDir = direction.normalized();
+
+    // Default dash speed for recast (fast dash)
+    const dashSpeed = 1500;
+
+    champion.forcedMovement = {
+      direction: normalizedDir,
+      distance: distance,
+      duration: distance / dashSpeed,
+      elapsed: 0,
+      type: "dash",
+      hitEntities: new Set(),
+    };
+
+    // Update facing direction
+    champion.direction = normalizedDir;
   }
 
   /**
@@ -340,6 +431,12 @@ export class ServerAbilityExecutor {
       if (dir.length() > 0.1) {
         champion.direction = dir.normalized();
       }
+    }
+
+    // Special handling for Lume abilities (Light Orb mechanics)
+    if (this.isLumeAbility(champion, definition.id)) {
+      this.executeLumeAbility(params, definition, rank, damageMultiplier);
+      return;
     }
 
     // Execute based on target type
@@ -822,12 +919,35 @@ export class ServerAbilityExecutor {
       }
     }
 
+    // Calculate effective range (with charge bonus if applicable)
+    let effectiveRange = definition.range ?? 800;
+
+    if (hasChargeBehavior(definition) && params.chargeTime !== undefined) {
+      const charge = definition.charge!;
+      const minCharge = charge.minChargeTime;
+      const maxCharge = charge.maxChargeTime;
+
+      // Calculate charge progress (0 to 1)
+      const chargeProgress = Math.max(0, Math.min(1,
+        (params.chargeTime - minCharge) / (maxCharge - minCharge)
+      ));
+
+      // Apply range bonus based on charge progress
+      if (charge.maxChargeRangeBonus) {
+        effectiveRange += charge.maxChargeRangeBonus * chargeProgress;
+        Logger.champion.debug(
+          `${champion.playerId} charged ${definition.id} for ${params.chargeTime.toFixed(2)}s ` +
+          `(${(chargeProgress * 100).toFixed(0)}%), range: ${effectiveRange.toFixed(0)}`
+        );
+      }
+    }
+
     // Prepare projectile config
     const projectileConfig = {
       direction: direction.normalized(),
       speed: definition.projectileSpeed ?? 1000,
       radius: definition.projectileRadius ?? 30,
-      maxDistance: definition.range ?? 800,
+      maxDistance: effectiveRange,
       damage: damageAmount,
       damageType,
       piercing: definition.piercing ?? false,
@@ -1274,6 +1394,385 @@ export class ServerAbilityExecutor {
     }
 
     return false;
+  }
+
+  // =============================================================================
+  // Lume Light Orb Helpers
+  // =============================================================================
+
+  /**
+   * Get Lume's Light Orb from the game context.
+   * Returns null if the champion is not Lume or orb doesn't exist.
+   */
+  getLumeOrb(champion: ServerChampion, context: ServerGameContext): ServerLightOrb | null {
+    if (champion.definition.id !== 'lume') return null;
+
+    // Find orb owned by this champion
+    for (const entity of context.getAllEntities()) {
+      if (entity instanceof ServerLightOrb && entity.ownerId === champion.id) {
+        return entity;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Get or create Lume's Light Orb.
+   * Creates the orb if it doesn't exist.
+   */
+  getOrCreateLumeOrb(champion: ServerChampion, context: ServerGameContext): ServerLightOrb | null {
+    if (champion.definition.id !== 'lume') return null;
+
+    let orb = this.getLumeOrb(champion, context);
+    if (!orb) {
+      // Create the orb
+      orb = new ServerLightOrb({
+        id: context.generateEntityId(),
+        position: champion.position.clone().add(new Vector(LUME_ORB_CONFIG.orbitRadius, 0)),
+        side: champion.side,
+        ownerId: champion.id,
+      });
+      context.addEntity(orb);
+      Logger.debug("Ability", `Created Light Orb for Lume (${champion.playerId})`);
+    }
+
+    return orb;
+  }
+
+  /**
+   * Execute Lume's Q ability - Send the Light.
+   * Sends the orb to a target location, deals damage on arrival.
+   */
+  private executeLumeQ(
+    params: AbilityCastParams,
+    definition: AbilityDefinition,
+    rank: number,
+    damageMultiplier: number = 1.0
+  ): void {
+    const { champion, targetPosition, context } = params;
+
+    if (!targetPosition) return;
+
+    const orb = this.getOrCreateLumeOrb(champion, context);
+    if (!orb || orb.isDestroyed) {
+      Logger.debug("Ability", `Lume Q failed - orb is destroyed`);
+      return;
+    }
+
+    const stats = champion.getStats();
+
+    // Calculate damage
+    let damageAmount = 0;
+    if (definition.damage) {
+      damageAmount = calculateAbilityValue(definition.damage.scaling, rank, {
+        attackDamage: stats.attackDamage,
+        abilityPower: stats.abilityPower,
+        bonusHealth: stats.maxHealth - champion.definition.baseStats.health,
+        maxHealth: stats.maxHealth,
+      }) * damageMultiplier;
+    }
+
+    const damageType = definition.damage?.type ?? 'magic';
+
+    // Send orb with arrival callback for damage
+    orb.sendTo(targetPosition, () => {
+      // Deal damage on arrival
+      const enemies = context.getEntitiesInRadius(orb.position, LUME_ORB_CONFIG.qImpactRadius);
+      for (const entity of enemies) {
+        if (entity.side === champion.side) continue;
+        if (entity.isDead) continue;
+        if (!canAbilityAffectEntityType(definition, entity.entityType)) continue;
+
+        entity.takeDamage(damageAmount, damageType, champion.id, context);
+      }
+      Logger.debug("Ability", `Lume Q arrived - dealt ${damageAmount.toFixed(0)} damage`);
+    });
+
+    // Enable recast for recall
+    champion.abilityStates.Q.recastWindowRemaining = 10; // Can recast while orb is away
+    champion.abilityStates.Q.recastCount = 1;
+
+    Logger.champion.debug(`${champion.playerId} sent Light Orb to (${targetPosition.x.toFixed(0)}, ${targetPosition.y.toFixed(0)})`);
+  }
+
+  /**
+   * Handle Lume's Q recast - Recall the orb.
+   */
+  private handleLumeQRecast(params: AbilityCastParams): AbilityCastResult {
+    const { champion, context } = params;
+
+    const orb = this.getLumeOrb(champion, context);
+    if (!orb || orb.isDestroyed || orb.isOrbiting) {
+      return { success: false, failReason: "invalid_target" };
+    }
+
+    orb.recall();
+    champion.consumeRecast('Q');
+
+    Logger.champion.debug(`${champion.playerId} recalled Light Orb`);
+
+    return { success: true, manaCost: 0, cooldown: 0 };
+  }
+
+  /**
+   * Execute Lume's W ability - Warmth.
+   * Pulse from orb that heals allies and damages enemies.
+   */
+  private executeLumeW(
+    params: AbilityCastParams,
+    definition: AbilityDefinition,
+    rank: number,
+    damageMultiplier: number = 1.0
+  ): void {
+    const { champion, context } = params;
+
+    const orb = this.getLumeOrb(champion, context);
+    if (!orb || orb.isDestroyed) {
+      Logger.debug("Ability", `Lume W failed - orb is destroyed`);
+      return;
+    }
+
+    const stats = champion.getStats();
+
+    // Calculate damage
+    let damageAmount = 0;
+    if (definition.damage) {
+      damageAmount = calculateAbilityValue(definition.damage.scaling, rank, {
+        attackDamage: stats.attackDamage,
+        abilityPower: stats.abilityPower,
+        bonusHealth: stats.maxHealth - champion.definition.baseStats.health,
+        maxHealth: stats.maxHealth,
+      }) * damageMultiplier;
+    }
+
+    // Calculate heal
+    let healAmount = 0;
+    if (definition.heal) {
+      healAmount = calculateAbilityValue(definition.heal.scaling, rank, {
+        attackDamage: stats.attackDamage,
+        abilityPower: stats.abilityPower,
+        bonusHealth: stats.maxHealth - champion.definition.baseStats.health,
+        maxHealth: stats.maxHealth,
+      });
+    }
+
+    const damageType = definition.damage?.type ?? 'magic';
+    const pulseRadius = definition.aoeRadius ?? LUME_ORB_CONFIG.wPulseRadius;
+
+    // Get entities in range of orb
+    const entities = context.getEntitiesInRadius(orb.position, pulseRadius);
+
+    for (const entity of entities) {
+      if (entity.isDead) continue;
+
+      const isAlly = entity.side === champion.side;
+
+      if (isAlly && healAmount > 0) {
+        // Heal allies (including Lume)
+        if ('heal' in entity && typeof entity.heal === 'function') {
+          (entity as { heal: (amount: number) => void }).heal(healAmount);
+        }
+      } else if (!isAlly && damageAmount > 0) {
+        // Damage enemies
+        if (!canAbilityAffectEntityType(definition, entity.entityType)) continue;
+        entity.takeDamage(damageAmount, damageType, champion.id, context);
+      }
+    }
+
+    Logger.champion.debug(`${champion.playerId} cast Warmth - healed ${healAmount.toFixed(0)}, dealt ${damageAmount.toFixed(0)}`);
+  }
+
+  /**
+   * Execute Lume's E ability - Dazzle Step.
+   * Dash toward the orb, blind enemies on arrival.
+   */
+  private executeLumeE(
+    params: AbilityCastParams,
+    definition: AbilityDefinition,
+    rank: number
+  ): void {
+    const { champion, context } = params;
+
+    const orb = this.getLumeOrb(champion, context);
+    if (!orb || orb.isDestroyed) {
+      Logger.debug("Ability", `Lume E failed - orb is destroyed`);
+      return;
+    }
+
+    // Calculate dash direction toward orb
+    const direction = orb.position.subtracted(champion.position);
+    const distance = Math.min(direction.length(), definition.dash?.distance ?? 600);
+
+    if (distance < 10) {
+      // Already at orb - just apply blind
+      this.applyLumeBlind(champion, orb.position, definition, rank, context);
+      return;
+    }
+
+    const normalizedDir = direction.normalized();
+    const dashSpeed = definition.dash?.speed ?? 1200;
+
+    champion.forcedMovement = {
+      direction: normalizedDir,
+      distance,
+      duration: distance / dashSpeed,
+      elapsed: 0,
+      type: "dash",
+      hitEntities: new Set(),
+    };
+
+    // Update facing direction
+    champion.direction = normalizedDir;
+
+    // Schedule blind effect check on dash completion
+    // This is a simplified approach - ideally we'd check on dash end
+    // For now, we'll apply blind after dash duration
+    const blindDelay = distance / dashSpeed;
+    setTimeout(() => {
+      // Check if champion reached the orb (within 50 units)
+      const currentOrb = this.getLumeOrb(champion, context);
+      if (currentOrb && champion.position.distanceTo(currentOrb.position) <= 50) {
+        this.applyLumeBlind(champion, currentOrb.position, definition, rank, context);
+      }
+    }, blindDelay * 1000);
+
+    Logger.champion.debug(`${champion.playerId} dashed toward Light Orb`);
+  }
+
+  /**
+   * Apply Lume's blind effect to enemies near the orb.
+   */
+  private applyLumeBlind(
+    champion: ServerChampion,
+    position: Vector,
+    definition: AbilityDefinition,
+    rank: number,
+    context: ServerGameContext
+  ): void {
+    const blindRadius = LUME_ORB_CONFIG.eBlindRadius;
+    const blindDuration = Array.isArray(definition.effectDuration)
+      ? definition.effectDuration[rank - 1]
+      : definition.effectDuration ?? 1.0;
+
+    const enemies = context.getEntitiesInRadius(position, blindRadius);
+
+    for (const entity of enemies) {
+      if (entity.side === champion.side) continue;
+      if (entity.isDead) continue;
+
+      if ('applyEffect' in entity) {
+        (entity as any).applyEffect('blind', blindDuration, champion.id);
+      }
+    }
+
+    Logger.debug("Ability", `Lume E blinded enemies for ${blindDuration}s`);
+  }
+
+  /**
+   * Execute Lume's R ability - Beaconfall.
+   * Explode the orb for massive damage and destroy it.
+   */
+  private executeLumeR(
+    params: AbilityCastParams,
+    definition: AbilityDefinition,
+    rank: number,
+    damageMultiplier: number = 1.0
+  ): void {
+    const { champion, context } = params;
+
+    const orb = this.getLumeOrb(champion, context);
+    if (!orb || orb.isDestroyed) {
+      Logger.debug("Ability", `Lume R failed - orb is destroyed`);
+      return;
+    }
+
+    const stats = champion.getStats();
+    const explosionPosition = orb.position.clone();
+
+    // Calculate damage
+    let damageAmount = 0;
+    if (definition.damage) {
+      damageAmount = calculateAbilityValue(definition.damage.scaling, rank, {
+        attackDamage: stats.attackDamage,
+        abilityPower: stats.abilityPower,
+        bonusHealth: stats.maxHealth - champion.definition.baseStats.health,
+        maxHealth: stats.maxHealth,
+      }) * damageMultiplier;
+    }
+
+    const damageType = definition.damage?.type ?? 'magic';
+    const explosionRadius = definition.aoeRadius ?? LUME_ORB_CONFIG.rExplosionRadius;
+    const slowDuration = Array.isArray(definition.effectDuration)
+      ? definition.effectDuration[rank - 1]
+      : definition.effectDuration ?? 2.0;
+
+    // Get enemies in explosion radius
+    const enemies = context.getEntitiesInRadius(explosionPosition, explosionRadius);
+
+    for (const entity of enemies) {
+      if (entity.side === champion.side) continue;
+      if (entity.isDead) continue;
+      if (!canAbilityAffectEntityType(definition, entity.entityType)) continue;
+
+      // Deal damage
+      entity.takeDamage(damageAmount, damageType, champion.id, context);
+
+      // Apply slow
+      if (definition.appliesEffects && 'applyEffect' in entity) {
+        for (const effectId of definition.appliesEffects) {
+          (entity as any).applyEffect(effectId, slowDuration, champion.id);
+        }
+      }
+    }
+
+    // Destroy the orb
+    orb.destroy();
+
+    Logger.champion.info(`${champion.playerId} cast Beaconfall - dealt ${damageAmount.toFixed(0)} damage, orb destroyed`);
+  }
+
+  /**
+   * Check if this is a Lume ability that needs special handling.
+   */
+  private isLumeAbility(champion: ServerChampion, abilityId: string): boolean {
+    return champion.definition.id === 'lume' && abilityId.startsWith('lume_');
+  }
+
+  /**
+   * Execute Lume ability with special orb handling.
+   */
+  private executeLumeAbility(
+    params: AbilityCastParams,
+    definition: AbilityDefinition,
+    rank: number,
+    damageMultiplier: number = 1.0
+  ): void {
+    const { champion, slot, context } = params;
+
+    // Check if orb is destroyed (can't use Q/W/E when destroyed)
+    const orb = this.getLumeOrb(champion, context);
+    if (slot !== 'R' && (!orb || orb.isDestroyed)) {
+      // For Q, try to create orb; for W/E just fail silently
+      if (slot === 'Q') {
+        this.getOrCreateLumeOrb(champion, context);
+      }
+    }
+
+    switch (definition.id) {
+      case 'lume_q':
+        this.executeLumeQ(params, definition, rank, damageMultiplier);
+        break;
+      case 'lume_w':
+        this.executeLumeW(params, definition, rank, damageMultiplier);
+        break;
+      case 'lume_e':
+        this.executeLumeE(params, definition, rank);
+        break;
+      case 'lume_r':
+        this.executeLumeR(params, definition, rank, damageMultiplier);
+        break;
+    }
   }
 }
 

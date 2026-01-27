@@ -46,6 +46,7 @@ export var EntityType;
     EntityType[EntityType["PROJECTILE"] = 6] = "PROJECTILE";
     EntityType[EntityType["WARD"] = 7] = "WARD";
     EntityType[EntityType["ZONE"] = 8] = "ZONE";
+    EntityType[EntityType["LIGHT_ORB"] = 9] = "LIGHT_ORB";
 })(EntityType || (EntityType = {}));
 /**
  * Bitmask for which entity fields have changed.

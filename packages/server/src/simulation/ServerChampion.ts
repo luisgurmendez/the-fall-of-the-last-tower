@@ -167,6 +167,9 @@ export class ServerChampion extends ServerEntity {
   trinketRechargeTimer = 0;     // Time accumulator for next charge
   trinketRechargeTime = 120;    // 120 seconds to recharge one ward
 
+  // Recast tracking - stores hit position for abilities with recast behavior
+  private recastHitPositions: Partial<Record<AbilitySlot, Vector>> = {}
+
   constructor(config: ServerChampionConfig) {
     super({
       id: config.id,
@@ -723,7 +726,7 @@ export class ServerChampion extends ServerEntity {
   }
 
   /**
-   * Update abilities (cooldowns).
+   * Update abilities (cooldowns and recast windows).
    */
   private updateAbilities(dt: number): void {
     const slots: AbilitySlot[] = ['Q', 'W', 'E', 'R'];
@@ -736,6 +739,16 @@ export class ServerChampion extends ServerEntity {
         state.castTimeRemaining = Math.max(0, state.castTimeRemaining - dt);
         if (state.castTimeRemaining <= 0) {
           state.isCasting = false;
+        }
+      }
+      // Update recast window
+      if (state.recastWindowRemaining !== undefined && state.recastWindowRemaining > 0) {
+        state.recastWindowRemaining = Math.max(0, state.recastWindowRemaining - dt);
+        // Clear recast state when window expires
+        if (state.recastWindowRemaining <= 0) {
+          state.recastCount = undefined;
+          state.recastWindowRemaining = undefined;
+          delete this.recastHitPositions[slot];
         }
       }
     }
@@ -1584,6 +1597,56 @@ export class ServerChampion extends ServerEntity {
 
     Logger.champion.info(`${this.playerId} leveled ${slot} to rank ${this.abilityRanks[slot]}`);
     return true;
+  }
+
+  // =====================
+  // Recast System
+  // =====================
+
+  /**
+   * Enable recast for an ability (called when projectile hits).
+   * @param slot - The ability slot to enable recast for
+   * @param hitPosition - The position where the projectile hit
+   * @param maxRecasts - Maximum number of recasts (default 1)
+   * @param recastWindow - Time window for recast in seconds
+   */
+  enableRecast(slot: AbilitySlot, hitPosition: Vector, maxRecasts: number, recastWindow: number): void {
+    const state = this.abilityStates[slot];
+    state.recastCount = maxRecasts;
+    state.recastWindowRemaining = recastWindow;
+    this.recastHitPositions[slot] = hitPosition.clone();
+    Logger.champion.debug(`${this.playerId} ${slot} recast enabled at (${hitPosition.x.toFixed(0)}, ${hitPosition.y.toFixed(0)}) for ${recastWindow}s`);
+  }
+
+  /**
+   * Check if an ability has recast available.
+   */
+  hasRecastAvailable(slot: AbilitySlot): boolean {
+    const state = this.abilityStates[slot];
+    return (state.recastCount ?? 0) > 0 && (state.recastWindowRemaining ?? 0) > 0;
+  }
+
+  /**
+   * Get the recast hit position for an ability.
+   * @returns The hit position or undefined if no recast available
+   */
+  getRecastHitPosition(slot: AbilitySlot): Vector | undefined {
+    return this.recastHitPositions[slot];
+  }
+
+  /**
+   * Consume a recast (called when recast is used).
+   */
+  consumeRecast(slot: AbilitySlot): void {
+    const state = this.abilityStates[slot];
+    if (state.recastCount !== undefined && state.recastCount > 0) {
+      state.recastCount--;
+      if (state.recastCount <= 0) {
+        state.recastCount = undefined;
+        state.recastWindowRemaining = undefined;
+        delete this.recastHitPositions[slot];
+      }
+    }
   }
 
   /**

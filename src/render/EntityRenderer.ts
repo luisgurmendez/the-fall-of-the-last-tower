@@ -18,6 +18,7 @@ import Vector from '@/physics/vector';
 import type { OnlineStateManager, InterpolatedEntity, DamageNumber, GoldNumber, XpNumber, AbilityEffect } from '@/core/OnlineStateManager';
 import { EntityType, getChampionDefinition } from '@siege/shared';
 import { BitmapFont } from '@/render/BitmapFont';
+import PixelArtDrawUtils from '@/utils/pixelartDrawUtils';
 
 /**
  * Colors for different teams.
@@ -201,6 +202,35 @@ const DAMAGE_COLORS = {
   pure: '#FFD700',       // Gold for pure damage
   shield: '#808080',     // Gray for shield absorbed
 };
+
+/**
+ * Light Orb particle configuration.
+ */
+interface LightOrbParticle {
+  x: number;        // Position relative to orb center
+  y: number;
+  vx: number;       // Velocity
+  vy: number;
+  life: number;     // 0-1, decreases over time
+  size: number;     // Pixel size
+  color: string;    // Particle color
+}
+
+/**
+ * Light Orb visual configuration.
+ */
+const LIGHT_ORB_VISUALS = {
+  CORE_RADIUS: 8,              // Core orb size (pixelated)
+  GLOW_RADIUS: 16,             // Outer glow radius
+  PIXEL_SIZE: 2,               // Pixel size for retro look
+  CORE_COLOR: '#FFE566',       // Warm golden core
+  GLOW_COLOR: '#FFF9E0',       // Soft yellow glow
+  PARTICLE_COUNT: 12,          // Particles orbiting the orb
+  PARTICLE_SPAWN_RATE: 0.1,    // Seconds between particle spawns
+  PARTICLE_LIFETIME: 1.5,      // Seconds particles live
+  AURA_COLOR: 'rgba(255, 240, 180, 0.08)',  // Passive aura indicator
+  DESTROYED_ALPHA: 0.3,        // Alpha when destroyed
+} as const;
 
 /**
  * Damage number display settings.
@@ -392,6 +422,10 @@ export class EntityRenderer implements GameObject {
 
   // For selected champion indicator animation
   private selectionAnimTime = 0;
+
+  // Light Orb particle systems (one per orb)
+  private lightOrbParticles: Map<string, LightOrbParticle[]> = new Map();
+  private lightOrbLastParticleSpawn: Map<string, number> = new Map();
 
   constructor(stateManager: OnlineStateManager, localSide: number) {
     this.stateManager = stateManager;
@@ -649,6 +683,9 @@ export class EntityRenderer implements GameObject {
         break;
       case EntityType.ZONE:
         this.renderZone(ctx, snapshot, side);
+        break;
+      case EntityType.LIGHT_ORB:
+        this.renderLightOrb(ctx, snapshot, side);
         break;
       default:
         this.renderGeneric(ctx, 30, side === 0 ? TEAM_COLORS.BLUE : TEAM_COLORS.RED);
@@ -1370,6 +1407,276 @@ export class EntityRenderer implements GameObject {
     }
 
     ctx.restore();
+  }
+
+  /**
+   * Render Lume's Light Orb with pixelated visuals and particle effects.
+   */
+  private renderLightOrb(ctx: CanvasRenderingContext2D, snapshot: any, side: number): void {
+    const state = snapshot.state as 'orbiting' | 'traveling' | 'stationed' | 'destroyed';
+    const orbId = snapshot.entityId;
+
+    // Don't render if destroyed (except for a faint ghost)
+    if (state === 'destroyed') {
+      // Optionally render a faint silhouette to show respawn progress
+      if (snapshot.respawnTimeRemaining > 0) {
+        this.renderDestroyedOrbGhost(ctx, snapshot);
+      }
+      return;
+    }
+
+    // Update and render particles
+    this.updateLightOrbParticles(orbId, state);
+    this.renderLightOrbParticles(ctx, orbId, side);
+
+    // Render passive aura indicator (subtle ground effect)
+    this.renderLightOrbAura(ctx, snapshot.auraRadius, side);
+
+    // Calculate pulsing effect based on state
+    const pulseSpeed = state === 'traveling' ? 8 : state === 'stationed' ? 3 : 5;
+    const pulse = 1 + Math.sin(this.animationTime * pulseSpeed) * 0.15;
+
+    // Outer glow (smooth gradient)
+    const glowRadius = LIGHT_ORB_VISUALS.GLOW_RADIUS * pulse;
+    const glowColor = side === 0 ? 'rgba(255, 240, 180, 0.4)' : 'rgba(255, 200, 150, 0.4)';
+    const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, glowRadius);
+    gradient.addColorStop(0, glowColor);
+    gradient.addColorStop(0.5, glowColor.replace('0.4', '0.2'));
+    gradient.addColorStop(1, 'transparent');
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(0, 0, glowRadius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Pixelated core using PixelArtDrawUtils
+    const coreRadius = LIGHT_ORB_VISUALS.CORE_RADIUS * pulse;
+    const pixelSize = LIGHT_ORB_VISUALS.PIXEL_SIZE;
+
+    // Outer ring (slightly darker)
+    const outerColor = side === 0 ? '#E6C84D' : '#E6A84D';
+    const outerDrawer = new PixelArtDrawUtils(ctx, outerColor, pixelSize);
+    outerDrawer.drawPixelatedCircleFill(0, 0, coreRadius);
+
+    // Inner bright core
+    const innerColor = side === 0 ? LIGHT_ORB_VISUALS.CORE_COLOR : '#FFD066';
+    const innerDrawer = new PixelArtDrawUtils(ctx, innerColor, pixelSize);
+    innerDrawer.drawPixelatedCircleFill(0, 0, coreRadius * 0.65);
+
+    // Bright center pixel
+    const centerColor = LIGHT_ORB_VISUALS.GLOW_COLOR;
+    const centerDrawer = new PixelArtDrawUtils(ctx, centerColor, pixelSize);
+    centerDrawer.drawPixelatedCircleFill(0, 0, coreRadius * 0.3);
+
+    // Add rotating light rays when stationed or orbiting
+    if (state === 'stationed' || state === 'orbiting') {
+      this.renderLightRays(ctx, coreRadius, side);
+    }
+
+    // Add motion trail when traveling
+    if (state === 'traveling') {
+      this.renderLightOrbTrail(ctx, snapshot, side);
+    }
+  }
+
+  /**
+   * Render the passive aura indicator (subtle ground circle).
+   */
+  private renderLightOrbAura(ctx: CanvasRenderingContext2D, radius: number, side: number): void {
+    if (radius <= 0) return;
+
+    const auraColor = side === 0
+      ? 'rgba(255, 240, 180, 0.06)'
+      : 'rgba(255, 200, 150, 0.06)';
+
+    ctx.fillStyle = auraColor;
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Subtle pulsing border
+    const borderAlpha = 0.1 + Math.sin(this.animationTime * 2) * 0.05;
+    ctx.strokeStyle = `rgba(255, 240, 180, ${borderAlpha})`;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([8, 8]);
+    ctx.lineDashOffset = -this.animationTime * 20;
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  /**
+   * Render rotating light rays from the orb.
+   */
+  private renderLightRays(ctx: CanvasRenderingContext2D, coreRadius: number, side: number): void {
+    const rayCount = 6;
+    const rayLength = coreRadius * 1.8;
+    const rayWidth = 2;
+    const rotationSpeed = 0.8;
+    const baseAngle = this.animationTime * rotationSpeed;
+
+    ctx.save();
+    ctx.globalAlpha = 0.3;
+
+    for (let i = 0; i < rayCount; i++) {
+      const angle = baseAngle + (i * Math.PI * 2) / rayCount;
+      const rayColor = side === 0 ? '#FFE566' : '#FFD066';
+
+      ctx.strokeStyle = rayColor;
+      ctx.lineWidth = rayWidth;
+      ctx.beginPath();
+      ctx.moveTo(
+        Math.cos(angle) * coreRadius,
+        Math.sin(angle) * coreRadius
+      );
+      ctx.lineTo(
+        Math.cos(angle) * rayLength,
+        Math.sin(angle) * rayLength
+      );
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
+  /**
+   * Render motion trail when orb is traveling.
+   */
+  private renderLightOrbTrail(ctx: CanvasRenderingContext2D, snapshot: any, side: number): void {
+    const trailCount = 4;
+    const trailColor = side === 0 ? 'rgba(255, 240, 180, ' : 'rgba(255, 200, 150, ';
+
+    // We render the trail behind the orb (already at position 0,0 due to ctx.translate)
+    // Use animation time to create a trailing effect
+    ctx.save();
+
+    for (let i = 0; i < trailCount; i++) {
+      const alpha = (1 - i / trailCount) * 0.3;
+      const scale = 1 - i * 0.15;
+      const offset = (i + 1) * 6;
+
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = `${trailColor}${alpha})`;
+      ctx.beginPath();
+      ctx.arc(-offset, 0, LIGHT_ORB_VISUALS.CORE_RADIUS * scale * 0.7, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+
+  /**
+   * Render a faint ghost of destroyed orb showing respawn progress.
+   */
+  private renderDestroyedOrbGhost(ctx: CanvasRenderingContext2D, snapshot: any): void {
+    const respawnProgress = 1 - (snapshot.respawnTimeRemaining / 60); // 60s respawn time
+    const alpha = LIGHT_ORB_VISUALS.DESTROYED_ALPHA * respawnProgress;
+
+    if (alpha <= 0) return;
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+
+    // Faint outline
+    const pixelSize = LIGHT_ORB_VISUALS.PIXEL_SIZE;
+    const ghostDrawer = new PixelArtDrawUtils(ctx, 'rgba(200, 200, 200, 0.5)', pixelSize);
+    ghostDrawer.drawPixelatedCircle(0, 0, LIGHT_ORB_VISUALS.CORE_RADIUS);
+
+    // Respawn progress arc
+    ctx.strokeStyle = '#FFE566';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, LIGHT_ORB_VISUALS.CORE_RADIUS + 4, -Math.PI / 2, -Math.PI / 2 + respawnProgress * Math.PI * 2);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  /**
+   * Update particle system for a light orb.
+   */
+  private updateLightOrbParticles(orbId: string, state: string): void {
+    // Get or create particle array for this orb
+    if (!this.lightOrbParticles.has(orbId)) {
+      this.lightOrbParticles.set(orbId, []);
+      this.lightOrbLastParticleSpawn.set(orbId, 0);
+    }
+
+    const particles = this.lightOrbParticles.get(orbId)!;
+    const lastSpawn = this.lightOrbLastParticleSpawn.get(orbId)!;
+
+    // Calculate dt from animation time difference
+    const dt = 1 / 60; // Approximate frame time
+
+    // Spawn new particles
+    const spawnRate = state === 'traveling'
+      ? LIGHT_ORB_VISUALS.PARTICLE_SPAWN_RATE * 0.5  // More particles when traveling
+      : LIGHT_ORB_VISUALS.PARTICLE_SPAWN_RATE;
+
+    if (this.animationTime - lastSpawn > spawnRate && particles.length < LIGHT_ORB_VISUALS.PARTICLE_COUNT) {
+      this.spawnLightOrbParticle(particles);
+      this.lightOrbLastParticleSpawn.set(orbId, this.animationTime);
+    }
+
+    // Update existing particles
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+
+      // Decrease life
+      p.life -= dt / LIGHT_ORB_VISUALS.PARTICLE_LIFETIME;
+
+      // Update position (spiral outward)
+      const angle = Math.atan2(p.y, p.x) + dt * 2;
+      const dist = Math.sqrt(p.x * p.x + p.y * p.y);
+      const newDist = dist + p.vx * dt * 20;
+
+      p.x = Math.cos(angle) * newDist;
+      p.y = Math.sin(angle) * newDist;
+
+      // Remove dead particles
+      if (p.life <= 0) {
+        particles.splice(i, 1);
+      }
+    }
+  }
+
+  /**
+   * Spawn a new light orb particle.
+   */
+  private spawnLightOrbParticle(particles: LightOrbParticle[]): void {
+    const angle = Math.random() * Math.PI * 2;
+    const distance = LIGHT_ORB_VISUALS.CORE_RADIUS + Math.random() * 4;
+
+    // Random golden/warm colors
+    const colors = ['#FFE566', '#FFF9E0', '#FFD866', '#FFEC99', '#FFF2CC'];
+    const color = colors[Math.floor(Math.random() * colors.length)];
+
+    particles.push({
+      x: Math.cos(angle) * distance,
+      y: Math.sin(angle) * distance,
+      vx: 0.5 + Math.random() * 0.5,  // Outward speed
+      vy: 0,
+      life: 1,
+      size: LIGHT_ORB_VISUALS.PIXEL_SIZE,
+      color,
+    });
+  }
+
+  /**
+   * Render particles for a light orb.
+   */
+  private renderLightOrbParticles(ctx: CanvasRenderingContext2D, orbId: string, side: number): void {
+    const particles = this.lightOrbParticles.get(orbId);
+    if (!particles || particles.length === 0) return;
+
+    for (const p of particles) {
+      ctx.save();
+      ctx.globalAlpha = p.life * 0.8;
+
+      // Use pixel art drawer for particles
+      const drawer = new PixelArtDrawUtils(ctx, p.color, p.size);
+      drawer.drawPixelatedCircleFill(p.x, p.y, p.size * (0.5 + p.life * 0.5));
+
+      ctx.restore();
+    }
   }
 
   /**

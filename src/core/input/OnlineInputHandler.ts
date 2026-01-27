@@ -16,6 +16,7 @@ import { InputManager, MouseButton } from "@/core/input/InputManager";
 import Vector from "@/physics/vector";
 import type { NetworkClient } from "@siege/client";
 import type { AbilitySlot } from "@siege/shared";
+import { getAbilityDefinition, getChampionDefinition, hasChargeBehavior } from "@siege/shared";
 import type {
   OnlineStateManager,
   InterpolatedEntity,
@@ -118,6 +119,14 @@ function getEntityCollisionRadius(entity: InterpolatedEntity): number {
 /**
  * OnlineInputHandler captures input and sends commands to server.
  */
+/** Charge state for ability being charged */
+interface ChargeState {
+  slot: AbilitySlot;
+  startTime: number;
+  minChargeTime: number;
+  maxChargeTime: number;
+}
+
 export class OnlineInputHandler implements GameObject {
   readonly id = "online-input-handler";
   shouldInitialize = true;
@@ -144,16 +153,62 @@ export class OnlineInputHandler implements GameObject {
   /** Animation time tracking */
   private lastUpdateTime = 0;
 
+  /** Current ability being charged (null if none) */
+  private chargeState: ChargeState | null = null;
+
+  /** Champion ID for ability lookups */
+  private championId: string = "warrior";
+
+  /** Callback for charge state updates (for HUD) */
+  private onChargeStateChange: ((state: { slot: AbilitySlot; progress: number } | null) => void) | null = null;
+
   constructor(
     networkClient: NetworkClient,
     stateManager: OnlineStateManager,
     localSide: number,
+    championId: string = "warrior",
   ) {
     this.networkClient = networkClient;
     this.stateManager = stateManager;
     this.localSide = localSide;
+    this.championId = championId;
     this.inputManager = InputManager.getInstance();
     loadMoveMarkerSprite();
+  }
+
+  /**
+   * Set the champion ID for ability lookups.
+   */
+  setChampionId(championId: string): void {
+    this.championId = championId;
+  }
+
+  /**
+   * Set callback for charge state updates (for HUD).
+   */
+  setChargeStateCallback(callback: (state: { slot: AbilitySlot; progress: number } | null) => void): void {
+    this.onChargeStateChange = callback;
+  }
+
+  /**
+   * Get current charge progress (0-1) for UI display.
+   * Returns null if not charging.
+   */
+  getChargeProgress(): { slot: AbilitySlot; progress: number } | null {
+    if (!this.chargeState) return null;
+    const elapsed = (performance.now() / 1000) - this.chargeState.startTime;
+    const progress = Math.min(1, Math.max(0,
+      (elapsed - this.chargeState.minChargeTime) /
+      (this.chargeState.maxChargeTime - this.chargeState.minChargeTime)
+    ));
+    return { slot: this.chargeState.slot, progress };
+  }
+
+  /**
+   * Check if currently charging an ability.
+   */
+  isCharging(): boolean {
+    return this.chargeState !== null;
   }
 
   init(ctx: GameContext): void {
@@ -170,6 +225,11 @@ export class OnlineInputHandler implements GameObject {
 
     // Update cursor based on hover state
     this.updateHoveredEnemy(camera);
+
+    // Update charge state callback for HUD
+    if (this.onChargeStateChange) {
+      this.onChargeStateChange(this.getChargeProgress());
+    }
 
     // Handle right-click movement or attack
     if (this.inputManager.isMouseButtonJustPressed(MouseButton.RIGHT)) {
@@ -366,47 +426,111 @@ export class OnlineInputHandler implements GameObject {
 
   /**
    * Handle ability input for a specific slot.
+   * Supports both instant-cast and charge abilities.
    */
   private handleAbilityInput(
     key: string,
     slot: AbilitySlot,
     camera: any,
   ): void {
-    if (this.inputManager.isKeyJustPressed(key)) {
+    // Check if this ability has charge behavior
+    const abilityDef = this.getAbilityDefinition(slot);
+    const isChargeAbility = abilityDef && hasChargeBehavior(abilityDef);
+
+    // Handle charge ability key press (start charging)
+    if (isChargeAbility && this.inputManager.isKeyJustPressed(key)) {
+      // Start charging
+      this.chargeState = {
+        slot,
+        startTime: performance.now() / 1000,
+        minChargeTime: abilityDef.charge!.minChargeTime,
+        maxChargeTime: abilityDef.charge!.maxChargeTime,
+      };
+      return;
+    }
+
+    // Handle charge ability key release (fire with charge time)
+    if (isChargeAbility && this.chargeState?.slot === slot && this.inputManager.isKeyJustReleased(key)) {
       const worldPos = this.screenToWorld(
         this.inputManager.getMousePosition(),
         camera,
       );
 
-      // If hovering over an enemy, send as unit-targeted ability
-      // This allows target_enemy abilities (like Warrior R) to work
-      if (this.hoveredEnemyId) {
-        this.networkClient.sendAbilityInput(
-          slot,
-          "unit",
-          worldPos.x,
-          worldPos.y,
-          this.hoveredEnemyId,
-        );
-      } else if (this.hoveredAllyId) {
-        // If hovering over an ally, send as unit-targeted ability
-        // This allows target_ally abilities (like Elara Q/W) to work
-        this.networkClient.sendAbilityInput(
-          slot,
-          "unit",
-          worldPos.x,
-          worldPos.y,
-          this.hoveredAllyId,
-        );
-      } else {
-        // Otherwise send as position-targeted ability
-        this.networkClient.sendAbilityInput(
-          slot,
-          "position",
-          worldPos.x,
-          worldPos.y,
-        );
-      }
+      // Calculate charge time
+      const chargeTime = Math.min(
+        this.chargeState.maxChargeTime,
+        Math.max(
+          this.chargeState.minChargeTime,
+          (performance.now() / 1000) - this.chargeState.startTime
+        )
+      );
+
+      // Clear charge state
+      this.chargeState = null;
+
+      // Send ability with charge time
+      this.sendAbilityWithTarget(slot, worldPos, chargeTime);
+      return;
+    }
+
+    // Handle instant-cast ability (no charge behavior)
+    if (!isChargeAbility && this.inputManager.isKeyJustPressed(key)) {
+      const worldPos = this.screenToWorld(
+        this.inputManager.getMousePosition(),
+        camera,
+      );
+      this.sendAbilityWithTarget(slot, worldPos);
+    }
+  }
+
+  /**
+   * Get ability definition for a slot.
+   */
+  private getAbilityDefinition(slot: AbilitySlot) {
+    const champDef = getChampionDefinition(this.championId);
+    if (!champDef) return null;
+    const abilityId = champDef.abilities[slot];
+    return getAbilityDefinition(abilityId);
+  }
+
+  /**
+   * Send ability input with appropriate targeting.
+   */
+  private sendAbilityWithTarget(
+    slot: AbilitySlot,
+    worldPos: Vector,
+    chargeTime?: number
+  ): void {
+    // If hovering over an enemy, send as unit-targeted ability
+    if (this.hoveredEnemyId) {
+      this.networkClient.sendAbilityInput(
+        slot,
+        "unit",
+        worldPos.x,
+        worldPos.y,
+        this.hoveredEnemyId,
+        chargeTime,
+      );
+    } else if (this.hoveredAllyId) {
+      // If hovering over an ally, send as unit-targeted ability
+      this.networkClient.sendAbilityInput(
+        slot,
+        "unit",
+        worldPos.x,
+        worldPos.y,
+        this.hoveredAllyId,
+        chargeTime,
+      );
+    } else {
+      // Otherwise send as position-targeted ability
+      this.networkClient.sendAbilityInput(
+        slot,
+        "position",
+        worldPos.x,
+        worldPos.y,
+        undefined,
+        chargeTime,
+      );
     }
   }
 

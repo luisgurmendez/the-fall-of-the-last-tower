@@ -23,6 +23,8 @@ Use this template as a wrapper for all ability icon generation:
 
 ## cURL Command Template
 
+### Basic (no palette enforcement)
+
 ```bash
 curl -s -X POST https://api.pixellab.ai/v2/generate-image-v2 \
   -H "Authorization: Bearer c3b8e87c-b114-4eab-8651-64a2be5241c8" \
@@ -32,6 +34,57 @@ curl -s -X POST https://api.pixellab.ai/v2/generate-image-v2 \
     "image_size": {"width": 64, "height": 64}
   }' | jq -r '.images[0].base64' | base64 -d > output.png
 ```
+
+### With Forced Palette (recommended for consistency)
+
+Use `style_image` to provide a reference image containing the champion's color palette.
+Use `style_options` to control what gets copied from the reference:
+
+```bash
+curl -s -X POST https://api.pixellab.ai/v2/generate-image-v2 \
+  -H "Authorization: Bearer c3b8e87c-b114-4eab-8651-64a2be5241c8" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "description": "{YOUR_PROMPT}, dark fantasy pixel art ability icon, black background",
+    "image_size": {"width": 64, "height": 64},
+    "style_image": {
+      "type": "base64",
+      "base64": "{BASE64_ENCODED_PALETTE_IMAGE}",
+      "format": "png"
+    },
+    "style_options": {
+      "color_palette": true,
+      "outline": false,
+      "detail": false,
+      "shading": false
+    }
+  }' | jq -r '.images[0].base64' | base64 -d > output.png
+```
+
+**Style Options:**
+- `color_palette`: Copy colors from reference (set `true` for palette enforcement)
+- `outline`: Copy outline style from reference
+- `detail`: Copy detail level from reference
+- `shading`: Copy shading style from reference
+
+## Palette Reference Images
+
+Store palette reference images for each champion to ensure color consistency across all abilities:
+
+```
+src/assets/abilities/{champion_name}/
+├── palette.png        # 8x8 or 16x16 image with champion's colors
+├── passive.png
+├── q.png
+├── w.png
+├── e.png
+└── r.png
+```
+
+**Creating a palette.png:**
+1. Use an existing ability icon that has the correct colors
+2. Or create a small (8x8 or 16x16) image containing swatches of the champion's colors
+3. Include: primary color, accent color, glow/energy color, and black background
 
 ## Color Palettes by Champion Class
 
@@ -116,6 +169,7 @@ OUTPUT_DIR="src/assets/abilities/$CHAMPION"
 
 mkdir -p $OUTPUT_DIR
 
+# Basic generation (no palette enforcement)
 generate_icon() {
   local name=$1
   local prompt=$2
@@ -127,12 +181,45 @@ generate_icon() {
   echo "Generated $name.png"
 }
 
-# Example usage:
+# Generation with forced palette (recommended)
+generate_icon_with_palette() {
+  local name=$1
+  local prompt=$2
+  local palette_image=$3  # Path to palette reference image
+
+  # Encode palette image to base64
+  local palette_b64=$(base64 < "$palette_image" | tr -d '\n')
+
+  curl -s -X POST https://api.pixellab.ai/v2/generate-image-v2 \
+    -H "Authorization: Bearer $API_KEY" \
+    -H "Content-Type: application/json" \
+    -d "{
+      \"description\": \"$prompt, dark fantasy pixel art ability icon, black background\",
+      \"image_size\": {\"width\": 64, \"height\": 64},
+      \"style_image\": {
+        \"type\": \"base64\",
+        \"base64\": \"$palette_b64\",
+        \"format\": \"png\"
+      },
+      \"style_options\": {
+        \"color_palette\": true,
+        \"outline\": false,
+        \"detail\": false,
+        \"shading\": false
+      }
+    }" | jq -r '.images[0].base64' | base64 -d > "$OUTPUT_DIR/$name.png"
+  echo "Generated $name.png with palette from $palette_image"
+}
+
+# Example usage without palette:
 # generate_icon "passive" "Your passive description here"
-# generate_icon "q" "Your Q ability description here"
-# generate_icon "w" "Your W ability description here"
-# generate_icon "e" "Your E ability description here"
-# generate_icon "r" "Your R ability description here"
+
+# Example usage with palette (recommended):
+# generate_icon_with_palette "passive" "Your passive description here" "$OUTPUT_DIR/palette.png"
+# generate_icon_with_palette "q" "Your Q ability description here" "$OUTPUT_DIR/palette.png"
+# generate_icon_with_palette "w" "Your W ability description here" "$OUTPUT_DIR/palette.png"
+# generate_icon_with_palette "e" "Your E ability description here" "$OUTPUT_DIR/palette.png"
+# generate_icon_with_palette "r" "Your R ability description here" "$OUTPUT_DIR/palette.png"
 ```
 
 ## Tips for Good Prompts
@@ -142,3 +229,4 @@ generate_icon() {
 3. **Include material/texture** - "metal", "smoke", "energy", "flame"
 4. **Keep it concise** - 10-20 words max for the ability-specific part
 5. **Avoid text/letters** - Don't ask for letters or text in the icon
+6. **Use palette enforcement** - Generate first icon without palette, then use it as `style_image` for remaining abilities to ensure color consistency across all icons for a champion

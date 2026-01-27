@@ -338,7 +338,7 @@ export const VileDefinition: ChampionDefinition = {
   id: 'vile',
   name: 'Vile',
   title: 'The Soul Herder',
-  class: 'fighter',
+  class: 'assassin', // Ranged fighter/assassin jungler
   attackType: 'ranged', // Becomes melee during R
   resourceType: 'mana',
   baseStats: VILE_BASE_STATS,
