@@ -177,9 +177,9 @@ export const GameConfig = {
    */
   DEBUG: {
     /** Starting champion level (1-18). Set higher for testing ultimates. */
-    STARTING_LEVEL: 6,
+    STARTING_LEVEL: 1,
     /** Starting skill points (normally equals level) */
-    STARTING_SKILL_POINTS: 6,
+    STARTING_SKILL_POINTS: 1,
     /** Starting gold override (0 = use ECONOMY.STARTING_GOLD) */
     STARTING_GOLD_OVERRIDE: 0,
   },

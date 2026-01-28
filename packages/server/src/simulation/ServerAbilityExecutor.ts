@@ -23,6 +23,8 @@ import {
   GameEventType,
 } from "@siege/shared";
 import { passiveTriggerSystem } from "../systems/PassiveTriggerSystem";
+import { abilityHandlerRegistry } from "../abilities/AbilityHandlerRegistry";
+import type { AbilityHandlerParams } from "../abilities/IAbilityHandler";
 import type { ServerChampion } from "./ServerChampion";
 import type { ServerEntity } from "./ServerEntity";
 import type { ServerGameContext } from "../game/ServerGameContext";
@@ -150,7 +152,43 @@ export class ServerAbilityExecutor {
 
     // Check for recast - if available, handle recast flow instead of normal cast
     if (hasRecastBehavior(definition) && champion.hasRecastAvailable(slot)) {
-      // Special handling for Lume's Q recast (recall orb)
+      // Check for custom handler recast
+      const handler = abilityHandlerRegistry.get(definition.id);
+      if (handler?.canRecast && handler?.executeRecast) {
+        const handlerParams: AbilityHandlerParams = {
+          champion,
+          slot,
+          targetPosition: params.targetPosition,
+          targetEntityId: params.targetEntityId,
+          context,
+          definition,
+          rank: champion.abilityStates[slot].rank,
+          damageMultiplier: 1.0,
+          chargeTime: params.chargeTime,
+        };
+
+        if (handler.canRecast(handlerParams)) {
+          // Break stealth when recasting
+          if ('breakStealth' in champion) {
+            (champion as any).breakStealth();
+          }
+
+          const result = handler.executeRecast(handlerParams);
+          if (result.success) {
+            champion.enterCombat();
+            context.addEvent(GameEventType.ABILITY_CAST, {
+              entityId: champion.id,
+              abilityId: `${definition.id}_recast`,
+              slot,
+              targetX: params.targetPosition?.x,
+              targetY: params.targetPosition?.y,
+            });
+            return { success: true, manaCost: 0, cooldown: 0 };
+          }
+        }
+      }
+
+      // Fallback: Special handling for Lume's Q recast (recall orb)
       if (definition.id === 'lume_q') {
         return this.handleLumeQRecast(params);
       }
@@ -201,14 +239,8 @@ export class ServerAbilityExecutor {
     state.cooldownRemaining = cooldown;
     state.cooldownTotal = cooldown;
 
-    // Special case: Vex's Shadow Step (E) - reset cooldown if enemy is marked
-    if (abilityId === 'vex_dash') {
-      const hasMarkedEnemy = this.checkForMarkedEnemy(champion, context);
-      if (hasMarkedEnemy) {
-        state.cooldownRemaining = 0;
-        Logger.debug("Ability", `${champion.playerId} Vex dash cooldown reset - marked enemy nearby`);
-      }
-    }
+    // Note: Champion-specific cooldown resets (like Vex's dash) are handled
+    // by ability handlers via cooldownOverride in AbilityExecutionResult
 
     // Enter combat
     champion.enterCombat();
@@ -422,7 +454,7 @@ export class ServerAbilityExecutor {
     definition: AbilityDefinition,
     damageMultiplier: number = 1.0
   ): void {
-    const { champion, slot } = params;
+    const { champion, slot, context } = params;
     const rank = champion.abilityStates[slot].rank;
 
     // Update facing direction if targeting a position
@@ -433,7 +465,75 @@ export class ServerAbilityExecutor {
       }
     }
 
-    // Special handling for Lume abilities (Light Orb mechanics)
+    // Check for custom handler in registry
+    const handler = abilityHandlerRegistry.get(definition.id);
+    if (handler) {
+      const handlerParams: AbilityHandlerParams = {
+        champion,
+        slot,
+        targetPosition: params.targetPosition,
+        targetEntityId: params.targetEntityId,
+        context,
+        definition,
+        rank,
+        damageMultiplier,
+        chargeTime: params.chargeTime,
+      };
+
+      // Validate if handler has validation
+      if (handler.validate) {
+        const validation = handler.validate(handlerParams);
+        if (!validation.valid) {
+          Logger.debug("Ability", `${definition.id} handler validation failed: ${validation.reason}`);
+          return;
+        }
+      }
+
+      // Execute via handler
+      const result = handler.execute(handlerParams);
+      if (!result.success) {
+        Logger.debug("Ability", `${definition.id} handler execution failed`);
+        return;
+      }
+
+      // Handle cooldown override from handler (e.g., Vex dash reset)
+      if (result.cooldownOverride !== undefined) {
+        champion.abilityStates[slot].cooldownRemaining = result.cooldownOverride;
+      }
+
+      // Handle dash if defined and handler didn't set up forced movement
+      if (definition.dash && !champion.forcedMovement) {
+        let dashTargetPosition = params.targetPosition;
+        if (!dashTargetPosition && params.targetEntityId) {
+          const target = context.getEntity(params.targetEntityId);
+          if (target) {
+            dashTargetPosition = target.position.clone();
+          }
+        }
+        if (dashTargetPosition) {
+          this.executeDash({ ...params, targetPosition: dashTargetPosition }, definition, rank, damageMultiplier);
+        }
+      }
+
+      // Handle teleport if defined
+      if (definition.teleport) {
+        let teleportTargetPosition = params.targetPosition;
+        if (!teleportTargetPosition && params.targetEntityId) {
+          const target = context.getEntity(params.targetEntityId);
+          if (target) {
+            teleportTargetPosition = target.position.clone();
+          }
+        }
+        if (teleportTargetPosition) {
+          this.executeTeleport({ ...params, targetPosition: teleportTargetPosition }, definition);
+        }
+      }
+
+      return;
+    }
+
+    // Fallback: Special handling for Lume abilities (Light Orb mechanics)
+    // TODO: Remove once all Lume handlers are fully integrated
     if (this.isLumeAbility(champion, definition.id)) {
       this.executeLumeAbility(params, definition, rank, damageMultiplier);
       return;

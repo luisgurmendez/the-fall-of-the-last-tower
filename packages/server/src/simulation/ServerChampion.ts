@@ -1595,7 +1595,7 @@ export class ServerChampion extends ServerEntity {
     this.abilityStates[slot].rank = this.abilityRanks[slot];
     this.skillPoints--;
 
-    Logger.champion.info(`${this.playerId} leveled ${slot} to rank ${this.abilityRanks[slot]}`);
+    // Logger.champion.info(`${this.playerId} leveled ${slot} to rank ${this.abilityRanks[slot]}`);
     return true;
   }
 

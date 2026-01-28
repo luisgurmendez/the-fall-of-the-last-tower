@@ -104,6 +104,7 @@ describe('NetworkClient', () => {
 
     it('should send ready message on connect', async () => {
       await client.connect();
+      client.sendReady('warrior');
 
       const messages = mockWsInstance?.getSentMessages();
       expect(messages).toBeDefined();
@@ -112,7 +113,7 @@ describe('NetworkClient', () => {
         type: ClientMessageType.READY,
         data: {
           playerId: 'player1',
-          gameId: 'game1',
+          championId: 'warrior',
         },
       });
     });

@@ -10,122 +10,119 @@
  * - R: Beaconfall - Orb explodes, massive damage + slow, orb destroyed for 60s
  */
 
-import { describe, test, expect, beforeEach } from 'bun:test';
-import { Vector, EntityType, TEAM_BLUE, TEAM_RED } from '@siege/shared';
-import {
-  createTestArena,
-  TestArena,
-} from '../ServerTestUtils';
-import { ServerLightOrb } from '../../simulation/ServerLightOrb';
+import { describe, test, expect, beforeEach } from "bun:test";
+import { Vector, EntityType, TEAM_BLUE, TEAM_RED } from "@siege/shared";
+import { createTestArena, TestArena } from "../ServerTestUtils";
+import { ServerLightOrb } from "../../simulation/ServerLightOrb";
 
-describe('Lume', () => {
+describe("Lume", () => {
   let arena: TestArena;
 
   beforeEach(() => {
     arena = createTestArena({
-      blueChampion: 'lume',
-      redChampion: 'magnus',
+      blueChampion: "lume",
+      redChampion: "magnus",
       bluePosition: new Vector(0, 0),
       redPosition: new Vector(400, 0),
     });
   });
 
-  describe('Base Stats', () => {
+  describe("Base Stats", () => {
     // Note: Tests use level 6 arena (default with learnAbilities: true)
     // Base values: health=540, AD=52, mana=320, armor=26, MR=30, MS=335
     // Growth per level: health=85, AD=3.2, mana=45, armor=3.5, MR=1.3
 
-    test('should have ranged attack range (550)', () => {
+    test("should have ranged attack range (550)", () => {
       // Attack range doesn't scale with level
       expect(arena.blue.getStats().attackRange).toBe(550);
     });
 
-    test('should have correct movement speed (335)', () => {
+    test("should have correct movement speed (335)", () => {
       // Movement speed doesn't scale with level
       expect(arena.blue.getStats().movementSpeed).toBe(335);
     });
 
-    test('should use mana resource type', () => {
-      expect(arena.blue.definition.resourceType).toBe('mana');
+    test("should use mana resource type", () => {
+      expect(arena.blue.definition.resourceType).toBe("mana");
     });
 
-    test('should have health scaling (base 540 + 85/level)', () => {
+    test("should have health scaling (base 540 + 85/level)", () => {
       // At level 6: 540 + 85*5 = 965
-      expect(arena.blue.maxHealth).toBe(965);
+      expect(arena.blue.getStats().maxHealth).toBe(965);
     });
 
-    test('should have attack damage scaling (base 52 + 3.2/level)', () => {
+    test("should have attack damage scaling (base 52 + 3.2/level)", () => {
       // At level 6: 52 + 3.2*5 = 68
       expect(arena.blue.getStats().attackDamage).toBe(68);
     });
 
-    test('should have mana scaling (base 320 + 45/level)', () => {
+    test("should have mana scaling (base 320 + 45/level)", () => {
       // At level 6: 320 + 45*5 = 545
-      expect(arena.blue.maxResource).toBe(545);
+      expect(arena.blue.getStats().maxResource).toBe(545);
     });
   });
 
-  describe('Light Orb Entity', () => {
-    test('should create light orb with correct initial state', () => {
+  describe("Light Orb Entity", () => {
+    test("should create light orb with correct initial state", () => {
       const orb = new ServerLightOrb({
-        id: 'test-orb',
+        id: "test-orb",
         position: new Vector(0, 0),
         side: TEAM_BLUE,
-        ownerId: 'test-owner',
+        ownerId: "test-owner",
       });
 
-      expect(orb.state).toBe('orbiting');
+      expect(orb.state).toBe("orbiting");
       expect(orb.isDestroyed).toBe(false);
       expect(orb.isOrbiting).toBe(true);
     });
 
-    test('should transition to traveling when sendTo is called', () => {
+    test("should transition to traveling when sendTo is called", () => {
       const orb = new ServerLightOrb({
-        id: 'test-orb',
+        id: "test-orb",
         position: new Vector(0, 0),
         side: TEAM_BLUE,
-        ownerId: 'test-owner',
+        ownerId: "test-owner",
       });
 
       const result = orb.sendTo(new Vector(300, 0));
 
       expect(result).toBe(true);
-      expect(orb.state).toBe('traveling');
+      expect(orb.state).toBe("traveling");
       expect(orb.isTraveling).toBe(true);
     });
 
-    test('should not send when destroyed', () => {
+    test("should not send when destroyed", () => {
       const orb = new ServerLightOrb({
-        id: 'test-orb',
+        id: "test-orb",
         position: new Vector(0, 0),
         side: TEAM_BLUE,
-        ownerId: 'test-owner',
+        ownerId: "test-owner",
       });
 
       orb.destroy();
       const result = orb.sendTo(new Vector(300, 0));
 
       expect(result).toBe(false);
-      expect(orb.state).toBe('destroyed');
+      expect(orb.state).toBe("destroyed");
     });
 
-    test('should transition to destroyed when destroy is called', () => {
+    test("should transition to destroyed when destroy is called", () => {
       const orb = new ServerLightOrb({
-        id: 'test-orb',
+        id: "test-orb",
         position: new Vector(0, 0),
         side: TEAM_BLUE,
-        ownerId: 'test-owner',
+        ownerId: "test-owner",
       });
 
       orb.destroy();
 
-      expect(orb.state).toBe('destroyed');
+      expect(orb.state).toBe("destroyed");
       expect(orb.isDestroyed).toBe(true);
     });
 
-    test('should respawn after respawn time when destroyed', () => {
+    test("should respawn after respawn time when destroyed", () => {
       const orb = new ServerLightOrb({
-        id: 'test-orb',
+        id: "test-orb",
         position: new Vector(0, 0),
         side: TEAM_BLUE,
         ownerId: arena.blue.id,
@@ -140,16 +137,16 @@ describe('Lume', () => {
       // For now, test forceRespawn
       orb.forceRespawn();
 
-      expect(orb.state).toBe('orbiting');
+      expect(orb.state).toBe("orbiting");
       expect(orb.isDestroyed).toBe(false);
     });
 
-    test('should recall when recall is called from stationed state', () => {
+    test("should recall when recall is called from stationed state", () => {
       const orb = new ServerLightOrb({
-        id: 'test-orb',
+        id: "test-orb",
         position: new Vector(0, 0),
         side: TEAM_BLUE,
-        ownerId: 'test-owner',
+        ownerId: "test-owner",
       });
 
       // Manually set to stationed state
@@ -158,47 +155,47 @@ describe('Lume', () => {
       const result = orb.recall();
 
       expect(result).toBe(true);
-      expect(orb.state).toBe('traveling');
+      expect(orb.state).toBe("traveling");
     });
 
-    test('should not recall when orbiting', () => {
+    test("should not recall when orbiting", () => {
       const orb = new ServerLightOrb({
-        id: 'test-orb',
+        id: "test-orb",
         position: new Vector(0, 0),
         side: TEAM_BLUE,
-        ownerId: 'test-owner',
+        ownerId: "test-owner",
       });
 
       const result = orb.recall();
 
       expect(result).toBe(false);
-      expect(orb.state).toBe('orbiting');
+      expect(orb.state).toBe("orbiting");
     });
 
-    test('toSnapshot should return correct data', () => {
+    test("toSnapshot should return correct data", () => {
       const orb = new ServerLightOrb({
-        id: 'test-orb',
+        id: "test-orb",
         position: new Vector(100, 200),
         side: TEAM_BLUE,
-        ownerId: 'test-owner',
+        ownerId: "test-owner",
       });
 
       const snapshot = orb.toSnapshot();
 
-      expect(snapshot.entityId).toBe('test-orb');
+      expect(snapshot.entityId).toBe("test-orb");
       expect(snapshot.entityType).toBe(EntityType.LIGHT_ORB);
       expect(snapshot.side).toBe(TEAM_BLUE);
-      expect(snapshot.ownerId).toBe('test-owner');
-      expect(snapshot.state).toBe('orbiting');
+      expect(snapshot.ownerId).toBe("test-owner");
+      expect(snapshot.state).toBe("orbiting");
       expect(snapshot.x).toBe(100);
       expect(snapshot.y).toBe(200);
     });
   });
 
-  describe('Light Orb Orbiting', () => {
-    test('orb should orbit at correct radius', () => {
+  describe("Light Orb Orbiting", () => {
+    test("orb should orbit at correct radius", () => {
       const orb = new ServerLightOrb({
-        id: 'test-orb',
+        id: "test-orb",
         position: new Vector(0, 0),
         side: TEAM_BLUE,
         ownerId: arena.blue.id,
@@ -214,9 +211,9 @@ describe('Lume', () => {
       expect(distance).toBeCloseTo(60, 1); // LUME_ORB_CONFIG.orbitRadius = 60
     });
 
-    test('orb should rotate over time', () => {
+    test("orb should rotate over time", () => {
       const orb = new ServerLightOrb({
-        id: 'test-orb',
+        id: "test-orb",
         position: new Vector(60, 0), // Start at orbit radius
         side: TEAM_BLUE,
         ownerId: arena.blue.id,
@@ -237,120 +234,120 @@ describe('Lume', () => {
     });
   });
 
-  describe('Q - Send the Light', () => {
-    test('should cast successfully', () => {
-      const result = arena.castAbility(arena.blue, 'Q', {
+  describe("Q - Send the Light", () => {
+    test("should cast successfully", () => {
+      const result = arena.castAbility(arena.blue, "Q", {
         targetPosition: new Vector(300, 0),
       });
 
       expect(result.success).toBe(true);
     });
 
-    test('should have correct mana cost at rank 1 (40)', () => {
+    test("should have correct mana cost at rank 1 (40)", () => {
       const initialMana = arena.blue.resource;
 
-      arena.castAbility(arena.blue, 'Q', {
+      arena.castAbility(arena.blue, "Q", {
         targetPosition: new Vector(300, 0),
       });
 
       expect(arena.blue.resource).toBe(initialMana - 40);
     });
 
-    test('should have correct cooldown at rank 1 (8s)', () => {
-      arena.castAbility(arena.blue, 'Q', {
+    test("should have correct cooldown at rank 1 (8s)", () => {
+      arena.castAbility(arena.blue, "Q", {
         targetPosition: new Vector(300, 0),
       });
 
-      expect(arena.blue.getAbilityCooldown('Q')).toBe(8);
+      expect(arena.blue.getAbilityCooldown("Q")).toBe(8);
     });
 
-    test('cooldown should decrease with rank', () => {
-      arena.blue.maxAbility('Q');
+    test("cooldown should decrease with rank", () => {
+      arena.blue.maxAbility("Q");
       arena.blue.resetCooldowns();
 
-      arena.castAbility(arena.blue, 'Q', {
+      arena.castAbility(arena.blue, "Q", {
         targetPosition: new Vector(300, 0),
       });
 
-      expect(arena.blue.getAbilityCooldown('Q')).toBeLessThanOrEqual(6);
+      expect(arena.blue.getAbilityCooldown("Q")).toBeLessThanOrEqual(6);
     });
   });
 
-  describe('W - Warmth', () => {
-    test('should cast successfully', () => {
-      const result = arena.castAbility(arena.blue, 'W');
+  describe("W - Warmth", () => {
+    test("should cast successfully", () => {
+      const result = arena.castAbility(arena.blue, "W");
       expect(result.success).toBe(true);
     });
 
-    test('should have correct mana cost at rank 1 (60)', () => {
+    test("should have correct mana cost at rank 1 (60)", () => {
       const initialMana = arena.blue.resource;
-      arena.castAbility(arena.blue, 'W');
+      arena.castAbility(arena.blue, "W");
       expect(arena.blue.resource).toBe(initialMana - 60);
     });
 
-    test('should have correct cooldown at rank 1 (14s)', () => {
-      arena.castAbility(arena.blue, 'W');
-      expect(arena.blue.getAbilityCooldown('W')).toBe(14);
+    test("should have correct cooldown at rank 1 (14s)", () => {
+      arena.castAbility(arena.blue, "W");
+      expect(arena.blue.getAbilityCooldown("W")).toBe(14);
     });
   });
 
-  describe('E - Dazzle Step', () => {
-    test('should cast successfully', () => {
-      const result = arena.castAbility(arena.blue, 'E');
+  describe("E - Dazzle Step", () => {
+    test("should cast successfully", () => {
+      const result = arena.castAbility(arena.blue, "E");
       expect(result.success).toBe(true);
     });
 
-    test('should have correct mana cost (50 at all ranks)', () => {
+    test("should have correct mana cost (50 at all ranks)", () => {
       const initialMana = arena.blue.resource;
-      arena.castAbility(arena.blue, 'E');
+      arena.castAbility(arena.blue, "E");
       expect(arena.blue.resource).toBe(initialMana - 50);
     });
 
-    test('should have correct cooldown at rank 1 (18s)', () => {
-      arena.castAbility(arena.blue, 'E');
-      expect(arena.blue.getAbilityCooldown('E')).toBe(18);
+    test("should have correct cooldown at rank 1 (18s)", () => {
+      arena.castAbility(arena.blue, "E");
+      expect(arena.blue.getAbilityCooldown("E")).toBe(18);
     });
 
-    test('cooldown should decrease with rank', () => {
-      arena.blue.maxAbility('E');
+    test("cooldown should decrease with rank", () => {
+      arena.blue.maxAbility("E");
       arena.blue.resetCooldowns();
 
-      arena.castAbility(arena.blue, 'E');
-      expect(arena.blue.getAbilityCooldown('E')).toBeLessThanOrEqual(10);
+      arena.castAbility(arena.blue, "E");
+      expect(arena.blue.getAbilityCooldown("E")).toBeLessThanOrEqual(10);
     });
   });
 
-  describe('R - Beaconfall', () => {
-    test('should cast successfully', () => {
-      const result = arena.castAbility(arena.blue, 'R');
+  describe("R - Beaconfall", () => {
+    test("should cast successfully", () => {
+      const result = arena.castAbility(arena.blue, "R");
       expect(result.success).toBe(true);
     });
 
-    test('should have correct mana cost (100)', () => {
+    test("should have correct mana cost (100)", () => {
       const initialMana = arena.blue.resource;
-      arena.castAbility(arena.blue, 'R');
+      arena.castAbility(arena.blue, "R");
       expect(arena.blue.resource).toBe(initialMana - 100);
     });
 
-    test('should have correct cooldown at rank 1 (120s)', () => {
-      arena.castAbility(arena.blue, 'R');
-      expect(arena.blue.getAbilityCooldown('R')).toBe(120);
+    test("should have correct cooldown at rank 1 (120s)", () => {
+      arena.castAbility(arena.blue, "R");
+      expect(arena.blue.getAbilityCooldown("R")).toBe(120);
     });
 
-    test('cooldown should decrease with rank', () => {
-      arena.blue.maxAbility('R');
+    test("cooldown should decrease with rank", () => {
+      arena.blue.maxAbility("R");
       arena.blue.resetCooldowns();
 
-      arena.castAbility(arena.blue, 'R');
-      expect(arena.blue.getAbilityCooldown('R')).toBeLessThanOrEqual(80);
+      arena.castAbility(arena.blue, "R");
+      expect(arena.blue.getAbilityCooldown("R")).toBeLessThanOrEqual(80);
     });
   });
 
-  describe('Passive - Guiding Glow', () => {
-    test('allies near orb should gain movement speed buff', () => {
+  describe("Passive - Guiding Glow", () => {
+    test("allies near orb should gain movement speed buff", () => {
       // Create orb and ally minion
       const orb = new ServerLightOrb({
-        id: 'test-orb',
+        id: "test-orb",
         position: new Vector(100, 0),
         side: TEAM_BLUE,
         ownerId: arena.blue.id,
@@ -364,13 +361,13 @@ describe('Lume', () => {
       arena.tickAllFrames(5);
 
       // Lume should have the speed buff
-      expect(arena.blue.hasEffect('lume_guiding_glow_speed')).toBe(true);
+      expect(arena.blue.hasEffect("lume_guiding_glow_speed")).toBe(true);
     });
 
-    test('enemies near orb should have damage amp debuff', () => {
+    test("enemies near orb should have damage amp debuff", () => {
       // Create orb and send it near enemy
       const orb = new ServerLightOrb({
-        id: 'test-orb',
+        id: "test-orb",
         position: new Vector(0, 0),
         side: TEAM_BLUE,
         ownerId: arena.blue.id,
@@ -384,12 +381,12 @@ describe('Lume', () => {
       arena.tickAllFrames(25);
 
       // Red champion should have the damage amp debuff
-      expect(arena.red.hasEffect('lume_guiding_glow_amp')).toBe(true);
+      expect(arena.red.hasEffect("lume_guiding_glow_amp")).toBe(true);
     });
 
-    test('passive effects should not apply when orb is destroyed', () => {
+    test("passive effects should not apply when orb is destroyed", () => {
       const orb = new ServerLightOrb({
-        id: 'test-orb',
+        id: "test-orb",
         position: new Vector(350, 0),
         side: TEAM_BLUE,
         ownerId: arena.blue.id,
@@ -403,14 +400,14 @@ describe('Lume', () => {
       arena.tickAllFrames(5);
 
       // Effects should not be applied
-      expect(arena.red.hasEffect('lume_guiding_glow_amp')).toBe(false);
+      expect(arena.red.hasEffect("lume_guiding_glow_amp")).toBe(false);
     });
   });
 
-  describe('Integration - Light Orb Lifecycle', () => {
-    test('orb should follow Lume when orbiting', () => {
+  describe("Integration - Light Orb Lifecycle", () => {
+    test("orb should follow Lume when orbiting", () => {
       const orb = new ServerLightOrb({
-        id: 'test-orb',
+        id: "test-orb",
         position: new Vector(60, 0),
         side: TEAM_BLUE,
         ownerId: arena.blue.id,
@@ -428,9 +425,9 @@ describe('Lume', () => {
       expect(distance).toBeCloseTo(60, 5);
     });
 
-    test('full Q cycle: send -> station -> auto-return', () => {
+    test("full Q cycle: send -> station -> auto-return", () => {
       const orb = new ServerLightOrb({
-        id: 'test-orb',
+        id: "test-orb",
         position: new Vector(60, 0),
         side: TEAM_BLUE,
         ownerId: arena.blue.id,
@@ -438,23 +435,23 @@ describe('Lume', () => {
       arena.context.addEntity(orb);
 
       // Initial state
-      expect(orb.state).toBe('orbiting');
+      expect(orb.state).toBe("orbiting");
 
       // Send orb
       orb.sendTo(new Vector(300, 0));
-      expect(orb.state).toBe('traveling');
+      expect(orb.state).toBe("traveling");
 
       // Tick until orb arrives (travels at 1200 units/s, distance ~240 units = ~0.2s = 12 frames)
       arena.tickAllFrames(20);
 
       // Should be stationed
-      expect(orb.state).toBe('stationed');
+      expect(orb.state).toBe("stationed");
 
       // Tick until auto-return (4 seconds = 240 frames)
       arena.tickAllFrames(250);
 
       // Should be traveling back or orbiting
-      expect(['traveling', 'orbiting'].includes(orb.state)).toBe(true);
+      expect(["traveling", "orbiting"].includes(orb.state)).toBe(true);
     });
   });
 });

@@ -24,6 +24,7 @@ import { GameRoomManager } from './game/GameRoomManager';
 import { Matchmaker, type MatchResult } from './matchmaking/Matchmaker';
 import type { WebSocketConnection, ParsedMessage } from './network/WebSocketServer';
 import { Logger } from './utils/Logger';
+import { initializeAbilityHandlers } from './abilities';
 
 // ============================================================================
 // Configuration
@@ -249,6 +250,10 @@ async function startServer(): Promise<void> {
   console.log('');
   console.log('  ⚔️  SIEGE GAME SERVER');
   console.log('');
+
+  // Initialize ability handlers
+  initializeAbilityHandlers();
+  Logger.server.info('Ability handlers initialized');
 
   // Initialize WebSocket server
   wsServer = new BunWebSocketServer({
