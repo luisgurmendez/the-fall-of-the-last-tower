@@ -12,8 +12,10 @@ import {
   Side,
   DamageType,
   GameEventType,
-} from '@siege/shared';
-import type { ServerGameContext } from '../game/ServerGameContext';
+  EntityCollision,
+  CircleCollision,
+} from "@siege/shared";
+import type { ServerGameContext } from "../game/ServerGameContext";
 
 export interface ServerEntityConfig {
   id: string;
@@ -67,7 +69,12 @@ export abstract class ServerEntity {
    * @param sourceId - ID of the entity that dealt the damage
    * @param context - Optional game context for death handling (rewards, etc.)
    */
-  takeDamage(amount: number, type: DamageType, sourceId?: string, context?: ServerGameContext): number {
+  takeDamage(
+    amount: number,
+    type: DamageType,
+    sourceId?: string,
+    context?: ServerGameContext,
+  ): number {
     if (this.isDead) return 0;
 
     // Calculate actual damage based on resistances
@@ -97,7 +104,7 @@ export abstract class ServerEntity {
    * Calculate damage after resistances.
    */
   protected calculateDamage(amount: number, type: DamageType): number {
-    if (type === 'true' || type === 'pure') {
+    if (type === "true" || type === "pure") {
       return amount;
     }
     // Override in subclasses for armor/magic resist
@@ -134,12 +141,16 @@ export abstract class ServerEntity {
     const direction = target.subtracted(this.position);
     const distance = direction.length();
 
-    if (distance < 1) {
+    // Use threshold of 5 units to clear target and avoid client-side vibration
+    const arrivalThreshold = 5;
+
+    if (distance < arrivalThreshold) {
       this.position.setFrom(target);
       this.targetPosition = null;
       return;
     }
 
+    // Global speed reduction for game balance
     const moveDistance = this.movementSpeed * dt;
 
     if (moveDistance >= distance) {
@@ -228,9 +239,23 @@ export abstract class ServerEntity {
 
   /**
    * Get collision radius. Override in subclasses.
+   * @deprecated Use getCollisionShape() for proper shape-based collision.
    */
   getRadius(): number {
     return 0;
+  }
+
+  /**
+   * Get collision shape for this entity.
+   * Override in subclasses for non-circular collision shapes.
+   * Default returns a circle with the entity's radius.
+   */
+  getCollisionShape(): EntityCollision {
+    const radius = this.getRadius();
+    return {
+      type: "circle",
+      radius: radius > 0 ? radius : 1,
+    } as CircleCollision;
   }
 
   /**

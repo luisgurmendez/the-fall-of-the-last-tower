@@ -103,6 +103,7 @@ export interface HUDPassiveDefinition {
   trigger: string;
   internalCooldown?: number;
   maxStacks?: number;
+  usesStacks?: boolean;
 }
 
 /**
@@ -853,8 +854,8 @@ export class ChampionHUD extends ScreenEntity {
       );
     }
 
-    // Stack counter (bottom right) if passive has stacks
-    if (passive && passive.maxStacks > 0) {
+    // Stack counter (bottom right) if passive uses stacks
+    if (passive && passive.definition.usesStacks) {
       const stackText = `${passive.stacks}`;
       RenderUtils.renderBitmapText(
         ctx,
@@ -1979,7 +1980,7 @@ export class ChampionHUD extends ScreenEntity {
     const headerHeight = lineHeight + 4;
     const triggerHeight = lineHeight;
     const descHeight = descriptionLines.length * lineHeight;
-    const stackHeight = passive.maxStacks > 0 ? lineHeight : 0;
+    const stackHeight = passive.definition.usesStacks ? lineHeight : 0;
     const cooldownHeight = passive.definition.internalCooldown ? lineHeight + 4 : 0;
     const tooltipHeight = padding * 2 + headerHeight + triggerHeight + descHeight + stackHeight + cooldownHeight;
 
@@ -2038,10 +2039,14 @@ export class ChampionHUD extends ScreenEntity {
     });
 
     // Stack info
-    if (passive.maxStacks > 0) {
+    if (passive.definition.usesStacks) {
+      // Show stacks with max if there's a cap, otherwise just show current stacks
+      const stackText = passive.maxStacks > 0
+        ? `Stacks: ${passive.stacks}/${passive.maxStacks}`
+        : `Souls: ${passive.stacks}`;
       RenderUtils.renderBitmapText(
         ctx,
-        `Stacks: ${passive.stacks}/${passive.maxStacks}`,
+        stackText,
         clampedX + padding,
         currentY,
         { color: passive.stacks > 0 ? '#FFD700' : HUD_COLORS.textDim, size: 20, shadow: false }

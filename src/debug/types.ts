@@ -24,6 +24,10 @@ export interface DebugInspectorConfig {
   showInternalIds: boolean;
   /** Font size for panel text */
   fontSize: number;
+  /** Whether to show sight range circles */
+  showSightRange: boolean;
+  /** Whether to show collision masks */
+  showCollisionMasks: boolean;
 }
 
 /**
@@ -37,6 +41,8 @@ export const DEFAULT_DEBUG_CONFIG: DebugInspectorConfig = {
   opacity: 0.9,
   showInternalIds: true,
   fontSize: 12,
+  showSightRange: true,
+  showCollisionMasks: true,
 };
 
 /**

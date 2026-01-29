@@ -41,6 +41,8 @@ import {
   createDefaultPassiveState,
   getAbilityDefinition,
   calculateAbilityValue,
+  DEFAULT_CHAMPION_COLLISION,
+  type EntityCollision,
 } from '@siege/shared';
 import { ServerEntity, ServerEntityConfig } from './ServerEntity';
 import type { ServerGameContext } from '../game/ServerGameContext';
@@ -150,6 +152,7 @@ export class ServerChampion extends ServerEntity {
   // Shields and forced movement
   shields: ActiveShield[] = [];
   forcedMovement: ForcedMovement | null = null;
+  dashAbilityId: string | null = null; // Track which ability caused the current dash
 
   // Direction facing
   direction: Vector = new Vector(1, 0);
@@ -321,6 +324,35 @@ export class ServerChampion extends ServerEntity {
         passiveTriggerSystem.dispatchTrigger('on_low_health', this, context);
       }
     }
+
+    // Lume-specific: sync passive state with Light Orb
+    if (this.definition.id === 'lume') {
+      this.updateLumePassiveFromOrb(context);
+    }
+  }
+
+  /**
+   * Update Lume's passive state based on the Light Orb's state.
+   * Shows orb respawn cooldown in the passive UI when orb is destroyed.
+   */
+  private updateLumePassiveFromOrb(context: ServerGameContext): void {
+    // Find the light orb owned by this champion
+    const orb = context.getAllEntities().find(
+      e => e.entityType === EntityType.LIGHT_ORB && (e as any).ownerId === this.id
+    );
+
+    if (orb) {
+      const orbSnapshot = orb.toSnapshot() as any;
+      if (orbSnapshot.state === 'destroyed') {
+        // Orb is destroyed - show respawn cooldown
+        this.passiveState.isActive = false;
+        this.passiveState.cooldownRemaining = orbSnapshot.respawnTimeRemaining;
+      } else {
+        // Orb is alive - passive is active
+        this.passiveState.isActive = true;
+        this.passiveState.cooldownRemaining = 0;
+      }
+    }
   }
 
   /**
@@ -355,6 +387,7 @@ export class ServerChampion extends ServerEntity {
     this.shields = [];
     this.ccStatus = defaultCCStatus();
     this.forcedMovement = null;
+    this.dashAbilityId = null;
   }
 
   /**
@@ -424,6 +457,7 @@ export class ServerChampion extends ServerEntity {
 
     if (fm.elapsed >= fm.duration) {
       this.forcedMovement = null;
+      this.dashAbilityId = null;
     }
   }
 
@@ -1257,6 +1291,7 @@ export class ServerChampion extends ServerEntity {
     this.targetPosition = null;
     this.targetEntityId = null;
     this.forcedMovement = null;
+    this.dashAbilityId = null;
     this.isRecalling = false;
     this.recallProgress = 0;
   }
@@ -1798,6 +1833,7 @@ export class ServerChampion extends ServerEntity {
   /**
    * Champion collision radius.
    * Uses the collision shape from champion definition, defaulting to 25.
+   * @deprecated Use getCollisionShape() for proper shape-based collision.
    */
   override getRadius(): number {
     const collision = this.definition.collision;
@@ -1805,6 +1841,14 @@ export class ServerChampion extends ServerEntity {
       return collision.radius;
     }
     return 25; // Default if no collision defined
+  }
+
+  /**
+   * Get the collision shape for this champion.
+   * Returns the collision shape from the champion definition, or default circle.
+   */
+  override getCollisionShape(): EntityCollision {
+    return this.definition.collision ?? DEFAULT_CHAMPION_COLLISION;
   }
 
   /**
@@ -1830,9 +1874,10 @@ export class ServerChampion extends ServerEntity {
 
       x: this.position.x,
       y: this.position.y,
-      targetX: this.targetPosition?.x,
-      targetY: this.targetPosition?.y,
-      targetEntityId: this.targetEntityId ?? undefined,
+      // Use null for cleared values (not undefined) for proper delta updates
+      targetX: this.targetPosition?.x ?? null,
+      targetY: this.targetPosition?.y ?? null,
+      targetEntityId: this.targetEntityId,
 
       health: this.health,
       maxHealth: stats.maxHealth,
@@ -1854,6 +1899,12 @@ export class ServerChampion extends ServerEntity {
       respawnTimer: this.respawnTimer,
       isRecalling: this.isRecalling,
       recallProgress: this.recallProgress,
+
+      // Dash state for ability animations
+      isDashing: this.forcedMovement?.type === 'dash' && this.dashAbilityId != null,
+      dashTargetX: this.forcedMovement ? this.position.x + this.forcedMovement.direction.x * (this.forcedMovement.distance - this.forcedMovement.elapsed * (this.forcedMovement.distance / this.forcedMovement.duration)) : undefined,
+      dashTargetY: this.forcedMovement ? this.position.y + this.forcedMovement.direction.y * (this.forcedMovement.distance - this.forcedMovement.elapsed * (this.forcedMovement.distance / this.forcedMovement.duration)) : undefined,
+      dashAbilityId: this.dashAbilityId ?? undefined,
 
       abilities: {
         Q: { ...this.abilityStates.Q },

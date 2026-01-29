@@ -11,22 +11,33 @@
  * Uses the sprite system for consistent visuals across all entities.
  */
 
-import type { GameObject } from '@/core/GameObject';
-import type GameContext from '@/core/gameContext';
-import RenderElement from '@/render/renderElement';
-import Vector from '@/physics/vector';
-import type { OnlineStateManager, InterpolatedEntity, DamageNumber, GoldNumber, XpNumber, AbilityEffect } from '@/core/OnlineStateManager';
-import { EntityType, getChampionDefinition } from '@siege/shared';
-import { BitmapFont } from '@/render/BitmapFont';
-import PixelArtDrawUtils from '@/utils/pixelartDrawUtils';
+import type { GameObject } from "@/core/GameObject";
+import type GameContext from "@/core/gameContext";
+import RenderElement from "@/render/renderElement";
+import Vector from "@/physics/vector";
+
+import type {
+  OnlineStateManager,
+  InterpolatedEntity,
+  AbilityEffect,
+} from "@/core/OnlineStateManager";
+
+import {
+  EntityType,
+  getChampionDefinition,
+  isRectangleCollision,
+  isCircleCollision,
+} from "@siege/shared";
+import { BitmapFont } from "@/render/BitmapFont";
+import PixelArtDrawUtils from "@/utils/pixelartDrawUtils";
 
 /**
  * Colors for different teams.
  */
 const TEAM_COLORS = {
-  BLUE: '#3498db',
-  RED: '#e74c3c',
-  NEUTRAL: '#95a5a6',
+  BLUE: "#3498db",
+  RED: "#e74c3c",
+  NEUTRAL: "#95a5a6",
 };
 
 /**
@@ -36,35 +47,38 @@ const TEAM_COLORS = {
  * - ENEMY: Red for enemy units
  */
 const HEALTH_BAR_COLORS = {
-  SELF: '#2ecc71',    // Green - local player
-  ALLY: '#3498db',    // Blue - allied units
-  ENEMY: '#e74c3c',   // Red - enemy units
-  NEUTRAL: '#95a5a6', // Gray - neutral units (jungle camps)
+  SELF: "#2ecc71", // Green - local player
+  ALLY: "#3498db", // Blue - allied units
+  ENEMY: "#e74c3c", // Red - enemy units
+  NEUTRAL: "#95a5a6", // Gray - neutral units (jungle camps)
 };
 
 /**
  * Shield visual configuration by type.
  * Extensible: add new shield types here with their colors and stripe patterns.
  */
-const SHIELD_STYLES: Record<string, { baseColor: string; stripeColor: string; stripeWidth: number }> = {
+const SHIELD_STYLES: Record<
+  string,
+  { baseColor: string; stripeColor: string; stripeWidth: number }
+> = {
   normal: {
-    baseColor: '#e5e5e5',    // Light gray
-    stripeColor: '#9ca3af',   // Darker gray
+    baseColor: "#e5e5e5", // Light gray
+    stripeColor: "#9ca3af", // Darker gray
     stripeWidth: 3,
   },
   magic: {
-    baseColor: '#c4b5fd',    // Light purple
-    stripeColor: '#8b5cf6',   // Purple
+    baseColor: "#c4b5fd", // Light purple
+    stripeColor: "#8b5cf6", // Purple
     stripeWidth: 3,
   },
   physical: {
-    baseColor: '#fcd34d',    // Light yellow/gold
-    stripeColor: '#f59e0b',   // Amber
+    baseColor: "#fcd34d", // Light yellow/gold
+    stripeColor: "#f59e0b", // Amber
     stripeWidth: 3,
   },
   passive: {
-    baseColor: '#fef08a',    // Pale gold
-    stripeColor: '#ca8a04',   // Dark gold
+    baseColor: "#fef08a", // Pale gold
+    stripeColor: "#ca8a04", // Dark gold
     stripeWidth: 3,
   },
 };
@@ -74,14 +88,14 @@ const SHIELD_STYLES: Record<string, { baseColor: string; stripeColor: string; st
  * Used for showing debuff marks, stacks, and other indicators above champions.
  */
 interface MarkVisualConfig {
-  icon: string;          // Icon character or emoji
-  bgColor: string;       // Background color
-  borderColor: string;   // Border color
-  iconColor: string;     // Icon text color
-  showTimer?: boolean;   // Whether to show countdown timer
-  showStacks?: boolean;  // Whether to show stack count
-  isDebuff?: boolean;    // True for debuffs (shown on enemies)
-  isBuff?: boolean;      // True for buffs (shown on self/allies)
+  icon: string; // Icon character or emoji
+  bgColor: string; // Background color
+  borderColor: string; // Border color
+  iconColor: string; // Icon text color
+  showTimer?: boolean; // Whether to show countdown timer
+  showStacks?: boolean; // Whether to show stack count
+  isDebuff?: boolean; // True for debuffs (shown on enemies)
+  isBuff?: boolean; // True for buffs (shown on self/allies)
 }
 
 /**
@@ -91,93 +105,93 @@ interface MarkVisualConfig {
 const MARK_VISUALS: Record<string, MarkVisualConfig> = {
   // Vex marks
   vex_mark: {
-    icon: 'X',
-    bgColor: 'rgba(155, 89, 182, 0.8)',  // Purple
-    borderColor: '#9b59b6',
-    iconColor: '#ffffff',
+    icon: "X",
+    bgColor: "rgba(155, 89, 182, 0.8)", // Purple
+    borderColor: "#9b59b6",
+    iconColor: "#ffffff",
     showTimer: true,
     isDebuff: true,
   },
   vex_death_mark: {
-    icon: '!',
-    bgColor: 'rgba(44, 62, 80, 0.9)',    // Dark
-    borderColor: '#e74c3c',               // Red border (danger)
-    iconColor: '#e74c3c',
+    icon: "!",
+    bgColor: "rgba(44, 62, 80, 0.9)", // Dark
+    borderColor: "#e74c3c", // Red border (danger)
+    iconColor: "#e74c3c",
     showTimer: true,
     isDebuff: true,
   },
   vex_stealth: {
-    icon: '?',
-    bgColor: 'rgba(44, 62, 80, 0.8)',
-    borderColor: '#2c3e50',
-    iconColor: '#ffffff',
+    icon: "?",
+    bgColor: "rgba(44, 62, 80, 0.8)",
+    borderColor: "#2c3e50",
+    iconColor: "#ffffff",
     showTimer: true,
     isBuff: true,
   },
   // CC marks
   stun: {
-    icon: '!',
-    bgColor: 'rgba(231, 76, 60, 0.8)',
-    borderColor: '#e74c3c',
-    iconColor: '#ffffff',
+    icon: "!",
+    bgColor: "rgba(231, 76, 60, 0.8)",
+    borderColor: "#e74c3c",
+    iconColor: "#ffffff",
     showTimer: true,
     isDebuff: true,
   },
   taunt: {
-    icon: 'T',
-    bgColor: 'rgba(233, 30, 99, 0.8)',
-    borderColor: '#e91e63',
-    iconColor: '#ffffff',
+    icon: "T",
+    bgColor: "rgba(233, 30, 99, 0.8)",
+    borderColor: "#e91e63",
+    iconColor: "#ffffff",
     showTimer: true,
     isDebuff: true,
   },
   slow_30: {
-    icon: 'v',
-    bgColor: 'rgba(52, 152, 219, 0.8)',
-    borderColor: '#3498db',
-    iconColor: '#ffffff',
+    icon: "v",
+    bgColor: "rgba(52, 152, 219, 0.8)",
+    borderColor: "#3498db",
+    iconColor: "#ffffff",
     showTimer: true,
     isDebuff: true,
   },
   slow_40: {
-    icon: 'v',
-    bgColor: 'rgba(41, 128, 185, 0.8)',
-    borderColor: '#2980b9',
-    iconColor: '#ffffff',
+    icon: "v",
+    bgColor: "rgba(41, 128, 185, 0.8)",
+    borderColor: "#2980b9",
+    iconColor: "#ffffff",
     showTimer: true,
     isDebuff: true,
   },
   // Gorath buffs
   gorath_fortify_buff: {
-    icon: 'S',
-    bgColor: 'rgba(139, 115, 85, 0.8)',
-    borderColor: '#8b7355',
-    iconColor: '#ffffff',
+    icon: "S",
+    bgColor: "rgba(139, 115, 85, 0.8)",
+    borderColor: "#8b7355",
+    iconColor: "#ffffff",
     showTimer: true,
     isBuff: true,
   },
   gorath_fortify_mr_buff: {
-    icon: 'S',
-    bgColor: 'rgba(139, 92, 246, 0.8)',
-    borderColor: '#8b5cf6',
-    iconColor: '#ffffff',
+    icon: "S",
+    bgColor: "rgba(139, 92, 246, 0.8)",
+    borderColor: "#8b5cf6",
+    iconColor: "#ffffff",
     showTimer: true,
     isBuff: true,
   },
   // Speed buffs
   speed_20: {
-    icon: '>',
-    bgColor: 'rgba(46, 204, 113, 0.8)',
-    borderColor: '#2ecc71',
-    iconColor: '#ffffff',
+    icon: ">",
+    bgColor: "rgba(46, 204, 113, 0.8)",
+    borderColor: "#2ecc71",
+    iconColor: "#ffffff",
     showTimer: true,
     isBuff: true,
   },
   speed_30: {
-    icon: '>',
-    bgColor: 'rgba(39, 174, 96, 0.8)',
-    borderColor: '#27ae60',
-    iconColor: '#ffffff',
+    icon: ">",
+    bgColor: "rgba(39, 174, 96, 0.8)",
+    borderColor: "#27ae60",
+    iconColor: "#ffffff",
     showTimer: true,
     isBuff: true,
   },
@@ -185,10 +199,10 @@ const MARK_VISUALS: Record<string, MarkVisualConfig> = {
 
 /** Default visual for unknown marks */
 const DEFAULT_MARK_VISUAL: MarkVisualConfig = {
-  icon: '?',
-  bgColor: 'rgba(149, 165, 166, 0.8)',
-  borderColor: '#95a5a6',
-  iconColor: '#ffffff',
+  icon: "?",
+  bgColor: "rgba(149, 165, 166, 0.8)",
+  borderColor: "#95a5a6",
+  iconColor: "#ffffff",
   showTimer: true,
 };
 
@@ -196,48 +210,61 @@ const DEFAULT_MARK_VISUAL: MarkVisualConfig = {
  * Colors for damage number types.
  */
 const DAMAGE_COLORS = {
-  physical: '#ffffff',   // White for physical
-  magic: '#7B68EE',      // Purple-blue for magic
-  true: '#FFD700',       // Gold for true damage
-  pure: '#FFD700',       // Gold for pure damage
-  shield: '#808080',     // Gray for shield absorbed
+  physical: "#ffffff", // White for physical
+  magic: "#7B68EE", // Purple-blue for magic
+  true: "#FFD700", // Gold for true damage
+  pure: "#FFD700", // Gold for pure damage
+  shield: "#808080", // Gray for shield absorbed
 };
 
 /**
- * Light Orb particle configuration.
+ * Light Orb particle configuration (comet tail effect).
  */
 interface LightOrbParticle {
-  x: number;        // Position relative to orb center
-  y: number;
-  vx: number;       // Velocity
-  vy: number;
-  life: number;     // 0-1, decreases over time
-  size: number;     // Pixel size
-  color: string;    // Particle color
+  x: number; // World position X
+  y: number; // World position Y
+  vx: number; // Velocity X (direction to drift)
+  vy: number; // Velocity Y
+  life: number; // 0-1, decreases over time
+  maxLife: number; // Initial life value for fade calculation
+  size: number; // Pixel size
+  color: string; // Particle color
+}
+
+/**
+ * Light Orb position tracking for comet tail.
+ */
+interface LightOrbPositionTracker {
+  prevX: number;
+  prevY: number;
+  dirX: number; // Normalized movement direction
+  dirY: number;
 }
 
 /**
  * Light Orb visual configuration.
  */
 const LIGHT_ORB_VISUALS = {
-  CORE_RADIUS: 8,              // Core orb size (pixelated)
-  GLOW_RADIUS: 16,             // Outer glow radius
-  PIXEL_SIZE: 2,               // Pixel size for retro look
-  CORE_COLOR: '#FFE566',       // Warm golden core
-  GLOW_COLOR: '#FFF9E0',       // Soft yellow glow
-  PARTICLE_COUNT: 12,          // Particles orbiting the orb
-  PARTICLE_SPAWN_RATE: 0.1,    // Seconds between particle spawns
-  PARTICLE_LIFETIME: 1.5,      // Seconds particles live
-  AURA_COLOR: 'rgba(255, 240, 180, 0.08)',  // Passive aura indicator
-  DESTROYED_ALPHA: 0.3,        // Alpha when destroyed
+  CORE_RADIUS: 8, // Core orb size (pixelated)
+  GLOW_RADIUS: 16, // Outer glow radius
+  PIXEL_SIZE: 2, // Pixel size for retro look
+  CORE_COLOR: "#FFE566", // Warm golden core
+  GLOW_COLOR: "#FFF9E0", // Soft yellow glow
+  PARTICLE_COUNT: 40, // Max particles in the comet tail
+  PARTICLE_SPAWN_RATE: 0.015, // Seconds between particle spawns (faster for more particles)
+  PARTICLE_LIFETIME: 0.6, // Seconds particles live
+  PARTICLE_DRIFT_SPEED: 40, // How fast particles drift away
+  PARTICLE_SPREAD: 10, // Random spread perpendicular to movement
+  AURA_COLOR: "rgba(255, 240, 180, 0.08)", // Passive aura indicator
+  DESTROYED_ALPHA: 0.3, // Alpha when destroyed
 } as const;
 
 /**
  * Damage number display settings.
  */
 const DAMAGE_NUMBER_CONFIG = {
-  FONT: '16px m5x7',
-  FLOAT_DISTANCE: 30,   // How far up the number floats
+  FONT: "16px m5x7",
+  FLOAT_DISTANCE: 30, // How far up the number floats
   FONT_SIZE: 16,
 };
 
@@ -245,9 +272,9 @@ const DAMAGE_NUMBER_CONFIG = {
  * Gold number display settings.
  */
 const GOLD_NUMBER_CONFIG = {
-  FONT: '18px m5x7',
+  FONT: "18px m5x7",
   FLOAT_DISTANCE: 25,
-  COLOR: '#FFD700',      // Gold color
+  COLOR: "#FFD700", // Gold color
   FONT_SIZE: 18,
 };
 
@@ -255,9 +282,9 @@ const GOLD_NUMBER_CONFIG = {
  * XP number display settings.
  */
 const XP_NUMBER_CONFIG = {
-  FONT: '14px m5x7',
+  FONT: "14px m5x7",
   FLOAT_DISTANCE: 25,
-  COLOR: '#888888',      // Gray color
+  COLOR: "#888888", // Gray color
   FONT_SIZE: 14,
 };
 
@@ -266,26 +293,26 @@ const XP_NUMBER_CONFIG = {
  */
 const SPRITES = {
   TOWER: {
-    BLUE: '/assets/sprites/Buildings/Tower_Blue.png',
-    RED: '/assets/sprites/Buildings/Tower_Red.png',
+    BLUE: "/assets/sprites/Buildings/Tower_Blue.png",
+    RED: "/assets/sprites/Buildings/Tower_Red.png",
     WIDTH: 128,
     HEIGHT: 256,
     SCALE: 0.8,
   },
   NEXUS: {
-    BLUE: '/assets/sprites/Buildings/Barracks_Blue.png',
-    RED: '/assets/sprites/Buildings/Barracks_Red.png',
+    BLUE: "/assets/sprites/Buildings/Barracks_Blue.png",
+    RED: "/assets/sprites/Buildings/Barracks_Red.png",
     WIDTH: 192,
     HEIGHT: 256,
     SCALE: 1.0,
   },
   WARRIOR: {
-    IDLE_BLUE: '/assets/sprites/units/Warrior_Blue/Warrior_Idle.png',
-    IDLE_RED: '/assets/sprites/units/Warrior_Red/Warrior_Idle.png',
-    RUN_BLUE: '/assets/sprites/units/Warrior_Blue/Warrior_Run.png',
-    RUN_RED: '/assets/sprites/units/Warrior_Red/Warrior_Run.png',
-    ATTACK_BLUE: '/assets/sprites/units/Warrior_Blue/Warrior_Attack1.png',
-    ATTACK_RED: '/assets/sprites/units/Warrior_Red/Warrior_Attack1.png',
+    IDLE_BLUE: "/assets/sprites/units/Warrior_Blue/Warrior_Idle.png",
+    IDLE_RED: "/assets/sprites/units/Warrior_Red/Warrior_Idle.png",
+    RUN_BLUE: "/assets/sprites/units/Warrior_Blue/Warrior_Run.png",
+    RUN_RED: "/assets/sprites/units/Warrior_Red/Warrior_Run.png",
+    ATTACK_BLUE: "/assets/sprites/units/Warrior_Blue/Warrior_Attack1.png",
+    ATTACK_RED: "/assets/sprites/units/Warrior_Red/Warrior_Attack1.png",
     FRAME_WIDTH: 192,
     FRAME_HEIGHT: 192,
     IDLE_FRAMES: 8,
@@ -294,12 +321,12 @@ const SPRITES = {
     SCALE: 0.35,
   },
   ARCHER: {
-    IDLE_BLUE: '/assets/sprites/units/Archer_Blue/Archer_Idle.png',
-    IDLE_RED: '/assets/sprites/units/Archer_Red/Archer_Idle.png',
-    RUN_BLUE: '/assets/sprites/units/Archer_Blue/Archer_Run.png',
-    RUN_RED: '/assets/sprites/units/Archer_Red/Archer_Run.png',
-    ATTACK_BLUE: '/assets/sprites/units/Archer_Blue/Archer_Shoot.png',
-    ATTACK_RED: '/assets/sprites/units/Archer_Red/Archer_Shoot.png',
+    IDLE_BLUE: "/assets/sprites/units/Archer_Blue/Archer_Idle.png",
+    IDLE_RED: "/assets/sprites/units/Archer_Red/Archer_Idle.png",
+    RUN_BLUE: "/assets/sprites/units/Archer_Blue/Archer_Run.png",
+    RUN_RED: "/assets/sprites/units/Archer_Red/Archer_Run.png",
+    ATTACK_BLUE: "/assets/sprites/units/Archer_Blue/Archer_Shoot.png",
+    ATTACK_RED: "/assets/sprites/units/Archer_Red/Archer_Shoot.png",
     FRAME_WIDTH: 192,
     FRAME_HEIGHT: 192,
     IDLE_FRAMES: 6,
@@ -308,9 +335,9 @@ const SPRITES = {
     SCALE: 0.35,
   },
   SPIDER: {
-    IDLE: '/assets/sprites/Spider/Spider_Idle.png',
-    RUN: '/assets/sprites/Spider/Spider_Run.png',
-    ATTACK: '/assets/sprites/Spider/Spider_Attack.png',
+    IDLE: "/assets/sprites/Spider/Spider_Idle.png",
+    RUN: "/assets/sprites/Spider/Spider_Run.png",
+    ATTACK: "/assets/sprites/Spider/Spider_Attack.png",
     FRAME_WIDTH: 192,
     FRAME_HEIGHT: 192,
     IDLE_FRAMES: 8,
@@ -319,9 +346,9 @@ const SPRITES = {
     SCALE: 0.4,
   },
   BEAR: {
-    IDLE: '/assets/sprites/Bear/Bear_Idle.png',
-    RUN: '/assets/sprites/Bear/Bear_Run.png',
-    ATTACK: '/assets/sprites/Bear/Bear_Attack.png',
+    IDLE: "/assets/sprites/Bear/Bear_Idle.png",
+    RUN: "/assets/sprites/Bear/Bear_Run.png",
+    ATTACK: "/assets/sprites/Bear/Bear_Attack.png",
     FRAME_WIDTH: 256,
     FRAME_HEIGHT: 256,
     IDLE_FRAMES: 8,
@@ -330,9 +357,25 @@ const SPRITES = {
     SCALE: 0.4,
   },
   ARROW: {
-    BLUE: '/assets/sprites/units/Archer_Blue/Arrow.png',
-    RED: '/assets/sprites/units/Archer_Red/Arrow.png',
+    BLUE: "/assets/sprites/units/Archer_Blue/Arrow.png",
+    RED: "/assets/sprites/units/Archer_Red/Arrow.png",
     SCALE: 0.3,
+  },
+  // Champion sprites
+  LUME: {
+    IDLE: "/assets/champs/lume/Lume-IDLE.png",
+    WALK: "/assets/champs/lume/Lume-Walk-Sheet.png",
+    Q: "/assets/champs/lume/Lume-Q-Sheet.png",
+    E: "/assets/champs/lume/Lume-E-Sheet.png",
+    R: "/assets/champs/lume/Lume-R-Sheet.png",
+    FRAME_WIDTH: 152,
+    FRAME_HEIGHT: 152,
+    IDLE_FRAMES: 1,
+    WALK_FRAMES: 6,
+    Q_FRAMES: 8,
+    E_FRAMES: 11,
+    R_FRAMES: 12,
+    SCALE: 0.8,
   },
 };
 
@@ -378,10 +421,24 @@ function loadImages(): void {
     // Projectiles
     SPRITES.ARROW.BLUE,
     SPRITES.ARROW.RED,
+    // Champions
+    SPRITES.LUME.IDLE,
+    SPRITES.LUME.WALK,
+    SPRITES.LUME.Q,
+    SPRITES.LUME.E,
+    SPRITES.LUME.R,
   ];
 
   for (const src of imagesToLoad) {
     const img = new Image();
+    img.onload = () => {
+      console.log(
+        `[EntityRenderer] Image loaded: ${src}, size: ${img.naturalWidth}x${img.naturalHeight}`,
+      );
+    };
+    img.onerror = () => {
+      console.error(`[EntityRenderer] Failed to load image: ${src}`);
+    };
     img.src = src;
     imageCache.set(src, img);
   }
@@ -395,16 +452,20 @@ function loadImages(): void {
 interface EntityRenderState {
   lastX: number;
   lastY: number;
-  facingRight: boolean;  // true = facing right, false = facing left
+  facingRight: boolean; // true = facing right, false = facing left
   attackAnimTime: number; // Time into attack animation
   isAttacking: boolean;
+  // Animation state tracking for smooth transitions
+  isWalking: boolean; // Current animation state
+  smoothedVelocity: number; // Smoothed velocity magnitude
+  idleFrameCount: number; // Frames since velocity dropped below threshold
 }
 
 /**
  * EntityRenderer renders all entities from server state.
  */
 export class EntityRenderer implements GameObject {
-  readonly id = 'entity-renderer';
+  readonly id = "entity-renderer";
   shouldInitialize = false;
   shouldDispose = false;
   position = new Vector(0, 0);
@@ -426,6 +487,8 @@ export class EntityRenderer implements GameObject {
   // Light Orb particle systems (one per orb)
   private lightOrbParticles: Map<string, LightOrbParticle[]> = new Map();
   private lightOrbLastParticleSpawn: Map<string, number> = new Map();
+  private lightOrbPositionTrackers: Map<string, LightOrbPositionTracker> =
+    new Map();
 
   constructor(stateManager: OnlineStateManager, localSide: number) {
     this.stateManager = stateManager;
@@ -436,7 +499,12 @@ export class EntityRenderer implements GameObject {
   /**
    * Get or create render state for an entity.
    */
-  private getEntityState(entityId: string, x: number, y: number, side: number): EntityRenderState {
+  private getEntityState(
+    entityId: string,
+    x: number,
+    y: number,
+    side: number,
+  ): EntityRenderState {
     let state = this.entityStates.get(entityId);
     if (!state) {
       // Default facing direction based on team side
@@ -447,6 +515,9 @@ export class EntityRenderer implements GameObject {
         facingRight: side === 0,
         attackAnimTime: 0,
         isAttacking: false,
+        isWalking: false,
+        smoothedVelocity: 0,
+        idleFrameCount: 0,
       };
       this.entityStates.set(entityId, state);
     }
@@ -455,46 +526,70 @@ export class EntityRenderer implements GameObject {
 
   /**
    * Update entity render state based on movement and actions.
+   * @param moveTargetX/Y - The actual move target from server (for walking detection)
+   * @param facingTargetX/Y - Resolved target including attack targets (for facing direction)
    * @param serverIsAttacking - Server-provided attack state (only true during attack animation)
    */
   private updateEntityState(
     state: EntityRenderState,
     x: number,
     y: number,
-    targetEntityId: string | undefined,
-    targetX: number | undefined,
-    targetY: number | undefined,
+    targetEntityId: string | null | undefined,
+    moveTargetX: number | null | undefined,
+    moveTargetY: number | null | undefined,
+    facingTargetX: number | null | undefined,
+    facingTargetY: number | null | undefined,
     dt: number,
-    serverIsAttacking?: boolean
+    serverIsAttacking?: boolean,
   ): void {
-    // Determine facing direction from movement or target
-    const dx = x - state.lastX;
+    // Walking detection uses ONLY the move target (not attack target)
+    // This prevents showing walk animation when standing still with an attack target
+    // Use != null to check for both null and undefined
+    const hasMoveTarget = moveTargetX != null && moveTargetY != null;
+    let distanceToMoveTarget = 0;
 
-    // If moving horizontally, update facing direction based on movement
-    if (Math.abs(dx) > 0.5) {
-      state.facingRight = dx > 0;
-    } else if (targetX !== undefined && targetY !== undefined) {
-      // If has a target position (either move target or resolved attack target position),
-      // face toward that position
-      const targetDx = targetX - x;
-      if (Math.abs(targetDx) > 5) {
+    if (hasMoveTarget) {
+      const dx = moveTargetX! - x;
+      const dy = moveTargetY! - y;
+      distanceToMoveTarget = Math.sqrt(dx * dx + dy * dy);
+    }
+
+    // Walking if we have a MOVE target that's more than 10 units away
+    const shouldBeWalking = hasMoveTarget && distanceToMoveTarget > 10;
+
+    // Apply minimal hysteresis to prevent flicker at the boundary
+    if (shouldBeWalking && !state.isWalking) {
+      // Start walking immediately when we have a distant target
+      state.isWalking = true;
+      state.idleFrameCount = 0;
+    } else if (!shouldBeWalking && state.isWalking) {
+      // Require a few frames before stopping to prevent flicker
+      state.idleFrameCount++;
+      if (state.idleFrameCount >= 3) {
+        state.isWalking = false;
+      }
+    } else if (shouldBeWalking) {
+      state.idleFrameCount = 0;
+    }
+
+    // Determine facing direction based on FACING target (includes attack targets)
+    const hasFacingTarget = facingTargetX != null && facingTargetY != null;
+    if (hasFacingTarget) {
+      const targetDx = facingTargetX - x;
+      if (Math.abs(targetDx) > 10) {
         state.facingRight = targetDx > 0;
       }
     }
 
     // Track attacking state - only use server's isAttacking flag
-    // The server sets isAttacking=true only during the brief attack animation (0.4s)
-    // Don't fall back to targetEntityId - that just means "has a target", not "currently attacking"
     const wasAttacking = state.isAttacking;
     state.isAttacking = serverIsAttacking === true;
 
     // Reset or continue attack animation
     if (state.isAttacking) {
       if (!wasAttacking) {
-        // Just started attacking - reset animation
         state.attackAnimTime = 0;
       } else {
-        // Continue attack animation
         state.attackAnimTime += dt;
       }
     } else {
@@ -515,9 +610,10 @@ export class EntityRenderer implements GameObject {
 
       // Use client-side timing for smooth animations (independent of server tick rate)
       const currentTime = performance.now();
-      const clientDt = this.lastRenderTime === 0
-        ? 1/60
-        : Math.min((currentTime - this.lastRenderTime) / 1000, 0.1);
+      const clientDt =
+        this.lastRenderTime === 0
+          ? 1 / 60
+          : Math.min((currentTime - this.lastRenderTime) / 1000, 0.1);
       this.lastRenderTime = currentTime;
 
       this.frameCount++;
@@ -526,7 +622,7 @@ export class EntityRenderer implements GameObject {
 
       if (!this.stateManager.hasState()) {
         if (this.frameCount % 60 === 0) {
-          console.log('[EntityRenderer] Waiting for state...');
+          console.log("[EntityRenderer] Waiting for state...");
         }
         this.renderWaitingMessage(canvasRenderingContext);
         return;
@@ -540,16 +636,27 @@ export class EntityRenderer implements GameObject {
       if (this.frameCount % 120 === 1) {
         const typeCounts: Record<number, number> = {};
         for (const e of entities) {
-          typeCounts[e.snapshot.entityType] = (typeCounts[e.snapshot.entityType] || 0) + 1;
+          typeCounts[e.snapshot.entityType] =
+            (typeCounts[e.snapshot.entityType] || 0) + 1;
         }
-        const towers = entities.filter(e => e.snapshot.entityType === EntityType.TOWER);
-        const nexuses = entities.filter(e => e.snapshot.entityType === EntityType.NEXUS);
-        console.log(`[EntityRenderer] Entities: ${entities.length} total, types: ${JSON.stringify(typeCounts)}`);
+        const towers = entities.filter(
+          (e) => e.snapshot.entityType === EntityType.TOWER,
+        );
+        const nexuses = entities.filter(
+          (e) => e.snapshot.entityType === EntityType.NEXUS,
+        );
+        console.log(
+          `[EntityRenderer] Entities: ${entities.length} total, types: ${JSON.stringify(typeCounts)}`,
+        );
         if (towers.length > 0) {
-          console.log(`[EntityRenderer] Towers: ${towers.map(t => `${t.snapshot.entityId}@(${t.position.x.toFixed(0)},${t.position.y.toFixed(0)})`).join(', ')}`);
+          console.log(
+            `[EntityRenderer] Towers: ${towers.map((t) => `${t.snapshot.entityId}@(${t.position.x.toFixed(0)},${t.position.y.toFixed(0)})`).join(", ")}`,
+          );
         }
         if (nexuses.length > 0) {
-          console.log(`[EntityRenderer] Nexuses: ${nexuses.map(n => `${n.snapshot.entityId}@(${n.position.x.toFixed(0)},${n.position.y.toFixed(0)})`).join(', ')}`);
+          console.log(
+            `[EntityRenderer] Nexuses: ${nexuses.map((n) => `${n.snapshot.entityId}@(${n.position.x.toFixed(0)},${n.position.y.toFixed(0)})`).join(", ")}`,
+          );
         }
       }
 
@@ -557,14 +664,38 @@ export class EntityRenderer implements GameObject {
       // Also sort by entity type to ensure structures render before units
       const sortedEntities = [...entities].sort((a, b) => {
         // Zones render first (ground effects, behind everything)
-        if (a.snapshot.entityType === EntityType.ZONE && b.snapshot.entityType !== EntityType.ZONE) return -1;
-        if (b.snapshot.entityType === EntityType.ZONE && a.snapshot.entityType !== EntityType.ZONE) return 1;
+        if (
+          a.snapshot.entityType === EntityType.ZONE &&
+          b.snapshot.entityType !== EntityType.ZONE
+        )
+          return -1;
+        if (
+          b.snapshot.entityType === EntityType.ZONE &&
+          a.snapshot.entityType !== EntityType.ZONE
+        )
+          return 1;
         // Nexus renders next (behind most things)
-        if (a.snapshot.entityType === EntityType.NEXUS && b.snapshot.entityType !== EntityType.NEXUS) return -1;
-        if (b.snapshot.entityType === EntityType.NEXUS && a.snapshot.entityType !== EntityType.NEXUS) return 1;
+        if (
+          a.snapshot.entityType === EntityType.NEXUS &&
+          b.snapshot.entityType !== EntityType.NEXUS
+        )
+          return -1;
+        if (
+          b.snapshot.entityType === EntityType.NEXUS &&
+          a.snapshot.entityType !== EntityType.NEXUS
+        )
+          return 1;
         // Then towers
-        if (a.snapshot.entityType === EntityType.TOWER && b.snapshot.entityType !== EntityType.TOWER) return -1;
-        if (b.snapshot.entityType === EntityType.TOWER && a.snapshot.entityType !== EntityType.TOWER) return 1;
+        if (
+          a.snapshot.entityType === EntityType.TOWER &&
+          b.snapshot.entityType !== EntityType.TOWER
+        )
+          return -1;
+        if (
+          b.snapshot.entityType === EntityType.TOWER &&
+          a.snapshot.entityType !== EntityType.TOWER
+        )
+          return 1;
         // Then by Y position
         return a.position.y - b.position.y;
       });
@@ -579,36 +710,49 @@ export class EntityRenderer implements GameObject {
         const isLocalPlayer = entity.snapshot.entityId === localEntityId;
         // Calculate interpolated position for smooth rendering
         const interpolatedPos = this.getInterpolatedPosition(entity);
+        // Round positions to integers for consistent state tracking
+        const posX = Math.round(interpolatedPos.x);
+        const posY = Math.round(interpolatedPos.y);
         // Update entity render state for animation tracking
         const side = snapshot.side ?? 0;
-        const state = this.getEntityState(entity.snapshot.entityId, interpolatedPos.x, interpolatedPos.y, side);
+        const state = this.getEntityState(
+          entity.snapshot.entityId,
+          posX,
+          posY,
+          side,
+        );
 
         // Resolve target entity position for facing direction
         let resolvedTargetX = snapshot.targetX;
         let resolvedTargetY = snapshot.targetY;
-        if (snapshot.targetEntityId && resolvedTargetX === undefined) {
+        if (snapshot.targetEntityId && resolvedTargetX == null) {
           // Has attack target but no move target - look up target position for facing
-          const targetEntity = this.stateManager.getEntity(snapshot.targetEntityId);
+          const targetEntity = this.stateManager.getEntity(
+            snapshot.targetEntityId,
+          );
           if (targetEntity) {
-            resolvedTargetX = targetEntity.position.x;
-            resolvedTargetY = targetEntity.position.y;
+            resolvedTargetX = Math.round(targetEntity.position.x);
+            resolvedTargetY = Math.round(targetEntity.position.y);
           }
         }
 
         // Get attack state from event-based animation system
         // Fall back to snapshot's isAttacking for reconnections (when events might be missed)
-        const isAttacking = this.stateManager.isEntityAttacking(snapshot.entityId)
-          || (snapshot as any).isAttacking === true;
+        const isAttacking =
+          this.stateManager.isEntityAttacking(snapshot.entityId) ||
+          (snapshot as any).isAttacking === true;
 
         this.updateEntityState(
           state,
-          interpolatedPos.x,
-          interpolatedPos.y,
+          posX,
+          posY,
           snapshot.targetEntityId,
-          resolvedTargetX,
+          snapshot.targetX, // Move target (for walking detection) - already rounded in state manager
+          snapshot.targetY,
+          resolvedTargetX, // Facing target (includes attack targets)
           resolvedTargetY,
           clientDt,
-          isAttacking
+          isAttacking,
         );
         this.renderEntity(canvasRenderingContext, entity, isLocalPlayer, state);
       }
@@ -626,9 +770,12 @@ export class EntityRenderer implements GameObject {
       this.renderXpNumbers(canvasRenderingContext);
     }, true);
 
-    element.positionType = 'normal';
+    element.positionType = "normal";
     return element;
   }
+
+  // Set to false to disable interpolation for debugging
+  private static readonly ENABLE_INTERPOLATION = false;
 
   /**
    * Calculate interpolated position for smooth rendering.
@@ -636,6 +783,11 @@ export class EntityRenderer implements GameObject {
    * Server runs at 125 Hz (8ms per tick), but network updates may batch.
    */
   private getInterpolatedPosition(entity: InterpolatedEntity): Vector {
+    // Skip interpolation if disabled - useful for debugging vibration issues
+    if (!EntityRenderer.ENABLE_INTERPOLATION) {
+      return entity.position;
+    }
+
     const timeSinceUpdate = Date.now() - entity.lastUpdateTime;
     // Server sends at 125 Hz (8ms), but account for network jitter with slight buffer
     const interpolationDelay = 16; // ms - roughly 2 server ticks / 1 client frame
@@ -647,7 +799,12 @@ export class EntityRenderer implements GameObject {
   /**
    * Render a single entity.
    */
-  private renderEntity(ctx: CanvasRenderingContext2D, entity: InterpolatedEntity, isLocalPlayer: boolean, state: EntityRenderState): void {
+  private renderEntity(
+    ctx: CanvasRenderingContext2D,
+    entity: InterpolatedEntity,
+    isLocalPlayer: boolean,
+    state: EntityRenderState,
+  ): void {
     const { snapshot } = entity;
     // Use interpolated position for smooth rendering
     const pos = this.getInterpolatedPosition(entity);
@@ -688,7 +845,11 @@ export class EntityRenderer implements GameObject {
         this.renderLightOrb(ctx, snapshot, side);
         break;
       default:
-        this.renderGeneric(ctx, 30, side === 0 ? TEAM_COLORS.BLUE : TEAM_COLORS.RED);
+        this.renderGeneric(
+          ctx,
+          30,
+          side === 0 ? TEAM_COLORS.BLUE : TEAM_COLORS.RED,
+        );
     }
 
     ctx.restore();
@@ -702,80 +863,173 @@ export class EntityRenderer implements GameObject {
     snapshot: any,
     side: number,
     isLocalPlayer: boolean,
-    state: EntityRenderState
+    state: EntityRenderState,
   ): void {
     const size = 40;
     const color = side === 0 ? TEAM_COLORS.BLUE : TEAM_COLORS.RED;
 
-    // Draw selection ring for local player (rotating dashed circle)
+    // Calculate health bar position based on visual height or collision shape
+    const HEALTH_BAR_PADDING = 8; // Padding above visual bounds
+    let healthBarYOffset = -size * 0.7; // Default fallback
+
+    const championId = snapshot.championId;
+    if (championId) {
+      const definition = getChampionDefinition(championId);
+      if (definition) {
+        // Use visualHeight if defined, otherwise derive from collision
+        if (definition.visualHeight !== undefined) {
+          // Visual height is centered, so top is at -visualHeight/2
+          healthBarYOffset = -definition.visualHeight / 2 - HEALTH_BAR_PADDING;
+        } else if (definition.collision) {
+          const collision = definition.collision;
+          const offsetY = collision.offset?.y ?? 0;
+          if (isRectangleCollision(collision)) {
+            healthBarYOffset =
+              offsetY - collision.height / 2 - HEALTH_BAR_PADDING;
+          } else if (isCircleCollision(collision)) {
+            healthBarYOffset = offsetY - collision.radius - HEALTH_BAR_PADDING;
+          }
+        }
+      }
+    }
+
+    // Draw selection ellipse for local player (white pixelated ellipse below champion)
     if (isLocalPlayer) {
       ctx.save();
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2;
-      // Animated rotating dash offset
-      const dashOffset = this.selectionAnimTime * 50;
-      ctx.setLineDash([10, 5]);
-      ctx.lineDashOffset = -dashOffset;
-      ctx.beginPath();
-      ctx.arc(0, 0, size * 0.8, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.setLineDash([]);
+      // Subtle pulse animation similar to hover effects
+      const pulsePhase = this.selectionAnimTime * 4; // 4 Hz pulse
+      const pulseScale = 1 + Math.sin(pulsePhase) * 0.1; // Subtle pulse
+
+      // Ellipse dimensions: rx matches the unit's footprint, ry is flatter
+      const rx = size * 0.5 * pulseScale;
+      const ry = 6 * pulseScale;
+
+      // Position below the champion (at the feet)
+      const yOffset = size * 0.4;
+      ctx.translate(0, yOffset);
+
+      // Draw white pixelated ellipse
+      const drawUtils = new PixelArtDrawUtils(
+        ctx,
+        "rgba(255, 255, 255, 0.7)",
+        3,
+      );
+      drawUtils.drawPixelatedEllipse(0, 0, rx, ry);
+
       ctx.restore();
     }
 
-    // Draw body (circle with gradient for now - can add champion sprites later)
-    const gradient = ctx.createRadialGradient(0, -size * 0.2, 0, 0, 0, size * 0.5);
-    gradient.addColorStop(0, this.lightenColor(color, 30));
-    gradient.addColorStop(1, color);
-    ctx.fillStyle = gradient;
-    ctx.beginPath();
-    ctx.arc(0, 0, size * 0.5, 0, Math.PI * 2);
-    ctx.fill();
+    // Check if this champion has sprite support
+    let renderedWithSprite = false;
 
-    // Draw border
-    ctx.strokeStyle = isLocalPlayer ? '#ffffff' : '#333333';
-    ctx.lineWidth = 2;
-    ctx.stroke();
+    // Debug: log championId periodically
+    if (this.frameCount % 120 === 0) {
+      console.log(
+        `[EntityRenderer] renderChampion: championId="${championId}", type=${typeof championId}`,
+      );
+    }
 
-    // Draw health bar with shields
-    const healthBarY = -size * 0.7;
+    if (championId === "lume") {
+      renderedWithSprite = this.renderLumeSprite(ctx, snapshot, state, size);
+      // Debug: log if sprite rendering failed
+      if (!renderedWithSprite && this.frameCount % 60 === 0) {
+        console.log(
+          `[EntityRenderer] Lume sprite render failed, falling back to circle`,
+        );
+      }
+    }
+
+    // Fallback: Draw body as circle with gradient if no sprite
+    if (!renderedWithSprite) {
+      const gradient = ctx.createRadialGradient(
+        0,
+        -size * 0.2,
+        0,
+        0,
+        0,
+        size * 0.5,
+      );
+      gradient.addColorStop(0, this.lightenColor(color, 30));
+      gradient.addColorStop(1, color);
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(0, 0, size * 0.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Draw border
+      ctx.strokeStyle = isLocalPlayer ? "#ffffff" : "#333333";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // Draw health bar with shields (positioned based on collision shape)
+    const healthBarY = healthBarYOffset;
     if (snapshot.health !== undefined && snapshot.maxHealth !== undefined) {
       // Determine health bar color based on relationship to local player
       // Green for self, blue for ally, red for enemy
       let healthBarColor: string;
       if (isLocalPlayer) {
-        healthBarColor = HEALTH_BAR_COLORS.SELF;  // Green
+        healthBarColor = HEALTH_BAR_COLORS.SELF; // Green
       } else if (side === this.localSide) {
-        healthBarColor = HEALTH_BAR_COLORS.ALLY;  // Blue
+        healthBarColor = HEALTH_BAR_COLORS.ALLY; // Blue
       } else {
         healthBarColor = HEALTH_BAR_COLORS.ENEMY; // Red
       }
 
       // Extract shields from snapshot (if available)
-      const shields = snapshot.shields as Array<{ amount: number; shieldType: string }> | undefined;
-      this.renderHealthBar(ctx, snapshot.health, snapshot.maxHealth, size, healthBarY, healthBarColor, shields);
+      const shields = snapshot.shields as
+        | Array<{ amount: number; shieldType: string }>
+        | undefined;
+      this.renderHealthBar(
+        ctx,
+        snapshot.health,
+        snapshot.maxHealth,
+        size,
+        healthBarY,
+        healthBarColor,
+        shields,
+      );
     }
 
     // Draw mark indicators above health bar (debuffs on enemies, buffs on self)
     const isEnemy = side !== this.localSide;
-    const activeEffects = snapshot.activeEffects as Array<{
-      definitionId: string;
-      timeRemaining: number;
-      totalDuration?: number;
-      stacks: number;
-    }> | undefined;
-    this.renderMarkIndicators(ctx, activeEffects, size, healthBarY, isLocalPlayer, isEnemy);
+    const activeEffects = snapshot.activeEffects as
+      | Array<{
+          definitionId: string;
+          timeRemaining: number;
+          totalDuration?: number;
+          stacks: number;
+        }>
+      | undefined;
+    this.renderMarkIndicators(
+      ctx,
+      activeEffects,
+      size,
+      healthBarY,
+      isLocalPlayer,
+      isEnemy,
+    );
 
-    // Draw mana bar for local player
-    if (isLocalPlayer && snapshot.resource !== undefined && snapshot.maxResource !== undefined) {
-      this.renderResourceBar(ctx, snapshot.resource, snapshot.maxResource, size, -size * 0.5);
+    // Draw mana bar for local player (below health bar)
+    if (
+      isLocalPlayer &&
+      snapshot.resource !== undefined &&
+      snapshot.maxResource !== undefined
+    ) {
+      this.renderResourceBar(
+        ctx,
+        snapshot.resource,
+        snapshot.maxResource,
+        size,
+        healthBarY + 8, // Position below health bar
+      );
     }
 
     // Draw level indicator
     if (snapshot.level !== undefined) {
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 12px Arial';
-      ctx.textAlign = 'center';
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 12px Arial";
+      ctx.textAlign = "center";
       ctx.fillText(snapshot.level.toString(), 0, 5);
     }
 
@@ -783,17 +1037,19 @@ export class EntityRenderer implements GameObject {
     if (snapshot.championId) {
       // DEBUG: Log received championId
       if (this.frameCount % 60 === 0) {
-        console.log(`[EntityRenderer] Champion snapshot: championId="${snapshot.championId}", entityId="${snapshot.entityId}"`);
+        console.log(
+          `[EntityRenderer] Champion snapshot: championId="${snapshot.championId}", entityId="${snapshot.entityId}"`,
+        );
       }
 
       // Look up champion definition to get the display name
       const championDef = getChampionDefinition(snapshot.championId);
       const displayName = championDef?.name || snapshot.championId;
 
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '10px Arial';
-      ctx.textAlign = 'center';
-      ctx.shadowColor = '#000000';
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "10px Arial";
+      ctx.textAlign = "center";
+      ctx.shadowColor = "#000000";
       ctx.shadowBlur = 2;
       ctx.fillText(displayName, 0, size * 0.8);
       ctx.shadowBlur = 0;
@@ -801,16 +1057,161 @@ export class EntityRenderer implements GameObject {
   }
 
   /**
+   * Render Lume champion using sprite sheets.
+   * Returns true if sprite was rendered, false if fallback needed.
+   */
+  private renderLumeSprite(
+    ctx: CanvasRenderingContext2D,
+    snapshot: any,
+    state: EntityRenderState,
+    size: number,
+  ): boolean {
+    const entityId = snapshot.entityId;
+
+    // Check if dashing with Lume E (special case: hold frame 6 during dash)
+    const isDashingWithE =
+      snapshot.isDashing && snapshot.dashAbilityId === "lume_e";
+
+    // Check if casting an ability
+    const castingState = this.stateManager.isEntityCastingAbility(entityId);
+    const abilityProgress = castingState.casting
+      ? this.stateManager.getAbilityAnimationProgress(entityId)
+      : 0;
+
+    // Select sprite based on animation state (priority: E dash > ability > walk > idle)
+    let spriteSrc: string;
+    let frameCount: number;
+    let useAbilityProgress = false;
+    let fixedFrameIndex: number | null = null;
+
+    if (isDashingWithE) {
+      // Lume E dash: use E sprite, hold on frame 6 (index 5)
+      spriteSrc = SPRITES.LUME.E;
+      frameCount = SPRITES.LUME.E_FRAMES;
+      fixedFrameIndex = 5; // Frame 6 (0-indexed)
+
+      // Override facing direction to look toward dash target (orb)
+      if (snapshot.dashTargetX != null) {
+        const dx = snapshot.dashTargetX - snapshot.x;
+        state.facingRight = dx >= 0;
+      }
+    } else if (castingState.casting && castingState.abilityId) {
+      // Ability animation - check which ability
+      const abilityId = castingState.abilityId;
+      if (abilityId === "lume_q") {
+        spriteSrc = SPRITES.LUME.Q;
+        frameCount = SPRITES.LUME.Q_FRAMES;
+        useAbilityProgress = true;
+      } else if (abilityId === "lume_e") {
+        // Lume E after dash: play ending frames (indices 6-10)
+        // abilityProgress goes from ~0.5 to 1.0 during the ending phase
+        // Map this to frames 6-10 (5 frames)
+        spriteSrc = SPRITES.LUME.E;
+        frameCount = SPRITES.LUME.E_FRAMES;
+        const endingFrameCount = 5;
+        const endingFrameIndex = Math.min(
+          Math.floor(abilityProgress * endingFrameCount),
+          endingFrameCount - 1,
+        );
+        fixedFrameIndex = 6 + endingFrameIndex; // Start from index 6 (frame 7)
+      } else if (abilityId === "lume_r") {
+        spriteSrc = SPRITES.LUME.R;
+        frameCount = SPRITES.LUME.R_FRAMES;
+        useAbilityProgress = true;
+      } else {
+        // Unknown ability, fall back to idle
+        spriteSrc = SPRITES.LUME.IDLE;
+        frameCount = SPRITES.LUME.IDLE_FRAMES;
+      }
+    } else if (state.isWalking) {
+      // Walk animation
+      spriteSrc = SPRITES.LUME.WALK;
+      frameCount = SPRITES.LUME.WALK_FRAMES;
+    } else {
+      // Idle animation
+      spriteSrc = SPRITES.LUME.IDLE;
+      frameCount = SPRITES.LUME.IDLE_FRAMES;
+    }
+
+    const image = imageCache.get(spriteSrc);
+
+    // Debug logging
+    if (this.frameCount % 120 === 0) {
+      console.log(
+        `[Lume] spriteSrc=${spriteSrc}, casting=${castingState.casting}, abilityId=${castingState.abilityId}`,
+      );
+    }
+
+    if (image && image.complete && image.naturalWidth > 0) {
+      // Calculate frame dimensions from actual image
+      const frameWidth = image.naturalWidth / frameCount;
+      const frameHeight = image.naturalHeight;
+
+      // Calculate animation frame
+      let frameIndex: number;
+      if (fixedFrameIndex !== null) {
+        // Fixed frame (e.g., Lume E dash holds on frame 6)
+        frameIndex = Math.min(fixedFrameIndex, frameCount - 1);
+      } else if (useAbilityProgress) {
+        // Use ability progress (0-1) to determine frame
+        frameIndex = Math.min(
+          Math.floor(abilityProgress * frameCount),
+          frameCount - 1,
+        );
+      } else {
+        // Use continuous animation time for walk/idle
+        const animSpeed = state.isWalking ? 10 : 8;
+        frameIndex = Math.floor(this.animationTime * animSpeed) % frameCount;
+      }
+      const srcX = frameIndex * frameWidth;
+
+      const scaledWidth = frameWidth * SPRITES.LUME.SCALE;
+      const scaledHeight = frameHeight * SPRITES.LUME.SCALE;
+
+      // Apply horizontal flip if facing left
+      ctx.save();
+      if (!state.facingRight) {
+        ctx.scale(-1, 1);
+      }
+
+      ctx.drawImage(
+        image,
+        srcX,
+        0,
+        frameWidth,
+        frameHeight,
+        -scaledWidth / 2,
+        -scaledHeight / 2,
+        scaledWidth,
+        scaledHeight,
+      );
+
+      ctx.restore();
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
    * Render a minion using sprites with proper animations and direction.
    */
-  private renderMinion(ctx: CanvasRenderingContext2D, snapshot: any, side: number, state: EntityRenderState): void {
-    const minionType = snapshot.minionType || 'melee';
-    const isWarrior = minionType === 'melee';
+  private renderMinion(
+    ctx: CanvasRenderingContext2D,
+    snapshot: any,
+    side: number,
+    state: EntityRenderState,
+  ): void {
+    const minionType = snapshot.minionType || "melee";
+    const isWarrior = minionType === "melee";
     const spriteConfig = isWarrior ? SPRITES.WARRIOR : SPRITES.ARCHER;
 
     // Determine animation state: attacking, moving, or idle
     const isAttacking = state.isAttacking;
-    const isMoving = snapshot.targetX !== undefined && snapshot.targetY !== undefined && !isAttacking;
+    const isMoving =
+      snapshot.targetX !== undefined &&
+      snapshot.targetY !== undefined &&
+      !isAttacking;
 
     // Select the correct sprite based on state and side
     let spriteSrc: string;
@@ -819,24 +1220,45 @@ export class EntityRenderer implements GameObject {
 
     if (isAttacking) {
       // Attack animation
-      spriteSrc = side === 0
-        ? (isWarrior ? SPRITES.WARRIOR.ATTACK_BLUE : SPRITES.ARCHER.ATTACK_BLUE)
-        : (isWarrior ? SPRITES.WARRIOR.ATTACK_RED : SPRITES.ARCHER.ATTACK_RED);
-      frameCount = isWarrior ? SPRITES.WARRIOR.ATTACK_FRAMES : SPRITES.ARCHER.ATTACK_FRAMES;
+      spriteSrc =
+        side === 0
+          ? isWarrior
+            ? SPRITES.WARRIOR.ATTACK_BLUE
+            : SPRITES.ARCHER.ATTACK_BLUE
+          : isWarrior
+            ? SPRITES.WARRIOR.ATTACK_RED
+            : SPRITES.ARCHER.ATTACK_RED;
+      frameCount = isWarrior
+        ? SPRITES.WARRIOR.ATTACK_FRAMES
+        : SPRITES.ARCHER.ATTACK_FRAMES;
       animSpeed = 12; // Fast attack animation
     } else if (isMoving) {
       // Run animation
-      spriteSrc = side === 0
-        ? (isWarrior ? SPRITES.WARRIOR.RUN_BLUE : SPRITES.ARCHER.RUN_BLUE)
-        : (isWarrior ? SPRITES.WARRIOR.RUN_RED : SPRITES.ARCHER.RUN_RED);
-      frameCount = isWarrior ? SPRITES.WARRIOR.RUN_FRAMES : SPRITES.ARCHER.RUN_FRAMES;
+      spriteSrc =
+        side === 0
+          ? isWarrior
+            ? SPRITES.WARRIOR.RUN_BLUE
+            : SPRITES.ARCHER.RUN_BLUE
+          : isWarrior
+            ? SPRITES.WARRIOR.RUN_RED
+            : SPRITES.ARCHER.RUN_RED;
+      frameCount = isWarrior
+        ? SPRITES.WARRIOR.RUN_FRAMES
+        : SPRITES.ARCHER.RUN_FRAMES;
       animSpeed = 10; // Smooth run animation
     } else {
       // Idle animation
-      spriteSrc = side === 0
-        ? (isWarrior ? SPRITES.WARRIOR.IDLE_BLUE : SPRITES.ARCHER.IDLE_BLUE)
-        : (isWarrior ? SPRITES.WARRIOR.IDLE_RED : SPRITES.ARCHER.IDLE_RED);
-      frameCount = isWarrior ? SPRITES.WARRIOR.IDLE_FRAMES : SPRITES.ARCHER.IDLE_FRAMES;
+      spriteSrc =
+        side === 0
+          ? isWarrior
+            ? SPRITES.WARRIOR.IDLE_BLUE
+            : SPRITES.ARCHER.IDLE_BLUE
+          : isWarrior
+            ? SPRITES.WARRIOR.IDLE_RED
+            : SPRITES.ARCHER.IDLE_RED;
+      frameCount = isWarrior
+        ? SPRITES.WARRIOR.IDLE_FRAMES
+        : SPRITES.ARCHER.IDLE_FRAMES;
       animSpeed = 8; // Relaxed idle animation
     }
 
@@ -859,9 +1281,14 @@ export class EntityRenderer implements GameObject {
 
       ctx.drawImage(
         image,
-        srcX, 0, spriteConfig.FRAME_WIDTH, spriteConfig.FRAME_HEIGHT,
-        -scaledWidth / 2, -scaledHeight / 2,
-        scaledWidth, scaledHeight
+        srcX,
+        0,
+        spriteConfig.FRAME_WIDTH,
+        spriteConfig.FRAME_HEIGHT,
+        -scaledWidth / 2,
+        -scaledHeight / 2,
+        scaledWidth,
+        scaledHeight,
       );
 
       ctx.restore();
@@ -872,27 +1299,41 @@ export class EntityRenderer implements GameObject {
       ctx.beginPath();
       ctx.arc(0, 0, 15, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = '#333';
+      ctx.strokeStyle = "#333";
       ctx.lineWidth = 1;
       ctx.stroke();
     }
 
     // Draw health bar - blue for ally minions, red for enemy minions
     if (snapshot.health !== undefined && snapshot.maxHealth !== undefined) {
-      const healthBarColor = side === this.localSide
-        ? HEALTH_BAR_COLORS.ALLY   // Blue for allied minions
-        : HEALTH_BAR_COLORS.ENEMY; // Red for enemy minions
-      this.renderHealthBar(ctx, snapshot.health, snapshot.maxHealth, 30, -25, healthBarColor);
+      const healthBarColor =
+        side === this.localSide
+          ? HEALTH_BAR_COLORS.ALLY // Blue for allied minions
+          : HEALTH_BAR_COLORS.ENEMY; // Red for enemy minions
+      this.renderHealthBar(
+        ctx,
+        snapshot.health,
+        snapshot.maxHealth,
+        30,
+        -25,
+        healthBarColor,
+      );
     }
   }
 
   /**
    * Render a tower using sprite images.
    */
-  private renderTower(ctx: CanvasRenderingContext2D, snapshot: any, side: number): void {
+  private renderTower(
+    ctx: CanvasRenderingContext2D,
+    snapshot: any,
+    side: number,
+  ): void {
     // DEBUG: Log tower positions
     if (this.frameCount % 120 === 1) {
-      console.log(`[EntityRenderer] Tower: id=${snapshot.entityId}, side=${side}, x=${snapshot.x}, y=${snapshot.y}, lane=${snapshot.lane}`);
+      console.log(
+        `[EntityRenderer] Tower: id=${snapshot.entityId}, side=${side}, x=${snapshot.x}, y=${snapshot.y}, lane=${snapshot.lane}`,
+      );
     }
 
     const spriteSrc = side === 0 ? SPRITES.TOWER.BLUE : SPRITES.TOWER.RED;
@@ -907,14 +1348,14 @@ export class EntityRenderer implements GameObject {
         -scaledWidth / 2,
         -scaledHeight + 30, // Offset so base is near position
         scaledWidth,
-        scaledHeight
+        scaledHeight,
       );
     } else {
       // Fallback: draw colored rectangle
       const color = side === 0 ? TEAM_COLORS.BLUE : TEAM_COLORS.RED;
       ctx.fillStyle = color;
       ctx.fillRect(-25, -60, 50, 80);
-      ctx.strokeStyle = '#333';
+      ctx.strokeStyle = "#333";
       ctx.lineWidth = 2;
       ctx.strokeRect(-25, -60, 50, 80);
     }
@@ -922,17 +1363,29 @@ export class EntityRenderer implements GameObject {
     // Draw health bar - blue for ally towers, red for enemy towers
     if (snapshot.health !== undefined && snapshot.maxHealth !== undefined) {
       const barY = -SPRITES.TOWER.HEIGHT * SPRITES.TOWER.SCALE + 10;
-      const healthBarColor = side === this.localSide
-        ? HEALTH_BAR_COLORS.ALLY   // Blue for allied towers
-        : HEALTH_BAR_COLORS.ENEMY; // Red for enemy towers
-      this.renderHealthBar(ctx, snapshot.health, snapshot.maxHealth, 60, barY, healthBarColor);
+      const healthBarColor =
+        side === this.localSide
+          ? HEALTH_BAR_COLORS.ALLY // Blue for allied towers
+          : HEALTH_BAR_COLORS.ENEMY; // Red for enemy towers
+      this.renderHealthBar(
+        ctx,
+        snapshot.health,
+        snapshot.maxHealth,
+        60,
+        barY,
+        healthBarColor,
+      );
     }
   }
 
   /**
    * Render a nexus using sprite images.
    */
-  private renderNexus(ctx: CanvasRenderingContext2D, snapshot: any, side: number): void {
+  private renderNexus(
+    ctx: CanvasRenderingContext2D,
+    snapshot: any,
+    side: number,
+  ): void {
     const spriteSrc = side === 0 ? SPRITES.NEXUS.BLUE : SPRITES.NEXUS.RED;
     const image = imageCache.get(spriteSrc);
 
@@ -945,14 +1398,14 @@ export class EntityRenderer implements GameObject {
         -scaledWidth / 2,
         -scaledHeight + 20, // Offset so base is near position
         scaledWidth,
-        scaledHeight
+        scaledHeight,
       );
     } else {
       // Fallback: draw colored rectangle
       const color = side === 0 ? TEAM_COLORS.BLUE : TEAM_COLORS.RED;
       ctx.fillStyle = color;
       ctx.fillRect(-50, -80, 100, 100);
-      ctx.strokeStyle = '#333';
+      ctx.strokeStyle = "#333";
       ctx.lineWidth = 2;
       ctx.strokeRect(-50, -80, 100, 100);
     }
@@ -961,19 +1414,27 @@ export class EntityRenderer implements GameObject {
     if (snapshot.health !== undefined && snapshot.maxHealth !== undefined) {
       const radius = 75;
       const barY = -radius - 30;
-      const healthBarColor = side === this.localSide
-        ? HEALTH_BAR_COLORS.ALLY   // Blue for allied nexus
-        : HEALTH_BAR_COLORS.ENEMY; // Red for enemy nexus
-      this.renderHealthBar(ctx, snapshot.health, snapshot.maxHealth, radius * 2, barY, healthBarColor);
+      const healthBarColor =
+        side === this.localSide
+          ? HEALTH_BAR_COLORS.ALLY // Blue for allied nexus
+          : HEALTH_BAR_COLORS.ENEMY; // Red for enemy nexus
+      this.renderHealthBar(
+        ctx,
+        snapshot.health,
+        snapshot.maxHealth,
+        radius * 2,
+        barY,
+        healthBarColor,
+      );
 
       // Health text
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 10px monospace';
-      ctx.textAlign = 'center';
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 10px monospace";
+      ctx.textAlign = "center";
       ctx.fillText(
         `${Math.ceil(snapshot.health)} / ${snapshot.maxHealth}`,
         0,
-        barY + 6
+        barY + 6,
       );
     }
   }
@@ -983,7 +1444,7 @@ export class EntityRenderer implements GameObject {
    */
   private renderProjectile(ctx: CanvasRenderingContext2D, snapshot: any): void {
     const side = snapshot.side;
-    const projectileType = snapshot.abilityId || 'default';
+    const projectileType = snapshot.abilityId || "default";
     const teamColor = side === 0 ? TEAM_COLORS.BLUE : TEAM_COLORS.RED;
 
     // Get direction for rotation
@@ -992,7 +1453,7 @@ export class EntityRenderer implements GameObject {
     const angle = Math.atan2(dirY, dirX);
 
     // Render based on projectile type
-    if (projectileType === 'minion_caster' || projectileType === 'tower') {
+    if (projectileType === "minion_caster" || projectileType === "tower") {
       // Use arrow sprite for caster minions and towers
       const arrowSrc = side === 0 ? SPRITES.ARROW.BLUE : SPRITES.ARROW.RED;
       const arrowImg = imageCache.get(arrowSrc);
@@ -1002,9 +1463,10 @@ export class EntityRenderer implements GameObject {
         ctx.rotate(angle);
 
         // Scale: tower arrows are larger
-        const scale = projectileType === 'tower'
-          ? SPRITES.ARROW.SCALE * 1.5
-          : SPRITES.ARROW.SCALE;
+        const scale =
+          projectileType === "tower"
+            ? SPRITES.ARROW.SCALE * 1.5
+            : SPRITES.ARROW.SCALE;
 
         const width = arrowImg.naturalWidth * scale;
         const height = arrowImg.naturalHeight * scale;
@@ -1013,7 +1475,7 @@ export class EntityRenderer implements GameObject {
         ctx.drawImage(arrowImg, -width / 2, -height / 2, width, height);
 
         // Tower projectiles get a glow effect
-        if (projectileType === 'tower') {
+        if (projectileType === "tower") {
           ctx.globalAlpha = 0.3;
           ctx.fillStyle = teamColor;
           ctx.beginPath();
@@ -1037,36 +1499,36 @@ export class EntityRenderer implements GameObject {
         ctx.fill();
         ctx.restore();
       }
-    } else if (projectileType === 'magnus_fireball') {
+    } else if (projectileType === "magnus_fireball") {
       // Magnus Fireball - larger orange/red fireball
       const radius = snapshot.radius || 15;
 
       // Outer glow
       ctx.globalAlpha = 0.3;
-      ctx.fillStyle = '#ff4400';
+      ctx.fillStyle = "#ff4400";
       ctx.beginPath();
       ctx.arc(0, 0, radius + 8, 0, Math.PI * 2);
       ctx.fill();
 
       // Main fireball body
       ctx.globalAlpha = 1;
-      ctx.fillStyle = '#ff6600';
+      ctx.fillStyle = "#ff6600";
       ctx.beginPath();
       ctx.arc(0, 0, radius, 0, Math.PI * 2);
       ctx.fill();
 
       // Inner bright core
-      ctx.fillStyle = '#ffaa00';
+      ctx.fillStyle = "#ffaa00";
       ctx.beginPath();
       ctx.arc(0, 0, radius * 0.6, 0, Math.PI * 2);
       ctx.fill();
 
       // Hot center
-      ctx.fillStyle = '#ffdd44';
+      ctx.fillStyle = "#ffdd44";
       ctx.beginPath();
       ctx.arc(0, 0, radius * 0.3, 0, Math.PI * 2);
       ctx.fill();
-    } else if (projectileType === 'vex_shuriken') {
+    } else if (projectileType === "vex_shuriken") {
       // Vex Shuriken - purple/dark star shape
       const radius = snapshot.radius || 10;
 
@@ -1074,7 +1536,7 @@ export class EntityRenderer implements GameObject {
       ctx.rotate(angle);
 
       // Draw star/shuriken shape
-      ctx.fillStyle = '#8844cc';
+      ctx.fillStyle = "#8844cc";
       ctx.beginPath();
       for (let i = 0; i < 4; i++) {
         const starAngle = (i * Math.PI) / 2;
@@ -1094,7 +1556,7 @@ export class EntityRenderer implements GameObject {
       ctx.fill();
 
       // Dark center
-      ctx.fillStyle = '#442266';
+      ctx.fillStyle = "#442266";
       ctx.beginPath();
       ctx.arc(0, 0, radius * 0.25, 0, Math.PI * 2);
       ctx.fill();
@@ -1110,7 +1572,7 @@ export class EntityRenderer implements GameObject {
 
       // Glow effect
       ctx.globalAlpha = 0.5;
-      ctx.fillStyle = '#ffffff';
+      ctx.fillStyle = "#ffffff";
       ctx.beginPath();
       ctx.arc(0, 0, radius * 0.6, 0, Math.PI * 2);
       ctx.fill();
@@ -1121,16 +1583,23 @@ export class EntityRenderer implements GameObject {
   /**
    * Render a jungle camp creature.
    */
-  private renderJungleCamp(ctx: CanvasRenderingContext2D, snapshot: any, state: EntityRenderState): void {
-    const creatureType = (snapshot as any).creatureType || 'gromp';
+  private renderJungleCamp(
+    ctx: CanvasRenderingContext2D,
+    snapshot: any,
+    state: EntityRenderState,
+  ): void {
+    const creatureType = (snapshot as any).creatureType || "gromp";
 
     // Use spider sprite for small creatures, bear for larger ones
-    const isSpider = creatureType === 'spider';
+    const isSpider = creatureType === "spider";
     const spriteConfig = isSpider ? SPRITES.SPIDER : SPRITES.BEAR;
 
     // Determine animation state
     const isAttacking = state.isAttacking;
-    const isMoving = snapshot.targetX !== undefined && snapshot.targetY !== undefined && !isAttacking;
+    const isMoving =
+      snapshot.targetX !== undefined &&
+      snapshot.targetY !== undefined &&
+      !isAttacking;
 
     let spriteSrc: string;
     let frameCount: number;
@@ -1151,7 +1620,7 @@ export class EntityRenderer implements GameObject {
     if (image && image.complete && image.naturalWidth > 0) {
       const animTime = isAttacking ? state.attackAnimTime : this.animationTime;
       // Use appropriate animation speed: faster for attack, moderate for movement/idle
-      const animSpeed = isAttacking ? 12 : (isMoving ? 10 : 8);
+      const animSpeed = isAttacking ? 12 : isMoving ? 10 : 8;
       const frameIndex = Math.floor(animTime * animSpeed) % frameCount;
       const srcX = frameIndex * spriteConfig.FRAME_WIDTH;
 
@@ -1166,9 +1635,14 @@ export class EntityRenderer implements GameObject {
 
       ctx.drawImage(
         image,
-        srcX, 0, spriteConfig.FRAME_WIDTH, spriteConfig.FRAME_HEIGHT,
-        -scaledWidth / 2, -scaledHeight / 2,
-        scaledWidth, scaledHeight
+        srcX,
+        0,
+        spriteConfig.FRAME_WIDTH,
+        spriteConfig.FRAME_HEIGHT,
+        -scaledWidth / 2,
+        -scaledHeight / 2,
+        scaledWidth,
+        scaledHeight,
       );
 
       ctx.restore();
@@ -1178,14 +1652,21 @@ export class EntityRenderer implements GameObject {
       ctx.beginPath();
       ctx.arc(0, 0, 20, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = '#333';
+      ctx.strokeStyle = "#333";
       ctx.lineWidth = 2;
       ctx.stroke();
     }
 
     // Draw health bar
     if (snapshot.health !== undefined && snapshot.maxHealth !== undefined) {
-      this.renderHealthBar(ctx, snapshot.health, snapshot.maxHealth, 40, -30, HEALTH_BAR_COLORS.NEUTRAL);
+      this.renderHealthBar(
+        ctx,
+        snapshot.health,
+        snapshot.maxHealth,
+        40,
+        -30,
+        HEALTH_BAR_COLORS.NEUTRAL,
+      );
     }
 
     // Draw aggro indicator (red "!") when creature has a target
@@ -1197,7 +1678,10 @@ export class EntityRenderer implements GameObject {
   /**
    * Render a red "!" aggro indicator above an entity.
    */
-  private renderAggroIndicator(ctx: CanvasRenderingContext2D, yOffset: number): void {
+  private renderAggroIndicator(
+    ctx: CanvasRenderingContext2D,
+    yOffset: number,
+  ): void {
     const x = 0;
     const y = yOffset;
 
@@ -1211,18 +1695,18 @@ export class EntityRenderer implements GameObject {
     // Red circle background
     ctx.beginPath();
     ctx.arc(0, 0, 10, 0, Math.PI * 2);
-    ctx.fillStyle = '#ff3333';
+    ctx.fillStyle = "#ff3333";
     ctx.fill();
-    ctx.strokeStyle = '#aa0000';
+    ctx.strokeStyle = "#aa0000";
     ctx.lineWidth = 2;
     ctx.stroke();
 
     // White "!" text (using pixel font)
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = "#ffffff";
     ctx.font = BitmapFont.getFont(18);
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('!', 0, -3);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("!", 0, -3);
 
     ctx.restore();
   }
@@ -1230,19 +1714,23 @@ export class EntityRenderer implements GameObject {
   /**
    * Render a ward.
    */
-  private renderWard(ctx: CanvasRenderingContext2D, snapshot: any, side: number): void {
-    const wardType = snapshot.wardType || 'stealth';
+  private renderWard(
+    ctx: CanvasRenderingContext2D,
+    snapshot: any,
+    side: number,
+  ): void {
+    const wardType = snapshot.wardType || "stealth";
     const isOwn = side === this.localSide;
     const isStealthed = snapshot.isStealthed && !isOwn;
 
     // Ward colors by type
     const wardColors: Record<string, string> = {
-      stealth: '#44FF44',   // Green
-      control: '#FF44FF',   // Pink/Magenta
-      farsight: '#4444FF',  // Blue
+      stealth: "#44FF44", // Green
+      control: "#FF44FF", // Pink/Magenta
+      farsight: "#4444FF", // Blue
     };
 
-    const baseColor = wardColors[wardType] || '#44FF44';
+    const baseColor = wardColors[wardType] || "#44FF44";
     const size = 12;
 
     // Make enemy stealth wards semi-transparent (should be invisible but shown for debugging)
@@ -1258,7 +1746,7 @@ export class EntityRenderer implements GameObject {
     const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, size * 1.5);
     gradient.addColorStop(0, baseColor);
     gradient.addColorStop(0.5, this.lightenColor(baseColor, -30));
-    gradient.addColorStop(1, 'transparent');
+    gradient.addColorStop(1, "transparent");
     ctx.fillStyle = gradient;
     ctx.fillRect(-size * 1.5, -size * 1.5, size * 3, size * 3);
 
@@ -1267,7 +1755,7 @@ export class EntityRenderer implements GameObject {
     ctx.fillRect(-size / 2, -size / 2, size, size);
 
     // Inner highlight
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
     ctx.fillRect(-size / 4, -size / 2, size / 2, size / 4);
 
     // Border
@@ -1282,35 +1770,47 @@ export class EntityRenderer implements GameObject {
 
     // Draw remaining duration indicator (pie chart style)
     if (snapshot.remainingDuration > 0 && isOwn) {
-      const maxDuration = wardType === 'stealth' ? 90 : wardType === 'farsight' ? 60 : 0;
+      const maxDuration =
+        wardType === "stealth" ? 90 : wardType === "farsight" ? 60 : 0;
       if (maxDuration > 0) {
         const progress = snapshot.remainingDuration / maxDuration;
         ctx.beginPath();
         ctx.moveTo(0, 0);
-        ctx.arc(0, 0, size * 0.8, -Math.PI / 2, -Math.PI / 2 + (1 - progress) * Math.PI * 2, false);
+        ctx.arc(
+          0,
+          0,
+          size * 0.8,
+          -Math.PI / 2,
+          -Math.PI / 2 + (1 - progress) * Math.PI * 2,
+          false,
+        );
         ctx.closePath();
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+        ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
         ctx.fill();
       }
     }
 
     // Draw ward type indicator icon
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 8px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 8px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
 
-    if (wardType === 'control') {
+    if (wardType === "control") {
       // Control ward: eye icon (simplified as "👁" or "C")
-      ctx.fillText('C', 0, 0);
-    } else if (wardType === 'farsight') {
+      ctx.fillText("C", 0, 0);
+    } else if (wardType === "farsight") {
       // Farsight ward: targeting icon (simplified as "F")
-      ctx.fillText('F', 0, 0);
+      ctx.fillText("F", 0, 0);
     }
     // Stealth ward has no icon (most common, keep clean)
 
     // Draw health pips for control wards (visible, destroyable)
-    if (!snapshot.isStealthed && snapshot.health !== undefined && snapshot.maxHealth !== undefined) {
+    if (
+      !snapshot.isStealthed &&
+      snapshot.health !== undefined &&
+      snapshot.maxHealth !== undefined
+    ) {
       const pipCount = snapshot.maxHealth;
       const pipWidth = 4;
       const pipSpacing = 2;
@@ -1319,8 +1819,13 @@ export class EntityRenderer implements GameObject {
 
       for (let i = 0; i < pipCount; i++) {
         const isFilled = i < snapshot.health;
-        ctx.fillStyle = isFilled ? baseColor : '#333333';
-        ctx.fillRect(startX + i * (pipWidth + pipSpacing), size + 4, pipWidth, 3);
+        ctx.fillStyle = isFilled ? baseColor : "#333333";
+        ctx.fillRect(
+          startX + i * (pipWidth + pipSpacing),
+          size + 4,
+          pipWidth,
+          3,
+        );
       }
     }
   }
@@ -1328,33 +1833,40 @@ export class EntityRenderer implements GameObject {
   /**
    * Render a zone (persistent ground effect).
    */
-  private renderZone(ctx: CanvasRenderingContext2D, snapshot: any, side: number): void {
+  private renderZone(
+    ctx: CanvasRenderingContext2D,
+    snapshot: any,
+    side: number,
+  ): void {
     const radius = snapshot.radius || 200;
-    const zoneType = snapshot.zoneType || 'slow';
+    const zoneType = snapshot.zoneType || "slow";
     const remainingDuration = snapshot.remainingDuration || 0;
     const totalDuration = snapshot.totalDuration || 1;
 
     // Color based on zone type
-    const zoneColors: Record<string, { fill: string; stroke: string; pulse: string }> = {
+    const zoneColors: Record<
+      string,
+      { fill: string; stroke: string; pulse: string }
+    > = {
       damage: {
-        fill: 'rgba(231, 76, 60, 0.25)',    // Red/orange for fire
-        stroke: 'rgba(231, 76, 60, 0.6)',
-        pulse: 'rgba(255, 165, 0, 0.4)',
+        fill: "rgba(231, 76, 60, 0.25)", // Red/orange for fire
+        stroke: "rgba(231, 76, 60, 0.6)",
+        pulse: "rgba(255, 165, 0, 0.4)",
       },
       slow: {
-        fill: 'rgba(139, 90, 43, 0.25)',    // Brown for mud
-        stroke: 'rgba(139, 90, 43, 0.6)',
-        pulse: 'rgba(101, 67, 33, 0.4)',
+        fill: "rgba(139, 90, 43, 0.25)", // Brown for mud
+        stroke: "rgba(139, 90, 43, 0.6)",
+        pulse: "rgba(101, 67, 33, 0.4)",
       },
       heal: {
-        fill: 'rgba(46, 204, 113, 0.25)',   // Green for healing
-        stroke: 'rgba(46, 204, 113, 0.6)',
-        pulse: 'rgba(39, 174, 96, 0.4)',
+        fill: "rgba(46, 204, 113, 0.25)", // Green for healing
+        stroke: "rgba(46, 204, 113, 0.6)",
+        pulse: "rgba(39, 174, 96, 0.4)",
       },
       buff: {
-        fill: 'rgba(52, 152, 219, 0.25)',   // Blue for buffs
-        stroke: 'rgba(52, 152, 219, 0.6)',
-        pulse: 'rgba(41, 128, 185, 0.4)',
+        fill: "rgba(52, 152, 219, 0.25)", // Blue for buffs
+        stroke: "rgba(52, 152, 219, 0.6)",
+        pulse: "rgba(41, 128, 185, 0.4)",
       },
     };
 
@@ -1374,7 +1886,7 @@ export class EntityRenderer implements GameObject {
     ctx.fill();
 
     // Draw pulsing inner ring (animate based on time)
-    const pulseProgress = (this.animationTime % 1);
+    const pulseProgress = this.animationTime % 1;
     const pulseRadius = radius * (0.3 + pulseProgress * 0.7);
     const pulseAlpha = 1 - pulseProgress;
 
@@ -1399,10 +1911,16 @@ export class EntityRenderer implements GameObject {
     // Draw duration indicator arc at edge
     if (totalDuration > 0 && remainingDuration > 0) {
       const arcProgress = remainingDuration / totalDuration;
-      ctx.strokeStyle = colors.stroke.replace(/[\d.]+\)$/, '1)'); // Full opacity
+      ctx.strokeStyle = colors.stroke.replace(/[\d.]+\)$/, "1)"); // Full opacity
       ctx.lineWidth = 4;
       ctx.beginPath();
-      ctx.arc(0, 0, radius + 4, -Math.PI / 2, -Math.PI / 2 + arcProgress * Math.PI * 2);
+      ctx.arc(
+        0,
+        0,
+        radius + 4,
+        -Math.PI / 2,
+        -Math.PI / 2 + arcProgress * Math.PI * 2,
+      );
       ctx.stroke();
     }
 
@@ -1412,12 +1930,20 @@ export class EntityRenderer implements GameObject {
   /**
    * Render Lume's Light Orb with pixelated visuals and particle effects.
    */
-  private renderLightOrb(ctx: CanvasRenderingContext2D, snapshot: any, side: number): void {
-    const state = snapshot.state as 'orbiting' | 'traveling' | 'stationed' | 'destroyed';
+  private renderLightOrb(
+    ctx: CanvasRenderingContext2D,
+    snapshot: any,
+    side: number,
+  ): void {
+    const state = snapshot.state as
+      | "orbiting"
+      | "traveling"
+      | "stationed"
+      | "destroyed";
     const orbId = snapshot.entityId;
 
     // Don't render if destroyed (except for a faint ghost)
-    if (state === 'destroyed') {
+    if (state === "destroyed") {
       // Optionally render a faint silhouette to show respawn progress
       if (snapshot.respawnTimeRemaining > 0) {
         this.renderDestroyedOrbGhost(ctx, snapshot);
@@ -1425,40 +1951,26 @@ export class EntityRenderer implements GameObject {
       return;
     }
 
-    // Update and render particles
-    this.updateLightOrbParticles(orbId, state);
-    this.renderLightOrbParticles(ctx, orbId, side);
-
-    // Render passive aura indicator (subtle ground effect)
-    this.renderLightOrbAura(ctx, snapshot.auraRadius, side);
+    // Update and render particles (comet tail follows movement)
+    this.updateLightOrbParticles(orbId, state, snapshot.x, snapshot.y);
+    this.renderLightOrbParticles(ctx, orbId, side, snapshot.x, snapshot.y);
 
     // Calculate pulsing effect based on state
-    const pulseSpeed = state === 'traveling' ? 8 : state === 'stationed' ? 3 : 5;
+    const pulseSpeed =
+      state === "traveling" ? 8 : state === "stationed" ? 3 : 5;
     const pulse = 1 + Math.sin(this.animationTime * pulseSpeed) * 0.15;
-
-    // Outer glow (smooth gradient)
-    const glowRadius = LIGHT_ORB_VISUALS.GLOW_RADIUS * pulse;
-    const glowColor = side === 0 ? 'rgba(255, 240, 180, 0.4)' : 'rgba(255, 200, 150, 0.4)';
-    const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, glowRadius);
-    gradient.addColorStop(0, glowColor);
-    gradient.addColorStop(0.5, glowColor.replace('0.4', '0.2'));
-    gradient.addColorStop(1, 'transparent');
-    ctx.fillStyle = gradient;
-    ctx.beginPath();
-    ctx.arc(0, 0, glowRadius, 0, Math.PI * 2);
-    ctx.fill();
 
     // Pixelated core using PixelArtDrawUtils
     const coreRadius = LIGHT_ORB_VISUALS.CORE_RADIUS * pulse;
     const pixelSize = LIGHT_ORB_VISUALS.PIXEL_SIZE;
 
     // Outer ring (slightly darker)
-    const outerColor = side === 0 ? '#E6C84D' : '#E6A84D';
+    const outerColor = side === 0 ? "#E6C84D" : "#E6A84D";
     const outerDrawer = new PixelArtDrawUtils(ctx, outerColor, pixelSize);
     outerDrawer.drawPixelatedCircleFill(0, 0, coreRadius);
 
     // Inner bright core
-    const innerColor = side === 0 ? LIGHT_ORB_VISUALS.CORE_COLOR : '#FFD066';
+    const innerColor = side === 0 ? LIGHT_ORB_VISUALS.CORE_COLOR : "#FFD066";
     const innerDrawer = new PixelArtDrawUtils(ctx, innerColor, pixelSize);
     innerDrawer.drawPixelatedCircleFill(0, 0, coreRadius * 0.65);
 
@@ -1468,25 +1980,26 @@ export class EntityRenderer implements GameObject {
     centerDrawer.drawPixelatedCircleFill(0, 0, coreRadius * 0.3);
 
     // Add rotating light rays when stationed or orbiting
-    if (state === 'stationed' || state === 'orbiting') {
+    if (state === "stationed" || state === "orbiting") {
       this.renderLightRays(ctx, coreRadius, side);
     }
 
-    // Add motion trail when traveling
-    if (state === 'traveling') {
-      this.renderLightOrbTrail(ctx, snapshot, side);
-    }
+    // Note: The comet tail particle system now handles the trail effect
+    // via updateLightOrbParticles/renderLightOrbParticles
   }
 
   /**
    * Render the passive aura indicator (subtle ground circle).
    */
-  private renderLightOrbAura(ctx: CanvasRenderingContext2D, radius: number, side: number): void {
+  private renderLightOrbAura(
+    ctx: CanvasRenderingContext2D,
+    radius: number,
+    side: number,
+  ): void {
     if (radius <= 0) return;
 
-    const auraColor = side === 0
-      ? 'rgba(255, 240, 180, 0.06)'
-      : 'rgba(255, 200, 150, 0.06)';
+    const auraColor =
+      side === 0 ? "rgba(255, 240, 180, 0.06)" : "rgba(255, 200, 150, 0.06)";
 
     ctx.fillStyle = auraColor;
     ctx.beginPath();
@@ -1506,7 +2019,11 @@ export class EntityRenderer implements GameObject {
   /**
    * Render rotating light rays from the orb.
    */
-  private renderLightRays(ctx: CanvasRenderingContext2D, coreRadius: number, side: number): void {
+  private renderLightRays(
+    ctx: CanvasRenderingContext2D,
+    coreRadius: number,
+    side: number,
+  ): void {
     const rayCount = 6;
     const rayLength = coreRadius * 1.8;
     const rayWidth = 2;
@@ -1518,46 +2035,14 @@ export class EntityRenderer implements GameObject {
 
     for (let i = 0; i < rayCount; i++) {
       const angle = baseAngle + (i * Math.PI * 2) / rayCount;
-      const rayColor = side === 0 ? '#FFE566' : '#FFD066';
+      const rayColor = side === 0 ? "#FFE566" : "#FFD066";
 
       ctx.strokeStyle = rayColor;
       ctx.lineWidth = rayWidth;
       ctx.beginPath();
-      ctx.moveTo(
-        Math.cos(angle) * coreRadius,
-        Math.sin(angle) * coreRadius
-      );
-      ctx.lineTo(
-        Math.cos(angle) * rayLength,
-        Math.sin(angle) * rayLength
-      );
+      ctx.moveTo(Math.cos(angle) * coreRadius, Math.sin(angle) * coreRadius);
+      ctx.lineTo(Math.cos(angle) * rayLength, Math.sin(angle) * rayLength);
       ctx.stroke();
-    }
-
-    ctx.restore();
-  }
-
-  /**
-   * Render motion trail when orb is traveling.
-   */
-  private renderLightOrbTrail(ctx: CanvasRenderingContext2D, snapshot: any, side: number): void {
-    const trailCount = 4;
-    const trailColor = side === 0 ? 'rgba(255, 240, 180, ' : 'rgba(255, 200, 150, ';
-
-    // We render the trail behind the orb (already at position 0,0 due to ctx.translate)
-    // Use animation time to create a trailing effect
-    ctx.save();
-
-    for (let i = 0; i < trailCount; i++) {
-      const alpha = (1 - i / trailCount) * 0.3;
-      const scale = 1 - i * 0.15;
-      const offset = (i + 1) * 6;
-
-      ctx.globalAlpha = alpha;
-      ctx.fillStyle = `${trailColor}${alpha})`;
-      ctx.beginPath();
-      ctx.arc(-offset, 0, LIGHT_ORB_VISUALS.CORE_RADIUS * scale * 0.7, 0, Math.PI * 2);
-      ctx.fill();
     }
 
     ctx.restore();
@@ -1566,8 +2051,11 @@ export class EntityRenderer implements GameObject {
   /**
    * Render a faint ghost of destroyed orb showing respawn progress.
    */
-  private renderDestroyedOrbGhost(ctx: CanvasRenderingContext2D, snapshot: any): void {
-    const respawnProgress = 1 - (snapshot.respawnTimeRemaining / 60); // 60s respawn time
+  private renderDestroyedOrbGhost(
+    ctx: CanvasRenderingContext2D,
+    snapshot: any,
+  ): void {
+    const respawnProgress = 1 - snapshot.respawnTimeRemaining / 60; // 60s respawn time
     const alpha = LIGHT_ORB_VISUALS.DESTROYED_ALPHA * respawnProgress;
 
     if (alpha <= 0) return;
@@ -1577,42 +2065,99 @@ export class EntityRenderer implements GameObject {
 
     // Faint outline
     const pixelSize = LIGHT_ORB_VISUALS.PIXEL_SIZE;
-    const ghostDrawer = new PixelArtDrawUtils(ctx, 'rgba(200, 200, 200, 0.5)', pixelSize);
+    const ghostDrawer = new PixelArtDrawUtils(
+      ctx,
+      "rgba(200, 200, 200, 0.5)",
+      pixelSize,
+    );
     ghostDrawer.drawPixelatedCircle(0, 0, LIGHT_ORB_VISUALS.CORE_RADIUS);
 
     // Respawn progress arc
-    ctx.strokeStyle = '#FFE566';
+    ctx.strokeStyle = "#FFE566";
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(0, 0, LIGHT_ORB_VISUALS.CORE_RADIUS + 4, -Math.PI / 2, -Math.PI / 2 + respawnProgress * Math.PI * 2);
+    ctx.arc(
+      0,
+      0,
+      LIGHT_ORB_VISUALS.CORE_RADIUS + 4,
+      -Math.PI / 2,
+      -Math.PI / 2 + respawnProgress * Math.PI * 2,
+    );
     ctx.stroke();
 
     ctx.restore();
   }
 
   /**
-   * Update particle system for a light orb.
+   * Update particle system for a light orb (comet tail effect).
+   * Particles spawn behind the orb based on its movement direction.
    */
-  private updateLightOrbParticles(orbId: string, state: string): void {
+  private updateLightOrbParticles(
+    orbId: string,
+    state: string,
+    orbX: number,
+    orbY: number,
+  ): void {
     // Get or create particle array for this orb
     if (!this.lightOrbParticles.has(orbId)) {
       this.lightOrbParticles.set(orbId, []);
       this.lightOrbLastParticleSpawn.set(orbId, 0);
     }
 
+    // Get or create position tracker
+    if (!this.lightOrbPositionTrackers.has(orbId)) {
+      this.lightOrbPositionTrackers.set(orbId, {
+        prevX: orbX,
+        prevY: orbY,
+        dirX: 0,
+        dirY: 0,
+      });
+    }
+
+    const tracker = this.lightOrbPositionTrackers.get(orbId)!;
     const particles = this.lightOrbParticles.get(orbId)!;
     const lastSpawn = this.lightOrbLastParticleSpawn.get(orbId)!;
+
+    // Calculate movement direction
+    const dx = orbX - tracker.prevX;
+    const dy = orbY - tracker.prevY;
+    const moveSpeed = Math.sqrt(dx * dx + dy * dy);
+
+    // Update direction if moving (with smoothing)
+    if (moveSpeed > 0.5) {
+      const smoothing = 0.3;
+      tracker.dirX = tracker.dirX * (1 - smoothing) + (dx / moveSpeed) * smoothing;
+      tracker.dirY = tracker.dirY * (1 - smoothing) + (dy / moveSpeed) * smoothing;
+      // Renormalize
+      const len = Math.sqrt(tracker.dirX * tracker.dirX + tracker.dirY * tracker.dirY);
+      if (len > 0) {
+        tracker.dirX /= len;
+        tracker.dirY /= len;
+      }
+    }
+
+    // Store current position for next frame
+    tracker.prevX = orbX;
+    tracker.prevY = orbY;
 
     // Calculate dt from animation time difference
     const dt = 1 / 60; // Approximate frame time
 
-    // Spawn new particles
-    const spawnRate = state === 'traveling'
-      ? LIGHT_ORB_VISUALS.PARTICLE_SPAWN_RATE * 0.5  // More particles when traveling
-      : LIGHT_ORB_VISUALS.PARTICLE_SPAWN_RATE;
+    // Spawn rate depends on movement speed and state
+    const baseSpawnRate = LIGHT_ORB_VISUALS.PARTICLE_SPAWN_RATE;
+    const spawnRate =
+      state === "traveling"
+        ? baseSpawnRate * 0.5 // Spawn faster when traveling
+        : moveSpeed > 1
+          ? baseSpawnRate
+          : baseSpawnRate * 3; // Spawn slower when stationary
 
-    if (this.animationTime - lastSpawn > spawnRate && particles.length < LIGHT_ORB_VISUALS.PARTICLE_COUNT) {
-      this.spawnLightOrbParticle(particles);
+    // Spawn new particles in the tail
+    if (
+      this.animationTime - lastSpawn > spawnRate &&
+      particles.length < LIGHT_ORB_VISUALS.PARTICLE_COUNT
+    ) {
+      this.spawnLightOrbParticle(particles, orbX, orbY, tracker);
       this.lightOrbLastParticleSpawn.set(orbId, this.animationTime);
     }
 
@@ -1623,13 +2168,12 @@ export class EntityRenderer implements GameObject {
       // Decrease life
       p.life -= dt / LIGHT_ORB_VISUALS.PARTICLE_LIFETIME;
 
-      // Update position (spiral outward)
-      const angle = Math.atan2(p.y, p.x) + dt * 2;
-      const dist = Math.sqrt(p.x * p.x + p.y * p.y);
-      const newDist = dist + p.vx * dt * 20;
+      // Particles drift in their velocity direction (away from orb movement)
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
 
-      p.x = Math.cos(angle) * newDist;
-      p.y = Math.sin(angle) * newDist;
+      // Add slight upward drift for ethereal effect
+      p.y -= dt * 8;
 
       // Remove dead particles
       if (p.life <= 0) {
@@ -1639,41 +2183,81 @@ export class EntityRenderer implements GameObject {
   }
 
   /**
-   * Spawn a new light orb particle.
+   * Spawn a new light orb particle behind the orb (comet tail).
    */
-  private spawnLightOrbParticle(particles: LightOrbParticle[]): void {
-    const angle = Math.random() * Math.PI * 2;
-    const distance = LIGHT_ORB_VISUALS.CORE_RADIUS + Math.random() * 4;
-
+  private spawnLightOrbParticle(
+    particles: LightOrbParticle[],
+    orbX: number,
+    orbY: number,
+    tracker: LightOrbPositionTracker,
+  ): void {
     // Random golden/warm colors
-    const colors = ['#FFE566', '#FFF9E0', '#FFD866', '#FFEC99', '#FFF2CC'];
+    const colors = ["#FFE566", "#FFF9E0", "#FFD866", "#FFEC99", "#FFF2CC"];
     const color = colors[Math.floor(Math.random() * colors.length)];
 
+    // Spawn behind the orb (opposite of movement direction)
+    const spawnOffset = LIGHT_ORB_VISUALS.CORE_RADIUS * 0.5;
+    const baseX = orbX - tracker.dirX * spawnOffset;
+    const baseY = orbY - tracker.dirY * spawnOffset;
+
+    // Add perpendicular spread for width
+    const perpX = -tracker.dirY;
+    const perpY = tracker.dirX;
+    const spread = (Math.random() - 0.5) * LIGHT_ORB_VISUALS.PARTICLE_SPREAD;
+
+    const spawnX = baseX + perpX * spread;
+    const spawnY = baseY + perpY * spread;
+
+    // Velocity points opposite to movement direction (tail drifts back)
+    const driftSpeed = LIGHT_ORB_VISUALS.PARTICLE_DRIFT_SPEED;
+    const vx = -tracker.dirX * driftSpeed + (Math.random() - 0.5) * 10;
+    const vy = -tracker.dirY * driftSpeed + (Math.random() - 0.5) * 10;
+
+    const lifetime = LIGHT_ORB_VISUALS.PARTICLE_LIFETIME * (0.7 + Math.random() * 0.3);
+
     particles.push({
-      x: Math.cos(angle) * distance,
-      y: Math.sin(angle) * distance,
-      vx: 0.5 + Math.random() * 0.5,  // Outward speed
-      vy: 0,
+      x: spawnX,
+      y: spawnY,
+      vx,
+      vy,
       life: 1,
+      maxLife: 1,
       size: LIGHT_ORB_VISUALS.PIXEL_SIZE,
       color,
     });
   }
 
   /**
-   * Render particles for a light orb.
+   * Render particles for a light orb (comet tail).
+   * Particles are rendered at world positions, relative to current orb position.
    */
-  private renderLightOrbParticles(ctx: CanvasRenderingContext2D, orbId: string, side: number): void {
+  private renderLightOrbParticles(
+    ctx: CanvasRenderingContext2D,
+    orbId: string,
+    side: number,
+    orbX: number,
+    orbY: number,
+  ): void {
     const particles = this.lightOrbParticles.get(orbId);
     if (!particles || particles.length === 0) return;
 
     for (const p of particles) {
       ctx.save();
-      ctx.globalAlpha = p.life * 0.8;
+
+      // Fade out based on remaining life
+      const lifeFraction = p.life / p.maxLife;
+      ctx.globalAlpha = lifeFraction * 0.7;
+
+      // Particle position is relative to orb's current screen position (0,0 due to ctx.translate)
+      const relX = p.x - orbX;
+      const relY = p.y - orbY;
+
+      // Size shrinks as particle fades
+      const currentSize = p.size * (0.5 + lifeFraction * 0.5);
 
       // Use pixel art drawer for particles
       const drawer = new PixelArtDrawUtils(ctx, p.color, p.size);
-      drawer.drawPixelatedCircleFill(p.x, p.y, p.size * (0.5 + p.life * 0.5));
+      drawer.drawPixelatedCircleFill(relX, relY, currentSize);
 
       ctx.restore();
     }
@@ -1682,10 +2266,14 @@ export class EntityRenderer implements GameObject {
   /**
    * Render a generic entity (fallback).
    */
-  private renderGeneric(ctx: CanvasRenderingContext2D, size: number, color: string): void {
+  private renderGeneric(
+    ctx: CanvasRenderingContext2D,
+    size: number,
+    color: string,
+  ): void {
     ctx.fillStyle = color;
     ctx.fillRect(-size / 2, -size / 2, size, size);
-    ctx.strokeStyle = '#333';
+    ctx.strokeStyle = "#333";
     ctx.lineWidth = 1;
     ctx.strokeRect(-size / 2, -size / 2, size, size);
   }
@@ -1703,7 +2291,7 @@ export class EntityRenderer implements GameObject {
     width: number,
     yOffset: number,
     healthBarColor: string,
-    shields?: Array<{ amount: number; shieldType: string }>
+    shields?: Array<{ amount: number; shieldType: string }>,
   ): void {
     const barWidth = width;
     const barHeight = 6;
@@ -1729,18 +2317,31 @@ export class EntityRenderer implements GameObject {
 
     // Clamp values
     healthDisplayPercent = Math.max(0, Math.min(1, healthDisplayPercent));
-    shieldDisplayPercent = Math.max(0, Math.min(1 - healthDisplayPercent, shieldDisplayPercent));
+    shieldDisplayPercent = Math.max(
+      0,
+      Math.min(1 - healthDisplayPercent, shieldDisplayPercent),
+    );
 
     // Background - always fixed width
-    ctx.fillStyle = '#333333';
+    ctx.fillStyle = "#333333";
     ctx.fillRect(-barWidth / 2, yOffset, barWidth, barHeight);
 
     // Health fill - use provided color
     ctx.fillStyle = healthBarColor;
-    ctx.fillRect(-barWidth / 2, yOffset, barWidth * healthDisplayPercent, barHeight);
+    ctx.fillRect(
+      -barWidth / 2,
+      yOffset,
+      barWidth * healthDisplayPercent,
+      barHeight,
+    );
 
     // Render shields to the right of health
-    if (shields && shields.length > 0 && totalShield > 0 && shieldDisplayPercent > 0) {
+    if (
+      shields &&
+      shields.length > 0 &&
+      totalShield > 0 &&
+      shieldDisplayPercent > 0
+    ) {
       const shieldStartX = -barWidth / 2 + barWidth * healthDisplayPercent;
       let currentShieldX = shieldStartX;
 
@@ -1752,7 +2353,10 @@ export class EntityRenderer implements GameObject {
       }
 
       // Calculate total shield for proportional rendering
-      const totalShieldAmount = Array.from(shieldsByType.values()).reduce((a, b) => a + b, 0);
+      const totalShieldAmount = Array.from(shieldsByType.values()).reduce(
+        (a, b) => a + b,
+        0,
+      );
 
       // Render each shield type proportionally within the shield display area
       for (const [shieldType, amount] of shieldsByType) {
@@ -1773,14 +2377,14 @@ export class EntityRenderer implements GameObject {
           barHeight,
           style.baseColor,
           style.stripeColor,
-          style.stripeWidth
+          style.stripeWidth,
         );
 
         currentShieldX += shieldWidth;
       }
 
       // Divider line between health and shield
-      ctx.strokeStyle = '#666666';
+      ctx.strokeStyle = "#666666";
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(shieldStartX, yOffset);
@@ -1789,7 +2393,7 @@ export class EntityRenderer implements GameObject {
     }
 
     // Border around bar (always fixed width)
-    ctx.strokeStyle = '#000000';
+    ctx.strokeStyle = "#000000";
     ctx.lineWidth = 1;
     ctx.strokeRect(-barWidth / 2, yOffset, barWidth, barHeight);
   }
@@ -1805,7 +2409,7 @@ export class EntityRenderer implements GameObject {
     height: number,
     baseColor: string,
     stripeColor: string,
-    stripeWidth: number
+    stripeWidth: number,
   ): void {
     // Save context for clipping
     ctx.save();
@@ -1846,22 +2450,22 @@ export class EntityRenderer implements GameObject {
     resource: number,
     maxResource: number,
     width: number,
-    yOffset: number
+    yOffset: number,
   ): void {
     const barWidth = width;
     const barHeight = 4;
     const resourcePercent = Math.max(0, Math.min(1, resource / maxResource));
 
     // Background
-    ctx.fillStyle = '#333333';
+    ctx.fillStyle = "#333333";
     ctx.fillRect(-barWidth / 2, yOffset, barWidth, barHeight);
 
     // Resource fill (blue for mana)
-    ctx.fillStyle = '#3498db';
+    ctx.fillStyle = "#3498db";
     ctx.fillRect(-barWidth / 2, yOffset, barWidth * resourcePercent, barHeight);
 
     // Border
-    ctx.strokeStyle = '#000000';
+    ctx.strokeStyle = "#000000";
     ctx.lineWidth = 1;
     ctx.strokeRect(-barWidth / 2, yOffset, barWidth, barHeight);
   }
@@ -1878,16 +2482,23 @@ export class EntityRenderer implements GameObject {
    */
   private renderMarkIndicators(
     ctx: CanvasRenderingContext2D,
-    activeEffects: Array<{ definitionId: string; timeRemaining: number; totalDuration?: number; stacks: number }> | undefined,
+    activeEffects:
+      | Array<{
+          definitionId: string;
+          timeRemaining: number;
+          totalDuration?: number;
+          stacks: number;
+        }>
+      | undefined,
     width: number,
     healthBarY: number,
     isLocalPlayer: boolean,
-    isEnemy: boolean
+    isEnemy: boolean,
   ): void {
     if (!activeEffects || activeEffects.length === 0) return;
 
     // Filter effects to show: debuffs on enemies, buffs on self/allies
-    const visibleEffects = activeEffects.filter(effect => {
+    const visibleEffects = activeEffects.filter((effect) => {
       const visual = MARK_VISUALS[effect.definitionId] || DEFAULT_MARK_VISUAL;
       if (isEnemy) {
         // On enemies, show debuffs
@@ -1902,7 +2513,9 @@ export class EntityRenderer implements GameObject {
 
     const iconSize = 14;
     const iconSpacing = 2;
-    const totalWidth = visibleEffects.length * iconSize + (visibleEffects.length - 1) * iconSpacing;
+    const totalWidth =
+      visibleEffects.length * iconSize +
+      (visibleEffects.length - 1) * iconSpacing;
     const startX = -totalWidth / 2;
     const markY = healthBarY - iconSize - 4; // Above health bar
 
@@ -1915,17 +2528,29 @@ export class EntityRenderer implements GameObject {
       ctx.fillRect(x, markY, iconSize, iconSize);
 
       // Radial timer overlay (drains clockwise as time expires)
-      if (visual.showTimer && effect.timeRemaining > 0 && effect.totalDuration && effect.totalDuration > 0) {
+      if (
+        visual.showTimer &&
+        effect.timeRemaining > 0 &&
+        effect.totalDuration &&
+        effect.totalDuration > 0
+      ) {
         const progress = effect.timeRemaining / effect.totalDuration;
         const expiredAngle = (1 - progress) * Math.PI * 2;
         const centerX = x + iconSize / 2;
         const centerY = markY + iconSize / 2;
 
         ctx.save();
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
         ctx.beginPath();
         ctx.moveTo(centerX, centerY);
-        ctx.arc(centerX, centerY, iconSize / 2, -Math.PI / 2, -Math.PI / 2 + expiredAngle, false);
+        ctx.arc(
+          centerX,
+          centerY,
+          iconSize / 2,
+          -Math.PI / 2,
+          -Math.PI / 2 + expiredAngle,
+          false,
+        );
         ctx.lineTo(centerX, centerY);
         ctx.fill();
         ctx.restore();
@@ -1938,17 +2563,21 @@ export class EntityRenderer implements GameObject {
 
       // Icon
       ctx.fillStyle = visual.iconColor;
-      ctx.font = 'bold 10px Arial';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
+      ctx.font = "bold 10px Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
       ctx.fillText(visual.icon, x + iconSize / 2, markY + iconSize / 2);
 
       // Stack count (small number in corner)
       if (visual.showStacks && effect.stacks > 1) {
-        ctx.fillStyle = '#FFD700';
-        ctx.font = 'bold 8px Arial';
-        ctx.textAlign = 'right';
-        ctx.fillText(effect.stacks.toString(), x + iconSize - 1, markY + iconSize - 2);
+        ctx.fillStyle = "#FFD700";
+        ctx.font = "bold 8px Arial";
+        ctx.textAlign = "right";
+        ctx.fillText(
+          effect.stacks.toString(),
+          x + iconSize - 1,
+          markY + iconSize - 2,
+        );
       }
     });
   }
@@ -1969,7 +2598,7 @@ export class EntityRenderer implements GameObject {
     maxStacks: number,
     width: number,
     healthBarY: number,
-    color: string = '#FFD700'
+    color: string = "#FFD700",
   ): void {
     if (maxStacks <= 0) return;
 
@@ -1981,13 +2610,18 @@ export class EntityRenderer implements GameObject {
 
     for (let i = 0; i < maxStacks; i++) {
       const isFilled = i < stacks;
-      ctx.fillStyle = isFilled ? color : '#333333';
+      ctx.fillStyle = isFilled ? color : "#333333";
       ctx.fillRect(startX + i * (pipSize + pipSpacing), pipY, pipSize, pipSize);
 
       // Border
-      ctx.strokeStyle = '#000000';
+      ctx.strokeStyle = "#000000";
       ctx.lineWidth = 0.5;
-      ctx.strokeRect(startX + i * (pipSize + pipSpacing), pipY, pipSize, pipSize);
+      ctx.strokeRect(
+        startX + i * (pipSize + pipSpacing),
+        pipY,
+        pipSize,
+        pipSize,
+      );
     }
   }
 
@@ -1996,12 +2630,12 @@ export class EntityRenderer implements GameObject {
    */
   private renderWaitingMessage(ctx: CanvasRenderingContext2D): void {
     ctx.save();
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '24px Arial';
-    ctx.textAlign = 'center';
-    ctx.shadowColor = '#000000';
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "24px Arial";
+    ctx.textAlign = "center";
+    ctx.shadowColor = "#000000";
     ctx.shadowBlur = 4;
-    ctx.fillText('Waiting for game state...', 0, 0);
+    ctx.fillText("Waiting for game state...", 0, 0);
     ctx.shadowBlur = 0;
     ctx.restore();
   }
@@ -2010,12 +2644,12 @@ export class EntityRenderer implements GameObject {
    * Lighten a color by a percentage.
    */
   private lightenColor(color: string, percent: number): string {
-    const num = parseInt(color.replace('#', ''), 16);
+    const num = parseInt(color.replace("#", ""), 16);
     const amt = Math.round(2.55 * percent);
     const R = Math.max(0, Math.min(255, (num >> 16) + amt));
-    const G = Math.max(0, Math.min(255, ((num >> 8) & 0x00FF) + amt));
-    const B = Math.max(0, Math.min(255, (num & 0x0000FF) + amt));
-    return `#${(1 << 24 | R << 16 | G << 8 | B).toString(16).slice(1)}`;
+    const G = Math.max(0, Math.min(255, ((num >> 8) & 0x00ff) + amt));
+    const B = Math.max(0, Math.min(255, (num & 0x0000ff) + amt));
+    return `#${((1 << 24) | (R << 16) | (G << 8) | B).toString(16).slice(1)}`;
   }
 
   /**
@@ -2032,7 +2666,11 @@ export class EntityRenderer implements GameObject {
     const effects = this.stateManager.getAbilityEffects();
 
     if (effects.length > 0) {
-      console.log('[EntityRenderer] Rendering', effects.length, 'ability effects');
+      console.log(
+        "[EntityRenderer] Rendering",
+        effects.length,
+        "ability effects",
+      );
     }
 
     for (const effect of effects) {
@@ -2050,16 +2688,16 @@ export class EntityRenderer implements GameObject {
       const angle = Math.atan2(dy, dx);
 
       switch (effect.shape) {
-        case 'cone':
+        case "cone":
           this.renderConeEffect(ctx, effect, angle, progress);
           break;
-        case 'circle':
+        case "circle":
           this.renderCircleEffect(ctx, effect, progress);
           break;
-        case 'line':
+        case "line":
           this.renderLineEffect(ctx, effect, angle, progress);
           break;
-        case 'point':
+        case "point":
           this.renderPointEffect(ctx, effect, progress);
           break;
       }
@@ -2075,7 +2713,7 @@ export class EntityRenderer implements GameObject {
     ctx: CanvasRenderingContext2D,
     effect: AbilityEffect,
     angle: number,
-    progress: number
+    progress: number,
   ): void {
     const halfAngle = (effect.coneAngle || Math.PI / 2) / 2;
 
@@ -2086,12 +2724,18 @@ export class EntityRenderer implements GameObject {
     ctx.fillStyle = effect.color;
     ctx.beginPath();
     ctx.moveTo(effect.originX, effect.originY);
-    ctx.arc(effect.originX, effect.originY, currentRange, angle - halfAngle, angle + halfAngle);
+    ctx.arc(
+      effect.originX,
+      effect.originY,
+      currentRange,
+      angle - halfAngle,
+      angle + halfAngle,
+    );
     ctx.closePath();
     ctx.fill();
 
     // Draw edge highlight
-    ctx.strokeStyle = effect.color.replace(/[\d.]+\)$/, '0.9)');
+    ctx.strokeStyle = effect.color.replace(/[\d.]+\)$/, "0.9)");
     ctx.lineWidth = 2;
     ctx.stroke();
   }
@@ -2102,7 +2746,7 @@ export class EntityRenderer implements GameObject {
   private renderCircleEffect(
     ctx: CanvasRenderingContext2D,
     effect: AbilityEffect,
-    progress: number
+    progress: number,
   ): void {
     const radius = effect.aoeRadius || effect.range;
 
@@ -2117,7 +2761,7 @@ export class EntityRenderer implements GameObject {
     ctx.fill();
 
     // Draw inner highlight ring
-    ctx.strokeStyle = effect.color.replace(/[\d.]+\)$/, '0.8)');
+    ctx.strokeStyle = effect.color.replace(/[\d.]+\)$/, "0.8)");
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.arc(effect.targetX, effect.targetY, innerRadius, 0, Math.PI * 2);
@@ -2131,7 +2775,7 @@ export class EntityRenderer implements GameObject {
     ctx: CanvasRenderingContext2D,
     effect: AbilityEffect,
     angle: number,
-    progress: number
+    progress: number,
   ): void {
     const width = effect.width || 60;
     const halfWidth = width / 2;
@@ -2158,7 +2802,7 @@ export class EntityRenderer implements GameObject {
     ctx.fill();
 
     // Draw edge highlight
-    ctx.strokeStyle = effect.color.replace(/[\d.]+\)$/, '0.8)');
+    ctx.strokeStyle = effect.color.replace(/[\d.]+\)$/, "0.8)");
     ctx.lineWidth = 2;
     ctx.stroke();
   }
@@ -2169,7 +2813,7 @@ export class EntityRenderer implements GameObject {
   private renderPointEffect(
     ctx: CanvasRenderingContext2D,
     effect: AbilityEffect,
-    progress: number
+    progress: number,
   ): void {
     // Expanding ring effect
     const maxRadius = 50;
@@ -2199,17 +2843,16 @@ export class EntityRenderer implements GameObject {
 
       // Calculate alpha (fade out in the last 30%)
       const fadeStart = 0.7;
-      const alpha = progress < fadeStart
-        ? 1
-        : 1 - ((progress - fadeStart) / (1 - fadeStart));
+      const alpha =
+        progress < fadeStart ? 1 : 1 - (progress - fadeStart) / (1 - fadeStart);
 
       ctx.save();
       ctx.translate(dn.x, dn.y + yOffset);
 
       // Set up font
       ctx.font = DAMAGE_NUMBER_CONFIG.FONT;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
       ctx.globalAlpha = alpha;
 
       // Render shield absorbed amount first (gray, slightly left and up)
@@ -2217,7 +2860,7 @@ export class EntityRenderer implements GameObject {
         const shieldText = Math.round(dn.shieldAbsorbed).toString();
 
         // Draw shadow/outline for readability
-        ctx.strokeStyle = '#000000';
+        ctx.strokeStyle = "#000000";
         ctx.lineWidth = 3;
         ctx.strokeText(shieldText, -15, -8);
 
@@ -2232,7 +2875,7 @@ export class EntityRenderer implements GameObject {
         const xOffset = dn.shieldAbsorbed > 0 ? 15 : 0;
 
         // Draw shadow/outline for readability
-        ctx.strokeStyle = '#000000';
+        ctx.strokeStyle = "#000000";
         ctx.lineWidth = 3;
         ctx.strokeText(damageText, xOffset, 0);
 
@@ -2263,24 +2906,23 @@ export class EntityRenderer implements GameObject {
 
       // Calculate alpha (fade out in the last 30%)
       const fadeStart = 0.7;
-      const alpha = progress < fadeStart
-        ? 1
-        : 1 - ((progress - fadeStart) / (1 - fadeStart));
+      const alpha =
+        progress < fadeStart ? 1 : 1 - (progress - fadeStart) / (1 - fadeStart);
 
       ctx.save();
       ctx.translate(gn.x + xOffset, gn.y + yOffset);
 
       // Set up font
       ctx.font = GOLD_NUMBER_CONFIG.FONT;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
       ctx.globalAlpha = alpha;
 
       // Format gold text with + prefix
       const goldText = `+${gn.amount}`;
 
       // Draw shadow/outline for readability
-      ctx.strokeStyle = '#000000';
+      ctx.strokeStyle = "#000000";
       ctx.lineWidth = 2;
       ctx.strokeText(goldText, 0, 0);
 
@@ -2310,24 +2952,23 @@ export class EntityRenderer implements GameObject {
 
       // Calculate alpha (fade out in the last 30%)
       const fadeStart = 0.7;
-      const alpha = progress < fadeStart
-        ? 1
-        : 1 - ((progress - fadeStart) / (1 - fadeStart));
+      const alpha =
+        progress < fadeStart ? 1 : 1 - (progress - fadeStart) / (1 - fadeStart);
 
       ctx.save();
       ctx.translate(xn.x + xOffset, xn.y + yOffset);
 
       // Set up font
       ctx.font = XP_NUMBER_CONFIG.FONT;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
       ctx.globalAlpha = alpha;
 
       // Format XP text with "xp" prefix
       const xpText = `xp ${xn.amount}`;
 
       // Draw shadow/outline for readability
-      ctx.strokeStyle = '#000000';
+      ctx.strokeStyle = "#000000";
       ctx.lineWidth = 2;
       ctx.strokeText(xpText, 0, 0);
 

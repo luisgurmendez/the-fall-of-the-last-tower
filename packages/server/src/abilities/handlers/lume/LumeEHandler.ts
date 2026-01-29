@@ -53,39 +53,45 @@ export class LumeEHandler extends BaseAbilityHandler {
     const distance = Math.min(direction.length(), maxDashDistance);
 
     if (distance < 10) {
-      // Already at orb - just apply blind
+      // Already at orb - just apply blind (short animation)
       this.applyBlindEffect(champion, orb.position, definition, rank, context);
-      return { success: true };
+      return { success: true, animationDuration: 0.5 };
     }
 
     const normalizedDir = direction.normalized();
     const dashSpeed = definition.dash?.speed ?? 1200;
+    const dashDuration = distance / dashSpeed;
 
     // Set up the dash
     champion.forcedMovement = {
       direction: normalizedDir,
       distance,
-      duration: distance / dashSpeed,
+      duration: dashDuration,
       elapsed: 0,
       type: 'dash',
       hitEntities: new Set(),
     };
 
+    // Track that this dash was caused by Lume E (for animation)
+    champion.dashAbilityId = 'lume_e';
+
     // Update facing direction
     champion.direction = normalizedDir;
 
     // Schedule blind effect check on dash completion
-    const blindDelay = distance / dashSpeed;
     setTimeout(() => {
       const currentOrb = this.getOrb(champion, context);
       if (currentOrb && champion.position.distanceTo(currentOrb.position) <= 50) {
         this.applyBlindEffect(champion, currentOrb.position, definition, rank, context);
       }
-    }, blindDelay * 1000);
+    }, dashDuration * 1000);
 
     Logger.champion.debug(`${champion.playerId} dashed toward Light Orb`);
 
-    return { success: true };
+    // Animation duration: dash time + ending frames (0.4s for frames 7-10)
+    const animationDuration = dashDuration + 0.4;
+
+    return { success: true, animationDuration };
   }
 
   // =============================================================================

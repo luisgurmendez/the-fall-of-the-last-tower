@@ -11,31 +11,34 @@
  * LIGHT ORB STATES:
  * - ORBITING: Circles Lume at 60 unit radius, 2 rad/s
  * - TRAVELING: Moving to/from target at 1200 units/s
- * - STATIONED: Fixed at location for 4s before auto-returning
- * - DESTROYED: Gone for 60s after R cast, no orb abilities usable
+ * - STATIONED: Fixed at location for 5s before auto-returning
+ * - DESTROYED: Gone for 30s after R cast, abilities have reduced functionality
  */
 
 import type {
   ChampionDefinition,
   ChampionBaseStats,
   ChampionGrowthStats,
-} from '../../types/champions';
+} from "../../types/champions";
 import type {
   AbilityDefinition,
   AbilityScaling,
   PassiveAbilityDefinition,
-} from '../../types/abilities';
-import type { CircleCollision } from '../../types/collision';
-import type { ChampionAnimations } from '../../types/animation';
+} from "../../types/abilities";
+import type { RectangleCollision } from "../../types/collision";
+import type { ChampionAnimations } from "../../types/animation";
 
 // =============================================================================
 // Scaling Helper
 // =============================================================================
 
-function scaling(base: number[], options?: {
-  apRatio?: number;
-  adRatio?: number;
-}): AbilityScaling {
+function scaling(
+  base: number[],
+  options?: {
+    apRatio?: number;
+    adRatio?: number;
+  },
+): AbilityScaling {
   return {
     base,
     ...options,
@@ -47,18 +50,18 @@ function scaling(base: number[], options?: {
 // =============================================================================
 
 export const LUME_ORB_CONFIG = {
-  orbitRadius: 60,            // Distance from Lume when orbiting
-  orbitSpeed: 2.0,            // Radians per second
-  travelSpeed: 1200,          // Units per second when traveling
-  stationedDuration: 4.0,     // Seconds before auto-returning
-  passiveAuraRadius: 300,     // Radius for passive effects
-  allySpeedBonus: 0.15,       // 15% movement speed
-  enemyDamageAmp: 0.08,       // 8% increased magic damage from Lume
-  respawnTime: 60.0,          // Seconds to respawn after R
-  qImpactRadius: 150,         // Damage radius on Q arrival
-  wPulseRadius: 300,          // W heal/damage radius
-  eBlindRadius: 200,          // E blind radius on arrival
-  rExplosionRadius: 400,      // R explosion radius
+  orbitRadius: 60, // Distance from Lume when orbiting
+  orbitSpeed: 2.0, // Radians per second
+  travelSpeed: 1200, // Units per second when traveling
+  stationedDuration: 5.0, // Seconds before auto-returning (less than min cooldown)
+  passiveAuraRadius: 300, // Radius for passive effects
+  allySpeedBonus: 0.15, // 15% movement speed
+  enemyDamageAmp: 0.08, // 8% increased magic damage from Lume
+  respawnTime: 30.0, // Seconds to respawn after R
+  qImpactRadius: 150, // Damage radius on Q arrival
+  wPulseRadius: 300, // W heal/damage radius
+  eBlindRadius: 200, // E blind radius on arrival
+  rExplosionRadius: 400, // R explosion radius
 } as const;
 
 // =============================================================================
@@ -67,16 +70,16 @@ export const LUME_ORB_CONFIG = {
 
 const LUME_BASE_STATS: ChampionBaseStats = {
   health: 540,
-  healthRegen: 6.5,
+  healthRegen: 1.5,
   resource: 320,
   resourceRegen: 7,
   attackDamage: 52,
   abilityPower: 0,
-  attackSpeed: 0.65,
-  attackRange: 550,           // Standard ranged mage
+  attackSpeed: 1.65,
+  attackRange: 550, // Standard ranged mage
   armor: 26,
   magicResist: 30,
-  movementSpeed: 335,         // Slightly slow, E compensates
+  movementSpeed: 140, // Slightly slow, E compensates
   critChance: 0,
   critDamage: 2.0,
 };
@@ -112,11 +115,12 @@ const LUME_GROWTH_STATS: ChampionGrowthStats = {
  * - Damage amp only applies to Lume's magic damage, not teammates
  */
 export const LumePassive: PassiveAbilityDefinition = {
-  id: 'lume_passive',
-  name: 'Guiding Glow',
+  id: "lume_passive",
+  name: "Guiding Glow",
   description:
-    'Lume is accompanied by a Light Orb. Allies near the orb gain 15% bonus movement speed. Enemies near the orb take 8% increased magic damage from Lume.',
-  trigger: 'always',
+    "Lume is accompanied by a Light Orb. Allies near the orb gain 15% bonus movement speed. Enemies near the orb take 8% increased magic damage from Lume. If the orb is destroyed, it regenerates after 30 seconds.",
+  trigger: "always",
+  internalCooldown: 30, // Orb regeneration time
 };
 
 // =============================================================================
@@ -129,13 +133,12 @@ export const LumePassive: PassiveAbilityDefinition = {
  * FIRST CAST: Send the Light Orb to a target location.
  * - Orb travels at 1200 units/s
  * - Deals magic damage to enemies in a small area on arrival
- * - Orb stays stationed at location for 4 seconds
+ * - Orb stays stationed at location for 5 seconds before auto-returning
+ * - If orb is destroyed, casting Q will respawn it at target location
  *
  * RECAST: Recall the orb early (while traveling or stationed).
  * - Orb returns to orbiting state
  * - No cooldown on recast
- *
- * CANNOT CAST IF: Orb is destroyed
  *
  * IMPLEMENTATION NOTES:
  * - Uses ground_target targeting
@@ -143,33 +146,33 @@ export const LumePassive: PassiveAbilityDefinition = {
  * - Recast is always available while orb is away
  */
 export const LumeQ: AbilityDefinition = {
-  id: 'lume_q',
-  name: 'Send the Light',
+  id: "lume_q",
+  name: "Send the Light",
   description:
-    'Send the Light Orb to a target location, dealing {damage} magic damage to enemies in a small area on arrival. The orb remains stationed for 4 seconds. Recast to recall the orb early.',
-  type: 'active',
-  targetType: 'ground_target',
+    "Send the Light Orb to a target location, dealing {damage} magic damage to enemies in a small area on arrival. The orb remains stationed for 5 seconds. Recast to recall the orb early.",
+  type: "active",
+  targetType: "ground_target",
   maxRank: 5,
   manaCost: [40, 45, 50, 55, 60],
   cooldown: [8, 7.5, 7, 6.5, 6],
   range: 800,
   damage: {
-    type: 'magic',
+    type: "magic",
     scaling: scaling([60, 95, 130, 165, 200], { apRatio: 0.6 }),
   },
   aoeRadius: LUME_ORB_CONFIG.qImpactRadius,
   recast: {
-    id: 'lume_q_recall',
-    name: 'Recall Light',
-    description: 'Recall the Light Orb to orbit around you.',
-    type: 'active',
-    targetType: 'self',
+    id: "lume_q_recall",
+    name: "Recall Light",
+    description: "Recall the Light Orb to orbit around you.",
+    type: "active",
+    targetType: "self",
     maxRank: 5,
     manaCost: [0, 0, 0, 0, 0],
     cooldown: [0, 0, 0, 0, 0],
   },
-  recastCondition: 'always',
-  recastWindow: 10,
+  recastCondition: "always",
+  recastWindow: 6,
 };
 
 // =============================================================================
@@ -182,27 +185,26 @@ export const LumeQ: AbilityDefinition = {
  * The Light Orb pulses with warmth, affecting nearby units:
  * - Allied champions are healed
  * - Enemy champions take magic damage
- *
- * CANNOT CAST IF: Orb is destroyed
+ * - If orb is destroyed, pulses around Lume instead
  *
  * IMPLEMENTATION NOTES:
- * - Effect centered on orb's current position
+ * - Effect centered on orb's current position (or Lume if orb destroyed)
  * - Affects champions only (not minions)
  * - Single pulse, not persistent
  */
 export const LumeW: AbilityDefinition = {
-  id: 'lume_w',
-  name: 'Warmth',
+  id: "lume_w",
+  name: "Warmth",
   description:
-    'The Light Orb pulses, healing allied champions for {heal} and dealing {damage} magic damage to enemy champions within range.',
-  type: 'active',
-  targetType: 'self', // Activates at orb location
+    "The Light Orb pulses, healing allied champions for {heal} and dealing {damage} magic damage to enemy champions within range.",
+  type: "active",
+  targetType: "self", // Activates at orb location
   maxRank: 5,
   manaCost: [60, 65, 70, 75, 80],
   cooldown: [14, 13, 12, 11, 10],
   range: 0, // Centered on orb
   damage: {
-    type: 'magic',
+    type: "magic",
     scaling: scaling([50, 80, 110, 140, 170], { apRatio: 0.5 }),
   },
   heal: {
@@ -229,30 +231,30 @@ export const LumeW: AbilityDefinition = {
  * - Max distance: 600 units
  * - Stops at orb if within range
  * - Can dash toward traveling orb (targets current position)
- *
- * CANNOT CAST IF: Orb is destroyed
+ * - If orb is destroyed, dashes in facing direction
  *
  * IMPLEMENTATION NOTES:
  * - Dash direction calculated from Lume to orb at cast time
  * - If orb is farther than 600 units, dashes max distance toward it
  * - Blind effect only if Lume ends within 50 units of orb
+ * - If orb destroyed, no blind effect (just a dash)
  */
 export const LumeE: AbilityDefinition = {
-  id: 'lume_e',
-  name: 'Dazzle Step',
+  id: "lume_e",
+  name: "Dazzle Step",
   description:
-    'Dash toward the Light Orb. If Lume reaches the orb, nearby enemies are blinded for {effectDuration} seconds.',
-  type: 'active',
-  targetType: 'self', // Direction determined by orb location
+    "Dash toward the Light Orb. If Lume reaches the orb, nearby enemies are blinded for {effectDuration} seconds.",
+  type: "active",
+  targetType: "self", // Direction determined by orb location
   maxRank: 5,
   manaCost: [50, 50, 50, 50, 50],
   cooldown: [18, 16, 14, 12, 10],
   range: 0, // Not a targeted ability
   dash: {
-    speed: 1200,
+    speed: 700,
     distance: 600,
   },
-  appliesEffects: ['blind'],
+  appliesEffects: ["blind"],
   effectDuration: 1.2, // Blind duration scales with ability executor
   aoeRadius: LUME_ORB_CONFIG.eBlindRadius,
 };
@@ -273,9 +275,9 @@ export const LumeE: AbilityDefinition = {
  *
  * CONSEQUENCE:
  * - The orb is destroyed
- * - All orb-related abilities (Q, W, E) become unusable
- * - Passive aura effects stop
- * - Orb respawns after 60 seconds in orbiting state
+ * - Passive aura effects stop until orb regenerates
+ * - Orb respawns after 30 seconds in orbiting state
+ * - Other abilities still usable with reduced functionality
  *
  * CANNOT CAST IF: Orb is already destroyed
  *
@@ -285,21 +287,21 @@ export const LumeE: AbilityDefinition = {
  * - Can only cast R again after orb respawns
  */
 export const LumeR: AbilityDefinition = {
-  id: 'lume_r',
-  name: 'Beaconfall',
+  id: "lume_r",
+  name: "Beaconfall",
   description:
-    'The Light Orb explodes, dealing {damage} magic damage in a large area and slowing enemies by 40% for 2 seconds. The orb is destroyed and regenerates after 60 seconds.',
-  type: 'active',
-  targetType: 'self', // Detonates at orb location
+    "The Light Orb explodes, dealing {damage} magic damage in a large area and slowing enemies by 40% for 2 seconds. The orb is destroyed and regenerates after 30 seconds.",
+  type: "active",
+  targetType: "self", // Detonates at orb location
   maxRank: 3,
   manaCost: [100, 100, 100],
-  cooldown: [120, 100, 80],
+  cooldown: [1, 1, 1], //[120, 100, 80],
   range: 0,
   damage: {
-    type: 'magic',
+    type: "magic",
     scaling: scaling([200, 300, 400], { apRatio: 0.8 }),
   },
-  appliesEffects: ['slow_40'],
+  appliesEffects: ["slow_40"],
   effectDuration: 2.0,
   aoeRadius: LUME_ORB_CONFIG.rExplosionRadius,
 };
@@ -308,38 +310,40 @@ export const LumeR: AbilityDefinition = {
 // Collision & Animation
 // =============================================================================
 
-const LUME_COLLISION: CircleCollision = {
-  type: 'circle',
-  radius: 22,
+const LUME_COLLISION: RectangleCollision = {
+  type: "rectangle",
+  width: 30, // 38 pixels * 0.8 scale
+  height: 62, // 78 pixels * 0.8 scale
   offset: { x: 0, y: 0 },
 };
 
+// Visual height for UI positioning (matches collision since sprite fits collision bounds)
+const LUME_VISUAL_HEIGHT = 62;
+
 const LUME_ANIMATIONS: ChampionAnimations = {
   idle: {
-    id: 'idle',
-    totalFrames: 4,
+    id: "idle",
+    totalFrames: 1, // Single frame idle sprite
     baseFrameDuration: 0.2,
     loop: true,
     keyframes: [],
   },
   walk: {
-    id: 'walk',
-    totalFrames: 8,
+    id: "walk",
+    totalFrames: 6, // 6 frames in walk spritesheet
     baseFrameDuration: 0.1,
     loop: true,
     keyframes: [],
   },
   attack: {
-    id: 'attack',
+    id: "attack",
     totalFrames: 6,
     baseFrameDuration: 0.1,
     loop: false,
-    keyframes: [
-      { frame: 3, trigger: { type: 'damage' } },
-    ],
+    keyframes: [{ frame: 3, trigger: { type: "damage" } }],
   },
   death: {
-    id: 'death',
+    id: "death",
     totalFrames: 10,
     baseFrameDuration: 0.12,
     loop: false,
@@ -348,30 +352,30 @@ const LUME_ANIMATIONS: ChampionAnimations = {
   // Ability-specific animations
   abilities: {
     lume_q: {
-      id: 'lume_q',
-      totalFrames: 4,
-      baseFrameDuration: 0.1,
+      id: "lume_q",
+      totalFrames: 8, // 8 frames in Q spritesheet
+      baseFrameDuration: 0.075,
       loop: false,
       keyframes: [],
     },
     lume_w: {
-      id: 'lume_w',
-      totalFrames: 5,
+      id: "lume_w",
+      totalFrames: 1, // No W sprite yet - use idle
       baseFrameDuration: 0.1,
       loop: false,
       keyframes: [],
     },
     lume_e: {
-      id: 'lume_e',
-      totalFrames: 6,
-      baseFrameDuration: 0.08,
+      id: "lume_e",
+      totalFrames: 11, // 11 frames in E spritesheet
+      baseFrameDuration: 0.055,
       loop: false,
       keyframes: [],
     },
     lume_r: {
-      id: 'lume_r',
-      totalFrames: 8,
-      baseFrameDuration: 0.1,
+      id: "lume_r",
+      totalFrames: 12, // 12 frames in R spritesheet
+      baseFrameDuration: 0.067, // Adjusted for 12 frames
       loop: false,
       keyframes: [],
     },
@@ -383,22 +387,23 @@ const LUME_ANIMATIONS: ChampionAnimations = {
 // =============================================================================
 
 export const LumeDefinition: ChampionDefinition = {
-  id: 'lume',
-  name: 'Lume',
-  title: 'The Wandering Light',
-  class: 'mage',
-  attackType: 'ranged',
-  resourceType: 'mana',
+  id: "lume",
+  name: "Lume",
+  title: "The Wandering Light",
+  class: "mage",
+  attackType: "ranged",
+  resourceType: "mana",
   baseStats: LUME_BASE_STATS,
   growthStats: LUME_GROWTH_STATS,
   abilities: {
-    Q: 'lume_q',
-    W: 'lume_w',
-    E: 'lume_e',
-    R: 'lume_r',
+    Q: "lume_q",
+    W: "lume_w",
+    E: "lume_e",
+    R: "lume_r",
   },
-  passive: 'lume_passive',
+  passive: "lume_passive",
   collision: LUME_COLLISION,
+  visualHeight: LUME_VISUAL_HEIGHT,
   animations: LUME_ANIMATIONS,
 };
 

@@ -65,6 +65,8 @@ export interface AbilityExecutionResult {
   skipManaCost?: boolean;
   /** Custom cooldown override */
   cooldownOverride?: number;
+  /** Custom animation duration in seconds (for abilities with dashes, etc.) */
+  animationDuration?: number;
 }
 
 /**

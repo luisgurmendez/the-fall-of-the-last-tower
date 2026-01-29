@@ -324,9 +324,10 @@ export class ServerJungleCreature extends ServerEntity {
       creatureType: this.creatureType,
       x: this.position.x,
       y: this.position.y,
-      targetX: this.moveTarget?.x,
-      targetY: this.moveTarget?.y,
-      targetEntityId: this.attackTarget ?? undefined,
+      // Use null for cleared values (not undefined) for proper delta updates
+      targetX: this.moveTarget?.x ?? null,
+      targetY: this.moveTarget?.y ?? null,
+      targetEntityId: this.attackTarget,
       health: this.health,
       maxHealth: this.maxHealth,
       isDead: this.isDead,

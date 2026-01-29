@@ -24,7 +24,7 @@ import {
 } from "@siege/shared";
 import { passiveTriggerSystem } from "../systems/PassiveTriggerSystem";
 import { abilityHandlerRegistry } from "../abilities/AbilityHandlerRegistry";
-import type { AbilityHandlerParams } from "../abilities/IAbilityHandler";
+import type { AbilityHandlerParams, AbilityExecutionResult } from "../abilities/IAbilityHandler";
 import type { ServerChampion } from "./ServerChampion";
 import type { ServerEntity } from "./ServerEntity";
 import type { ServerGameContext } from "../game/ServerGameContext";
@@ -224,7 +224,7 @@ export class ServerAbilityExecutor {
     }
 
     // All checks passed - execute the ability
-    this.executeAbility(params, definition, damageMultiplier);
+    const executionResult = this.executeAbility(params, definition, damageMultiplier);
 
     // Consume passive stacks if damage amp was used
     if (damageMultiplier > 1.0) {
@@ -245,7 +245,7 @@ export class ServerAbilityExecutor {
     // Enter combat
     champion.enterCombat();
 
-    // Add event for ability cast
+    // Add event for ability cast (include animation duration if handler provided one)
     context.addEvent(GameEventType.ABILITY_CAST, {
       entityId: champion.id,
       abilityId,
@@ -253,6 +253,7 @@ export class ServerAbilityExecutor {
       targetX: params.targetPosition?.x,
       targetY: params.targetPosition?.y,
       targetEntityId: params.targetEntityId,
+      animationDuration: executionResult?.animationDuration,
     });
 
     // Dispatch on_ability_cast trigger for passive abilities
@@ -448,12 +449,13 @@ export class ServerAbilityExecutor {
   /**
    * Execute the ability effect.
    * @param damageMultiplier - Multiplier from passive abilities (e.g., 1.3 for Arcane Surge)
+   * @returns The execution result from the handler, if any
    */
   private executeAbility(
     params: AbilityCastParams,
     definition: AbilityDefinition,
     damageMultiplier: number = 1.0
-  ): void {
+  ): AbilityExecutionResult | undefined {
     const { champion, slot, context } = params;
     const rank = champion.abilityStates[slot].rank;
 
@@ -529,7 +531,7 @@ export class ServerAbilityExecutor {
         }
       }
 
-      return;
+      return result;
     }
 
     // Fallback: Special handling for Lume abilities (Light Orb mechanics)

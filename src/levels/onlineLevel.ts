@@ -159,7 +159,7 @@ class OnlineCameraController implements GameObject {
   private camera: Camera | null = null;
   private localSide: number;
   private hasInitializedPosition = false;
-  private isLocked = true; // Start with camera locked to champion
+  private isLocked = false; // Start with camera unlocked (Y to toggle, Space to focus)
   private keyListener: ((e: KeyboardEvent) => void) | null = null;
 
   constructor(stateManager: OnlineStateManager, localSide: number) {

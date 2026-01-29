@@ -90,6 +90,8 @@ const CHAMPION_ICONS: Record<string, string> = {
   elara: "✨",
   vex: "🗡️",
   gorath: "🛡️",
+  vile: "💀",
+  lume: "☀️",
 };
 
 /**
@@ -141,7 +143,7 @@ export class MatchmakingUI {
   private queueTimerInterval: ReturnType<typeof setInterval> | null = null;
   private loadingProgress: number = 0;
   private matchData: MatchData | null = null;
-  private selectedChampionId: string = "warrior";
+  private selectedChampionId: string = "lume";
   private bufferedFullState: any = null;
 
   // Callbacks
@@ -248,13 +250,24 @@ export class MatchmakingUI {
   }
 
   /**
-   * Populate the champion grid with all available champions.
+   * Champions available for selection.
+   * Filter to only show finished/polished champions.
+   */
+  private static readonly ENABLED_CHAMPIONS = ['vex', 'lume', 'vile'];
+
+  /**
+   * Populate the champion grid with available champions.
    */
   private populateChampionGrid(): void {
     if (!this.championGrid) return;
 
     this.championGrid.innerHTML = "";
-    const champions = getAllChampionDefinitions();
+    const allChampions = getAllChampionDefinitions();
+
+    // Filter to only show enabled champions
+    const champions = allChampions.filter(c =>
+      MatchmakingUI.ENABLED_CHAMPIONS.includes(c.id)
+    );
 
     for (const champion of champions) {
       const card = this.createChampionCard(champion);
@@ -431,6 +444,7 @@ export class MatchmakingUI {
 
   /**
    * Create an ability card element for the champion select screen.
+   * Shows icon only, with dialog tooltip on hover.
    */
   private createAbilityCard(
     slot: string,
@@ -440,8 +454,9 @@ export class MatchmakingUI {
   ): HTMLElement {
     const card = document.createElement("div");
     card.className = "ability-card";
+    card.dataset.slot = slot;
 
-    // Ability header with icon, slot and name
+    // Ability header with icon only
     const header = document.createElement("div");
     header.className = "ability-card-header";
 
@@ -452,36 +467,38 @@ export class MatchmakingUI {
     icon.className = "ability-icon";
     icon.src = iconPath;
     icon.alt = `${slot} ability`;
-    icon.width = 48;
-    icon.height = 48;
+    icon.width = 64;
+    icon.height = 64;
     // Hide if image fails to load
     icon.onerror = () => { icon.style.display = 'none'; };
     header.appendChild(icon);
-
-    const headerText = document.createElement("div");
-    headerText.className = "ability-card-header-text";
-    headerText.innerHTML = `
-      <span class="ability-slot">${slot}</span>
-      <span class="ability-name">${ability.name}</span>
-    `;
-    header.appendChild(headerText);
     card.appendChild(header);
+
+    // Create dialog tooltip
+    const dialog = document.createElement("div");
+    dialog.className = "ability-dialog";
+
+    // Dialog header
+    const dialogHeader = document.createElement("div");
+    dialogHeader.className = "ability-dialog-header";
+    dialogHeader.innerHTML = `
+      <span class="ability-dialog-slot">${slot}</span>
+      <span class="ability-dialog-name">${ability.name}</span>
+    `;
+    dialog.appendChild(dialogHeader);
 
     // Description with interpolated values at rank 1
     const description = document.createElement("div");
-    description.className = "ability-description";
+    description.className = "ability-dialog-description";
     const interpolatedDesc = this.interpolateAbilityDescription(
       ability,
       1,
       baseStats,
     );
     description.innerHTML = interpolatedDesc;
-    card.appendChild(description);
+    dialog.appendChild(description);
 
     // Stats row (cooldown, cost, range)
-    const statsRow = document.createElement("div");
-    statsRow.className = "ability-stats-row";
-
     const statParts: string[] = [];
     if (ability.cooldown && ability.cooldown.length > 0) {
       const cdValues = ability.cooldown.map((cd) => cd.toString()).join("/");
@@ -495,29 +512,36 @@ export class MatchmakingUI {
       statParts.push(`Range: ${ability.range}`);
     }
 
-    statsRow.textContent = statParts.join("  •  ");
-    card.appendChild(statsRow);
+    if (statParts.length > 0) {
+      const statsRow = document.createElement("div");
+      statsRow.className = "ability-dialog-stats";
+      statsRow.textContent = statParts.join("  •  ");
+      dialog.appendChild(statsRow);
+    }
 
     // Scaling info
     const scalingInfo = this.getAbilityScalingInfo(ability);
     if (scalingInfo) {
       const scaling = document.createElement("div");
-      scaling.className = "ability-scaling";
+      scaling.className = "ability-dialog-scaling";
       scaling.innerHTML = scalingInfo;
-      card.appendChild(scaling);
+      dialog.appendChild(scaling);
     }
+
+    card.appendChild(dialog);
 
     return card;
   }
 
   /**
    * Create a passive card element for the champion select screen.
+   * Shows icon only, with dialog tooltip on hover.
    */
   private createPassiveCard(passive: PassiveAbilityDefinition, championId: string): HTMLElement {
     const card = document.createElement("div");
     card.className = "passive-card";
 
-    // Passive header with icon, slot (P) and name
+    // Passive header with icon only
     const header = document.createElement("div");
     header.className = "passive-card-header";
 
@@ -527,37 +551,39 @@ export class MatchmakingUI {
     icon.className = "passive-icon";
     icon.src = iconPath;
     icon.alt = "Passive ability";
-    icon.width = 48;
-    icon.height = 48;
+    icon.width = 64;
+    icon.height = 64;
     // Hide if image fails to load
     icon.onerror = () => { icon.style.display = 'none'; };
     header.appendChild(icon);
-
-    const headerText = document.createElement("div");
-    headerText.className = "passive-card-header-text";
-    headerText.innerHTML = `
-      <span class="passive-slot">P</span>
-      <span class="passive-name">${passive.name}</span>
-    `;
-    header.appendChild(headerText);
     card.appendChild(header);
+
+    // Create dialog tooltip
+    const dialog = document.createElement("div");
+    dialog.className = "passive-dialog";
+
+    // Dialog header
+    const dialogHeader = document.createElement("div");
+    dialogHeader.className = "passive-dialog-header";
+    dialogHeader.innerHTML = `
+      <span class="passive-dialog-slot">P</span>
+      <span class="passive-dialog-name">${passive.name}</span>
+    `;
+    dialog.appendChild(dialogHeader);
 
     // Trigger type
     const trigger = document.createElement("div");
-    trigger.className = "passive-trigger";
+    trigger.className = "passive-dialog-trigger";
     trigger.textContent = `Trigger: ${this.formatPassiveTrigger(passive.trigger)}`;
-    card.appendChild(trigger);
+    dialog.appendChild(trigger);
 
     // Description
     const description = document.createElement("div");
-    description.className = "passive-description";
+    description.className = "passive-dialog-description";
     description.textContent = passive.description;
-    card.appendChild(description);
+    dialog.appendChild(description);
 
     // Stats row (cooldown, stacks)
-    const statsRow = document.createElement("div");
-    statsRow.className = "passive-stats-row";
-
     const statParts: string[] = [];
     if (passive.internalCooldown) {
       statParts.push(`Cooldown: ${passive.internalCooldown}s`);
@@ -569,10 +595,14 @@ export class MatchmakingUI {
       statParts.push(`Threshold: ${Math.round(passive.healthThreshold * 100)}% HP`);
     }
 
-    statsRow.textContent = statParts.join("  •  ");
     if (statParts.length > 0) {
-      card.appendChild(statsRow);
+      const statsRow = document.createElement("div");
+      statsRow.className = "passive-dialog-stats";
+      statsRow.textContent = statParts.join("  •  ");
+      dialog.appendChild(statsRow);
     }
+
+    card.appendChild(dialog);
 
     return card;
   }

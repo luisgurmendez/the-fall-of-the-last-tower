@@ -377,11 +377,26 @@ export class OnlineStateManager {
       // Update existing entity - merge delta into existing snapshot
       const snapshot = { ...existing.snapshot, ...delta.data } as EntitySnapshot;
 
+      // Clearable values use `null` to indicate "cleared" vs absent meaning "no change"
+      // We must explicitly copy these since spread operator handles null correctly but
+      // we want to be explicit about the pattern for clarity
+      // Round target positions to integers to avoid floating point precision issues
+      if (data && 'targetX' in data) {
+        (snapshot as any).targetX = data.targetX != null ? Math.round(data.targetX) : null;
+      }
+      if (data && 'targetY' in data) {
+        (snapshot as any).targetY = data.targetY != null ? Math.round(data.targetY) : null;
+      }
+      if (data && 'targetEntityId' in data) {
+        (snapshot as any).targetEntityId = data.targetEntityId;
+      }
+
       // Only update position if x/y are explicitly provided in delta
       // This prevents position from being reset to (0,0) when delta doesn't include position
+      // Round positions to integers to avoid floating point precision issues
       if (data && typeof data.x === 'number' && typeof data.y === 'number') {
         existing.previousPosition = existing.position.clone();
-        existing.position = new Vector(data.x, data.y);
+        existing.position = new Vector(Math.round(data.x), Math.round(data.y));
       }
 
       existing.snapshot = snapshot;
@@ -416,7 +431,8 @@ export class OnlineStateManager {
    * Add or update an entity.
    */
   private addOrUpdateEntity(snapshot: EntitySnapshot): void {
-    const pos = new Vector(snapshot.x, snapshot.y);
+    // Round positions to integers to avoid floating point precision issues
+    const pos = new Vector(Math.round(snapshot.x), Math.round(snapshot.y));
 
     // DEBUG: Log tower and nexus entities
     if (snapshot.entityType === EntityType.TOWER) {
@@ -569,6 +585,17 @@ export class OnlineStateManager {
 
     const elapsed = Date.now() - entity.animation.attackStartTime;
     return Math.min(1, elapsed / entity.animation.attackDuration);
+  }
+
+  /**
+   * Get animation progress (0-1) for ability animation.
+   */
+  getAbilityAnimationProgress(entityId: string): number {
+    const entity = this.entities.get(entityId);
+    if (!entity || !entity.animation.isCastingAbility) return 0;
+
+    const elapsed = Date.now() - entity.animation.abilityStartTime;
+    return Math.min(1, elapsed / entity.animation.abilityDuration);
   }
 
   /**

@@ -4,7 +4,8 @@
  */
 
 import type { Side } from './units';
-import type { CircleCollision } from './collision';
+import type { EntityCollision, CircleCollision } from './collision';
+import { DEFAULT_TOWER_COLLISION } from './collision';
 
 /**
  * Tower tier (outer = 1, inner = 2, inhibitor = 3).
@@ -31,7 +32,7 @@ export interface TowerStats {
   warmupDamagePerStack: number;
   maxWarmupStacks: number;
   /** Collision shape for the tower */
-  collision?: CircleCollision;
+  collision?: EntityCollision;
 }
 
 /**
@@ -48,7 +49,7 @@ export const DEFAULT_TOWER_STATS: Record<TowerTier, TowerStats> = {
     attackCooldown: 0.83,
     warmupDamagePerStack: 40,
     maxWarmupStacks: 5,
-    collision: { type: 'circle', radius: 50, offset: { x: 0, y: 0 } },
+    collision: DEFAULT_TOWER_COLLISION,
   },
   2: {
     health: 3500,
@@ -60,7 +61,7 @@ export const DEFAULT_TOWER_STATS: Record<TowerTier, TowerStats> = {
     attackCooldown: 0.83,
     warmupDamagePerStack: 45,
     maxWarmupStacks: 5,
-    collision: { type: 'circle', radius: 55, offset: { x: 0, y: 0 } },
+    collision: DEFAULT_TOWER_COLLISION,
   },
   3: {
     health: 4000,
@@ -72,7 +73,7 @@ export const DEFAULT_TOWER_STATS: Record<TowerTier, TowerStats> = {
     attackCooldown: 0.83,
     warmupDamagePerStack: 50,
     maxWarmupStacks: 5,
-    collision: { type: 'circle', radius: 60, offset: { x: 0, y: 0 } },
+    collision: DEFAULT_TOWER_COLLISION,
   },
 };
 

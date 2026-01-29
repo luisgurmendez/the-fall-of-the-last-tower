@@ -11,7 +11,7 @@ import type GameContext from '@/core/gameContext';
 import Vector from '@/physics/vector';
 import type { OnlineStateManager } from '@/core/OnlineStateManager';
 import type { FogRevealer } from '@/core/FogOfWar';
-import { EntityType, GameConfig } from '@siege/shared';
+import { EntityType, GameConfig, DEFAULT_MINION_STATS, type MinionType } from '@siege/shared';
 import { Bush } from '@/vision/Bush';
 import type { BushManager, BushGroup } from '@/vision';
 
@@ -19,16 +19,30 @@ import type { BushManager, BushGroup } from '@/vision';
  * Sight ranges for different entity types.
  * IMPORTANT: These must match the server values in FogOfWarServer.ts
  * Entities with 0 sight range don't provide vision.
+ *
+ * Note: Minions have type-specific sight ranges looked up from DEFAULT_MINION_STATS.
  */
 const SIGHT_RANGES: Record<number, number> = {
   [EntityType.CHAMPION]: GameConfig.VISION.CHAMPION_SIGHT_RANGE, // 800
-  [EntityType.MINION]: 500, // Matches DEFAULT_MINION_STATS.melee.sightRange
+  [EntityType.MINION]: DEFAULT_MINION_STATS.melee.sightRange, // Fallback - actual lookup by minionType below
   [EntityType.TOWER]: 750, // Matches server tower sight range
   [EntityType.NEXUS]: 1000,
   [EntityType.JUNGLE_CAMP]: 400,
-  [EntityType.WARD]: GameConfig.VISION.WARD_SIGHT_RANGE, // 600
+  [EntityType.WARD]: GameConfig.VISION.WARD_SIGHT_RANGE, // 900
   [EntityType.PROJECTILE]: 0, // Projectiles don't provide vision
 };
+
+/**
+ * Get sight range for a minion based on its type.
+ * Uses DEFAULT_MINION_STATS to match server-side values.
+ */
+function getMinionSightRange(minionType: MinionType | undefined): number {
+  if (minionType && DEFAULT_MINION_STATS[minionType]) {
+    return DEFAULT_MINION_STATS[minionType].sightRange;
+  }
+  // Default to melee sight range if type unknown
+  return DEFAULT_MINION_STATS.melee.sightRange;
+}
 
 /**
  * A single fog revealer from server state.
@@ -187,9 +201,13 @@ export class OnlineFogProvider implements GameObject, FogRevealer {
 
       // Get sight range for this entity type
       // For wards, use the sightRange from the snapshot if available
+      // For minions, look up by minionType to match server-side values
       let sightRange: number;
       if (snapshot.entityType === EntityType.WARD && snapshot.sightRange) {
         sightRange = snapshot.sightRange;
+      } else if (snapshot.entityType === EntityType.MINION) {
+        // Use minion-type-specific sight range to match server values
+        sightRange = getMinionSightRange(snapshot.minionType);
       } else {
         // Use 0 as fallback - unknown entity types don't provide vision
         sightRange = SIGHT_RANGES[snapshot.entityType] ?? 0;

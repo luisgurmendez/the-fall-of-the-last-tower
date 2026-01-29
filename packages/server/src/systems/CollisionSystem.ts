@@ -2,14 +2,19 @@
  * CollisionSystem - Handles unit collision detection and resolution.
  *
  * Features:
- * - Circle-circle collision detection using squared distance (optimization)
+ * - Shape-based collision detection (circles, rectangles, capsules)
  * - Mass-based separation (heavier units push lighter units more)
  * - Spatial grid for O(n) performance instead of O(n²)
  *
  * @see docs/architecture/collision.md
  */
 
-import { Vector } from '@siege/shared';
+import {
+  Vector,
+  collisionShapesOverlap,
+  calculateCollisionSeparation,
+  getEffectiveRadius,
+} from '@siege/shared';
 import type { ServerEntity } from '../simulation/ServerEntity';
 import { SpatialGrid } from './SpatialGrid';
 
@@ -21,6 +26,8 @@ export interface CollisionConfig {
   separationStrength: number;
   /** Maximum distance a unit can be pushed in one tick. Default: 50 */
   maxSeparationDistance: number;
+  /** Minimum overlap required to trigger separation. Default: 2.0 (prevents vibration) */
+  minOverlapThreshold: number;
   /** Cell size for spatial grid. Default: 100 */
   spatialGridCellSize: number;
   /** Whether to use spatial grid optimization. Default: true */
@@ -33,60 +40,43 @@ export interface CollisionConfig {
 export const DEFAULT_COLLISION_CONFIG: CollisionConfig = {
   separationStrength: 1.0,
   maxSeparationDistance: 50,
+  minOverlapThreshold: 2.0,  // Ignore overlaps smaller than 2 pixels to prevent vibration
   spatialGridCellSize: 100,
   useSpatialGrid: true,
 };
 
 /**
- * Check if two entities are colliding (circles overlap).
- * Uses squared distance to avoid sqrt for performance.
+ * Check if two entities are colliding using their collision shapes.
+ * Supports circles, rectangles, and capsules.
  */
 export function checkCollision(a: ServerEntity, b: ServerEntity): boolean {
-  const dx = b.position.x - a.position.x;
-  const dy = b.position.y - a.position.y;
-  const distSq = dx * dx + dy * dy;
-  const minDist = a.getRadius() + b.getRadius();
-  return distSq < minDist * minDist;
+  const shapeA = a.getCollisionShape();
+  const shapeB = b.getCollisionShape();
+  return collisionShapesOverlap(shapeA, a.position, shapeB, b.position);
 }
 
 /**
  * Calculate the separation vector needed to push two entities apart.
- * Returns the vector from a to b, scaled by overlap amount.
+ * Uses shape-based separation calculation.
+ * Returns the vector that entity A should move to separate from entity B.
  */
 export function calculateSeparation(
   a: ServerEntity,
   b: ServerEntity,
   strength: number = 1.0
 ): Vector {
-  const dx = b.position.x - a.position.x;
-  const dy = b.position.y - a.position.y;
-  const distSq = dx * dx + dy * dy;
-  const distance = Math.sqrt(distSq);
+  const shapeA = a.getCollisionShape();
+  const shapeB = b.getCollisionShape();
 
-  const minDist = a.getRadius() + b.getRadius();
-  const overlap = minDist - distance;
+  const separation = calculateCollisionSeparation(shapeA, a.position, shapeB, b.position);
 
-  if (overlap <= 0) {
+  // No overlap
+  if (separation.x === 0 && separation.y === 0) {
     return new Vector(0, 0);
   }
 
-  // If units are at exact same position, push in random direction
-  if (distance < 0.001) {
-    const angle = Math.random() * Math.PI * 2;
-    return new Vector(
-      Math.cos(angle) * overlap * strength,
-      Math.sin(angle) * overlap * strength
-    );
-  }
-
-  // Normal case: push along the line between centers
-  const nx = dx / distance;
-  const ny = dy / distance;
-
-  return new Vector(
-    nx * overlap * strength,
-    ny * overlap * strength
-  );
+  // Apply strength multiplier
+  return new Vector(separation.x * strength, separation.y * strength);
 }
 
 /**
@@ -151,8 +141,9 @@ export class CollisionSystem {
 
     // For each entity, check only nearby entities
     for (const entity of entities) {
+      const entityRadius = getEffectiveRadius(entity.getCollisionShape());
       const maxRadius = this.getMaxCollisionRadius(entity, entities);
-      const nearby = grid.getNearby(entity.position, entity.getRadius() + maxRadius);
+      const nearby = grid.getNearby(entity.position, entityRadius + maxRadius);
 
       for (const other of nearby) {
         if (entity === other) continue;
@@ -171,13 +162,15 @@ export class CollisionSystem {
   }
 
   /**
-   * Get maximum collision radius among entities (for spatial query range).
+   * Get maximum effective collision radius among entities (for spatial query range).
+   * Uses getEffectiveRadius to get bounding circle for any collision shape.
    */
   private getMaxCollisionRadius(exclude: ServerEntity, entities: ServerEntity[]): number {
     let maxRadius = 0;
     for (const entity of entities) {
       if (entity !== exclude) {
-        maxRadius = Math.max(maxRadius, entity.getRadius());
+        const radius = getEffectiveRadius(entity.getCollisionShape());
+        maxRadius = Math.max(maxRadius, radius);
       }
     }
     return maxRadius;
@@ -193,8 +186,15 @@ export class CollisionSystem {
 
     const separation = calculateSeparation(a, b, this.config.separationStrength);
 
-    // Cap separation distance
+    // Check separation magnitude
     const sepLength = separation.length();
+
+    // Skip tiny overlaps to prevent vibration when units are barely touching
+    if (sepLength < this.config.minOverlapThreshold) {
+      return;
+    }
+
+    // Cap separation distance
     if (sepLength > this.config.maxSeparationDistance) {
       separation.normalize().scalar(this.config.maxSeparationDistance);
     }

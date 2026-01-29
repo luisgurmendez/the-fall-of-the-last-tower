@@ -37,6 +37,43 @@ Siege is a **multiplayer MOBA** (Multiplayer Online Battle Arena) game. The game
 
 ---
 
+## IMPORTANT: Use `null` for Clearable Values (Not `undefined`)
+
+> **Pattern for Delta Updates**
+>
+> When a property can be "cleared" (e.g., movement target when a champion stops), use `null` instead of `undefined`:
+>
+> ```typescript
+> // In snapshot types (packages/shared/src/types/network.ts):
+> targetX?: number | null;  // Can be cleared
+> targetY?: number | null;  // Can be cleared
+> targetEntityId?: string | null;  // Can be cleared
+>
+> // In server toSnapshot() methods:
+> targetX: this.targetPosition?.x ?? null,  // Send null when cleared
+> targetEntityId: this.targetEntityId,       // Already null, don't convert
+>
+> // In client code, check with != null:
+> const hasMoveTarget = moveTargetX != null && moveTargetY != null;
+> ```
+>
+> **Why this matters:**
+> - JavaScript spread operator `{ ...a, ...b }` does NOT copy properties with `undefined` values
+> - This causes stale values to persist in delta updates
+> - `null` is explicitly copied by spread and JSON serialization
+>
+> **Semantic meaning:**
+> - `null` = "this value has been explicitly cleared"
+> - Property absent in delta = "no change to this value"
+> - `undefined` = ambiguous, avoid for clearable state
+>
+> **Affected properties:**
+> - `targetX`, `targetY` - movement targets
+> - `targetEntityId` - attack/focus targets
+> - Any state that transitions between "has value" and "no value"
+
+---
+
 ## MOBA Architecture Documentation
 
 > **IMPORTANT: Keep documentation up to date!**

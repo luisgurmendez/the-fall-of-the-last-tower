@@ -46,6 +46,17 @@ export class DebugPanel {
   private panelHeight = 0;
   private closeButtonRect = { x: 0, y: 0, width: 20, height: 20 };
 
+  // Scrollbar state
+  private scrollbarRect = { x: 0, y: 0, width: 8, height: 0 };
+  private scrollThumbRect = { x: 0, y: 0, width: 8, height: 0 };
+  private isDraggingScrollbar = false;
+  private dragStartY = 0;
+  private dragStartScrollOffset = 0;
+
+  // Scroll button geometry
+  private scrollUpButtonRect = { x: 0, y: 0, width: 24, height: 20 };
+  private scrollDownButtonRect = { x: 0, y: 0, width: 24, height: 20 };
+
   constructor(config: DebugInspectorConfig) {
     this.config = config;
   }
@@ -54,8 +65,16 @@ export class DebugPanel {
    * Set the entity to inspect.
    */
   setInspectedEntity(entity: InspectedEntity | null): void {
+    // Only reset scroll if selecting a different entity
+    const isNewEntity = !this.inspectedEntity ||
+      !entity ||
+      this.inspectedEntity.entityId !== entity.entityId;
+
     this.inspectedEntity = entity;
-    this.scrollOffset = 0;
+
+    if (isNewEntity) {
+      this.scrollOffset = 0;
+    }
 
     if (entity) {
       this.sections = this.buildSections(entity);
@@ -88,6 +107,87 @@ export class DebugPanel {
       0,
       Math.min(this.maxScrollOffset, this.scrollOffset + deltaY * 0.5)
     );
+  }
+
+  /**
+   * Check if a click is on the scrollbar and start dragging.
+   */
+  handleScrollbarClick(x: number, y: number): void {
+    if (!this.inspectedEntity || this.maxScrollOffset <= 0) return;
+
+    // Check if clicking on scrollbar track area
+    const trackX = this.scrollbarRect.x;
+    const trackY = this.scrollbarRect.y;
+    const trackWidth = this.scrollbarRect.width;
+    const trackHeight = this.scrollbarRect.height;
+
+    if (x >= trackX && x <= trackX + trackWidth &&
+        y >= trackY && y <= trackY + trackHeight) {
+
+      // Check if clicking on thumb
+      if (y >= this.scrollThumbRect.y && y <= this.scrollThumbRect.y + this.scrollThumbRect.height) {
+        // Start dragging from thumb
+        this.isDraggingScrollbar = true;
+        this.dragStartY = y;
+        this.dragStartScrollOffset = this.scrollOffset;
+      } else {
+        // Click above or below thumb - jump to that position
+        const clickRatio = (y - trackY) / trackHeight;
+        this.scrollOffset = clickRatio * this.maxScrollOffset;
+        this.scrollOffset = Math.max(0, Math.min(this.maxScrollOffset, this.scrollOffset));
+      }
+    }
+  }
+
+  /**
+   * Handle scrollbar drag movement.
+   */
+  handleScrollbarDrag(mouseY: number): void {
+    if (!this.isDraggingScrollbar || this.maxScrollOffset <= 0) return;
+
+    const trackHeight = this.scrollbarRect.height;
+    const deltaY = mouseY - this.dragStartY;
+    const scrollDelta = (deltaY / trackHeight) * this.maxScrollOffset;
+
+    this.scrollOffset = this.dragStartScrollOffset + scrollDelta;
+    this.scrollOffset = Math.max(0, Math.min(this.maxScrollOffset, this.scrollOffset));
+  }
+
+  /**
+   * Stop scrollbar dragging.
+   */
+  stopScrollbarDrag(): void {
+    this.isDraggingScrollbar = false;
+  }
+
+  /**
+   * Check if point is on scroll up button and handle click.
+   * Returns true if clicked.
+   */
+  handleScrollUpClick(x: number, y: number): boolean {
+    if (!this.inspectedEntity || this.maxScrollOffset <= 0) return false;
+
+    const btn = this.scrollUpButtonRect;
+    if (x >= btn.x && x <= btn.x + btn.width && y >= btn.y && y <= btn.y + btn.height) {
+      this.scrollOffset = Math.max(0, this.scrollOffset - 50);
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Check if point is on scroll down button and handle click.
+   * Returns true if clicked.
+   */
+  handleScrollDownClick(x: number, y: number): boolean {
+    if (!this.inspectedEntity || this.maxScrollOffset <= 0) return false;
+
+    const btn = this.scrollDownButtonRect;
+    if (x >= btn.x && x <= btn.x + btn.width && y >= btn.y && y <= btn.y + btn.height) {
+      this.scrollOffset = Math.min(this.maxScrollOffset, this.scrollOffset + 50);
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -326,22 +426,78 @@ export class DebugPanel {
   }
 
   /**
-   * Draw scroll indicator.
+   * Draw scroll indicator with up/down buttons.
    */
   private drawScrollIndicator(ctx: CanvasRenderingContext2D): void {
-    const trackX = this.panelX + this.config.panelWidth - 8;
-    const trackY = this.panelY + 35;
-    const trackHeight = this.panelHeight - 40;
+    const buttonWidth = 24;
+    const buttonHeight = 20;
+    const buttonX = this.panelX + this.config.panelWidth - buttonWidth - 4;
+
+    // Up button at top of content area
+    const upButtonY = this.panelY + 35;
+    this.scrollUpButtonRect = { x: buttonX, y: upButtonY, width: buttonWidth, height: buttonHeight };
+
+    // Down button at bottom of panel
+    const downButtonY = this.panelY + this.panelHeight - buttonHeight - 4;
+    this.scrollDownButtonRect = { x: buttonX, y: downButtonY, width: buttonWidth, height: buttonHeight };
+
+    // Scrollbar track between buttons
+    const trackWidth = 8;
+    const trackX = buttonX + (buttonWidth - trackWidth) / 2;
+    const trackY = upButtonY + buttonHeight + 4;
+    const trackHeight = downButtonY - trackY - 4;
     const thumbHeight = Math.max(20, (this.panelHeight / (this.maxScrollOffset + this.panelHeight)) * trackHeight);
     const thumbY = trackY + (this.scrollOffset / this.maxScrollOffset) * (trackHeight - thumbHeight);
 
-    // Track
-    ctx.fillStyle = 'rgba(60, 60, 80, 0.5)';
-    ctx.fillRect(trackX, trackY, 4, trackHeight);
+    // Store geometry for click detection
+    this.scrollbarRect = { x: trackX, y: trackY, width: trackWidth, height: trackHeight };
+    this.scrollThumbRect = { x: trackX, y: thumbY, width: trackWidth, height: thumbHeight };
 
-    // Thumb
-    ctx.fillStyle = 'rgba(120, 120, 150, 0.8)';
-    ctx.fillRect(trackX, thumbY, 4, thumbHeight);
+    // Draw UP button
+    const canScrollUp = this.scrollOffset > 0;
+    ctx.fillStyle = canScrollUp ? 'rgba(80, 80, 100, 0.9)' : 'rgba(50, 50, 70, 0.6)';
+    this.roundRect(ctx, buttonX, upButtonY, buttonWidth, buttonHeight, 4);
+    ctx.fill();
+    ctx.strokeStyle = canScrollUp ? 'rgba(120, 120, 150, 1)' : 'rgba(80, 80, 100, 0.6)';
+    ctx.lineWidth = 1;
+    this.roundRect(ctx, buttonX, upButtonY, buttonWidth, buttonHeight, 4);
+    ctx.stroke();
+
+    // Up arrow ▲
+    ctx.fillStyle = canScrollUp ? '#ffffff' : 'rgba(255, 255, 255, 0.4)';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('▲', buttonX + buttonWidth / 2, upButtonY + buttonHeight / 2);
+
+    // Draw DOWN button
+    const canScrollDown = this.scrollOffset < this.maxScrollOffset;
+    ctx.fillStyle = canScrollDown ? 'rgba(80, 80, 100, 0.9)' : 'rgba(50, 50, 70, 0.6)';
+    this.roundRect(ctx, buttonX, downButtonY, buttonWidth, buttonHeight, 4);
+    ctx.fill();
+    ctx.strokeStyle = canScrollDown ? 'rgba(120, 120, 150, 1)' : 'rgba(80, 80, 100, 0.6)';
+    ctx.lineWidth = 1;
+    this.roundRect(ctx, buttonX, downButtonY, buttonWidth, buttonHeight, 4);
+    ctx.stroke();
+
+    // Down arrow ▼
+    ctx.fillStyle = canScrollDown ? '#ffffff' : 'rgba(255, 255, 255, 0.4)';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('▼', buttonX + buttonWidth / 2, downButtonY + buttonHeight / 2);
+
+    // Track background (only if there's room)
+    if (trackHeight > 10) {
+      ctx.fillStyle = 'rgba(60, 60, 80, 0.6)';
+      this.roundRect(ctx, trackX, trackY, trackWidth, trackHeight, 4);
+      ctx.fill();
+
+      // Thumb
+      ctx.fillStyle = this.isDraggingScrollbar ? 'rgba(150, 150, 180, 1)' : 'rgba(120, 120, 150, 0.9)';
+      this.roundRect(ctx, trackX, thumbY, trackWidth, thumbHeight, 4);
+      ctx.fill();
+    }
   }
 
   /**

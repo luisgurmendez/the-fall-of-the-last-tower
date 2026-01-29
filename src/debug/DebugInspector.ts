@@ -22,7 +22,7 @@ import RenderElement from '@/render/renderElement';
 import { EntityClickDetector } from './EntityClickDetector';
 import { DebugPanel } from './DebugPanel';
 import { DEFAULT_DEBUG_CONFIG, type DebugInspectorConfig, type InspectedEntity } from './types';
-import { EntityType, MOBAConfig, calculateIndividualBushPositions } from '@siege/shared';
+import { EntityType, MOBAConfig, calculateIndividualBushPositions, DEFAULT_TOWER_COLLISION, getChampionDefinition, isRectangleCollision, type EntityCollision } from '@siege/shared';
 import type { BushManager } from '@/vision';
 
 /**
@@ -53,6 +53,16 @@ export class DebugInspector implements GameObject {
 
   // Bush manager for rendering bush collision masks
   private bushManager: BushManager | null = null;
+
+  // Toggle button geometry
+  private toggleButtons: Array<{
+    label: string;
+    key: 'showSightRange' | 'showCollisionMasks';
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }> = [];
 
   constructor(stateManager: OnlineStateManager, config: Partial<DebugInspectorConfig> = {}) {
     this.stateManager = stateManager;
@@ -146,6 +156,16 @@ export class DebugInspector implements GameObject {
     if (this.inputManager.isMouseButtonJustPressed(MouseButton.LEFT)) {
       const mousePos = this.inputManager.getMousePosition();
 
+      // Check if clicking on toggle buttons
+      for (const btn of this.toggleButtons) {
+        if (mousePos.x >= btn.x && mousePos.x <= btn.x + btn.width &&
+            mousePos.y >= btn.y && mousePos.y <= btn.y + btn.height) {
+          this.config[btn.key] = !this.config[btn.key];
+          console.log(`[DebugInspector] ${btn.label}: ${this.config[btn.key] ? 'ON' : 'OFF'}`);
+          return;
+        }
+      }
+
       // Check if clicking on close button
       if (this.panel.isPointOnCloseButton(mousePos.x, mousePos.y)) {
         this.panel.clearInspection();
@@ -154,15 +174,32 @@ export class DebugInspector implements GameObject {
 
       // Check if clicking inside panel (don't detect entities through panel)
       if (this.panel.isPointInPanel(mousePos.x, mousePos.y)) {
-        return;
+        // Check if clicking on scroll up/down buttons
+        if (this.panel.handleScrollUpClick(mousePos.x, mousePos.y)) {
+          return;
+        }
+        if (this.panel.handleScrollDownClick(mousePos.x, mousePos.y)) {
+          return;
+        }
+        // Check if clicking on scrollbar for drag
+        this.panel.handleScrollbarClick(mousePos.x, mousePos.y);
+        // Don't return - let the drag handling code below run on this frame
+      } else {
+        // Detect entity at click position (only if not clicking on panel)
+        const entity = this.clickDetector.detectEntityAtScreenPosition(mousePos, camera);
+        if (entity) {
+          this.panel.setInspectedEntity(entity);
+          console.log(`[DebugInspector] Inspecting ${entity.entityTypeName} (${entity.entityId})`);
+        }
       }
+    }
 
-      // Detect entity at click position
-      const entity = this.clickDetector.detectEntityAtScreenPosition(mousePos, camera);
-      if (entity) {
-        this.panel.setInspectedEntity(entity);
-        console.log(`[DebugInspector] Inspecting ${entity.entityTypeName} (${entity.entityId})`);
-      }
+    // Handle scrollbar dragging
+    if (this.inputManager.isMouseButtonDown(MouseButton.LEFT)) {
+      const mousePos = this.inputManager.getMousePosition();
+      this.panel.handleScrollbarDrag(mousePos.y);
+    } else {
+      this.panel.stopScrollbarDrag();
     }
 
     // Update inspected entity data if it still exists
@@ -318,7 +355,7 @@ export class DebugInspector implements GameObject {
   }
 
   /**
-   * Render a small indicator that debug mode is enabled.
+   * Render a small indicator that debug mode is enabled and toggle buttons.
    */
   private renderDebugIndicator(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement): void {
     ctx.save();
@@ -340,7 +377,94 @@ export class DebugInspector implements GameObject {
     ctx.textBaseline = 'middle';
     ctx.fillText(text, x + padding, y + 10);
 
+    // Render toggle buttons at top center
+    this.renderToggleButtons(ctx, canvas);
+
     ctx.restore();
+  }
+
+  /**
+   * Render toggle buttons at the top center of the screen.
+   */
+  private renderToggleButtons(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement): void {
+    const buttonHeight = 24;
+    const buttonPadding = 8;
+    const buttonGap = 10;
+    const y = 10;
+
+    ctx.font = 'bold 11px "Courier New", monospace';
+
+    const buttons: Array<{ label: string; key: 'showSightRange' | 'showCollisionMasks' }> = [
+      { label: 'Sight Range', key: 'showSightRange' },
+      { label: 'Collision', key: 'showCollisionMasks' },
+    ];
+
+    // Calculate total width
+    let totalWidth = 0;
+    const buttonWidths: number[] = [];
+    for (const btn of buttons) {
+      const width = ctx.measureText(btn.label).width + buttonPadding * 2 + 20; // +20 for checkbox
+      buttonWidths.push(width);
+      totalWidth += width;
+    }
+    totalWidth += buttonGap * (buttons.length - 1);
+
+    // Start position (centered)
+    let currentX = (canvas.width - totalWidth) / 2;
+
+    // Clear previous button geometry
+    this.toggleButtons = [];
+
+    for (let i = 0; i < buttons.length; i++) {
+      const btn = buttons[i];
+      const width = buttonWidths[i];
+      const isOn = this.config[btn.key];
+
+      // Store button geometry for click detection
+      this.toggleButtons.push({
+        label: btn.label,
+        key: btn.key,
+        x: currentX,
+        y: y,
+        width: width,
+        height: buttonHeight,
+      });
+
+      // Background
+      ctx.fillStyle = isOn ? 'rgba(46, 204, 113, 0.8)' : 'rgba(60, 60, 80, 0.8)';
+      ctx.fillRect(currentX, y, width, buttonHeight);
+
+      // Border
+      ctx.strokeStyle = isOn ? 'rgba(46, 204, 113, 1)' : 'rgba(100, 100, 120, 0.8)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(currentX, y, width, buttonHeight);
+
+      // Checkbox
+      const checkboxX = currentX + 6;
+      const checkboxY = y + 6;
+      const checkboxSize = 12;
+
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(checkboxX, checkboxY, checkboxSize, checkboxSize);
+
+      if (isOn) {
+        // Draw checkmark
+        ctx.beginPath();
+        ctx.moveTo(checkboxX + 2, checkboxY + 6);
+        ctx.lineTo(checkboxX + 5, checkboxY + 9);
+        ctx.lineTo(checkboxX + 10, checkboxY + 3);
+        ctx.stroke();
+      }
+
+      // Label
+      ctx.fillStyle = '#ffffff';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(btn.label, checkboxX + checkboxSize + 6, y + buttonHeight / 2);
+
+      currentX += width + buttonGap;
+    }
   }
 
   /**
@@ -394,29 +518,39 @@ export class DebugInspector implements GameObject {
 
   /**
    * Get collision radius for an entity type.
+   * Values must match server-side getRadius() implementations.
    */
   private getCollisionRadius(entity: InterpolatedEntity): number {
     const snapshot = entity.snapshot as any;
 
     switch (snapshot.entityType) {
       case EntityType.CHAMPION:
-        return 50; // Standard champion collision radius
+        // Champions have collision defined per-champion (18-25 range)
+        // Default is 25 in ServerChampion, but most are 18-22
+        return 20; // Average champion collision radius
       case EntityType.MINION:
-        // Melee minions are slightly larger than casters
-        return snapshot.minionType === 'melee' ? 36 : 24;
+        // From DEFAULT_MINION_STATS in shared/types/minions.ts
+        switch (snapshot.minionType) {
+          case 'melee': return 12;
+          case 'caster': return 10;
+          case 'siege': return 18;
+          case 'super': return 22;
+          default: return 12;
+        }
       case EntityType.TOWER:
-        return 88; // Tower collision radius
+        // Tower uses rectangle collision - return effective bounding radius for fallback
+        return 43; // sqrt((70/2)^2 + (48/2)^2) ≈ 43
       case EntityType.NEXUS:
-        return 120; // Nexus collision radius
+        return 75; // Nexus collision radius (from MOBAConfig.NEXUS.collision.radius)
       case EntityType.JUNGLE_CAMP:
-        // Vary by creature type
-        return snapshot.creatureType === 'bear' ? 60 : 40;
+        // From shared MOBAConfig.CREATURE_STATS collision
+        return 20; // Most jungle creatures are around 20
       case EntityType.PROJECTILE:
-        return 10; // Small projectile collision
+        return 8; // Projectile collision radius
       case EntityType.WARD:
-        return 15; // Ward collision
+        return 10; // Ward collision radius
       default:
-        return 30; // Default
+        return 20; // Default
     }
   }
 
@@ -452,79 +586,145 @@ export class DebugInspector implements GameObject {
   private renderCollisionMasks(ctx: CanvasRenderingContext2D): void {
     const entities = this.stateManager.getEntities();
 
-    // Render bush hitboxes first (behind everything)
-    this.renderBushMasks(ctx);
+    // Render bush hitboxes first (behind everything) - only if collision masks enabled
+    if (this.config.showCollisionMasks) {
+      this.renderBushMasks(ctx);
+    }
 
     // First pass: render sight radius circles (behind everything)
-    for (const entity of entities) {
-      const snapshot = entity.snapshot as any;
+    if (this.config.showSightRange) {
+      for (const entity of entities) {
+        const snapshot = entity.snapshot as any;
 
-      // Skip dead/destroyed entities
-      if (snapshot.isDead || snapshot.isDestroyed) continue;
+        // Skip dead/destroyed entities
+        if (snapshot.isDead || snapshot.isDestroyed) continue;
 
-      const pos = entity.position;
-      const sightRadius = this.getSightRadius(entity);
+        const pos = entity.position;
+        const sightRadius = this.getSightRadius(entity);
 
-      // Only render sight radius if entity has vision
-      if (sightRadius > 0) {
-        const sightColor = this.getSightRadiusColor(entity);
+        // Only render sight radius if entity has vision
+        if (sightRadius > 0) {
+          const sightColor = this.getSightRadiusColor(entity);
+
+          ctx.save();
+
+          // Draw sight radius fill
+          ctx.beginPath();
+          ctx.arc(pos.x, pos.y, sightRadius, 0, Math.PI * 2);
+          ctx.fillStyle = sightColor;
+          ctx.fill();
+
+          // Draw sight radius border (dashed)
+          ctx.setLineDash([10, 10]);
+          ctx.strokeStyle = sightColor.replace('0.08)', '0.4)').replace('0.1)', '0.4)').replace('0.12)', '0.5)').replace('0.15)', '0.5)').replace('0.2)', '0.6)');
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          ctx.restore();
+        }
+      }
+    }
+
+    // Second pass: render collision shapes (on top of sight radius)
+    if (this.config.showCollisionMasks) {
+      for (const entity of entities) {
+        const snapshot = entity.snapshot as any;
+
+        // Skip dead/destroyed entities
+        if (snapshot.isDead || snapshot.isDestroyed) continue;
+
+        const pos = entity.position;
+        const color = this.getCollisionColor(entity);
 
         ctx.save();
 
-        // Draw sight radius fill
-        ctx.beginPath();
-        ctx.arc(pos.x, pos.y, sightRadius, 0, Math.PI * 2);
-        ctx.fillStyle = sightColor;
-        ctx.fill();
+        // Get the collision shape for this entity
+        const collision = this.getCollisionShape(entity);
 
-        // Draw sight radius border (dashed)
-        ctx.setLineDash([10, 10]);
-        ctx.strokeStyle = sightColor.replace('0.08)', '0.4)').replace('0.1)', '0.4)').replace('0.12)', '0.5)').replace('0.15)', '0.5)').replace('0.2)', '0.6)');
-        ctx.lineWidth = 1;
-        ctx.stroke();
-        ctx.setLineDash([]);
+        if (collision && isRectangleCollision(collision)) {
+          // Draw rectangle collision
+          const offsetX = collision.offset?.x ?? 0;
+          const offsetY = collision.offset?.y ?? 0;
+          const rectX = pos.x + offsetX - collision.width / 2;
+          const rectY = pos.y + offsetY - collision.height / 2;
+
+          // Draw collision rectangle
+          ctx.beginPath();
+          ctx.rect(rectX, rectY, collision.width, collision.height);
+          ctx.fillStyle = color;
+          ctx.fill();
+
+          // Draw border
+          ctx.strokeStyle = color.replace('0.3)', '0.8)').replace('0.4)', '0.8)').replace('0.5)', '1)');
+          ctx.lineWidth = 1;
+          ctx.stroke();
+
+          // Draw center point (at collision center, not entity position)
+          ctx.beginPath();
+          ctx.arc(pos.x + offsetX, pos.y + offsetY, 3, 0, Math.PI * 2);
+          ctx.fillStyle = '#ffffff';
+          ctx.fill();
+
+          // Draw entity ID label
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '10px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText(snapshot.entityId.slice(-6), pos.x, rectY - 5);
+        } else {
+          // Draw collision circle for other entities
+          const radius = this.getCollisionRadius(entity);
+          ctx.beginPath();
+          ctx.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
+          ctx.fillStyle = color;
+          ctx.fill();
+
+          // Draw border
+          ctx.strokeStyle = color.replace('0.3)', '0.8)').replace('0.4)', '0.8)').replace('0.5)', '1)');
+          ctx.lineWidth = 1;
+          ctx.stroke();
+
+          // Draw center point
+          ctx.beginPath();
+          ctx.arc(pos.x, pos.y, 3, 0, Math.PI * 2);
+          ctx.fillStyle = '#ffffff';
+          ctx.fill();
+
+          // Draw entity ID label
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '10px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText(snapshot.entityId.slice(-6), pos.x, pos.y - radius - 5);
+        }
 
         ctx.restore();
       }
     }
+  }
 
-    // Second pass: render collision circles (on top of sight radius)
-    for (const entity of entities) {
-      const snapshot = entity.snapshot as any;
+  /**
+   * Get the collision shape for an entity.
+   * Returns the actual collision definition when available.
+   */
+  private getCollisionShape(entity: InterpolatedEntity): EntityCollision | null {
+    const snapshot = entity.snapshot as any;
 
-      // Skip dead/destroyed entities
-      if (snapshot.isDead || snapshot.isDestroyed) continue;
-
-      const pos = entity.position;
-      const radius = this.getCollisionRadius(entity);
-      const color = this.getCollisionColor(entity);
-
-      ctx.save();
-
-      // Draw collision circle
-      ctx.beginPath();
-      ctx.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
-      ctx.fillStyle = color;
-      ctx.fill();
-
-      // Draw border
-      ctx.strokeStyle = color.replace('0.3)', '0.8)').replace('0.4)', '0.8)').replace('0.5)', '1)');
-      ctx.lineWidth = 1;
-      ctx.stroke();
-
-      // Draw center point
-      ctx.beginPath();
-      ctx.arc(pos.x, pos.y, 3, 0, Math.PI * 2);
-      ctx.fillStyle = '#ffffff';
-      ctx.fill();
-
-      // Draw entity ID label
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '10px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(snapshot.entityId.slice(-6), pos.x, pos.y - radius - 5);
-
-      ctx.restore();
+    switch (snapshot.entityType) {
+      case EntityType.CHAMPION: {
+        // Look up collision from champion definition
+        const championId = snapshot.championId;
+        if (championId) {
+          const definition = getChampionDefinition(championId);
+          if (definition?.collision) {
+            return definition.collision;
+          }
+        }
+        return null; // Fall back to circle radius
+      }
+      case EntityType.TOWER:
+        return DEFAULT_TOWER_COLLISION;
+      default:
+        return null; // Use getCollisionRadius fallback
     }
   }
 

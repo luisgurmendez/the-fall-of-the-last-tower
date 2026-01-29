@@ -140,10 +140,13 @@ export interface ChampionDefinition {
   /** Passive ability ID (slot "P") */
   passive: string;
 
-  // ============== Collision & Animation (Optional) ==============
+  // ============== Collision, Visual & Animation (Optional) ==============
 
   /** Collision shape for this champion (defaults to circle with radius 25) */
   collision?: EntityCollision;
+
+  /** Visual height in game units for UI positioning (health bars, etc). Falls back to collision height if not defined. */
+  visualHeight?: number;
 
   /** Animation data with keyframe triggers (optional - server uses for action scheduling) */
   animations?: ChampionAnimations;

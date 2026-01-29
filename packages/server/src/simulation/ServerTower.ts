@@ -13,6 +13,9 @@ import {
   EntityType,
   TowerSnapshot,
   GameEventType,
+  getEffectiveRadius,
+  EntityCollision,
+  DEFAULT_TOWER_COLLISION,
 } from '@siege/shared';
 import type { TowerTier, TowerLane, TowerStats, TowerReward, DamageType } from '@siege/shared';
 import { DEFAULT_TOWER_STATS, DEFAULT_TOWER_REWARDS, TowerTargetPriority } from '@siege/shared';
@@ -73,15 +76,38 @@ export class ServerTower extends ServerEntity {
   }
 
   /**
-   * Get tower radius for collision.
-   * Uses the collision shape from tower stats, defaulting to 50.
+   * Towers are collidable - minions and champions cannot pass through them.
+   */
+  isCollidable(): boolean {
+    return !this.isDead && !this._isDestroyed;
+  }
+
+  /**
+   * Get tower radius for collision (effective bounding radius).
+   * Uses getEffectiveRadius to handle any collision shape type (circle, rectangle, capsule).
+   * @deprecated Use getCollisionShape() for proper shape-based collision.
    */
   getRadius(): number {
     const collision = this.stats.collision;
-    if (collision && collision.type === 'circle') {
-      return collision.radius;
+    if (collision) {
+      return getEffectiveRadius(collision);
     }
     return 50; // Default if no collision defined
+  }
+
+  /**
+   * Get the tower's collision shape (rectangle).
+   * Uses the collision shape from tower stats, defaulting to DEFAULT_TOWER_COLLISION.
+   */
+  getCollisionShape(): EntityCollision {
+    return this.stats.collision ?? DEFAULT_TOWER_COLLISION;
+  }
+
+  /**
+   * Towers have infinite mass - they are immovable and push other units away.
+   */
+  getMass(): number {
+    return Infinity;
   }
 
   /**
@@ -298,7 +324,8 @@ export class ServerTower extends ServerEntity {
       tier: this.tier,
       x: this.position.x,
       y: this.position.y,
-      targetEntityId: this.attackTarget ?? undefined,
+      // Use null for cleared values (not undefined) for proper delta updates
+      targetEntityId: this.attackTarget,
       health: this.health,
       maxHealth: this.maxHealth,
       isDestroyed: this._isDestroyed,

@@ -33,7 +33,7 @@ export const LUME_ORB_CONFIG = {
   passiveAuraRadius: 300,     // Radius for passive effects
   allySpeedBonus: 0.15,       // 15% movement speed
   enemyDamageAmp: 0.08,       // 8% increased magic damage from Lume
-  respawnTime: 60.0,          // Seconds to respawn after R
+  respawnTime: 30.0,          // Seconds to respawn after R
   qImpactRadius: 150,         // Damage radius on Q arrival
   wPulseRadius: 300,          // W heal/damage radius
   eBlindRadius: 200,          // E blind radius on arrival
@@ -60,12 +60,15 @@ export class ServerLightOrb extends ServerEntity {
   private orbitAngle: number = 0;
 
   // Movement
-  private targetPosition: Vector | null = null;
+  // Note: targetPosition is inherited from ServerEntity
   private isReturningToOwner: boolean = false;
 
   // Timers
   private stationedTimeRemaining: number = 0;
   private respawnTimeRemaining: number = 0;
+
+  // Track owner's previous death state to detect respawn
+  private ownerWasDead: boolean = false;
 
   // Callbacks (for ability effects on arrival)
   private onArrivalCallback: (() => void) | null = null;
@@ -175,9 +178,16 @@ export class ServerLightOrb extends ServerEntity {
       return;
     }
 
-    // If owner is dead, destroy the orb (it respawns when owner respawns)
+    // If owner is dead, destroy the orb
     if (owner.isDead && this._state !== 'destroyed') {
       this.destroy();
+      this.ownerWasDead = true;
+    }
+
+    // If owner just respawned (was dead, now alive), respawn the orb immediately
+    if (this.ownerWasDead && !owner.isDead) {
+      this.forceRespawn();
+      this.ownerWasDead = false;
     }
 
     switch (this._state) {

@@ -251,9 +251,11 @@ export interface ChampionSnapshot {
   // Position and movement
   x: number;
   y: number;
-  targetX?: number;
-  targetY?: number;
-  targetEntityId?: string;
+  // Clearable values use `| null` instead of `?:` for proper delta updates
+  // null = explicitly cleared, absent = no change (in deltas)
+  targetX?: number | null;
+  targetY?: number | null;
+  targetEntityId?: string | null;
 
   // Stats
   health: number;
@@ -278,6 +280,12 @@ export interface ChampionSnapshot {
   respawnTimer: number;
   isRecalling: boolean;
   recallProgress: number;
+
+  // Dash state (for ability animations like Lume E)
+  isDashing?: boolean;
+  dashTargetX?: number | null;
+  dashTargetY?: number | null;
+  dashAbilityId?: string | null;
 
   // Abilities
   abilities: Record<AbilitySlot, AbilityState>;
@@ -319,9 +327,10 @@ export interface MinionSnapshot {
 
   x: number;
   y: number;
-  targetX?: number;
-  targetY?: number;
-  targetEntityId?: string;
+  // Clearable values use `| null` for proper delta updates
+  targetX?: number | null;
+  targetY?: number | null;
+  targetEntityId?: string | null;
 
   health: number;
   maxHealth: number;
@@ -348,7 +357,8 @@ export interface TowerSnapshot {
 
   x: number;
   y: number;
-  targetEntityId?: string;
+  // Clearable value uses `| null` for proper delta updates
+  targetEntityId?: string | null;
 
   health: number;
   maxHealth: number;
@@ -402,9 +412,10 @@ export interface JungleCreatureSnapshot {
 
   x: number;
   y: number;
-  targetX?: number;
-  targetY?: number;
-  targetEntityId?: string;
+  // Clearable values use `| null` for proper delta updates
+  targetX?: number | null;
+  targetY?: number | null;
+  targetEntityId?: string | null;
 
   health: number;
   maxHealth: number;

@@ -527,6 +527,7 @@
 /* Reduce container padding on champion select */
 .matchmaking-container.champion-select-mode {
   padding: 20px;
+  overflow: visible;
 }
 
 /* :has() based selectors for browsers that support it (fallback for JS not running) */
@@ -539,5 +540,6 @@
 
   .matchmaking-container:has(#screen-champion-select.active) {
     padding: 20px;
+    overflow: visible;
   }
 }

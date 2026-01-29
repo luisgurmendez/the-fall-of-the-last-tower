@@ -22,6 +22,7 @@ import { ServerGameContext } from './ServerGameContext';
 import { ServerChampion } from '../simulation/ServerChampion';
 import { ServerTower } from '../simulation/ServerTower';
 import { ServerNexus } from '../simulation/ServerNexus';
+import { ServerLightOrb, LUME_ORB_CONFIG } from '../simulation/ServerLightOrb';
 import { InputHandler } from '../network/InputHandler';
 import { StateSerializer } from '../network/StateSerializer';
 import { ReliableEventQueue, shouldSendReliably } from '../network/ReliableEventQueue';
@@ -199,6 +200,19 @@ export class GameRoom {
 
       this.context.addChampion(champion, playerId);
       Logger.champion.info(`Spawned ${definition.name} for player ${playerId}`);
+
+      // Spawn Lume's Light Orb at game start
+      if (definition.id === 'lume') {
+        const orb = new ServerLightOrb({
+          id: this.context.generateEntityId(),
+          position: champion.position.clone().add(new Vector(LUME_ORB_CONFIG.orbitRadius, 0)),
+          side: champion.side,
+          ownerId: champion.id,
+        });
+        // Type assertion needed due to ServerLightOrb inheritance issue
+        this.context.addEntity(orb as unknown as import('../simulation/ServerEntity').ServerEntity);
+        Logger.champion.info(`Spawned Light Orb for Lume (${playerId})`);
+      }
     }
   }
 
