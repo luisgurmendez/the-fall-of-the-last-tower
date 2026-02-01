@@ -21,6 +21,7 @@ import {
   type GameEvent,
   type AbilityDefinition,
 } from '@siege/shared';
+import { getVFXManager } from '@/vfx';
 
 /**
  * Animation state for an entity.
@@ -296,8 +297,23 @@ export class OnlineStateManager {
           entity.animation.abilityStartTime = now;
           entity.animation.abilityDuration = duration;
 
-          // Create visual effect for the ability
+          // Create visual effect for the ability (legacy system)
           this.createAbilityEffect(entity, abilityId, targetX, targetY, now);
+
+          // Spawn VFX for the ability (new VFX system)
+          try {
+            const vfxManager = getVFXManager();
+            vfxManager.spawnAbilityVFX(
+              abilityId,
+              entity.position.x,
+              entity.position.y,
+              targetX,
+              targetY,
+              entityId
+            );
+          } catch (e) {
+            // VFXManager not initialized yet, skip
+          }
         }
         break;
       }
@@ -368,6 +384,15 @@ export class OnlineStateManager {
     // Check if entity is being marked as dead/destroyed - remove it
     const data = delta.data as any;
     if (data && (data.isDead === true || data.isDestroyed === true)) {
+      // Spawn death VFX for minions
+      if (existing && existing.snapshot.entityType === EntityType.MINION) {
+        try {
+          const vfx = getVFXManager();
+          vfx.spawnDeathParticles(existing.snapshot.x, existing.snapshot.y, '#8B0000');
+        } catch {
+          // VFX manager not initialized yet, skip
+        }
+      }
       // Remove dead/destroyed entities from client state
       this.entities.delete(delta.entityId);
       return;

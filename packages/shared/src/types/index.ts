@@ -41,6 +41,8 @@ export {
   calculateStat,
   calculateAttackSpeed,
   calculateStatsAtLevel,
+  calculateCDR,
+  calculateEffectiveCooldown,
 } from './champions';
 
 // Effect types

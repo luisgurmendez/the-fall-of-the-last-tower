@@ -60,11 +60,11 @@ export class ServerJungleCreature extends ServerEntity {
   private moveTarget: Vector | null = null;
 
   constructor(config: ServerJungleCreatureConfig) {
-    // Jungle creatures are neutral (we'll use side 1 but they attack anyone)
+    // Jungle creatures are neutral - hostile to all players
     super({
       ...config,
       entityType: EntityType.JUNGLE_CAMP,
-      side: 1, // Neutral - will attack anyone who aggros
+      side: 2, // Neutral - attacks anyone who aggros
     });
 
     this.campId = config.campId;

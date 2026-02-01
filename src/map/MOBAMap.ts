@@ -14,7 +14,7 @@ import Vector from '@/physics/vector';
 import GameContext from '@/core/gameContext';
 import { LogicEntity } from '@/core/GameObject';
 import { Initializable } from '@/behaviors/initializable';
-import { MOBAConfig, MapSide, LaneId } from './MOBAConfig';
+import { MOBAConfig, MapSide, LaneId } from '@siege/shared';
 import NavigationGrid from '@/navigation/NavigationGrid';
 import { BushManager, Bush } from '@/vision';
 import { MapDecoration } from './MapDecoration';

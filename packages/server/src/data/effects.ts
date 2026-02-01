@@ -499,6 +499,16 @@ export const VexEmpoweredEffect: ServerEffectDefinition = {
   persistsThroughDeath: false,
 };
 
+// Vex's Ninja Mode buff (ultimate)
+export const VexNinjaModeEffect: ServerEffectDefinition = {
+  id: 'vex_ninja_mode',
+  name: 'Ninja Mode',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+};
+
 // ===================
 // Vile Effects
 // ===================
@@ -667,6 +677,7 @@ export const ALL_SERVER_EFFECTS: AnyServerEffectDef[] = [
   VexStealthEffect,
   VexDeathMarkEffect,
   VexEmpoweredEffect,
+  VexNinjaModeEffect,
   // Ability-specific - Vile
   VileQSlowEffect,
   VileInvulnerableEffect,

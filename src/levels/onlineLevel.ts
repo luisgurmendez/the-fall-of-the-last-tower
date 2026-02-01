@@ -16,6 +16,8 @@ import Camera from '@/core/camera';
 import { ChampionHUD } from '@/ui/ChampionHUD';
 import { GameStatsHUD } from '@/ui/GameStatsHUD';
 import { OnlineMinimap } from '@/ui/OnlineMinimap';
+import { TargetInfoHUD } from '@/ui/TargetInfoHUD';
+import { TabScoreboard } from '@/ui/TabScoreboard';
 import { OnlineInputHandler } from '@/core/input/OnlineInputHandler';
 import { EntityRenderer } from '@/render/EntityRenderer';
 import { OnlineChampionAdapter } from '@/online/OnlineChampionAdapter';
@@ -107,9 +109,24 @@ export function generateOnlineLevel(config: OnlineLevelConfig): Level {
     championHUD.setChargeState(chargeState);
   });
 
+  // Wire up hover state callback from input handler to EntityRenderer for sprite outlines
+  inputHandler.setHoverStateCallback((enemyId, allyId) => {
+    entityRenderer.setHoveredEntities(enemyId, allyId);
+  });
+
   // Create ability range indicator (shows range/AOE when hovering abilities)
   const inputManager = InputManager.getInstance();
   const abilityRangeIndicator = new AbilityRangeIndicator(stateManager, championHUD, inputManager);
+
+  // Create target info HUD (shows selected entity info in top-left corner)
+  const targetInfoHUD = new TargetInfoHUD({
+    stateManager,
+    inputHandler,
+    localSide: matchData.yourSide,
+  });
+
+  // Create tab scoreboard (shows full scoreboard when Tab is held)
+  const tabScoreboard = new TabScoreboard(stateManager, matchData.yourSide);
 
   // Build objects list
   const objects: GameObject[] = [
@@ -130,8 +147,12 @@ export function generateOnlineLevel(config: OnlineLevelConfig): Level {
     // HUD layers
     championHUD,
     new GameStatsHUD({ getLatency: () => networkClient.getLatency() }),
+    // Target info HUD (selected entity info in top-left)
+    targetInfoHUD,
     // OnlineMinimap reads from server state instead of local objects
     new OnlineMinimap(stateManager, matchData.yourSide, { size: 200, corner: 'bottom-right' }),
+    // Tab scoreboard (full scoreboard overlay when Tab is held)
+    tabScoreboard,
     // Debug inspector for entity inspection (F3 to toggle)
     debugInspector,
   ];

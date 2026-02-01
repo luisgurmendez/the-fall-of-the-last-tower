@@ -43,7 +43,7 @@ export {
   VexShuriken,
   VexShroud,
   VexDash,
-  VexExecute,
+  VexNinjaMode,
   VexAbilities,
   VexPassive,
 } from './vex';

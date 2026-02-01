@@ -3,9 +3,8 @@
  * Shared between client and server.
  */
 
-import type { Side } from './units';
-import type { EntityCollision, CircleCollision } from './collision';
-import { DEFAULT_TOWER_COLLISION } from './collision';
+import type { EntityCollision, CircleCollision } from "./collision";
+import { DEFAULT_TOWER_COLLISION } from "./collision";
 
 /**
  * Tower tier (outer = 1, inner = 2, inhibitor = 3).
@@ -15,7 +14,7 @@ export type TowerTier = 1 | 2 | 3;
 /**
  * Lane identifier for towers.
  */
-export type TowerLane = 'top' | 'mid' | 'bot';
+export type TowerLane = "top" | "mid" | "bot";
 
 /**
  * Tower stats configuration.
@@ -46,7 +45,7 @@ export const DEFAULT_TOWER_STATS: Record<TowerTier, TowerStats> = {
     magicResist: 40,
     attackDamage: 152,
     attackRange: 750,
-    attackCooldown: 0.83,
+    attackCooldown: 2,
     warmupDamagePerStack: 40,
     maxWarmupStacks: 5,
     collision: DEFAULT_TOWER_COLLISION,
@@ -58,7 +57,7 @@ export const DEFAULT_TOWER_STATS: Record<TowerTier, TowerStats> = {
     magicResist: 55,
     attackDamage: 170,
     attackRange: 750,
-    attackCooldown: 0.83,
+    attackCooldown: 2,
     warmupDamagePerStack: 45,
     maxWarmupStacks: 5,
     collision: DEFAULT_TOWER_COLLISION,
@@ -70,7 +69,7 @@ export const DEFAULT_TOWER_STATS: Record<TowerTier, TowerStats> = {
     magicResist: 70,
     attackDamage: 190,
     attackRange: 750,
-    attackCooldown: 0.83,
+    attackCooldown: 2,
     warmupDamagePerStack: 50,
     maxWarmupStacks: 5,
     collision: DEFAULT_TOWER_COLLISION,
@@ -79,16 +78,18 @@ export const DEFAULT_TOWER_STATS: Record<TowerTier, TowerStats> = {
 
 /**
  * Tower targeting priority.
+ * Towers prioritize minions over champions, unless a champion has aggro
+ * (dealt damage to an allied champion under tower).
  */
 export enum TowerTargetPriority {
   /** No target */
   NONE = 0,
-  /** Minion targets */
-  MINION = 10,
-  /** Champion not attacking allies */
-  CHAMPION = 50,
-  /** Champion attacking an ally champion */
-  CHAMPION_ATTACKING_ALLY = 100,
+  /** Champion without aggro (lowest priority - only if no minions) */
+  CHAMPION = 10,
+  /** Minion targets (prioritized over champions) */
+  MINION = 50,
+  /** Champion with tower aggro (dealt damage to allied champion) */
+  CHAMPION_WITH_AGGRO = 100,
 }
 
 /**
@@ -113,7 +114,7 @@ export const DEFAULT_INHIBITOR_STATS: InhibitorStats = {
   armor: 20,
   magicResist: 20,
   respawnTime: 300, // 5 minutes
-  collision: { type: 'circle', radius: 45, offset: { x: 0, y: 0 } },
+  collision: { type: "circle", radius: 45, offset: { x: 0, y: 0 } },
 };
 
 /**
@@ -136,7 +137,7 @@ export const DEFAULT_NEXUS_STATS: NexusStats = {
   maxHealth: 5500,
   armor: 20,
   magicResist: 20,
-  collision: { type: 'circle', radius: 75, offset: { x: 0, y: 0 } },
+  collision: { type: "circle", radius: 75, offset: { x: 0, y: 0 } },
 };
 
 /**

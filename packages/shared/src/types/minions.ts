@@ -3,8 +3,8 @@
  * Shared between client and server.
  */
 
-import type { EntityCollision } from './collision';
-import type { EntityAnimations } from './animation';
+import type { EntityCollision } from "./collision";
+import type { EntityAnimations } from "./animation";
 
 /**
  * Minion types in the game.
@@ -77,12 +77,12 @@ export const DEFAULT_MINION_STATS: Record<MinionType, MinionStats> = {
     attackDamage: 23,
     attackRange: 50,
     attackCooldown: 2,
-    movementSpeed: 100,
+    movementSpeed: 35,
     sightRange: 200,
     goldReward: 21,
     experienceReward: 60,
     collision: {
-      type: 'circle',
+      type: "circle",
       radius: 12,
       offset: { x: 0, y: 0 },
     },
@@ -95,13 +95,13 @@ export const DEFAULT_MINION_STATS: Record<MinionType, MinionStats> = {
     attackDamage: 12,
     attackRange: 300,
     attackCooldown: 2.4,
-    movementSpeed: 100,
+    movementSpeed: 40,
     sightRange: 200,
     goldReward: 14,
     experienceReward: 32,
     collision: {
-      type: 'circle',
-      radius: 10,  // Smaller caster minion
+      type: "circle",
+      radius: 10, // Smaller caster minion
       offset: { x: 0, y: 0 },
     },
   },
@@ -113,13 +113,13 @@ export const DEFAULT_MINION_STATS: Record<MinionType, MinionStats> = {
     attackDamage: 50,
     attackRange: 300,
     attackCooldown: 2.0,
-    movementSpeed: 180,
+    movementSpeed: 40,
     sightRange: 500,
     goldReward: 60,
     experienceReward: 93,
     collision: {
-      type: 'circle',
-      radius: 18,  // Larger siege minion
+      type: "circle",
+      radius: 18, // Larger siege minion
       offset: { x: 0, y: 0 },
     },
   },
@@ -136,8 +136,8 @@ export const DEFAULT_MINION_STATS: Record<MinionType, MinionStats> = {
     goldReward: 60,
     experienceReward: 97,
     collision: {
-      type: 'circle',
-      radius: 22,  // Large super minion
+      type: "circle",
+      radius: 22, // Large super minion
       offset: { x: 0, y: 0 },
     },
   },

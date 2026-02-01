@@ -51,7 +51,7 @@ const VEX_BASE_STATS: ChampionBaseStats = {
   attackRange: 125, // Melee
   armor: 28,
   magicResist: 30,
-  movementSpeed: 155, // High mobility assassin
+  movementSpeed: 58, // High mobility assassin
   critChance: 0,
   critDamage: 2.0,
 };
@@ -97,14 +97,14 @@ export const VexShroud: AbilityDefinition = {
   id: "vex_shroud",
   name: "Shadow Shroud",
   description:
-    "Become invisible for 1.5 seconds and gain 20% bonus movement speed. Attacking or using abilities breaks stealth.",
+    "Become invisible for 10 seconds and gain 20% bonus movement speed. Attacking or using abilities breaks stealth.",
   type: "active",
   targetType: "self",
   maxRank: 5,
   manaCost: [50, 45, 40, 35, 30],
   cooldown: [18, 16, 14, 12, 10],
   appliesEffects: ["vex_stealth", "speed_20"],
-  effectDuration: 1.5,
+  effectDuration: 10,
 };
 
 export const VexDash: AbilityDefinition = {
@@ -131,26 +131,32 @@ export const VexDash: AbilityDefinition = {
   effectDuration: 4, // 4 seconds to use empowered attack
 };
 
-export const VexExecute: AbilityDefinition = {
-  id: "vex_execute",
-  name: "Death Mark",
+/**
+ * R - Ninja Mode
+ * Enter a heightened combat state for 15 seconds.
+ * Gains bonus attack speed and 50% cooldown reduction on Q and E.
+ * Champion takedowns extend the duration by 2 seconds (max 20s).
+ */
+export const VexNinjaMode: AbilityDefinition = {
+  id: "vex_ninja_mode",
+  name: "Ninja Mode",
   description:
-    "Mark target enemy champion. After 2 seconds, the mark detonates dealing {damage} physical damage plus 30% of damage dealt during the mark.",
+    "Enter Ninja Mode for 15 seconds, gaining {attackSpeedBonus}% bonus attack speed. Q and E cooldowns are reduced by 50%. Champion takedowns extend the duration by 2 seconds (max 20 seconds).",
   type: "active",
-  targetType: "target_enemy",
+  targetType: "self",
   maxRank: 3,
-  manaCost: [0, 0, 0], // Energy-based ultimate
+  manaCost: [0, 0, 0], // Energy-based ultimate, 0 cost
   cooldown: [100, 80, 60],
-  range: 400,
-  damage: {
-    type: "physical",
-    scaling: scaling([100, 200, 300], { adRatio: 1.0 }),
+  appliesEffects: ["vex_ninja_mode"],
+  effectDuration: 15,
+  // Stat transform for attack speed bonus
+  statTransform: {
+    duration: 15,
+    statModifiers: {
+      attackSpeed: [0.3, 0.45, 0.6], // 30% / 45% / 60% attack speed
+    },
+    canEndEarly: false,
   },
-  appliesEffects: ["vex_death_mark"],
-  effectDuration: 2,
-  // Champion-only ultimate - can't be used on minions or jungle camps
-  affectsMinions: false,
-  affectsJungleCamps: false,
 };
 
 // =============================================================================
@@ -256,15 +262,15 @@ const VEX_ANIMATIONS: ChampionAnimations = {
         { frame: 4, trigger: { type: "vfx", vfxId: "shadow_step" } },
       ],
     },
-    vex_execute: {
-      id: "vex_execute",
+    vex_ninja_mode: {
+      id: "vex_ninja_mode",
       totalFrames: 8,
       baseFrameDuration: 0.0625, // 500ms total
       loop: false,
       keyframes: [
-        { frame: 0, trigger: { type: "sound", soundId: "death_mark_cast" } },
-        { frame: 4, trigger: { type: "effect", effectId: "death_mark" } },
-        { frame: 4, trigger: { type: "vfx", vfxId: "death_mark" } },
+        { frame: 0, trigger: { type: "sound", soundId: "ninja_mode_activate" } },
+        { frame: 3, trigger: { type: "effect", effectId: "ninja_mode" } },
+        { frame: 3, trigger: { type: "vfx", vfxId: "vex_ninja_mode" } },
       ],
     },
   },
@@ -287,7 +293,7 @@ export const VexDefinition: ChampionDefinition = {
     Q: "vex_shuriken",
     W: "vex_shroud",
     E: "vex_dash",
-    R: "vex_execute",
+    R: "vex_ninja_mode",
   },
   passive: "vex_passive",
   collision: VEX_COLLISION,
@@ -303,5 +309,5 @@ export const VexAbilities: Record<string, AbilityDefinition> = {
   vex_shuriken: VexShuriken,
   vex_shroud: VexShroud,
   vex_dash: VexDash,
-  vex_execute: VexExecute,
+  vex_ninja_mode: VexNinjaMode,
 };

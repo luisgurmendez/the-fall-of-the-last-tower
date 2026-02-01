@@ -10,14 +10,16 @@ import type { Shape } from '../math/shapes';
  * Team/side identifier.
  * 0 = Blue team (ally from blue perspective)
  * 1 = Red team (enemy from blue perspective)
+ * 2 = Neutral (jungle camps, etc. - hostile to all)
  */
-export type Side = 0 | 1;
+export type Side = 0 | 1 | 2;
 
 /**
  * Team identifiers for clarity.
  */
 export const TEAM_BLUE: Side = 0;
 export const TEAM_RED: Side = 1;
+export const TEAM_NEUTRAL: Side = 2;
 
 /**
  * Unit type identifiers.

@@ -23,6 +23,13 @@ import {
 import { ServerEntity, ServerEntityConfig } from './ServerEntity';
 import type { ServerGameContext } from '../game/ServerGameContext';
 
+/** Callback for when projectile hits its target (used for champion on-hit effects) */
+export type ProjectileOnHitCallback = (
+  target: ServerEntity,
+  damage: number,
+  context: ServerGameContext
+) => void;
+
 export interface ServerTargetedProjectileConfig extends Omit<ServerEntityConfig, 'entityType'> {
   /** ID of the target entity to track */
   targetId: string;
@@ -42,6 +49,8 @@ export interface ServerTargetedProjectileConfig extends Omit<ServerEntityConfig,
   appliesEffects?: string[];
   /** Duration for applied effects */
   effectDuration?: number;
+  /** Optional callback invoked when projectile hits (for champion on-hit effects) */
+  onHitCallback?: ProjectileOnHitCallback;
 }
 
 export class ServerTargetedProjectile extends ServerEntity {
@@ -54,6 +63,7 @@ export class ServerTargetedProjectile extends ServerEntity {
   readonly damageType: DamageType;
   readonly appliesEffects: string[];
   readonly effectDuration: number;
+  readonly onHitCallback?: ProjectileOnHitCallback;
 
   // Current direction (updated each tick to track target)
   private direction: Vector = new Vector(1, 0);
@@ -75,6 +85,7 @@ export class ServerTargetedProjectile extends ServerEntity {
     this.damageType = config.damageType;
     this.appliesEffects = config.appliesEffects ?? [];
     this.effectDuration = config.effectDuration ?? 0;
+    this.onHitCallback = config.onHitCallback;
 
     // Set movement speed for visual interpolation
     this.movementSpeed = config.speed;
@@ -129,6 +140,11 @@ export class ServerTargetedProjectile extends ServerEntity {
       for (const effectId of this.appliesEffects) {
         applyEffect.call(target, effectId, this.effectDuration, this.sourceId);
       }
+    }
+
+    // Call on-hit callback (for champion basic attack on-hit effects)
+    if (this.onHitCallback) {
+      this.onHitCallback(target, this.damage, context);
     }
   }
 

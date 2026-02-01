@@ -112,6 +112,16 @@ export const GameConfig = {
   },
 
   /**
+   * Ability and cooldown constants.
+   */
+  ABILITIES: {
+    /** Maximum CDR percentage (0.5 = 50%) */
+    MAX_CDR: 0.5,
+    /** Ability Haste that equals MAX_CDR (100 AH = 50% CDR) */
+    MAX_ABILITY_HASTE: 100,
+  },
+
+  /**
    * Vision constants.
    */
   VISION: {

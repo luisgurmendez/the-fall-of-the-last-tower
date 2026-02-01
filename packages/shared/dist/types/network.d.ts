@@ -211,9 +211,9 @@ export interface ChampionSnapshot {
     playerId: string;
     x: number;
     y: number;
-    targetX?: number;
-    targetY?: number;
-    targetEntityId?: string;
+    targetX?: number | null;
+    targetY?: number | null;
+    targetEntityId?: string | null;
     health: number;
     maxHealth: number;
     resource: number;
@@ -232,6 +232,10 @@ export interface ChampionSnapshot {
     respawnTimer: number;
     isRecalling: boolean;
     recallProgress: number;
+    isDashing?: boolean;
+    dashTargetX?: number | null;
+    dashTargetY?: number | null;
+    dashAbilityId?: string | null;
     abilities: Record<AbilitySlot, AbilityState>;
     passive: PassiveStateSnapshot;
     activeEffects: ActiveEffectState[];
@@ -257,9 +261,9 @@ export interface MinionSnapshot {
     minionType: 'melee' | 'caster' | 'siege' | 'super';
     x: number;
     y: number;
-    targetX?: number;
-    targetY?: number;
-    targetEntityId?: string;
+    targetX?: number | null;
+    targetY?: number | null;
+    targetEntityId?: string | null;
     health: number;
     maxHealth: number;
     isDead: boolean;
@@ -279,7 +283,7 @@ export interface TowerSnapshot {
     tier: 1 | 2 | 3;
     x: number;
     y: number;
-    targetEntityId?: string;
+    targetEntityId?: string | null;
     health: number;
     maxHealth: number;
     isDestroyed: boolean;
@@ -324,9 +328,9 @@ export interface JungleCreatureSnapshot {
     creatureType: string;
     x: number;
     y: number;
-    targetX?: number;
-    targetY?: number;
-    targetEntityId?: string;
+    targetX?: number | null;
+    targetY?: number | null;
+    targetEntityId?: string | null;
     health: number;
     maxHealth: number;
     isDead: boolean;

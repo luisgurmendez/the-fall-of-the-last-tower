@@ -51,7 +51,7 @@ const ELARA_BASE_STATS: ChampionBaseStats = {
   attackRange: 525,
   armor: 22,
   magicResist: 34,
-  movementSpeed: 140,
+  movementSpeed: 60,
   critChance: 0,
   critDamage: 2.0,
 };

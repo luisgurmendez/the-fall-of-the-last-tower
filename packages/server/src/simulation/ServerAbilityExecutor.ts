@@ -21,6 +21,8 @@ import {
   hasChargeBehavior,
   DamageType,
   GameEventType,
+  calculateEffectiveCooldown,
+  GameConfig,
 } from "@siege/shared";
 import { passiveTriggerSystem } from "../systems/PassiveTriggerSystem";
 import { abilityHandlerRegistry } from "../abilities/AbilityHandlerRegistry";
@@ -234,10 +236,24 @@ export class ServerAbilityExecutor {
     // Deduct mana
     champion.resource -= manaCost;
 
-    // Start cooldown
-    const cooldown = definition.cooldown?.[rank - 1] ?? 0;
-    state.cooldownRemaining = cooldown;
-    state.cooldownTotal = cooldown;
+    // Start cooldown with Ability Haste reduction
+    const baseCooldown = definition.cooldown?.[rank - 1] ?? 0;
+    const stats = champion.getStats();
+
+    // Apply global ability haste (from items, runes, etc.)
+    let effectiveCooldown = calculateEffectiveCooldown(
+      baseCooldown,
+      stats.abilityHaste,
+      GameConfig.ABILITIES.MAX_CDR
+    );
+
+    // Apply Ninja Mode's 50% CDR for Q and E abilities
+    if ((slot === 'Q' || slot === 'E') && champion.hasEffect('vex_ninja_mode')) {
+      effectiveCooldown *= 0.5;
+    }
+
+    state.cooldownRemaining = effectiveCooldown;
+    state.cooldownTotal = effectiveCooldown;
 
     // Note: Champion-specific cooldown resets (like Vex's dash) are handled
     // by ability handlers via cooldownOverride in AbilityExecutionResult
@@ -246,12 +262,15 @@ export class ServerAbilityExecutor {
     champion.enterCombat();
 
     // Add event for ability cast (include animation duration if handler provided one)
+    // Use vfxPosition if provided by handler, otherwise use target position
+    const vfxX = executionResult?.vfxPosition?.x ?? params.targetPosition?.x;
+    const vfxY = executionResult?.vfxPosition?.y ?? params.targetPosition?.y;
     context.addEvent(GameEventType.ABILITY_CAST, {
       entityId: champion.id,
       abilityId,
       slot,
-      targetX: params.targetPosition?.x,
-      targetY: params.targetPosition?.y,
+      targetX: vfxX,
+      targetY: vfxY,
       targetEntityId: params.targetEntityId,
       animationDuration: executionResult?.animationDuration,
     });
@@ -264,7 +283,7 @@ export class ServerAbilityExecutor {
     return {
       success: true,
       manaCost,
-      cooldown,
+      cooldown: effectiveCooldown,
     };
   }
 

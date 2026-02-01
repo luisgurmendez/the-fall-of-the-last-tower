@@ -137,6 +137,7 @@ export interface HUDChampionData {
   getExperience(): number;
   getExperienceToNextLevel(): number;
   getSkillPoints(): number;
+  getGold(): number;
 }
 
 /**
@@ -574,7 +575,9 @@ export class ChampionHUD extends ScreenEntity {
       const goldHeight = 20;
       const itemsTotalHeight = itemsContainerHeight + goldHeight;
       const itemsY = contentTop + (centerHeight - itemsTotalHeight) / 2;
-      this.drawItemsPanel(ctx, currentX, itemsY, gctx.money);
+      // Use gold from champion adapter (server state) instead of gctx.money
+      const gold = this.champion?.getGold() ?? 0;
+      this.drawItemsPanel(ctx, currentX, itemsY, gold);
 
       // 6. Ward count (next to items)
       const wardX = currentX + this.getItemsContainerWidth() + PANEL.margin;
@@ -1290,7 +1293,7 @@ export class ChampionHUD extends ScreenEntity {
     const goldY = y + containerHeight + 4;
     RenderUtils.renderBitmapText(
       ctx,
-      `${gold}`,
+      `${Math.floor(gold)}`,
       x + containerWidth / 2,
       goldY,
       { color: '#FFD700', size: 22, centered: true }
@@ -1795,11 +1798,14 @@ export class ChampionHUD extends ScreenEntity {
     // Draw skillshot/dash line indicator
     // For dash abilities, use aoeRadius as the width (it's the dash hitbox)
     // For regular skillshots, use width property
-    const skillshotWidth = (targetDesc as any).width || (hasDash ? aoeRadius : 0);
+    // Skip rectangle for vex_dash - it's a simple point-and-click dash
+    const abilityId = ability.definition?.id;
+    const skipDashRectangle = abilityId === 'vex_dash';
+    const skillshotWidth = (targetDesc as any).width || (hasDash && !skipDashRectangle ? aoeRadius : 0);
     const dashDistance = hasDash ? (targetDesc as any).dash?.distance : 0;
     const skillshotRange = dashDistance || targetDesc.range;
 
-    if (skillshotWidth && skillshotWidth > 0 && skillshotRange) {
+    if (skillshotWidth && skillshotWidth > 0 && skillshotRange && !skipDashRectangle) {
       const widthScreen = skillshotWidth * camera.zoom;
       const rangeScreen = skillshotRange * camera.zoom;
 

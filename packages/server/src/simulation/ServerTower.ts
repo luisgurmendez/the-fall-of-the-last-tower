@@ -2,32 +2,44 @@
  * ServerTower - Server-side tower entity.
  *
  * Handles:
- * - Target acquisition with priority (champions attacking allies > champions > minions)
+ * - Target acquisition with priority (minions > champions, unless champion has aggro)
+ * - Tower aggro: champions that damage allied champions under tower get targeted
  * - Warmup damage (increasing damage on consecutive hits)
  * - Tower-specific attack behavior
  */
 
 import {
-  Vector,
-  Side,
   EntityType,
   TowerSnapshot,
   GameEventType,
   getEffectiveRadius,
   EntityCollision,
   DEFAULT_TOWER_COLLISION,
-} from '@siege/shared';
-import type { TowerTier, TowerLane, TowerStats, TowerReward, DamageType } from '@siege/shared';
-import { DEFAULT_TOWER_STATS, DEFAULT_TOWER_REWARDS, TowerTargetPriority } from '@siege/shared';
-import { ServerEntity, type ServerEntityConfig } from './ServerEntity';
-import type { ServerGameContext } from '../game/ServerGameContext';
-import { RewardSystem } from '../systems/RewardSystem';
-import { ServerTargetedProjectile } from './ServerTargetedProjectile';
+} from "@siege/shared";
+import type {
+  TowerTier,
+  TowerLane,
+  TowerStats,
+  TowerReward,
+  DamageType,
+} from "@siege/shared";
+import {
+  DEFAULT_TOWER_STATS,
+  DEFAULT_TOWER_REWARDS,
+  TowerTargetPriority,
+} from "@siege/shared";
+import { ServerEntity, type ServerEntityConfig } from "./ServerEntity";
+import type { ServerGameContext } from "../game/ServerGameContext";
+import { RewardSystem } from "../systems/RewardSystem";
+import { ServerTargetedProjectile } from "./ServerTargetedProjectile";
 
 /**
  * Configuration for creating a tower.
  */
-export interface ServerTowerConfig extends Omit<ServerEntityConfig, 'entityType'> {
+export interface ServerTowerConfig extends Omit<
+  ServerEntityConfig,
+  "entityType"
+> {
   lane: TowerLane;
   tier: TowerTier;
 }
@@ -48,6 +60,13 @@ export class ServerTower extends ServerEntity {
   // Warmup stacks - damage increases per consecutive hit on same target
   private warmupTarget: string | null = null;
   private warmupStacks: number = 0;
+
+  // Tower aggro tracking - champions that damage allied champions under tower
+  // Maps championId -> remaining aggro time in seconds
+  private aggroMap: Map<string, number> = new Map();
+
+  /** How long tower aggro lasts after a champion damages an allied champion (seconds) */
+  private static readonly AGGRO_DURATION = 3.0;
 
   // Destroyed state
   private _isDestroyed: boolean = false;
@@ -121,8 +140,33 @@ export class ServerTower extends ServerEntity {
       this.attackCooldown -= dt;
     }
 
+    // Decay aggro timers
+    for (const [championId, remaining] of this.aggroMap) {
+      const newRemaining = remaining - dt;
+      if (newRemaining <= 0) {
+        this.aggroMap.delete(championId);
+      } else {
+        this.aggroMap.set(championId, newRemaining);
+      }
+    }
+
     // Find and attack targets
     this.updateCombat(dt, context);
+  }
+
+  /**
+   * Trigger tower aggro on a champion.
+   * Called when an enemy champion damages an allied champion under this tower.
+   */
+  triggerAggro(championId: string): void {
+    this.aggroMap.set(championId, ServerTower.AGGRO_DURATION);
+  }
+
+  /**
+   * Check if a champion has tower aggro.
+   */
+  hasAggro(championId: string): boolean {
+    return this.aggroMap.has(championId);
   }
 
   /**
@@ -139,9 +183,11 @@ export class ServerTower extends ServerEntity {
       }
     }
 
-    // Find new target if needed
-    if (!this.attackTarget) {
-      this.attackTarget = this.findTarget(context);
+    // Always re-evaluate target to find highest priority
+    // This allows switching to champions with aggro immediately
+    const bestTarget = this.findTarget(context);
+    if (bestTarget !== this.attackTarget) {
+      this.attackTarget = bestTarget;
       if (this.attackTarget !== this.warmupTarget) {
         this.resetWarmup();
         this.warmupTarget = this.attackTarget;
@@ -159,13 +205,18 @@ export class ServerTower extends ServerEntity {
 
   /**
    * Find a target to attack.
-   * Priority: Champions attacking allied champions > Champions > Minions
+   * Priority: Champions with aggro > Minions > Champions without aggro
+   *
+   * Champions get aggro when they damage an allied champion under tower.
    *
    * Note: Towers have TRUE SIGHT - they can see and target enemies in bushes
    * and stealthed enemies. No visibility check is performed intentionally.
    */
   private findTarget(context: ServerGameContext): string | null {
-    const nearbyEntities = context.getEntitiesInRadius(this.position, this.stats.attackRange);
+    const nearbyEntities = context.getEntitiesInRadius(
+      this.position,
+      this.stats.attackRange,
+    );
 
     let bestTarget: ServerEntity | null = null;
     let bestPriority = TowerTargetPriority.NONE;
@@ -175,9 +226,12 @@ export class ServerTower extends ServerEntity {
       // Skip allies, self, and structures
       if (entity.side === this.side) continue;
       if (entity.isDead) continue;
-      if (entity.entityType === EntityType.TOWER ||
-          entity.entityType === EntityType.INHIBITOR ||
-          entity.entityType === EntityType.NEXUS) continue;
+      if (
+        entity.entityType === EntityType.TOWER ||
+        entity.entityType === EntityType.INHIBITOR ||
+        entity.entityType === EntityType.NEXUS
+      )
+        continue;
 
       const distance = this.position.distanceTo(entity.position);
       if (distance > this.stats.attackRange) continue;
@@ -186,18 +240,11 @@ export class ServerTower extends ServerEntity {
       let priority = TowerTargetPriority.NONE;
 
       if (entity.entityType === EntityType.CHAMPION) {
-        // Check if this champion is attacking an allied champion
-        const championTarget = (entity as any).attackTarget;
-        if (championTarget) {
-          const targetEntity = context.getEntity(championTarget);
-          if (targetEntity &&
-              targetEntity.side === this.side &&
-              targetEntity.entityType === EntityType.CHAMPION) {
-            priority = TowerTargetPriority.CHAMPION_ATTACKING_ALLY;
-          } else {
-            priority = TowerTargetPriority.CHAMPION;
-          }
+        // Check if this champion has tower aggro (damaged an allied champion)
+        if (this.hasAggro(entity.id)) {
+          priority = TowerTargetPriority.CHAMPION_WITH_AGGRO;
         } else {
+          // Champions without aggro have lowest priority (only target if no minions)
           priority = TowerTargetPriority.CHAMPION;
         }
       } else if (entity.entityType === EntityType.MINION) {
@@ -205,7 +252,10 @@ export class ServerTower extends ServerEntity {
       }
 
       // Prefer higher priority, then closer distance
-      if (priority > bestPriority || (priority === bestPriority && distance < bestDistance)) {
+      if (
+        priority > bestPriority ||
+        (priority === bestPriority && distance < bestDistance)
+      ) {
         bestPriority = priority;
         bestDistance = distance;
         bestTarget = entity;
@@ -216,7 +266,7 @@ export class ServerTower extends ServerEntity {
   }
 
   /** Tower projectile speed */
-  private static readonly PROJECTILE_SPEED = 1200;
+  private static readonly PROJECTILE_SPEED = 900;
   /** Tower projectile radius */
   private static readonly PROJECTILE_RADIUS = 12;
 
@@ -238,9 +288,9 @@ export class ServerTower extends ServerEntity {
       speed: ServerTower.PROJECTILE_SPEED,
       radius: ServerTower.PROJECTILE_RADIUS,
       sourceId: this.id,
-      projectileType: 'tower',
+      projectileType: "tower",
       damage: totalDamage,
-      damageType: 'physical',
+      damageType: "physical",
     });
 
     context.addEntity(projectile);
@@ -273,10 +323,14 @@ export class ServerTower extends ServerEntity {
    * Check if target is in range.
    */
   isInRange(target: ServerEntity): boolean {
-    const targetRadius = typeof (target as any).getRadius === 'function'
-      ? (target as any).getRadius()
-      : 0;
-    return this.position.distanceTo(target.position) <= this.stats.attackRange + targetRadius;
+    const targetRadius =
+      typeof (target as any).getRadius === "function"
+        ? (target as any).getRadius()
+        : 0;
+    return (
+      this.position.distanceTo(target.position) <=
+      this.stats.attackRange + targetRadius
+    );
   }
 
   /**
@@ -298,14 +352,14 @@ export class ServerTower extends ServerEntity {
    * Override damage calculation for armor/magic resist.
    */
   protected calculateDamage(amount: number, type: DamageType): number {
-    if (type === 'true' || type === 'pure') {
+    if (type === "true" || type === "pure") {
       return amount;
     }
 
     let reduction = 0;
-    if (type === 'physical') {
+    if (type === "physical") {
       reduction = this.stats.armor / (100 + this.stats.armor);
-    } else if (type === 'magic') {
+    } else if (type === "magic") {
       reduction = this.stats.magicResist / (100 + this.stats.magicResist);
     }
 

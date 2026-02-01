@@ -51,7 +51,7 @@ const MAGNUS_BASE_STATS: ChampionBaseStats = {
   attackRange: 550, // Ranged
   armor: 20,
   magicResist: 30,
-  movementSpeed: 140,
+  movementSpeed: 55,
   critChance: 0,
   critDamage: 2.0,
 };

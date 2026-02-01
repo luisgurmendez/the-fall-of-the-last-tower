@@ -76,6 +76,11 @@ export class InputManager {
 
     // Keyboard events
     const onKeyDown = (e: KeyboardEvent) => {
+      // Toggle fullscreen on F key
+      if (e.key === 'f' || e.key === 'F') {
+        this.toggleFullscreen();
+      }
+
       if (!this.keysDown.has(e.key)) {
         this.keysJustPressed.add(e.key);
       }
@@ -291,6 +296,28 @@ export class InputManager {
    */
   getMouseWorldPosition(cameraPos: Vector, zoom: number): Vector {
     return this.screenToWorld(this.mousePosition, cameraPos, zoom);
+  }
+
+  /**
+   * Toggle fullscreen mode.
+   */
+  toggleFullscreen(): void {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch((err) => {
+        console.warn('Failed to enter fullscreen:', err);
+      });
+    } else {
+      document.exitFullscreen().catch((err) => {
+        console.warn('Failed to exit fullscreen:', err);
+      });
+    }
+  }
+
+  /**
+   * Check if currently in fullscreen mode.
+   */
+  isFullscreen(): boolean {
+    return document.fullscreenElement !== null;
   }
 
   /**

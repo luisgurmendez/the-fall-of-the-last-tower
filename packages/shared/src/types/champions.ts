@@ -61,6 +61,9 @@ export interface ChampionBaseStats {
   // Critical
   critChance: number;    // 0-1
   critDamage: number;    // Multiplier (default 2.0)
+
+  // Cooldown Reduction
+  abilityHaste: number;  // Reduces cooldowns: CDR% = AH / (100 + AH)
 }
 
 /**
@@ -84,6 +87,7 @@ export interface ChampionStats extends ChampionBaseStats {
   maxHealth: number;
   maxResource: number;
   level: number;
+  // abilityHaste is inherited from ChampionBaseStats
 }
 
 /**
@@ -153,6 +157,9 @@ export interface ChampionDefinition {
 
   /** Whether attack animation speed scales with attack speed stat (default: true) */
   attackAnimationSpeedScale?: boolean;
+
+  /** Projectile speed for ranged basic attacks in units/second (default: 800) */
+  basicAttackProjectileSpeed?: number;
 }
 
 /**
@@ -246,6 +253,36 @@ export function calculateAttackSpeed(
 }
 
 /**
+ * Calculate cooldown reduction percentage from ability haste.
+ * Formula: CDR% = AH / (100 + AH)
+ * Examples: 0 AH = 0% CDR, 50 AH = 33% CDR, 100 AH = 50% CDR
+ * @param abilityHaste - Total ability haste value
+ * @param maxCdr - Maximum CDR cap (default 0.5 = 50%)
+ * @returns CDR as a decimal (0-maxCdr)
+ */
+export function calculateCDR(abilityHaste: number, maxCdr = 0.5): number {
+  if (abilityHaste <= 0) return 0;
+  const cdr = abilityHaste / (100 + abilityHaste);
+  return Math.min(cdr, maxCdr);
+}
+
+/**
+ * Calculate effective cooldown after applying ability haste.
+ * @param baseCooldown - The ability's base cooldown in seconds
+ * @param abilityHaste - Total ability haste value
+ * @param maxCdr - Maximum CDR cap (default 0.5 = 50%)
+ * @returns Effective cooldown in seconds
+ */
+export function calculateEffectiveCooldown(
+  baseCooldown: number,
+  abilityHaste: number,
+  maxCdr = 0.5
+): number {
+  const cdr = calculateCDR(abilityHaste, maxCdr);
+  return baseCooldown * (1 - cdr);
+}
+
+/**
  * Calculate all stats for a champion at a given level.
  */
 export function calculateStatsAtLevel(
@@ -269,6 +306,7 @@ export function calculateStatsAtLevel(
     movementSpeed: baseStats.movementSpeed,
     critChance: baseStats.critChance,
     critDamage: baseStats.critDamage,
+    abilityHaste: baseStats.abilityHaste ?? 0,
     level,
   };
 }

@@ -5,7 +5,7 @@
  * All constants for map layout, lanes, jungle camps, and minion waves.
  */
 
-import { Vector } from '../math/Vector';
+import { Vector } from "../math/Vector";
 
 /**
  * Side identifiers.
@@ -40,7 +40,7 @@ export const MOBAConfig = {
     RED: { x: 1200, y: -1200 },
     RADIUS: 75,
     HEALTH: 5000,
-    collision: { type: 'circle' as const, radius: 75, offset: { x: 0, y: 0 } },
+    collision: { type: "circle" as const, radius: 75, offset: { x: 0, y: 0 } },
   },
 
   /**
@@ -50,33 +50,33 @@ export const MOBAConfig = {
    */
   LANES: {
     TOP: {
-      id: 'top' as const,
+      id: "top" as const,
       waypoints: [
-        new Vector(-1200, 1200),   // Blue nexus
-        new Vector(-1200, -1000),  // Up along left wall
-        new Vector(-1000, -1200),  // Turn at top-left corner
-        new Vector(1200, -1200),   // Reach red nexus
+        new Vector(-1200, 1200), // Blue nexus
+        new Vector(-1200, -1000), // Up along left wall
+        new Vector(-1000, -1200), // Turn at top-left corner
+        new Vector(1200, -1200), // Reach red nexus
       ],
       width: 100,
     },
     MID: {
-      id: 'mid' as const,
+      id: "mid" as const,
       waypoints: [
-        new Vector(-1200, 1200),   // Blue nexus
-        new Vector(-750, 750),     // Start diagonal
-        new Vector(0, 0),          // Center of map
-        new Vector(750, -750),     // Continue diagonal
-        new Vector(1200, -1200),   // Reach red nexus
+        new Vector(-1200, 1200), // Blue nexus
+        new Vector(-750, 750), // Start diagonal
+        new Vector(0, 0), // Center of map
+        new Vector(750, -750), // Continue diagonal
+        new Vector(1200, -1200), // Reach red nexus
       ],
       width: 100,
     },
     BOT: {
-      id: 'bot' as const,
+      id: "bot" as const,
       waypoints: [
-        new Vector(-1200, 1200),   // Blue nexus
-        new Vector(1000, 1200),    // Right along bottom wall
-        new Vector(1200, 1000),    // Turn at bottom-right corner
-        new Vector(1200, -1200),   // Reach red nexus
+        new Vector(-1200, 1200), // Blue nexus
+        new Vector(1000, 1200), // Right along bottom wall
+        new Vector(1200, 1000), // Turn at bottom-right corner
+        new Vector(1200, -1200), // Reach red nexus
       ],
       width: 100,
     },
@@ -91,18 +91,78 @@ export const MOBAConfig = {
      */
     CAMPS: [
       // ========== BLUE SIDE JUNGLE ==========
-      { id: 'blue_gromp', position: new Vector(-750, -550), creatureType: 'gromp' as const, count: 1, respawnTime: 60 },
-      { id: 'blue_spiders', position: new Vector(-600, -150), creatureType: 'spider' as const, count: 3, respawnTime: 45 },
-      { id: 'blue_gromp_2', position: new Vector(-300, -50), creatureType: 'gromp' as const, count: 1, respawnTime: 60 },
-      { id: 'blue_wolves', position: new Vector(-800, 100), creatureType: 'wolf' as const, count: 2, respawnTime: 50 },
-      { id: 'blue_gromp_3', position: new Vector(-450, 300), creatureType: 'gromp' as const, count: 1, respawnTime: 60 },
+      {
+        id: "blue_gromp",
+        position: new Vector(-750, -550),
+        creatureType: "gromp" as const,
+        count: 1,
+        respawnTime: 60,
+      },
+      {
+        id: "blue_spiders",
+        position: new Vector(-600, -150),
+        creatureType: "spider" as const,
+        count: 3,
+        respawnTime: 45,
+      },
+      {
+        id: "blue_gromp_2",
+        position: new Vector(-300, -50),
+        creatureType: "gromp" as const,
+        count: 1,
+        respawnTime: 60,
+      },
+      {
+        id: "blue_wolves",
+        position: new Vector(-800, 100),
+        creatureType: "wolf" as const,
+        count: 2,
+        respawnTime: 50,
+      },
+      {
+        id: "blue_gromp_3",
+        position: new Vector(-450, 300),
+        creatureType: "gromp" as const,
+        count: 1,
+        respawnTime: 60,
+      },
 
       // ========== RED SIDE JUNGLE ==========
-      { id: 'red_gromp', position: new Vector(750, 550), creatureType: 'gromp' as const, count: 1, respawnTime: 60 },
-      { id: 'red_spiders', position: new Vector(600, 150), creatureType: 'spider' as const, count: 3, respawnTime: 45 },
-      { id: 'red_gromp_2', position: new Vector(300, 50), creatureType: 'gromp' as const, count: 1, respawnTime: 60 },
-      { id: 'red_wolves', position: new Vector(800, -100), creatureType: 'wolf' as const, count: 2, respawnTime: 50 },
-      { id: 'red_gromp_3', position: new Vector(450, -300), creatureType: 'gromp' as const, count: 1, respawnTime: 60 },
+      {
+        id: "red_gromp",
+        position: new Vector(750, 550),
+        creatureType: "gromp" as const,
+        count: 1,
+        respawnTime: 60,
+      },
+      {
+        id: "red_spiders",
+        position: new Vector(600, 150),
+        creatureType: "spider" as const,
+        count: 3,
+        respawnTime: 45,
+      },
+      {
+        id: "red_gromp_2",
+        position: new Vector(300, 50),
+        creatureType: "gromp" as const,
+        count: 1,
+        respawnTime: 60,
+      },
+      {
+        id: "red_wolves",
+        position: new Vector(800, -100),
+        creatureType: "wolf" as const,
+        count: 2,
+        respawnTime: 50,
+      },
+      {
+        id: "red_gromp_3",
+        position: new Vector(450, -300),
+        creatureType: "gromp" as const,
+        count: 1,
+        respawnTime: 60,
+      },
     ],
 
     /**
@@ -114,36 +174,48 @@ export const MOBAConfig = {
         damage: 30,
         attackRange: 80,
         attackCooldown: 1.5,
-        movementSpeed: 80,
+        movementSpeed: 40,
         sightRange: 180,
         leashRange: 300,
         goldReward: 80,
         expReward: 50,
-        collision: { type: 'circle' as const, radius: 20, offset: { x: 0, y: 0 } },
+        collision: {
+          type: "circle" as const,
+          radius: 20,
+          offset: { x: 0, y: 0 },
+        },
       },
       wolf: {
         health: 350,
         damage: 25,
         attackRange: 60,
         attackCooldown: 1.0,
-        movementSpeed: 120,
+        movementSpeed: 40,
         sightRange: 200,
         leashRange: 300,
         goldReward: 60,
         expReward: 40,
-        collision: { type: 'circle' as const, radius: 14, offset: { x: 0, y: 0 } },
+        collision: {
+          type: "circle" as const,
+          radius: 14,
+          offset: { x: 0, y: 0 },
+        },
       },
       raptor: {
         health: 200,
         damage: 20,
         attackRange: 100,
         attackCooldown: 1.2,
-        movementSpeed: 100,
+        movementSpeed: 42,
         sightRange: 220,
         leashRange: 300,
         goldReward: 40,
         expReward: 30,
-        collision: { type: 'circle' as const, radius: 10, offset: { x: 0, y: 0 } },
+        collision: {
+          type: "circle" as const,
+          radius: 10,
+          offset: { x: 0, y: 0 },
+        },
       },
       krug: {
         health: 600,
@@ -155,7 +227,11 @@ export const MOBAConfig = {
         leashRange: 300,
         goldReward: 90,
         expReward: 55,
-        collision: { type: 'circle' as const, radius: 22, offset: { x: 0, y: 0 } },
+        collision: {
+          type: "circle" as const,
+          radius: 22,
+          offset: { x: 0, y: 0 },
+        },
       },
       blue_buff: {
         health: 1200,
@@ -167,7 +243,11 @@ export const MOBAConfig = {
         leashRange: 350,
         goldReward: 120,
         expReward: 100,
-        collision: { type: 'circle' as const, radius: 28, offset: { x: 0, y: 0 } },
+        collision: {
+          type: "circle" as const,
+          radius: 28,
+          offset: { x: 0, y: 0 },
+        },
       },
       red_buff: {
         health: 1200,
@@ -179,7 +259,11 @@ export const MOBAConfig = {
         leashRange: 350,
         goldReward: 120,
         expReward: 100,
-        collision: { type: 'circle' as const, radius: 28, offset: { x: 0, y: 0 } },
+        collision: {
+          type: "circle" as const,
+          radius: 28,
+          offset: { x: 0, y: 0 },
+        },
       },
       dragon: {
         health: 2500,
@@ -191,7 +275,11 @@ export const MOBAConfig = {
         leashRange: 400,
         goldReward: 200,
         expReward: 250,
-        collision: { type: 'circle' as const, radius: 40, offset: { x: 0, y: 0 } },
+        collision: {
+          type: "circle" as const,
+          radius: 40,
+          offset: { x: 0, y: 0 },
+        },
       },
       baron: {
         health: 5000,
@@ -203,19 +291,27 @@ export const MOBAConfig = {
         leashRange: 450,
         goldReward: 500,
         expReward: 500,
-        collision: { type: 'circle' as const, radius: 55, offset: { x: 0, y: 0 } },
+        collision: {
+          type: "circle" as const,
+          radius: 55,
+          offset: { x: 0, y: 0 },
+        },
       },
       spider: {
         health: 300,
         damage: 22,
         attackRange: 70,
         attackCooldown: 0.9,
-        movementSpeed: 130,
+        movementSpeed: 30,
         sightRange: 180,
         leashRange: 300,
         goldReward: 50,
         expReward: 35,
-        collision: { type: 'circle' as const, radius: 8, offset: { x: 0, y: 0 } },
+        collision: {
+          type: "circle" as const,
+          radius: 8,
+          offset: { x: 0, y: 0 },
+        },
       },
     },
   },
@@ -252,36 +348,80 @@ export const MOBAConfig = {
    */
   BUSH_GROUPS: [
     // ========== TOP LANE BUSHES ==========
-    { center: new Vector(-900, -900), bushCount: 4, spread: 'horizontal' as const },
-    { center: new Vector(0, -1000), bushCount: 3, spread: 'horizontal' as const },
-    { center: new Vector(600, -900), bushCount: 4, spread: 'horizontal' as const },
+    {
+      center: new Vector(-900, -900),
+      bushCount: 6,
+      spread: "horizontal" as const,
+    },
+    {
+      center: new Vector(0, -1000),
+      bushCount: 5,
+      spread: "horizontal" as const,
+    },
+    {
+      center: new Vector(600, -900),
+      bushCount: 6,
+      spread: "horizontal" as const,
+    },
 
     // ========== MID LANE BUSHES ==========
-    { center: new Vector(-500, 500), bushCount: 4, spread: 'diagonal' as const },
-    { center: new Vector(500, -500), bushCount: 4, spread: 'diagonal' as const },
+    {
+      center: new Vector(-500, 500),
+      bushCount: 6,
+      spread: "diagonal" as const,
+    },
+    {
+      center: new Vector(500, -500),
+      bushCount: 6,
+      spread: "diagonal" as const,
+    },
 
     // ========== BOT LANE BUSHES ==========
-    { center: new Vector(-600, 900), bushCount: 4, spread: 'horizontal' as const },
-    { center: new Vector(0, 1000), bushCount: 3, spread: 'horizontal' as const },
-    { center: new Vector(900, 900), bushCount: 4, spread: 'horizontal' as const },
+    {
+      center: new Vector(-600, 900),
+      bushCount: 6,
+      spread: "horizontal" as const,
+    },
+    {
+      center: new Vector(0, 1000),
+      bushCount: 5,
+      spread: "horizontal" as const,
+    },
+    {
+      center: new Vector(900, 900),
+      bushCount: 6,
+      spread: "horizontal" as const,
+    },
 
     // ========== BLUE JUNGLE BUSHES ==========
-    { center: new Vector(-950, -550), bushCount: 3, spread: 'cluster' as const },
-    { center: new Vector(-650, -400), bushCount: 4, spread: 'cluster' as const },
-    { center: new Vector(-500, -50), bushCount: 3, spread: 'cluster' as const },
-    { center: new Vector(-850, 200), bushCount: 4, spread: 'cluster' as const },
-    { center: new Vector(-500, 400), bushCount: 3, spread: 'cluster' as const },
+    {
+      center: new Vector(-950, -550),
+      bushCount: 5,
+      spread: "cluster" as const,
+    },
+    {
+      center: new Vector(-650, -400),
+      bushCount: 6,
+      spread: "cluster" as const,
+    },
+    { center: new Vector(-500, -50), bushCount: 5, spread: "cluster" as const },
+    { center: new Vector(-850, 200), bushCount: 6, spread: "cluster" as const },
+    { center: new Vector(-500, 400), bushCount: 5, spread: "cluster" as const },
 
     // ========== RED JUNGLE BUSHES ==========
-    { center: new Vector(950, 550), bushCount: 3, spread: 'cluster' as const },
-    { center: new Vector(650, 400), bushCount: 4, spread: 'cluster' as const },
-    { center: new Vector(500, 50), bushCount: 3, spread: 'cluster' as const },
-    { center: new Vector(850, -200), bushCount: 4, spread: 'cluster' as const },
-    { center: new Vector(500, -400), bushCount: 3, spread: 'cluster' as const },
+    { center: new Vector(950, 550), bushCount: 5, spread: "cluster" as const },
+    { center: new Vector(650, 400), bushCount: 6, spread: "cluster" as const },
+    { center: new Vector(500, 50), bushCount: 5, spread: "cluster" as const },
+    { center: new Vector(850, -200), bushCount: 6, spread: "cluster" as const },
+    { center: new Vector(500, -400), bushCount: 5, spread: "cluster" as const },
 
     // ========== RIVER/CENTER BUSHES ==========
-    { center: new Vector(-150, -100), bushCount: 4, spread: 'cluster' as const },
-    { center: new Vector(150, 100), bushCount: 4, spread: 'cluster' as const },
+    {
+      center: new Vector(-150, -100),
+      bushCount: 6,
+      spread: "cluster" as const,
+    },
+    { center: new Vector(150, 100), bushCount: 6, spread: "cluster" as const },
   ],
 
   /**
@@ -289,24 +429,28 @@ export const MOBAConfig = {
    */
   BUSH_SETTINGS: {
     /** Spacing between bushes in a group */
-    SPACING: 35,
+    SPACING: 45,
     /** Random offset variance for natural look */
-    OFFSET_VARIANCE: 10,
+    OFFSET_VARIANCE: 12,
     /** Large bush hitbox dimensions */
-    LARGE_BUSH_WIDTH: 100,
-    LARGE_BUSH_HEIGHT: 60,
+    LARGE_BUSH_WIDTH: 130,
+    LARGE_BUSH_HEIGHT: 80,
     /** Small bush hitbox dimensions */
-    SMALL_BUSH_WIDTH: 60,
-    SMALL_BUSH_HEIGHT: 40,
+    SMALL_BUSH_WIDTH: 85,
+    SMALL_BUSH_HEIGHT: 55,
     /** Extra padding for visibility bounds (accounts for entity collision radius) */
-    VISIBILITY_PADDING: 30,
+    VISIBILITY_PADDING: 35,
   },
 
   /**
    * Wall configuration (tile-aligned to 64 unit grid).
    * Currently empty - walls disabled for open map gameplay.
    */
-  WALLS: [] as Array<{ position: typeof Vector.prototype; width: number; height: number }>,
+  WALLS: [] as Array<{
+    position: typeof Vector.prototype;
+    width: number;
+    height: number;
+  }>,
 
   /**
    * Tower positions and configuration.
@@ -320,26 +464,78 @@ export const MOBAConfig = {
       attackCooldown: 1.0,
       armor: 60,
       magicResist: 60,
-      collision: { type: 'circle' as const, radius: 50, offset: { x: 0, y: 0 } },
+      collision: {
+        type: "circle" as const,
+        radius: 50,
+        offset: { x: 0, y: 0 },
+      },
     },
 
     /** Tower positions by side and lane */
     POSITIONS: [
       // ========== BLUE SIDE (0) ==========
-      { side: 0 as const, lane: 'top' as const, position: new Vector(-1200, 700) },
-      { side: 0 as const, lane: 'top' as const, position: new Vector(-1200, 200) },
-      { side: 0 as const, lane: 'mid' as const, position: new Vector(-650, 650) },
-      { side: 0 as const, lane: 'mid' as const, position: new Vector(-350, 350) },
-      { side: 0 as const, lane: 'bot' as const, position: new Vector(-200, 1200) },
-      { side: 0 as const, lane: 'bot' as const, position: new Vector(400, 1200) },
+      {
+        side: 0 as const,
+        lane: "top" as const,
+        position: new Vector(-1200, 700),
+      },
+      {
+        side: 0 as const,
+        lane: "top" as const,
+        position: new Vector(-1200, 200),
+      },
+      {
+        side: 0 as const,
+        lane: "mid" as const,
+        position: new Vector(-650, 650),
+      },
+      {
+        side: 0 as const,
+        lane: "mid" as const,
+        position: new Vector(-350, 350),
+      },
+      {
+        side: 0 as const,
+        lane: "bot" as const,
+        position: new Vector(-200, 1200),
+      },
+      {
+        side: 0 as const,
+        lane: "bot" as const,
+        position: new Vector(400, 1200),
+      },
 
       // ========== RED SIDE (1) ==========
-      { side: 1 as const, lane: 'top' as const, position: new Vector(200, -1200) },
-      { side: 1 as const, lane: 'top' as const, position: new Vector(-400, -1200) },
-      { side: 1 as const, lane: 'mid' as const, position: new Vector(650, -650) },
-      { side: 1 as const, lane: 'mid' as const, position: new Vector(350, -350) },
-      { side: 1 as const, lane: 'bot' as const, position: new Vector(1200, -700) },
-      { side: 1 as const, lane: 'bot' as const, position: new Vector(1200, -200) },
+      {
+        side: 1 as const,
+        lane: "top" as const,
+        position: new Vector(200, -1200),
+      },
+      {
+        side: 1 as const,
+        lane: "top" as const,
+        position: new Vector(-400, -1200),
+      },
+      {
+        side: 1 as const,
+        lane: "mid" as const,
+        position: new Vector(650, -650),
+      },
+      {
+        side: 1 as const,
+        lane: "mid" as const,
+        position: new Vector(350, -350),
+      },
+      {
+        side: 1 as const,
+        lane: "bot" as const,
+        position: new Vector(1200, -700),
+      },
+      {
+        side: 1 as const,
+        lane: "bot" as const,
+        position: new Vector(1200, -200),
+      },
     ],
   },
 
@@ -348,45 +544,119 @@ export const MOBAConfig = {
    */
   DECORATIONS: [
     // ========== BLUE JUNGLE DECORATIONS ==========
-    { position: new Vector(-850, -600), type: 'rock_big' as const, scale: 0.75 },
-    { position: new Vector(-650, -500), type: 'mushroom_mid' as const, scale: 0.55 },
-    { position: new Vector(-700, -250), type: 'plant_2' as const, scale: 0.7 },
-    { position: new Vector(-500, -200), type: 'rock_small' as const, scale: 0.6 },
-    { position: new Vector(-900, 50), type: 'mushroom_big' as const, scale: 0.55 },
-    { position: new Vector(-700, 180), type: 'plant_1' as const, scale: 0.6 },
-    { position: new Vector(-550, 350), type: 'rock_mid' as const, scale: 0.65 },
-    { position: new Vector(-350, 250), type: 'plant_3' as const, scale: 0.5 },
+    {
+      position: new Vector(-850, -600),
+      type: "rock_big" as const,
+      scale: 0.75,
+    },
+    {
+      position: new Vector(-650, -500),
+      type: "mushroom_mid" as const,
+      scale: 0.55,
+    },
+    { position: new Vector(-700, -250), type: "plant_2" as const, scale: 0.7 },
+    {
+      position: new Vector(-500, -200),
+      type: "rock_small" as const,
+      scale: 0.6,
+    },
+    {
+      position: new Vector(-900, 50),
+      type: "mushroom_big" as const,
+      scale: 0.55,
+    },
+    { position: new Vector(-700, 180), type: "plant_1" as const, scale: 0.6 },
+    { position: new Vector(-550, 350), type: "rock_mid" as const, scale: 0.65 },
+    { position: new Vector(-350, 250), type: "plant_3" as const, scale: 0.5 },
 
     // ========== RED JUNGLE DECORATIONS ==========
-    { position: new Vector(850, 600), type: 'rock_big' as const, scale: 0.75, flipX: true },
-    { position: new Vector(650, 500), type: 'mushroom_mid' as const, scale: 0.55 },
-    { position: new Vector(700, 250), type: 'plant_2' as const, scale: 0.7, flipX: true },
-    { position: new Vector(500, 200), type: 'rock_small' as const, scale: 0.6 },
-    { position: new Vector(900, -50), type: 'mushroom_big' as const, scale: 0.55 },
-    { position: new Vector(700, -180), type: 'plant_1' as const, scale: 0.6, flipX: true },
-    { position: new Vector(550, -350), type: 'rock_mid' as const, scale: 0.65 },
-    { position: new Vector(350, -250), type: 'plant_3' as const, scale: 0.5, flipX: true },
+    {
+      position: new Vector(850, 600),
+      type: "rock_big" as const,
+      scale: 0.75,
+      flipX: true,
+    },
+    {
+      position: new Vector(650, 500),
+      type: "mushroom_mid" as const,
+      scale: 0.55,
+    },
+    {
+      position: new Vector(700, 250),
+      type: "plant_2" as const,
+      scale: 0.7,
+      flipX: true,
+    },
+    { position: new Vector(500, 200), type: "rock_small" as const, scale: 0.6 },
+    {
+      position: new Vector(900, -50),
+      type: "mushroom_big" as const,
+      scale: 0.55,
+    },
+    {
+      position: new Vector(700, -180),
+      type: "plant_1" as const,
+      scale: 0.6,
+      flipX: true,
+    },
+    { position: new Vector(550, -350), type: "rock_mid" as const, scale: 0.65 },
+    {
+      position: new Vector(350, -250),
+      type: "plant_3" as const,
+      scale: 0.5,
+      flipX: true,
+    },
 
     // ========== LANE EDGE DECORATIONS ==========
-    { position: new Vector(-500, -1050), type: 'plant_3' as const, scale: 0.5 },
-    { position: new Vector(300, -1100), type: 'rock_small' as const, scale: 0.5 },
-    { position: new Vector(500, 1050), type: 'plant_3' as const, scale: 0.5, flipX: true },
-    { position: new Vector(-300, 1100), type: 'rock_small' as const, scale: 0.5 },
+    { position: new Vector(-500, -1050), type: "plant_3" as const, scale: 0.5 },
+    {
+      position: new Vector(300, -1100),
+      type: "rock_small" as const,
+      scale: 0.5,
+    },
+    {
+      position: new Vector(500, 1050),
+      type: "plant_3" as const,
+      scale: 0.5,
+      flipX: true,
+    },
+    {
+      position: new Vector(-300, 1100),
+      type: "rock_small" as const,
+      scale: 0.5,
+    },
 
     // ========== RIVER/CENTER DECORATIONS ==========
-    { position: new Vector(-300, -150), type: 'rock_small' as const, scale: 0.45 },
-    { position: new Vector(300, 150), type: 'rock_small' as const, scale: 0.45 },
-    { position: new Vector(0, 0), type: 'plant_1' as const, scale: 0.5 },
+    {
+      position: new Vector(-300, -150),
+      type: "rock_small" as const,
+      scale: 0.45,
+    },
+    {
+      position: new Vector(300, 150),
+      type: "rock_small" as const,
+      scale: 0.45,
+    },
+    { position: new Vector(0, 0), type: "plant_1" as const, scale: 0.5 },
 
     // ========== BASE DECORATIONS ==========
-    { position: new Vector(-1050, 1050), type: 'scarecrow' as const, scale: 0.5 },
-    { position: new Vector(1050, -1050), type: 'scarecrow' as const, scale: 0.5, flipX: true },
+    {
+      position: new Vector(-1050, 1050),
+      type: "scarecrow" as const,
+      scale: 0.5,
+    },
+    {
+      position: new Vector(1050, -1050),
+      type: "scarecrow" as const,
+      scale: 0.5,
+      flipX: true,
+    },
   ],
 } as const;
 
-export type LaneId = 'top' | 'mid' | 'bot';
+export type LaneId = "top" | "mid" | "bot";
 export type JungleCreatureType = keyof typeof MOBAConfig.JUNGLE.CREATURE_STATS;
-export type BushSpread = 'horizontal' | 'vertical' | 'diagonal' | 'cluster';
+export type BushSpread = "horizontal" | "vertical" | "diagonal" | "cluster";
 
 /**
  * Simple seeded random number generator for deterministic bush positions.
@@ -396,7 +666,7 @@ function seededRandom(seed: number): () => number {
   let state = seed;
   return () => {
     state = (state * 1664525 + 1013904223) >>> 0;
-    return (state / 0xFFFFFFFF);
+    return state / 0xffffffff;
   };
 }
 
@@ -417,11 +687,20 @@ export interface BushPosition {
  * @param groupIndex - Index of the bush group in BUSH_GROUPS array
  * @returns Array of individual bush positions with their dimensions
  */
-export function calculateIndividualBushPositions(groupIndex: number): BushPosition[] {
+export function calculateIndividualBushPositions(
+  groupIndex: number,
+): BushPosition[] {
   const groupConfig = MOBAConfig.BUSH_GROUPS[groupIndex];
   if (!groupConfig) return [];
 
-  const { SPACING, OFFSET_VARIANCE, LARGE_BUSH_WIDTH, LARGE_BUSH_HEIGHT, SMALL_BUSH_WIDTH, SMALL_BUSH_HEIGHT } = MOBAConfig.BUSH_SETTINGS;
+  const {
+    SPACING,
+    OFFSET_VARIANCE,
+    LARGE_BUSH_WIDTH,
+    LARGE_BUSH_HEIGHT,
+    SMALL_BUSH_WIDTH,
+    SMALL_BUSH_HEIGHT,
+  } = MOBAConfig.BUSH_SETTINGS;
   const { center, bushCount, spread } = groupConfig;
 
   const positions: BushPosition[] = [];
@@ -439,19 +718,19 @@ export function calculateIndividualBushPositions(groupIndex: number): BushPositi
     let y = center.y;
 
     switch (spread as BushSpread) {
-      case 'horizontal':
+      case "horizontal":
         x += offset + randX;
         y += randY;
         break;
-      case 'vertical':
+      case "vertical":
         x += randX;
         y += offset + randY;
         break;
-      case 'diagonal':
+      case "diagonal":
         x += offset * 0.7 + randX;
         y += offset * 0.7 + randY;
         break;
-      case 'cluster':
+      case "cluster":
         const angle = (i / bushCount) * Math.PI * 2 + random() * 0.5;
         const radius = SPACING * 0.8 + random() * SPACING * 0.4;
         x += Math.cos(angle) * radius + randX;
@@ -478,7 +757,10 @@ export function calculateIndividualBushPositions(groupIndex: number): BushPositi
  * @param groupIndex - Index of the bush group
  * @returns true if point is inside any bush in the group
  */
-export function isPointInBushGroup(point: { x: number; y: number }, groupIndex: number): boolean {
+export function isPointInBushGroup(
+  point: { x: number; y: number },
+  groupIndex: number,
+): boolean {
   const bushes = calculateIndividualBushPositions(groupIndex);
 
   for (const bush of bushes) {
@@ -520,15 +802,21 @@ export interface BushGroupBounds {
 export function calculateBushGroupBounds(
   center: { x: number; y: number },
   bushCount: number,
-  spread: BushSpread
+  spread: BushSpread,
 ): BushGroupBounds {
-  const { SPACING, OFFSET_VARIANCE, LARGE_BUSH_WIDTH, LARGE_BUSH_HEIGHT, VISIBILITY_PADDING } = MOBAConfig.BUSH_SETTINGS;
+  const {
+    SPACING,
+    OFFSET_VARIANCE,
+    LARGE_BUSH_WIDTH,
+    LARGE_BUSH_HEIGHT,
+    VISIBILITY_PADDING,
+  } = MOBAConfig.BUSH_SETTINGS;
 
   // Padding accounts for random variance in bush positions and entity collision radius
   const padding = OFFSET_VARIANCE + VISIBILITY_PADDING;
 
   switch (spread) {
-    case 'horizontal': {
+    case "horizontal": {
       const totalWidth = bushCount * (LARGE_BUSH_WIDTH + SPACING);
       const halfW = totalWidth / 2 + padding;
       const halfH = LARGE_BUSH_HEIGHT / 2 + padding;
@@ -539,7 +827,7 @@ export function calculateBushGroupBounds(
         maxY: center.y + halfH,
       };
     }
-    case 'vertical': {
+    case "vertical": {
       const totalHeight = bushCount * (LARGE_BUSH_HEIGHT + SPACING);
       const halfW = LARGE_BUSH_WIDTH / 2 + padding;
       const halfH = totalHeight / 2 + padding;
@@ -550,8 +838,8 @@ export function calculateBushGroupBounds(
         maxY: center.y + halfH,
       };
     }
-    case 'diagonal':
-    case 'cluster':
+    case "diagonal":
+    case "cluster":
     default: {
       // For cluster/diagonal, use a circular-ish bounds
       const radius = Math.max(bushCount * SPACING, LARGE_BUSH_WIDTH) + padding;

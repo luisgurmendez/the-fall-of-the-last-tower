@@ -28,8 +28,14 @@ import {
   isRectangleCollision,
   isCircleCollision,
 } from "@siege/shared";
+import { VFXManager, getVFXManager } from "@/vfx";
 import { BitmapFont } from "@/render/BitmapFont";
 import PixelArtDrawUtils from "@/utils/pixelartDrawUtils";
+import {
+  getOutlinedSprite,
+  getOutlinePadding,
+  OUTLINE_COLORS,
+} from "@/render/OutlinedSpriteCache";
 
 /**
  * Colors for different teams.
@@ -365,6 +371,7 @@ const SPRITES = {
   LUME: {
     IDLE: "/assets/champs/lume/Lume-IDLE.png",
     WALK: "/assets/champs/lume/Lume-Walk-Sheet.png",
+    ATTACK: "/assets/champs/lume/Lume-BasicAttack-Sheet.png",
     Q: "/assets/champs/lume/Lume-Q-Sheet.png",
     E: "/assets/champs/lume/Lume-E-Sheet.png",
     R: "/assets/champs/lume/Lume-R-Sheet.png",
@@ -372,9 +379,28 @@ const SPRITES = {
     FRAME_HEIGHT: 152,
     IDLE_FRAMES: 1,
     WALK_FRAMES: 6,
+    ATTACK_FRAMES: 10,
     Q_FRAMES: 8,
     E_FRAMES: 11,
     R_FRAMES: 12,
+    SCALE: 0.8,
+  },
+  VEX: {
+    IDLE: "/assets/champs/vex/Vex-Idle.png",
+    WALK: "/assets/champs/vex/Vex-Walk-Sheet.png",
+    ATTACK: "/assets/champs/vex/Vex-BasicAttack-Sheet.png",
+    DASH: "/assets/champs/vex/Vex-Dash-Sheet.png",
+    SHURIKEN: "/assets/champs/vex/Vex-Shuriken-Sheet.png",
+    DISAPPEAR: "/assets/champs/vex/Vex-Disappear-Sheet.png",
+    IDLE_FRAMES: 1,
+    WALK_FRAMES: 5,
+    ATTACK_FRAMES: 7,
+    ATTACK_TRIGGER_FRAME: 3, // Frame 4 (0-indexed)
+    DASH_FRAMES: 13,
+    DASH_HOLD_FRAME: 4, // Frame 5 (0-indexed) - hold during dash
+    SHURIKEN_FRAMES: 6,
+    SHURIKEN_TRIGGER_FRAME: 3, // Frame 4 (0-indexed)
+    DISAPPEAR_FRAMES: 15,
     SCALE: 0.8,
   },
 };
@@ -424,9 +450,17 @@ function loadImages(): void {
     // Champions
     SPRITES.LUME.IDLE,
     SPRITES.LUME.WALK,
+    SPRITES.LUME.ATTACK,
     SPRITES.LUME.Q,
     SPRITES.LUME.E,
     SPRITES.LUME.R,
+    // Vex
+    SPRITES.VEX.IDLE,
+    SPRITES.VEX.WALK,
+    SPRITES.VEX.ATTACK,
+    SPRITES.VEX.DASH,
+    SPRITES.VEX.SHURIKEN,
+    SPRITES.VEX.DISAPPEAR,
   ];
 
   for (const src of imagesToLoad) {
@@ -481,6 +515,13 @@ export class EntityRenderer implements GameObject {
   // Track entity state for animations
   private entityStates: Map<string, EntityRenderState> = new Map();
 
+  // Dash afterimages for sprite-based afterimage effects
+  private dashAfterimages: Map<
+    string,
+    Array<{ x: number; y: number; alpha: number; facingRight: boolean }>
+  > = new Map();
+  private lastAfterimageTime: Map<string, number> = new Map();
+
   // For selected champion indicator animation
   private selectionAnimTime = 0;
 
@@ -490,9 +531,17 @@ export class EntityRenderer implements GameObject {
   private lightOrbPositionTrackers: Map<string, LightOrbPositionTracker> =
     new Map();
 
+  // VFX Manager for ability visual effects
+  private vfxManager: VFXManager;
+
+  // Hovered entity tracking for outline highlighting
+  private hoveredEnemyId: string | null = null;
+  private hoveredAllyId: string | null = null;
+
   constructor(stateManager: OnlineStateManager, localSide: number) {
     this.stateManager = stateManager;
     this.localSide = localSide;
+    this.vfxManager = getVFXManager(stateManager);
     loadImages();
   }
 
@@ -701,9 +750,9 @@ export class EntityRenderer implements GameObject {
       });
 
       for (const entity of sortedEntities) {
-        // Skip dead entities
+        // Skip dead entities (except light orbs which show a ghost when destroyed)
         const snapshot = entity.snapshot as any;
-        if (snapshot.isDead || snapshot.isDestroyed) {
+        if ((snapshot.isDead || snapshot.isDestroyed) && snapshot.entityType !== EntityType.LIGHT_ORB) {
           continue;
         }
 
@@ -757,7 +806,12 @@ export class EntityRenderer implements GameObject {
         this.renderEntity(canvasRenderingContext, entity, isLocalPlayer, state);
       }
 
-      // Render ability visual effects
+      // Update and render VFX system
+      this.vfxManager.update(clientDt);
+      // Render VFX in world space (camera transform already applied)
+      this.vfxManager.render(canvasRenderingContext, 0, 0);
+
+      // Render ability visual effects (legacy system)
       this.renderAbilityEffects(canvasRenderingContext);
 
       // Render floating damage numbers on top of all entities
@@ -893,32 +947,6 @@ export class EntityRenderer implements GameObject {
       }
     }
 
-    // Draw selection ellipse for local player (white pixelated ellipse below champion)
-    if (isLocalPlayer) {
-      ctx.save();
-      // Subtle pulse animation similar to hover effects
-      const pulsePhase = this.selectionAnimTime * 4; // 4 Hz pulse
-      const pulseScale = 1 + Math.sin(pulsePhase) * 0.1; // Subtle pulse
-
-      // Ellipse dimensions: rx matches the unit's footprint, ry is flatter
-      const rx = size * 0.5 * pulseScale;
-      const ry = 6 * pulseScale;
-
-      // Position below the champion (at the feet)
-      const yOffset = size * 0.4;
-      ctx.translate(0, yOffset);
-
-      // Draw white pixelated ellipse
-      const drawUtils = new PixelArtDrawUtils(
-        ctx,
-        "rgba(255, 255, 255, 0.7)",
-        3,
-      );
-      drawUtils.drawPixelatedEllipse(0, 0, rx, ry);
-
-      ctx.restore();
-    }
-
     // Check if this champion has sprite support
     let renderedWithSprite = false;
 
@@ -935,6 +963,14 @@ export class EntityRenderer implements GameObject {
       if (!renderedWithSprite && this.frameCount % 60 === 0) {
         console.log(
           `[EntityRenderer] Lume sprite render failed, falling back to circle`,
+        );
+      }
+    } else if (championId === "vex") {
+      renderedWithSprite = this.renderVexSprite(ctx, snapshot, state, size);
+      // Debug: log if sprite rendering failed
+      if (!renderedWithSprite && this.frameCount % 60 === 0) {
+        console.log(
+          `[EntityRenderer] Vex sprite render failed, falling back to circle`,
         );
       }
     }
@@ -1025,34 +1061,25 @@ export class EntityRenderer implements GameObject {
       );
     }
 
-    // Draw level indicator
-    if (snapshot.level !== undefined) {
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 12px Arial";
+    // Draw level indicator to the left of health bar (only for local player)
+    if (isLocalPlayer && snapshot.level !== undefined) {
+      const levelX = -size / 2 - 8; // Left of health bar
+      const levelY = healthBarY + 3; // Aligned with health bar center
+      const levelText = snapshot.level.toString();
+
+      // Draw level number with black outline (like damage numbers)
+      ctx.font = "bold 11px Arial";
       ctx.textAlign = "center";
-      ctx.fillText(snapshot.level.toString(), 0, 5);
-    }
+      ctx.textBaseline = "middle";
 
-    // Draw champion name below
-    if (snapshot.championId) {
-      // DEBUG: Log received championId
-      if (this.frameCount % 60 === 0) {
-        console.log(
-          `[EntityRenderer] Champion snapshot: championId="${snapshot.championId}", entityId="${snapshot.entityId}"`,
-        );
-      }
+      // Black outline
+      ctx.strokeStyle = "#000000";
+      ctx.lineWidth = 3;
+      ctx.strokeText(levelText, levelX, levelY);
 
-      // Look up champion definition to get the display name
-      const championDef = getChampionDefinition(snapshot.championId);
-      const displayName = championDef?.name || snapshot.championId;
-
+      // White fill
       ctx.fillStyle = "#ffffff";
-      ctx.font = "10px Arial";
-      ctx.textAlign = "center";
-      ctx.shadowColor = "#000000";
-      ctx.shadowBlur = 2;
-      ctx.fillText(displayName, 0, size * 0.8);
-      ctx.shadowBlur = 0;
+      ctx.fillText(levelText, levelX, levelY);
     }
   }
 
@@ -1123,6 +1150,13 @@ export class EntityRenderer implements GameObject {
         spriteSrc = SPRITES.LUME.IDLE;
         frameCount = SPRITES.LUME.IDLE_FRAMES;
       }
+    } else if (state.isAttacking) {
+      // Attack animation
+      spriteSrc = SPRITES.LUME.ATTACK;
+      frameCount = SPRITES.LUME.ATTACK_FRAMES;
+      // Use attack animation time for frame selection
+      const animSpeed = 12; // Fast attack animation
+      fixedFrameIndex = Math.floor(state.attackAnimTime * animSpeed) % frameCount;
     } else if (state.isWalking) {
       // Walk animation
       spriteSrc = SPRITES.LUME.WALK;
@@ -1168,29 +1202,418 @@ export class EntityRenderer implements GameObject {
       const scaledWidth = frameWidth * SPRITES.LUME.SCALE;
       const scaledHeight = frameHeight * SPRITES.LUME.SCALE;
 
+      // Check if entity is hovered for outline highlighting
+      const outlineColor = this.getEntityOutlineColor(snapshot.entityId);
+
       // Apply horizontal flip if facing left
       ctx.save();
       if (!state.facingRight) {
         ctx.scale(-1, 1);
       }
 
-      ctx.drawImage(
-        image,
-        srcX,
-        0,
-        frameWidth,
-        frameHeight,
-        -scaledWidth / 2,
-        -scaledHeight / 2,
-        scaledWidth,
-        scaledHeight,
-      );
+      if (outlineColor) {
+        // Draw outlined sprite when hovered
+        const outlinedSprite = getOutlinedSprite(
+          image,
+          srcX,
+          0,
+          frameWidth,
+          frameHeight,
+          outlineColor
+        );
+
+        if (outlinedSprite) {
+          // Outlined sprite has padding, so adjust dimensions
+          const padding = getOutlinePadding();
+          const outlinedWidth = (frameWidth + padding * 2) * SPRITES.LUME.SCALE;
+          const outlinedHeight = (frameHeight + padding * 2) * SPRITES.LUME.SCALE;
+
+          ctx.drawImage(
+            outlinedSprite,
+            0,
+            0,
+            outlinedSprite.width,
+            outlinedSprite.height,
+            -outlinedWidth / 2,
+            -outlinedHeight / 2,
+            outlinedWidth,
+            outlinedHeight,
+          );
+        } else {
+          // Fallback to normal sprite if outline generation failed
+          ctx.drawImage(
+            image,
+            srcX,
+            0,
+            frameWidth,
+            frameHeight,
+            -scaledWidth / 2,
+            -scaledHeight / 2,
+            scaledWidth,
+            scaledHeight,
+          );
+        }
+      } else {
+        // Draw normal sprite when not hovered
+        ctx.drawImage(
+          image,
+          srcX,
+          0,
+          frameWidth,
+          frameHeight,
+          -scaledWidth / 2,
+          -scaledHeight / 2,
+          scaledWidth,
+          scaledHeight,
+        );
+      }
 
       ctx.restore();
       return true;
     }
 
     return false;
+  }
+
+  /**
+   * Render Vex champion using sprite sheets.
+   * Returns true if sprite was rendered, false if fallback needed.
+   */
+  private renderVexSprite(
+    ctx: CanvasRenderingContext2D,
+    snapshot: any,
+    state: EntityRenderState,
+    size: number,
+  ): boolean {
+    const entityId = snapshot.entityId;
+
+    // Check if dashing with Vex E (special case: hold frame 5 during dash)
+    const isDashingWithE =
+      snapshot.isDashing && snapshot.dashAbilityId === "vex_dash";
+
+    // Check if casting an ability
+    const castingState = this.stateManager.isEntityCastingAbility(entityId);
+    const abilityProgress = castingState.casting
+      ? this.stateManager.getAbilityAnimationProgress(entityId)
+      : 0;
+
+    // Check if Vex has ninja mode active (for violet particle aura)
+    const activeEffects = snapshot.activeEffects as
+      | Array<{ definitionId: string }>
+      | undefined;
+    const hasNinjaMode = activeEffects?.some(
+      (e) => e.definitionId === "vex_ninja_mode"
+    );
+
+    // Check if Vex is stealthed (for semi-transparent rendering to local player)
+    const isStealthed = activeEffects?.some(
+      (e) => e.definitionId === "vex_stealth"
+    );
+
+    // Select sprite based on animation state (priority: E dash > ability > walk > idle)
+    let spriteSrc: string;
+    let frameCount: number;
+    let useAbilityProgress = false;
+    let fixedFrameIndex: number | null = null;
+
+    if (isDashingWithE) {
+      // Vex E dash: use DASH sprite, hold on frame 5 (index 4)
+      spriteSrc = SPRITES.VEX.DASH;
+      frameCount = SPRITES.VEX.DASH_FRAMES;
+      fixedFrameIndex = SPRITES.VEX.DASH_HOLD_FRAME;
+
+      // Override facing direction to look toward dash target
+      if (snapshot.dashTargetX != null) {
+        const dx = snapshot.dashTargetX - snapshot.x;
+        state.facingRight = dx >= 0;
+      }
+
+      // Create afterimages during dash
+      const now = performance.now();
+      const lastTime = this.lastAfterimageTime.get(entityId) || 0;
+      if (now - lastTime > 50) {
+        // Create afterimage every 50ms
+        let afterimages = this.dashAfterimages.get(entityId);
+        if (!afterimages) {
+          afterimages = [];
+          this.dashAfterimages.set(entityId, afterimages);
+        }
+        afterimages.push({
+          x: snapshot.x,
+          y: snapshot.y,
+          alpha: 0.7,
+          facingRight: state.facingRight,
+        });
+        this.lastAfterimageTime.set(entityId, now);
+      }
+    } else if (castingState.casting && castingState.abilityId) {
+      // Ability animation - check which ability
+      const abilityId = castingState.abilityId;
+      if (abilityId === "vex_shuriken") {
+        // Q - Shuriken throw, trigger at frame 4 (index 3)
+        spriteSrc = SPRITES.VEX.SHURIKEN;
+        frameCount = SPRITES.VEX.SHURIKEN_FRAMES;
+        useAbilityProgress = true;
+      } else if (abilityId === "vex_shroud") {
+        // W - Disappear, effect on last frame
+        spriteSrc = SPRITES.VEX.DISAPPEAR;
+        frameCount = SPRITES.VEX.DISAPPEAR_FRAMES;
+        useAbilityProgress = true;
+      } else if (abilityId === "vex_dash") {
+        // E - Dash animation after dash completes
+        spriteSrc = SPRITES.VEX.DASH;
+        frameCount = SPRITES.VEX.DASH_FRAMES;
+        // Play ending frames after the dash hold frame
+        const endingFrameCount = frameCount - SPRITES.VEX.DASH_HOLD_FRAME - 1;
+        const endingFrameIndex = Math.min(
+          Math.floor(abilityProgress * endingFrameCount),
+          endingFrameCount - 1
+        );
+        fixedFrameIndex = SPRITES.VEX.DASH_HOLD_FRAME + 1 + endingFrameIndex;
+      } else if (abilityId === "vex_ninja_mode") {
+        // R - Ninja Mode activation, use walk as base (VFX handles the particles)
+        spriteSrc = SPRITES.VEX.WALK;
+        frameCount = SPRITES.VEX.WALK_FRAMES;
+      } else {
+        // Unknown ability, fall back to walk idle
+        spriteSrc = SPRITES.VEX.WALK;
+        frameCount = SPRITES.VEX.WALK_FRAMES;
+        fixedFrameIndex = 0; // Idle frame
+      }
+    } else if (state.isAttacking) {
+      // Basic attack animation - trigger at frame 4 (index 3)
+      spriteSrc = SPRITES.VEX.ATTACK;
+      frameCount = SPRITES.VEX.ATTACK_FRAMES;
+      // Use attack animation time for frame selection
+      const animSpeed = 14; // Fast melee attack animation
+      fixedFrameIndex =
+        Math.floor(state.attackAnimTime * animSpeed) % frameCount;
+    } else if (state.isWalking) {
+      // Walk animation
+      spriteSrc = SPRITES.VEX.WALK;
+      frameCount = SPRITES.VEX.WALK_FRAMES;
+    } else {
+      // Idle animation
+      spriteSrc = SPRITES.VEX.IDLE;
+      frameCount = SPRITES.VEX.IDLE_FRAMES;
+      fixedFrameIndex = 0;
+    }
+
+    const image = imageCache.get(spriteSrc);
+
+    // Debug logging
+    if (this.frameCount % 120 === 0) {
+      console.log(
+        `[Vex] spriteSrc=${spriteSrc}, casting=${castingState.casting}, abilityId=${castingState.abilityId}, ninjaMode=${hasNinjaMode}`
+      );
+    }
+
+    if (image && image.complete && image.naturalWidth > 0) {
+      // Calculate frame dimensions from actual image
+      const frameWidth = image.naturalWidth / frameCount;
+      const frameHeight = image.naturalHeight;
+
+      // Calculate animation frame
+      let frameIndex: number;
+      if (fixedFrameIndex !== null) {
+        // Fixed frame (e.g., Vex E dash holds on frame 5)
+        frameIndex = Math.min(fixedFrameIndex, frameCount - 1);
+      } else if (useAbilityProgress) {
+        // Use ability progress (0-1) to determine frame
+        frameIndex = Math.min(
+          Math.floor(abilityProgress * frameCount),
+          frameCount - 1
+        );
+      } else {
+        // Use continuous animation time for walk
+        const animSpeed = 10;
+        frameIndex = Math.floor(this.animationTime * animSpeed) % frameCount;
+      }
+      const srcX = frameIndex * frameWidth;
+
+      const scaledWidth = frameWidth * SPRITES.VEX.SCALE;
+      const scaledHeight = frameHeight * SPRITES.VEX.SCALE;
+
+      // Render and update dash afterimages
+      const afterimages = this.dashAfterimages.get(entityId);
+      if (afterimages && afterimages.length > 0) {
+        const dashImage = imageCache.get(SPRITES.VEX.DASH);
+        if (dashImage && dashImage.complete && dashImage.naturalWidth > 0) {
+          const dashFrameWidth = dashImage.naturalWidth / SPRITES.VEX.DASH_FRAMES;
+          const dashFrameHeight = dashImage.naturalHeight;
+          const dashSrcX = SPRITES.VEX.DASH_HOLD_FRAME * dashFrameWidth;
+          const dashScaledWidth = dashFrameWidth * SPRITES.VEX.SCALE;
+          const dashScaledHeight = dashFrameHeight * SPRITES.VEX.SCALE;
+
+          // Draw afterimages (oldest first, so newest is on top)
+          for (const ai of afterimages) {
+            ctx.save();
+            // Translate to afterimage position relative to current entity position
+            const relX = ai.x - snapshot.x;
+            const relY = ai.y - snapshot.y;
+            ctx.translate(relX, relY);
+            ctx.globalAlpha = ai.alpha;
+
+            // Apply horizontal flip based on afterimage facing
+            if (!ai.facingRight) {
+              ctx.scale(-1, 1);
+            }
+
+            // Add violet tint to afterimages
+            ctx.drawImage(
+              dashImage,
+              dashSrcX,
+              0,
+              dashFrameWidth,
+              dashFrameHeight,
+              -dashScaledWidth / 2,
+              -dashScaledHeight / 2,
+              dashScaledWidth,
+              dashScaledHeight
+            );
+            ctx.restore();
+
+            // Fade afterimage
+            ai.alpha -= 0.03;
+          }
+
+          // Remove faded afterimages
+          this.dashAfterimages.set(
+            entityId,
+            afterimages.filter((ai) => ai.alpha > 0)
+          );
+        }
+      }
+
+      // Check if entity is hovered for outline highlighting
+      const outlineColor = this.getEntityOutlineColor(snapshot.entityId);
+
+      // Apply horizontal flip if facing left
+      ctx.save();
+      if (!state.facingRight) {
+        ctx.scale(-1, 1);
+      }
+
+      // Apply stealth opacity (local player sees semi-transparent, others don't see at all)
+      // Only apply after the disappear animation has finished
+      const isCastingShroud = castingState.casting && castingState.abilityId === "vex_shroud";
+      if (isStealthed && !isCastingShroud) {
+        ctx.globalAlpha = 0.4;
+      }
+
+      // Draw violet aura particles when Ninja Mode is active
+      if (hasNinjaMode) {
+        this.drawNinjaModeAura(ctx, scaledWidth, scaledHeight);
+      }
+
+      if (outlineColor) {
+        // Draw outlined sprite when hovered
+        const outlinedSprite = getOutlinedSprite(
+          image,
+          srcX,
+          0,
+          frameWidth,
+          frameHeight,
+          outlineColor
+        );
+
+        if (outlinedSprite) {
+          // Outlined sprite has padding, so adjust dimensions
+          const padding = getOutlinePadding();
+          const outlinedWidth = (frameWidth + padding * 2) * SPRITES.VEX.SCALE;
+          const outlinedHeight =
+            (frameHeight + padding * 2) * SPRITES.VEX.SCALE;
+
+          ctx.drawImage(
+            outlinedSprite,
+            0,
+            0,
+            outlinedSprite.width,
+            outlinedSprite.height,
+            -outlinedWidth / 2,
+            -outlinedHeight / 2,
+            outlinedWidth,
+            outlinedHeight
+          );
+        } else {
+          // Fallback to normal sprite if outline generation failed
+          ctx.drawImage(
+            image,
+            srcX,
+            0,
+            frameWidth,
+            frameHeight,
+            -scaledWidth / 2,
+            -scaledHeight / 2,
+            scaledWidth,
+            scaledHeight
+          );
+        }
+      } else {
+        // Draw normal sprite when not hovered
+        ctx.drawImage(
+          image,
+          srcX,
+          0,
+          frameWidth,
+          frameHeight,
+          -scaledWidth / 2,
+          -scaledHeight / 2,
+          scaledWidth,
+          scaledHeight
+        );
+      }
+
+      ctx.restore();
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Draw violet particle aura for Vex's Ninja Mode.
+   */
+  private drawNinjaModeAura(
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number
+  ): void {
+    const time = this.animationTime;
+    const particleCount = 6;
+    const orbitRadius = Math.max(width, height) * 0.5;
+
+    ctx.save();
+
+    for (let i = 0; i < particleCount; i++) {
+      const angle = (i / particleCount) * Math.PI * 2 + time * 3;
+      const x = Math.cos(angle) * orbitRadius;
+      const y = Math.sin(angle) * orbitRadius * 0.5; // Elliptical orbit
+
+      // Violet gradient particle
+      const gradient = ctx.createRadialGradient(x, y, 0, x, y, 4);
+      gradient.addColorStop(0, "rgba(153, 51, 255, 0.9)"); // Bright violet center
+      gradient.addColorStop(0.5, "rgba(136, 68, 204, 0.6)"); // Purple
+      gradient.addColorStop(1, "rgba(68, 34, 102, 0)"); // Fade out
+
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(x, y, 6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Add subtle glow around character
+    const glowGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, orbitRadius);
+    glowGradient.addColorStop(0, "rgba(153, 51, 255, 0.15)");
+    glowGradient.addColorStop(0.7, "rgba(136, 68, 204, 0.05)");
+    glowGradient.addColorStop(1, "rgba(68, 34, 102, 0)");
+
+    ctx.fillStyle = glowGradient;
+    ctx.beginPath();
+    ctx.arc(0, 0, orbitRadius, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
   }
 
   /**
@@ -1273,23 +1696,71 @@ export class EntityRenderer implements GameObject {
       const scaledWidth = spriteConfig.FRAME_WIDTH * spriteConfig.SCALE;
       const scaledHeight = spriteConfig.FRAME_HEIGHT * spriteConfig.SCALE;
 
+      // Check if entity is hovered for outline highlighting
+      const outlineColor = this.getEntityOutlineColor(snapshot.entityId);
+
       // Apply horizontal flip if facing left
       ctx.save();
       if (!state.facingRight) {
         ctx.scale(-1, 1);
       }
 
-      ctx.drawImage(
-        image,
-        srcX,
-        0,
-        spriteConfig.FRAME_WIDTH,
-        spriteConfig.FRAME_HEIGHT,
-        -scaledWidth / 2,
-        -scaledHeight / 2,
-        scaledWidth,
-        scaledHeight,
-      );
+      if (outlineColor) {
+        // Draw outlined sprite when hovered
+        const outlinedSprite = getOutlinedSprite(
+          image,
+          srcX,
+          0,
+          spriteConfig.FRAME_WIDTH,
+          spriteConfig.FRAME_HEIGHT,
+          outlineColor
+        );
+
+        if (outlinedSprite) {
+          // Outlined sprite has padding, so adjust dimensions
+          const padding = getOutlinePadding();
+          const outlinedWidth = (spriteConfig.FRAME_WIDTH + padding * 2) * spriteConfig.SCALE;
+          const outlinedHeight = (spriteConfig.FRAME_HEIGHT + padding * 2) * spriteConfig.SCALE;
+
+          ctx.drawImage(
+            outlinedSprite,
+            0,
+            0,
+            outlinedSprite.width,
+            outlinedSprite.height,
+            -outlinedWidth / 2,
+            -outlinedHeight / 2,
+            outlinedWidth,
+            outlinedHeight,
+          );
+        } else {
+          // Fallback to normal sprite if outline generation failed
+          ctx.drawImage(
+            image,
+            srcX,
+            0,
+            spriteConfig.FRAME_WIDTH,
+            spriteConfig.FRAME_HEIGHT,
+            -scaledWidth / 2,
+            -scaledHeight / 2,
+            scaledWidth,
+            scaledHeight,
+          );
+        }
+      } else {
+        // Draw normal sprite when not hovered
+        ctx.drawImage(
+          image,
+          srcX,
+          0,
+          spriteConfig.FRAME_WIDTH,
+          spriteConfig.FRAME_HEIGHT,
+          -scaledWidth / 2,
+          -scaledHeight / 2,
+          scaledWidth,
+          scaledHeight,
+        );
+      }
 
       ctx.restore();
     } else {
@@ -1343,13 +1814,56 @@ export class EntityRenderer implements GameObject {
       const scaledWidth = SPRITES.TOWER.WIDTH * SPRITES.TOWER.SCALE;
       const scaledHeight = SPRITES.TOWER.HEIGHT * SPRITES.TOWER.SCALE;
 
-      ctx.drawImage(
-        image,
-        -scaledWidth / 2,
-        -scaledHeight + 30, // Offset so base is near position
-        scaledWidth,
-        scaledHeight,
-      );
+      // Check if tower is hovered for outline highlighting
+      const outlineColor = this.getEntityOutlineColor(snapshot.entityId);
+
+      if (outlineColor) {
+        // Draw outlined sprite when hovered
+        const outlinedSprite = getOutlinedSprite(
+          image,
+          0,
+          0,
+          image.naturalWidth,
+          image.naturalHeight,
+          outlineColor
+        );
+
+        if (outlinedSprite) {
+          const padding = getOutlinePadding();
+          const outlinedWidth = (SPRITES.TOWER.WIDTH + padding * 2) * SPRITES.TOWER.SCALE;
+          const outlinedHeight = (SPRITES.TOWER.HEIGHT + padding * 2) * SPRITES.TOWER.SCALE;
+
+          ctx.drawImage(
+            outlinedSprite,
+            0,
+            0,
+            outlinedSprite.width,
+            outlinedSprite.height,
+            -outlinedWidth / 2,
+            -outlinedHeight + 30 + padding * SPRITES.TOWER.SCALE,
+            outlinedWidth,
+            outlinedHeight,
+          );
+        } else {
+          // Fallback to normal sprite
+          ctx.drawImage(
+            image,
+            -scaledWidth / 2,
+            -scaledHeight + 30,
+            scaledWidth,
+            scaledHeight,
+          );
+        }
+      } else {
+        // Draw normal sprite when not hovered
+        ctx.drawImage(
+          image,
+          -scaledWidth / 2,
+          -scaledHeight + 30, // Offset so base is near position
+          scaledWidth,
+          scaledHeight,
+        );
+      }
     } else {
       // Fallback: draw colored rectangle
       const color = side === 0 ? TEAM_COLORS.BLUE : TEAM_COLORS.RED;
@@ -1393,13 +1907,56 @@ export class EntityRenderer implements GameObject {
       const scaledWidth = SPRITES.NEXUS.WIDTH * SPRITES.NEXUS.SCALE;
       const scaledHeight = SPRITES.NEXUS.HEIGHT * SPRITES.NEXUS.SCALE;
 
-      ctx.drawImage(
-        image,
-        -scaledWidth / 2,
-        -scaledHeight + 20, // Offset so base is near position
-        scaledWidth,
-        scaledHeight,
-      );
+      // Check if nexus is hovered for outline highlighting
+      const outlineColor = this.getEntityOutlineColor(snapshot.entityId);
+
+      if (outlineColor) {
+        // Draw outlined sprite when hovered
+        const outlinedSprite = getOutlinedSprite(
+          image,
+          0,
+          0,
+          image.naturalWidth,
+          image.naturalHeight,
+          outlineColor
+        );
+
+        if (outlinedSprite) {
+          const padding = getOutlinePadding();
+          const outlinedWidth = (SPRITES.NEXUS.WIDTH + padding * 2) * SPRITES.NEXUS.SCALE;
+          const outlinedHeight = (SPRITES.NEXUS.HEIGHT + padding * 2) * SPRITES.NEXUS.SCALE;
+
+          ctx.drawImage(
+            outlinedSprite,
+            0,
+            0,
+            outlinedSprite.width,
+            outlinedSprite.height,
+            -outlinedWidth / 2,
+            -outlinedHeight + 20 + padding * SPRITES.NEXUS.SCALE,
+            outlinedWidth,
+            outlinedHeight,
+          );
+        } else {
+          // Fallback to normal sprite
+          ctx.drawImage(
+            image,
+            -scaledWidth / 2,
+            -scaledHeight + 20,
+            scaledWidth,
+            scaledHeight,
+          );
+        }
+      } else {
+        // Draw normal sprite when not hovered
+        ctx.drawImage(
+          image,
+          -scaledWidth / 2,
+          -scaledHeight + 20, // Offset so base is near position
+          scaledWidth,
+          scaledHeight,
+        );
+      }
     } else {
       // Fallback: draw colored rectangle
       const color = side === 0 ? TEAM_COLORS.BLUE : TEAM_COLORS.RED;
@@ -1473,16 +2030,6 @@ export class EntityRenderer implements GameObject {
 
         // Draw centered on the projectile position
         ctx.drawImage(arrowImg, -width / 2, -height / 2, width, height);
-
-        // Tower projectiles get a glow effect
-        if (projectileType === "tower") {
-          ctx.globalAlpha = 0.3;
-          ctx.fillStyle = teamColor;
-          ctx.beginPath();
-          ctx.ellipse(0, 0, width / 2 + 8, height / 2 + 4, 0, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.globalAlpha = 1;
-        }
 
         ctx.restore();
       } else {
@@ -1562,6 +2109,87 @@ export class EntityRenderer implements GameObject {
       ctx.fill();
 
       ctx.restore();
+    } else if (projectileType === "lume_auto") {
+      // Lume's light photon auto-attack - small glowing light pulse
+      const radius = 4; // Small, compact light pulse
+
+      // Outer soft glow
+      ctx.globalAlpha = 0.3;
+      ctx.fillStyle = "#ffffcc";
+      ctx.beginPath();
+      ctx.arc(0, 0, radius + 5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Middle glow ring
+      ctx.globalAlpha = 0.6;
+      ctx.fillStyle = "#ffee88";
+      ctx.beginPath();
+      ctx.arc(0, 0, radius + 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Main body - bright gold/yellow
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "#ffd700";
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Hot white center
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.arc(0, 0, radius * 0.5, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (projectileType === "vile_auto") {
+      // Vile's dark soul auto-attack - eerie purple/black orb
+      const radius = snapshot.radius || 10;
+
+      // Outer dark aura
+      ctx.globalAlpha = 0.3;
+      ctx.fillStyle = "#220033";
+      ctx.beginPath();
+      ctx.arc(0, 0, radius + 8, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Middle purple glow
+      ctx.globalAlpha = 0.6;
+      ctx.fillStyle = "#6622aa";
+      ctx.beginPath();
+      ctx.arc(0, 0, radius + 3, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Main body - dark purple
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "#8844cc";
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Inner dark core
+      ctx.fillStyle = "#442266";
+      ctx.beginPath();
+      ctx.arc(0, 0, radius * 0.6, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Dark center
+      ctx.fillStyle = "#220033";
+      ctx.beginPath();
+      ctx.arc(0, 0, radius * 0.3, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Wispy tendrils effect (rotating slowly)
+      const wispAngle = this.animationTime * 3;
+      ctx.save();
+      ctx.rotate(wispAngle);
+      ctx.strokeStyle = "rgba(136, 68, 204, 0.5)";
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 3; i++) {
+        ctx.rotate((Math.PI * 2) / 3);
+        ctx.beginPath();
+        ctx.moveTo(radius * 0.5, 0);
+        ctx.quadraticCurveTo(radius * 1.2, radius * 0.3, radius * 1.5, 0);
+        ctx.stroke();
+      }
+      ctx.restore();
     } else {
       // Default projectile - energy ball
       const radius = snapshot.radius || 5;
@@ -1627,23 +2255,70 @@ export class EntityRenderer implements GameObject {
       const scaledWidth = spriteConfig.FRAME_WIDTH * spriteConfig.SCALE;
       const scaledHeight = spriteConfig.FRAME_HEIGHT * spriteConfig.SCALE;
 
+      // Check if entity is hovered for outline highlighting
+      const outlineColor = this.getEntityOutlineColor(snapshot.entityId);
+
       // Apply horizontal flip if facing left
       ctx.save();
       if (!state.facingRight) {
         ctx.scale(-1, 1);
       }
 
-      ctx.drawImage(
-        image,
-        srcX,
-        0,
-        spriteConfig.FRAME_WIDTH,
-        spriteConfig.FRAME_HEIGHT,
-        -scaledWidth / 2,
-        -scaledHeight / 2,
-        scaledWidth,
-        scaledHeight,
-      );
+      if (outlineColor) {
+        // Draw outlined sprite when hovered
+        const outlinedSprite = getOutlinedSprite(
+          image,
+          srcX,
+          0,
+          spriteConfig.FRAME_WIDTH,
+          spriteConfig.FRAME_HEIGHT,
+          outlineColor
+        );
+
+        if (outlinedSprite) {
+          const padding = getOutlinePadding();
+          const outlinedWidth = (spriteConfig.FRAME_WIDTH + padding * 2) * spriteConfig.SCALE;
+          const outlinedHeight = (spriteConfig.FRAME_HEIGHT + padding * 2) * spriteConfig.SCALE;
+
+          ctx.drawImage(
+            outlinedSprite,
+            0,
+            0,
+            outlinedSprite.width,
+            outlinedSprite.height,
+            -outlinedWidth / 2,
+            -outlinedHeight / 2,
+            outlinedWidth,
+            outlinedHeight,
+          );
+        } else {
+          // Fallback to normal sprite
+          ctx.drawImage(
+            image,
+            srcX,
+            0,
+            spriteConfig.FRAME_WIDTH,
+            spriteConfig.FRAME_HEIGHT,
+            -scaledWidth / 2,
+            -scaledHeight / 2,
+            scaledWidth,
+            scaledHeight,
+          );
+        }
+      } else {
+        // Draw normal sprite when not hovered
+        ctx.drawImage(
+          image,
+          srcX,
+          0,
+          spriteConfig.FRAME_WIDTH,
+          spriteConfig.FRAME_HEIGHT,
+          -scaledWidth / 2,
+          -scaledHeight / 2,
+          scaledWidth,
+          scaledHeight,
+        );
+      }
 
       ctx.restore();
     } else {
@@ -1657,7 +2332,7 @@ export class EntityRenderer implements GameObject {
       ctx.stroke();
     }
 
-    // Draw health bar
+    // Draw health bar - red because jungle camps are hostile to all players
     if (snapshot.health !== undefined && snapshot.maxHealth !== undefined) {
       this.renderHealthBar(
         ctx,
@@ -1665,7 +2340,7 @@ export class EntityRenderer implements GameObject {
         snapshot.maxHealth,
         40,
         -30,
-        HEALTH_BAR_COLORS.NEUTRAL,
+        HEALTH_BAR_COLORS.ENEMY,
       );
     }
 
@@ -2978,6 +3653,39 @@ export class EntityRenderer implements GameObject {
 
       ctx.restore();
     }
+  }
+
+  // ============================================================================
+  // Hover highlighting for outlined sprites
+  // ============================================================================
+
+  /**
+   * Set the currently hovered entity IDs (called by OnlineInputHandler).
+   */
+  setHoveredEntities(enemyId: string | null, allyId: string | null): void {
+    this.hoveredEnemyId = enemyId;
+    this.hoveredAllyId = allyId;
+  }
+
+  /**
+   * Get the outline color for an entity if it's hovered.
+   * Returns null if the entity is not hovered.
+   */
+  private getEntityOutlineColor(entityId: string): string | null {
+    if (this.hoveredEnemyId === entityId) {
+      return OUTLINE_COLORS.ENEMY;
+    }
+    if (this.hoveredAllyId === entityId) {
+      return OUTLINE_COLORS.ALLY;
+    }
+    return null;
+  }
+
+  /**
+   * Check if an entity is currently hovered.
+   */
+  private isEntityHovered(entityId: string): boolean {
+    return this.hoveredEnemyId === entityId || this.hoveredAllyId === entityId;
   }
 }
 

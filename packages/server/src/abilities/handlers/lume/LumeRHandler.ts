@@ -81,13 +81,26 @@ export class LumeRHandler extends BaseAbilityHandler {
     }
 
     // Destroy the orb
+    Logger.champion.info(`[LumeR] Destroying orb, current state: ${orb.toSnapshot().state}`);
     orb.destroy();
+    Logger.champion.info(`[LumeR] Orb destroyed, new state: ${orb.toSnapshot().state}`);
+
+    // Reset Q recast window (no orb to recall)
+    champion.abilityStates.Q.recastCount = 0;
+    champion.abilityStates.Q.recastWindowRemaining = undefined;
+
+    // Disable Q, W, E abilities (no orb to interact with)
+    champion.abilityStates.Q.isDisabled = true;
+    champion.abilityStates.W.isDisabled = true;
+    champion.abilityStates.E.isDisabled = true;
+    Logger.champion.info(`[LumeR] Abilities disabled: Q=${champion.abilityStates.Q.isDisabled}, W=${champion.abilityStates.W.isDisabled}, E=${champion.abilityStates.E.isDisabled}`);
 
     Logger.champion.info(
       `${champion.playerId} cast Beaconfall - dealt ${damageAmount.toFixed(0)} damage, orb destroyed`
     );
 
-    return { success: true };
+    // Return orb position for VFX to spawn at the explosion location
+    return { success: true, vfxPosition: explosionPosition };
   }
 
   // =============================================================================

@@ -347,83 +347,83 @@ export declare const MOBAConfig: {
      */
     readonly BUSH_GROUPS: readonly [{
         readonly center: Vector;
-        readonly bushCount: 4;
+        readonly bushCount: 6;
         readonly spread: "horizontal";
     }, {
         readonly center: Vector;
-        readonly bushCount: 3;
+        readonly bushCount: 5;
         readonly spread: "horizontal";
     }, {
         readonly center: Vector;
-        readonly bushCount: 4;
+        readonly bushCount: 6;
         readonly spread: "horizontal";
     }, {
         readonly center: Vector;
-        readonly bushCount: 4;
+        readonly bushCount: 6;
         readonly spread: "diagonal";
     }, {
         readonly center: Vector;
-        readonly bushCount: 4;
+        readonly bushCount: 6;
         readonly spread: "diagonal";
     }, {
         readonly center: Vector;
-        readonly bushCount: 4;
+        readonly bushCount: 6;
         readonly spread: "horizontal";
     }, {
         readonly center: Vector;
-        readonly bushCount: 3;
+        readonly bushCount: 5;
         readonly spread: "horizontal";
     }, {
         readonly center: Vector;
-        readonly bushCount: 4;
+        readonly bushCount: 6;
         readonly spread: "horizontal";
     }, {
         readonly center: Vector;
-        readonly bushCount: 3;
+        readonly bushCount: 5;
         readonly spread: "cluster";
     }, {
         readonly center: Vector;
-        readonly bushCount: 4;
+        readonly bushCount: 6;
         readonly spread: "cluster";
     }, {
         readonly center: Vector;
-        readonly bushCount: 3;
+        readonly bushCount: 5;
         readonly spread: "cluster";
     }, {
         readonly center: Vector;
-        readonly bushCount: 4;
+        readonly bushCount: 6;
         readonly spread: "cluster";
     }, {
         readonly center: Vector;
-        readonly bushCount: 3;
+        readonly bushCount: 5;
         readonly spread: "cluster";
     }, {
         readonly center: Vector;
-        readonly bushCount: 3;
+        readonly bushCount: 5;
         readonly spread: "cluster";
     }, {
         readonly center: Vector;
-        readonly bushCount: 4;
+        readonly bushCount: 6;
         readonly spread: "cluster";
     }, {
         readonly center: Vector;
-        readonly bushCount: 3;
+        readonly bushCount: 5;
         readonly spread: "cluster";
     }, {
         readonly center: Vector;
-        readonly bushCount: 4;
+        readonly bushCount: 6;
         readonly spread: "cluster";
     }, {
         readonly center: Vector;
-        readonly bushCount: 3;
+        readonly bushCount: 5;
         readonly spread: "cluster";
     }, {
         readonly center: Vector;
-        readonly bushCount: 4;
+        readonly bushCount: 6;
         readonly spread: "cluster";
     }, {
         readonly center: Vector;
-        readonly bushCount: 4;
+        readonly bushCount: 6;
         readonly spread: "cluster";
     }];
     /**
@@ -431,17 +431,17 @@ export declare const MOBAConfig: {
      */
     readonly BUSH_SETTINGS: {
         /** Spacing between bushes in a group */
-        readonly SPACING: 35;
+        readonly SPACING: 45;
         /** Random offset variance for natural look */
-        readonly OFFSET_VARIANCE: 10;
+        readonly OFFSET_VARIANCE: 12;
         /** Large bush hitbox dimensions */
-        readonly LARGE_BUSH_WIDTH: 100;
-        readonly LARGE_BUSH_HEIGHT: 60;
+        readonly LARGE_BUSH_WIDTH: 130;
+        readonly LARGE_BUSH_HEIGHT: 80;
         /** Small bush hitbox dimensions */
-        readonly SMALL_BUSH_WIDTH: 60;
-        readonly SMALL_BUSH_HEIGHT: 40;
+        readonly SMALL_BUSH_WIDTH: 85;
+        readonly SMALL_BUSH_HEIGHT: 55;
         /** Extra padding for visibility bounds (accounts for entity collision radius) */
-        readonly VISIBILITY_PADDING: 30;
+        readonly VISIBILITY_PADDING: 35;
     };
     /**
      * Wall configuration (tile-aligned to 64 unit grid).

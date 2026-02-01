@@ -179,7 +179,11 @@ class OnlineAbilityAdapter {
   }
 
   get isReady(): boolean {
-    return this.state.cooldownRemaining <= 0 && this.state.rank > 0;
+    return this.state.cooldownRemaining <= 0 && this.state.rank > 0 && !this.state.isDisabled;
+  }
+
+  get isDisabled(): boolean {
+    return this.state.isDisabled ?? false;
   }
 
   get cooldownProgress(): number {
@@ -695,6 +699,13 @@ export class OnlineChampionAdapter {
       console.log(`[OnlineChampionAdapter.getSkillPoints] snapshot=${!!snapshot}, skillPoints=${skillPoints}, raw=${snapshot?.skillPoints}`);
     }
     return skillPoints;
+  }
+
+  /**
+   * Get current gold from server state.
+   */
+  getGold(): number {
+    return this.getSnapshot()?.gold ?? 0;
   }
 }
 

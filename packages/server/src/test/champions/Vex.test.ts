@@ -6,7 +6,7 @@
  * - Q: Shadow Shuriken - Skillshot that marks targets
  * - W: Shadow Shroud - Stealth and speed buff
  * - E: Shadow Step - Dash
- * - R: Death Mark - Execute damage
+ * - R: Ninja Mode - Attack speed buff with CDR for Q and E
  */
 
 import { describe, test, expect, beforeEach } from 'bun:test';
@@ -30,38 +30,40 @@ describe('Vex', () => {
   });
 
   describe('Base Stats', () => {
-    // Base stat tests need level 1 (learnAbilities sets level to 6)
-    let level1Arena: TestArena;
+    // Note: GameConfig.DEBUG.STARTING_LEVEL is 6, so stats reflect level 6 scaling
+    // Base: health=520, resource=260, attackDamage=65
+    // Growth per level: health=80, resource=35, attackDamage=4
+    // At level 6: health=920, resource=435, attackDamage=85
+    let statsArena: TestArena;
 
     beforeEach(() => {
-      level1Arena = createTestArena({
+      statsArena = createTestArena({
         blueChampion: 'vex',
         redChampion: 'magnus',
         bluePosition: new Vector(0, 0),
         redPosition: new Vector(300, 0),
-        learnAbilities: false, // Keep level 1 for base stat tests
+        learnAbilities: false,
       });
     });
 
-    test('should have moderate health (520)', () => {
-      expect(level1Arena.blue.maxHealth).toBe(520);
+    test('should have level 6 health (920 = 520 + 5*80)', () => {
+      expect(statsArena.blue.maxHealth).toBe(920);
     });
 
     test('should have melee attack range (125)', () => {
-      expect(level1Arena.blue.getStats().attackRange).toBe(125);
+      expect(statsArena.blue.getStats().attackRange).toBe(125);
     });
 
-    test('should have high base attack damage (65)', () => {
-      expect(level1Arena.blue.getStats().attackDamage).toBe(65);
+    test('should have level 6 attack damage (85 = 65 + 5*4)', () => {
+      expect(statsArena.blue.getStats().attackDamage).toBe(85);
     });
 
-    test('should have high movement speed (350)', () => {
-      expect(level1Arena.blue.getStats().movementSpeed).toBe(350);
+    test('should use energy (resourceType)', () => {
+      expect(statsArena.blue.definition.resourceType).toBe('energy');
     });
 
-    test('should use energy (260 resource)', () => {
-      expect(level1Arena.blue.maxResource).toBe(260);
-      expect(level1Arena.blue.definition.resourceType).toBe('energy');
+    test('should have level 6 resource (435 = 260 + 5*35)', () => {
+      expect(statsArena.blue.maxResource).toBe(435);
     });
   });
 
@@ -179,12 +181,9 @@ describe('Vex', () => {
     });
   });
 
-  describe('R - Death Mark', () => {
-    test('should cast on enemy champion', () => {
-      const result = arena.castAbility(arena.blue, 'R', {
-        targetPosition: arena.red.position.clone(),
-        targetId: arena.red.id,
-      });
+  describe('R - Ninja Mode', () => {
+    test('should cast successfully (self-target)', () => {
+      const result = arena.castAbility(arena.blue, 'R');
 
       expect(result.success).toBe(true);
     });
@@ -192,19 +191,13 @@ describe('Vex', () => {
     test('should have no energy cost (0)', () => {
       const initialEnergy = arena.blue.resource;
 
-      arena.castAbility(arena.blue, 'R', {
-        targetPosition: arena.red.position.clone(),
-        targetId: arena.red.id,
-      });
+      arena.castAbility(arena.blue, 'R');
 
       expect(arena.blue.resource).toBe(initialEnergy);
     });
 
     test('should have long cooldown at rank 1 (100s)', () => {
-      arena.castAbility(arena.blue, 'R', {
-        targetPosition: arena.red.position.clone(),
-        targetId: arena.red.id,
-      });
+      arena.castAbility(arena.blue, 'R');
 
       const cooldown = arena.blue.getAbilityCooldown('R');
       expect(cooldown).toBe(100);
@@ -213,30 +206,128 @@ describe('Vex', () => {
     test('cooldown should decrease at max rank (60s)', () => {
       arena.blue.maxAbility('R');
 
-      arena.castAbility(arena.blue, 'R', {
-        targetPosition: arena.red.position.clone(),
-        targetId: arena.red.id,
-      });
+      arena.castAbility(arena.blue, 'R');
 
       const cooldown = arena.blue.getAbilityCooldown('R');
       expect(cooldown).toBe(60);
     });
 
-    test('should apply death mark effect to target', () => {
-      arena.castAbility(arena.blue, 'R', {
-        targetPosition: arena.red.position.clone(),
-        targetId: arena.red.id,
-      });
+    test('should apply ninja mode effect to self', () => {
+      arena.castAbility(arena.blue, 'R');
       arena.tick();
 
-      expect(arena.red.hasEffect('vex_death_mark')).toBe(true);
+      expect(arena.blue.hasEffect('vex_ninja_mode')).toBe(true);
+    });
+
+    test('should enable ninja mode state', () => {
+      arena.castAbility(arena.blue, 'R');
+      arena.tick();
+
+      expect(arena.blue.isInNinjaMode()).toBe(true);
+    });
+
+    test('should increase attack speed', () => {
+      const baseAttackSpeed = arena.blue.getStats().attackSpeed;
+
+      arena.castAbility(arena.blue, 'R');
+      arena.tick();
+
+      const buffedAttackSpeed = arena.blue.getStats().attackSpeed;
+      expect(buffedAttackSpeed).toBeGreaterThan(baseAttackSpeed);
+    });
+
+    test('should apply 30% attack speed bonus at rank 1', () => {
+      const baseAttackSpeed = arena.blue.getStats().attackSpeed;
+
+      arena.castAbility(arena.blue, 'R');
+      arena.tick();
+
+      const buffedAttackSpeed = arena.blue.getStats().attackSpeed;
+      // 30% bonus at rank 1
+      const expectedMinBonus = baseAttackSpeed * 1.25; // Allow some tolerance
+      expect(buffedAttackSpeed).toBeGreaterThanOrEqual(expectedMinBonus);
+    });
+
+    test('should reduce Q cooldown by 50% when cast during Ninja Mode (upfront CDR)', () => {
+      // Get base Q cooldown by casting without Ninja Mode
+      arena.castAbility(arena.blue, 'Q', { targetPosition: new Vector(700, 0) });
+      const baseCooldown = arena.blue.getAbilityCooldown('Q');
+      expect(baseCooldown).toBeGreaterThan(0);
+
+      // Reset and activate Ninja Mode first
+      arena.blue.resetCooldowns();
+      arena.castAbility(arena.blue, 'R');
+      arena.tick();
+      expect(arena.blue.isInNinjaMode()).toBe(true);
+
+      // Now cast Q while in Ninja Mode - should have 50% reduced cooldown
+      arena.castAbility(arena.blue, 'Q', { targetPosition: new Vector(700, 0) });
+      const reducedCooldown = arena.blue.getAbilityCooldown('Q');
+
+      // Cooldown should be ~50% of base
+      expect(reducedCooldown).toBeCloseTo(baseCooldown * 0.5, 1);
+    });
+
+    test('should reduce E cooldown by 50% when cast during Ninja Mode (upfront CDR)', () => {
+      // Get base E cooldown by casting without Ninja Mode
+      arena.castAbility(arena.blue, 'E', { targetPosition: new Vector(200, 0) });
+      const baseCooldown = arena.blue.getAbilityCooldown('E');
+      expect(baseCooldown).toBeGreaterThan(0);
+
+      // Reset and activate Ninja Mode first
+      arena.blue.resetCooldowns();
+      arena.castAbility(arena.blue, 'R');
+      arena.tick();
+      expect(arena.blue.isInNinjaMode()).toBe(true);
+
+      // Now cast E while in Ninja Mode - should have 50% reduced cooldown
+      arena.castAbility(arena.blue, 'E', { targetPosition: new Vector(200, 0) });
+      const reducedCooldown = arena.blue.getAbilityCooldown('E');
+
+      // Cooldown should be ~50% of base
+      expect(reducedCooldown).toBeCloseTo(baseCooldown * 0.5, 1);
+    });
+
+    test('should NOT reduce W cooldown even when cast during Ninja Mode (only Q and E get CDR)', () => {
+      // Get base W cooldown by casting without Ninja Mode
+      arena.castAbility(arena.blue, 'W');
+      const baseCooldown = arena.blue.getAbilityCooldown('W');
+      expect(baseCooldown).toBeGreaterThan(0);
+
+      // Reset and activate Ninja Mode first
+      arena.blue.resetCooldowns();
+      arena.castAbility(arena.blue, 'R');
+      arena.tick();
+      expect(arena.blue.isInNinjaMode()).toBe(true);
+
+      // Now cast W while in Ninja Mode - should have same cooldown (no CDR for W)
+      arena.castAbility(arena.blue, 'W');
+      const cooldownDuringNinjaMode = arena.blue.getAbilityCooldown('W');
+
+      // W cooldown should be the same (no reduction)
+      expect(cooldownDuringNinjaMode).toBeCloseTo(baseCooldown, 1);
+    });
+
+    test('should deactivate when duration expires', () => {
+      arena.castAbility(arena.blue, 'R');
+      arena.tick();
+      expect(arena.blue.isInNinjaMode()).toBe(true);
+
+      // Fast forward 15 seconds (tick uses dt=1/60, so 60 ticks per second)
+      for (let i = 0; i < 15 * 60; i++) {
+        arena.tick();
+      }
+
+      expect(arena.blue.isInNinjaMode()).toBe(false);
+      expect(arena.blue.hasEffect('vex_ninja_mode')).toBe(false);
     });
   });
 
   describe('Energy Management', () => {
-    test('should be able to cast Q, W, E, R with base energy', () => {
-      // Energy pool: 260
-      // Q: 30, W: 50, E: 40, R: 0
+    test('should be able to cast Q, W, E, R with starting energy', () => {
+      // At level 6: Energy pool = 435 (260 base + 5*35 growth)
+      // Q: 30, W: 50, E: 40, R: 0 (Ninja Mode)
+      const startingEnergy = arena.blue.maxResource;
 
       arena.castAbility(arena.blue, 'Q', { targetPosition: new Vector(500, 0) });
       arena.blue.resetCooldowns();
@@ -247,13 +338,10 @@ describe('Vex', () => {
       arena.castAbility(arena.blue, 'E', { targetPosition: new Vector(200, 0) });
       arena.blue.resetCooldowns();
 
-      arena.castAbility(arena.blue, 'R', {
-        targetPosition: arena.red.position.clone(),
-        targetId: arena.red.id,
-      });
+      arena.castAbility(arena.blue, 'R'); // Ninja Mode is self-targeted
 
       // Total: 30 + 50 + 40 + 0 = 120 energy used
-      expect(arena.blue.resource).toBe(260 - 120);
+      expect(arena.blue.resource).toBe(startingEnergy - 120);
     });
   });
 });

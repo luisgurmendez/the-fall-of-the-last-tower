@@ -14,6 +14,10 @@ import { ServerTower } from '../simulation/ServerTower';
 import { ServerJungleCreature } from '../simulation/ServerJungleCreature';
 import { ServerGameContext } from '../game/ServerGameContext';
 import { abilityExecutor } from '../simulation/ServerAbilityExecutor';
+import { initializeAbilityHandlers } from '../abilities';
+
+// Initialize ability handlers for tests (called once at module load)
+initializeAbilityHandlers();
 import {
   Vector,
   CHAMPION_DEFINITIONS,

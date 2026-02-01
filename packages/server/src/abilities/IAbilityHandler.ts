@@ -67,6 +67,8 @@ export interface AbilityExecutionResult {
   cooldownOverride?: number;
   /** Custom animation duration in seconds (for abilities with dashes, etc.) */
   animationDuration?: number;
+  /** Custom VFX spawn position (for abilities that spawn VFX at a different location than caster) */
+  vfxPosition?: Vector;
 }
 
 /**

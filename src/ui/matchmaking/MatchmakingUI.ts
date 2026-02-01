@@ -232,13 +232,14 @@ export class MatchmakingUI {
 
   /**
    * Generate a unique player ID.
+   * Uses sessionStorage so each tab/window gets a unique ID.
    */
   private generatePlayerId(): string {
-    const stored = localStorage.getItem("siege-player-id");
+    const stored = sessionStorage.getItem("siege-player-id");
     if (stored) return stored;
 
     const id = `player-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    localStorage.setItem("siege-player-id", id);
+    sessionStorage.setItem("siege-player-id", id);
     return id;
   }
 

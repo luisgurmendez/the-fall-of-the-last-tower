@@ -162,6 +162,15 @@ export class OnlineInputHandler implements GameObject {
   /** Callback for charge state updates (for HUD) */
   private onChargeStateChange: ((state: { slot: AbilitySlot; progress: number } | null) => void) | null = null;
 
+  /** Callback for hover state updates (for EntityRenderer sprite outlines) */
+  private onHoverStateChange: ((enemyId: string | null, allyId: string | null) => void) | null = null;
+
+  /** Currently selected entity ID (for target info HUD) */
+  private selectedEntityId: string | null = null;
+
+  /** Callback for selection state updates (for TargetInfoHUD) */
+  private onSelectionChange: ((entityId: string | null) => void) | null = null;
+
   constructor(
     networkClient: NetworkClient,
     stateManager: OnlineStateManager,
@@ -188,6 +197,27 @@ export class OnlineInputHandler implements GameObject {
    */
   setChargeStateCallback(callback: (state: { slot: AbilitySlot; progress: number } | null) => void): void {
     this.onChargeStateChange = callback;
+  }
+
+  /**
+   * Set callback for hover state updates (for EntityRenderer sprite outlines).
+   */
+  setHoverStateCallback(callback: (enemyId: string | null, allyId: string | null) => void): void {
+    this.onHoverStateChange = callback;
+  }
+
+  /**
+   * Set callback for selection state updates (for TargetInfoHUD).
+   */
+  setSelectionCallback(callback: (entityId: string | null) => void): void {
+    this.onSelectionChange = callback;
+  }
+
+  /**
+   * Get the currently selected entity ID.
+   */
+  getSelectedEntityId(): string | null {
+    return this.selectedEntityId;
   }
 
   /**
@@ -246,6 +276,14 @@ export class OnlineInputHandler implements GameObject {
         // Spawn move marker at click position
         this.spawnMoveMarker(worldPos);
       }
+    }
+
+    // Handle entity selection (left-click when NOT holding A)
+    if (
+      !this.inputManager.isKeyDown("a") &&
+      this.inputManager.isMouseButtonJustPressed(MouseButton.LEFT)
+    ) {
+      this.handleEntitySelection(camera);
     }
 
     // Handle attack-move (A + left-click)
@@ -319,6 +357,59 @@ export class OnlineInputHandler implements GameObject {
   }
 
   /**
+   * Handle entity selection on left-click.
+   * Selects the closest entity to the click position, or clears selection if clicking empty space.
+   */
+  private handleEntitySelection(camera: any): void {
+    const mouseWorldPos = this.screenToWorld(
+      this.inputManager.getMousePosition(),
+      camera,
+    );
+
+    const hitRadius = 40; // How close click needs to be to select
+    let closestEntity: InterpolatedEntity | null = null;
+    let closestDistance = hitRadius;
+
+    // Check all entities from state manager
+    const entities = this.stateManager.getEntities();
+    for (const entity of entities) {
+      const snapshot = entity.snapshot;
+
+      // Skip projectiles and zones (not selectable)
+      if (snapshot.entityType === 6 || snapshot.entityType === 8) continue;
+
+      // Skip dead entities
+      if ("isDead" in snapshot && (snapshot as any).isDead) continue;
+      if ("isDestroyed" in snapshot && (snapshot as any).isDestroyed) continue;
+
+      const distance = mouseWorldPos.distanceTo(entity.position);
+      if (distance < closestDistance) {
+        closestEntity = entity;
+        closestDistance = distance;
+      }
+    }
+
+    const previousSelection = this.selectedEntityId;
+
+    if (closestEntity) {
+      // Toggle off if clicking the same entity, otherwise select the new one
+      if (this.selectedEntityId === closestEntity.snapshot.entityId) {
+        this.selectedEntityId = null;
+      } else {
+        this.selectedEntityId = closestEntity.snapshot.entityId;
+      }
+    } else {
+      // Clicking empty space clears selection
+      this.selectedEntityId = null;
+    }
+
+    // Fire callback if selection changed
+    if (this.onSelectionChange && this.selectedEntityId !== previousSelection) {
+      this.onSelectionChange(this.selectedEntityId);
+    }
+  }
+
+  /**
    * Update hover detection for enemies and allies, set cursor accordingly.
    */
   private updateHoveredEnemy(camera: any): void {
@@ -349,7 +440,10 @@ export class OnlineInputHandler implements GameObject {
       if ("isDead" in snapshot && (snapshot as any).isDead) continue;
       if ("isDestroyed" in snapshot && (snapshot as any).isDestroyed) continue;
 
-      const isAlly = (snapshot as any).side === this.localSide;
+      // Neutral entities (side 2) are always enemies to everyone
+      const entitySide = (snapshot as any).side;
+      const isNeutral = entitySide === 2;
+      const isAlly = !isNeutral && entitySide === this.localSide;
       const distance = mouseWorldPos.distanceTo(entity.position);
 
       if (isAlly) {
@@ -373,6 +467,9 @@ export class OnlineInputHandler implements GameObject {
 
     // Priority: Enemy > Ally (for targeting purposes)
     const cursorManager = getCursorManager();
+    const prevEnemyId = this.hoveredEnemyId;
+    const prevAllyId = this.hoveredAllyId;
+
     if (closestEnemy) {
       this.hoveredEnemyId = closestEnemy.snapshot.entityId;
       this.hoveredAllyId = null;
@@ -398,6 +495,12 @@ export class OnlineInputHandler implements GameObject {
       this.hoveredAllyId = null;
       this.hoveredEntityInfo = null;
       cursorManager.setCursor("default");
+    }
+
+    // Notify EntityRenderer of hover state change for sprite outlines
+    if (this.onHoverStateChange &&
+        (this.hoveredEnemyId !== prevEnemyId || this.hoveredAllyId !== prevAllyId)) {
+      this.onHoverStateChange(this.hoveredEnemyId, this.hoveredAllyId);
     }
   }
 
@@ -553,19 +656,11 @@ export class OnlineInputHandler implements GameObject {
   }
 
   /**
-   * Render visual feedback (entity hover ellipse, move markers).
+   * Render visual feedback (move markers only - entity highlighting is now done via sprite outlines).
    */
   render(): RenderElement {
     const element = new RenderElement((ctx: GameContext) => {
       const { canvasRenderingContext } = ctx;
-
-      // Render hovered entity ellipse (enemy=red, ally=green)
-      if (this.hoveredEntityInfo) {
-        this.renderHoveredEntityEllipse(
-          canvasRenderingContext,
-          this.hoveredEntityInfo,
-        );
-      }
 
       // Render move markers
       for (const marker of this.moveMarkers) {
@@ -576,38 +671,6 @@ export class OnlineInputHandler implements GameObject {
     element.positionType = "normal";
     element.zIndex = -100; // Render behind entities
     return element;
-  }
-
-  /**
-   * Render a pulsing ellipse under the hovered entity.
-   * Red for enemies, green for allies.
-   */
-  private renderHoveredEntityEllipse(
-    ctx: CanvasRenderingContext2D,
-    info: HoveredEntityInfo,
-  ): void {
-    const currentTime = performance.now() / 1000;
-    const pulsePhase = (currentTime - info.pulseTime) * 4; // 4 Hz pulse
-    const pulseScale = 1 + Math.sin(pulsePhase) * 0.15; // Subtle pulse
-
-    // rx matches the collision radius, ry is fixed at 10
-    const rx = info.collisionRadius * pulseScale;
-    const ry = 5 * pulseScale;
-
-    // Position just below the collision mask
-    const yOffset = info.collisionRadius;
-
-    ctx.save();
-    ctx.translate(info.position.x, info.position.y + yOffset);
-
-    // Draw pixelated ellipse - red for enemies, green for allies
-    const color = info.isAlly
-      ? "rgba(50, 200, 50, 0.6)"
-      : "rgba(220, 50, 50, 0.6)";
-    const drawUtils = new PixelArtDrawUtils(ctx, color, 3);
-    drawUtils.drawPixelatedEllipse(0, 0, rx, ry);
-
-    ctx.restore();
   }
 
   /**
@@ -658,6 +721,40 @@ export class OnlineInputHandler implements GameObject {
       scaledHeight,
     );
     ctx.restore();
+  }
+
+  // ============================================================================
+  // Public getters for hovered entity state (used by EntityRenderer for outlines)
+  // ============================================================================
+
+  /**
+   * Get the currently hovered enemy entity ID.
+   */
+  getHoveredEnemyId(): string | null {
+    return this.hoveredEnemyId;
+  }
+
+  /**
+   * Get the currently hovered ally entity ID.
+   */
+  getHoveredAllyId(): string | null {
+    return this.hoveredAllyId;
+  }
+
+  /**
+   * Check if an entity is currently hovered (enemy or ally).
+   */
+  isEntityHovered(entityId: string): boolean {
+    return this.hoveredEnemyId === entityId || this.hoveredAllyId === entityId;
+  }
+
+  /**
+   * Get the hover type for an entity (null if not hovered).
+   */
+  getEntityHoverType(entityId: string): 'enemy' | 'ally' | null {
+    if (this.hoveredEnemyId === entityId) return 'enemy';
+    if (this.hoveredAllyId === entityId) return 'ally';
+    return null;
   }
 }
 

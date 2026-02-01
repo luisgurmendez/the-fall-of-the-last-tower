@@ -31,7 +31,7 @@ import {
   VexShuriken,
   VexShroud,
   VexDash,
-  VexExecute,
+  VexNinjaMode,
   GorathAbilities,
   GorathSlam,
   GorathFortify,
@@ -70,7 +70,7 @@ export {
   VexShuriken,
   VexShroud,
   VexDash,
-  VexExecute,
+  VexNinjaMode,
   // Gorath
   GorathSlam,
   GorathFortify,

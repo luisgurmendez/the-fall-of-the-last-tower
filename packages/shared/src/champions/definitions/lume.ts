@@ -75,11 +75,11 @@ const LUME_BASE_STATS: ChampionBaseStats = {
   resourceRegen: 7,
   attackDamage: 52,
   abilityPower: 0,
-  attackSpeed: 1.65,
+  attackSpeed: 0.65,
   attackRange: 550, // Standard ranged mage
   armor: 26,
   magicResist: 30,
-  movementSpeed: 140, // Slightly slow, E compensates
+  movementSpeed: 58, // Slightly slow, E compensates
   critChance: 0,
   critDamage: 2.0,
 };
@@ -337,10 +337,10 @@ const LUME_ANIMATIONS: ChampionAnimations = {
   },
   attack: {
     id: "attack",
-    totalFrames: 6,
-    baseFrameDuration: 0.1,
+    totalFrames: 10, // Updated for new attack animation
+    baseFrameDuration: 0.08,
     loop: false,
-    keyframes: [{ frame: 3, trigger: { type: "damage" } }],
+    keyframes: [{ frame: 4, trigger: { type: "damage" } }], // Projectile fires at frame 7
   },
   death: {
     id: "death",
@@ -405,6 +405,8 @@ export const LumeDefinition: ChampionDefinition = {
   collision: LUME_COLLISION,
   visualHeight: LUME_VISUAL_HEIGHT,
   animations: LUME_ANIMATIONS,
+  // Fast light-based projectile for ranged auto attacks
+  basicAttackProjectileSpeed: 950,
 };
 
 // =============================================================================

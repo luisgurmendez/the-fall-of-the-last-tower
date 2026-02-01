@@ -51,7 +51,7 @@ const GORATH_BASE_STATS: ChampionBaseStats = {
   attackRange: 150, // Melee
   armor: 40,
   magicResist: 35,
-  movementSpeed: 130,
+  movementSpeed: 50,
   critChance: 0,
   critDamage: 2.0,
 };

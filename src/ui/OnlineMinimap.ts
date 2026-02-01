@@ -17,7 +17,7 @@ import { ScreenEntity } from '@/core/GameObject';
 import GameContext from '@/core/gameContext';
 import RenderElement from '@/render/renderElement';
 import Vector from '@/physics/vector';
-import { MOBAConfig } from '@/map/MOBAConfig';
+import { MOBAConfig } from '@siege/shared';
 import { InputManager } from '@/core/input/InputManager';
 import { EntityType } from '@siege/shared';
 import type { OnlineStateManager, InterpolatedEntity } from '@/core/OnlineStateManager';

@@ -234,48 +234,48 @@ export const MOBAConfig = {
      */
     BUSH_GROUPS: [
         // ========== TOP LANE BUSHES ==========
-        { center: new Vector(-900, -900), bushCount: 4, spread: 'horizontal' },
-        { center: new Vector(0, -1000), bushCount: 3, spread: 'horizontal' },
-        { center: new Vector(600, -900), bushCount: 4, spread: 'horizontal' },
+        { center: new Vector(-900, -900), bushCount: 6, spread: 'horizontal' },
+        { center: new Vector(0, -1000), bushCount: 5, spread: 'horizontal' },
+        { center: new Vector(600, -900), bushCount: 6, spread: 'horizontal' },
         // ========== MID LANE BUSHES ==========
-        { center: new Vector(-500, 500), bushCount: 4, spread: 'diagonal' },
-        { center: new Vector(500, -500), bushCount: 4, spread: 'diagonal' },
+        { center: new Vector(-500, 500), bushCount: 6, spread: 'diagonal' },
+        { center: new Vector(500, -500), bushCount: 6, spread: 'diagonal' },
         // ========== BOT LANE BUSHES ==========
-        { center: new Vector(-600, 900), bushCount: 4, spread: 'horizontal' },
-        { center: new Vector(0, 1000), bushCount: 3, spread: 'horizontal' },
-        { center: new Vector(900, 900), bushCount: 4, spread: 'horizontal' },
+        { center: new Vector(-600, 900), bushCount: 6, spread: 'horizontal' },
+        { center: new Vector(0, 1000), bushCount: 5, spread: 'horizontal' },
+        { center: new Vector(900, 900), bushCount: 6, spread: 'horizontal' },
         // ========== BLUE JUNGLE BUSHES ==========
-        { center: new Vector(-950, -550), bushCount: 3, spread: 'cluster' },
-        { center: new Vector(-650, -400), bushCount: 4, spread: 'cluster' },
-        { center: new Vector(-500, -50), bushCount: 3, spread: 'cluster' },
-        { center: new Vector(-850, 200), bushCount: 4, spread: 'cluster' },
-        { center: new Vector(-500, 400), bushCount: 3, spread: 'cluster' },
+        { center: new Vector(-950, -550), bushCount: 5, spread: 'cluster' },
+        { center: new Vector(-650, -400), bushCount: 6, spread: 'cluster' },
+        { center: new Vector(-500, -50), bushCount: 5, spread: 'cluster' },
+        { center: new Vector(-850, 200), bushCount: 6, spread: 'cluster' },
+        { center: new Vector(-500, 400), bushCount: 5, spread: 'cluster' },
         // ========== RED JUNGLE BUSHES ==========
-        { center: new Vector(950, 550), bushCount: 3, spread: 'cluster' },
-        { center: new Vector(650, 400), bushCount: 4, spread: 'cluster' },
-        { center: new Vector(500, 50), bushCount: 3, spread: 'cluster' },
-        { center: new Vector(850, -200), bushCount: 4, spread: 'cluster' },
-        { center: new Vector(500, -400), bushCount: 3, spread: 'cluster' },
+        { center: new Vector(950, 550), bushCount: 5, spread: 'cluster' },
+        { center: new Vector(650, 400), bushCount: 6, spread: 'cluster' },
+        { center: new Vector(500, 50), bushCount: 5, spread: 'cluster' },
+        { center: new Vector(850, -200), bushCount: 6, spread: 'cluster' },
+        { center: new Vector(500, -400), bushCount: 5, spread: 'cluster' },
         // ========== RIVER/CENTER BUSHES ==========
-        { center: new Vector(-150, -100), bushCount: 4, spread: 'cluster' },
-        { center: new Vector(150, 100), bushCount: 4, spread: 'cluster' },
+        { center: new Vector(-150, -100), bushCount: 6, spread: 'cluster' },
+        { center: new Vector(150, 100), bushCount: 6, spread: 'cluster' },
     ],
     /**
      * Bush rendering settings.
      */
     BUSH_SETTINGS: {
         /** Spacing between bushes in a group */
-        SPACING: 35,
+        SPACING: 45,
         /** Random offset variance for natural look */
-        OFFSET_VARIANCE: 10,
+        OFFSET_VARIANCE: 12,
         /** Large bush hitbox dimensions */
-        LARGE_BUSH_WIDTH: 100,
-        LARGE_BUSH_HEIGHT: 60,
+        LARGE_BUSH_WIDTH: 130,
+        LARGE_BUSH_HEIGHT: 80,
         /** Small bush hitbox dimensions */
-        SMALL_BUSH_WIDTH: 60,
-        SMALL_BUSH_HEIGHT: 40,
+        SMALL_BUSH_WIDTH: 85,
+        SMALL_BUSH_HEIGHT: 55,
         /** Extra padding for visibility bounds (accounts for entity collision radius) */
-        VISIBILITY_PADDING: 30,
+        VISIBILITY_PADDING: 35,
     },
     /**
      * Wall configuration (tile-aligned to 64 unit grid).

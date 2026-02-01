@@ -91,6 +91,7 @@ For detailed documentation on the multiplayer MOBA systems, see the following fi
 | **Abilities** | [docs/architecture/abilities.md](docs/architecture/abilities.md) | Ability system, targeting, cooldowns, scaling |
 | **Effects & Buffs** | [docs/architecture/effects-and-buffs.md](docs/architecture/effects-and-buffs.md) | Buff/debuff system, crowd control, stat modifiers |
 | **Collision** | [docs/architecture/collision.md](docs/architecture/collision.md) | Unit collision detection, separation, spatial grid |
+| **VFX** | [docs/architecture/vfx.md](docs/architecture/vfx.md) | Visual effects system, particles, ability VFX |
 
 ### Quick Reference
 
@@ -122,6 +123,7 @@ For detailed documentation on the multiplayer MOBA systems, see the following fi
 | Ability definitions, targeting, cooldowns, scaling | `abilities.md` |
 | Buffs, debuffs, CC types, effect stacking | `effects-and-buffs.md` |
 | Collision detection, unit separation, spatial grid | `collision.md` |
+| Visual effects, particles, ability VFX | `vfx.md` |
 
 **When adding new systems**, create a new doc file in `docs/architecture/` and add a reference here.
 
@@ -163,6 +165,11 @@ src/
 │   ├── matchmaking/     # Matchmaking UI
 │   └── shop/            # Shop UI
 ├── utils/               # Utility functions
+├── vfx/                 # Visual effects system
+│   ├── effects/         # VFX primitives (drawing functions)
+│   ├── VFXManager.ts    # Central VFX manager
+│   ├── VFXParticlePool.ts  # Particle object pooling
+│   └── VFXRegistry.ts   # Ability VFX definitions
 └── vision/              # Bush visibility (client-side rendering)
 ```
 

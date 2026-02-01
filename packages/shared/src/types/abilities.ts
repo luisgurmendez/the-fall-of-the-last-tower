@@ -589,6 +589,9 @@ export interface AbilityState {
 
   /** Time remaining on empowerment */
   empoweredTimeRemaining?: number;
+
+  /** Whether ability is temporarily disabled (e.g., Lume abilities when orb is destroyed) */
+  isDisabled?: boolean;
 }
 
 /**

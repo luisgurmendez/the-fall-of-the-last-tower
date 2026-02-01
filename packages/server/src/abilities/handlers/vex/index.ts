@@ -8,13 +8,15 @@
  * - Q (Shuriken): Uses generic skillshot execution
  * - W (Shroud): Uses generic self-target execution
  * - E (Dash): Custom handler for cooldown reset mechanic
- * - R (Execute): Uses generic targeted execution
+ * - R (Ninja Mode): Custom handler for stat transform and CDR mechanic
  */
 
 import { abilityHandlerRegistry } from '../../AbilityHandlerRegistry';
 import { VexDashHandler } from './VexDashHandler';
+import { VexNinjaModeHandler } from './VexNinjaModeHandler';
 
 export { VexDashHandler } from './VexDashHandler';
+export { VexNinjaModeHandler } from './VexNinjaModeHandler';
 
 /**
  * Register Vex ability handlers.
@@ -22,6 +24,6 @@ export { VexDashHandler } from './VexDashHandler';
 export function registerVexHandlers(): void {
   abilityHandlerRegistry.registerAll([
     new VexDashHandler(),
-    // Q, W, R use generic execution - no custom handlers needed
+    new VexNinjaModeHandler(),
   ]);
 }

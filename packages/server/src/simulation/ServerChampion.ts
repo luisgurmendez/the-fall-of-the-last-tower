@@ -45,6 +45,7 @@ import {
   type EntityCollision,
 } from '@siege/shared';
 import { ServerEntity, ServerEntityConfig } from './ServerEntity';
+import { ServerTower } from './ServerTower';
 import type { ServerGameContext } from '../game/ServerGameContext';
 import {
   getServerItemById,
@@ -66,6 +67,7 @@ import { RewardSystem } from '../systems/RewardSystem';
 import { passiveTriggerSystem } from '../systems/PassiveTriggerSystem';
 import { Logger } from '../utils/Logger';
 import { ServerProjectile } from './ServerProjectile';
+import { ServerTargetedProjectile } from './ServerTargetedProjectile';
 
 export interface ServerChampionConfig extends Omit<ServerEntityConfig, 'entityType'> {
   definition: ChampionDefinition;
@@ -344,13 +346,19 @@ export class ServerChampion extends ServerEntity {
     if (orb) {
       const orbSnapshot = orb.toSnapshot() as any;
       if (orbSnapshot.state === 'destroyed') {
-        // Orb is destroyed - show respawn cooldown
+        // Orb is destroyed - show respawn cooldown, disable abilities
         this.passiveState.isActive = false;
         this.passiveState.cooldownRemaining = orbSnapshot.respawnTimeRemaining;
+        this.abilityStates.Q.isDisabled = true;
+        this.abilityStates.W.isDisabled = true;
+        this.abilityStates.E.isDisabled = true;
       } else {
-        // Orb is alive - passive is active
+        // Orb is alive - passive is active, enable abilities
         this.passiveState.isActive = true;
         this.passiveState.cooldownRemaining = 0;
+        this.abilityStates.Q.isDisabled = false;
+        this.abilityStates.W.isDisabled = false;
+        this.abilityStates.E.isDisabled = false;
       }
     }
   }
@@ -615,6 +623,8 @@ export class ServerChampion extends ServerEntity {
 
   /**
    * Apply damage from a scheduled attack action.
+   * For ranged champions, spawns a projectile that deals damage on hit.
+   * For melee champions, deals damage instantly.
    */
   private applyScheduledAttackDamage(action: ScheduledAction, context: ServerGameContext): void {
     const targetId = action.data.targetId as string;
@@ -637,8 +647,78 @@ export class ServerChampion extends ServerEntity {
     const attackDamage = action.data.attackDamage as number;
     const abilityPower = action.data.abilityPower as number;
 
-    // Calculate and deal damage
+    // Calculate damage
     const damage = calculatePhysicalDamage(attackDamage, 0); // TODO: Get target armor
+
+    // Check if this champion is ranged
+    const isRanged = this.definition.attackType === 'ranged';
+
+    if (isRanged) {
+      // Ranged champions fire a projectile that deals damage on hit
+      this.fireBasicAttackProjectile(target, damage, context);
+    } else {
+      // Melee champions deal damage instantly
+      this.applyMeleeAttackDamage(target, damage, attackDamage, abilityPower, context);
+    }
+
+    this.currentAttackTargetId = null;
+  }
+
+  /**
+   * Fire a basic attack projectile for ranged champions.
+   */
+  private fireBasicAttackProjectile(
+    target: ServerEntity,
+    damage: number,
+    context: ServerGameContext
+  ): void {
+    // Projectile speed varies by champion (Lume has light-based fast projectiles)
+    const projectileSpeed = this.definition.basicAttackProjectileSpeed ?? 800;
+
+    // Determine projectile type for rendering
+    const projectileType = `${this.definition.id}_auto`;
+
+    // Create callback to handle on-hit effects when projectile lands
+    const onHitCallback = (hitTarget: ServerEntity, hitDamage: number, hitContext: ServerGameContext) => {
+      // Dispatch on_hit trigger for passives
+      passiveTriggerSystem.dispatchTrigger('on_hit', this, hitContext, {
+        target: hitTarget,
+        damageAmount: hitDamage,
+        damageType: 'physical',
+      });
+    };
+
+    const projectile = new ServerTargetedProjectile({
+      id: context.generateEntityId(),
+      position: this.position.clone(),
+      side: this.side,
+      targetId: target.id,
+      speed: projectileSpeed,
+      radius: 5, // Small projectile for ranged basic attacks
+      sourceId: this.id,
+      projectileType,
+      damage,
+      damageType: 'physical',
+      onHitCallback,
+    });
+
+    context.addEntity(projectile);
+
+    Logger.champion.debug(
+      `${this.playerId} fired basic attack projectile at ${target.id}`
+    );
+  }
+
+  /**
+   * Apply instant melee attack damage.
+   */
+  private applyMeleeAttackDamage(
+    target: ServerEntity,
+    damage: number,
+    attackDamage: number,
+    abilityPower: number,
+    context: ServerGameContext
+  ): void {
     target.takeDamage(damage, 'physical', this.id, context);
 
     // Check for empowered attack (Vex Shadow Step)
@@ -669,8 +749,6 @@ export class ServerChampion extends ServerEntity {
       damageAmount: damage,
       damageType: 'physical',
     });
-
-    this.currentAttackTargetId = null;
   }
 
   /**
@@ -767,6 +845,7 @@ export class ServerChampion extends ServerEntity {
     for (const slot of slots) {
       const state = this.abilityStates[slot];
       if (state.cooldownRemaining > 0) {
+        // Cooldowns tick at normal rate - CDR is applied upfront when ability is cast
         state.cooldownRemaining = Math.max(0, state.cooldownRemaining - dt);
       }
       if (state.castTimeRemaining > 0) {
@@ -1183,6 +1262,67 @@ export class ServerChampion extends ServerEntity {
     }
   }
 
+  // =====================
+  // Effect Duration Extension
+  // =====================
+
+  /**
+   * Extend an effect's duration by the specified amount, with optional max cap.
+   * Used for abilities that extend buffs on certain triggers (e.g., takedowns).
+   * @param effectId - The effect to extend
+   * @param amount - Duration to add in seconds
+   * @param maxDuration - Optional maximum total duration cap
+   * @returns The actual amount extended (0 if effect not found or at cap)
+   */
+  extendEffectDuration(effectId: string, amount: number, maxDuration?: number): number {
+    const effect = this.getEffect(effectId);
+    if (!effect) return 0;
+
+    // Calculate actual extension (respecting max cap)
+    let actualExtension = amount;
+    if (maxDuration !== undefined) {
+      const currentTotal = effect.totalDuration;
+      const newTotal = Math.min(currentTotal + amount, maxDuration);
+      actualExtension = newTotal - currentTotal;
+
+      if (actualExtension <= 0) {
+        Logger.champion.debug(
+          `${this.playerId} effect ${effectId} at max duration (${maxDuration}s)`
+        );
+        return 0;
+      }
+
+      effect.totalDuration = newTotal;
+    } else {
+      effect.totalDuration += amount;
+    }
+
+    effect.timeRemaining += actualExtension;
+
+    // Also extend any associated stat modifier
+    const modifierSource = `ninja_mode_${effectId}`;
+    const modifier = this.statModifiers.find(m => m.source === modifierSource);
+    if (modifier && modifier.timeRemaining !== undefined) {
+      modifier.timeRemaining += actualExtension;
+      if (modifier.duration !== undefined) {
+        modifier.duration += actualExtension;
+      }
+    }
+
+    Logger.champion.info(
+      `${this.playerId} ${effectId} extended by ${actualExtension}s (total: ${effect.totalDuration}s)`
+    );
+
+    return actualExtension;
+  }
+
+  /**
+   * Check if Ninja Mode is currently active (has vex_ninja_mode effect).
+   */
+  isInNinjaMode(): boolean {
+    return this.hasEffect('vex_ninja_mode');
+  }
+
   /**
    * Take damage (override for shields and resistances).
    */
@@ -1246,6 +1386,27 @@ export class ServerChampion extends ServerEntity {
       this.onDeath(sourceId, context);
     }
 
+    // Tower aggro: if damaged by enemy champion, trigger aggro on allied towers
+    if (context && sourceId && damage > 0) {
+      const sourceEntity = context.getEntity(sourceId);
+      if (sourceEntity &&
+          sourceEntity.entityType === EntityType.CHAMPION &&
+          sourceEntity.side !== this.side) {
+        // Find all allied towers and trigger aggro if enemy champion is in range
+        const allEntities = context.getAllEntities();
+        for (const entity of allEntities) {
+          if (entity.entityType === EntityType.TOWER &&
+              entity.side === this.side &&
+              !entity.isDead) {
+            const tower = entity as ServerTower;
+            if (tower.isInRange(sourceEntity)) {
+              tower.triggerAggro(sourceId);
+            }
+          }
+        }
+      }
+    }
+
     return damage;
   }
 
@@ -1294,6 +1455,9 @@ export class ServerChampion extends ServerEntity {
     this.dashAbilityId = null;
     this.isRecalling = false;
     this.recallProgress = 0;
+
+    // Note: Effects with persistsThroughDeath: false are automatically cleared
+    // when the champion respawns (effects are cleared in respawn())
   }
 
   /**
@@ -1324,6 +1488,7 @@ export class ServerChampion extends ServerEntity {
       movementSpeed: base.movementSpeed,
       critChance: base.critChance,
       critDamage: base.critDamage,
+      abilityHaste: base.abilityHaste ?? 0,
       level,
     };
 
