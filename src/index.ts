@@ -9,6 +9,11 @@ function getServerUrl(): string {
   const serverParam = params.get('server');
   if (serverParam) return serverParam;
 
+  // Check for Vite environment variable (set at build time)
+  // @ts-ignore - Vite injects this at build time
+  const envUrl = import.meta.env?.VITE_WS_URL;
+  if (envUrl) return envUrl;
+
   // Default to localhost for development
   return 'ws://localhost:8080/ws';
 }

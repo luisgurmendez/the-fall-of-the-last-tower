@@ -115,6 +115,14 @@ export class BunWebSocketServer extends WebSocketServer {
           });
         }
 
+        // Metrics endpoint
+        if (url.pathname === '/metrics') {
+          const metrics = self.getMetricsHandler?.() ?? { error: 'No metrics available' };
+          return new Response(JSON.stringify(metrics, null, 2), {
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+
         return new Response('Siege Game Server', { status: 200 });
       },
 
@@ -169,6 +177,7 @@ export class BunWebSocketServer extends WebSocketServer {
     console.log(`[BunWebSocketServer] Listening on port ${port}`);
     console.log(`[BunWebSocketServer] WebSocket endpoint: ws://localhost:${port}/ws`);
     console.log(`[BunWebSocketServer] Health check: http://localhost:${port}/health`);
+    console.log(`[BunWebSocketServer] Metrics: http://localhost:${port}/metrics`);
   }
 
   /**

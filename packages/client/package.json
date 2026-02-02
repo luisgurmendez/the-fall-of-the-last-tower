@@ -17,7 +17,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@siege/shared": "workspace:*"
+    "@siege/shared": "*"
   },
   "devDependencies": {
     "typescript": "^5.3.0",

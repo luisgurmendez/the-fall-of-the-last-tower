@@ -421,4 +421,11 @@ export class GameRoom {
       events: [],
     };
   }
+
+  /**
+   * Get game loop metrics for monitoring.
+   */
+  getMetrics() {
+    return this.game.getMetrics();
+  }
 }

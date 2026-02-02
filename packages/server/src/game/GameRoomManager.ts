@@ -236,4 +236,21 @@ export class GameRoomManager {
       this.cleanupRoom(gameId);
     }
   }
+
+  /**
+   * Get metrics from all active game rooms.
+   */
+  getAllMetrics(): { gameId: string; state: string; metrics: ReturnType<GameRoom['getMetrics']> }[] {
+    const result = [];
+    for (const [gameId, room] of this.rooms) {
+      if (room.getState() === 'playing') {
+        result.push({
+          gameId,
+          state: room.getState(),
+          metrics: room.getMetrics(),
+        });
+      }
+    }
+    return result;
+  }
 }

@@ -7,3 +7,16 @@ public/
 
 dist/*
 packages/*/dist/*
+
+# AWS credentials (direnv)
+.envrc
+
+# Deployment secrets
+deploy/.ec2-info
+deploy/*.pem
+deploy/siege-key.pem
+
+# Environment files with secrets
+.env.production
+.env.local
+.env*.local

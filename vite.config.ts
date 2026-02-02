@@ -29,27 +29,46 @@ export default defineConfig(({ command, mode }) => {
   };
 
   if (command === 'build') {
-    // @ts-ignore
-    config.esbuild = false;
-    // @ts-ignore
-    config.base = '';
-    // @ts-ignore
-    config.build = {
-      minify: false,
-      target: 'es2020',
-      modulePreload: { polyfill: false },
-      assetsInlineLimit: 800,
-      assetsDir: '',
-      rollupOptions: {
-        output: {
-          inlineDynamicImports: true,
-          manualChunks: undefined,
-          assetFileNames: `[name].[ext]`
-        },
-      }
-    };
-    // @ts-ignore
-    config.plugins = [typescriptPlugin(), closurePlugin(), roadrollerPlugin(), ectPlugin()];
+    // Simple production build (for deployment) - uses esbuild
+    if (process.env.SIMPLE_BUILD) {
+      // @ts-ignore
+      config.base = '';
+      // @ts-ignore
+      config.build = {
+        minify: true,
+        target: 'es2020',
+        modulePreload: { polyfill: false },
+        assetsDir: 'assets',
+        rollupOptions: {
+          output: {
+            manualChunks: undefined,
+          },
+        }
+      };
+    } else {
+      // JS13K competition build - uses closure compiler + roadroller
+      // @ts-ignore
+      config.esbuild = false;
+      // @ts-ignore
+      config.base = '';
+      // @ts-ignore
+      config.build = {
+        minify: false,
+        target: 'es2020',
+        modulePreload: { polyfill: false },
+        assetsInlineLimit: 800,
+        assetsDir: '',
+        rollupOptions: {
+          output: {
+            inlineDynamicImports: true,
+            manualChunks: undefined,
+            assetFileNames: `[name].[ext]`
+          },
+        }
+      };
+      // @ts-ignore
+      config.plugins = [typescriptPlugin(), closurePlugin(), roadrollerPlugin(), ectPlugin()];
+    }
   }
 
   return config;

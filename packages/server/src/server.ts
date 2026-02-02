@@ -243,6 +243,44 @@ function handleFullState(playerId: string, snapshot: FullStateSnapshot): void {
 }
 
 // ============================================================================
+// Metrics
+// ============================================================================
+
+function getServerMetrics() {
+  const roomStats = roomManager.getStats();
+  const gameMetrics = roomManager.getAllMetrics();
+
+  return {
+    server: {
+      uptime: process.uptime(),
+      connections: wsServer.getConnectionCount(),
+      queueSize: matchmaker.getQueueSize(),
+    },
+    rooms: roomStats,
+    games: gameMetrics,
+  };
+}
+
+function logMetricsSummary() {
+  const metrics = getServerMetrics();
+
+  if (metrics.games.length === 0) {
+    return; // No active games, skip logging
+  }
+
+  for (const game of metrics.games) {
+    const m = game.metrics;
+    const tickMs = m.tickBudgetMs;
+
+    console.log(`[METRICS] Game ${game.gameId}:`);
+    console.log(`  Tick: avg=${m.tickDuration.avg.toFixed(2)}ms, p95=${m.tickDuration.p95.toFixed(2)}ms, max=${m.tickDuration.max.toFixed(2)}ms (budget: ${tickMs.toFixed(2)}ms)`);
+    console.log(`  Budget: ${m.budget.utilizationPercent.toFixed(1)}% util, ${m.budget.overruns} overruns (${m.budget.overrunPercent.toFixed(2)}%)`);
+    console.log(`  Jitter: avg=${m.jitter.avg.toFixed(2)}ms, max=${m.jitter.max.toFixed(2)}ms`);
+    console.log(`  Memory: ${(m.memory.currentHeapBytes / 1024 / 1024).toFixed(1)}MB heap`);
+  }
+}
+
+// ============================================================================
 // Server Startup
 // ============================================================================
 
@@ -255,11 +293,12 @@ async function startServer(): Promise<void> {
   initializeAbilityHandlers();
   Logger.server.info('Ability handlers initialized');
 
-  // Initialize WebSocket server
+  // Initialize WebSocket server with metrics callback
   wsServer = new BunWebSocketServer({
     onMessage: handleMessage,
     onConnect: handleConnect,
     onDisconnect: handleDisconnect,
+    getMetrics: getServerMetrics,
   });
 
   // Initialize game room manager
@@ -293,6 +332,11 @@ async function startServer(): Promise<void> {
   setInterval(() => {
     matchmaker.cleanupTimedOut();
   }, 60000); // Every minute
+
+  // Start periodic metrics logging (every 5 seconds)
+  setInterval(() => {
+    logMetricsSummary();
+  }, 5000);
 
   // Start the WebSocket server
   await wsServer.start(PORT);

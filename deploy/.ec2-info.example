@@ -1,0 +1,14 @@
+# Siege EC2 Configuration
+# Copy this file to .ec2-info and fill in your values
+
+# EC2 Elastic IP address
+EC2_HOST=<your-elastic-ip>
+
+# SSH user (ubuntu for Ubuntu AMIs)
+EC2_USER=ubuntu
+
+# Path to SSH key file (relative to project root)
+EC2_KEY=deploy/siege-key.pem
+
+# Instance ID (optional, for management)
+INSTANCE_ID=i-XXXXXXXXXXXXX

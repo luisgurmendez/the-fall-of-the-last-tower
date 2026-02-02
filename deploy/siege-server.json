@@ -1,0 +1,25 @@
+{
+  "apps": [
+    {
+      "name": "siege-server",
+      "cwd": "/home/ubuntu/siege/packages/server",
+      "script": "/home/ubuntu/.bun/bin/bun",
+      "args": "run src/server.ts",
+      "interpreter": "none",
+      "env": {
+        "NODE_ENV": "production",
+        "PORT": "8080",
+        "PLAYERS_PER_TEAM": "2"
+      },
+      "max_memory_restart": "500M",
+      "log_date_format": "YYYY-MM-DD HH:mm:ss Z",
+      "error_file": "/home/ubuntu/.pm2/logs/siege-server-error.log",
+      "out_file": "/home/ubuntu/.pm2/logs/siege-server-out.log",
+      "merge_logs": true,
+      "autorestart": true,
+      "watch": false,
+      "max_restarts": 10,
+      "restart_delay": 1000
+    }
+  ]
+}

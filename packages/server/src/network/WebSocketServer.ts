@@ -68,6 +68,7 @@ export interface WebSocketServerConfig {
   onConnect?: ConnectionHandler;
   onDisconnect?: DisconnectHandler;
   heartbeatInterval?: number;
+  getMetrics?: () => unknown;
 }
 
 /**
@@ -80,12 +81,14 @@ export abstract class WebSocketServer {
   protected connectHandler?: ConnectionHandler;
   protected disconnectHandler?: DisconnectHandler;
   protected heartbeatInterval: number;
+  protected getMetricsHandler?: () => unknown;
 
   constructor(config: WebSocketServerConfig = {}) {
     this.messageHandler = config.onMessage;
     this.connectHandler = config.onConnect;
     this.disconnectHandler = config.onDisconnect;
     this.heartbeatInterval = config.heartbeatInterval ?? 30000;
+    this.getMetricsHandler = config.getMetrics;
   }
 
   /**
