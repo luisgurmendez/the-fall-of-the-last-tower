@@ -9,21 +9,21 @@ export const GameConfig = {
    */
   TICK: {
     /** Server tick rate (simulations per second) */
-    SERVER_TICK_RATE: 125,
+    SERVER_TICK_RATE: 30,
     /** Client render rate (frames per second) */
     CLIENT_RENDER_RATE: 60,
     /** Milliseconds per server tick */
-    SERVER_TICK_MS: 8, // 8ms = 125Hz
+    SERVER_TICK_MS: 33, // 33ms = 30Hz
     /** Input send rate from client */
-    INPUT_SEND_RATE: 60,
+    INPUT_SEND_RATE: 30,
   },
 
   /**
    * Network configuration.
    */
   NETWORK: {
-    /** Interpolation delay in milliseconds (3 server ticks at 125Hz) */
-    INTERPOLATION_DELAY: 24,
+    /** Interpolation delay in milliseconds (3 server ticks at 30Hz) */
+    INTERPOLATION_DELAY: 100,
     /** Maximum lag compensation rewind in milliseconds */
     MAX_LAG_COMPENSATION: 250,
     /** Position snap threshold (units) */
