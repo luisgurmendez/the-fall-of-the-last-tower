@@ -7,6 +7,7 @@ import {
   TEAM_COLORS,
   drawBuildingSprite,
   imageCache,
+  renderProtectionDome,
 } from "@/render/entities/shared";
 import {
   HEALTH_BAR_COLORS,
@@ -64,6 +65,10 @@ export function renderNexus(
     ctx.strokeStyle = "#333";
     ctx.lineWidth = 2;
     ctx.strokeRect(-50, -80, 100, 100);
+  }
+
+  if (snapshot.isProtected) {
+    renderProtectionDome(ctx, 90, -30, rc.animationTime);
   }
 
   // Draw health bar - blue for ally nexus, red for enemy nexus

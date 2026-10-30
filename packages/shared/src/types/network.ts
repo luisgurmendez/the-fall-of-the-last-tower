@@ -363,6 +363,8 @@ export interface TowerSnapshot {
   health: number;
   maxHealth: number;
   isDestroyed: boolean;
+  /** Can't be damaged yet (the lane's outer tower still stands) */
+  isProtected?: boolean;
 }
 
 /**
@@ -399,6 +401,8 @@ export interface NexusSnapshot {
   health: number;
   maxHealth: number;
   isDestroyed: boolean;
+  /** Can't be damaged yet (no lane has lost all its towers) */
+  isProtected?: boolean;
 }
 
 /**

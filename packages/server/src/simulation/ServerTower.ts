@@ -72,6 +72,9 @@ export class ServerTower extends ServerEntity {
   // Destroyed state
   private _isDestroyed: boolean = false;
 
+  /** Can't be damaged yet (see StructureRules); refreshed every tick */
+  isProtected = false;
+
   constructor(config: ServerTowerConfig) {
     super({
       ...config,
@@ -142,6 +145,8 @@ export class ServerTower extends ServerEntity {
    */
   update(dt: number, context: ServerGameContext): void {
     if (this.isDead || this._isDestroyed) return;
+
+    this.isProtected = !isStructureVulnerable(this, context);
 
     // Update cooldowns
     if (this.attackCooldown > 0) {
@@ -401,6 +406,7 @@ export class ServerTower extends ServerEntity {
       health: this.health,
       maxHealth: this.maxHealth,
       isDestroyed: this._isDestroyed,
+      isProtected: this.isProtected,
     };
   }
 }

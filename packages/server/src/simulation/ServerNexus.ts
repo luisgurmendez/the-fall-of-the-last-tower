@@ -32,6 +32,9 @@ export class ServerNexus extends ServerEntity {
   readonly radius: number;
   private _isDestroyed: boolean = false;
 
+  /** Can't be damaged yet (see StructureRules); refreshed every tick */
+  isProtected = false;
+
   constructor(config: ServerNexusConfig) {
     super({
       ...config,
@@ -68,7 +71,8 @@ export class ServerNexus extends ServerEntity {
    * Nexus is passive - it doesn't attack, just takes damage.
    */
   update(dt: number, context: ServerGameContext): void {
-    // Nexus is passive - nothing to update
+    // Nexus is passive - it only tracks whether it can be damaged yet
+    this.isProtected = !isStructureVulnerable(this, context);
   }
 
   /**
@@ -124,6 +128,7 @@ export class ServerNexus extends ServerEntity {
       health: this.health,
       maxHealth: this.maxHealth,
       isDestroyed: this._isDestroyed,
+      isProtected: this.isProtected,
     };
   }
 }

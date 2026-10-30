@@ -7,6 +7,7 @@ import {
   TEAM_COLORS,
   drawBuildingSprite,
   imageCache,
+  renderProtectionDome,
 } from "@/render/entities/shared";
 import {
   HEALTH_BAR_COLORS,
@@ -64,6 +65,10 @@ export function renderTower(
     ctx.strokeStyle = "#333";
     ctx.lineWidth = 2;
     ctx.strokeRect(-25, -60, 50, 80);
+  }
+
+  if (snapshot.isProtected) {
+    renderProtectionDome(ctx, 45, -30, rc.animationTime);
   }
 
   renderTargetLockOnLocalPlayer(ctx, snapshot, side, rc);

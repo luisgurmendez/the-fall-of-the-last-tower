@@ -194,3 +194,27 @@ export function lightenColor(color: string, percent: number): string {
   const B = Math.max(0, Math.min(255, (num & 0x0000ff) + amt));
   return `#${((1 << 24) | (R << 16) | (G << 8) | B).toString(16).slice(1)}`;
 }
+
+/**
+ * Faint shimmering dome over a structure that can't be damaged yet.
+ */
+export function renderProtectionDome(
+  ctx: CanvasRenderingContext2D,
+  radius: number,
+  centerY: number,
+  time: number,
+): void {
+  const shimmer = 0.5 + Math.sin(time * 2) * 0.15;
+  ctx.save();
+  const glow = ctx.createRadialGradient(0, centerY, radius * 0.3, 0, centerY, radius);
+  glow.addColorStop(0, "rgba(180, 220, 255, 0)");
+  glow.addColorStop(1, `rgba(180, 220, 255, ${0.25 * shimmer})`);
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(0, centerY, radius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = `rgba(200, 235, 255, ${0.5 * shimmer})`;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.restore();
+}
