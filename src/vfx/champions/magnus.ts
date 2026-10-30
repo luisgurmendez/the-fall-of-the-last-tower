@@ -67,7 +67,7 @@ registerAbilityVFX({
 });
 
 registerAbilityVFX({
-  abilityId: 'magnus_barrier',
+  abilityId: 'magnus_shield',
   phases: [
     {
       name: 'activate',
@@ -98,7 +98,7 @@ registerAbilityVFX({
 });
 
 registerAbilityVFX({
-  abilityId: 'magnus_quagmire',
+  abilityId: 'magnus_mud',
   phases: [
     {
       name: 'appear',
@@ -140,7 +140,7 @@ registerAbilityVFX({
 });
 
 registerAbilityVFX({
-  abilityId: 'magnus_inferno',
+  abilityId: 'magnus_meteor',
   phases: [
     {
       name: 'summon',

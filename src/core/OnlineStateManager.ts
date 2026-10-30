@@ -22,6 +22,7 @@ import {
   type AbilityDefinition,
 } from '@siege/shared';
 import { getVFXManager } from '@/vfx';
+import { WORLD_VFX } from '@/vfx/world';
 
 /**
  * Animation state for an entity.
@@ -205,6 +206,9 @@ export class OnlineStateManager {
   // Big moments to announce on screen (dragon slain, ...)
   private announcements: Announcement[] = [];
 
+  // Champions removed from state when they died, to spot their respawn
+  private deadChampionIds: Set<string> = new Set();
+
   // Ability visual effects
   private abilityEffects: AbilityEffect[] = [];
   private static readonly ABILITY_EFFECT_DURATION = 300; // ms (quick flash)
@@ -318,6 +322,13 @@ export class OnlineStateManager {
         const damageType = event.data.damageType as 'physical' | 'magic' | 'true' | 'pure';
         const entity = this.entities.get(entityId);
 
+        if (entity && amount > 0) {
+          const spark = damageType === 'magic' ? WORLD_VFX.HIT_MAGIC
+            : damageType === 'physical' ? WORLD_VFX.HIT_PHYSICAL
+            : WORLD_VFX.HIT_TRUE;
+          this.spawnWorldVFX(spark, entity.position.x, entity.position.y - 10);
+        }
+
         if (entity && (amount > 0 || shieldAbsorbed > 0)) {
           this.damageNumbers.push({
             entityId,
@@ -399,21 +410,15 @@ export class OnlineStateManager {
     // Check if entity is being marked as dead/destroyed - remove it
     const data = delta.data as any;
     if (data && (data.isDead === true || data.isDestroyed === true)) {
-      // Spawn death VFX for minions
-      if (existing && existing.snapshot.entityType === EntityType.MINION) {
-        try {
-          const vfx = getVFXManager();
-          vfx.spawnDeathParticles(existing.snapshot.x, existing.snapshot.y, '#8B0000');
-        } catch {
-          // VFX manager not initialized yet, skip
-        }
-      }
+      if (existing) this.spawnDeathVFX(existing);
       // Remove dead/destroyed entities from client state
       this.entities.delete(delta.entityId);
       return;
     }
 
     if (existing) {
+      this.spawnChangeVFX(existing, data);
+
       // Update existing entity - merge delta into existing snapshot
       const snapshot = { ...existing.snapshot, ...delta.data } as EntitySnapshot;
 
@@ -474,6 +479,11 @@ export class OnlineStateManager {
     // Round positions to integers to avoid floating point precision issues
     const pos = new Vector(Math.round(snapshot.x), Math.round(snapshot.y));
 
+    // A champion we saw die is back: respawn effect
+    if (this.deadChampionIds.delete(snapshot.entityId)) {
+      this.spawnWorldVFX(WORLD_VFX.RESPAWN, pos.x, pos.y);
+    }
+
     // Preserve existing animation state if entity exists
     const existing = this.entities.get(snapshot.entityId);
     const animation = existing?.animation ?? this.createDefaultAnimationState();
@@ -485,6 +495,59 @@ export class OnlineStateManager {
       lastUpdateTime: Date.now(),
       animation,
     });
+  }
+
+  /**
+   * Effects for an entity that just died (it's removed from client state right after).
+   */
+  private spawnDeathVFX(entity: InterpolatedEntity): void {
+    const { x, y } = entity.position;
+    switch (entity.snapshot.entityType) {
+      case EntityType.MINION:
+        try {
+          getVFXManager().spawnDeathParticles(x, y, '#8B0000');
+        } catch {
+          // VFX manager not initialized yet, skip
+        }
+        break;
+      case EntityType.JUNGLE_CAMP:
+        this.spawnWorldVFX(WORLD_VFX.CREATURE_DEATH, x, y);
+        break;
+      case EntityType.CHAMPION:
+        this.deadChampionIds.add(entity.snapshot.entityId);
+        this.spawnWorldVFX(WORLD_VFX.CHAMPION_DEATH, x, y);
+        break;
+      case EntityType.TOWER:
+      case EntityType.NEXUS:
+        this.spawnWorldVFX(WORLD_VFX.TOWER_DESTROYED, x, y);
+        break;
+    }
+  }
+
+  /**
+   * Effects for state changes of a living entity (level ups, recall arrivals).
+   */
+  private spawnChangeVFX(entity: InterpolatedEntity, data: any): void {
+    if (!data || entity.snapshot.entityType !== EntityType.CHAMPION) return;
+    const previous = entity.snapshot as any;
+
+    if (typeof data.level === 'number' && data.level > previous.level) {
+      this.spawnWorldVFX(WORLD_VFX.LEVEL_UP, entity.position.x, entity.position.y);
+    }
+
+    // Recall finished: the champion jumped to base
+    if (previous.isRecalling && data.isRecalling === false && typeof data.x === 'number') {
+      const jump = Math.hypot(data.x - entity.position.x, data.y - entity.position.y);
+      if (jump > 400) this.spawnWorldVFX(WORLD_VFX.RECALL_ARRIVE, data.x, data.y);
+    }
+  }
+
+  private spawnWorldVFX(key: string, x: number, y: number): void {
+    try {
+      getVFXManager().spawnAbilityVFX(key, x, y);
+    } catch {
+      // VFX manager not initialized yet, skip
+    }
   }
 
   /**

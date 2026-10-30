@@ -12,8 +12,9 @@
  * storage in VFXRegistryStore.ts; all are re-exported here.
  */
 
-// Side effect: registers every champion's ability VFX
+// Side effect: registers every champion's ability VFX, and the world VFX (hits, deaths, ...)
 import './champions';
+import './world';
 
 export {
   registerAbilityVFX,

@@ -19,6 +19,7 @@ export interface MarkVisualConfig {
   showStacks?: boolean; // Whether to show stack count
   isDebuff?: boolean; // True for debuffs (shown on enemies)
   isBuff?: boolean; // True for buffs (shown on self/allies)
+  hidden?: boolean; // Never shown (the second half of a buff that already has an icon)
 }
 
 /**
@@ -61,6 +62,74 @@ const MARK_VISUALS: Record<string, MarkVisualConfig> = {
     iconColor: "#ffffff",
     showTimer: true,
     isDebuff: true,
+  },
+  knockup: {
+    icon: "^",
+    bgColor: "rgba(155, 89, 182, 0.8)",
+    borderColor: "#9b59b6",
+    iconColor: "#ffffff",
+    showTimer: true,
+    isDebuff: true,
+  },
+  root: {
+    icon: "#",
+    bgColor: "rgba(139, 69, 19, 0.85)",
+    borderColor: "#a0522d",
+    iconColor: "#ffffff",
+    showTimer: true,
+    isDebuff: true,
+  },
+  silence: {
+    icon: "x",
+    bgColor: "rgba(142, 68, 173, 0.8)",
+    borderColor: "#8e44ad",
+    iconColor: "#ffffff",
+    showTimer: true,
+    isDebuff: true,
+  },
+  slow_10: {
+    icon: "v",
+    bgColor: "rgba(93, 173, 226, 0.8)",
+    borderColor: "#5dade2",
+    iconColor: "#ffffff",
+    showTimer: true,
+    isDebuff: true,
+  },
+  cinders_burn: {
+    icon: "*",
+    bgColor: "rgba(230, 126, 34, 0.85)",
+    borderColor: "#e67e22",
+    iconColor: "#ffffff",
+    showTimer: true,
+    isDebuff: true,
+  },
+  // Jungle buffs
+  crest_of_insight: {
+    icon: "B",
+    bgColor: "rgba(52, 152, 219, 0.85)",
+    borderColor: "#3498db",
+    iconColor: "#ffffff",
+    showTimer: true,
+    isBuff: true,
+  },
+  crest_of_cinders: {
+    icon: "R",
+    bgColor: "rgba(231, 76, 60, 0.85)",
+    borderColor: "#e74c3c",
+    iconColor: "#ffffff",
+    showTimer: true,
+    isBuff: true,
+  },
+  // Second halves of two-effect buffs: one icon per buff is enough
+  crest_of_insight_regen: { icon: "", bgColor: "", borderColor: "", iconColor: "", showTimer: false, hidden: true },
+  dragons_might_power: { icon: "", bgColor: "", borderColor: "", iconColor: "", showTimer: false, hidden: true },
+  dragons_might: {
+    icon: "D",
+    bgColor: "rgba(230, 126, 34, 0.85)",
+    borderColor: "#f39c12",
+    iconColor: "#ffffff",
+    showTimer: true,
+    isBuff: true,
   },
   // Speed buffs
   speed_20: {
@@ -120,6 +189,7 @@ export function renderMarkIndicators(
   // Filter effects to show: debuffs on enemies, buffs on self/allies
   const visibleEffects = activeEffects.filter((effect) => {
     const visual = MARK_VISUALS[effect.definitionId] || DEFAULT_MARK_VISUAL;
+    if (visual.hidden) return false;
     if (isEnemy) {
       // On enemies, show debuffs
       return visual.isDebuff;

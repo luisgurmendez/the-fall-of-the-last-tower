@@ -48,7 +48,7 @@ registerAbilityVFX({
 });
 
 registerAbilityVFX({
-  abilityId: 'warrior_iron_will',
+  abilityId: 'warrior_shield',
   phases: [
     {
       name: 'activate',
@@ -132,7 +132,7 @@ registerAbilityVFX({
 });
 
 registerAbilityVFX({
-  abilityId: 'warrior_heroic_strike',
+  abilityId: 'warrior_ultimate',
   phases: [
     {
       name: 'leap',

@@ -429,3 +429,24 @@ vfxManager.clear();
 | `src/vfx/champions/<championId>.ts` | One champion's ability VFX definitions |
 | `src/vfx/effects/VFXPrimitives.ts` | Drawing functions |
 | `src/vfx/index.ts` | Module exports |
+
+## World VFX
+
+Defined in `src/vfx/world.ts` (keys in `WORLD_VFX`). They use the same phase-based definitions as ability VFX. `OnlineStateManager` spawns them from events and state changes:
+
+| Key | When |
+|-----|------|
+| `fx_hit_physical` / `fx_hit_magic` / `fx_hit_true` | A `DAMAGE` event: a small spark on the target, colored by damage type |
+| `fx_level_up` | A champion's level goes up |
+| `fx_champion_death` / `fx_respawn` | A champion dies (removed from client state) / reappears |
+| `fx_recall_arrive` | A recall ends with the champion jumping to base |
+| `fx_tower_destroyed` | A tower or nexus dies: flash, shockwave, rubble |
+| `fx_creature_death` | A jungle creature dies |
+
+Drawn directly by renderers rather than as VFX definitions:
+- **Recall channel** (`ChampionRenderer.renderRecallChannel`): a ground ring that fills over the recall, with rising motes.
+- **Tower lock-on** (`renderTower`): a pulsing dashed line and reticle while an enemy tower shoots the local champion.
+- **Low-health vignette** (`LowHealthVignette`): red screen edges below 30% health, pulsing faster as health drops.
+- **Status icons** (`statusIndicators.ts`): knockup, root, silence, slows, burn and the jungle buffs.
+
+Ability VFX are registered under the ability ID the server sends in `ABILITY_CAST`. The client contract test (`packages/client/src/test/ChampionClientContract.test.ts`) fails if an ability has no VFX or a registered key is never spawned.

@@ -7,7 +7,7 @@ import { CHAMPION_COLORS } from '../VFXColors';
 import { registerAbilityVFX } from '../VFXRegistryStore';
 
 registerAbilityVFX({
-  abilityId: 'vile_arrow',
+  abilityId: 'vile_black_arrows',
   phases: [
     {
       name: 'travel',
@@ -47,7 +47,7 @@ registerAbilityVFX({
 });
 
 registerAbilityVFX({
-  abilityId: 'vile_veil',
+  abilityId: 'vile_veil_of_darkness',
   phases: [
     {
       name: 'activate',
@@ -86,7 +86,7 @@ registerAbilityVFX({
 });
 
 registerAbilityVFX({
-  abilityId: 'vile_trap',
+  abilityId: 'vile_roots_of_vilix',
   phases: [
     {
       name: 'place',
@@ -130,7 +130,7 @@ registerAbilityVFX({
 });
 
 registerAbilityVFX({
-  abilityId: 'vile_restoration',
+  abilityId: 'vile_restoration_of_vilix',
   phases: [
     {
       name: 'transform',

@@ -66,6 +66,8 @@ export function renderTower(
     ctx.strokeRect(-25, -60, 50, 80);
   }
 
+  renderTargetLockOnLocalPlayer(ctx, snapshot, side, rc);
+
   // Draw health bar - blue for ally towers, red for enemy towers
   if (snapshot.health !== undefined && snapshot.maxHealth !== undefined) {
     const barY = -SPRITES.TOWER.HEIGHT * SPRITES.TOWER.SCALE + 10;
@@ -82,4 +84,47 @@ export function renderTower(
       healthBarColor,
     );
   }
+}
+
+/**
+ * Danger cue: a pulsing line from an enemy tower to the local champion while
+ * the tower is shooting at them.
+ */
+function renderTargetLockOnLocalPlayer(
+  ctx: CanvasRenderingContext2D,
+  snapshot: any,
+  side: number,
+  rc: EntityRenderContext,
+): void {
+  if (side === rc.localSide || !snapshot.targetEntityId) return;
+  if (snapshot.targetEntityId !== rc.stateManager.getLocalEntityId()) return;
+
+  const tower = rc.stateManager.getEntity(snapshot.entityId);
+  const target = rc.stateManager.getLocalPlayerEntity();
+  if (!tower || !target) return;
+
+  // The tower is drawn at its own position; the line ends at the champion
+  const dx = target.position.x - tower.position.x;
+  const dy = target.position.y - tower.position.y;
+  const startY = -SPRITES.TOWER.HEIGHT * SPRITES.TOWER.SCALE * 0.75;
+  const pulse = 0.55 + Math.sin(rc.animationTime * 10) * 0.25;
+
+  ctx.save();
+  ctx.strokeStyle = `rgba(255, 60, 40, ${pulse})`;
+  ctx.lineWidth = 3;
+  ctx.setLineDash([10, 6]);
+  ctx.lineDashOffset = -rc.animationTime * 40;
+  ctx.beginPath();
+  ctx.moveTo(0, startY);
+  ctx.lineTo(dx, dy);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Reticle on the champion
+  ctx.strokeStyle = `rgba(255, 60, 40, ${pulse + 0.2})`;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(dx, dy, 22, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
 }

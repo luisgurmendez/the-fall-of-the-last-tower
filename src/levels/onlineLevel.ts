@@ -17,6 +17,7 @@ import { ChampionHUD } from '@/ui/ChampionHUD';
 import { GameStatsHUD } from '@/ui/GameStatsHUD';
 import { OnlineMinimap } from '@/ui/OnlineMinimap';
 import { AnnouncementBanner } from '@/ui/AnnouncementBanner';
+import { LowHealthVignette } from '@/ui/LowHealthVignette';
 import { TargetInfoHUD } from '@/ui/TargetInfoHUD';
 import { TabScoreboard } from '@/ui/TabScoreboard';
 import { OnlineInputHandler } from '@/core/input/OnlineInputHandler';
@@ -152,6 +153,8 @@ export function generateOnlineLevel(config: OnlineLevelConfig): Level {
     inputHandler,
     // Camera controller
     cameraController,
+    // Red screen edges when the local champion is low (under the HUD)
+    new LowHealthVignette(stateManager),
     // HUD layers
     championHUD,
     new GameStatsHUD({

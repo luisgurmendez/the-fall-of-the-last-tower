@@ -7,7 +7,7 @@ import { CHAMPION_COLORS } from '../VFXColors';
 import { registerAbilityVFX } from '../VFXRegistryStore';
 
 registerAbilityVFX({
-  abilityId: 'lume_send_light',
+  abilityId: 'lume_q',
   phases: [
     {
       name: 'cast',
@@ -58,7 +58,7 @@ registerAbilityVFX({
 });
 
 registerAbilityVFX({
-  abilityId: 'lume_warmth',
+  abilityId: 'lume_w',
   phases: [
     {
       name: 'pulse',
@@ -98,7 +98,7 @@ registerAbilityVFX({
 });
 
 registerAbilityVFX({
-  abilityId: 'lume_dazzle_step',
+  abilityId: 'lume_e',
   phases: [
     {
       name: 'dash',

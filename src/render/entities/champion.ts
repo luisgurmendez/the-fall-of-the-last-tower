@@ -5,6 +5,7 @@
  */
 
 import {
+  GameConfig,
   getChampionDefinition,
   isRectangleCollision,
   isCircleCollision,
@@ -38,6 +39,49 @@ export class ChampionRenderer {
   constructor(rc: EntityRenderContext) {
     this.rc = rc;
     this.bodies = createChampionBodyRenderers(rc);
+  }
+
+  /**
+   * Recall channel: a ring on the ground that fills over the recall duration,
+   * with motes of light rising around the champion.
+   */
+  private renderRecallChannel(ctx: CanvasRenderingContext2D, progressSeconds: number): void {
+    const progress = Math.min(1, progressSeconds / GameConfig.TIMING.RECALL_DURATION);
+    const time = this.rc.animationTime;
+    const radius = 34;
+
+    ctx.save();
+    ctx.translate(0, 14);
+    ctx.scale(1, 0.45);
+
+    ctx.fillStyle = "rgba(79, 195, 247, 0.25)";
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = "rgba(79, 195, 247, 0.55)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.strokeStyle = "#81d4fa";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, -Math.PI / 2, -Math.PI / 2 + progress * Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+
+    // Rising motes, denser as the recall nears completion
+    const motes = 6 + Math.floor(progress * 10);
+    for (let i = 0; i < motes; i++) {
+      const phase = (time * 0.8 + i / motes) % 1;
+      const angle = (i / motes) * Math.PI * 2 + time;
+      const x = Math.cos(angle) * radius * 0.8;
+      const y = 14 + Math.sin(angle) * radius * 0.35 - phase * 70;
+      ctx.fillStyle = `rgba(179, 229, 252, ${0.9 * (1 - phase)})`;
+      ctx.fillRect(x - 1.5, y - 1.5, 3, 3);
+    }
   }
 
   /**
@@ -76,6 +120,10 @@ export class ChampionRenderer {
           }
         }
       }
+    }
+
+    if (snapshot.isRecalling) {
+      this.renderRecallChannel(ctx, snapshot.recallProgress ?? 0);
     }
 
     // Check if this champion has sprite support

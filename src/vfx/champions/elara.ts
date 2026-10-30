@@ -97,7 +97,7 @@ registerAbilityVFX({
 });
 
 registerAbilityVFX({
-  abilityId: 'elara_swift_grace',
+  abilityId: 'elara_speed',
   phases: [
     {
       name: 'cast',
@@ -135,7 +135,7 @@ registerAbilityVFX({
 });
 
 registerAbilityVFX({
-  abilityId: 'elara_divine_intervention',
+  abilityId: 'elara_resurrection',
   phases: [
     {
       name: 'windup',

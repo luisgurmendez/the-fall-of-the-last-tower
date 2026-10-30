@@ -20,6 +20,7 @@ import { describe, it, expect } from 'bun:test';
 import { CHAMPION_DEFINITIONS } from '@siege/shared';
 import { CHAMPION_RENDERERS, getChampionRenderer } from '@/render/champions';
 import { getAbilityVFX, getAllRegisteredVFX } from '@/vfx/VFXRegistry';
+import { WORLD_VFX } from '@/vfx/world';
 
 interface NoVFX {
   /** Why the ability plays no VFX when cast */
@@ -28,40 +29,11 @@ interface NoVFX {
   registeredAs?: string;
 }
 
-const UNREACHABLE_KEY =
-  'KNOWN GAP: VFX exists but is registered under a key no cast event sends';
-
 /**
- * Abilities that play no VFX when cast, with the reason.
- *
- * KNOWN GAPS: every entry below has VFX written for it in src/vfx/champions/,
- * but registered under a different key (registeredAs) than the ability ID the
- * server sends, so in game these abilities show no VFX at all. To fix one,
- * rename the registered abilityId to the ability ID (a visible change, so
- * check it in game) and delete the entry here; the stale-entry test below
- * fails until you do.
+ * Abilities that play no VFX when cast, with the reason. VFX are registered
+ * under the ability ID the server sends in ABILITY_CAST events.
  */
-const ABILITIES_WITHOUT_VFX: Record<string, NoVFX> = {
-  // Warrior: W Iron Will, R Heroic Strike
-  warrior_shield: { reason: UNREACHABLE_KEY, registeredAs: 'warrior_iron_will' },
-  warrior_ultimate: { reason: UNREACHABLE_KEY, registeredAs: 'warrior_heroic_strike' },
-  // Magnus: W Arcane Barrier, E Quagmire, R Inferno Zone
-  magnus_shield: { reason: UNREACHABLE_KEY, registeredAs: 'magnus_barrier' },
-  magnus_mud: { reason: UNREACHABLE_KEY, registeredAs: 'magnus_quagmire' },
-  magnus_meteor: { reason: UNREACHABLE_KEY, registeredAs: 'magnus_inferno' },
-  // Elara: E Swift Grace, R Divine Intervention
-  elara_speed: { reason: UNREACHABLE_KEY, registeredAs: 'elara_swift_grace' },
-  elara_resurrection: { reason: UNREACHABLE_KEY, registeredAs: 'elara_divine_intervention' },
-  // Vile: all four abilities
-  vile_black_arrows: { reason: UNREACHABLE_KEY, registeredAs: 'vile_arrow' },
-  vile_veil_of_darkness: { reason: UNREACHABLE_KEY, registeredAs: 'vile_veil' },
-  vile_roots_of_vilix: { reason: UNREACHABLE_KEY, registeredAs: 'vile_trap' },
-  vile_restoration_of_vilix: { reason: UNREACHABLE_KEY, registeredAs: 'vile_restoration' },
-  // Lume: Q Send the Light, W Warmth, E Dazzle Step (R is registered as lume_r)
-  lume_q: { reason: UNREACHABLE_KEY, registeredAs: 'lume_send_light' },
-  lume_w: { reason: UNREACHABLE_KEY, registeredAs: 'lume_warmth' },
-  lume_e: { reason: UNREACHABLE_KEY, registeredAs: 'lume_dazzle_step' },
-};
+const ABILITIES_WITHOUT_VFX: Record<string, NoVFX> = {};
 
 /**
  * ABILITY_CAST events the server sends that aren't a plain cast: recasts use
@@ -121,11 +93,13 @@ describe('Champion client contract', () => {
     expect(wrong).toEqual([]);
   });
 
-  it('registers no VFX that no cast event can reach, other than the known gaps', () => {
-    const reachable = new Set([
+  it('registers no VFX that nothing spawns', () => {
+    const reachable = new Set<string>([
       ...ALL_ABILITY_IDS,
       ...ALL_ABILITY_IDS.map((abilityId) => `${abilityId}_recast`),
       ...OTHER_CAST_EVENT_IDS,
+      // Spawned by OnlineStateManager for hits, deaths, level ups, ...
+      ...Object.values(WORLD_VFX),
       ...Object.values(ABILITIES_WITHOUT_VFX).flatMap((gap) =>
         gap.registeredAs ? [gap.registeredAs] : []
       ),
