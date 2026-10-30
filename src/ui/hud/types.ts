@@ -5,6 +5,7 @@
 
 import type { StatModifier, ChampionStats, ItemSlot, ItemDefinition, AbilitySlot, AbilityScaling, DamageType } from '@siege/shared';
 import type Vector from '@/physics/vector';
+import type AbilityIconLoader from '@/ui/AbilityIconLoader';
 
 /**
  * Interface for equipped item display.
@@ -191,4 +192,53 @@ export interface HitRect {
   y: number;
   width: number;
   height: number;
+}
+
+/** Charge progress of the ability being charged */
+export interface HUDChargeState {
+  slot: AbilitySlot;
+  progress: number;
+}
+
+/**
+ * State ChampionHUD keeps between frames and shares with the HUD panels.
+ * ChampionHUD owns it: step() advances the pulse clock and updates the hover
+ * state and the hovered level-up button, and the panels refresh the hit-test
+ * boxes as they draw.
+ */
+export interface HUDContext {
+  /** HUD configuration, with defaults filled in */
+  readonly config: Required<HUDConfig>;
+  /** Ability icon loader */
+  readonly iconLoader: AbilityIconLoader;
+
+  /** Current hover state */
+  readonly hoverState: HUDHoverState;
+
+  /** Cached passive box position for hit testing */
+  passiveBox: HitBox | null;
+
+  /** Cached ability box positions for hit testing (updated each frame) */
+  readonly abilityBoxes: Map<AbilitySlot, HitBox>;
+
+  /** Cached item box positions for hit testing */
+  readonly itemBoxes: Map<ItemSlot, HitBox>;
+
+  /** Cached buff box positions for hit testing */
+  readonly buffBoxes: Map<number, HitBox>;
+
+  /** Cached effect box positions for hit testing */
+  readonly effectBoxes: Map<number, HitBox>;
+
+  /** Cached level-up button positions for hit testing */
+  readonly levelUpButtons: Map<AbilitySlot, HitRect>;
+
+  /** Hovered level-up button */
+  hoveredLevelUpButton: AbilitySlot | null;
+
+  /** Animation state for level-up button pulse */
+  levelUpPulseTime: number;
+
+  /** Current charge state (for charge abilities) */
+  chargeState: HUDChargeState | null;
 }

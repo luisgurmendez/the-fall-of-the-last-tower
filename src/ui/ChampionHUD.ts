@@ -24,8 +24,7 @@ import type {
   HUDActiveEffect,
   HUDHoverState,
   HUDConfig,
-  HitBox,
-  HitRect,
+  HUDContext,
 } from '@/ui/hud/types';
 import {
   HUD_COLORS,
@@ -54,42 +53,13 @@ export type {
 
 export class ChampionHUD extends ScreenEntity {
   private champion: HUDChampionData | null;
-  private config: Required<HUDConfig>;
   private inputManager: InputManager;
-  private iconLoader: AbilityIconLoader;
 
-  /** Current hover state */
-  private hoverState: HUDHoverState = { ability: null, item: null, buff: null, effect: null, passive: false };
-
-  /** Cached passive box position for hit testing */
-  private passiveBox: HitBox | null = null;
-
-  /** Cached ability box positions for hit testing (updated each frame) */
-  private abilityBoxes: Map<AbilitySlot, HitBox> = new Map();
-
-  /** Cached item box positions for hit testing */
-  private itemBoxes: Map<ItemSlot, HitBox> = new Map();
-
-  /** Cached buff box positions for hit testing */
-  private buffBoxes: Map<number, HitBox> = new Map();
-
-  /** Cached effect box positions for hit testing */
-  private effectBoxes: Map<number, HitBox> = new Map();
-
-  /** Cached level-up button positions for hit testing */
-  private levelUpButtons: Map<AbilitySlot, HitRect> = new Map();
-
-  /** Hovered level-up button */
-  private hoveredLevelUpButton: AbilitySlot | null = null;
+  /** Config, hover state, hit-test caches and animation state shared with the HUD panels */
+  private hud: HUDContext;
 
   /** Callback for level-up button clicks */
   private onLevelUp?: (slot: AbilitySlot) => void;
-
-  /** Animation state for level-up button pulse */
-  private levelUpPulseTime: number = 0;
-
-  /** Current charge state (for charge abilities) */
-  private chargeState: { slot: AbilitySlot; progress: number } | null = null;
 
   /**
    * Create a ChampionHUD.
@@ -100,8 +70,8 @@ export class ChampionHUD extends ScreenEntity {
     super();
     this.champion = champion ?? null;
     this.inputManager = InputManager.getInstance();
-    this.iconLoader = AbilityIconLoader.getInstance();
-    this.config = {
+    const iconLoader = AbilityIconLoader.getInstance();
+    const resolvedConfig = {
       showManaBar: true,
       resourceColor: HUD_COLORS.manaBar,
       resourceName: 'Mana',
@@ -110,10 +80,24 @@ export class ChampionHUD extends ScreenEntity {
       championId: config.championName?.toLowerCase(),
       ...config,
     } as Required<HUDConfig>;
+    this.hud = {
+      config: resolvedConfig,
+      iconLoader,
+      hoverState: { ability: null, item: null, buff: null, effect: null, passive: false },
+      passiveBox: null,
+      abilityBoxes: new Map(),
+      itemBoxes: new Map(),
+      buffBoxes: new Map(),
+      effectBoxes: new Map(),
+      levelUpButtons: new Map(),
+      hoveredLevelUpButton: null,
+      levelUpPulseTime: 0,
+      chargeState: null,
+    };
 
     // Preload ability icons if championId is available
-    if (this.config.championId) {
-      this.iconLoader.preloadChampion(this.config.championId);
+    if (this.hud.config.championId) {
+      this.hud.iconLoader.preloadChampion(this.hud.config.championId);
     }
   }
 
@@ -136,35 +120,35 @@ export class ChampionHUD extends ScreenEntity {
    * @param state - The charge state or null if not charging
    */
   setChargeState(state: { slot: AbilitySlot; progress: number } | null): void {
-    this.chargeState = state;
+    this.hud.chargeState = state;
   }
 
   /** Get current hover state */
   getHoverState(): HUDHoverState {
-    return { ...this.hoverState };
+    return { ...this.hud.hoverState };
   }
 
   /** Check if a specific ability is being hovered */
   isAbilityHovered(slot: AbilitySlot): boolean {
-    return this.hoverState.ability === slot;
+    return this.hud.hoverState.ability === slot;
   }
 
   /** Check if a specific item slot is being hovered */
   isItemHovered(slot: ItemSlot): boolean {
-    return this.hoverState.item === slot;
+    return this.hud.hoverState.item === slot;
   }
 
   /** Update hover detection */
   override step(gctx: GameContext): void {
     // Update pulse animation time
-    this.levelUpPulseTime += gctx.dt;
+    this.hud.levelUpPulseTime += gctx.dt;
 
     const mousePos = this.inputManager.getMousePosition();
     if (!mousePos) return;
 
     // Check ability hover
     let newHoveredAbility: AbilitySlot | null = null;
-    for (const [slot, box] of this.abilityBoxes) {
+    for (const [slot, box] of this.hud.abilityBoxes) {
       if (isPointInBox(mousePos.x, mousePos.y, box)) {
         newHoveredAbility = slot;
         break;
@@ -173,7 +157,7 @@ export class ChampionHUD extends ScreenEntity {
 
     // Check item hover
     let newHoveredItem: ItemSlot | null = null;
-    for (const [slot, box] of this.itemBoxes) {
+    for (const [slot, box] of this.hud.itemBoxes) {
       if (isPointInBox(mousePos.x, mousePos.y, box)) {
         newHoveredItem = slot;
         break;
@@ -182,7 +166,7 @@ export class ChampionHUD extends ScreenEntity {
 
     // Check buff hover
     let newHoveredBuff: number | null = null;
-    for (const [index, box] of this.buffBoxes) {
+    for (const [index, box] of this.hud.buffBoxes) {
       if (isPointInBox(mousePos.x, mousePos.y, box)) {
         newHoveredBuff = index;
         break;
@@ -191,7 +175,7 @@ export class ChampionHUD extends ScreenEntity {
 
     // Check effect hover
     let newHoveredEffect: number | null = null;
-    for (const [index, box] of this.effectBoxes) {
+    for (const [index, box] of this.hud.effectBoxes) {
       if (isPointInBox(mousePos.x, mousePos.y, box)) {
         newHoveredEffect = index;
         break;
@@ -200,58 +184,58 @@ export class ChampionHUD extends ScreenEntity {
 
     // Check passive hover
     let newHoveredPassive = false;
-    if (this.passiveBox && isPointInBox(mousePos.x, mousePos.y, this.passiveBox)) {
+    if (this.hud.passiveBox && isPointInBox(mousePos.x, mousePos.y, this.hud.passiveBox)) {
       newHoveredPassive = true;
     }
 
     // Check level-up button hover
     let newHoveredLevelUpButton: AbilitySlot | null = null;
-    for (const [slot, box] of this.levelUpButtons) {
+    for (const [slot, box] of this.hud.levelUpButtons) {
       if (isPointInRect(mousePos.x, mousePos.y, box)) {
         newHoveredLevelUpButton = slot;
         break;
       }
     }
-    this.hoveredLevelUpButton = newHoveredLevelUpButton;
+    this.hud.hoveredLevelUpButton = newHoveredLevelUpButton;
 
     // Handle level-up button click
-    if (this.hoveredLevelUpButton && this.inputManager.isMouseButtonJustPressed(MouseButton.LEFT)) {
+    if (this.hud.hoveredLevelUpButton && this.inputManager.isMouseButtonJustPressed(MouseButton.LEFT)) {
       if (this.onLevelUp && this.champion) {
         const skillPoints = this.champion.getSkillPoints();
         if (skillPoints > 0) {
-          this.onLevelUp(this.hoveredLevelUpButton);
+          this.onLevelUp(this.hud.hoveredLevelUpButton);
         }
       }
     }
 
     // Fire callbacks if hover state changed
-    if (newHoveredAbility !== this.hoverState.ability) {
-      this.hoverState.ability = newHoveredAbility;
-      if (this.config.onAbilityHover) {
-        this.config.onAbilityHover(newHoveredAbility);
+    if (newHoveredAbility !== this.hud.hoverState.ability) {
+      this.hud.hoverState.ability = newHoveredAbility;
+      if (this.hud.config.onAbilityHover) {
+        this.hud.config.onAbilityHover(newHoveredAbility);
       }
     }
 
-    if (newHoveredItem !== this.hoverState.item) {
-      this.hoverState.item = newHoveredItem;
-      if (this.config.onItemHover) {
-        this.config.onItemHover(newHoveredItem);
+    if (newHoveredItem !== this.hud.hoverState.item) {
+      this.hud.hoverState.item = newHoveredItem;
+      if (this.hud.config.onItemHover) {
+        this.hud.config.onItemHover(newHoveredItem);
       }
     }
 
     // Update buff hover state
-    if (newHoveredBuff !== this.hoverState.buff) {
-      this.hoverState.buff = newHoveredBuff;
+    if (newHoveredBuff !== this.hud.hoverState.buff) {
+      this.hud.hoverState.buff = newHoveredBuff;
     }
 
     // Update effect hover state
-    if (newHoveredEffect !== this.hoverState.effect) {
-      this.hoverState.effect = newHoveredEffect;
+    if (newHoveredEffect !== this.hud.hoverState.effect) {
+      this.hud.hoverState.effect = newHoveredEffect;
     }
 
     // Update passive hover state
-    if (newHoveredPassive !== this.hoverState.passive) {
-      this.hoverState.passive = newHoveredPassive;
+    if (newHoveredPassive !== this.hud.hoverState.passive) {
+      this.hud.hoverState.passive = newHoveredPassive;
     }
   }
 
@@ -265,13 +249,13 @@ export class ChampionHUD extends ScreenEntity {
       const ctx = gctx.canvasRenderingContext;
 
       // Draw ability range circles in world space (before HUD overlay)
-      if (this.hoverState.ability) {
+      if (this.hud.hoverState.ability) {
         this.drawAbilityRangeCircles(ctx, gctx);
       }
 
       // Position HUD at bottom center
       const hudWidth = getTotalWidth();
-      const hudHeight = getTotalHeight(this.champion.getSkillPoints(), this.config.showManaBar);
+      const hudHeight = getTotalHeight(this.champion.getSkillPoints(), this.hud.config.showManaBar);
       const startX = (Dimensions.w - hudWidth) / 2;
       const startY = Dimensions.h - hudHeight - 10;
 
@@ -279,7 +263,7 @@ export class ChampionHUD extends ScreenEntity {
       this.drawHUDBackground(ctx, startX, startY, hudWidth, hudHeight);
 
       // Calculate center section height for vertical alignment
-      const centerHeight = getAbilitiesSectionHeight(this.champion.getSkillPoints(), this.config.showManaBar);
+      const centerHeight = getAbilitiesSectionHeight(this.champion.getSkillPoints(), this.hud.config.showManaBar);
       const contentTop = startY + PANEL.padding;
 
       let currentX = startX + PANEL.padding;
@@ -325,44 +309,44 @@ export class ChampionHUD extends ScreenEntity {
       this.drawBuffs(ctx, startX + hudWidth - PANEL.padding, startY - PANEL.effectSize - PANEL.buffSize - 14);
 
       // 9. Draw ability tooltip if hovering
-      if (this.hoverState.ability) {
-        const abilityBox = this.abilityBoxes.get(this.hoverState.ability);
+      if (this.hud.hoverState.ability) {
+        const abilityBox = this.hud.abilityBoxes.get(this.hud.hoverState.ability);
         if (abilityBox) {
-          this.drawAbilityTooltip(ctx, abilityBox.x, abilityBox.y, this.hoverState.ability);
+          this.drawAbilityTooltip(ctx, abilityBox.x, abilityBox.y, this.hud.hoverState.ability);
         }
       }
 
       // 10. Draw passive tooltip if hovering
-      if (this.hoverState.passive && this.passiveBox && this.champion) {
+      if (this.hud.hoverState.passive && this.hud.passiveBox && this.champion) {
         const passive = this.champion.getPassive();
         if (passive) {
-          this.drawPassiveTooltip(ctx, this.passiveBox.x, this.passiveBox.y, passive);
+          this.drawPassiveTooltip(ctx, this.hud.passiveBox.x, this.hud.passiveBox.y, passive);
         }
       }
 
       // 11. Draw effect tooltip if hovering
-      if (this.hoverState.effect !== null && this.champion) {
-        const effectBox = this.effectBoxes.get(this.hoverState.effect);
+      if (this.hud.hoverState.effect !== null && this.champion) {
+        const effectBox = this.hud.effectBoxes.get(this.hud.hoverState.effect);
         const effects = this.champion.getActiveEffects();
-        if (effectBox && this.hoverState.effect < effects.length) {
-          this.drawEffectTooltip(ctx, effectBox.x, effectBox.y, effects[this.hoverState.effect]);
+        if (effectBox && this.hud.hoverState.effect < effects.length) {
+          this.drawEffectTooltip(ctx, effectBox.x, effectBox.y, effects[this.hud.hoverState.effect]);
         }
       }
 
       // 12. Draw buff tooltip if hovering
-      if (this.hoverState.buff !== null && this.champion) {
-        const buffBox = this.buffBoxes.get(this.hoverState.buff);
+      if (this.hud.hoverState.buff !== null && this.champion) {
+        const buffBox = this.hud.buffBoxes.get(this.hud.hoverState.buff);
         const buffs = this.champion.getBuffs();
-        if (buffBox && this.hoverState.buff < buffs.length) {
-          this.drawBuffTooltip(ctx, buffBox.x, buffBox.y, buffs[this.hoverState.buff]);
+        if (buffBox && this.hud.hoverState.buff < buffs.length) {
+          this.drawBuffTooltip(ctx, buffBox.x, buffBox.y, buffs[this.hud.hoverState.buff]);
         }
       }
 
       // 13. Draw item tooltip if hovering
-      if (this.hoverState.item !== null && this.champion) {
-        const itemBox = this.itemBoxes.get(this.hoverState.item);
+      if (this.hud.hoverState.item !== null && this.champion) {
+        const itemBox = this.hud.itemBoxes.get(this.hud.hoverState.item);
         const inventory = this.champion.getInventory();
-        const equipped = inventory.items.get(this.hoverState.item);
+        const equipped = inventory.items.get(this.hud.hoverState.item);
         if (itemBox && equipped) {
           this.drawItemTooltip(ctx, itemBox.x, itemBox.y, equipped);
         }
@@ -388,7 +372,7 @@ export class ChampionHUD extends ScreenEntity {
     ctx.strokeRect(x, y, width, height);
 
     // Accent line at top
-    ctx.fillStyle = this.config.accentColor;
+    ctx.fillStyle = this.hud.config.accentColor;
     ctx.fillRect(x, y, width, 3);
   }
 
@@ -478,23 +462,23 @@ export class ChampionHUD extends ScreenEntity {
     ctx.fillRect(x, y, size, size);
 
     // Border
-    ctx.strokeStyle = this.config.accentColor;
+    ctx.strokeStyle = this.hud.config.accentColor;
     ctx.lineWidth = 2;
     ctx.strokeRect(x, y, size, size);
 
     // Champion name
     RenderUtils.renderBitmapText(
       ctx,
-      this.config.championName,
+      this.hud.config.championName,
       x + size / 2,
       y + size - 26,
       { color: HUD_COLORS.text, size: 22, centered: true, shadow: true }
     );
 
     // Level badge with pulse effect when skill points available
-    const pulseScale = skillPoints > 0 ? 1 + Math.sin(this.levelUpPulseTime * 4) * 0.1 : 1;
+    const pulseScale = skillPoints > 0 ? 1 + Math.sin(this.hud.levelUpPulseTime * 4) * 0.1 : 1;
     const badgeRadius = 14 * pulseScale;
-    const badgeColor = skillPoints > 0 ? HUD_COLORS.levelUpButton : this.config.accentColor;
+    const badgeColor = skillPoints > 0 ? HUD_COLORS.levelUpButton : this.hud.config.accentColor;
 
     ctx.fillStyle = badgeColor;
     ctx.beginPath();
@@ -536,20 +520,20 @@ export class ChampionHUD extends ScreenEntity {
     if (!this.champion) return;
     const passive = this.champion.getPassive();
     const size = PANEL.passiveBoxSize;
-    const isHovered = this.hoverState.passive;
+    const isHovered = this.hud.hoverState.passive;
 
     // Cache position for hit testing
-    this.passiveBox = { x, y, size };
+    this.hud.passiveBox = { x, y, size };
 
     // Background (gold tint for passive, brighter when hovered)
     ctx.fillStyle = isHovered ? '#4a4a3c' : '#2a2a1e';
     ctx.fillRect(x, y, size, size);
 
     // Try to draw passive icon
-    const championId = this.config.championId;
+    const championId = this.hud.config.championId;
     let iconDrawn = false;
     if (championId) {
-      iconDrawn = this.iconLoader.drawIcon(ctx, championId, 'passive', x, y, size);
+      iconDrawn = this.hud.iconLoader.drawIcon(ctx, championId, 'passive', x, y, size);
     }
 
     // Cooldown overlay if on cooldown
@@ -624,7 +608,7 @@ export class ChampionHUD extends ScreenEntity {
     const skillPoints = this.champion?.getSkillPoints() ?? 0;
 
     // Clear level-up buttons cache
-    this.levelUpButtons.clear();
+    this.hud.levelUpButtons.clear();
 
     // Draw ability boxes
     const slots: AbilitySlot[] = ['Q', 'W', 'E', 'R'];
@@ -640,7 +624,7 @@ export class ChampionHUD extends ScreenEntity {
     slots.forEach((slot, i) => {
       const boxX = abilitiesStartX + i * (boxSize + spacing);
       // Cache position for hit testing
-      this.abilityBoxes.set(slot, { x: boxX, y: abilityY, size: boxSize });
+      this.hud.abilityBoxes.set(slot, { x: boxX, y: abilityY, size: boxSize });
       this.drawAbilityBox(ctx, boxX, abilityY, boxSize, slot);
 
       // Draw level-up button above ability if skill points available
@@ -654,7 +638,7 @@ export class ChampionHUD extends ScreenEntity {
     this.drawHealthBar(ctx, x, barY, width);
 
     // Mana/Resource bar below health
-    if (this.config.showManaBar) {
+    if (this.hud.config.showManaBar) {
       const manaBarY = barY + PANEL.barHeight + PANEL.barSpacing;
       this.drawResourceBar(ctx, x, manaBarY, width);
     }
@@ -692,10 +676,10 @@ export class ChampionHUD extends ScreenEntity {
     const buttonY = y;
 
     // Cache button position for hit testing
-    this.levelUpButtons.set(slot, { x: buttonX, y: buttonY, width: buttonWidth, height: buttonHeight });
+    this.hud.levelUpButtons.set(slot, { x: buttonX, y: buttonY, width: buttonWidth, height: buttonHeight });
 
-    const isHovered = this.hoveredLevelUpButton === slot;
-    const pulseIntensity = Math.sin(this.levelUpPulseTime * 4) * 0.5 + 0.5;
+    const isHovered = this.hud.hoveredLevelUpButton === slot;
+    const pulseIntensity = Math.sin(this.hud.levelUpPulseTime * 4) * 0.5 + 0.5;
 
     // Button background with pulse
     if (isHovered) {
@@ -733,7 +717,7 @@ export class ChampionHUD extends ScreenEntity {
     slot: AbilitySlot
   ): void {
     const ability = this.champion?.getAbility(slot);
-    const isHovered = this.hoverState.ability === slot;
+    const isHovered = this.hud.hoverState.ability === slot;
     let progress = 1;
     let isReady = true;
     let recastWindowRemaining = 0;
@@ -764,11 +748,11 @@ export class ChampionHUD extends ScreenEntity {
 
     // Try to draw ability icon
     const iconSlot = slot.toLowerCase() as AbilityIconSlot;
-    const championId = this.config.championId;
+    const championId = this.hud.config.championId;
     let iconDrawn = false;
 
     if (championId) {
-      iconDrawn = this.iconLoader.drawIcon(ctx, championId, iconSlot, x, y, size);
+      iconDrawn = this.hud.iconLoader.drawIcon(ctx, championId, iconSlot, x, y, size);
     }
 
     // Cooldown overlay (drawn on top of icon) - but not when recast is available
@@ -792,7 +776,7 @@ export class ChampionHUD extends ScreenEntity {
       ctx.lineWidth = 3;
       ctx.strokeRect(x, y, size, size);
     } else {
-      ctx.strokeStyle = isReady ? this.config.accentColor : HUD_COLORS.abilityNotReady;
+      ctx.strokeStyle = isReady ? this.hud.config.accentColor : HUD_COLORS.abilityNotReady;
       ctx.lineWidth = 2;
       ctx.strokeRect(x, y, size, size);
     }
@@ -809,11 +793,11 @@ export class ChampionHUD extends ScreenEntity {
     }
 
     // Check if this ability is being charged
-    const isCharging = this.chargeState?.slot === slot;
+    const isCharging = this.hud.chargeState?.slot === slot;
 
     // Charge progress overlay (fills from bottom to top)
     if (isCharging) {
-      const chargeProgress = this.chargeState!.progress;
+      const chargeProgress = this.hud.chargeState!.progress;
       // Draw dark overlay for uncharged portion
       ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
       ctx.fillRect(x, y, size, size * (1 - chargeProgress));
@@ -940,7 +924,7 @@ export class ChampionHUD extends ScreenEntity {
     ctx.fillRect(x, y, width, PANEL.barHeight);
 
     // Resource fill
-    ctx.fillStyle = this.config.resourceColor;
+    ctx.fillStyle = this.hud.config.resourceColor;
     ctx.fillRect(x, y, width * resourcePercent, PANEL.barHeight);
 
     // Border
@@ -993,7 +977,7 @@ export class ChampionHUD extends ScreenEntity {
         const boxX = x + innerPadding + col * (boxSize + spacing);
         const boxY = y + innerPadding + row * (boxSize + spacing);
         // Cache position for hit testing
-        this.itemBoxes.set(slotIndex, { x: boxX, y: boxY, size: boxSize });
+        this.hud.itemBoxes.set(slotIndex, { x: boxX, y: boxY, size: boxSize });
         this.drawItemSlot(ctx, boxX, boxY, boxSize, slotIndex);
       }
     }
@@ -1017,7 +1001,7 @@ export class ChampionHUD extends ScreenEntity {
     size: number,
     slotIndex: ItemSlot
   ): void {
-    const isHovered = this.hoverState.item === slotIndex;
+    const isHovered = this.hud.hoverState.item === slotIndex;
     const inventory = this.champion?.getInventory();
     const equipped = inventory?.items.get(slotIndex);
 
@@ -1114,7 +1098,7 @@ export class ChampionHUD extends ScreenEntity {
     const buffs = this.champion.getBuffs();
 
     // Clear old buff boxes
-    this.buffBoxes.clear();
+    this.hud.buffBoxes.clear();
 
     if (buffs.length === 0) return;
 
@@ -1125,8 +1109,8 @@ export class ChampionHUD extends ScreenEntity {
     buffs.forEach((buff, index) => {
       const x = rightX - (index + 1) * (size + spacing) + spacing;
       // Cache position for hit testing
-      this.buffBoxes.set(index, { x, y, size });
-      const isHovered = this.hoverState.buff === index;
+      this.hud.buffBoxes.set(index, { x, y, size });
+      const isHovered = this.hud.hoverState.buff === index;
       this.drawBuffIcon(ctx, x, y, size, buff.source, isHovered);
     });
   }
@@ -1149,7 +1133,7 @@ export class ChampionHUD extends ScreenEntity {
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 3;
     } else {
-      ctx.strokeStyle = this.config.accentColor;
+      ctx.strokeStyle = this.hud.config.accentColor;
       ctx.lineWidth = 2;
     }
     ctx.strokeRect(x, y, size, size);
@@ -1171,7 +1155,7 @@ export class ChampionHUD extends ScreenEntity {
     const effects = this.champion.getActiveEffects();
 
     // Clear old effect boxes
-    this.effectBoxes.clear();
+    this.hud.effectBoxes.clear();
 
     if (effects.length === 0) return;
 
@@ -1182,8 +1166,8 @@ export class ChampionHUD extends ScreenEntity {
     effects.forEach((effect, index) => {
       const x = rightX - (index + 1) * (size + spacing) + spacing;
       // Cache position for hit testing
-      this.effectBoxes.set(index, { x, y, size });
-      const isHovered = this.hoverState.effect === index;
+      this.hud.effectBoxes.set(index, { x, y, size });
+      const isHovered = this.hud.hoverState.effect === index;
       this.drawEffectIcon(ctx, x, y, size, effect, isHovered);
     });
   }
@@ -1399,7 +1383,7 @@ export class ChampionHUD extends ScreenEntity {
   /** Draw ability range circles around champion (in screen space) */
   private drawAbilityRangeCircles(ctx: CanvasRenderingContext2D, gctx: GameContext): void {
     if (!this.champion) return;
-    const slot = this.hoverState.ability;
+    const slot = this.hud.hoverState.ability;
     if (!slot) return;
 
     const ability = this.champion.getAbility(slot);
@@ -1601,7 +1585,7 @@ export class ChampionHUD extends ScreenEntity {
     ctx.fillRect(clampedX, clampedY, tooltipWidth, tooltipHeight);
 
     // Border
-    ctx.strokeStyle = this.config.accentColor;
+    ctx.strokeStyle = this.hud.config.accentColor;
     ctx.lineWidth = 2;
     ctx.strokeRect(clampedX, clampedY, tooltipWidth, tooltipHeight);
 
@@ -1613,7 +1597,7 @@ export class ChampionHUD extends ScreenEntity {
       `${slot} - ${name}`,
       clampedX + padding,
       currentY,
-      { color: this.config.accentColor, size: 26, shadow: false }
+      { color: this.hud.config.accentColor, size: 26, shadow: false }
     );
     currentY += lineHeight + 4;
 
@@ -2034,7 +2018,7 @@ export class ChampionHUD extends ScreenEntity {
     ctx.fillRect(clampedX, clampedY, tooltipWidth, tooltipHeight);
 
     // Border
-    ctx.strokeStyle = this.config.accentColor;
+    ctx.strokeStyle = this.hud.config.accentColor;
     ctx.lineWidth = 2;
     ctx.strokeRect(clampedX, clampedY, tooltipWidth, tooltipHeight);
 
@@ -2047,7 +2031,7 @@ export class ChampionHUD extends ScreenEntity {
       displayName,
       clampedX + padding,
       currentY,
-      { color: this.config.accentColor, size: 24, shadow: false }
+      { color: this.hud.config.accentColor, size: 24, shadow: false }
     );
     currentY += headerHeight;
 
