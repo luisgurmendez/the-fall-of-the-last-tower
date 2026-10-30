@@ -13,236 +13,44 @@ import RenderElement from '@/render/renderElement';
 import RenderUtils from '@/render/utils';
 import GameContext from '@/core/gameContext';
 import { InputManager, MouseButton } from '@/core/input/InputManager';
-import { type StatModifier, type ChampionStats, type ItemSlot, type ItemDefinition, type AbilitySlot, type AbilityScaling, type DamageType, calculateAbilityValue } from '@siege/shared';
+import { type StatModifier, type ChampionStats, type ItemSlot, type ItemDefinition, type AbilitySlot, type AbilityScaling, calculateAbilityValue } from '@siege/shared';
 import { getEffectDisplayInfo } from '@/data/effectDisplayInfo';
 import AbilityIconLoader, { type AbilityIconSlot } from '@/ui/AbilityIconLoader';
+import type {
+  EquippedItem,
+  HUDAbilityDefinition,
+  HUDPassive,
+  HUDChampionData,
+  HUDActiveEffect,
+  HUDHoverState,
+  HUDConfig,
+  HitBox,
+  HitRect,
+} from '@/ui/hud/types';
+import {
+  HUD_COLORS,
+  PANEL,
+  isPointInBox,
+  isPointInRect,
+  getItemsContainerWidth,
+  getTotalWidth,
+  getAbilitiesSectionHeight,
+  getTotalHeight,
+  getItemsContainerHeight,
+} from '@/ui/hud/layout';
 // Re-export for external use
 export type { ItemSlot, AbilitySlot };
-
-/**
- * Local interface for equipped item display.
- */
-interface EquippedItem {
-  definition: ItemDefinition;
-  slot: ItemSlot;
-  passiveCooldowns: Map<string, number>;
-  nextIntervalTick: Map<string, number>;
-}
-
-/**
- * Local interface for inventory display.
- */
-interface ChampionInventory {
-  items: Map<ItemSlot, EquippedItem>;
-  totalGoldSpent: number;
-}
-import Vector from '@/physics/vector';
-/**
- * Interface for trinket data needed by HUD.
- * Both Trinket and OnlineTrinketAdapter implement this.
- */
-export interface HUDTrinket {
-  getCharges(): number;
-  getMaxCharges(): number;
-  getDefinition(): { maxCharges: number };
-  getRechargeProgress(): number;
-  isOnCooldown(): boolean;
-  canPlace(): boolean;
-}
-
-/**
- * Ability definition interface for HUD tooltips.
- */
-export interface HUDAbilityDefinition {
-  id?: string;
-  name: string;
-  description: string;
-  maxRank?: number;
-  manaCost?: number[];
-  cooldown?: number[];
-  damage?: {
-    type: DamageType;
-    scaling: AbilityScaling;
-  };
-  heal?: {
-    scaling: AbilityScaling;
-  };
-  shield?: {
-    scaling: AbilityScaling;
-    duration: number;
-  };
-}
-
-/**
- * Interface for ability data needed by HUD.
- */
-export interface HUDAbility {
-  readonly definition?: HUDAbilityDefinition | null;
-  readonly rank: number;
-  readonly isReady: boolean;
-  readonly cooldownProgress: number;
-  readonly cooldownRemaining: number;
-  /** Time remaining in recast window (> 0 means recast is available) */
-  readonly recastWindowRemaining?: number;
-  getTargetDescription?(): {
-    range?: number;
-    targetType?: string;
-    shape?: string;
-    aoeRadius?: number;
-    coneAngle?: number;
-    width?: number;
-  } | null;
-}
-
-/**
- * Passive ability definition interface for HUD display.
- */
-export interface HUDPassiveDefinition {
-  id: string;
-  name: string;
-  description: string;
-  trigger: string;
-  internalCooldown?: number;
-  maxStacks?: number;
-  usesStacks?: boolean;
-}
-
-/**
- * Interface for passive ability data needed by HUD.
- */
-export interface HUDPassive {
-  readonly definition: HUDPassiveDefinition;
-  readonly isActive: boolean;
-  readonly cooldownRemaining: number;
-  readonly stacks: number;
-  readonly maxStacks: number;
-  readonly stackTimeRemaining: number;
-}
-
-/**
- * Interface for champion data needed by HUD.
- * Both Champion and OnlineChampionAdapter implement this.
- */
-export interface HUDChampionData {
-  getStats(): ChampionStats;
-  getCurrentHealth(): number;
-  getCurrentResource(): number;
-  getAbility(slot: AbilitySlot): HUDAbility | undefined;
-  getPassive(): HUDPassive | null;
-  getBuffs(): StatModifier[];
-  getActiveEffects(): HUDActiveEffect[];
-  getInventory(): ChampionInventory;
-  getTrinket(): HUDTrinket | null;
-  getPosition(): Vector;
-  getLevel(): number;
-  getExperience(): number;
-  getExperienceToNextLevel(): number;
-  getSkillPoints(): number;
-  getGold(): number;
-}
-
-/**
- * Active effect data for HUD display.
- */
-export interface HUDActiveEffect {
-  /** Effect definition ID */
-  definitionId: string;
-  /** Time remaining in seconds */
-  timeRemaining: number;
-  /** Total duration when effect was applied (for progress bar) */
-  totalDuration?: number;
-  /** Current stack count */
-  stacks: number;
-  /** For shields: remaining shield amount */
-  shieldRemaining?: number;
-}
-
-/** Hover state for HUD elements */
-export interface HUDHoverState {
-  /** Currently hovered ability slot, or null if none */
-  ability: AbilitySlot | null;
-  /** Currently hovered item slot, or null if none */
-  item: ItemSlot | null;
-  /** Currently hovered buff index, or null if none */
-  buff: number | null;
-  /** Currently hovered effect index, or null if none */
-  effect: number | null;
-  /** Currently hovered passive, or null if none */
-  passive: boolean;
-}
-
-/** HUD configuration options */
-export interface HUDConfig {
-  /** Primary color for the champion (used for accents) */
-  accentColor: string;
-  /** Champion name to display */
-  championName: string;
-  /** Champion ID for loading ability icons (e.g., 'vex', 'gorath') */
-  championId?: string;
-  /** Whether to show mana bar (false for energy/rage champions) */
-  showManaBar?: boolean;
-  /** Resource bar color (blue for mana, yellow for energy, red for rage) */
-  resourceColor?: string;
-  /** Resource name (Mana, Energy, Rage, etc.) */
-  resourceName?: string;
-  /** Callback when ability hover state changes */
-  onAbilityHover?: (slot: AbilitySlot | null) => void;
-  /** Callback when item hover state changes */
-  onItemHover?: (slot: ItemSlot | null) => void;
-}
-
-/** Default HUD colors */
-const HUD_COLORS = {
-  background: '#1a1a2e',
-  backgroundLight: '#252540',
-  border: '#3a3a5c',
-  borderHighlight: '#5a5a8c',
-  text: '#ffffff',
-  textDim: '#aaaaaa',
-  healthBar: '#2ecc71',
-  healthBarBg: '#1a472a',
-  manaBar: '#3498db',
-  manaBarBg: '#1a3a4a',
-  cooldownOverlay: 'rgba(0, 0, 0, 0.7)',
-  abilityReady: '#FFD700',
-  abilityNotReady: '#666666',
-  xpBar: '#8b5cf6',
-  xpBarBg: '#2d1f3d',
-  levelUpButton: '#ffd700',
-  levelUpButtonHover: '#ffec8b',
-};
-
-/** Panel dimensions */
-const PANEL = {
-  statsWidth: 120,
-  statsHeight: 120,
-  portraitSize: 90,
-  passiveBoxSize: 44,
-  abilitiesWidth: 240,
-  abilitiesHeight: 65,
-  abilityBoxSize: 52,
-  abilitySpacing: 6,
-  barHeight: 22,
-  barSpacing: 4,
-  itemsWidth: 145,
-  itemsHeight: 100,
-  itemBoxSize: 40,
-  itemSpacing: 4,
-  padding: 8,
-  margin: 6,
-  buffSize: 28,
-  buffSpacing: 3,
-  effectSize: 30,
-  effectSpacing: 3,
-  wardBoxSize: 40,
-  tooltipWidth: 320,
-  tooltipPadding: 8,
-  xpBarHeight: 6,
-  xpBarSpacing: 2,
-  levelUpButtonWidth: 16,
-  levelUpButtonHeight: 14,
-  levelUpButtonGap: 2,
-};
+export type {
+  HUDTrinket,
+  HUDAbilityDefinition,
+  HUDAbility,
+  HUDPassiveDefinition,
+  HUDPassive,
+  HUDChampionData,
+  HUDActiveEffect,
+  HUDHoverState,
+  HUDConfig,
+} from '@/ui/hud/types';
 
 export class ChampionHUD extends ScreenEntity {
   private champion: HUDChampionData | null;
@@ -254,22 +62,22 @@ export class ChampionHUD extends ScreenEntity {
   private hoverState: HUDHoverState = { ability: null, item: null, buff: null, effect: null, passive: false };
 
   /** Cached passive box position for hit testing */
-  private passiveBox: { x: number; y: number; size: number } | null = null;
+  private passiveBox: HitBox | null = null;
 
   /** Cached ability box positions for hit testing (updated each frame) */
-  private abilityBoxes: Map<AbilitySlot, { x: number; y: number; size: number }> = new Map();
+  private abilityBoxes: Map<AbilitySlot, HitBox> = new Map();
 
   /** Cached item box positions for hit testing */
-  private itemBoxes: Map<ItemSlot, { x: number; y: number; size: number }> = new Map();
+  private itemBoxes: Map<ItemSlot, HitBox> = new Map();
 
   /** Cached buff box positions for hit testing */
-  private buffBoxes: Map<number, { x: number; y: number; size: number }> = new Map();
+  private buffBoxes: Map<number, HitBox> = new Map();
 
   /** Cached effect box positions for hit testing */
-  private effectBoxes: Map<number, { x: number; y: number; size: number }> = new Map();
+  private effectBoxes: Map<number, HitBox> = new Map();
 
   /** Cached level-up button positions for hit testing */
-  private levelUpButtons: Map<AbilitySlot, { x: number; y: number; width: number; height: number }> = new Map();
+  private levelUpButtons: Map<AbilitySlot, HitRect> = new Map();
 
   /** Hovered level-up button */
   private hoveredLevelUpButton: AbilitySlot | null = null;
@@ -357,7 +165,7 @@ export class ChampionHUD extends ScreenEntity {
     // Check ability hover
     let newHoveredAbility: AbilitySlot | null = null;
     for (const [slot, box] of this.abilityBoxes) {
-      if (this.isPointInBox(mousePos.x, mousePos.y, box)) {
+      if (isPointInBox(mousePos.x, mousePos.y, box)) {
         newHoveredAbility = slot;
         break;
       }
@@ -366,7 +174,7 @@ export class ChampionHUD extends ScreenEntity {
     // Check item hover
     let newHoveredItem: ItemSlot | null = null;
     for (const [slot, box] of this.itemBoxes) {
-      if (this.isPointInBox(mousePos.x, mousePos.y, box)) {
+      if (isPointInBox(mousePos.x, mousePos.y, box)) {
         newHoveredItem = slot;
         break;
       }
@@ -375,7 +183,7 @@ export class ChampionHUD extends ScreenEntity {
     // Check buff hover
     let newHoveredBuff: number | null = null;
     for (const [index, box] of this.buffBoxes) {
-      if (this.isPointInBox(mousePos.x, mousePos.y, box)) {
+      if (isPointInBox(mousePos.x, mousePos.y, box)) {
         newHoveredBuff = index;
         break;
       }
@@ -384,7 +192,7 @@ export class ChampionHUD extends ScreenEntity {
     // Check effect hover
     let newHoveredEffect: number | null = null;
     for (const [index, box] of this.effectBoxes) {
-      if (this.isPointInBox(mousePos.x, mousePos.y, box)) {
+      if (isPointInBox(mousePos.x, mousePos.y, box)) {
         newHoveredEffect = index;
         break;
       }
@@ -392,14 +200,14 @@ export class ChampionHUD extends ScreenEntity {
 
     // Check passive hover
     let newHoveredPassive = false;
-    if (this.passiveBox && this.isPointInBox(mousePos.x, mousePos.y, this.passiveBox)) {
+    if (this.passiveBox && isPointInBox(mousePos.x, mousePos.y, this.passiveBox)) {
       newHoveredPassive = true;
     }
 
     // Check level-up button hover
     let newHoveredLevelUpButton: AbilitySlot | null = null;
     for (const [slot, box] of this.levelUpButtons) {
-      if (this.isPointInRect(mousePos.x, mousePos.y, box)) {
+      if (isPointInRect(mousePos.x, mousePos.y, box)) {
         newHoveredLevelUpButton = slot;
         break;
       }
@@ -447,72 +255,6 @@ export class ChampionHUD extends ScreenEntity {
     }
   }
 
-  /** Check if a point is inside a box */
-  private isPointInBox(
-    px: number,
-    py: number,
-    box: { x: number; y: number; size: number }
-  ): boolean {
-    return px >= box.x && px <= box.x + box.size && py >= box.y && py <= box.y + box.size;
-  }
-
-  /** Check if a point is inside a rectangle */
-  private isPointInRect(
-    px: number,
-    py: number,
-    rect: { x: number; y: number; width: number; height: number }
-  ): boolean {
-    return px >= rect.x && px <= rect.x + rect.width && py >= rect.y && py <= rect.y + rect.height;
-  }
-
-  /** Get the items container width */
-  private getItemsContainerWidth(): number {
-    const innerPadding = 6;
-    return 3 * PANEL.itemBoxSize + 2 * PANEL.itemSpacing + innerPadding * 2;
-  }
-
-  /** Get the total HUD width */
-  private getTotalWidth(): number {
-    return (
-      PANEL.padding +
-      PANEL.statsWidth +
-      PANEL.margin +
-      PANEL.portraitSize +
-      PANEL.margin +
-      PANEL.passiveBoxSize +
-      PANEL.margin +
-      PANEL.abilitiesWidth +
-      PANEL.margin +
-      this.getItemsContainerWidth() +
-      PANEL.margin +
-      PANEL.wardBoxSize +
-      PANEL.padding
-    );
-  }
-
-  /** Get the abilities section total height (abilities + bars) */
-  private getAbilitiesSectionHeight(): number {
-    // Level-up buttons (if skill points available) + Abilities + health bar + mana bar (if shown)
-    const skillPoints = this.champion?.getSkillPoints() ?? 0;
-    let height = 0;
-
-    // Add space for level-up buttons when skill points are available
-    if (skillPoints > 0) {
-      height += PANEL.levelUpButtonHeight + PANEL.levelUpButtonGap;
-    }
-
-    height += PANEL.abilitiesHeight + PANEL.barSpacing + PANEL.barHeight;
-    if (this.config.showManaBar) {
-      height += PANEL.barSpacing + PANEL.barHeight;
-    }
-    return height;
-  }
-
-  /** Get the total HUD height */
-  private getTotalHeight(): number {
-    return this.getAbilitiesSectionHeight() + PANEL.padding * 2;
-  }
-
   override render(): RenderElement {
     return this.createOverlayRender((gctx) => {
       // Skip rendering if no champion data available
@@ -528,8 +270,8 @@ export class ChampionHUD extends ScreenEntity {
       }
 
       // Position HUD at bottom center
-      const hudWidth = this.getTotalWidth();
-      const hudHeight = this.getTotalHeight();
+      const hudWidth = getTotalWidth();
+      const hudHeight = getTotalHeight(this.champion.getSkillPoints(), this.config.showManaBar);
       const startX = (Dimensions.w - hudWidth) / 2;
       const startY = Dimensions.h - hudHeight - 10;
 
@@ -537,7 +279,7 @@ export class ChampionHUD extends ScreenEntity {
       this.drawHUDBackground(ctx, startX, startY, hudWidth, hudHeight);
 
       // Calculate center section height for vertical alignment
-      const centerHeight = this.getAbilitiesSectionHeight();
+      const centerHeight = getAbilitiesSectionHeight(this.champion.getSkillPoints(), this.config.showManaBar);
       const contentTop = startY + PANEL.padding;
 
       let currentX = startX + PANEL.padding;
@@ -562,7 +304,7 @@ export class ChampionHUD extends ScreenEntity {
       currentX += PANEL.abilitiesWidth + PANEL.margin;
 
       // 5. Items Panel + Gold + Ward (centered vertically)
-      const itemsContainerHeight = this.getItemsContainerHeight();
+      const itemsContainerHeight = getItemsContainerHeight();
       const goldHeight = 20;
       const itemsTotalHeight = itemsContainerHeight + goldHeight;
       const itemsY = contentTop + (centerHeight - itemsTotalHeight) / 2;
@@ -571,7 +313,7 @@ export class ChampionHUD extends ScreenEntity {
       this.drawItemsPanel(ctx, currentX, itemsY, gold);
 
       // 6. Ward count (next to items)
-      const wardX = currentX + this.getItemsContainerWidth() + PANEL.margin;
+      const wardX = currentX + getItemsContainerWidth() + PANEL.margin;
       const wardY = contentTop + (centerHeight - PANEL.wardBoxSize) / 2;
       this.drawWardPanel(ctx, wardX, wardY);
 
@@ -626,12 +368,6 @@ export class ChampionHUD extends ScreenEntity {
         }
       }
     });
-  }
-
-  /** Get the items container height */
-  private getItemsContainerHeight(): number {
-    const innerPadding = 6;
-    return 2 * PANEL.itemBoxSize + PANEL.itemSpacing + innerPadding * 2;
   }
 
   /** Draw the main HUD background */

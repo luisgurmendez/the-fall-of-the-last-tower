@@ -1,0 +1,194 @@
+/**
+ * Types shared by ChampionHUD and the HUD panels. ChampionHUD re-exports the
+ * public ones, so other code keeps importing them from '@/ui/ChampionHUD'.
+ */
+
+import type { StatModifier, ChampionStats, ItemSlot, ItemDefinition, AbilitySlot, AbilityScaling, DamageType } from '@siege/shared';
+import type Vector from '@/physics/vector';
+
+/**
+ * Interface for equipped item display.
+ */
+export interface EquippedItem {
+  definition: ItemDefinition;
+  slot: ItemSlot;
+  passiveCooldowns: Map<string, number>;
+  nextIntervalTick: Map<string, number>;
+}
+
+/**
+ * Interface for inventory display.
+ */
+export interface ChampionInventory {
+  items: Map<ItemSlot, EquippedItem>;
+  totalGoldSpent: number;
+}
+
+/**
+ * Interface for trinket data needed by HUD.
+ * Both Trinket and OnlineTrinketAdapter implement this.
+ */
+export interface HUDTrinket {
+  getCharges(): number;
+  getMaxCharges(): number;
+  getDefinition(): { maxCharges: number };
+  getRechargeProgress(): number;
+  isOnCooldown(): boolean;
+  canPlace(): boolean;
+}
+
+/**
+ * Ability definition interface for HUD tooltips.
+ */
+export interface HUDAbilityDefinition {
+  id?: string;
+  name: string;
+  description: string;
+  maxRank?: number;
+  manaCost?: number[];
+  cooldown?: number[];
+  damage?: {
+    type: DamageType;
+    scaling: AbilityScaling;
+  };
+  heal?: {
+    scaling: AbilityScaling;
+  };
+  shield?: {
+    scaling: AbilityScaling;
+    duration: number;
+  };
+}
+
+/**
+ * Interface for ability data needed by HUD.
+ */
+export interface HUDAbility {
+  readonly definition?: HUDAbilityDefinition | null;
+  readonly rank: number;
+  readonly isReady: boolean;
+  readonly cooldownProgress: number;
+  readonly cooldownRemaining: number;
+  /** Time remaining in recast window (> 0 means recast is available) */
+  readonly recastWindowRemaining?: number;
+  getTargetDescription?(): {
+    range?: number;
+    targetType?: string;
+    shape?: string;
+    aoeRadius?: number;
+    coneAngle?: number;
+    width?: number;
+  } | null;
+}
+
+/**
+ * Passive ability definition interface for HUD display.
+ */
+export interface HUDPassiveDefinition {
+  id: string;
+  name: string;
+  description: string;
+  trigger: string;
+  internalCooldown?: number;
+  maxStacks?: number;
+  usesStacks?: boolean;
+}
+
+/**
+ * Interface for passive ability data needed by HUD.
+ */
+export interface HUDPassive {
+  readonly definition: HUDPassiveDefinition;
+  readonly isActive: boolean;
+  readonly cooldownRemaining: number;
+  readonly stacks: number;
+  readonly maxStacks: number;
+  readonly stackTimeRemaining: number;
+}
+
+/**
+ * Interface for champion data needed by HUD.
+ * Both Champion and OnlineChampionAdapter implement this.
+ */
+export interface HUDChampionData {
+  getStats(): ChampionStats;
+  getCurrentHealth(): number;
+  getCurrentResource(): number;
+  getAbility(slot: AbilitySlot): HUDAbility | undefined;
+  getPassive(): HUDPassive | null;
+  getBuffs(): StatModifier[];
+  getActiveEffects(): HUDActiveEffect[];
+  getInventory(): ChampionInventory;
+  getTrinket(): HUDTrinket | null;
+  getPosition(): Vector;
+  getLevel(): number;
+  getExperience(): number;
+  getExperienceToNextLevel(): number;
+  getSkillPoints(): number;
+  getGold(): number;
+}
+
+/**
+ * Active effect data for HUD display.
+ */
+export interface HUDActiveEffect {
+  /** Effect definition ID */
+  definitionId: string;
+  /** Time remaining in seconds */
+  timeRemaining: number;
+  /** Total duration when effect was applied (for progress bar) */
+  totalDuration?: number;
+  /** Current stack count */
+  stacks: number;
+  /** For shields: remaining shield amount */
+  shieldRemaining?: number;
+}
+
+/** Hover state for HUD elements */
+export interface HUDHoverState {
+  /** Currently hovered ability slot, or null if none */
+  ability: AbilitySlot | null;
+  /** Currently hovered item slot, or null if none */
+  item: ItemSlot | null;
+  /** Currently hovered buff index, or null if none */
+  buff: number | null;
+  /** Currently hovered effect index, or null if none */
+  effect: number | null;
+  /** Currently hovered passive, or null if none */
+  passive: boolean;
+}
+
+/** HUD configuration options */
+export interface HUDConfig {
+  /** Primary color for the champion (used for accents) */
+  accentColor: string;
+  /** Champion name to display */
+  championName: string;
+  /** Champion ID for loading ability icons (e.g., 'vex', 'gorath') */
+  championId?: string;
+  /** Whether to show mana bar (false for energy/rage champions) */
+  showManaBar?: boolean;
+  /** Resource bar color (blue for mana, yellow for energy, red for rage) */
+  resourceColor?: string;
+  /** Resource name (Mana, Energy, Rage, etc.) */
+  resourceName?: string;
+  /** Callback when ability hover state changes */
+  onAbilityHover?: (slot: AbilitySlot | null) => void;
+  /** Callback when item hover state changes */
+  onItemHover?: (slot: ItemSlot | null) => void;
+}
+
+/** Cached position of a square HUD element, for hit testing */
+export interface HitBox {
+  x: number;
+  y: number;
+  size: number;
+}
+
+/** Cached position of a rectangular HUD element, for hit testing */
+export interface HitRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
