@@ -334,6 +334,17 @@ getVisibleEntities(forSide: Side): ServerEntity[] {
 }
 ```
 
+An enemy entity is sent only if all of these hold (see `FogOfWarServer.calculateVisibility`):
+
+1. It is not a stealthed champion (e.g. Vex's Shadow Shroud)
+2. Its own `isVisibleTo(side)` allows it, if it defines one. Stealth wards stay hidden
+   unless an enemy control ward reveals them, and stealthed traps stay hidden
+3. It is not hidden in a bush the viewer has no vision in
+4. It is within sight range of one of the viewer's vision sources
+
+Towers and nexuses are always visible. Hidden entities are never serialized for that
+team, so a modified client can't reveal them.
+
 ## Reliable Event Delivery
 
 Important events use sequence IDs and acknowledgment:

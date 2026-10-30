@@ -185,6 +185,13 @@ export class FogOfWarServer {
       return { isVisible: false };
     }
 
+    // Wards and traps decide their own stealth (e.g. stealth wards unless
+    // revealed by a control ward). Range and bush rules still apply after this.
+    const selfVisibility = entity as Partial<{ isVisibleTo(side: Side): boolean }>;
+    if (typeof selfVisibility.isVisibleTo === 'function' && !selfVisibility.isVisibleTo(viewingSide)) {
+      return { isVisible: false };
+    }
+
     // First check bush visibility
     // If entity is hidden in a bush and viewer doesn't have vision in that bush,
     // the entity is not visible regardless of range
