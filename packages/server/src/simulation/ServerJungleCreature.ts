@@ -234,7 +234,7 @@ export class ServerJungleCreature extends ServerEntity {
       this.attackTarget = target.id;
     }
 
-    const inRange = this.position.distanceTo(target.position) <= this.attackRange + this.getRadius() + target.getRadius();
+    const inRange = this.isInAttackRange(target, this.attackRange);
 
     // Kited: nobody has hit us for a while and we can't hit back
     if (!inRange && context.getGameTime() - this.lastDamagedAt > ServerJungleCreature.KITE_RESET_TIME) {

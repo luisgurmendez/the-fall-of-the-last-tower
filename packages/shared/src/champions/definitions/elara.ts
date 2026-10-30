@@ -48,7 +48,7 @@ const ELARA_BASE_STATS: ChampionBaseStats = {
   attackDamage: 48,
   abilityPower: 0,
   attackSpeed: 0.625,
-  attackRange: 525,
+  attackRange: 375,
   armor: 22,
   magicResist: 34,
   movementSpeed: 60,

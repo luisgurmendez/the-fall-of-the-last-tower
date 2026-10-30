@@ -126,8 +126,8 @@ export class FogOfWarServer {
         sightRange = (entity as any).stats?.sightRange ?? 500;
         minionCount++;
       } else if (entity.entityType === EntityType.TOWER) {
-        // Towers have fixed sight range
-        sightRange = (entity as any).stats?.attackRange ?? 750;
+        // Towers see further than they shoot
+        sightRange = (entity as any).stats?.sightRange ?? 750;
         towerCount++;
       } else if (entity.entityType === EntityType.WARD) {
         // Wards provide vision (check stats.sightRange for consistency with other entities)

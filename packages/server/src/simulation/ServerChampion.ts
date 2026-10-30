@@ -335,7 +335,7 @@ export class ServerChampion extends ServerEntity {
 
         // Check if we're in attack range - if so, stop moving to attack
         const attackRange = this.getStats().attackRange;
-        if (this.isInRange(target, attackRange)) {
+        if (this.isInAttackRange(target, attackRange)) {
           // In range - stop moving, let updateCombat handle attacking
           this.targetPosition = null;
           return;

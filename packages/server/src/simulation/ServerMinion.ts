@@ -401,7 +401,7 @@ export class ServerMinion extends ServerEntity {
     // Attack if possible
     if (this.attackTarget && this.attackCooldown <= 0) {
       const target = context.getEntity(this.attackTarget);
-      if (target && this.isInRange(target, this.stats.attackRange)) {
+      if (target && this.isInAttackRange(target, this.stats.attackRange)) {
         this.attack(target, context);
       }
     }
@@ -420,7 +420,7 @@ export class ServerMinion extends ServerEntity {
 
     // Same priority: stay on a target in range; otherwise take a clearly closer one
     // (the current one may be walled off by other units)
-    if (this.isInRange(current, this.stats.attackRange)) return false;
+    if (this.isInAttackRange(current, this.stats.attackRange)) return false;
     return best.distance < this.position.distanceTo(current.position) - 50;
   }
 
@@ -430,7 +430,7 @@ export class ServerMinion extends ServerEntity {
    */
   private canKeepTarget(target: ServerEntity, context: ServerGameContext): boolean {
     if (target.isDead || !context.isVisibleTo(target, this.side)) return false;
-    if (this.isInRange(target, this.stats.attackRange)) return true;
+    if (this.isInAttackRange(target, this.stats.attackRange)) return true;
     if (this.position.distanceTo(target.position) > this.getAcquisitionRange() + 100) return false;
     return !this.lanePath || this.lanePath.project(this.position).offset <= ServerMinion.LANE_LEASH;
   }
@@ -556,7 +556,7 @@ export class ServerMinion extends ServerEntity {
   private updateMovement(dt: number, context: ServerGameContext): void {
     if (this.attackTarget) {
       const target = context.getEntity(this.attackTarget);
-      if (target && !this.isInRange(target, this.stats.attackRange)) {
+      if (target && !this.isInAttackRange(target, this.stats.attackRange)) {
         this.moveTarget = target.position.clone();
       } else {
         // In range - stop moving and clear move target
@@ -604,16 +604,6 @@ export class ServerMinion extends ServerEntity {
       point.add(new Vector(-direction.y, direction.x).scalar(this.laneOffset));
     }
     return point;
-  }
-
-  /**
-   * Check if target is in range.
-   */
-  isInRange(target: ServerEntity, range: number): boolean {
-    const targetRadius = typeof (target as any).getRadius === 'function'
-      ? (target as any).getRadius()
-      : 0;
-    return this.position.distanceTo(target.position) <= range + this.getRadius() + targetRadius;
   }
 
   /**

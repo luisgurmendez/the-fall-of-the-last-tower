@@ -68,6 +68,8 @@ export class ServerTower extends ServerEntity {
 
   /** How long tower aggro lasts after a champion damages an allied champion (seconds) */
   private static readonly AGGRO_DURATION = 3.0;
+  /** Larger than any unit's collision radius, for the target search */
+  private static readonly MAX_UNIT_RADIUS = 60;
 
   // Destroyed state
   private _isDestroyed: boolean = false;
@@ -231,9 +233,10 @@ export class ServerTower extends ServerEntity {
    * and stealthed enemies. No visibility check is performed intentionally.
    */
   private findTarget(context: ServerGameContext): string | null {
+    // Wide enough for the biggest unit; isInAttackRange below is the real check
     const nearbyEntities = context.getEntitiesInRadius(
       this.position,
-      this.stats.attackRange,
+      this.stats.attackRange + this.getRadius() + ServerTower.MAX_UNIT_RADIUS,
     );
 
     let bestTarget: ServerEntity | null = null;
@@ -252,8 +255,8 @@ export class ServerTower extends ServerEntity {
       )
         continue;
 
+      if (!this.isInAttackRange(entity, this.stats.attackRange)) continue;
       const distance = this.position.distanceTo(entity.position);
-      if (distance > this.stats.attackRange) continue;
 
       const priority = this.getTargetPriority(entity);
 
@@ -342,17 +345,10 @@ export class ServerTower extends ServerEntity {
   }
 
   /**
-   * Check if target is in range.
+   * Check if target is in range (edge to edge, see ServerEntity.isInAttackRange).
    */
   isInRange(target: ServerEntity): boolean {
-    const targetRadius =
-      typeof (target as any).getRadius === "function"
-        ? (target as any).getRadius()
-        : 0;
-    return (
-      this.position.distanceTo(target.position) <=
-      this.stats.attackRange + targetRadius
-    );
+    return this.isInAttackRange(target, this.stats.attackRange);
   }
 
   /**

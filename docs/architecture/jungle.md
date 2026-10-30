@@ -40,11 +40,11 @@ During a fight the monster checks its special attack. It uses it when the attack
 
 | Monster | Attack | Area | Wind-up | Hit |
 |---------|--------|------|---------|-----|
-| Blue buff | `jungle_slam_blue` | circle, radius 150 | 1.5s | 80 magic damage, 30% slow for 1.5s |
-| Red buff | `jungle_slam_red` | circle, radius 150 | 1.5s | 90 physical damage, 30% slow for 1.5s |
+| Blue buff | `jungle_slam_blue` | circle, radius 130 | 1.5s | 80 magic damage, 30% slow for 1.5s |
+| Red buff | `jungle_slam_red` | circle, radius 130 | 1.5s | 90 physical damage, 30% slow for 1.5s |
 | Dragon | `dragon_breath` | cone at its target, 300 long and 50° wide | 1.3s | 160 magic damage, 20% slow for 1s |
 
-The sizes are tuned to champion speed (about 60 units/s). A melee champion fighting a buff monster stands 125-170 from its center, inside the slam, and has at least half a second to step out. The dragon's breath is too wide to outrun up close, so champions should fight it from beside or behind.
+The sizes are tuned to champion speed (about 60 units/s). A melee champion fighting a buff monster stands about 90 from its center (attack range 40 plus both bodies), inside the slam, and has about 0.4 s to spare when it steps out. The dragon's breath is too wide to outrun up close, so champions should fight it from beside or behind.
 
 The client draws the warning from the same config (`src/vfx/world.ts`). While winding up, the monster holds its first attack frame, trembles, swells and glows brighter until the attack lands (`renderJungleCamp`). The slam warning is a filled circle with a ring that grows from the center and reaches the edge when the slam lands. The breath warning is a faint cone, followed by a fire burst.
 

@@ -205,10 +205,19 @@ export abstract class ServerEntity {
   }
 
   /**
-   * Check if entity is in range of another.
+   * Check if entity is in range of another (center to center, as ability ranges are).
    */
   isInRange(other: ServerEntity, range: number): boolean {
     return this.distanceTo(other) <= range;
+  }
+
+  /**
+   * Whether a target is within attack range. Attack range is the gap between
+   * the two bodies (edge to edge), for every attacker: champions, minions,
+   * towers and jungle creatures.
+   */
+  isInAttackRange(target: ServerEntity, range: number): boolean {
+    return this.distanceTo(target) <= range + this.getRadius() + target.getRadius();
   }
 
   /**

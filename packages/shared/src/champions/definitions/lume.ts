@@ -76,7 +76,7 @@ const LUME_BASE_STATS: ChampionBaseStats = {
   attackDamage: 52,
   abilityPower: 0,
   attackSpeed: 0.65,
-  attackRange: 550, // Standard ranged mage
+  attackRange: 400, // Standard ranged mage
   armor: 26,
   magicResist: 30,
   movementSpeed: 58, // Slightly slow, E compensates

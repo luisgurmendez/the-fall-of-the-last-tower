@@ -49,8 +49,8 @@ describe('Elara', () => {
       expect(level1Arena.blue.maxHealth).toBe(480);
     });
 
-    test('should have ranged attack range (525)', () => {
-      expect(level1Arena.blue.getStats().attackRange).toBe(525);
+    test('should have ranged attack range (375)', () => {
+      expect(level1Arena.blue.getStats().attackRange).toBe(375);
     });
 
     test('should have high base mana (400)', () => {

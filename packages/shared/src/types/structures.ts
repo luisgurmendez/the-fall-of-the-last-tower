@@ -25,7 +25,10 @@ export interface TowerStats {
   armor: number;
   magicResist: number;
   attackDamage: number;
+  /** Gap between the tower's body and its target's (edge to edge) */
   attackRange: number;
+  /** How far the tower sees, from its center */
+  sightRange: number;
   attackCooldown: number;
   /** Damage ramp per consecutive hit on same target */
   warmupDamagePerStack: number;
@@ -44,7 +47,8 @@ export const DEFAULT_TOWER_STATS: Record<TowerTier, TowerStats> = {
     armor: 40,
     magicResist: 40,
     attackDamage: 152,
-    attackRange: 600,
+    attackRange: 450,
+    sightRange: 600,
     attackCooldown: 2,
     warmupDamagePerStack: 40,
     maxWarmupStacks: 5,
@@ -56,7 +60,8 @@ export const DEFAULT_TOWER_STATS: Record<TowerTier, TowerStats> = {
     armor: 55,
     magicResist: 55,
     attackDamage: 170,
-    attackRange: 600,
+    attackRange: 450,
+    sightRange: 600,
     attackCooldown: 2,
     warmupDamagePerStack: 45,
     maxWarmupStacks: 5,
@@ -68,7 +73,8 @@ export const DEFAULT_TOWER_STATS: Record<TowerTier, TowerStats> = {
     armor: 70,
     magicResist: 70,
     attackDamage: 190,
-    attackRange: 600,
+    attackRange: 450,
+    sightRange: 600,
     attackCooldown: 2,
     warmupDamagePerStack: 50,
     maxWarmupStacks: 5,

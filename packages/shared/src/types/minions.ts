@@ -75,7 +75,7 @@ export const DEFAULT_MINION_STATS: Record<MinionType, MinionStats> = {
     armor: 10,
     magicResist: 10,
     attackDamage: 23,
-    attackRange: 50,
+    attackRange: 35,
     attackCooldown: 1.0,
     movementSpeed: 42,
     sightRange: 400,
@@ -129,7 +129,7 @@ export const DEFAULT_MINION_STATS: Record<MinionType, MinionStats> = {
     armor: 30,
     magicResist: 0,
     attackDamage: 180,
-    attackRange: 100, // Reduced from 170 - melee super minion
+    attackRange: 50, // Melee super minion
     attackCooldown: 0.85,
     movementSpeed: 220, // Faster than regular minions
     sightRange: 500,

@@ -46,8 +46,8 @@ describe('Vile', () => {
       expect(level1Arena.blue.maxHealth).toBe(580);
     });
 
-    test('should have ranged attack range (450)', () => {
-      expect(level1Arena.blue.getStats().attackRange).toBe(450);
+    test('should have ranged attack range (325)', () => {
+      expect(level1Arena.blue.getStats().attackRange).toBe(325);
     });
 
     test('should have correct base attack damage (60)', () => {
@@ -436,11 +436,11 @@ describe('Vile', () => {
       expect(arena.blue.getStats().maxHealth).toBeGreaterThan(baseHealth);
     });
 
-    test('should reduce attack range to melee (100)', () => {
+    test('should reduce attack range to melee (40)', () => {
       arena.castAbility(arena.blue, 'R');
       arena.tick();
 
-      expect(arena.blue.getAttackRange()).toBe(100);
+      expect(arena.blue.getAttackRange()).toBe(40);
     });
 
     test('should grant 100 soul stacks on cast', () => {
@@ -509,7 +509,7 @@ describe('Vile', () => {
       arena.tickFrames(600); // 10 seconds at 60fps
 
       // Attack range should be back to normal
-      expect(arena.blue.getAttackRange()).toBe(450);
+      expect(arena.blue.getAttackRange()).toBe(325);
     });
 
     test('should mark champion as transformed', () => {

@@ -103,7 +103,8 @@ export function toSimEntity(entity: ServerEntity): SimEntity {
   };
 
   if (entity.entityType === EntityType.TOWER) {
-    simEntity.range = (entity as ServerTower).attackRange;
+    // From the tower's center to a target's edge (attack range is edge to edge)
+    simEntity.range = (entity as ServerTower).attackRange + entity.getRadius();
   }
   if (entity.entityType === EntityType.CHAMPION) {
     const champion = entity as ServerChampion;

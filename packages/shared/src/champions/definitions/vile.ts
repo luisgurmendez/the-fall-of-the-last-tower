@@ -49,7 +49,7 @@ const VILE_BASE_STATS: ChampionBaseStats = {
   attackDamage: 60,
   abilityPower: 0,
   attackSpeed: 0.65,
-  attackRange: 450, // Ranged, becomes melee (100) during R
+  attackRange: 325, // Ranged, becomes melee (40) during R
   armor: 32,
   magicResist: 32,
   movementSpeed: 55,
@@ -188,7 +188,7 @@ export const VileRestorationOfVilix: AbilityDefinition = {
   // Stat transform properties (uses StatTransformBehavior)
   statTransform: {
     duration: 10,
-    attackRange: 100, // Melee
+    attackRange: 40, // Melee
     statModifiers: {
       maxHealth: [200, 350, 500],
       attackDamage: [30, 50, 70],

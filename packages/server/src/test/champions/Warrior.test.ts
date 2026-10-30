@@ -40,8 +40,8 @@ describe('Warrior (Kael)', () => {
       expect(freshArena.blue.maxHealth).toBe(580);
     });
 
-    test('should have melee attack range (125)', () => {
-      expect(arena.blue.getStats().attackRange).toBe(125);
+    test('should have melee attack range (40)', () => {
+      expect(arena.blue.getStats().attackRange).toBe(40);
     });
 
     test('should have correct base armor (35)', () => {

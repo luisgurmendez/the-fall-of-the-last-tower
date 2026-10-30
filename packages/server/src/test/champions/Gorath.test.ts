@@ -47,8 +47,8 @@ describe('Gorath', () => {
       expect(level1Arena.blue.maxHealth).toBe(650);
     });
 
-    test('should have melee attack range (150)', () => {
-      expect(level1Arena.blue.getStats().attackRange).toBe(150);
+    test('should have melee attack range (50)', () => {
+      expect(level1Arena.blue.getStats().attackRange).toBe(50);
     });
 
     test('should have highest base armor (40)', () => {

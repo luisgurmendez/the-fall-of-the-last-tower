@@ -47,8 +47,8 @@ describe('Vex', () => {
       expect(statsArena.blue.maxHealth).toBe(520);
     });
 
-    test('should have melee attack range (125)', () => {
-      expect(statsArena.blue.getStats().attackRange).toBe(125);
+    test('should have melee attack range (40)', () => {
+      expect(statsArena.blue.getStats().attackRange).toBe(40);
     });
 
     test('should have correct base attack damage (65)', () => {

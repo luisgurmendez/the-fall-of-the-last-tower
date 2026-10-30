@@ -45,9 +45,9 @@ describe("Lume", () => {
     // Base values: health=540, AD=52, mana=320, armor=26, MR=30, MS=335
     // Growth per level: health=85, AD=3.2, mana=45, armor=3.5, MR=1.3
 
-    test("should have ranged attack range (550)", () => {
+    test("should have ranged attack range (400)", () => {
       // Attack range doesn't scale with level
-      expect(arena.blue.getStats().attackRange).toBe(550);
+      expect(arena.blue.getStats().attackRange).toBe(400);
     });
 
     test("should have correct movement speed (58)", () => {

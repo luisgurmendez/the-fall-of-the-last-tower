@@ -77,6 +77,8 @@ const RETURN_HEALTH = 0.8;
 const FRONT_OFFSET = 120;
 /** Extra margin kept outside enemy tower range */
 const TOWER_MARGIN = 80;
+/** Collision radius assumed for the unit at a position (the largest champion's) */
+const UNIT_RADIUS = 25;
 /** Attack a minion when its health is under this many of our hits (minions hit it during our windup) */
 const LAST_HIT_LEAD = 1.3;
 /** Same command is re-sent after this long in case it was dropped */
@@ -364,7 +366,7 @@ export class LaneBot implements BotController {
    * it's in range and outside its tower.
    */
   private canHarass(champion: ServerChampion, enemy: ServerChampion, context: ServerGameContext): boolean {
-    if (champion.position.distanceTo(enemy.position) > champion.getAttackRange() + 30) return false;
+    if (!champion.isInAttackRange(enemy, champion.getAttackRange() + 30)) return false;
     // Only poke from ahead: an even poke war just sends both bots home
     if (champion.health / champion.maxHealth < enemy.health / enemy.maxHealth + 0.1) return false;
     return !this.findTowerCovering(champion.position, enemy.side, context);
@@ -444,7 +446,7 @@ export class LaneBot implements BotController {
   ): ServerEntity | null {
     for (const entity of context.getAllEntities()) {
       if (entity.entityType !== EntityType.TOWER || entity.isDead || entity.side !== towerSide) continue;
-      if (entity.position.distanceTo(position) <= (entity as ServerTower).attackRange + margin) return entity;
+      if (entity.position.distanceTo(position) <= this.towerReach(entity) + margin) return entity;
     }
     return null;
   }
@@ -455,13 +457,19 @@ export class LaneBot implements BotController {
   private alliesTankingTowerAt(position: Vector, side: Side, context: ServerGameContext): boolean {
     const tower = this.findTowerCovering(position, 1 - side as Side, context, TOWER_MARGIN);
     if (!tower) return true;
-    const range = (tower as ServerTower).attackRange;
     return context.getAllEntities().some(entity =>
       entity.entityType === EntityType.MINION &&
       !entity.isDead &&
       entity.side === side &&
-      entity.position.distanceTo(tower.position) <= range
+      tower.isInAttackRange(entity, (tower as ServerTower).attackRange)
     );
+  }
+
+  /**
+   * How far from its center a tower hits a champion (attack range is edge to edge).
+   */
+  private towerReach(tower: ServerEntity): number {
+    return (tower as ServerTower).attackRange + tower.getRadius() + UNIT_RADIUS;
   }
 
   private getLanePath(side: Side, context: ServerGameContext): LanePath {

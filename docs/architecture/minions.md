@@ -24,7 +24,7 @@ Lanes run straight through their towers. When one of the minion's own towers or 
 
 ## Targeting
 
-A minion notices enemies within `max(sightRange, attackRange + 100)`. Targets in priority order (ties go to the closest):
+A minion attacks a target within `attackRange` of its body, edge to edge (see [champions.md](champions.md#attack-range)). It notices enemies within `max(sightRange, attackRange + 100)`. Targets in priority order (ties go to the closest):
 
 | Priority | Target |
 |----------|--------|

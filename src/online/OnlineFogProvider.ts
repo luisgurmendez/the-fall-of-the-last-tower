@@ -25,7 +25,7 @@ import type { BushManager, BushGroup } from '@/vision';
 const SIGHT_RANGES: Record<number, number> = {
   [EntityType.CHAMPION]: GameConfig.VISION.CHAMPION_SIGHT_RANGE, // 800
   [EntityType.MINION]: DEFAULT_MINION_STATS.melee.sightRange, // Fallback - actual lookup by minionType below
-  [EntityType.TOWER]: DEFAULT_TOWER_STATS[1].attackRange, // Server: towers see as far as they shoot
+  [EntityType.TOWER]: DEFAULT_TOWER_STATS[1].sightRange, // Same as the server (FogOfWarServer)
   [EntityType.NEXUS]: 1000,
   [EntityType.JUNGLE_CAMP]: 400,
   [EntityType.WARD]: GameConfig.VISION.WARD_SIGHT_RANGE, // 900

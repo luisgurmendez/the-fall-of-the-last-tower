@@ -210,7 +210,7 @@ export const MOBAConfig = {
       gromp: {
         health: 500,
         damage: 30,
-        attackRange: 250, // Spits from range
+        attackRange: 200, // Spits from range
         attackCooldown: 1.5,
         movementSpeed: 40,
         sightRange: 180,
@@ -226,7 +226,7 @@ export const MOBAConfig = {
       wolf: {
         health: 350,
         damage: 25,
-        attackRange: 60,
+        attackRange: 30,
         attackCooldown: 1.0,
         movementSpeed: 40,
         sightRange: 200,
@@ -242,7 +242,7 @@ export const MOBAConfig = {
       raptor: {
         health: 200,
         damage: 20,
-        attackRange: 100,
+        attackRange: 35,
         attackCooldown: 1.2,
         movementSpeed: 42,
         sightRange: 220,
@@ -258,7 +258,7 @@ export const MOBAConfig = {
       krug: {
         health: 600,
         damage: 35,
-        attackRange: 70,
+        attackRange: 35,
         attackCooldown: 1.8,
         movementSpeed: 60,
         sightRange: 150,
@@ -274,7 +274,7 @@ export const MOBAConfig = {
       blue_buff: {
         health: 1000,
         damage: 40,
-        attackRange: 100,
+        attackRange: 45,
         attackCooldown: 1.4,
         movementSpeed: 80,
         sightRange: 220,
@@ -290,7 +290,7 @@ export const MOBAConfig = {
       red_buff: {
         health: 1000,
         damage: 45,
-        attackRange: 80,
+        attackRange: 45,
         attackCooldown: 1.2,
         movementSpeed: 80,
         sightRange: 220,
@@ -306,7 +306,7 @@ export const MOBAConfig = {
       dragon: {
         health: 2500,
         damage: 100,
-        attackRange: 300, // Breathes fire from range
+        attackRange: 250, // Breathes fire from range
         attackCooldown: 2.0,
         movementSpeed: 50,
         sightRange: 250,
@@ -322,7 +322,7 @@ export const MOBAConfig = {
       baron: {
         health: 5000,
         damage: 150,
-        attackRange: 200,
+        attackRange: 100,
         attackCooldown: 2.5,
         movementSpeed: 40,
         sightRange: 300,
@@ -338,7 +338,7 @@ export const MOBAConfig = {
       spider: {
         health: 300,
         damage: 22,
-        attackRange: 70,
+        attackRange: 30,
         attackCooldown: 0.9,
         movementSpeed: 30,
         sightRange: 180,
@@ -370,7 +370,7 @@ export const MOBAConfig = {
       blue_buff: {
         abilityId: "jungle_slam_blue",
         shape: "circle" as const,
-        radius: 150,
+        radius: 130,
         windup: 1.5,
         cooldown: 8,
         firstUseAfter: 3,
@@ -381,7 +381,7 @@ export const MOBAConfig = {
       red_buff: {
         abilityId: "jungle_slam_red",
         shape: "circle" as const,
-        radius: 150,
+        radius: 130,
         windup: 1.5,
         cooldown: 8,
         firstUseAfter: 3,
@@ -522,7 +522,7 @@ export const MOBAConfig = {
     STATS: {
       health: 3000,
       attackDamage: 150,
-      attackRange: 600,
+      attackRange: 450,
       attackCooldown: 1.0,
       armor: 60,
       magicResist: 60,

@@ -23,9 +23,23 @@ type ChampionClass =
 ```typescript
 type AttackType = 'melee' | 'ranged';
 
-// Melee: ~125 attack range
-// Ranged: 500-700 attack range
+// Melee: 40-50 attack range
+// Ranged: 325-400 attack range
 ```
+
+### Attack range
+
+Attack range is the gap between the attacker's body and the target's (edge to edge):
+a target is in range when the distance between centers is at most
+`attackRange + attacker radius + target radius` (`ServerEntity.isInAttackRange`). The same
+rule applies to champions, minions, towers and jungle creatures. Ability ranges are still
+measured center to center (`isInRange`).
+
+Ranges are sized to the bodies and to movement speed (about 60 units/s): a melee unit hits
+with its body almost touching the target's, and a ranged champion's range is a few seconds
+of walking. Current values: Vex and Warrior 40, Gorath 50, Vile 325 (40 during R),
+Elara 375, Magnus and Lume 400. Minions: melee 35, super 50, caster and siege 300. Towers
+450 (they see 600). Melee monsters 30-45, gromp 200, dragon 250.
 
 ## Resource Types
 
@@ -170,7 +184,7 @@ const warriorDefinition: ChampionDefinition = {
     attackDamage: 60,
     abilityPower: 0,
     attackSpeed: 0.658,
-    attackRange: 125,
+    attackRange: 40,
     armor: 35,
     magicResist: 32,
     movementSpeed: 345,
