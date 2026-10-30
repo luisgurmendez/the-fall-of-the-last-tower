@@ -713,7 +713,35 @@ export const DragonsMightPowerEffect: ServerStatEffectDef = {
   percentValue: 0.08,
 };
 
+// ===================
+// Item passives: markers with no stats, so the HUD and the champion's aura
+// show a passive's state (ChampionItemPassives applies and removes them)
+// ===================
+
+/** Starfall Diadem: the next basic attack is charged */
+export const StarfallEffect: ServerEffectDefinition = {
+  id: 'item_starfall',
+  name: 'Starfall',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+};
+
+/** Ironheart Talisman: the low-health shield is up */
+export const HoldTheLineEffect: ServerEffectDefinition = {
+  id: 'item_hold_the_line',
+  name: 'Hold the Line',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+};
+
 export const ALL_SERVER_EFFECTS: AnyServerEffectDef[] = [
+  // Item passives
+  StarfallEffect,
+  HoldTheLineEffect,
   // Jungle buffs
   CrestOfInsightEffect,
   CrestOfInsightRegenEffect,

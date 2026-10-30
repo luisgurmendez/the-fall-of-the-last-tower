@@ -78,7 +78,10 @@ Each passive has a name and a `description` for the shop and tooltips, and an
 | `thorns` | Spiked Bastion (Barbs) | An enemy (not a tower) that lands a basic attack takes 30 magic damage |
 | `shield` | Ironheart Talisman (Hold the Line) | Taking damage below 30% health grants a shield of 30% max health for 5s; 60s cooldown |
 
-A passive applies once however many items carry it. The hooks: champion basic attacks
+A passive applies once however many items carry it. While Starfall is charged and while
+Hold the Line's shield is up, the champion also has a marker effect (`item_starfall`,
+`item_hold_the_line`; no stats) that shows in the HUD's buff bar and as an aura: stars
+circling the champion, and a steel dome over it. The hooks: champion basic attacks
 (melee hits and their projectiles) call `onBasicAttackHit`; every basic attack that lands
 (`ServerTargetedProjectile`, minion and monster melee hits) calls the target's
 `onBasicAttackTaken`, which champions pass to `onHitByBasicAttack`; ability casts call

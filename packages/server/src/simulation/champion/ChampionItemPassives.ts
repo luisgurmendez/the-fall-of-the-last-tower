@@ -11,7 +11,8 @@
  * - shield: taking damage below a health threshold grants a shield
  *
  * A passive applies once however many items carry it, and its cooldown is
- * kept by passive id.
+ * kept by passive id. A charged spellblade and a raised shield also put a
+ * marker effect on the champion (item_<passive id>) for the HUD and auras.
  */
 
 import { EntityType, getItemCatalogEntry, type DamageType, type ItemPassiveData } from '@siege/shared';
@@ -45,6 +46,7 @@ export class ChampionItemPassives {
       if (!this.isReady(passive)) continue;
       const window = Number(passive.effectData.window ?? 10);
       this.chargedUntil.set(passive.id, context.getGameTime() + window);
+      this.champion.applyEffect(markerEffectId(passive), window, this.champion.id);
     }
   }
 
@@ -64,6 +66,7 @@ export class ChampionItemPassives {
       const charged = (this.chargedUntil.get(passive.id) ?? -Infinity) >= context.getGameTime();
       if (!charged || target.isDead) continue;
       this.chargedUntil.delete(passive.id);
+      champion.removeEffect(markerEffectId(passive));
       this.startCooldown(passive);
       const stats = champion.getStats();
       const bonus = Number(passive.effectData.apRatio ?? 0) * stats.abilityPower
@@ -98,12 +101,14 @@ export class ChampionItemPassives {
     for (const passive of this.passivesOfType('shield')) {
       if (!this.isReady(passive) || healthRatio > (passive.healthThreshold ?? 0.3)) continue;
       this.startCooldown(passive);
+      const duration = Number(passive.effectData.duration);
       champion.shields.push({
         amount: champion.maxHealth * Number(passive.effectData.percentMaxHealth),
-        remainingDuration: Number(passive.effectData.duration),
-        sourceId: `item_${passive.id}`,
+        remainingDuration: duration,
+        sourceId: markerEffectId(passive),
         shieldType: 'normal',
       });
+      champion.applyEffect(markerEffectId(passive), duration, champion.id);
     }
   }
 
@@ -135,6 +140,11 @@ export class ChampionItemPassives {
   private startCooldown(passive: ItemPassiveData): void {
     if (passive.cooldown > 0) this.cooldowns.set(passive.id, passive.cooldown);
   }
+}
+
+/** The marker effect showing a passive's state (data/effects.ts) */
+function markerEffectId(passive: ItemPassiveData): string {
+  return `item_${passive.id}`;
 }
 
 function damageTypeOf(passive: ItemPassiveData): DamageType {

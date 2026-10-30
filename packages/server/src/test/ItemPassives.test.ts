@@ -81,10 +81,12 @@ describe('Item passives', () => {
 
     blue.itemPassives.onAbilityCast(context);
     expect(blue.itemPassives.isCharged('starfall', context)).toBe(true);
+    expect(blue.activeEffects.some(effect => effect.definitionId === 'item_starfall')).toBe(true);
     before = red.health;
     blue.itemPassives.onBasicAttackHit(red, 0, context);
     expect(red.health).toBeLessThan(before);
     expect(blue.itemPassives.isCharged('starfall', context)).toBe(false);
+    expect(blue.activeEffects.some(effect => effect.definitionId === 'item_starfall')).toBe(false);
 
     // On cooldown for 1.5s: casting doesn't charge it
     blue.itemPassives.onAbilityCast(context);
@@ -132,6 +134,7 @@ describe('Item passives', () => {
     expect(blue.shields.some(shield => shield.sourceId === 'item_hold_the_line')).toBe(true);
     const shield = blue.shields.find(s => s.sourceId === 'item_hold_the_line')!;
     expect(shield.amount).toBeCloseTo(blue.maxHealth * 0.3, 5);
+    expect(blue.activeEffects.some(effect => effect.definitionId === 'item_hold_the_line')).toBe(true);
 
     blue.shields.length = 0;
     blue.takeDamage(10, 'true', undefined, context);

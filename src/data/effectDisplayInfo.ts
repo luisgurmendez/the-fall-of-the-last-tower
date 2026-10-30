@@ -220,6 +220,24 @@ const EFFECT_DISPLAY_INFO: Record<string, EffectDisplayInfo> = {
   // Over-Time Effects
   // ===================
   // ===================
+  // Item Passives
+  // ===================
+  item_starfall: {
+    name: 'Starfall',
+    description: 'Your next basic attack deals bonus magic damage (75% of your ability power).',
+    category: 'buff',
+    icon: '*',
+    color: '#c39bff',
+  },
+  item_hold_the_line: {
+    name: 'Hold the Line',
+    description: 'Shielded for 30% of your max health.',
+    category: 'buff',
+    icon: 'H',
+    color: '#d0d6e0',
+  },
+
+  // ===================
   // Jungle Buffs
   // ===================
   crest_of_insight: {

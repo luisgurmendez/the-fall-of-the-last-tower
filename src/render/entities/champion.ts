@@ -143,6 +143,65 @@ export class ChampionRenderer {
   }
 
   /**
+   * Item passive states (marker effects from ChampionItemPassives): stars
+   * circling a champion whose next attack Starfall charged, and a steel
+   * dome over one Hold the Line is shielding.
+   */
+  private renderItemPassiveAuras(
+    ctx: CanvasRenderingContext2D,
+    activeEffects: Array<{ definitionId: string }> | undefined,
+  ): void {
+    if (!activeEffects) return;
+    const time = this.rc.animationTime;
+
+    if (activeEffects.some((effect) => effect.definitionId === "item_starfall")) {
+      for (let i = 0; i < 3; i++) {
+        const angle = time * 3 + (i * Math.PI * 2) / 3;
+        const x = Math.cos(angle) * 22;
+        const y = -6 + Math.sin(angle) * 8;
+        // Behind the champion when on the far side of the circle
+        const glow = Math.sin(angle) > 0 ? 1 : 0.55;
+        this.drawStar(ctx, x, y, 5, `rgba(255, 224, 130, ${glow})`);
+        ctx.fillStyle = `rgba(195, 155, 255, ${0.35 * glow})`;
+        ctx.beginPath();
+        ctx.arc(x, y, 7, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    if (activeEffects.some((effect) => effect.definitionId === "item_hold_the_line")) {
+      const pulse = 0.5 + 0.5 * Math.sin(time * 6);
+      ctx.save();
+      ctx.strokeStyle = `rgba(208, 214, 224, ${0.45 + pulse * 0.35})`;
+      ctx.fillStyle = "rgba(208, 214, 224, 0.08)";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.ellipse(0, -6, 30, 34, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  /**
+   * A four-pointed star centered on (x, y).
+   */
+  private drawStar(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, color: string): void {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(x, y - size);
+    ctx.lineTo(x + size * 0.3, y - size * 0.3);
+    ctx.lineTo(x + size, y);
+    ctx.lineTo(x + size * 0.3, y + size * 0.3);
+    ctx.lineTo(x, y + size);
+    ctx.lineTo(x - size * 0.3, y + size * 0.3);
+    ctx.lineTo(x - size, y);
+    ctx.lineTo(x - size * 0.3, y - size * 0.3);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  /**
    * Render a champion.
    */
   render(
@@ -215,6 +274,8 @@ export class ChampionRenderer {
       ctx.lineWidth = 2;
       ctx.stroke();
     }
+
+    this.renderItemPassiveAuras(ctx, snapshot.activeEffects);
 
     // Draw health bar with shields (positioned based on collision shape)
     const healthBarY = healthBarYOffset;
