@@ -33,6 +33,7 @@ import {
   isItemPartOf,
   type AbilitySlot,
   type AbilityDefinition,
+  type ChampionClass,
   type LaneId,
   type Side,
 } from '@siege/shared';
@@ -74,10 +75,17 @@ const ABILITY_ROLES: Partial<Record<string, 'offense' | 'defense' | 'engage'>> =
   gorath_fortify: 'defense',
 };
 
-/** What bots buy, in order, by build */
-const BUILDS = {
-  attack: ['notched_blade', 'wanderers_boots', 'siege_cleaver', 'heartstone', 'crimson_fang', 'bulwark_belt', 'ironheart_talisman'],
-  ability: ['ember_shard', 'wanderers_boots', 'cinder_rod', 'heartstone', 'starfall_diadem', 'bulwark_belt', 'spiked_bastion'],
+/** What bots buy, in order */
+const ATTACK_BUILD = ['notched_blade', 'wanderers_boots', 'siege_cleaver', 'heartstone', 'crimson_fang', 'bulwark_belt', 'ironheart_talisman'];
+const ABILITY_BUILD = ['ember_shard', 'wanderers_boots', 'cinder_rod', 'heartstone', 'starfall_diadem', 'bulwark_belt', 'spiked_bastion'];
+/** By champion class: supports add health, tanks go for defenses */
+const BUILDS: Record<ChampionClass, string[]> = {
+  mage: ABILITY_BUILD,
+  support: ['ember_shard', 'wanderers_boots', 'heartstone', 'cinder_rod', 'ironheart_talisman', 'starfall_diadem', 'bulwark_belt'],
+  tank: ['heartstone', 'wanderers_boots', 'iron_plate', 'bulwark_belt', 'spiked_bastion', 'spellward_cloak', 'ironheart_talisman'],
+  warrior: ATTACK_BUILD,
+  assassin: ATTACK_BUILD,
+  marksman: ATTACK_BUILD,
 };
 const R_REQUIRED_LEVELS = [6, 11, 16];
 
@@ -336,7 +344,7 @@ export class LaneBot implements BotController {
    */
   private chooseItemToBuy(champion: ServerChampion): BotInput | null {
     const inventory = champion.items.map(item => item?.definitionId);
-    const build = champion.definition.class === 'mage' ? BUILDS.ability : BUILDS.attack;
+    const build = BUILDS[champion.definition.class] ?? ATTACK_BUILD;
     const done = (id: string) => inventory.some(owned => owned && (owned === id || isItemPartOf(id, owned)));
     const itemId = build.find(id => {
       if (done(id)) return false;
