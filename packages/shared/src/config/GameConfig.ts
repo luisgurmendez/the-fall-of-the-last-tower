@@ -186,10 +186,13 @@ export const GameConfig = {
    * Set these for easier testing during development.
    */
   DEBUG: {
-    /** Starting champion level (1-18). Set higher for testing ultimates. */
-    STARTING_LEVEL: 6,
-    /** Starting skill points (normally equals level) */
-    STARTING_SKILL_POINTS: 6,
+    /**
+     * Starting champion level (1-18). Set higher for testing ultimates.
+     * The server also accepts a SIEGE_STARTING_LEVEL env var override.
+     */
+    STARTING_LEVEL: 1,
+    /** Starting skill points when STARTING_LEVEL > 1 (defaults to the level) */
+    STARTING_SKILL_POINTS: 0,
     /** Starting gold override (0 = use ECONOMY.STARTING_GOLD) */
     STARTING_GOLD_OVERRIDE: 0,
   },

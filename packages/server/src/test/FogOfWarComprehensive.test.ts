@@ -128,7 +128,7 @@ function createTower(
     position: position.clone(),
     side,
     lane: 'mid',
-    towerTier: 1,
+    tier: 1,
   });
 }
 

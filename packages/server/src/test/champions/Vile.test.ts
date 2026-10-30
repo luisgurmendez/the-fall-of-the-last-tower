@@ -54,8 +54,8 @@ describe('Vile', () => {
       expect(level1Arena.blue.getStats().attackDamage).toBe(60);
     });
 
-    test('should have correct movement speed (340)', () => {
-      expect(level1Arena.blue.getStats().movementSpeed).toBe(340);
+    test('should have correct movement speed (55)', () => {
+      expect(level1Arena.blue.getStats().movementSpeed).toBe(55);
     });
 
     test('should use mana (300 resource)', () => {

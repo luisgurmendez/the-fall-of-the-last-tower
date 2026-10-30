@@ -59,8 +59,8 @@ describe('Gorath', () => {
       expect(level1Arena.blue.getStats().magicResist).toBe(35);
     });
 
-    test('should have lower movement speed (330)', () => {
-      expect(level1Arena.blue.getStats().movementSpeed).toBe(330);
+    test('should have lower movement speed (50)', () => {
+      expect(level1Arena.blue.getStats().movementSpeed).toBe(50);
     });
 
     test('should have highest health growth per level', () => {

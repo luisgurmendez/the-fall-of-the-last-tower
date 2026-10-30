@@ -30,10 +30,7 @@ describe('Vex', () => {
   });
 
   describe('Base Stats', () => {
-    // Note: GameConfig.DEBUG.STARTING_LEVEL is 6, so stats reflect level 6 scaling
-    // Base: health=520, resource=260, attackDamage=65
-    // Growth per level: health=80, resource=35, attackDamage=4
-    // At level 6: health=920, resource=435, attackDamage=85
+    // Base: health=520, resource=260, attackDamage=65 (level 1)
     let statsArena: TestArena;
 
     beforeEach(() => {
@@ -46,24 +43,24 @@ describe('Vex', () => {
       });
     });
 
-    test('should have level 6 health (920 = 520 + 5*80)', () => {
-      expect(statsArena.blue.maxHealth).toBe(920);
+    test('should have correct base health (520)', () => {
+      expect(statsArena.blue.maxHealth).toBe(520);
     });
 
     test('should have melee attack range (125)', () => {
       expect(statsArena.blue.getStats().attackRange).toBe(125);
     });
 
-    test('should have level 6 attack damage (85 = 65 + 5*4)', () => {
-      expect(statsArena.blue.getStats().attackDamage).toBe(85);
+    test('should have correct base attack damage (65)', () => {
+      expect(statsArena.blue.getStats().attackDamage).toBe(65);
     });
 
     test('should use energy (resourceType)', () => {
       expect(statsArena.blue.definition.resourceType).toBe('energy');
     });
 
-    test('should have level 6 resource (435 = 260 + 5*35)', () => {
-      expect(statsArena.blue.maxResource).toBe(435);
+    test('should have correct base resource (260)', () => {
+      expect(statsArena.blue.maxResource).toBe(260);
     });
   });
 

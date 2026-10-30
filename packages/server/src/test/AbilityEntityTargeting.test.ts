@@ -12,8 +12,8 @@
  * 3. Entity type filtering (some abilities only affect champions)
  */
 
-import { describe, test, expect, beforeEach } from 'bun:test';
-import { Vector, TEAM_BLUE, TEAM_RED } from '@siege/shared';
+import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
+import { Vector, TEAM_BLUE, TEAM_RED, getAbilityDefinition } from '@siege/shared';
 import {
   createTestArena,
   TestArena,
@@ -579,44 +579,69 @@ describe('Vex Abilities - Entity Targeting', () => {
       expect(arena.blue.position.x).toBeGreaterThan(0);
     });
   });
+});
 
-  describe('R - Death Mark (Champion Only)', () => {
-    test('should fail to target minion (affectsMinions: false)', () => {
-      const minion = arena.addMinion(TEAM_RED, new Vector(300, 0));
+// =============================================================================
+// CHAMPION-ONLY TARGETED ABILITIES
+// =============================================================================
 
-      const result = arena.castAbility(arena.blue, 'R', {
-        targetPosition: minion.position.clone(),
-        targetId: minion.id,
-      });
+/**
+ * No champion currently ships a champion-only targeted ability, so these tests
+ * temporarily mark Kael's R (Heroic Strike, target_enemy) as champion-only.
+ */
+describe('Champion-only targeted abilities', () => {
+  let arena: TestArena;
+  const heroicStrike = getAbilityDefinition('warrior_ultimate')!;
 
-      // Vex R has affectsMinions: false
-      expect(result.success).toBe(false);
-      expect(result.failReason).toBe('invalid_target');
+  beforeEach(() => {
+    heroicStrike.affectsMinions = false;
+    heroicStrike.affectsJungleCamps = false;
+    arena = createTestArena({
+      blueChampion: 'warrior',
+      redChampion: 'warrior',
+      bluePosition: new Vector(0, 0),
+      redPosition: new Vector(500, 0),
+    });
+  });
+
+  afterEach(() => {
+    delete heroicStrike.affectsMinions;
+    delete heroicStrike.affectsJungleCamps;
+  });
+
+  test('should fail to target minion (affectsMinions: false)', () => {
+    const minion = arena.addMinion(TEAM_RED, new Vector(300, 0));
+
+    const result = arena.castAbility(arena.blue, 'R', {
+      targetPosition: minion.position.clone(),
+      targetId: minion.id,
     });
 
-    test('should fail to target jungle creature (affectsJungleCamps: false)', () => {
-      const creature = arena.addJungleCreature(new Vector(300, 0), 'gromp');
+    expect(result.success).toBe(false);
+    expect(result.failReason).toBe('invalid_target');
+  });
 
-      const result = arena.castAbility(arena.blue, 'R', {
-        targetPosition: creature.position.clone(),
-        targetId: creature.id,
-      });
+  test('should fail to target jungle creature (affectsJungleCamps: false)', () => {
+    const creature = arena.addJungleCreature(new Vector(300, 0), 'gromp');
 
-      // Vex R has affectsJungleCamps: false
-      expect(result.success).toBe(false);
-      expect(result.failReason).toBe('invalid_target');
+    const result = arena.castAbility(arena.blue, 'R', {
+      targetPosition: creature.position.clone(),
+      targetId: creature.id,
     });
 
-    test('should successfully target enemy champion', () => {
-      arena.red.position.x = 300;
+    expect(result.success).toBe(false);
+    expect(result.failReason).toBe('invalid_target');
+  });
 
-      const result = arena.castAbility(arena.blue, 'R', {
-        targetPosition: arena.red.position.clone(),
-        targetId: arena.red.id,
-      });
+  test('should successfully target enemy champion', () => {
+    arena.red.position.x = 300;
 
-      expect(result.success).toBe(true);
+    const result = arena.castAbility(arena.blue, 'R', {
+      targetPosition: arena.red.position.clone(),
+      targetId: arena.red.id,
     });
+
+    expect(result.success).toBe(true);
   });
 });
 
@@ -1029,22 +1054,27 @@ describe('Jungle Creature - Ability Interactions', () => {
   });
 
   test('champion-only abilities should NOT affect jungle creatures', () => {
-    const vexArena = createTestArena({
-      blueChampion: 'vex',
-      redChampion: 'warrior',
-      bluePosition: new Vector(0, 0),
-      redPosition: new Vector(500, 0),
-    });
+    const heroicStrike = getAbilityDefinition('warrior_ultimate')!;
+    heroicStrike.affectsJungleCamps = false;
+    try {
+      const warriorArena = createTestArena({
+        blueChampion: 'warrior',
+        redChampion: 'warrior',
+        bluePosition: new Vector(0, 0),
+        redPosition: new Vector(500, 0),
+      });
 
-    const creature = vexArena.addJungleCreature(new Vector(300, 0), 'gromp');
+      const creature = warriorArena.addJungleCreature(new Vector(300, 0), 'gromp');
 
-    // Vex R (Death Mark) has affectsJungleCamps: false
-    const result = vexArena.castAbility(vexArena.blue, 'R', {
-      targetPosition: creature.position.clone(),
-      targetId: creature.id,
-    });
+      const result = warriorArena.castAbility(warriorArena.blue, 'R', {
+        targetPosition: creature.position.clone(),
+        targetId: creature.id,
+      });
 
-    expect(result.success).toBe(false);
-    expect(result.failReason).toBe('invalid_target');
+      expect(result.success).toBe(false);
+      expect(result.failReason).toBe('invalid_target');
+    } finally {
+      delete heroicStrike.affectsJungleCamps;
+    }
   });
 });

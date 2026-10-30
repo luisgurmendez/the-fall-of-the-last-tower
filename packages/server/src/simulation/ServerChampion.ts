@@ -198,10 +198,10 @@ export class ServerChampion extends ServerEntity {
     this.direction = new Vector(config.side === 0 ? 1 : -1, 0);
 
     // Apply debug starting level if configured
-    const debugLevel = GameConfig.DEBUG?.STARTING_LEVEL ?? 1;
+    const debugLevel = Number(process.env.SIEGE_STARTING_LEVEL) || GameConfig.DEBUG.STARTING_LEVEL;
     if (debugLevel > 1) {
-      this.level = debugLevel;
-      this.skillPoints = GameConfig.DEBUG?.STARTING_SKILL_POINTS ?? debugLevel;
+      this.level = Math.min(debugLevel, GameConfig.LIMITS.MAX_LEVEL);
+      this.skillPoints = GameConfig.DEBUG.STARTING_SKILL_POINTS || this.level;
       // Recalculate stats for new level
       const stats = this.getStats();
       this.maxHealth = stats.maxHealth;

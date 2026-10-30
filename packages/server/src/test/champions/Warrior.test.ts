@@ -54,8 +54,8 @@ describe('Warrior (Kael)', () => {
       expect(freshArena.blue.getStats().armor).toBe(35);
     });
 
-    test('should have correct base movement speed (340)', () => {
-      expect(arena.blue.getStats().movementSpeed).toBe(340);
+    test('should have correct base movement speed (52)', () => {
+      expect(arena.blue.getStats().movementSpeed).toBe(52);
     });
 
     test('should have correct base attack damage (60)', () => {

@@ -295,7 +295,7 @@ export const LumeR: AbilityDefinition = {
   targetType: "self", // Detonates at orb location
   maxRank: 3,
   manaCost: [100, 100, 100],
-  cooldown: [1, 1, 1], //[120, 100, 80],
+  cooldown: [120, 100, 80],
   range: 0,
   damage: {
     type: "magic",
