@@ -34,17 +34,29 @@ import {
   getOutlinePadding,
   OUTLINE_COLORS,
 } from "@/render/OutlinedSpriteCache";
-import type { EntityRenderState } from "@/render/entities/types";
-import { TEAM_COLORS, lightenColor } from "@/render/entities/shared";
+import type {
+  EntityRenderContext,
+  EntityRenderState,
+} from "@/render/entities/types";
+import {
+  TEAM_COLORS,
+  imageCache,
+  lightenColor,
+  loadImages,
+} from "@/render/entities/shared";
+import { renderMinion, MINION_IMAGES } from "@/render/entities/minion";
+import { renderTower, TOWER_IMAGES } from "@/render/entities/tower";
+import { renderNexus, NEXUS_IMAGES } from "@/render/entities/nexus";
+import {
+  renderJungleCamp,
+  JUNGLE_CREATURE_IMAGES,
+} from "@/render/entities/jungleCreature";
 import {
   HEALTH_BAR_COLORS,
   renderHealthBar,
   renderResourceBar,
 } from "@/render/overlays/healthBars";
-import {
-  renderMarkIndicators,
-  renderAggroIndicator,
-} from "@/render/overlays/statusIndicators";
+import { renderMarkIndicators } from "@/render/overlays/statusIndicators";
 import { renderAbilityEffects } from "@/render/overlays/abilityEffects";
 import {
   renderDamageNumbers,
@@ -98,70 +110,6 @@ const LIGHT_ORB_VISUALS = {
  * Sprite configuration.
  */
 const SPRITES = {
-  TOWER: {
-    BLUE: "/assets/sprites/Buildings/Tower_Blue.png",
-    RED: "/assets/sprites/Buildings/Tower_Red.png",
-    WIDTH: 128,
-    HEIGHT: 256,
-    SCALE: 0.8,
-  },
-  NEXUS: {
-    BLUE: "/assets/sprites/Buildings/Barracks_Blue.png",
-    RED: "/assets/sprites/Buildings/Barracks_Red.png",
-    WIDTH: 192,
-    HEIGHT: 256,
-    SCALE: 1.0,
-  },
-  WARRIOR: {
-    IDLE_BLUE: "/assets/sprites/units/Warrior_Blue/Warrior_Idle.png",
-    IDLE_RED: "/assets/sprites/units/Warrior_Red/Warrior_Idle.png",
-    RUN_BLUE: "/assets/sprites/units/Warrior_Blue/Warrior_Run.png",
-    RUN_RED: "/assets/sprites/units/Warrior_Red/Warrior_Run.png",
-    ATTACK_BLUE: "/assets/sprites/units/Warrior_Blue/Warrior_Attack1.png",
-    ATTACK_RED: "/assets/sprites/units/Warrior_Red/Warrior_Attack1.png",
-    FRAME_WIDTH: 192,
-    FRAME_HEIGHT: 192,
-    IDLE_FRAMES: 8,
-    RUN_FRAMES: 6,
-    ATTACK_FRAMES: 4,
-    SCALE: 0.35,
-  },
-  ARCHER: {
-    IDLE_BLUE: "/assets/sprites/units/Archer_Blue/Archer_Idle.png",
-    IDLE_RED: "/assets/sprites/units/Archer_Red/Archer_Idle.png",
-    RUN_BLUE: "/assets/sprites/units/Archer_Blue/Archer_Run.png",
-    RUN_RED: "/assets/sprites/units/Archer_Red/Archer_Run.png",
-    ATTACK_BLUE: "/assets/sprites/units/Archer_Blue/Archer_Shoot.png",
-    ATTACK_RED: "/assets/sprites/units/Archer_Red/Archer_Shoot.png",
-    FRAME_WIDTH: 192,
-    FRAME_HEIGHT: 192,
-    IDLE_FRAMES: 6,
-    RUN_FRAMES: 4,
-    ATTACK_FRAMES: 8,
-    SCALE: 0.35,
-  },
-  SPIDER: {
-    IDLE: "/assets/sprites/Spider/Spider_Idle.png",
-    RUN: "/assets/sprites/Spider/Spider_Run.png",
-    ATTACK: "/assets/sprites/Spider/Spider_Attack.png",
-    FRAME_WIDTH: 192,
-    FRAME_HEIGHT: 192,
-    IDLE_FRAMES: 8,
-    RUN_FRAMES: 5,
-    ATTACK_FRAMES: 8,
-    SCALE: 0.4,
-  },
-  BEAR: {
-    IDLE: "/assets/sprites/Bear/Bear_Idle.png",
-    RUN: "/assets/sprites/Bear/Bear_Run.png",
-    ATTACK: "/assets/sprites/Bear/Bear_Attack.png",
-    FRAME_WIDTH: 256,
-    FRAME_HEIGHT: 256,
-    IDLE_FRAMES: 8,
-    RUN_FRAMES: 5,
-    ATTACK_FRAMES: 9,
-    SCALE: 0.4,
-  },
   ARROW: {
     BLUE: "/assets/sprites/units/Archer_Blue/Arrow.png",
     RED: "/assets/sprites/units/Archer_Red/Arrow.png",
@@ -206,76 +154,6 @@ const SPRITES = {
 };
 
 /**
- * Image cache for loaded sprites.
- */
-const imageCache: Map<string, HTMLImageElement> = new Map();
-let imagesLoaded = false;
-
-/**
- * Load all sprite images.
- */
-function loadImages(): void {
-  if (imagesLoaded) return;
-
-  const imagesToLoad = [
-    // Buildings
-    SPRITES.TOWER.BLUE,
-    SPRITES.TOWER.RED,
-    SPRITES.NEXUS.BLUE,
-    SPRITES.NEXUS.RED,
-    // Warriors
-    SPRITES.WARRIOR.IDLE_BLUE,
-    SPRITES.WARRIOR.IDLE_RED,
-    SPRITES.WARRIOR.RUN_BLUE,
-    SPRITES.WARRIOR.RUN_RED,
-    SPRITES.WARRIOR.ATTACK_BLUE,
-    SPRITES.WARRIOR.ATTACK_RED,
-    // Archers
-    SPRITES.ARCHER.IDLE_BLUE,
-    SPRITES.ARCHER.IDLE_RED,
-    SPRITES.ARCHER.RUN_BLUE,
-    SPRITES.ARCHER.RUN_RED,
-    SPRITES.ARCHER.ATTACK_BLUE,
-    SPRITES.ARCHER.ATTACK_RED,
-    // Creatures
-    SPRITES.SPIDER.IDLE,
-    SPRITES.SPIDER.RUN,
-    SPRITES.SPIDER.ATTACK,
-    SPRITES.BEAR.IDLE,
-    SPRITES.BEAR.RUN,
-    SPRITES.BEAR.ATTACK,
-    // Projectiles
-    SPRITES.ARROW.BLUE,
-    SPRITES.ARROW.RED,
-    // Champions
-    SPRITES.LUME.IDLE,
-    SPRITES.LUME.WALK,
-    SPRITES.LUME.ATTACK,
-    SPRITES.LUME.Q,
-    SPRITES.LUME.E,
-    SPRITES.LUME.R,
-    // Vex
-    SPRITES.VEX.IDLE,
-    SPRITES.VEX.WALK,
-    SPRITES.VEX.ATTACK,
-    SPRITES.VEX.DASH,
-    SPRITES.VEX.SHURIKEN,
-    SPRITES.VEX.DISAPPEAR,
-  ];
-
-  for (const src of imagesToLoad) {
-    const img = new Image();
-    img.onerror = () => {
-      console.error(`[EntityRenderer] Failed to load image: ${src}`);
-    };
-    img.src = src;
-    imageCache.set(src, img);
-  }
-
-  imagesLoaded = true;
-}
-
-/**
  * EntityRenderer renders all entities from server state.
  */
 export class EntityRenderer implements GameObject {
@@ -286,7 +164,8 @@ export class EntityRenderer implements GameObject {
 
   private stateManager: OnlineStateManager;
   private localSide: number;
-  private animationTime = 0;
+  // Shared with the entity renderers; owns the client-side animation clock
+  private renderContext: EntityRenderContext;
 
   // Client-side animation timing (independent of server tick rate)
   private lastRenderTime = 0;
@@ -320,8 +199,36 @@ export class EntityRenderer implements GameObject {
   constructor(stateManager: OnlineStateManager, localSide: number) {
     this.stateManager = stateManager;
     this.localSide = localSide;
+    this.renderContext = {
+      stateManager,
+      localSide,
+      animationTime: 0,
+      getOutlineColor: (entityId) => this.getEntityOutlineColor(entityId),
+    };
     this.vfxManager = getVFXManager(stateManager);
-    loadImages();
+    loadImages([
+      ...TOWER_IMAGES,
+      ...NEXUS_IMAGES,
+      ...MINION_IMAGES,
+      ...JUNGLE_CREATURE_IMAGES,
+      // Projectiles
+      SPRITES.ARROW.BLUE,
+      SPRITES.ARROW.RED,
+      // Champions
+      SPRITES.LUME.IDLE,
+      SPRITES.LUME.WALK,
+      SPRITES.LUME.ATTACK,
+      SPRITES.LUME.Q,
+      SPRITES.LUME.E,
+      SPRITES.LUME.R,
+      // Vex
+      SPRITES.VEX.IDLE,
+      SPRITES.VEX.WALK,
+      SPRITES.VEX.ATTACK,
+      SPRITES.VEX.DASH,
+      SPRITES.VEX.SHURIKEN,
+      SPRITES.VEX.DISAPPEAR,
+    ]);
   }
 
   /**
@@ -444,7 +351,7 @@ export class EntityRenderer implements GameObject {
           : Math.min((currentTime - this.lastRenderTime) / 1000, 0.1);
       this.lastRenderTime = currentTime;
 
-      this.animationTime += clientDt;
+      this.renderContext.animationTime += clientDt;
       this.selectionAnimTime += clientDt;
 
       if (!this.stateManager.hasState()) {
@@ -622,19 +529,19 @@ export class EntityRenderer implements GameObject {
         this.renderChampion(ctx, snapshot, side, isLocalPlayer, state);
         break;
       case EntityType.MINION:
-        this.renderMinion(ctx, snapshot, side, state);
+        renderMinion(ctx, snapshot, side, state, this.renderContext);
         break;
       case EntityType.TOWER:
-        this.renderTower(ctx, snapshot, side);
+        renderTower(ctx, snapshot, side, this.renderContext);
         break;
       case EntityType.NEXUS:
-        this.renderNexus(ctx, snapshot, side);
+        renderNexus(ctx, snapshot, side, this.renderContext);
         break;
       case EntityType.PROJECTILE:
         this.renderProjectile(ctx, snapshot);
         break;
       case EntityType.JUNGLE_CAMP:
-        this.renderJungleCamp(ctx, snapshot, state);
+        renderJungleCamp(ctx, snapshot, state, this.renderContext);
         break;
       case EntityType.WARD:
         this.renderWard(ctx, snapshot, side);
@@ -916,7 +823,7 @@ export class EntityRenderer implements GameObject {
       } else {
         // Use continuous animation time for walk/idle
         const animSpeed = state.isWalking ? 10 : 8;
-        frameIndex = Math.floor(this.animationTime * animSpeed) % frameCount;
+        frameIndex = Math.floor(this.renderContext.animationTime * animSpeed) % frameCount;
       }
       const srcX = frameIndex * frameWidth;
 
@@ -1141,7 +1048,7 @@ export class EntityRenderer implements GameObject {
       } else {
         // Use continuous animation time for walk
         const animSpeed = 10;
-        frameIndex = Math.floor(this.animationTime * animSpeed) % frameCount;
+        frameIndex = Math.floor(this.renderContext.animationTime * animSpeed) % frameCount;
       }
       const srcX = frameIndex * frameWidth;
 
@@ -1293,7 +1200,7 @@ export class EntityRenderer implements GameObject {
     width: number,
     height: number
   ): void {
-    const time = this.animationTime;
+    const time = this.renderContext.animationTime;
     const particleCount = 6;
     const orbitRadius = Math.max(width, height) * 0.5;
 
@@ -1328,379 +1235,6 @@ export class EntityRenderer implements GameObject {
     ctx.fill();
 
     ctx.restore();
-  }
-
-  /**
-   * Render a minion using sprites with proper animations and direction.
-   */
-  private renderMinion(
-    ctx: CanvasRenderingContext2D,
-    snapshot: any,
-    side: number,
-    state: EntityRenderState,
-  ): void {
-    const minionType = snapshot.minionType || "melee";
-    const isWarrior = minionType === "melee";
-    const spriteConfig = isWarrior ? SPRITES.WARRIOR : SPRITES.ARCHER;
-
-    // Determine animation state: attacking, moving, or idle
-    const isAttacking = state.isAttacking;
-    const isMoving =
-      snapshot.targetX !== undefined &&
-      snapshot.targetY !== undefined &&
-      !isAttacking;
-
-    // Select the correct sprite based on state and side
-    let spriteSrc: string;
-    let frameCount: number;
-    let animSpeed: number;
-
-    if (isAttacking) {
-      // Attack animation
-      spriteSrc =
-        side === 0
-          ? isWarrior
-            ? SPRITES.WARRIOR.ATTACK_BLUE
-            : SPRITES.ARCHER.ATTACK_BLUE
-          : isWarrior
-            ? SPRITES.WARRIOR.ATTACK_RED
-            : SPRITES.ARCHER.ATTACK_RED;
-      frameCount = isWarrior
-        ? SPRITES.WARRIOR.ATTACK_FRAMES
-        : SPRITES.ARCHER.ATTACK_FRAMES;
-      animSpeed = 12; // Fast attack animation
-    } else if (isMoving) {
-      // Run animation
-      spriteSrc =
-        side === 0
-          ? isWarrior
-            ? SPRITES.WARRIOR.RUN_BLUE
-            : SPRITES.ARCHER.RUN_BLUE
-          : isWarrior
-            ? SPRITES.WARRIOR.RUN_RED
-            : SPRITES.ARCHER.RUN_RED;
-      frameCount = isWarrior
-        ? SPRITES.WARRIOR.RUN_FRAMES
-        : SPRITES.ARCHER.RUN_FRAMES;
-      animSpeed = 10; // Smooth run animation
-    } else {
-      // Idle animation
-      spriteSrc =
-        side === 0
-          ? isWarrior
-            ? SPRITES.WARRIOR.IDLE_BLUE
-            : SPRITES.ARCHER.IDLE_BLUE
-          : isWarrior
-            ? SPRITES.WARRIOR.IDLE_RED
-            : SPRITES.ARCHER.IDLE_RED;
-      frameCount = isWarrior
-        ? SPRITES.WARRIOR.IDLE_FRAMES
-        : SPRITES.ARCHER.IDLE_FRAMES;
-      animSpeed = 8; // Relaxed idle animation
-    }
-
-    const image = imageCache.get(spriteSrc);
-
-    if (image && image.complete && image.naturalWidth > 0) {
-      // Calculate animation frame
-      const animTime = isAttacking ? state.attackAnimTime : this.animationTime;
-      const frameIndex = Math.floor(animTime * animSpeed) % frameCount;
-      const srcX = frameIndex * spriteConfig.FRAME_WIDTH;
-
-      const scaledWidth = spriteConfig.FRAME_WIDTH * spriteConfig.SCALE;
-      const scaledHeight = spriteConfig.FRAME_HEIGHT * spriteConfig.SCALE;
-
-      // Check if entity is hovered for outline highlighting
-      const outlineColor = this.getEntityOutlineColor(snapshot.entityId);
-
-      // Apply horizontal flip if facing left
-      ctx.save();
-      if (!state.facingRight) {
-        ctx.scale(-1, 1);
-      }
-
-      if (outlineColor) {
-        // Draw outlined sprite when hovered
-        const outlinedSprite = getOutlinedSprite(
-          image,
-          srcX,
-          0,
-          spriteConfig.FRAME_WIDTH,
-          spriteConfig.FRAME_HEIGHT,
-          outlineColor
-        );
-
-        if (outlinedSprite) {
-          // Outlined sprite has padding, so adjust dimensions
-          const padding = getOutlinePadding();
-          const outlinedWidth = (spriteConfig.FRAME_WIDTH + padding * 2) * spriteConfig.SCALE;
-          const outlinedHeight = (spriteConfig.FRAME_HEIGHT + padding * 2) * spriteConfig.SCALE;
-
-          ctx.drawImage(
-            outlinedSprite,
-            0,
-            0,
-            outlinedSprite.width,
-            outlinedSprite.height,
-            -outlinedWidth / 2,
-            -outlinedHeight / 2,
-            outlinedWidth,
-            outlinedHeight,
-          );
-        } else {
-          // Fallback to normal sprite if outline generation failed
-          ctx.drawImage(
-            image,
-            srcX,
-            0,
-            spriteConfig.FRAME_WIDTH,
-            spriteConfig.FRAME_HEIGHT,
-            -scaledWidth / 2,
-            -scaledHeight / 2,
-            scaledWidth,
-            scaledHeight,
-          );
-        }
-      } else {
-        // Draw normal sprite when not hovered
-        ctx.drawImage(
-          image,
-          srcX,
-          0,
-          spriteConfig.FRAME_WIDTH,
-          spriteConfig.FRAME_HEIGHT,
-          -scaledWidth / 2,
-          -scaledHeight / 2,
-          scaledWidth,
-          scaledHeight,
-        );
-      }
-
-      ctx.restore();
-    } else {
-      // Fallback: draw colored circle
-      const color = side === 0 ? TEAM_COLORS.BLUE : TEAM_COLORS.RED;
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.arc(0, 0, 15, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = "#333";
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    }
-
-    // Draw health bar - blue for ally minions, red for enemy minions
-    if (snapshot.health !== undefined && snapshot.maxHealth !== undefined) {
-      const healthBarColor =
-        side === this.localSide
-          ? HEALTH_BAR_COLORS.ALLY // Blue for allied minions
-          : HEALTH_BAR_COLORS.ENEMY; // Red for enemy minions
-      renderHealthBar(
-        ctx,
-        snapshot.health,
-        snapshot.maxHealth,
-        30,
-        -25,
-        healthBarColor,
-      );
-    }
-  }
-
-  /**
-   * Render a tower using sprite images.
-   */
-  private renderTower(
-    ctx: CanvasRenderingContext2D,
-    snapshot: any,
-    side: number,
-  ): void {
-    const spriteSrc = side === 0 ? SPRITES.TOWER.BLUE : SPRITES.TOWER.RED;
-    const image = imageCache.get(spriteSrc);
-
-    if (image && image.complete && image.naturalWidth > 0) {
-      const scaledWidth = SPRITES.TOWER.WIDTH * SPRITES.TOWER.SCALE;
-      const scaledHeight = SPRITES.TOWER.HEIGHT * SPRITES.TOWER.SCALE;
-
-      // Check if tower is hovered for outline highlighting
-      const outlineColor = this.getEntityOutlineColor(snapshot.entityId);
-
-      if (outlineColor) {
-        // Draw outlined sprite when hovered
-        const outlinedSprite = getOutlinedSprite(
-          image,
-          0,
-          0,
-          image.naturalWidth,
-          image.naturalHeight,
-          outlineColor
-        );
-
-        if (outlinedSprite) {
-          const padding = getOutlinePadding();
-          const outlinedWidth = (SPRITES.TOWER.WIDTH + padding * 2) * SPRITES.TOWER.SCALE;
-          const outlinedHeight = (SPRITES.TOWER.HEIGHT + padding * 2) * SPRITES.TOWER.SCALE;
-
-          ctx.drawImage(
-            outlinedSprite,
-            0,
-            0,
-            outlinedSprite.width,
-            outlinedSprite.height,
-            -outlinedWidth / 2,
-            -outlinedHeight + 30 + padding * SPRITES.TOWER.SCALE,
-            outlinedWidth,
-            outlinedHeight,
-          );
-        } else {
-          // Fallback to normal sprite
-          ctx.drawImage(
-            image,
-            -scaledWidth / 2,
-            -scaledHeight + 30,
-            scaledWidth,
-            scaledHeight,
-          );
-        }
-      } else {
-        // Draw normal sprite when not hovered
-        ctx.drawImage(
-          image,
-          -scaledWidth / 2,
-          -scaledHeight + 30, // Offset so base is near position
-          scaledWidth,
-          scaledHeight,
-        );
-      }
-    } else {
-      // Fallback: draw colored rectangle
-      const color = side === 0 ? TEAM_COLORS.BLUE : TEAM_COLORS.RED;
-      ctx.fillStyle = color;
-      ctx.fillRect(-25, -60, 50, 80);
-      ctx.strokeStyle = "#333";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(-25, -60, 50, 80);
-    }
-
-    // Draw health bar - blue for ally towers, red for enemy towers
-    if (snapshot.health !== undefined && snapshot.maxHealth !== undefined) {
-      const barY = -SPRITES.TOWER.HEIGHT * SPRITES.TOWER.SCALE + 10;
-      const healthBarColor =
-        side === this.localSide
-          ? HEALTH_BAR_COLORS.ALLY // Blue for allied towers
-          : HEALTH_BAR_COLORS.ENEMY; // Red for enemy towers
-      renderHealthBar(
-        ctx,
-        snapshot.health,
-        snapshot.maxHealth,
-        60,
-        barY,
-        healthBarColor,
-      );
-    }
-  }
-
-  /**
-   * Render a nexus using sprite images.
-   */
-  private renderNexus(
-    ctx: CanvasRenderingContext2D,
-    snapshot: any,
-    side: number,
-  ): void {
-    const spriteSrc = side === 0 ? SPRITES.NEXUS.BLUE : SPRITES.NEXUS.RED;
-    const image = imageCache.get(spriteSrc);
-
-    if (image && image.complete && image.naturalWidth > 0) {
-      const scaledWidth = SPRITES.NEXUS.WIDTH * SPRITES.NEXUS.SCALE;
-      const scaledHeight = SPRITES.NEXUS.HEIGHT * SPRITES.NEXUS.SCALE;
-
-      // Check if nexus is hovered for outline highlighting
-      const outlineColor = this.getEntityOutlineColor(snapshot.entityId);
-
-      if (outlineColor) {
-        // Draw outlined sprite when hovered
-        const outlinedSprite = getOutlinedSprite(
-          image,
-          0,
-          0,
-          image.naturalWidth,
-          image.naturalHeight,
-          outlineColor
-        );
-
-        if (outlinedSprite) {
-          const padding = getOutlinePadding();
-          const outlinedWidth = (SPRITES.NEXUS.WIDTH + padding * 2) * SPRITES.NEXUS.SCALE;
-          const outlinedHeight = (SPRITES.NEXUS.HEIGHT + padding * 2) * SPRITES.NEXUS.SCALE;
-
-          ctx.drawImage(
-            outlinedSprite,
-            0,
-            0,
-            outlinedSprite.width,
-            outlinedSprite.height,
-            -outlinedWidth / 2,
-            -outlinedHeight + 20 + padding * SPRITES.NEXUS.SCALE,
-            outlinedWidth,
-            outlinedHeight,
-          );
-        } else {
-          // Fallback to normal sprite
-          ctx.drawImage(
-            image,
-            -scaledWidth / 2,
-            -scaledHeight + 20,
-            scaledWidth,
-            scaledHeight,
-          );
-        }
-      } else {
-        // Draw normal sprite when not hovered
-        ctx.drawImage(
-          image,
-          -scaledWidth / 2,
-          -scaledHeight + 20, // Offset so base is near position
-          scaledWidth,
-          scaledHeight,
-        );
-      }
-    } else {
-      // Fallback: draw colored rectangle
-      const color = side === 0 ? TEAM_COLORS.BLUE : TEAM_COLORS.RED;
-      ctx.fillStyle = color;
-      ctx.fillRect(-50, -80, 100, 100);
-      ctx.strokeStyle = "#333";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(-50, -80, 100, 100);
-    }
-
-    // Draw health bar - blue for ally nexus, red for enemy nexus
-    if (snapshot.health !== undefined && snapshot.maxHealth !== undefined) {
-      const radius = 75;
-      const barY = -radius - 30;
-      const healthBarColor =
-        side === this.localSide
-          ? HEALTH_BAR_COLORS.ALLY // Blue for allied nexus
-          : HEALTH_BAR_COLORS.ENEMY; // Red for enemy nexus
-      renderHealthBar(
-        ctx,
-        snapshot.health,
-        snapshot.maxHealth,
-        radius * 2,
-        barY,
-        healthBarColor,
-      );
-
-      // Health text
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 10px monospace";
-      ctx.textAlign = "center";
-      ctx.fillText(
-        `${Math.ceil(snapshot.health)} / ${snapshot.maxHealth}`,
-        0,
-        barY + 6,
-      );
-    }
   }
 
   /**
@@ -1884,7 +1418,7 @@ export class EntityRenderer implements GameObject {
       ctx.fill();
 
       // Wispy tendrils effect (rotating slowly)
-      const wispAngle = this.animationTime * 3;
+      const wispAngle = this.renderContext.animationTime * 3;
       ctx.save();
       ctx.rotate(wispAngle);
       ctx.strokeStyle = "rgba(136, 68, 204, 0.5)";
@@ -1912,148 +1446,6 @@ export class EntityRenderer implements GameObject {
       ctx.arc(0, 0, radius * 0.6, 0, Math.PI * 2);
       ctx.fill();
       ctx.globalAlpha = 1;
-    }
-  }
-
-  /**
-   * Render a jungle camp creature.
-   */
-  private renderJungleCamp(
-    ctx: CanvasRenderingContext2D,
-    snapshot: any,
-    state: EntityRenderState,
-  ): void {
-    const creatureType = (snapshot as any).creatureType || "gromp";
-
-    // Use spider sprite for small creatures, bear for larger ones
-    const isSpider = creatureType === "spider";
-    const spriteConfig = isSpider ? SPRITES.SPIDER : SPRITES.BEAR;
-
-    // Determine animation state
-    const isAttacking = state.isAttacking;
-    const isMoving =
-      snapshot.targetX !== undefined &&
-      snapshot.targetY !== undefined &&
-      !isAttacking;
-
-    let spriteSrc: string;
-    let frameCount: number;
-
-    if (isAttacking) {
-      spriteSrc = isSpider ? SPRITES.SPIDER.ATTACK : SPRITES.BEAR.ATTACK;
-      frameCount = spriteConfig.ATTACK_FRAMES;
-    } else if (isMoving) {
-      spriteSrc = isSpider ? SPRITES.SPIDER.RUN : SPRITES.BEAR.RUN;
-      frameCount = spriteConfig.RUN_FRAMES;
-    } else {
-      spriteSrc = isSpider ? SPRITES.SPIDER.IDLE : SPRITES.BEAR.IDLE;
-      frameCount = spriteConfig.IDLE_FRAMES;
-    }
-
-    const image = imageCache.get(spriteSrc);
-
-    if (image && image.complete && image.naturalWidth > 0) {
-      const animTime = isAttacking ? state.attackAnimTime : this.animationTime;
-      // Use appropriate animation speed: faster for attack, moderate for movement/idle
-      const animSpeed = isAttacking ? 12 : isMoving ? 10 : 8;
-      const frameIndex = Math.floor(animTime * animSpeed) % frameCount;
-      const srcX = frameIndex * spriteConfig.FRAME_WIDTH;
-
-      const scaledWidth = spriteConfig.FRAME_WIDTH * spriteConfig.SCALE;
-      const scaledHeight = spriteConfig.FRAME_HEIGHT * spriteConfig.SCALE;
-
-      // Check if entity is hovered for outline highlighting
-      const outlineColor = this.getEntityOutlineColor(snapshot.entityId);
-
-      // Apply horizontal flip if facing left
-      ctx.save();
-      if (!state.facingRight) {
-        ctx.scale(-1, 1);
-      }
-
-      if (outlineColor) {
-        // Draw outlined sprite when hovered
-        const outlinedSprite = getOutlinedSprite(
-          image,
-          srcX,
-          0,
-          spriteConfig.FRAME_WIDTH,
-          spriteConfig.FRAME_HEIGHT,
-          outlineColor
-        );
-
-        if (outlinedSprite) {
-          const padding = getOutlinePadding();
-          const outlinedWidth = (spriteConfig.FRAME_WIDTH + padding * 2) * spriteConfig.SCALE;
-          const outlinedHeight = (spriteConfig.FRAME_HEIGHT + padding * 2) * spriteConfig.SCALE;
-
-          ctx.drawImage(
-            outlinedSprite,
-            0,
-            0,
-            outlinedSprite.width,
-            outlinedSprite.height,
-            -outlinedWidth / 2,
-            -outlinedHeight / 2,
-            outlinedWidth,
-            outlinedHeight,
-          );
-        } else {
-          // Fallback to normal sprite
-          ctx.drawImage(
-            image,
-            srcX,
-            0,
-            spriteConfig.FRAME_WIDTH,
-            spriteConfig.FRAME_HEIGHT,
-            -scaledWidth / 2,
-            -scaledHeight / 2,
-            scaledWidth,
-            scaledHeight,
-          );
-        }
-      } else {
-        // Draw normal sprite when not hovered
-        ctx.drawImage(
-          image,
-          srcX,
-          0,
-          spriteConfig.FRAME_WIDTH,
-          spriteConfig.FRAME_HEIGHT,
-          -scaledWidth / 2,
-          -scaledHeight / 2,
-          scaledWidth,
-          scaledHeight,
-        );
-      }
-
-      ctx.restore();
-    } else {
-      // Fallback: gray circle
-      ctx.fillStyle = TEAM_COLORS.NEUTRAL;
-      ctx.beginPath();
-      ctx.arc(0, 0, 20, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = "#333";
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
-
-    // Draw health bar - red because jungle camps are hostile to all players
-    if (snapshot.health !== undefined && snapshot.maxHealth !== undefined) {
-      renderHealthBar(
-        ctx,
-        snapshot.health,
-        snapshot.maxHealth,
-        40,
-        -30,
-        HEALTH_BAR_COLORS.ENEMY,
-      );
-    }
-
-    // Draw aggro indicator (red "!") when creature has a target
-    if (snapshot.targetEntityId) {
-      renderAggroIndicator(ctx, -45, this.animationTime);
     }
   }
 
@@ -2232,7 +1624,7 @@ export class EntityRenderer implements GameObject {
     ctx.fill();
 
     // Draw pulsing inner ring (animate based on time)
-    const pulseProgress = this.animationTime % 1;
+    const pulseProgress = this.renderContext.animationTime % 1;
     const pulseRadius = radius * (0.3 + pulseProgress * 0.7);
     const pulseAlpha = 1 - pulseProgress;
 
@@ -2304,7 +1696,7 @@ export class EntityRenderer implements GameObject {
     // Calculate pulsing effect based on state
     const pulseSpeed =
       state === "traveling" ? 8 : state === "stationed" ? 3 : 5;
-    const pulse = 1 + Math.sin(this.animationTime * pulseSpeed) * 0.15;
+    const pulse = 1 + Math.sin(this.renderContext.animationTime * pulseSpeed) * 0.15;
 
     // Pixelated core using PixelArtDrawUtils
     const coreRadius = LIGHT_ORB_VISUALS.CORE_RADIUS * pulse;
@@ -2353,11 +1745,11 @@ export class EntityRenderer implements GameObject {
     ctx.fill();
 
     // Subtle pulsing border
-    const borderAlpha = 0.1 + Math.sin(this.animationTime * 2) * 0.05;
+    const borderAlpha = 0.1 + Math.sin(this.renderContext.animationTime * 2) * 0.05;
     ctx.strokeStyle = `rgba(255, 240, 180, ${borderAlpha})`;
     ctx.lineWidth = 1;
     ctx.setLineDash([8, 8]);
-    ctx.lineDashOffset = -this.animationTime * 20;
+    ctx.lineDashOffset = -this.renderContext.animationTime * 20;
     ctx.stroke();
     ctx.setLineDash([]);
   }
@@ -2374,7 +1766,7 @@ export class EntityRenderer implements GameObject {
     const rayLength = coreRadius * 1.8;
     const rayWidth = 2;
     const rotationSpeed = 0.8;
-    const baseAngle = this.animationTime * rotationSpeed;
+    const baseAngle = this.renderContext.animationTime * rotationSpeed;
 
     ctx.save();
     ctx.globalAlpha = 0.3;
@@ -2500,11 +1892,11 @@ export class EntityRenderer implements GameObject {
 
     // Spawn new particles in the tail
     if (
-      this.animationTime - lastSpawn > spawnRate &&
+      this.renderContext.animationTime - lastSpawn > spawnRate &&
       particles.length < LIGHT_ORB_VISUALS.PARTICLE_COUNT
     ) {
       this.spawnLightOrbParticle(particles, orbX, orbY, tracker);
-      this.lightOrbLastParticleSpawn.set(orbId, this.animationTime);
+      this.lightOrbLastParticleSpawn.set(orbId, this.renderContext.animationTime);
     }
 
     // Update existing particles

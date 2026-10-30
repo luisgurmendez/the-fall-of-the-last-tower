@@ -1,5 +1,6 @@
 /**
- * Helpers shared by the entity renderers: team colors and color math.
+ * Helpers shared by the entity renderers: team colors, the sprite image
+ * cache and color math.
  */
 
 /**
@@ -10,6 +11,31 @@ export const TEAM_COLORS = {
   RED: "#e74c3c",
   NEUTRAL: "#95a5a6",
 };
+
+/**
+ * Image cache for loaded sprites.
+ */
+export const imageCache: Map<string, HTMLImageElement> = new Map();
+let imagesLoaded = false;
+
+/**
+ * Load all sprite images. Only the first call loads; the cache lives for
+ * the whole page, across matches.
+ */
+export function loadImages(imagesToLoad: readonly string[]): void {
+  if (imagesLoaded) return;
+
+  for (const src of imagesToLoad) {
+    const img = new Image();
+    img.onerror = () => {
+      console.error(`[EntityRenderer] Failed to load image: ${src}`);
+    };
+    img.src = src;
+    imageCache.set(src, img);
+  }
+
+  imagesLoaded = true;
+}
 
 /**
  * Lighten a color by a percentage.
