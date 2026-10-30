@@ -19,18 +19,13 @@ import {
   AbilitySlot,
   AbilityState,
   ChampionDefinition,
-  ChampionBaseStats,
   ChampionStats,
-  ChampionGrowthStats,
   StatModifier,
   ActiveEffectState,
   CrowdControlStatus,
   EquippedItemState,
   ItemSlot,
   PassiveState,
-  PassiveStateSnapshot,
-  calculateStat,
-  calculateAttackSpeed,
   LEVEL_EXPERIENCE,
   defaultCCStatus,
   calculatePhysicalDamage,
@@ -46,20 +41,13 @@ import {
 import { ServerEntity, ServerEntityConfig } from './ServerEntity';
 import { ServerTower } from './ServerTower';
 import type { ServerGameContext } from '../game/ServerGameContext';
-import {
-  getServerItemById,
-  type ServerItemDefinition,
-} from '../data/items';
+import { getServerItemById } from '../data/items';
 import { AnimationScheduler, type ScheduledAction } from '../systems/AnimationScheduler';
 import {
   getServerEffectById,
   isCCEffect,
-  isStatEffect,
   isOverTimeEffect,
   isInvulnerabilityEffect,
-  type AnyServerEffectDef,
-  type ServerCCEffectDef,
-  type ServerStatEffectDef,
   type ServerOverTimeEffectDef,
 } from '../data/effects';
 import { RewardSystem } from '../systems/RewardSystem';
@@ -68,6 +56,7 @@ import { championHooksRegistry } from '../abilities/ChampionHooksRegistry';
 import { Logger } from '../utils/Logger';
 import { ServerProjectile } from './ServerProjectile';
 import { ServerTargetedProjectile } from './ServerTargetedProjectile';
+import { calculateChampionStats } from './champion/ChampionStats';
 
 export interface ServerChampionConfig extends Omit<ServerEntityConfig, 'entityType'> {
   definition: ChampionDefinition;
@@ -1261,7 +1250,7 @@ export class ServerChampion extends ServerEntity {
 
     // Also extend any associated stat modifier
     const modifierSource = `ninja_mode_${effectId}`;
-    const modifier = this.statModifiers.find(m => m.source === modifierSource);
+    const modifier = this.getModifier(modifierSource);
     if (modifier && modifier.timeRemaining !== undefined) {
       modifier.timeRemaining += actualExtension;
       if (modifier.duration !== undefined) {
@@ -1428,52 +1417,7 @@ export class ServerChampion extends ServerEntity {
       return this.cachedStats;
     }
 
-    const base = this.definition.baseStats;
-    const growth = this.definition.growthStats;
-    const level = this.level;
-
-    const stats: ChampionStats = {
-      health: this.health,
-      maxHealth: calculateStat(base.health, growth.health, level),
-      healthRegen: calculateStat(base.healthRegen, growth.healthRegen, level),
-      resource: this.resource,
-      maxResource: calculateStat(base.resource, growth.resource, level),
-      resourceRegen: calculateStat(base.resourceRegen, growth.resourceRegen, level),
-      attackDamage: calculateStat(base.attackDamage, growth.attackDamage, level),
-      abilityPower: base.abilityPower,
-      attackSpeed: calculateAttackSpeed(base.attackSpeed, growth.attackSpeed, level),
-      attackRange: base.attackRange,
-      armor: calculateStat(base.armor, growth.armor, level),
-      magicResist: calculateStat(base.magicResist, growth.magicResist, level),
-      movementSpeed: base.movementSpeed,
-      critChance: base.critChance,
-      critDamage: base.critDamage,
-      abilityHaste: base.abilityHaste ?? 0,
-      level,
-    };
-
-    // Apply modifiers from abilities/buffs
-    for (const modifier of this.statModifiers) {
-      this.applyStatModifier(stats, modifier);
-    }
-
-    // Apply item stats
-    for (const item of this.items) {
-      if (item) {
-        const itemDef = getServerItemById(item.definitionId);
-        if (itemDef) {
-          this.applyItemStats(stats, itemDef);
-        }
-      }
-    }
-
-    // Apply effect stat modifiers (buffs/debuffs)
-    for (const effect of this.activeEffects) {
-      const effectDef = getServerEffectById(effect.definitionId);
-      if (effectDef && isStatEffect(effectDef)) {
-        this.applyEffectStatModifier(stats, effectDef, effect.stacks);
-      }
-    }
+    const stats = calculateChampionStats(this, this.statModifiers);
 
     // Update cached values
     this.maxHealth = stats.maxHealth;
@@ -1482,29 +1426,6 @@ export class ServerChampion extends ServerEntity {
 
     this.cachedStats = stats;
     return stats;
-  }
-
-  /**
-   * Apply a stat modifier.
-   */
-  private applyStatModifier(stats: ChampionStats, modifier: StatModifier): void {
-    if (modifier.flat) {
-      for (const [key, value] of Object.entries(modifier.flat)) {
-        const statKey = key as keyof ChampionBaseStats;
-        if (statKey in stats && typeof value === 'number') {
-          (stats as unknown as Record<string, number>)[statKey] += value;
-        }
-      }
-    }
-
-    if (modifier.percent) {
-      for (const [key, value] of Object.entries(modifier.percent)) {
-        const statKey = key as keyof ChampionBaseStats;
-        if (statKey in stats && typeof value === 'number') {
-          (stats as unknown as Record<string, number>)[statKey] *= value;
-        }
-      }
-    }
   }
 
   /**
@@ -1524,63 +1445,10 @@ export class ServerChampion extends ServerEntity {
   }
 
   /**
-   * Apply item stats to champion stats.
+   * Get a stat modifier by source.
    */
-  private applyItemStats(stats: ChampionStats, itemDef: ServerItemDefinition): void {
-    for (const [key, value] of Object.entries(itemDef.stats)) {
-      const statKey = key as keyof ChampionBaseStats;
-      if (statKey in stats && typeof value === 'number') {
-        // Special handling for attack speed (percentage based)
-        if (statKey === 'attackSpeed') {
-          stats.attackSpeed *= (1 + value);
-        } else if (statKey === 'health') {
-          stats.maxHealth += value;
-        } else if (statKey === 'resource') {
-          stats.maxResource += value;
-        } else {
-          (stats as unknown as Record<string, number>)[statKey] += value;
-        }
-      }
-    }
-  }
-
-  /**
-   * Apply effect stat modifier to champion stats.
-   */
-  private applyEffectStatModifier(
-    stats: ChampionStats,
-    effectDef: ServerStatEffectDef,
-    stacks: number
-  ): void {
-    // Map effect stat type to ChampionStats key
-    // Note: lifesteal/spell_vamp/penetration are not in ChampionStats, handled separately
-    const statMap: Record<string, keyof ChampionStats> = {
-      'attack_damage': 'attackDamage',
-      'ability_power': 'abilityPower',
-      'armor': 'armor',
-      'magic_resist': 'magicResist',
-      'attack_speed': 'attackSpeed',
-      'movement_speed': 'movementSpeed',
-      'health_regen': 'healthRegen',
-      'mana_regen': 'resourceRegen',
-      'ability_haste': 'abilityHaste',
-      'crit_chance': 'critChance',
-      'crit_damage': 'critDamage',
-    };
-
-    const statKey = statMap[effectDef.stat];
-    if (!statKey || !(statKey in stats)) return;
-
-    // Apply flat value (multiplied by stacks)
-    if (effectDef.flatValue !== undefined) {
-      (stats as unknown as Record<string, number>)[statKey] += effectDef.flatValue * stacks;
-    }
-
-    // Apply percent value (compounded by stacks)
-    if (effectDef.percentValue !== undefined) {
-      const multiplier = Math.pow(1 + effectDef.percentValue, stacks);
-      (stats as unknown as Record<string, number>)[statKey] *= multiplier;
-    }
+  getModifier(source: string): StatModifier | undefined {
+    return this.statModifiers.find(m => m.source === source);
   }
 
   /**
