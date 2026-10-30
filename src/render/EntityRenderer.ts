@@ -1,14 +1,15 @@
 /**
  * EntityRenderer - Renders entities based on server state for online play.
  *
- * Renders:
- * - Champions (with health bars, level indicators)
- * - Minions (with sprites and health bars)
- * - Towers (with sprite images)
- * - Nexus (with sprite images)
- * - Projectiles
+ * A thin orchestrator: each frame it advances the animation clock, updates
+ * per-entity animation state, sorts entities for depth and hands each one to
+ * the renderer for its EntityType, then draws the VFX and overlays on top. It
+ * also holds the hover state used for sprite outlines.
  *
- * Uses the sprite system for consistent visuals across all entities.
+ * - src/render/entities/   one renderer per entity type, plus shared helpers
+ * - src/render/champions/  champion-specific drawing, one file per champion
+ * - src/render/overlays/   health bars, status icons, ability effects and
+ *                          floating numbers
  */
 
 import type { GameObject } from "@/core/GameObject";
@@ -21,28 +22,15 @@ import type {
   InterpolatedEntity,
 } from "@/core/OnlineStateManager";
 
-import {
-  EntityType,
-  getChampionDefinition,
-  isRectangleCollision,
-  isCircleCollision,
-} from "@siege/shared";
+import { EntityType } from "@siege/shared";
 import { VFXManager, getVFXManager } from "@/vfx";
-import {
-  getOutlinedSprite,
-  getOutlinePadding,
-  OUTLINE_COLORS,
-} from "@/render/OutlinedSpriteCache";
+import { OUTLINE_COLORS } from "@/render/OutlinedSpriteCache";
 import type {
   EntityRenderContext,
   EntityRenderState,
 } from "@/render/entities/types";
-import {
-  TEAM_COLORS,
-  imageCache,
-  lightenColor,
-  loadImages,
-} from "@/render/entities/shared";
+import { TEAM_COLORS, loadImages } from "@/render/entities/shared";
+import { ChampionRenderer } from "@/render/entities/champion";
 import { renderMinion, MINION_IMAGES } from "@/render/entities/minion";
 import { renderTower, TOWER_IMAGES } from "@/render/entities/tower";
 import { renderNexus, NEXUS_IMAGES } from "@/render/entities/nexus";
@@ -58,60 +46,13 @@ import { renderWard } from "@/render/entities/ward";
 import { renderZone } from "@/render/entities/zone";
 import { LightOrbRenderer } from "@/render/entities/lightOrb";
 import { renderGeneric } from "@/render/entities/generic";
-import {
-  HEALTH_BAR_COLORS,
-  renderHealthBar,
-  renderResourceBar,
-} from "@/render/overlays/healthBars";
-import { renderMarkIndicators } from "@/render/overlays/statusIndicators";
 import { renderAbilityEffects } from "@/render/overlays/abilityEffects";
 import {
   renderDamageNumbers,
   renderGoldNumbers,
   renderXpNumbers,
 } from "@/render/overlays/floatingNumbers";
-
-/**
- * Sprite configuration.
- */
-const SPRITES = {
-  // Champion sprites
-  LUME: {
-    IDLE: "/assets/champs/lume/Lume-IDLE.png",
-    WALK: "/assets/champs/lume/Lume-Walk-Sheet.png",
-    ATTACK: "/assets/champs/lume/Lume-BasicAttack-Sheet.png",
-    Q: "/assets/champs/lume/Lume-Q-Sheet.png",
-    E: "/assets/champs/lume/Lume-E-Sheet.png",
-    R: "/assets/champs/lume/Lume-R-Sheet.png",
-    FRAME_WIDTH: 152,
-    FRAME_HEIGHT: 152,
-    IDLE_FRAMES: 1,
-    WALK_FRAMES: 6,
-    ATTACK_FRAMES: 10,
-    Q_FRAMES: 8,
-    E_FRAMES: 11,
-    R_FRAMES: 12,
-    SCALE: 0.8,
-  },
-  VEX: {
-    IDLE: "/assets/champs/vex/Vex-Idle.png",
-    WALK: "/assets/champs/vex/Vex-Walk-Sheet.png",
-    ATTACK: "/assets/champs/vex/Vex-BasicAttack-Sheet.png",
-    DASH: "/assets/champs/vex/Vex-Dash-Sheet.png",
-    SHURIKEN: "/assets/champs/vex/Vex-Shuriken-Sheet.png",
-    DISAPPEAR: "/assets/champs/vex/Vex-Disappear-Sheet.png",
-    IDLE_FRAMES: 1,
-    WALK_FRAMES: 5,
-    ATTACK_FRAMES: 7,
-    ATTACK_TRIGGER_FRAME: 3, // Frame 4 (0-indexed)
-    DASH_FRAMES: 13,
-    DASH_HOLD_FRAME: 4, // Frame 5 (0-indexed) - hold during dash
-    SHURIKEN_FRAMES: 6,
-    SHURIKEN_TRIGGER_FRAME: 3, // Frame 4 (0-indexed)
-    DISAPPEAR_FRAMES: 15,
-    SCALE: 0.8,
-  },
-};
+import { getChampionImages } from "@/render/champions";
 
 /**
  * EntityRenderer renders all entities from server state.
@@ -124,6 +65,7 @@ export class EntityRenderer implements GameObject {
 
   private stateManager: OnlineStateManager;
   private localSide: number;
+
   // Shared with the entity renderers; owns the client-side animation clock
   private renderContext: EntityRenderContext;
 
@@ -133,17 +75,11 @@ export class EntityRenderer implements GameObject {
   // Track entity state for animations
   private entityStates: Map<string, EntityRenderState> = new Map();
 
-  // Dash afterimages for sprite-based afterimage effects
-  private dashAfterimages: Map<
-    string,
-    Array<{ x: number; y: number; alpha: number; facingRight: boolean }>
-  > = new Map();
-  private lastAfterimageTime: Map<string, number> = new Map();
-
   // For selected champion indicator animation
   private selectionAnimTime = 0;
 
-  // Light Orb renderer (keeps per-orb particle state between frames)
+  // Renderers that keep state between frames (champion bodies, orb particles)
+  private championRenderer: ChampionRenderer;
   private lightOrbRenderer: LightOrbRenderer;
 
   // VFX Manager for ability visual effects
@@ -162,6 +98,7 @@ export class EntityRenderer implements GameObject {
       animationTime: 0,
       getOutlineColor: (entityId) => this.getEntityOutlineColor(entityId),
     };
+    this.championRenderer = new ChampionRenderer(this.renderContext);
     this.lightOrbRenderer = new LightOrbRenderer(this.renderContext);
     this.vfxManager = getVFXManager(stateManager);
     loadImages([
@@ -170,20 +107,7 @@ export class EntityRenderer implements GameObject {
       ...MINION_IMAGES,
       ...JUNGLE_CREATURE_IMAGES,
       ...PROJECTILE_IMAGES,
-      // Champions
-      SPRITES.LUME.IDLE,
-      SPRITES.LUME.WALK,
-      SPRITES.LUME.ATTACK,
-      SPRITES.LUME.Q,
-      SPRITES.LUME.E,
-      SPRITES.LUME.R,
-      // Vex
-      SPRITES.VEX.IDLE,
-      SPRITES.VEX.WALK,
-      SPRITES.VEX.ATTACK,
-      SPRITES.VEX.DASH,
-      SPRITES.VEX.SHURIKEN,
-      SPRITES.VEX.DISAPPEAR,
+      ...getChampionImages(),
     ]);
   }
 
@@ -482,7 +406,7 @@ export class EntityRenderer implements GameObject {
     // Draw entity based on type
     switch (snapshot.entityType) {
       case EntityType.CHAMPION:
-        this.renderChampion(ctx, snapshot, side, isLocalPlayer, state);
+        this.championRenderer.render(ctx, snapshot, side, isLocalPlayer, state);
         break;
       case EntityType.MINION:
         renderMinion(ctx, snapshot, side, state, this.renderContext);
@@ -515,680 +439,6 @@ export class EntityRenderer implements GameObject {
           side === 0 ? TEAM_COLORS.BLUE : TEAM_COLORS.RED,
         );
     }
-
-    ctx.restore();
-  }
-
-  /**
-   * Render a champion.
-   */
-  private renderChampion(
-    ctx: CanvasRenderingContext2D,
-    snapshot: any,
-    side: number,
-    isLocalPlayer: boolean,
-    state: EntityRenderState,
-  ): void {
-    const size = 40;
-    const color = side === 0 ? TEAM_COLORS.BLUE : TEAM_COLORS.RED;
-
-    // Calculate health bar position based on visual height or collision shape
-    const HEALTH_BAR_PADDING = 8; // Padding above visual bounds
-    let healthBarYOffset = -size * 0.7; // Default fallback
-
-    const championId = snapshot.championId;
-    if (championId) {
-      const definition = getChampionDefinition(championId);
-      if (definition) {
-        // Use visualHeight if defined, otherwise derive from collision
-        if (definition.visualHeight !== undefined) {
-          // Visual height is centered, so top is at -visualHeight/2
-          healthBarYOffset = -definition.visualHeight / 2 - HEALTH_BAR_PADDING;
-        } else if (definition.collision) {
-          const collision = definition.collision;
-          const offsetY = collision.offset?.y ?? 0;
-          if (isRectangleCollision(collision)) {
-            healthBarYOffset =
-              offsetY - collision.height / 2 - HEALTH_BAR_PADDING;
-          } else if (isCircleCollision(collision)) {
-            healthBarYOffset = offsetY - collision.radius - HEALTH_BAR_PADDING;
-          }
-        }
-      }
-    }
-
-    // Check if this champion has sprite support
-    let renderedWithSprite = false;
-
-    if (championId === "lume") {
-      renderedWithSprite = this.renderLumeSprite(ctx, snapshot, state, size);
-    } else if (championId === "vex") {
-      renderedWithSprite = this.renderVexSprite(ctx, snapshot, state, size);
-    }
-
-    // Fallback: Draw body as circle with gradient if no sprite
-    if (!renderedWithSprite) {
-      const gradient = ctx.createRadialGradient(
-        0,
-        -size * 0.2,
-        0,
-        0,
-        0,
-        size * 0.5,
-      );
-      gradient.addColorStop(0, lightenColor(color, 30));
-      gradient.addColorStop(1, color);
-      ctx.fillStyle = gradient;
-      ctx.beginPath();
-      ctx.arc(0, 0, size * 0.5, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Draw border
-      ctx.strokeStyle = isLocalPlayer ? "#ffffff" : "#333333";
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
-
-    // Draw health bar with shields (positioned based on collision shape)
-    const healthBarY = healthBarYOffset;
-    if (snapshot.health !== undefined && snapshot.maxHealth !== undefined) {
-      // Determine health bar color based on relationship to local player
-      // Green for self, blue for ally, red for enemy
-      let healthBarColor: string;
-      if (isLocalPlayer) {
-        healthBarColor = HEALTH_BAR_COLORS.SELF; // Green
-      } else if (side === this.localSide) {
-        healthBarColor = HEALTH_BAR_COLORS.ALLY; // Blue
-      } else {
-        healthBarColor = HEALTH_BAR_COLORS.ENEMY; // Red
-      }
-
-      // Extract shields from snapshot (if available)
-      const shields = snapshot.shields as
-        | Array<{ amount: number; shieldType: string }>
-        | undefined;
-      renderHealthBar(
-        ctx,
-        snapshot.health,
-        snapshot.maxHealth,
-        size,
-        healthBarY,
-        healthBarColor,
-        shields,
-      );
-    }
-
-    // Draw mark indicators above health bar (debuffs on enemies, buffs on self)
-    const isEnemy = side !== this.localSide;
-    const activeEffects = snapshot.activeEffects as
-      | Array<{
-          definitionId: string;
-          timeRemaining: number;
-          totalDuration?: number;
-          stacks: number;
-        }>
-      | undefined;
-    renderMarkIndicators(
-      ctx,
-      activeEffects,
-      size,
-      healthBarY,
-      isLocalPlayer,
-      isEnemy,
-    );
-
-    // Draw mana bar for local player (below health bar)
-    if (
-      isLocalPlayer &&
-      snapshot.resource !== undefined &&
-      snapshot.maxResource !== undefined
-    ) {
-      renderResourceBar(
-        ctx,
-        snapshot.resource,
-        snapshot.maxResource,
-        size,
-        healthBarY + 8, // Position below health bar
-      );
-    }
-
-    // Draw level indicator to the left of health bar (only for local player)
-    if (isLocalPlayer && snapshot.level !== undefined) {
-      const levelX = -size / 2 - 8; // Left of health bar
-      const levelY = healthBarY + 3; // Aligned with health bar center
-      const levelText = snapshot.level.toString();
-
-      // Draw level number with black outline (like damage numbers)
-      ctx.font = "bold 11px Arial";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-
-      // Black outline
-      ctx.strokeStyle = "#000000";
-      ctx.lineWidth = 3;
-      ctx.strokeText(levelText, levelX, levelY);
-
-      // White fill
-      ctx.fillStyle = "#ffffff";
-      ctx.fillText(levelText, levelX, levelY);
-    }
-  }
-
-  /**
-   * Render Lume champion using sprite sheets.
-   * Returns true if sprite was rendered, false if fallback needed.
-   */
-  private renderLumeSprite(
-    ctx: CanvasRenderingContext2D,
-    snapshot: any,
-    state: EntityRenderState,
-    size: number,
-  ): boolean {
-    const entityId = snapshot.entityId;
-
-    // Check if dashing with Lume E (special case: hold frame 6 during dash)
-    const isDashingWithE =
-      snapshot.isDashing && snapshot.dashAbilityId === "lume_e";
-
-    // Check if casting an ability
-    const castingState = this.stateManager.isEntityCastingAbility(entityId);
-    const abilityProgress = castingState.casting
-      ? this.stateManager.getAbilityAnimationProgress(entityId)
-      : 0;
-
-    // Select sprite based on animation state (priority: E dash > ability > walk > idle)
-    let spriteSrc: string;
-    let frameCount: number;
-    let useAbilityProgress = false;
-    let fixedFrameIndex: number | null = null;
-
-    if (isDashingWithE) {
-      // Lume E dash: use E sprite, hold on frame 6 (index 5)
-      spriteSrc = SPRITES.LUME.E;
-      frameCount = SPRITES.LUME.E_FRAMES;
-      fixedFrameIndex = 5; // Frame 6 (0-indexed)
-
-      // Override facing direction to look toward dash target (orb)
-      if (snapshot.dashTargetX != null) {
-        const dx = snapshot.dashTargetX - snapshot.x;
-        state.facingRight = dx >= 0;
-      }
-    } else if (castingState.casting && castingState.abilityId) {
-      // Ability animation - check which ability
-      const abilityId = castingState.abilityId;
-      if (abilityId === "lume_q") {
-        spriteSrc = SPRITES.LUME.Q;
-        frameCount = SPRITES.LUME.Q_FRAMES;
-        useAbilityProgress = true;
-      } else if (abilityId === "lume_e") {
-        // Lume E after dash: play ending frames (indices 6-10)
-        // abilityProgress goes from ~0.5 to 1.0 during the ending phase
-        // Map this to frames 6-10 (5 frames)
-        spriteSrc = SPRITES.LUME.E;
-        frameCount = SPRITES.LUME.E_FRAMES;
-        const endingFrameCount = 5;
-        const endingFrameIndex = Math.min(
-          Math.floor(abilityProgress * endingFrameCount),
-          endingFrameCount - 1,
-        );
-        fixedFrameIndex = 6 + endingFrameIndex; // Start from index 6 (frame 7)
-      } else if (abilityId === "lume_r") {
-        spriteSrc = SPRITES.LUME.R;
-        frameCount = SPRITES.LUME.R_FRAMES;
-        useAbilityProgress = true;
-      } else {
-        // Unknown ability, fall back to idle
-        spriteSrc = SPRITES.LUME.IDLE;
-        frameCount = SPRITES.LUME.IDLE_FRAMES;
-      }
-    } else if (state.isAttacking) {
-      // Attack animation
-      spriteSrc = SPRITES.LUME.ATTACK;
-      frameCount = SPRITES.LUME.ATTACK_FRAMES;
-      // Use attack animation time for frame selection
-      const animSpeed = 12; // Fast attack animation
-      fixedFrameIndex = Math.floor(state.attackAnimTime * animSpeed) % frameCount;
-    } else if (state.isWalking) {
-      // Walk animation
-      spriteSrc = SPRITES.LUME.WALK;
-      frameCount = SPRITES.LUME.WALK_FRAMES;
-    } else {
-      // Idle animation
-      spriteSrc = SPRITES.LUME.IDLE;
-      frameCount = SPRITES.LUME.IDLE_FRAMES;
-    }
-
-    const image = imageCache.get(spriteSrc);
-
-    if (image && image.complete && image.naturalWidth > 0) {
-      // Calculate frame dimensions from actual image
-      const frameWidth = image.naturalWidth / frameCount;
-      const frameHeight = image.naturalHeight;
-
-      // Calculate animation frame
-      let frameIndex: number;
-      if (fixedFrameIndex !== null) {
-        // Fixed frame (e.g., Lume E dash holds on frame 6)
-        frameIndex = Math.min(fixedFrameIndex, frameCount - 1);
-      } else if (useAbilityProgress) {
-        // Use ability progress (0-1) to determine frame
-        frameIndex = Math.min(
-          Math.floor(abilityProgress * frameCount),
-          frameCount - 1,
-        );
-      } else {
-        // Use continuous animation time for walk/idle
-        const animSpeed = state.isWalking ? 10 : 8;
-        frameIndex = Math.floor(this.renderContext.animationTime * animSpeed) % frameCount;
-      }
-      const srcX = frameIndex * frameWidth;
-
-      const scaledWidth = frameWidth * SPRITES.LUME.SCALE;
-      const scaledHeight = frameHeight * SPRITES.LUME.SCALE;
-
-      // Check if entity is hovered for outline highlighting
-      const outlineColor = this.getEntityOutlineColor(snapshot.entityId);
-
-      // Apply horizontal flip if facing left
-      ctx.save();
-      if (!state.facingRight) {
-        ctx.scale(-1, 1);
-      }
-
-      if (outlineColor) {
-        // Draw outlined sprite when hovered
-        const outlinedSprite = getOutlinedSprite(
-          image,
-          srcX,
-          0,
-          frameWidth,
-          frameHeight,
-          outlineColor
-        );
-
-        if (outlinedSprite) {
-          // Outlined sprite has padding, so adjust dimensions
-          const padding = getOutlinePadding();
-          const outlinedWidth = (frameWidth + padding * 2) * SPRITES.LUME.SCALE;
-          const outlinedHeight = (frameHeight + padding * 2) * SPRITES.LUME.SCALE;
-
-          ctx.drawImage(
-            outlinedSprite,
-            0,
-            0,
-            outlinedSprite.width,
-            outlinedSprite.height,
-            -outlinedWidth / 2,
-            -outlinedHeight / 2,
-            outlinedWidth,
-            outlinedHeight,
-          );
-        } else {
-          // Fallback to normal sprite if outline generation failed
-          ctx.drawImage(
-            image,
-            srcX,
-            0,
-            frameWidth,
-            frameHeight,
-            -scaledWidth / 2,
-            -scaledHeight / 2,
-            scaledWidth,
-            scaledHeight,
-          );
-        }
-      } else {
-        // Draw normal sprite when not hovered
-        ctx.drawImage(
-          image,
-          srcX,
-          0,
-          frameWidth,
-          frameHeight,
-          -scaledWidth / 2,
-          -scaledHeight / 2,
-          scaledWidth,
-          scaledHeight,
-        );
-      }
-
-      ctx.restore();
-      return true;
-    }
-
-    return false;
-  }
-
-  /**
-   * Render Vex champion using sprite sheets.
-   * Returns true if sprite was rendered, false if fallback needed.
-   */
-  private renderVexSprite(
-    ctx: CanvasRenderingContext2D,
-    snapshot: any,
-    state: EntityRenderState,
-    size: number,
-  ): boolean {
-    const entityId = snapshot.entityId;
-
-    // Check if dashing with Vex E (special case: hold frame 5 during dash)
-    const isDashingWithE =
-      snapshot.isDashing && snapshot.dashAbilityId === "vex_dash";
-
-    // Check if casting an ability
-    const castingState = this.stateManager.isEntityCastingAbility(entityId);
-    const abilityProgress = castingState.casting
-      ? this.stateManager.getAbilityAnimationProgress(entityId)
-      : 0;
-
-    // Check if Vex has ninja mode active (for violet particle aura)
-    const activeEffects = snapshot.activeEffects as
-      | Array<{ definitionId: string }>
-      | undefined;
-    const hasNinjaMode = activeEffects?.some(
-      (e) => e.definitionId === "vex_ninja_mode"
-    );
-
-    // Check if Vex is stealthed (for semi-transparent rendering to local player)
-    const isStealthed = activeEffects?.some(
-      (e) => e.definitionId === "vex_stealth"
-    );
-
-    // Select sprite based on animation state (priority: E dash > ability > walk > idle)
-    let spriteSrc: string;
-    let frameCount: number;
-    let useAbilityProgress = false;
-    let fixedFrameIndex: number | null = null;
-
-    if (isDashingWithE) {
-      // Vex E dash: use DASH sprite, hold on frame 5 (index 4)
-      spriteSrc = SPRITES.VEX.DASH;
-      frameCount = SPRITES.VEX.DASH_FRAMES;
-      fixedFrameIndex = SPRITES.VEX.DASH_HOLD_FRAME;
-
-      // Override facing direction to look toward dash target
-      if (snapshot.dashTargetX != null) {
-        const dx = snapshot.dashTargetX - snapshot.x;
-        state.facingRight = dx >= 0;
-      }
-
-      // Create afterimages during dash
-      const now = performance.now();
-      const lastTime = this.lastAfterimageTime.get(entityId) || 0;
-      if (now - lastTime > 50) {
-        // Create afterimage every 50ms
-        let afterimages = this.dashAfterimages.get(entityId);
-        if (!afterimages) {
-          afterimages = [];
-          this.dashAfterimages.set(entityId, afterimages);
-        }
-        afterimages.push({
-          x: snapshot.x,
-          y: snapshot.y,
-          alpha: 0.7,
-          facingRight: state.facingRight,
-        });
-        this.lastAfterimageTime.set(entityId, now);
-      }
-    } else if (castingState.casting && castingState.abilityId) {
-      // Ability animation - check which ability
-      const abilityId = castingState.abilityId;
-      if (abilityId === "vex_shuriken") {
-        // Q - Shuriken throw, trigger at frame 4 (index 3)
-        spriteSrc = SPRITES.VEX.SHURIKEN;
-        frameCount = SPRITES.VEX.SHURIKEN_FRAMES;
-        useAbilityProgress = true;
-      } else if (abilityId === "vex_shroud") {
-        // W - Disappear, effect on last frame
-        spriteSrc = SPRITES.VEX.DISAPPEAR;
-        frameCount = SPRITES.VEX.DISAPPEAR_FRAMES;
-        useAbilityProgress = true;
-      } else if (abilityId === "vex_dash") {
-        // E - Dash animation after dash completes
-        spriteSrc = SPRITES.VEX.DASH;
-        frameCount = SPRITES.VEX.DASH_FRAMES;
-        // Play ending frames after the dash hold frame
-        const endingFrameCount = frameCount - SPRITES.VEX.DASH_HOLD_FRAME - 1;
-        const endingFrameIndex = Math.min(
-          Math.floor(abilityProgress * endingFrameCount),
-          endingFrameCount - 1
-        );
-        fixedFrameIndex = SPRITES.VEX.DASH_HOLD_FRAME + 1 + endingFrameIndex;
-      } else if (abilityId === "vex_ninja_mode") {
-        // R - Ninja Mode activation, use walk as base (VFX handles the particles)
-        spriteSrc = SPRITES.VEX.WALK;
-        frameCount = SPRITES.VEX.WALK_FRAMES;
-      } else {
-        // Unknown ability, fall back to walk idle
-        spriteSrc = SPRITES.VEX.WALK;
-        frameCount = SPRITES.VEX.WALK_FRAMES;
-        fixedFrameIndex = 0; // Idle frame
-      }
-    } else if (state.isAttacking) {
-      // Basic attack animation - trigger at frame 4 (index 3)
-      spriteSrc = SPRITES.VEX.ATTACK;
-      frameCount = SPRITES.VEX.ATTACK_FRAMES;
-      // Use attack animation time for frame selection
-      const animSpeed = 14; // Fast melee attack animation
-      fixedFrameIndex =
-        Math.floor(state.attackAnimTime * animSpeed) % frameCount;
-    } else if (state.isWalking) {
-      // Walk animation
-      spriteSrc = SPRITES.VEX.WALK;
-      frameCount = SPRITES.VEX.WALK_FRAMES;
-    } else {
-      // Idle animation
-      spriteSrc = SPRITES.VEX.IDLE;
-      frameCount = SPRITES.VEX.IDLE_FRAMES;
-      fixedFrameIndex = 0;
-    }
-
-    const image = imageCache.get(spriteSrc);
-
-    if (image && image.complete && image.naturalWidth > 0) {
-      // Calculate frame dimensions from actual image
-      const frameWidth = image.naturalWidth / frameCount;
-      const frameHeight = image.naturalHeight;
-
-      // Calculate animation frame
-      let frameIndex: number;
-      if (fixedFrameIndex !== null) {
-        // Fixed frame (e.g., Vex E dash holds on frame 5)
-        frameIndex = Math.min(fixedFrameIndex, frameCount - 1);
-      } else if (useAbilityProgress) {
-        // Use ability progress (0-1) to determine frame
-        frameIndex = Math.min(
-          Math.floor(abilityProgress * frameCount),
-          frameCount - 1
-        );
-      } else {
-        // Use continuous animation time for walk
-        const animSpeed = 10;
-        frameIndex = Math.floor(this.renderContext.animationTime * animSpeed) % frameCount;
-      }
-      const srcX = frameIndex * frameWidth;
-
-      const scaledWidth = frameWidth * SPRITES.VEX.SCALE;
-      const scaledHeight = frameHeight * SPRITES.VEX.SCALE;
-
-      // Render and update dash afterimages
-      const afterimages = this.dashAfterimages.get(entityId);
-      if (afterimages && afterimages.length > 0) {
-        const dashImage = imageCache.get(SPRITES.VEX.DASH);
-        if (dashImage && dashImage.complete && dashImage.naturalWidth > 0) {
-          const dashFrameWidth = dashImage.naturalWidth / SPRITES.VEX.DASH_FRAMES;
-          const dashFrameHeight = dashImage.naturalHeight;
-          const dashSrcX = SPRITES.VEX.DASH_HOLD_FRAME * dashFrameWidth;
-          const dashScaledWidth = dashFrameWidth * SPRITES.VEX.SCALE;
-          const dashScaledHeight = dashFrameHeight * SPRITES.VEX.SCALE;
-
-          // Draw afterimages (oldest first, so newest is on top)
-          for (const ai of afterimages) {
-            ctx.save();
-            // Translate to afterimage position relative to current entity position
-            const relX = ai.x - snapshot.x;
-            const relY = ai.y - snapshot.y;
-            ctx.translate(relX, relY);
-            ctx.globalAlpha = ai.alpha;
-
-            // Apply horizontal flip based on afterimage facing
-            if (!ai.facingRight) {
-              ctx.scale(-1, 1);
-            }
-
-            // Add violet tint to afterimages
-            ctx.drawImage(
-              dashImage,
-              dashSrcX,
-              0,
-              dashFrameWidth,
-              dashFrameHeight,
-              -dashScaledWidth / 2,
-              -dashScaledHeight / 2,
-              dashScaledWidth,
-              dashScaledHeight
-            );
-            ctx.restore();
-
-            // Fade afterimage
-            ai.alpha -= 0.03;
-          }
-
-          // Remove faded afterimages
-          this.dashAfterimages.set(
-            entityId,
-            afterimages.filter((ai) => ai.alpha > 0)
-          );
-        }
-      }
-
-      // Check if entity is hovered for outline highlighting
-      const outlineColor = this.getEntityOutlineColor(snapshot.entityId);
-
-      // Apply horizontal flip if facing left
-      ctx.save();
-      if (!state.facingRight) {
-        ctx.scale(-1, 1);
-      }
-
-      // Apply stealth opacity (local player sees semi-transparent, others don't see at all)
-      // Only apply after the disappear animation has finished
-      const isCastingShroud = castingState.casting && castingState.abilityId === "vex_shroud";
-      if (isStealthed && !isCastingShroud) {
-        ctx.globalAlpha = 0.4;
-      }
-
-      // Draw violet aura particles when Ninja Mode is active
-      if (hasNinjaMode) {
-        this.drawNinjaModeAura(ctx, scaledWidth, scaledHeight);
-      }
-
-      if (outlineColor) {
-        // Draw outlined sprite when hovered
-        const outlinedSprite = getOutlinedSprite(
-          image,
-          srcX,
-          0,
-          frameWidth,
-          frameHeight,
-          outlineColor
-        );
-
-        if (outlinedSprite) {
-          // Outlined sprite has padding, so adjust dimensions
-          const padding = getOutlinePadding();
-          const outlinedWidth = (frameWidth + padding * 2) * SPRITES.VEX.SCALE;
-          const outlinedHeight =
-            (frameHeight + padding * 2) * SPRITES.VEX.SCALE;
-
-          ctx.drawImage(
-            outlinedSprite,
-            0,
-            0,
-            outlinedSprite.width,
-            outlinedSprite.height,
-            -outlinedWidth / 2,
-            -outlinedHeight / 2,
-            outlinedWidth,
-            outlinedHeight
-          );
-        } else {
-          // Fallback to normal sprite if outline generation failed
-          ctx.drawImage(
-            image,
-            srcX,
-            0,
-            frameWidth,
-            frameHeight,
-            -scaledWidth / 2,
-            -scaledHeight / 2,
-            scaledWidth,
-            scaledHeight
-          );
-        }
-      } else {
-        // Draw normal sprite when not hovered
-        ctx.drawImage(
-          image,
-          srcX,
-          0,
-          frameWidth,
-          frameHeight,
-          -scaledWidth / 2,
-          -scaledHeight / 2,
-          scaledWidth,
-          scaledHeight
-        );
-      }
-
-      ctx.restore();
-      return true;
-    }
-
-    return false;
-  }
-
-  /**
-   * Draw violet particle aura for Vex's Ninja Mode.
-   */
-  private drawNinjaModeAura(
-    ctx: CanvasRenderingContext2D,
-    width: number,
-    height: number
-  ): void {
-    const time = this.renderContext.animationTime;
-    const particleCount = 6;
-    const orbitRadius = Math.max(width, height) * 0.5;
-
-    ctx.save();
-
-    for (let i = 0; i < particleCount; i++) {
-      const angle = (i / particleCount) * Math.PI * 2 + time * 3;
-      const x = Math.cos(angle) * orbitRadius;
-      const y = Math.sin(angle) * orbitRadius * 0.5; // Elliptical orbit
-
-      // Violet gradient particle
-      const gradient = ctx.createRadialGradient(x, y, 0, x, y, 4);
-      gradient.addColorStop(0, "rgba(153, 51, 255, 0.9)"); // Bright violet center
-      gradient.addColorStop(0.5, "rgba(136, 68, 204, 0.6)"); // Purple
-      gradient.addColorStop(1, "rgba(68, 34, 102, 0)"); // Fade out
-
-      ctx.fillStyle = gradient;
-      ctx.beginPath();
-      ctx.arc(x, y, 6, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // Add subtle glow around character
-    const glowGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, orbitRadius);
-    glowGradient.addColorStop(0, "rgba(153, 51, 255, 0.15)");
-    glowGradient.addColorStop(0.7, "rgba(136, 68, 204, 0.05)");
-    glowGradient.addColorStop(1, "rgba(68, 34, 102, 0)");
-
-    ctx.fillStyle = glowGradient;
-    ctx.beginPath();
-    ctx.arc(0, 0, orbitRadius, 0, Math.PI * 2);
-    ctx.fill();
 
     ctx.restore();
   }

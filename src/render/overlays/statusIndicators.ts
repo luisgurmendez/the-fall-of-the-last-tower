@@ -4,6 +4,7 @@
  */
 
 import { BitmapFont } from "@/render/BitmapFont";
+import { getChampionMarkVisuals } from "@/render/champions";
 
 /**
  * Mark indicator visual configuration.
@@ -25,31 +26,9 @@ export interface MarkVisualConfig {
  * These show as small icons above health bars.
  */
 const MARK_VISUALS: Record<string, MarkVisualConfig> = {
-  // Vex marks
-  vex_mark: {
-    icon: "X",
-    bgColor: "rgba(155, 89, 182, 0.8)", // Purple
-    borderColor: "#9b59b6",
-    iconColor: "#ffffff",
-    showTimer: true,
-    isDebuff: true,
-  },
-  vex_death_mark: {
-    icon: "!",
-    bgColor: "rgba(44, 62, 80, 0.9)", // Dark
-    borderColor: "#e74c3c", // Red border (danger)
-    iconColor: "#e74c3c",
-    showTimer: true,
-    isDebuff: true,
-  },
-  vex_stealth: {
-    icon: "?",
-    bgColor: "rgba(44, 62, 80, 0.8)",
-    borderColor: "#2c3e50",
-    iconColor: "#ffffff",
-    showTimer: true,
-    isBuff: true,
-  },
+  // Champion buffs and debuffs (vex_mark, gorath_fortify_buff, ...) come
+  // from each champion's entry in src/render/champions/
+  ...getChampionMarkVisuals(),
   // CC marks
   stun: {
     icon: "!",
@@ -82,23 +61,6 @@ const MARK_VISUALS: Record<string, MarkVisualConfig> = {
     iconColor: "#ffffff",
     showTimer: true,
     isDebuff: true,
-  },
-  // Gorath buffs
-  gorath_fortify_buff: {
-    icon: "S",
-    bgColor: "rgba(139, 115, 85, 0.8)",
-    borderColor: "#8b7355",
-    iconColor: "#ffffff",
-    showTimer: true,
-    isBuff: true,
-  },
-  gorath_fortify_mr_buff: {
-    icon: "S",
-    bgColor: "rgba(139, 92, 246, 0.8)",
-    borderColor: "#8b5cf6",
-    iconColor: "#ffffff",
-    showTimer: true,
-    isBuff: true,
   },
   // Speed buffs
   speed_20: {
