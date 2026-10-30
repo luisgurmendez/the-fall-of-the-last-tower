@@ -21,7 +21,6 @@ import {
   type ChampionDefinition,
   type AbilityDefinition,
   type PassiveAbilityDefinition,
-  type AbilityScaling,
 } from "@siege/shared";
 import type {
   ScreenId,
@@ -29,6 +28,11 @@ import type {
   MatchData,
   MatchmakingUICallbacks,
 } from "./types";
+import {
+  formatPassiveTrigger,
+  interpolateAbilityDescription,
+  getAbilityScalingInfo,
+} from "./abilityText";
 import { startTipRotation, showRandomTip } from "./tips";
 // Re-export for external use
 export type {
@@ -462,7 +466,7 @@ export class MatchmakingUI {
     // Description with interpolated values at rank 1
     const description = document.createElement("div");
     description.className = "ability-dialog-description";
-    const interpolatedDesc = this.interpolateAbilityDescription(
+    const interpolatedDesc = interpolateAbilityDescription(
       ability,
       1,
       baseStats,
@@ -492,7 +496,7 @@ export class MatchmakingUI {
     }
 
     // Scaling info
-    const scalingInfo = this.getAbilityScalingInfo(ability);
+    const scalingInfo = getAbilityScalingInfo(ability);
     if (scalingInfo) {
       const scaling = document.createElement("div");
       scaling.className = "ability-dialog-scaling";
@@ -553,7 +557,7 @@ export class MatchmakingUI {
     // Trigger type
     const trigger = document.createElement("div");
     trigger.className = "passive-dialog-trigger";
-    trigger.textContent = `Trigger: ${this.formatPassiveTrigger(passive.trigger)}`;
+    trigger.textContent = `Trigger: ${formatPassiveTrigger(passive.trigger)}`;
     dialog.appendChild(trigger);
 
     // Description
@@ -584,207 +588,6 @@ export class MatchmakingUI {
     card.appendChild(dialog);
 
     return card;
-  }
-
-  /**
-   * Format passive trigger type for display.
-   */
-  private formatPassiveTrigger(trigger: string): string {
-    const triggerLabels: Record<string, string> = {
-      'on_attack': 'On Attack',
-      'on_hit': 'On Hit',
-      'on_take_damage': 'On Taking Damage',
-      'on_ability_cast': 'On Ability Cast',
-      'on_ability_hit': 'On Ability Hit',
-      'on_kill': 'On Kill',
-      'on_low_health': 'Low Health',
-      'always': 'Always Active',
-      'on_interval': 'Periodic',
-    };
-    return triggerLabels[trigger] || trigger;
-  }
-
-  /**
-   * Interpolate ability description with calculated values.
-   */
-  private interpolateAbilityDescription(
-    ability: AbilityDefinition,
-    rank: number,
-    baseStats: ChampionDefinition["baseStats"],
-  ): string {
-    let description = ability.description;
-
-    const stats = {
-      attackDamage: baseStats.attackDamage,
-      abilityPower: baseStats.abilityPower,
-      bonusHealth: 0,
-      maxHealth: baseStats.health,
-      armor: baseStats.armor,
-      magicResist: baseStats.magicResist,
-    };
-
-    // Replace {damage}
-    if (ability.damage?.scaling) {
-      const value = this.calculateScalingValue(
-        ability.damage.scaling,
-        rank,
-        stats,
-      );
-      const formatted = this.formatScalingPreview(
-        value,
-        ability.damage.scaling,
-      );
-      description = description.replace("{damage}", formatted);
-    }
-
-    // Replace {heal}
-    if (ability.heal?.scaling) {
-      const value = this.calculateScalingValue(
-        ability.heal.scaling,
-        rank,
-        stats,
-      );
-      const formatted = this.formatScalingPreview(value, ability.heal.scaling);
-      description = description.replace("{heal}", formatted);
-    }
-
-    // Replace {shield}
-    if (ability.shield?.scaling) {
-      const value = this.calculateScalingValue(
-        ability.shield.scaling,
-        rank,
-        stats,
-      );
-      const formatted = this.formatScalingPreview(
-        value,
-        ability.shield.scaling,
-      );
-      description = description.replace("{shield}", formatted);
-    }
-
-    return description;
-  }
-
-  /**
-   * Calculate a scaling value at a given rank.
-   */
-  private calculateScalingValue(
-    scaling: AbilityScaling,
-    rank: number,
-    stats: {
-      attackDamage?: number;
-      abilityPower?: number;
-      bonusHealth?: number;
-      maxHealth?: number;
-      armor?: number;
-      magicResist?: number;
-    },
-  ): number {
-    if (rank < 1 || rank > scaling.base.length) return 0;
-
-    let value = scaling.base[rank - 1];
-
-    if (scaling.adRatio && stats.attackDamage) {
-      value += stats.attackDamage * scaling.adRatio;
-    }
-    if (scaling.apRatio && stats.abilityPower) {
-      value += stats.abilityPower * scaling.apRatio;
-    }
-    if (scaling.bonusHealthRatio && stats.bonusHealth) {
-      value += stats.bonusHealth * scaling.bonusHealthRatio;
-    }
-    if (scaling.maxHealthRatio && stats.maxHealth) {
-      value += stats.maxHealth * scaling.maxHealthRatio;
-    }
-    if (scaling.armorRatio && stats.armor) {
-      value += stats.armor * scaling.armorRatio;
-    }
-    if (scaling.magicResistRatio && stats.magicResist) {
-      value += stats.magicResist * scaling.magicResistRatio;
-    }
-
-    return value;
-  }
-
-  /**
-   * Format scaling preview with base values and ratios.
-   */
-  private formatScalingPreview(value: number, scaling: AbilityScaling): string {
-    const baseValues = scaling.base.join("/");
-    const scalingParts: string[] = [];
-
-    if (scaling.adRatio) {
-      scalingParts.push(
-        `<span class="scaling-ad">+${Math.round(scaling.adRatio * 100)}% AD</span>`,
-      );
-    }
-    if (scaling.apRatio) {
-      scalingParts.push(
-        `<span class="scaling-ap">+${Math.round(scaling.apRatio * 100)}% AP</span>`,
-      );
-    }
-    if (scaling.bonusHealthRatio) {
-      scalingParts.push(
-        `<span class="scaling-hp">+${Math.round(scaling.bonusHealthRatio * 100)}% Bonus HP</span>`,
-      );
-    }
-    if (scaling.maxHealthRatio) {
-      scalingParts.push(
-        `<span class="scaling-hp">+${Math.round(scaling.maxHealthRatio * 100)}% Max HP</span>`,
-      );
-    }
-    if (scaling.armorRatio) {
-      scalingParts.push(
-        `<span class="scaling-armor">+${Math.round(scaling.armorRatio * 100)}% Armor</span>`,
-      );
-    }
-    if (scaling.magicResistRatio) {
-      scalingParts.push(
-        `<span class="scaling-mr">+${Math.round(scaling.magicResistRatio * 100)}% MR</span>`,
-      );
-    }
-
-    if (scalingParts.length > 0) {
-      return `${baseValues} (${scalingParts.join(" ")})`;
-    }
-
-    return baseValues;
-  }
-
-  /**
-   * Get scaling info HTML for an ability.
-   */
-  private getAbilityScalingInfo(ability: AbilityDefinition): string | null {
-    const parts: string[] = [];
-
-    if (ability.damage?.scaling) {
-      const dmgType =
-        ability.damage.type === "physical"
-          ? "Physical"
-          : ability.damage.type === "magic"
-            ? "Magic"
-            : "True";
-      parts.push(
-        `<span class="scaling-label">${dmgType} Damage:</span> ${this.formatScalingPreview(0, ability.damage.scaling)}`,
-      );
-    }
-
-    if (ability.heal?.scaling) {
-      parts.push(
-        `<span class="scaling-label">Heal:</span> ${this.formatScalingPreview(0, ability.heal.scaling)}`,
-      );
-    }
-
-    if (ability.shield?.scaling) {
-      const duration = ability.shield.duration
-        ? ` (${ability.shield.duration}s)`
-        : "";
-      parts.push(
-        `<span class="scaling-label">Shield${duration}:</span> ${this.formatScalingPreview(0, ability.shield.scaling)}`,
-      );
-    }
-
-    return parts.length > 0 ? parts.join("<br>") : null;
   }
 
   /**
