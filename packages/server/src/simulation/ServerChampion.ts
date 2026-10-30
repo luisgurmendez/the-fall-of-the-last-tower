@@ -47,9 +47,9 @@ import { passiveTriggerSystem } from '../systems/PassiveTriggerSystem';
 import { championHooksRegistry } from '../abilities/ChampionHooksRegistry';
 import { Logger } from '../utils/Logger';
 import { ServerProjectile } from './ServerProjectile';
-import { ServerTargetedProjectile } from './ServerTargetedProjectile';
 import { calculateChampionStats } from './champion/ChampionStats';
 import { ChampionEffects, type ActiveShield } from './champion/ChampionEffects';
+import { ChampionBasicAttacks } from './champion/ChampionBasicAttacks';
 
 export interface ServerChampionConfig extends Omit<ServerEntityConfig, 'entityType'> {
   definition: ChampionDefinition;
@@ -116,13 +116,13 @@ export class ServerChampion extends ServerEntity {
   gold = GameConfig.ECONOMY.STARTING_GOLD;
   totalGoldSpent = 0;
 
-  // Combat tracking
-  private attackCooldown = 0;
-  private animationScheduler = new AnimationScheduler();
-  private currentAttackTargetId: string | null = null;  // Track target for pending attack
+  // Basic attacks (attack timer, pending attack damage)
+  private readonly basicAttacks = new ChampionBasicAttacks(this);
 
   // Ability animation tracking
   private abilityAnimationScheduler = new AnimationScheduler();  // Separate scheduler for abilities
+
+  // Combat tracking
   kills = 0;
   deaths = 0;
   assists = 0;
@@ -250,7 +250,7 @@ export class ServerChampion extends ServerEntity {
     this.updateCombat(dt, context);
 
     // Process scheduled animation actions (attack damage, etc.)
-    this.processScheduledActions(dt, context);
+    this.basicAttacks.processScheduledActions(dt, context);
 
     // Process scheduled ability actions (projectile spawns, etc.)
     this.processScheduledAbilityActions(dt, context);
@@ -453,9 +453,7 @@ export class ServerChampion extends ServerEntity {
    */
   private updateCombat(dt: number, context: ServerGameContext): void {
     // Update attack cooldown
-    if (this.attackCooldown > 0) {
-      this.attackCooldown -= dt;
-    }
+    this.basicAttacks.updateCooldown(dt);
 
     // Update combat timer
     if (this.inCombat) {
@@ -474,216 +472,7 @@ export class ServerChampion extends ServerEntity {
     }
 
     // Auto-attack target if in range and can attack
-    if (this.targetEntityId && this.attackCooldown <= 0 && this.ccStatus.canAttack) {
-      const target = context.getEntity(this.targetEntityId);
-      if (target && !target.isDead && this.isInRange(target, this.getStats().attackRange)) {
-        this.performBasicAttack(target, context);
-      }
-    }
-  }
-
-  /**
-   * Perform a basic attack on a target.
-   * Schedules damage to occur at the attack animation's damage keyframe.
-   */
-  private performBasicAttack(target: ServerEntity, context: ServerGameContext): void {
-    // Break stealth on attack (Vex's Shadow Shroud)
-    this.breakStealth();
-
-    const stats = this.getStats();
-
-    // Dispatch on_attack trigger BEFORE attack (immediately when attack starts)
-    passiveTriggerSystem.dispatchTrigger('on_attack', this, context, { target });
-
-    // Set attack cooldown immediately (can't attack again until cooldown expires)
-    this.attackCooldown = 1 / stats.attackSpeed;
-
-    // Store target for pending attack damage
-    this.currentAttackTargetId = target.id;
-
-    // Get attack animation and schedule damage at keyframe
-    const attackAnim = this.definition.animations?.attack;
-    let damageDelay = 0;
-
-    if (attackAnim) {
-      // Find the damage keyframe
-      const damageKeyframe = attackAnim.keyframes.find(k => k.trigger.type === 'damage');
-      if (damageKeyframe) {
-        // Calculate animation speed (scales with attack speed if enabled)
-        const animSpeed = this.definition.attackAnimationSpeedScale ? stats.attackSpeed : 1.0;
-        damageDelay = (damageKeyframe.frame * attackAnim.baseFrameDuration) / animSpeed;
-      }
-    }
-
-    // If no animation or keyframe, use a default delay (50% of attack animation)
-    if (damageDelay === 0) {
-      const animationDuration = Math.max(0.15, 0.4 / stats.attackSpeed);
-      damageDelay = animationDuration * 0.5;
-    }
-
-    // Schedule the damage action
-    this.animationScheduler.schedule({
-      entityId: this.id,
-      actionType: 'damage',
-      triggerTime: damageDelay,
-      data: {
-        targetId: target.id,
-        attackDamage: stats.attackDamage,
-        abilityPower: stats.abilityPower,
-      },
-    });
-
-    // Attack animation duration scales with attack speed
-    const animationDuration = Math.max(0.15, 0.4 / stats.attackSpeed);
-
-    // Emit attack event for client-side animation
-    context.addEvent(GameEventType.BASIC_ATTACK, {
-      entityId: this.id,
-      targetId: target.id,
-      animationDuration,
-    });
-
-    // Enter combat
-    this.enterCombat();
-  }
-
-  /**
-   * Process scheduled animation actions (attack damage, etc.)
-   */
-  private processScheduledActions(dt: number, context: ServerGameContext): void {
-    // Cancel pending attacks if stunned or can't attack
-    if (!this.ccStatus.canAttack) {
-      this.animationScheduler.cancelForEntity(this.id, 'damage');
-      this.currentAttackTargetId = null;
-      return;
-    }
-
-    // Process scheduled actions
-    this.animationScheduler.update(dt, (action) => {
-      if (action.actionType === 'damage') {
-        this.applyScheduledAttackDamage(action, context);
-      }
-    });
-  }
-
-  /**
-   * Apply damage from a scheduled attack action.
-   * For ranged champions, spawns a projectile that deals damage on hit.
-   * For melee champions, deals damage instantly.
-   */
-  private applyScheduledAttackDamage(action: ScheduledAction, context: ServerGameContext): void {
-    const targetId = action.data.targetId as string;
-    const target = context.getEntity(targetId);
-
-    // Validate target is still valid
-    if (!target || target.isDead) {
-      this.currentAttackTargetId = null;
-      return;
-    }
-
-    // Check if target is still in range (leeway for movement during animation)
-    const attackRange = this.getStats().attackRange;
-    const leewayRange = attackRange + 50; // Small leeway for target movement
-    if (!this.isInRange(target, leewayRange)) {
-      this.currentAttackTargetId = null;
-      return;
-    }
-
-    const attackDamage = action.data.attackDamage as number;
-    const abilityPower = action.data.abilityPower as number;
-
-    // Raw damage; the target applies its armor in takeDamage()
-    const damage = attackDamage;
-
-    // Check if this champion is ranged
-    const isRanged = this.definition.attackType === 'ranged';
-
-    if (isRanged) {
-      // Ranged champions fire a projectile that deals damage on hit
-      this.fireBasicAttackProjectile(target, damage, context);
-    } else {
-      // Melee champions deal damage instantly
-      this.applyMeleeAttackDamage(target, damage, attackDamage, abilityPower, context);
-    }
-
-    this.currentAttackTargetId = null;
-  }
-
-  /**
-   * Fire a basic attack projectile for ranged champions.
-   */
-  private fireBasicAttackProjectile(
-    target: ServerEntity,
-    damage: number,
-    context: ServerGameContext
-  ): void {
-    // Projectile speed varies by champion (Lume has light-based fast projectiles)
-    const projectileSpeed = this.definition.basicAttackProjectileSpeed ?? 800;
-
-    // Determine projectile type for rendering
-    const projectileType = `${this.definition.id}_auto`;
-
-    // Create callback to handle on-hit effects when projectile lands
-    const onHitCallback = (hitTarget: ServerEntity, hitDamage: number, hitContext: ServerGameContext) => {
-      this.applyOnHitBuffs(hitTarget);
-
-      // Dispatch on_hit trigger for passives
-      passiveTriggerSystem.dispatchTrigger('on_hit', this, hitContext, {
-        target: hitTarget,
-        damageAmount: hitDamage,
-        damageType: 'physical',
-      });
-    };
-
-    const projectile = new ServerTargetedProjectile({
-      id: context.generateEntityId(),
-      position: this.position.clone(),
-      side: this.side,
-      targetId: target.id,
-      speed: projectileSpeed,
-      radius: 5, // Small projectile for ranged basic attacks
-      sourceId: this.id,
-      projectileType,
-      damage,
-      damageType: 'physical',
-      onHitCallback,
-    });
-
-    context.addEntity(projectile);
-
-    Logger.champion.debug(
-      `${this.playerId} fired basic attack projectile at ${target.id}`
-    );
-  }
-
-  /**
-   * Apply instant melee attack damage.
-   */
-  private applyMeleeAttackDamage(
-    target: ServerEntity,
-    damage: number,
-    attackDamage: number,
-    abilityPower: number,
-    context: ServerGameContext
-  ): void {
-    target.takeDamage(damage, 'physical', this.id, context);
-
-    // Champion-specific on-attack rules (e.g., Vex's empowered attack)
-    championHooksRegistry.get(this.definition.id)?.onMeleeAttackHit?.(
-      this,
-      target,
-      { attackDamage, abilityPower },
-      context
-    );
-
-    this.applyOnHitBuffs(target);
-
-    // Dispatch on_hit trigger AFTER attack lands
-    passiveTriggerSystem.dispatchTrigger('on_hit', this, context, {
-      target,
-      damageAmount: damage,
-      damageType: 'physical',
-    });
+    this.basicAttacks.attackTargetIfReady(context);
   }
 
   /**
@@ -1297,18 +1086,6 @@ export class ServerChampion extends ServerEntity {
     return this.effects.extendDuration(effectId, amount, maxDuration);
   }
 
-  /**
-   * On-hit effects from jungle buffs: with red buff, basic attacks burn and
-   * slow champions and minions.
-   */
-  private applyOnHitBuffs(target: ServerEntity): void {
-    if (!this.getEffect('crest_of_cinders') || target.isDead) return;
-    if (target.entityType !== EntityType.CHAMPION && target.entityType !== EntityType.MINION) return;
-
-    const affected = target as ServerEntity & { applyEffect(effectId: string, duration: number, sourceId?: string): void };
-    affected.applyEffect('cinders_burn', 3, this.id);
-    affected.applyEffect('slow_10', 1.5, this.id);
-  }
 
   /**
    * Set movement target.
