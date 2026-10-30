@@ -607,12 +607,17 @@ export class ServerChampion extends ServerEntity {
 
     // Emit damage event for client-side floating numbers
     if (context && (damage > 0 || shieldAbsorbed > 0)) {
+      // What hit it, so the death recap can name a source the client can't see
+      const source = sourceId ? context.getEntity(sourceId) : undefined;
       context.addEvent(GameEventType.DAMAGE, {
         entityId: this.id,
         amount: damage,
         damageType: type,
         sourceId,
         shieldAbsorbed,
+        sourceType: source?.entityType,
+        sourceChampionId: source instanceof ServerChampion ? source.definition.id : undefined,
+        sourceCreatureType: (source as { creatureType?: string } | undefined)?.creatureType,
       });
     }
 

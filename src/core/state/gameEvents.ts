@@ -4,7 +4,7 @@
  * floating damage/gold/XP numbers, camp timers and announcements.
  */
 
-import { GameEventType, type GameEvent } from '@siege/shared';
+import { EntityType, GameEventType, getChampionDefinition, type GameEvent } from '@siege/shared';
 import { getVFXManager } from '@/vfx';
 import { WORLD_VFX } from '@/vfx/world';
 import { shakeScreen } from '@/core/screenShake';
@@ -13,6 +13,7 @@ import type { AbilityEffects } from './abilityEffects';
 import type { FloatingNumbers } from './floatingNumbers';
 import type { CampTimers } from './campTimers';
 import { ANNOUNCEMENT_DURATION, type Announcements } from './announcements';
+import type { DamageTaken } from './damageTaken';
 import { spawnWorldVFX } from './entityVFX';
 
 /**
@@ -27,6 +28,44 @@ export interface GameEventContext {
   readonly abilityEffects: AbilityEffects;
   readonly campTimers: CampTimers;
   readonly announcements: Announcements;
+  /** Damage the local champion took recently (death recap) */
+  readonly damageTaken: DamageTaken;
+}
+
+/** Jungle monsters' names in the death recap, by creature type */
+const MONSTER_NAMES: Record<string, string> = {
+  wolf: 'Hounds',
+  spider: 'Gloom Crawlers',
+  thornspitter: 'Thornspitter',
+  blue_buff: 'Azure Warden',
+  red_buff: 'Ember Brute',
+  dragon: 'Dragon',
+};
+
+/**
+ * What dealt damage, as the death recap names it: from the source if the
+ * client has it, else from what the event says about it (a source out of
+ * sight, or a minion that died with its shot in flight).
+ */
+function describeDamageSource(data: Record<string, unknown>, ctx: GameEventContext): string {
+  const source = typeof data.sourceId === 'string' ? ctx.entities.get(data.sourceId) : undefined;
+  const snapshot = (source?.snapshot ?? {
+    entityType: data.sourceType,
+    championId: data.sourceChampionId,
+    creatureType: data.sourceCreatureType,
+  }) as { entityType?: EntityType; championId?: string; creatureType?: string };
+  switch (snapshot.entityType) {
+    case EntityType.CHAMPION:
+      return getChampionDefinition(snapshot.championId ?? '')?.name ?? 'Champion';
+    case EntityType.MINION:
+      return 'Minions';
+    case EntityType.TOWER:
+      return 'Tower';
+    case EntityType.JUNGLE_CAMP:
+      return MONSTER_NAMES[snapshot.creatureType ?? ''] ?? 'Jungle monster';
+    default:
+      return 'Unknown';
+  }
 }
 
 /**
@@ -91,6 +130,10 @@ export function processGameEvent(event: GameEvent, ctx: GameEventContext): void 
       // A heavy hit on the local champion (over 15% of its health) shakes the screen
       if (entity && entityId === ctx.localEntityId && amount > ((entity.snapshot as any).maxHealth ?? Infinity) * 0.15) {
         shakeScreen(4, 0.25);
+      }
+
+      if (entityId === ctx.localEntityId && amount > 0) {
+        ctx.damageTaken.record(describeDamageSource(event.data, ctx), amount, damageType, now);
       }
 
       if (entity && amount > 0) {

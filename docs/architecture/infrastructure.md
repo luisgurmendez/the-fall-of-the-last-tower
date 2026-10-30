@@ -106,6 +106,7 @@ hands the work to modules in `src/core/state/`:
 | `entities.ts` | `InterpolatedEntity`, interpolation and animation queries |
 | `abilityEffects.ts` | Legacy ability effect shapes and colors |
 | `floatingNumbers.ts`, `campTimers.ts`, `announcements.ts` | The numbers, camp timers and messages the renderers and HUD read |
+| `damageTaken.ts` | Damage the local champion took over the last 10 s, by source, for the death recap (`DeathOverlay`). A DAMAGE event on a champion carries `sourceType`, `sourceChampionId` and `sourceCreatureType`, so a source the client can't see still gets a name |
 
 For each `STATE_UPDATE` it applies the deltas first, then the events, in order.
 

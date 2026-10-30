@@ -36,6 +36,7 @@ import {
   type XpNumber,
 } from './state/floatingNumbers';
 import { CampTimers, type CampTimer } from './state/campTimers';
+import { DamageTaken, type DeathRecap } from './state/damageTaken';
 import { Announcements, type Announcement } from './state/announcements';
 import { EntityVFX } from './state/entityVFX';
 import { addOrUpdateEntity, applyEntityDelta, type EntityLifecycleHooks } from './state/deltas';
@@ -46,6 +47,7 @@ export type { AbilityEffect } from './state/abilityEffects';
 export type { DamageNumber, GoldNumber, XpNumber } from './state/floatingNumbers';
 export type { CampTimer } from './state/campTimers';
 export type { Announcement } from './state/announcements';
+export type { DeathRecap } from './state/damageTaken';
 
 /** How the match ended, for the final scoreboard */
 export interface MatchResult {
@@ -78,6 +80,7 @@ export class OnlineStateManager {
 
   // Floating damage, gold and XP numbers
   private readonly floatingNumbers = new FloatingNumbers();
+  private readonly damageTaken = new DamageTaken();
 
   // Cleared jungle camps waiting to respawn
   private readonly campTimers = new CampTimers();
@@ -136,6 +139,7 @@ export class OnlineStateManager {
       abilityEffects: this.abilityEffects,
       campTimers: this.campTimers,
       announcements: this.announcements,
+      damageTaken: this.damageTaken,
     };
   }
 
@@ -378,6 +382,13 @@ export class OnlineStateManager {
    */
   getXpNumberProgress(xpNumber: XpNumber): number {
     return this.floatingNumbers.getXpNumberProgress(xpNumber);
+  }
+
+  /**
+   * Who hurt the local champion over the last 10 seconds (shown on death).
+   */
+  getDeathRecap(): DeathRecap {
+    return this.damageTaken.recap();
   }
 
   /**
