@@ -53,28 +53,18 @@ import {
   type ScheduledAbilityProjectile,
 } from './champion/ChampionAbilities';
 import { ChampionTransform, type TransformAuraConfig } from './champion/ChampionTransform';
+import {
+  updateForcedMovement,
+  remainingForcedMovementDistance,
+  type ForcedMovement,
+} from './champion/ChampionForcedMovement';
 
 export interface ServerChampionConfig extends Omit<ServerEntityConfig, 'entityType'> {
   definition: ChampionDefinition;
   playerId: string;
 }
 
-export type { ActiveShield };
-
-export interface ForcedMovement {
-  direction: Vector;
-  distance: number;
-  duration: number;
-  elapsed: number;
-  type: 'dash' | 'knockback';
-  // Dash collision data (for abilities that damage/apply effects during dash)
-  hitbox?: number;           // Collision radius
-  damage?: number;           // Damage to apply on hit
-  damageType?: DamageType;   // Type of damage
-  appliesEffects?: string[]; // Effect IDs to apply
-  effectDuration?: number;   // Duration of applied effects
-  hitEntities?: Set<string>; // Track already-hit entities
-}
+export type { ActiveShield, ForcedMovement };
 
 export class ServerChampion extends ServerEntity {
   readonly playerId: string;
@@ -229,7 +219,7 @@ export class ServerChampion extends ServerEntity {
 
     // Update forced movement first
     if (this.forcedMovement) {
-      this.updateForcedMovement(dt, context);
+      updateForcedMovement(this, dt, context);
     } else if (this.ccStatus.canMove) {
       // Normal movement
       this.updateMovement(dt, context);
@@ -374,66 +364,6 @@ export class ServerChampion extends ServerEntity {
       }
 
       this.moveToward(target, dt);
-    }
-  }
-
-  /**
-   * Update forced movement (dash/knockback).
-   */
-  private updateForcedMovement(dt: number, context: ServerGameContext): void {
-    if (!this.forcedMovement) return;
-
-    const fm = this.forcedMovement;
-    fm.elapsed += dt;
-
-    const progress = Math.min(fm.elapsed / fm.duration, 1);
-    const moveDistance = fm.distance * (progress - (fm.elapsed - dt) / fm.duration);
-
-    const movement = fm.direction.clone().scalar(moveDistance);
-    this.position.add(movement);
-
-    // Check for collisions during dash (not knockback)
-    if (fm.type === 'dash' && fm.hitbox && fm.hitbox > 0) {
-      this.checkDashCollisions(context, fm);
-    }
-
-    if (fm.elapsed >= fm.duration) {
-      this.forcedMovement = null;
-      this.dashAbilityId = null;
-    }
-  }
-
-  /**
-   * Check for collisions during dash and apply damage/effects.
-   */
-  private checkDashCollisions(context: ServerGameContext, fm: ForcedMovement): void {
-    if (!fm.hitEntities) {
-      fm.hitEntities = new Set();
-    }
-
-    const entities = context.getEntitiesInRadius(this.position, fm.hitbox!);
-
-    for (const entity of entities) {
-      if (entity.side === this.side) continue;
-      if (entity.isDead) continue;
-      if (entity.id === this.id) continue;
-      if (fm.hitEntities.has(entity.id)) continue; // Already hit
-
-      // Mark as hit
-      fm.hitEntities.add(entity.id);
-
-      // Apply damage
-      if (fm.damage && fm.damage > 0 && fm.damageType) {
-        entity.takeDamage(fm.damage, fm.damageType, this.id, context);
-      }
-
-      // Apply effects
-      if (fm.appliesEffects && fm.effectDuration && 'applyEffect' in entity) {
-        const applyEffect = (entity as { applyEffect: (id: string, duration: number, sourceId?: string) => void }).applyEffect;
-        for (const effectId of fm.appliesEffects) {
-          applyEffect.call(entity, effectId, fm.effectDuration, this.id);
-        }
-      }
     }
   }
 
@@ -1204,8 +1134,8 @@ export class ServerChampion extends ServerEntity {
 
       // Dash state for ability animations
       isDashing: this.forcedMovement?.type === 'dash' && this.dashAbilityId != null,
-      dashTargetX: this.forcedMovement ? this.position.x + this.forcedMovement.direction.x * (this.forcedMovement.distance - this.forcedMovement.elapsed * (this.forcedMovement.distance / this.forcedMovement.duration)) : undefined,
-      dashTargetY: this.forcedMovement ? this.position.y + this.forcedMovement.direction.y * (this.forcedMovement.distance - this.forcedMovement.elapsed * (this.forcedMovement.distance / this.forcedMovement.duration)) : undefined,
+      dashTargetX: this.forcedMovement ? this.position.x + this.forcedMovement.direction.x * remainingForcedMovementDistance(this.forcedMovement) : undefined,
+      dashTargetY: this.forcedMovement ? this.position.y + this.forcedMovement.direction.y * remainingForcedMovementDistance(this.forcedMovement) : undefined,
       dashAbilityId: this.dashAbilityId ?? undefined,
 
       abilities: {
