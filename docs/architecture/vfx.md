@@ -471,7 +471,8 @@ Defined in `src/vfx/world.ts` (keys in `WORLD_VFX`). They use the same phase-bas
 | `fx_champion_death` / `fx_respawn` | A champion dies (removed from client state) / reappears |
 | `fx_recall_arrive` | A recall ends with the champion jumping to base |
 | `fx_tower_destroyed` | A tower or nexus dies: flash, shockwave, rubble |
-| `fx_creature_death` | A jungle creature dies |
+| `fx_creature_death` | A jungle creature dies. Its special attack warning, if it was winding up, is cancelled (`VFXManager.cancelCasterEffects`) |
+| `fx_dragon_death` | The dragon dies: a large fiery shockwave, sparks and embers, and a light screen shake |
 | `jungle_slam_blue` / `jungle_slam_red` / `dragon_breath` | An `ABILITY_CAST` from a monster's special attack: the warning area for the wind-up, then the hit (sizes from `MOBAConfig.JUNGLE.SPECIAL_ATTACKS`, see [jungle.md](jungle.md)) |
 
 Drawn directly by renderers rather than as VFX definitions:

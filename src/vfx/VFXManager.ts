@@ -373,6 +373,14 @@ export class VFXManager {
   }
 
   /**
+   * Drop the effects an entity cast that are still running or waiting to
+   * start, e.g. a monster's attack warning when the monster dies mid-wind-up.
+   */
+  cancelCasterEffects(casterId: string): void {
+    this.activeEffects = this.activeEffects.filter((effect) => effect.casterId !== casterId);
+  }
+
+  /**
    * Clear all active effects.
    */
   clear(): void {

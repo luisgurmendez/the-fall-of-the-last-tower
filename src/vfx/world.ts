@@ -20,6 +20,7 @@ export const WORLD_VFX = {
   RECALL_ARRIVE: 'fx_recall_arrive',
   TOWER_DESTROYED: 'fx_tower_destroyed',
   CREATURE_DEATH: 'fx_creature_death',
+  DRAGON_DEATH: 'fx_dragon_death',
 } as const;
 
 function registerHitSpark(abilityId: string, color: string, colorSecondary: string): void {
@@ -287,6 +288,61 @@ registerAbilityVFX({
           spread: Math.PI * 2,
           gravity: 150,
           particleType: 'square',
+        },
+      ],
+    },
+  ],
+});
+
+registerAbilityVFX({
+  abilityId: WORLD_VFX.DRAGON_DEATH,
+  phases: [
+    {
+      name: 'collapse',
+      delay: 0,
+      duration: 1.4,
+      anchor: 'caster',
+      effects: [
+        {
+          type: 'shockwave',
+          color: '#ff7043',
+          startRadius: 20,
+          endRadius: 220,
+          thickness: 10,
+          duration: 0.6,
+        },
+        {
+          type: 'expanding_ring',
+          color: '#ffd54f',
+          startRadius: 10,
+          endRadius: 140,
+          thickness: 5,
+          duration: 0.5,
+          fadeOut: true,
+        },
+        {
+          type: 'particle_burst',
+          count: 40,
+          color: '#ffab40',
+          colorSecondary: '#d84315',
+          size: { min: 3, max: 7 },
+          speed: { min: 80, max: 220 },
+          lifetime: { min: 0.6, max: 1.2 },
+          spread: Math.PI * 2,
+          gravity: 120,
+          friction: 0.94,
+          particleType: 'spark',
+          glowIntensity: 0.7,
+        },
+        {
+          type: 'rising_particles',
+          count: 30,
+          color: '#ffcc80',
+          size: { min: 2, max: 5 },
+          speed: { min: 40, max: 90 },
+          spread: 120,
+          lifetime: { min: 1, max: 1.4 },
+          particleType: 'star',
         },
       ],
     },

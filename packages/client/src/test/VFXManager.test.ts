@@ -1,6 +1,8 @@
 /**
  * VFXManager scheduling: effects of a delayed phase, including their
- * one-shot particles, start when the phase does, not when the ability is cast.
+ * one-shot particles, start when the phase does, not when the ability is
+ * cast; and a caster's pending effects can be cancelled (a monster dying
+ * mid-wind-up).
  */
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { VFXManager } from '@/vfx/VFXManager';
@@ -56,5 +58,21 @@ describe('VFXManager', () => {
     clock += 300;
     manager.update(0.3);
     expect(manager.getStats().activeParticles).toBe(10);
+  });
+
+  it("cancels a caster's effects that haven't started", () => {
+    const manager = new VFXManager({ getEntity: () => undefined } as unknown as OnlineStateManager);
+    // The particle pool is shared, so count from here
+    const particlesBefore = manager.getStats().activeParticles;
+    manager.spawnAbilityVFX(TEST_VFX, 0, 0, undefined, undefined, 'monster-1');
+    manager.spawnAbilityVFX(TEST_VFX, 0, 0, undefined, undefined, 'monster-2');
+    expect(manager.getStats().activeEffects).toBe(2);
+
+    manager.cancelCasterEffects('monster-1');
+    clock += 600;
+    manager.update(0.6);
+
+    expect(manager.getStats().activeEffects).toBe(1);
+    expect(manager.getStats().activeParticles - particlesBefore).toBe(10);
   });
 });

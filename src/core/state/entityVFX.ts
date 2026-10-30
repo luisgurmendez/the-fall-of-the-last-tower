@@ -43,7 +43,18 @@ export class EntityVFX {
         }
         break;
       case EntityType.JUNGLE_CAMP:
-        spawnWorldVFX(WORLD_VFX.CREATURE_DEATH, x, y);
+        // A special attack winding up dies with the monster
+        try {
+          getVFXManager().cancelCasterEffects(entity.snapshot.entityId);
+        } catch {
+          // VFX manager not initialized yet, skip
+        }
+        if ((entity.snapshot as { creatureType?: string }).creatureType === 'dragon') {
+          spawnWorldVFX(WORLD_VFX.DRAGON_DEATH, x, y);
+          shakeScreen(6, 0.4);
+        } else {
+          spawnWorldVFX(WORLD_VFX.CREATURE_DEATH, x, y);
+        }
         break;
       case EntityType.CHAMPION:
         this.deadChampionIds.add(entity.snapshot.entityId);
@@ -79,7 +90,7 @@ export class EntityVFX {
     }
 
     // Recall finished: the champion jumped to base
-    if (previous.isRecalling && data.isRecalling === false && typeof data.x === 'number') {
+    if (previous.isRecalling && data.isRecalling === false && typeof data.x === 'number' && typeof data.y === 'number') {
       const jump = Math.hypot(data.x - entity.position.x, data.y - entity.position.y);
       if (jump > 400) spawnWorldVFX(WORLD_VFX.RECALL_ARRIVE, data.x, data.y);
     }
