@@ -340,10 +340,15 @@ An enemy entity is sent only if all of these hold (see `FogOfWarServer.calculate
 2. Its own `isVisibleTo(side)` allows it, if it defines one. Stealth wards stay hidden
    unless an enemy control ward reveals them, and stealthed traps stay hidden
 3. It is not hidden in a bush the viewer has no vision in
-4. It is within sight range of one of the viewer's vision sources
+4. It is within sight range of one of the viewer's vision sources, and no wall blocks the
+   line between them (`WallGrid.hasLineOfSight`, shared with the client)
 
 Towers and nexuses are always visible. Hidden entities are never serialized for that
 team, so a modified client can't reveal them.
+
+The client fog (`src/core/FogOfWar.ts`) uses the same `WallGrid`. Each revealer works out how
+far it sees in each of 180 directions before a wall stops it, and only lights cells within
+that limit. The fog therefore shows the same shadows behind walls as the server's filtering.
 
 ## Reliable Event Delivery
 

@@ -87,7 +87,7 @@ export class ServerGameContext {
     this.gameId = config.gameId;
     this.mapConfig = config.mapConfig ?? MOBAConfig;
     this.minionWavesEnabled = config.minionWaves ?? true;
-    this.fogOfWar = new FogOfWarServer();
+    this.fogOfWar = new FogOfWarServer(this.mapConfig.WALLS);
     this.collisionSystem = new CollisionSystem();
     this.terrain = new Terrain(this.mapConfig);
 

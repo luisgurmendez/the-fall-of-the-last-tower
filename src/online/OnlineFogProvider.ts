@@ -11,7 +11,7 @@ import type GameContext from '@/core/gameContext';
 import Vector from '@/physics/vector';
 import type { OnlineStateManager } from '@/core/OnlineStateManager';
 import type { FogRevealer } from '@/core/FogOfWar';
-import { EntityType, GameConfig, DEFAULT_MINION_STATS, type MinionType } from '@siege/shared';
+import { EntityType, GameConfig, DEFAULT_MINION_STATS, DEFAULT_TOWER_STATS, type MinionType } from '@siege/shared';
 import { Bush } from '@/vision/Bush';
 import type { BushManager, BushGroup } from '@/vision';
 
@@ -25,7 +25,7 @@ import type { BushManager, BushGroup } from '@/vision';
 const SIGHT_RANGES: Record<number, number> = {
   [EntityType.CHAMPION]: GameConfig.VISION.CHAMPION_SIGHT_RANGE, // 800
   [EntityType.MINION]: DEFAULT_MINION_STATS.melee.sightRange, // Fallback - actual lookup by minionType below
-  [EntityType.TOWER]: 750, // Matches server tower sight range
+  [EntityType.TOWER]: DEFAULT_TOWER_STATS[1].attackRange, // Server: towers see as far as they shoot
   [EntityType.NEXUS]: 1000,
   [EntityType.JUNGLE_CAMP]: 400,
   [EntityType.WARD]: GameConfig.VISION.WARD_SIGHT_RANGE, // 900

@@ -13,7 +13,7 @@
  * - Validating targeting (can't target invisible enemies)
  */
 
-import { Vector, Side, EntityType, GameConfig } from '@siege/shared';
+import { Vector, Side, EntityType, GameConfig, MOBAConfig, WallGrid } from '@siege/shared';
 import type { ServerEntity } from '../simulation/ServerEntity';
 import type { ServerGameContext } from '../game/ServerGameContext';
 import { ServerBushManager, type BushVisibilityResult } from './ServerBushManager';
@@ -55,10 +55,25 @@ export class FogOfWarServer {
   // Current game context (stored for bush visibility checks)
   private currentContext: ServerGameContext | null = null;
 
-  constructor() {
+  // Walls block sight (same grid and sampling as the client fog)
+  private readonly wallGrid: WallGrid;
+
+  /**
+   * @param walls Terrain walls that block vision (default: the map's walls)
+   */
+  constructor(walls: ConstructorParameters<typeof WallGrid>[0] = MOBAConfig.WALLS) {
     this.visionSources.set(0, []);
     this.visionSources.set(1, []);
     this.bushManager = new ServerBushManager();
+    this.wallGrid = new WallGrid(walls);
+  }
+
+  /**
+   * Whether a vision source sees a point: in range and not behind a wall.
+   */
+  private sourceSees(source: VisionSource, position: Vector): boolean {
+    return source.position.distanceTo(position) <= source.sightRange &&
+      this.wallGrid.hasLineOfSight(source.position.x, source.position.y, position.x, position.y);
   }
 
   /**
@@ -212,10 +227,11 @@ export class FogOfWarServer {
     const sources = this.visionSources.get(viewingSide) ?? [];
     const revealedBy: string[] = [];
 
+    // One source is enough (line of sight checks aren't free)
     for (const source of sources) {
-      const distance = source.position.distanceTo(entity.position);
-      if (distance <= source.sightRange) {
+      if (this.sourceSees(source, entity.position)) {
         revealedBy.push(source.entityId);
+        break;
       }
     }
 
@@ -266,7 +282,7 @@ export class FogOfWarServer {
     const sources = this.visionSources.get(side) ?? [];
 
     for (const source of sources) {
-      if (source.position.distanceTo(position) <= source.sightRange) {
+      if (this.sourceSees(source, position)) {
         return true;
       }
     }

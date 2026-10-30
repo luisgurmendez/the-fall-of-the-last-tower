@@ -420,7 +420,8 @@ describe('Full Integration - FogOfWar + Prioritizer + Serializer', () => {
 
   beforeEach(() => {
     context = new ServerGameContext({ gameId: 'test-game' });
-    fogOfWar = new FogOfWarServer();
+    // Open field: these tests are about state sync, not walls blocking sight
+    fogOfWar = new FogOfWarServer([]);
     prioritizer = new EntityPrioritizer();
     serializer = new StateSerializer();
   });
@@ -662,7 +663,8 @@ describe('Bug Reproduction: Entity Disappears While Visible', () => {
 
   beforeEach(() => {
     context = new ServerGameContext({ gameId: 'test-game' });
-    fogOfWar = new FogOfWarServer();
+    // Open field: these tests are about state sync, not walls blocking sight
+    fogOfWar = new FogOfWarServer([]);
     prioritizer = new EntityPrioritizer();
     serializer = new StateSerializer();
   });

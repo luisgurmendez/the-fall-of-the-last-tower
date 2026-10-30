@@ -12,3 +12,5 @@ export {
 export type { MapSide, LaneId, JungleCreatureType, BushSpread, BushGroupBounds, BushPosition } from './MOBAConfig';
 
 export { GameConfig } from './GameConfig';
+
+export { WallGrid } from './WallGrid';

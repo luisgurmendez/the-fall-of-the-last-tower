@@ -12,6 +12,7 @@
 
 import Vector from '@/physics/vector';
 import { TeamId, TEAM } from './Team';
+import type { WallGrid } from '@siege/shared';
 
 /**
  * Visibility state for a cell.
@@ -32,7 +33,12 @@ export interface FogOfWarConfig {
   enabled: boolean;
   /** Initial state for all cells (default: 'unexplored') */
   initialState?: VisibilityState;
+  /** Terrain that blocks sight (same grid the server uses), if any */
+  wallGrid?: WallGrid;
 }
+
+/** Angular resolution of sight lines around a revealer */
+const SIGHT_BINS = 180;
 
 /**
  * Default fog of war configuration.
@@ -59,6 +65,7 @@ export interface FogRevealer {
  */
 class VisibilityGrid {
   private cells: VisibilityState[][];
+  private readonly wallGrid: WallGrid | null;
   private readonly width: number;
   private readonly height: number;
   private readonly cellSize: number;
@@ -66,6 +73,7 @@ class VisibilityGrid {
   private readonly offsetY: number;
 
   constructor(config: FogOfWarConfig) {
+    this.wallGrid = config.wallGrid ?? null;
     this.cellSize = config.cellSize;
     this.width = Math.ceil(config.worldWidth / config.cellSize);
     this.height = Math.ceil(config.worldHeight / config.cellSize);
@@ -122,6 +130,7 @@ class VisibilityGrid {
   reveal(worldPos: Vector, sightRange: number): void {
     const center = this.worldToGrid(worldPos);
     const cellRadius = Math.ceil(sightRange / this.cellSize);
+    const sightLimits = this.wallGrid ? this.computeSightLimits(worldPos, sightRange, this.wallGrid) : null;
 
     // Reveal cells in a circle
     for (let dy = -cellRadius; dy <= cellRadius; dy++) {
@@ -134,10 +143,10 @@ class VisibilityGrid {
           continue;
         }
 
-        // Check if within sight range (circular)
+        // Check if within sight range (circular) and not behind a wall
         const cellCenter = this.gridToWorld(gx, gy);
         const distance = worldPos.distanceTo(cellCenter);
-        if (distance <= sightRange) {
+        if (distance <= sightRange && (!sightLimits || distance <= this.sightLimitToward(sightLimits, worldPos, cellCenter))) {
           this.cells[gy][gx] = 'visible';
         }
       }
@@ -147,6 +156,27 @@ class VisibilityGrid {
   /**
    * Get visibility state at a world position.
    */
+  /**
+   * How far the revealer sees in each direction before a wall stops it.
+   */
+  private computeSightLimits(worldPos: Vector, sightRange: number, wallGrid: WallGrid): Float32Array {
+    const limits = new Float32Array(SIGHT_BINS);
+    for (let bin = 0; bin < SIGHT_BINS; bin++) {
+      const angle = ((bin + 0.5) / SIGHT_BINS) * Math.PI * 2 - Math.PI;
+      limits[bin] = wallGrid.rayDistance(worldPos.x, worldPos.y, Math.cos(angle), Math.sin(angle), sightRange);
+    }
+    return limits;
+  }
+
+  /**
+   * Sight limit toward a cell; a cell's width of slack lights up the wall face itself.
+   */
+  private sightLimitToward(limits: Float32Array, from: Vector, to: Vector): number {
+    const angle = Math.atan2(to.y - from.y, to.x - from.x);
+    const bin = Math.min(SIGHT_BINS - 1, Math.floor(((angle + Math.PI) / (Math.PI * 2)) * SIGHT_BINS));
+    return limits[bin] + this.cellSize;
+  }
+
   getVisibility(worldPos: Vector): VisibilityState {
     const grid = this.worldToGrid(worldPos);
     if (grid.x < 0 || grid.x >= this.width || grid.y < 0 || grid.y >= this.height) {

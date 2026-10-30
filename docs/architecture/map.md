@@ -33,4 +33,4 @@ To change the layout:
 - **Minions** follow their lane paths, which stay clear of walls, and slide along walls when chasing.
 - **Jungle creatures** also slide along walls; they walk home when leashed.
 
-Vision is not blocked by walls yet.
+- **Vision:** walls block sight for every vision source (champions, minions, towers, wards), on the server (`FogOfWarServer`) and in the client fog. Both use `WallGrid` from `@siege/shared`: 32-unit cells, with sight lines sampled every 16 units. See [networking.md](networking.md#fog-of-war-filtering).

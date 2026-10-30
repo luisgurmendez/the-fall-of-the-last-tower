@@ -14,6 +14,7 @@ import SpatiallyHashedObjects from "@/utils/spatiallyHashedObjects";
 import { filterInPlaceAndGetRest } from "@/utils/fn";
 import { GameConfig } from "@/config";
 import { FogOfWar, FogRevealer } from "@/core/FogOfWar";
+import { WallGrid } from "@siege/shared";
 import { getShopUI } from "@/ui/shop/ShopUI";
 import { profiler } from "@/debug/PerformanceProfiler";
 import NavigationGrid from "@/navigation/NavigationGrid";
@@ -77,6 +78,8 @@ class Level {
       cellSize: GameConfig.FOG_OF_WAR?.CELL_SIZE ?? 50,
       enabled: fogEnabled,
       initialState: GameConfig.FOG_OF_WAR?.INITIAL_STATE ?? 'unexplored',
+      // Walls block sight, as on the server
+      wallGrid: new WallGrid(),
     });
   }
 
