@@ -137,13 +137,19 @@ export class ServerAbilityExecutor {
             });
             return { success: true, manaCost: 0, cooldown: 0 };
           }
+
+          // Handler accepted the recast but couldn't carry it out
+          return { success: false, failReason: "invalid_target" };
         }
 
-        // Handler declined or failed the recast (e.g., Lume's orb is already back)
-        return { success: false, failReason: "invalid_target" };
+        // The recast no longer applies (e.g., Lume's orb is already back):
+        // forget the leftover window and treat the key press as a normal cast
+        while (champion.hasRecastAvailable(slot)) {
+          champion.consumeRecast(slot);
+        }
+      } else {
+        return this.handleRecast(params, definition);
       }
-
-      return this.handleRecast(params, definition);
     }
 
     // Check cooldown

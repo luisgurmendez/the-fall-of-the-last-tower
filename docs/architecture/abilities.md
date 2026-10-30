@@ -185,7 +185,7 @@ function calculateAbilityValue(
 
 `ServerAbilityExecutor` is champion-agnostic. It validates the cast (rank, crowd control, cooldown, mana, target), applies cost and cooldown, then executes the ability one of two ways:
 
-1. **Ability handler**: if a handler is registered for the ability ID, it runs instead of the generic path. Handlers live in `packages/server/src/abilities/handlers/<championId>/` and implement `IAbilityHandler`, usually by extending `BaseAbilityHandler`. A handler that implements `canRecast`/`executeRecast` owns the ability's recast; if it declines, the recast fails with `invalid_target`.
+1. **Ability handler**: if a handler is registered for the ability ID, it runs instead of the generic path. Handlers live in `packages/server/src/abilities/handlers/<championId>/` and implement `IAbilityHandler`, usually by extending `BaseAbilityHandler`. A handler that implements `canRecast`/`executeRecast` owns the ability's recast. If `canRecast` declines (for example, Lume's orb is already back), the leftover recast window is dropped and the key press is a normal cast. If `executeRecast` fails after `canRecast` accepted, the recast fails with `invalid_target`.
 2. **Generic path**: otherwise the executor runs the path for the ability's `targetType` (`self`, `no_target`, `target_enemy`, `target_ally`, `skillshot`, `ground_target`), driven by definition fields such as `damage`, `heal`, `shield`, `appliesEffects`, projectile fields, cones, zones, traps, `statTransform`, `dash` and `teleport`.
 
 Generic path details:

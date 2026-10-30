@@ -180,7 +180,7 @@ describe('Lume - orb abilities', () => {
     expect(orb.state).toBe('orbiting');
   });
 
-  test('Q recast after the orb has returned fails instead of casting Q again', () => {
+  test('Q after the orb has returned casts Q again (the leftover recast window is dropped)', () => {
     arena.castAbility(arena.blue, 'Q', { targetPosition: new Vector(300, 0) });
     const orb = getOrb();
 
@@ -196,10 +196,10 @@ describe('Lume - orb abilities', () => {
 
     const result = arena.castAbility(arena.blue, 'Q', { targetPosition: new Vector(300, 0) });
 
-    expect(result).toEqual({ success: false, failReason: 'invalid_target' });
-    expect(orb.isOrbiting).toBe(true);
-    expect(arena.blue.resource).toBe(mana);
-    expect(arena.blue.getAbilityCooldown('Q')).toBe(0);
+    expect(result.success).toBe(true);
+    expect(orb.isOrbiting).toBe(false);
+    expect(arena.blue.resource).toBeLessThan(mana);
+    expect(arena.blue.getAbilityCooldown('Q')).toBeGreaterThan(0);
   });
 
   test('R destroys the orb and disables the orb abilities', () => {
