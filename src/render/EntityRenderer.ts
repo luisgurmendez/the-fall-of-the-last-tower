@@ -47,6 +47,7 @@ import { renderZone } from "@/render/entities/zone";
 import { LightOrbRenderer } from "@/render/entities/lightOrb";
 import { renderGeneric } from "@/render/entities/generic";
 import { renderAbilityEffects } from "@/render/overlays/abilityEffects";
+import { renderTowerRanges } from "@/render/overlays/towerRange";
 import {
   renderDamageNumbers,
   renderGoldNumbers,
@@ -263,9 +264,11 @@ export class EntityRenderer implements GameObject {
         if (aIsZone !== bIsZone) return aIsZone ? -1 : 1;
         return a.position.y - b.position.y;
       });
-      this.localChampionPosition = localEntityId
-        ? this.stateManager.getEntity(localEntityId)?.position ?? null
-        : null;
+      const localEntity = localEntityId ? this.stateManager.getEntity(localEntityId) : undefined;
+      this.localChampionPosition = localEntity?.position ?? null;
+
+      // On the ground, under every unit: enemy tower ranges near the local champion
+      renderTowerRanges(canvasRenderingContext, entities, localEntity, this.localSide);
 
       for (const entity of sortedEntities) {
         // Skip dead entities (except light orbs which show a ghost when destroyed)
