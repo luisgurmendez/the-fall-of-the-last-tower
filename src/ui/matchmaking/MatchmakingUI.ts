@@ -19,8 +19,6 @@ import {
   getPassiveDefinition,
   ABILITY_DEFINITIONS,
   type ChampionDefinition,
-  type AbilityDefinition,
-  type PassiveAbilityDefinition,
 } from "@siege/shared";
 import type {
   ScreenId,
@@ -28,11 +26,7 @@ import type {
   MatchData,
   MatchmakingUICallbacks,
 } from "./types";
-import {
-  formatPassiveTrigger,
-  interpolateAbilityDescription,
-  getAbilityScalingInfo,
-} from "./abilityText";
+import { createAbilityCard, createPassiveCard } from "./abilityCards";
 import { startTipRotation, showRandomTip } from "./tips";
 // Re-export for external use
 export type {
@@ -380,7 +374,7 @@ export class MatchmakingUI {
       if (passiveId) {
         const passiveDef = getPassiveDefinition(passiveId);
         if (passiveDef) {
-          const passiveCard = this.createPassiveCard(passiveDef, championId);
+          const passiveCard = createPassiveCard(passiveDef, championId);
           this.detailPassive.appendChild(passiveCard);
         }
       }
@@ -409,7 +403,7 @@ export class MatchmakingUI {
           continue;
         }
 
-        const abilityCard = this.createAbilityCard(slot, abilityDef, stats, championId);
+        const abilityCard = createAbilityCard(slot, abilityDef, stats, championId);
         this.detailAbilities.appendChild(abilityCard);
         console.log(`[MatchmakingUI] Slot ${slot}: Added ability card`);
       }
@@ -419,175 +413,10 @@ export class MatchmakingUI {
   }
 
   /**
-   * Create an ability card element for the champion select screen.
-   * Shows icon only, with dialog tooltip on hover.
-   */
-  private createAbilityCard(
-    slot: string,
-    ability: AbilityDefinition,
-    baseStats: ChampionDefinition["baseStats"],
-    championId: string,
-  ): HTMLElement {
-    const card = document.createElement("div");
-    card.className = "ability-card";
-    card.dataset.slot = slot;
-
-    // Ability header with icon only
-    const header = document.createElement("div");
-    header.className = "ability-card-header";
-
-    // Add ability icon
-    const iconSlot = slot.toLowerCase();
-    const iconPath = `/src/assets/abilities/${championId}/${iconSlot}.png`;
-    const icon = document.createElement("img");
-    icon.className = "ability-icon";
-    icon.src = iconPath;
-    icon.alt = `${slot} ability`;
-    icon.width = 64;
-    icon.height = 64;
-    // Hide if image fails to load
-    icon.onerror = () => { icon.style.display = 'none'; };
-    header.appendChild(icon);
-    card.appendChild(header);
-
-    // Create dialog tooltip
-    const dialog = document.createElement("div");
-    dialog.className = "ability-dialog";
-
-    // Dialog header
-    const dialogHeader = document.createElement("div");
-    dialogHeader.className = "ability-dialog-header";
-    dialogHeader.innerHTML = `
-      <span class="ability-dialog-slot">${slot}</span>
-      <span class="ability-dialog-name">${ability.name}</span>
-    `;
-    dialog.appendChild(dialogHeader);
-
-    // Description with interpolated values at rank 1
-    const description = document.createElement("div");
-    description.className = "ability-dialog-description";
-    const interpolatedDesc = interpolateAbilityDescription(
-      ability,
-      1,
-      baseStats,
-    );
-    description.innerHTML = interpolatedDesc;
-    dialog.appendChild(description);
-
-    // Stats row (cooldown, cost, range)
-    const statParts: string[] = [];
-    if (ability.cooldown && ability.cooldown.length > 0) {
-      const cdValues = ability.cooldown.map((cd) => cd.toString()).join("/");
-      statParts.push(`CD: ${cdValues}s`);
-    }
-    if (ability.manaCost && ability.manaCost.length > 0) {
-      const costValues = ability.manaCost.map((c) => c.toString()).join("/");
-      statParts.push(`Cost: ${costValues}`);
-    }
-    if (ability.range && ability.range > 0) {
-      statParts.push(`Range: ${ability.range}`);
-    }
-
-    if (statParts.length > 0) {
-      const statsRow = document.createElement("div");
-      statsRow.className = "ability-dialog-stats";
-      statsRow.textContent = statParts.join("  •  ");
-      dialog.appendChild(statsRow);
-    }
-
-    // Scaling info
-    const scalingInfo = getAbilityScalingInfo(ability);
-    if (scalingInfo) {
-      const scaling = document.createElement("div");
-      scaling.className = "ability-dialog-scaling";
-      scaling.innerHTML = scalingInfo;
-      dialog.appendChild(scaling);
-    }
-
-    card.appendChild(dialog);
-
-    return card;
-  }
-
-  /**
-   * Create a passive card element for the champion select screen.
-   * Shows icon only, with dialog tooltip on hover.
-   */
-  /**
    * Display name for a champion's resource ("Mana", "Energy", ...).
    */
   private formatResourceName(resourceType: string): string {
     return resourceType.charAt(0).toUpperCase() + resourceType.slice(1);
-  }
-
-  private createPassiveCard(passive: PassiveAbilityDefinition, championId: string): HTMLElement {
-    const card = document.createElement("div");
-    card.className = "passive-card";
-
-    // Passive header with icon only
-    const header = document.createElement("div");
-    header.className = "passive-card-header";
-
-    // Add passive icon
-    const iconPath = `/src/assets/abilities/${championId}/passive.png`;
-    const icon = document.createElement("img");
-    icon.className = "passive-icon";
-    icon.src = iconPath;
-    icon.alt = "Passive ability";
-    icon.width = 64;
-    icon.height = 64;
-    // Hide if image fails to load
-    icon.onerror = () => { icon.style.display = 'none'; };
-    header.appendChild(icon);
-    card.appendChild(header);
-
-    // Create dialog tooltip
-    const dialog = document.createElement("div");
-    dialog.className = "passive-dialog";
-
-    // Dialog header
-    const dialogHeader = document.createElement("div");
-    dialogHeader.className = "passive-dialog-header";
-    dialogHeader.innerHTML = `
-      <span class="passive-dialog-slot">P</span>
-      <span class="passive-dialog-name">${passive.name}</span>
-    `;
-    dialog.appendChild(dialogHeader);
-
-    // Trigger type
-    const trigger = document.createElement("div");
-    trigger.className = "passive-dialog-trigger";
-    trigger.textContent = `Trigger: ${formatPassiveTrigger(passive.trigger)}`;
-    dialog.appendChild(trigger);
-
-    // Description
-    const description = document.createElement("div");
-    description.className = "passive-dialog-description";
-    description.textContent = passive.description;
-    dialog.appendChild(description);
-
-    // Stats row (cooldown, stacks)
-    const statParts: string[] = [];
-    if (passive.internalCooldown) {
-      statParts.push(`Cooldown: ${passive.internalCooldown}s`);
-    }
-    if (passive.maxStacks) {
-      statParts.push(`Max Stacks: ${passive.maxStacks}`);
-    }
-    if (passive.healthThreshold) {
-      statParts.push(`Threshold: ${Math.round(passive.healthThreshold * 100)}% HP`);
-    }
-
-    if (statParts.length > 0) {
-      const statsRow = document.createElement("div");
-      statsRow.className = "passive-dialog-stats";
-      statsRow.textContent = statParts.join("  •  ");
-      dialog.appendChild(statsRow);
-    }
-
-    card.appendChild(dialog);
-
-    return card;
   }
 
   /**
