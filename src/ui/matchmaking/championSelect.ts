@@ -63,13 +63,8 @@ export class ChampionSelect {
     this.lockInButton = getEl("btn-lock-in") as HTMLButtonElement;
     this.practiceButton = getEl("btn-practice") as HTMLButtonElement;
 
-    // Debug: Check if abilities element was found
-    console.log("[MatchmakingUI] Constructor - detailAbilities element:", this.detailAbilities);
     if (!this.detailAbilities) {
-      console.error("[MatchmakingUI] CRITICAL: detail-abilities element not found in DOM!");
-      console.log("[MatchmakingUI] Looking for element with id 'detail-abilities'...");
-      console.log("[MatchmakingUI] All elements with 'detail' in id:",
-        Array.from(document.querySelectorAll('[id*="detail"]')).map(el => el.id));
+      console.error("[MatchmakingUI] detail-abilities element not found in DOM");
     }
   }
 
@@ -250,30 +245,18 @@ export class ChampionSelect {
       this.detailAbilities.innerHTML = "";
       const slots: Array<"Q" | "W" | "E" | "R"> = ["Q", "W", "E", "R"];
 
-      console.log("[MatchmakingUI] Updating abilities for champion:", championId);
-      console.log("[MatchmakingUI] champion.abilities:", champion.abilities);
-
       for (const slot of slots) {
         const abilityId = champion.abilities[slot];
-        console.log(`[MatchmakingUI] Slot ${slot}: abilityId = "${abilityId}"`);
-        if (!abilityId) {
-          console.log(`[MatchmakingUI] Slot ${slot}: No ability ID, skipping`);
-          continue;
-        }
+        if (!abilityId) continue;
 
         const abilityDef = getAbilityDefinition(abilityId);
-        console.log(`[MatchmakingUI] Slot ${slot}: abilityDef =`, abilityDef);
         if (!abilityDef) {
-          console.log(`[MatchmakingUI] Slot ${slot}: No ability definition found for "${abilityId}"`);
+          console.warn(`[MatchmakingUI] No ability definition for "${abilityId}" (${championId} ${slot})`);
           continue;
         }
 
-        const abilityCard = createAbilityCard(slot, abilityDef, stats, championId);
-        this.detailAbilities.appendChild(abilityCard);
-        console.log(`[MatchmakingUI] Slot ${slot}: Added ability card`);
+        this.detailAbilities.appendChild(createAbilityCard(slot, abilityDef, stats, championId));
       }
-    } else {
-      console.log("[MatchmakingUI] detailAbilities element not found!");
     }
   }
 

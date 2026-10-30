@@ -25,10 +25,6 @@
  */
 
 import type { NetworkClient } from "../../../packages/client/src/network/NetworkClient";
-import {
-  getAbilityDefinition,
-  ABILITY_DEFINITIONS,
-} from "@siege/shared";
 import type {
   ScreenId,
   ConnectionStatus,
@@ -47,12 +43,6 @@ export type {
   MatchData,
   MatchmakingUICallbacks,
 } from "./types";
-
-// Debug: verify imports
-console.log("[MatchmakingUI] Module loaded");
-console.log("[MatchmakingUI] getAbilityDefinition:", typeof getAbilityDefinition);
-console.log("[MatchmakingUI] ABILITY_DEFINITIONS:", ABILITY_DEFINITIONS);
-console.log("[MatchmakingUI] Test lookup warrior_slash:", getAbilityDefinition("warrior_slash"));
 
 /**
  * MatchmakingUI class.

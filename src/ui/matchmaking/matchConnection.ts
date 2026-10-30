@@ -149,8 +149,9 @@ export class MatchConnection {
       }
     };
 
-    // Connect to server
-    this.networkClient.connect();
+    // Connect to server. A failed connection also closes the socket, which
+    // is reported through onDisconnect, so the rejection needs no handling.
+    this.networkClient.connect().catch(() => {});
   }
 
   /**
