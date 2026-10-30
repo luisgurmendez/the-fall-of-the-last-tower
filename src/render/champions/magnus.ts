@@ -1,8 +1,21 @@
 /**
- * Magnus: default circle body and the fireball projectile.
+ * Magnus: a battlemage drawn from generated sprite strips (idle, walk, attack
+ * and an animation per ability; scripts/generate-sprites.ts), and the
+ * fireball projectile. Without the strips he's the default circle.
  */
 
 import type { ChampionRendererEntry } from "./types";
+import { createStripBodyRenderer, generatedStrips, stripImages } from "./stripBody";
+
+const MAGNUS_STRIPS = generatedStrips("magnus", {
+  q: "magnus_fireball",
+  w: "magnus_shield",
+  e: "magnus_mud",
+  r: "magnus_meteor",
+});
+
+/** World units per sprite pixel */
+const MAGNUS_SCALE = 0.6;
 
 /**
  * Magnus Fireball - larger orange/red fireball.
@@ -44,8 +57,8 @@ function renderFireballProjectile(
  * Magnus renderer entry.
  */
 export const magnusRenderer: ChampionRendererEntry = {
-  images: [],
-  createBodyRenderer: null,
+  images: stripImages(MAGNUS_STRIPS),
+  createBodyRenderer: (rc) => createStripBodyRenderer(MAGNUS_STRIPS, MAGNUS_SCALE, rc),
   projectiles: {
     magnus_fireball: renderFireballProjectile,
   },

@@ -62,6 +62,11 @@ const ABILITY_ROLES: Partial<Record<string, 'offense' | 'defense' | 'engage'>> =
   lume_w: 'offense',
   lume_e: 'defense',
   lume_r: 'offense',
+  warrior_shield: 'defense',
+  warrior_charge: 'engage',
+  magnus_shield: 'defense',
+  elara_barrier: 'defense',
+  gorath_fortify: 'defense',
 };
 
 /** What bots buy, in order, by build */

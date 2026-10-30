@@ -22,6 +22,10 @@ const IDLE_SPRITES: Record<string, string> = {
   vex: "/assets/champs/vex/Vex-Idle.png",
   lume: "/assets/champs/lume/Lume-IDLE.png",
   vile: "/assets/champs/vile/idle.png",
+  warrior: "/assets/champs/warrior/idle.png",
+  magnus: "/assets/champs/magnus/idle.png",
+  elara: "/assets/champs/elara/idle.png",
+  gorath: "/assets/champs/gorath/idle.png",
 };
 
 /** Cropped portraits, by sprite, drawn once */

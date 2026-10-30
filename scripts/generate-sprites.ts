@@ -53,6 +53,41 @@ interface SpriteSetSpec {
   animations: { idle: AnimationSpec } & Record<string, AnimationSpec>;
 }
 
+/** What a champion does in each of its animations */
+interface ChampionActions {
+  name: string;
+  description: string;
+  attack: string;
+  q: string;
+  w: string;
+  e: string;
+  r: string;
+}
+
+/**
+ * A humanoid champion: idle, walk, attack and Q/W/E/R, in public/assets/champs/<championId>.
+ */
+function champion(championId: string, actions: ChampionActions): SpriteSetSpec {
+  const cast = (action: string): AnimationSpec => ({ mode: 'pixminimax', action, frames: 8 });
+  return {
+    key: championId,
+    outputDir: `public/assets/champs/${championId}`,
+    name: actions.name,
+    description: actions.description,
+    size: 96,
+    template: 'mannequin',
+    animations: {
+      idle: { mode: 'v3', action: 'standing ready, breathing calmly', frames: 4 },
+      walk: { mode: 'template', template: 'walking-6-frames' },
+      attack: cast(actions.attack),
+      q: cast(actions.q),
+      w: cast(actions.w),
+      e: cast(actions.e),
+      r: cast(actions.r),
+    },
+  };
+}
+
 /** A jungle monster: idle, run and attack, in public/assets/sprites/monsters/<creatureType> */
 function monster(creatureType: string, spec: Omit<SpriteSetSpec, 'key' | 'outputDir'>): SpriteSetSpec {
   return { key: creatureType, outputDir: `${MONSTERS_DIR}/${creatureType}`, ...spec };
@@ -144,6 +179,42 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
       r: { mode: 'pixminimax', action: 'throws his arms wide and roars as dark purple energy erupts around him', frames: 8 },
     },
   },
+  champion('warrior', {
+    name: 'Kael',
+    description: 'a young knight in steel plate armor with a blue tabard, holding a longsword and a round steel shield',
+    attack: 'swings his longsword in a quick horizontal slash',
+    q: 'makes a wide sweeping cleave with the longsword',
+    w: 'raises his shield and braces as a pale glow surrounds him',
+    e: 'charges forward shield first',
+    r: 'leaps up and brings the longsword down in a mighty overhead strike',
+  }),
+  champion('magnus', {
+    name: 'Magnus',
+    description: 'a broad-shouldered bearded battlemage in crimson robes with iron pauldrons, face clearly visible, holding a tall staff at his side with a burning orb above his head height',
+    attack: 'thrusts the staff forward and fires a small fire bolt',
+    q: 'swings the staff and hurls a large fireball forward',
+    w: 'plants the staff as a shimmering arcane barrier forms around him',
+    e: 'points the staff at the ground, conjuring a swirling pool of mud',
+    r: 'raises the staff high and calls down fire from the sky',
+  }),
+  champion('elara', {
+    name: 'Elara',
+    description: 'a priestess in white and gold robes with long silver hair, holding a slender golden staff with a glowing crystal',
+    attack: 'flicks the staff and fires a small spark of light',
+    q: 'raises the staff and releases a soft beam of healing light',
+    w: 'extends a hand as a golden shield of light forms',
+    e: 'spins gracefully as light swirls around her feet',
+    r: 'lifts both arms skyward as a column of radiant light descends',
+  }),
+  champion('gorath', {
+    name: 'Gorath',
+    description: 'a stout stone guardian in heavy stone-plated armor with a braided beard and glowing amber runes, carrying a huge stone hammer',
+    attack: 'swings the stone hammer down in a heavy blow',
+    q: 'raises the hammer and slams it into the ground, cracking the earth',
+    w: 'plants his feet as stone plates harden over his body',
+    e: 'pounds his chest and roars a challenge',
+    r: 'leaps and smashes the hammer into the ground with both hands, sending out a shockwave',
+  }),
 ];
 
 interface ManifestEntry {

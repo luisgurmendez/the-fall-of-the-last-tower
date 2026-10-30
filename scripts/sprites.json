@@ -57,5 +57,53 @@
       "walk": "3a6696be-2a43-40c6-9506-b0681b5db439"
     },
     "characterId": "d8241ee4-3ba7-4cfb-94c6-a8f53f95f7c0"
+  },
+  "warrior": {
+    "animations": {
+      "w": "7c4d8ba0-1037-48ff-b524-f2b9af128028",
+      "q": "b49fa835-c46b-4fb1-bb74-ac0a692ef7f5",
+      "r": "757494a6-d98c-4722-b00f-133e36493150",
+      "e": "26ed5136-9563-4205-9f3d-49787caf8f93",
+      "idle": "566fe532-98e3-46fe-a685-26780bb420ef",
+      "attack": "2d999f50-53da-42fe-ba50-2e32932b078e",
+      "walk": "628b3965-3f18-4464-b88d-38496ffe3bed"
+    },
+    "characterId": "fac30b6d-53a5-4b20-8d19-1d5c65646948"
+  },
+  "magnus": {
+    "animations": {
+      "r": "62772068-9d95-42d7-9ac9-f0345c86cf98",
+      "w": "c1a9291b-b90f-4df6-af39-7e011122e6a3",
+      "q": "e7bf4143-ef28-454b-a6cd-c9b33ad31201",
+      "attack": "f97c6db2-68be-4849-84e1-2439c000a6e5",
+      "e": "c908fb4c-4200-4bbc-ab5e-73727dc9cba3",
+      "idle": "6065310c-6c95-43cf-abef-2994413cf5db",
+      "walk": "93a47c29-f5b0-463d-a904-bc1680cfca3a"
+    },
+    "characterId": "1a84778f-fa07-4304-b7b3-20499c4d427a"
+  },
+  "elara": {
+    "animations": {
+      "w": "3dbbbb51-3c48-4fdc-a05b-c9e9a009a3bf",
+      "q": "5e7ce3d9-66fc-4614-abd1-f3a171f5bf76",
+      "r": "c50c5d06-2120-4168-a9ee-d09e2c7ccab2",
+      "attack": "3d256930-9925-4d8a-aa82-2c4dde455474",
+      "e": "8bcf87aa-e603-4c7a-9d0c-677e4d668cab",
+      "idle": "0c5d710c-b3e7-457f-bf3f-e252647a367f",
+      "walk": "d889935d-c2f6-4224-9945-f7e7822e1bcb"
+    },
+    "characterId": "06f82019-345e-4777-9b2a-ca38852a0e17"
+  },
+  "gorath": {
+    "animations": {
+      "attack": "dff9422e-62bb-44ed-bd8f-4c23c68a7bd3",
+      "e": "7bdb391c-2c63-4050-bcfc-afc2166d0fd2",
+      "w": "aba2d755-d9e3-46a2-b57c-79b8fefd796b",
+      "q": "21413e94-90bf-4fa7-8d91-4622620adb0e",
+      "idle": "b994f7df-120d-45d0-b0ac-fcc84ad222b2",
+      "r": "deb208bd-a7a6-47f1-b939-62fecd2e8502",
+      "walk": "7e01402f-d47c-4c61-9f59-9f0b9154ceac"
+    },
+    "characterId": "872ea5b0-5fe0-4b9e-a447-fbecfe4e5a19"
   }
 }

@@ -25,6 +25,26 @@ export interface ChampionStrips {
   abilities: Record<string, string>;
 }
 
+/**
+ * The strips scripts/generate-sprites.ts makes for a champion, in
+ * /assets/champs/<championId>/, with the ability ids that play its q, w, e
+ * and r strips.
+ */
+export function generatedStrips(
+  championId: string,
+  abilities: Partial<Record<"q" | "w" | "e" | "r", string>>,
+): ChampionStrips {
+  const dir = `/assets/champs/${championId}`;
+  return {
+    idle: `${dir}/idle.png`,
+    walk: `${dir}/walk.png`,
+    attack: `${dir}/attack.png`,
+    abilities: Object.fromEntries(
+      Object.entries(abilities).map(([slot, abilityId]) => [abilityId, `${dir}/${slot}.png`]),
+    ),
+  };
+}
+
 /** Every strip of a set, to preload */
 export function stripImages(strips: ChampionStrips): string[] {
   return [strips.idle, strips.walk, strips.attack, ...Object.values(strips.abilities)];

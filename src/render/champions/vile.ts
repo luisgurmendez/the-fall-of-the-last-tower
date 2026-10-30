@@ -7,18 +7,13 @@
 
 import type { EntityRenderContext } from "@/render/entities/types";
 import type { ChampionRendererEntry } from "./types";
-import { createStripBodyRenderer, stripImages, type ChampionStrips } from "./stripBody";
+import { createStripBodyRenderer, generatedStrips, stripImages } from "./stripBody";
 
-const VILE_STRIPS: ChampionStrips = {
-  idle: "/assets/champs/vile/idle.png",
-  walk: "/assets/champs/vile/walk.png",
-  attack: "/assets/champs/vile/attack.png",
-  abilities: {
-    vile_black_arrows: "/assets/champs/vile/q.png",
-    vile_roots_of_vilix: "/assets/champs/vile/e.png",
-    vile_restoration_of_vilix: "/assets/champs/vile/r.png",
-  },
-};
+const VILE_STRIPS = generatedStrips("vile", {
+  q: "vile_black_arrows",
+  e: "vile_roots_of_vilix",
+  r: "vile_restoration_of_vilix",
+});
 
 /** World units per sprite pixel: about 55 tall, like Vex */
 const VILE_SCALE = 0.6;

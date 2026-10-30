@@ -1,15 +1,28 @@
 /**
- * Elara: no champion-specific drawing yet; drawn as the default circle.
+ * Elara: a priestess drawn from generated sprite strips (idle, walk, attack
+ * and an animation per ability; scripts/generate-sprites.ts). Without the
+ * strips she's the default circle.
  */
 
 import type { ChampionRendererEntry } from "./types";
+import { createStripBodyRenderer, generatedStrips, stripImages } from "./stripBody";
+
+const ELARA_STRIPS = generatedStrips("elara", {
+  q: "elara_heal",
+  w: "elara_barrier",
+  e: "elara_speed",
+  r: "elara_resurrection",
+});
+
+/** World units per sprite pixel */
+const ELARA_SCALE = 0.6;
 
 /**
  * Elara renderer entry.
  */
 export const elaraRenderer: ChampionRendererEntry = {
-  images: [],
-  createBodyRenderer: null,
+  images: stripImages(ELARA_STRIPS),
+  createBodyRenderer: (rc) => createStripBodyRenderer(ELARA_STRIPS, ELARA_SCALE, rc),
   projectiles: {},
   markVisuals: {},
 };
