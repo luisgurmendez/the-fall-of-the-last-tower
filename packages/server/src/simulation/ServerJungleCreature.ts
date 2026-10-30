@@ -82,6 +82,9 @@ export class ServerJungleCreature extends ServerEntity {
   private static readonly RETURN_REGEN = 0.3;
 
   /** Creatures that attack with projectiles, and how their projectiles look */
+  /** Longest basic attack animation the client plays (seconds) */
+  private static readonly MAX_ATTACK_ANIMATION = 0.6;
+
   private static readonly RANGED: Partial<Record<string, { projectileType: string; damageType: DamageType; speed: number }>> = {
     thornspitter: { projectileType: 'jungle_spit', damageType: 'magic', speed: 600 },
     dragon: { projectileType: 'dragon_fire', damageType: 'magic', speed: 700 },
@@ -293,7 +296,8 @@ export class ServerJungleCreature extends ServerEntity {
     context.addEvent(GameEventType.BASIC_ATTACK, {
       entityId: this.id,
       targetId: target.id,
-      animationDuration: 0.4,
+      // Long enough to see the bite or slam, done before the next attack
+      animationDuration: Math.min(ServerJungleCreature.MAX_ATTACK_ANIMATION, this.attackCooldown * 0.6),
     });
 
     const ranged = ServerJungleCreature.RANGED[this.creatureType];
