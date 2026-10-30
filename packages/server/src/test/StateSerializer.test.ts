@@ -145,6 +145,28 @@ describe('StateSerializer', () => {
       expect(deltas[0].changeMask).toBe(0xFFFF); // All fields for new entity
     });
 
+    it('should send nothing for a dead champion and its full snapshot when it respawns', () => {
+      const playerId = 'player-1';
+      serializer.createDeltaUpdates([createMockChampion('champ-1', { x: 100, y: 100 })] as any, playerId, 1);
+
+      // Dies: the client is told, then removes the champion
+      const death = serializer.createDeltaUpdates(
+        [createMockChampion('champ-1', { x: 100, y: 100, health: 0, isDead: true, respawnTimer: 10 })] as any, playerId, 2);
+      expect((death[0].data as any).isDead).toBe(true);
+
+      // While dead its respawn timer counts down, but the client has no champion to update
+      const whileDead = serializer.createDeltaUpdates(
+        [createMockChampion('champ-1', { x: 100, y: 100, health: 0, isDead: true, respawnTimer: 9 })] as any, playerId, 3);
+      expect(whileDead).toEqual([]);
+
+      // Respawns at the fountain: the client rebuilds it, so it needs every field
+      const respawn = serializer.createDeltaUpdates(
+        [createMockChampion('champ-1', { x: -1440, y: 1440, isDead: false })] as any, playerId, 4);
+      expect(respawn[0].changeMask).toBe(0xFFFF);
+      expect((respawn[0].data as ChampionSnapshot).championId).toBe('warrior');
+      expect((respawn[0].data as ChampionSnapshot).level).toBe(1);
+    });
+
     it('should detect position changes', () => {
       const playerId = 'player-1';
 

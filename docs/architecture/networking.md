@@ -296,6 +296,13 @@ Only send changed fields (60-70% reduction):
 // Result: ~150 bytes per tick
 ```
 
+`StateSerializer.createDeltaUpdates` keeps the last snapshot sent to each player:
+
+- **New entities** get their full snapshot.
+- **Changed entities** get only the changed fields.
+- **Entities that left the visible set** get a removal delta.
+- **Dead entities.** The client removes an entity as soon as a delta marks it dead. Allied champions stay visible while dead, so the serializer sends nothing for them until they come back. A champion that respawns gets its full snapshot again, because the client rebuilds it from scratch; with only the changed fields, it came back without its `championId`.
+
 ### Entity Prioritization
 
 Nearby entities update more frequently:

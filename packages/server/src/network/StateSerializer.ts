@@ -69,9 +69,19 @@ export class StateSerializer {
     for (const entity of entities) {
       const currentSnapshot = entity.toSnapshot();
       const previousState = playerStates.get(entity.id);
+      const wasDead = (previousState?.snapshot as { isDead?: boolean } | undefined)?.isDead === true;
+      const isDead = (currentSnapshot as { isDead?: boolean }).isDead === true;
 
-      if (!previousState) {
-        // New entity - send full snapshot as delta
+      if (wasDead && isDead) {
+        // The client removes an entity when told it died (an allied champion
+        // stays visible while dead), so there is nothing to update until it
+        // comes back. Keep the state fresh so it isn't dropped as stale.
+        playerStates.set(entity.id, { snapshot: currentSnapshot, tick });
+        continue;
+      }
+
+      if (!previousState || (wasDead && !isDead)) {
+        // New entity, or a champion respawning (the client rebuilds it) - send full snapshot as delta
         deltas.push({
           entityId: entity.id,
           changeMask: 0xFFFF, // All fields changed
