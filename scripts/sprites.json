@@ -26,14 +26,14 @@
   "blue_buff": {
     "animations": {
       "idle": "ea54d0fa-4918-4e26-9672-39fceacb79d5",
-      "attack": "7a24a309-4d93-4561-9504-374adf762cca",
+      "attack": "adce766a-cf14-4fdd-af97-4b63f8fd5936",
       "run": "c1b5fa2e-cd20-4ec4-86f3-a0ffb5a00f1f"
     },
     "characterId": "9c71310b-f22f-4b0e-bb5c-2b8667b77ff3"
   },
   "red_buff": {
     "animations": {
-      "attack": "cc66c037-5866-4c5f-85b6-7ce05b1856d9",
+      "attack": "be73848a-311c-452c-8f12-0ff505d341d9",
       "idle": "a032d70b-f10a-4b70-b3c1-f3fdfc9a3a8d",
       "run": "d25ddfe7-1dd1-40ae-85cb-941c86d491a7"
     },

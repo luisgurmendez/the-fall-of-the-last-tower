@@ -135,7 +135,7 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
     animations: {
       idle: { mode: 'v3', action: 'standing still, breathing slowly, crystals glowing', frames: 4 },
       run: { mode: 'pixminimax', action: 'walks forward slowly and heavily in a looping walk cycle', frames: 8 },
-      attack: { mode: 'pixminimax', action: 'rears up on its hind legs and stomps the ground hard with its front legs', frames: 8 },
+      attack: { mode: 'pixminimax', action: 'lunges its head far forward out of its shell and snaps its jaws in a powerful bite, then pulls back', frames: 8 },
     },
   }),
   monster('red_buff', {
@@ -146,7 +146,7 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
     animations: {
       idle: { mode: 'v3', action: 'standing hunched, breathing heavily, lava glowing', frames: 4 },
       run: { mode: 'template', template: 'walking-6-frames' },
-      attack: { mode: 'pixminimax', action: 'raises both fists overhead and slams them into the ground', frames: 8 },
+      attack: { mode: 'pixminimax', action: 'raises both fists overhead, slams them into the ground, then stands back up', frames: 8 },
     },
   }),
   monster('dragon', {
