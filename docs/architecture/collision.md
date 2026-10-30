@@ -47,6 +47,7 @@ function checkCollision(a: ServerEntity, b: ServerEntity): boolean {
 | Melee Minion | 20 | |
 | Caster Minion | 20 | |
 | Tower | 50 | Immovable (infinite mass) |
+| Nexus | 160 × 100 rectangle (the building's footprint, offset 46 up) | Immovable (infinite mass) |
 
 ## Collision Resolution
 

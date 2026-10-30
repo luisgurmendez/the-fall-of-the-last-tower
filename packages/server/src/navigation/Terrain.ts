@@ -3,8 +3,9 @@
  *
  * - resolveCircle(): pushes a unit out of walls and the water border (run
  *   every tick after movement and unit collisions)
- * - findPath(): A* around walls on a navigation grid whose walls are
- *   inflated by a unit's clearance, so paths don't hug cliff edges
+ * - findPath(): A* around walls and the nexus buildings on a navigation
+ *   grid whose walls are inflated by a unit's clearance, so paths don't hug
+ *   cliff edges
  * - hasLineOfSight(): straight line not crossing a wall
  */
 
@@ -28,7 +29,7 @@ export class Terrain {
   private readonly playableHalf: number;
 
   /**
-   * @param map Map config (walls, water border, nexus)
+   * @param map Map config (walls, water border, nexus footprints)
    * @param clearance How far paths keep from walls (about a champion's radius)
    */
   constructor(map: typeof MOBAConfig, clearance = 30) {
@@ -48,16 +49,23 @@ export class Terrain {
       }
     });
 
+    // Paths also go around the nexus buildings (units collide with them)
+    const footprint = map.NEXUS.collision;
+    const nexuses = [map.NEXUS.BLUE, map.NEXUS.RED].map(center => ({
+      position: { x: center.x + footprint.offset.x, y: center.y + footprint.offset.y },
+      width: footprint.width,
+      height: footprint.height,
+    }));
+
     this.navGrid = new ServerNavGrid(map.MAP_SIZE.width);
     this.navGrid.initializeFromConfig({
       MAP_SIZE: map.MAP_SIZE,
       WATER_BORDER_SIZE: map.WATER_BORDER_SIZE + clearance,
-      WALLS: map.WALLS.map(wall => ({
+      WALLS: [...map.WALLS, ...nexuses].map(wall => ({
         position: wall.position,
         width: wall.width + clearance * 2,
         height: wall.height + clearance * 2,
       })),
-      NEXUS: { ...map.NEXUS, RADIUS: map.NEXUS.RADIUS + clearance },
     });
   }
 

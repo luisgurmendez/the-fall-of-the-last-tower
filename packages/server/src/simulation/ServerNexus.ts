@@ -10,7 +10,9 @@ import {
   Side,
   EntityType,
   MOBAConfig,
+  getEffectiveRadius,
   type DamageType,
+  type EntityCollision,
   type NexusSnapshot,
 } from '@siege/shared';
 import { ServerEntity, type ServerEntityConfig } from './ServerEntity';
@@ -55,15 +57,32 @@ export class ServerNexus extends ServerEntity {
   }
 
   /**
-   * Get nexus radius for collision.
-   * Uses the collision shape from MOBAConfig, defaulting to RADIUS.
+   * The nexus is a solid building: units can't walk through it.
+   */
+  override isCollidable(): boolean {
+    return !this.isDead && !this._isDestroyed;
+  }
+
+  /**
+   * Bounding radius of the building's footprint.
+   * @deprecated Use getCollisionShape() for proper shape-based collision.
    */
   getRadius(): number {
-    const collision = MOBAConfig.NEXUS.collision;
-    if (collision && collision.type === 'circle') {
-      return collision.radius;
-    }
-    return this.radius; // Fallback to MOBAConfig.NEXUS.RADIUS
+    return getEffectiveRadius(MOBAConfig.NEXUS.collision);
+  }
+
+  /**
+   * The building's footprint (a rectangle).
+   */
+  override getCollisionShape(): EntityCollision {
+    return MOBAConfig.NEXUS.collision;
+  }
+
+  /**
+   * Immovable: units are pushed away from it.
+   */
+  override getMass(): number {
+    return Infinity;
   }
 
   /**

@@ -594,7 +594,6 @@ export class ServerNavGrid {
     MAP_SIZE: { width: number; height: number };
     WATER_BORDER_SIZE: number;
     WALLS: Array<{ position: { x: number; y: number }; width: number; height: number }>;
-    NEXUS: { BLUE: { x: number; y: number }; RED: { x: number; y: number }; RADIUS: number };
   }): void {
     // Block water border
     const waterSize = config.WATER_BORDER_SIZE;
@@ -620,10 +619,6 @@ export class ServerNavGrid {
     for (const wall of config.WALLS) {
       this.blockRectangle(wall.position.x, wall.position.y, wall.width, wall.height);
     }
-
-    // Block nexus areas
-    this.blockCircle(config.NEXUS.BLUE.x, config.NEXUS.BLUE.y, config.NEXUS.RADIUS);
-    this.blockCircle(config.NEXUS.RED.x, config.NEXUS.RED.y, config.NEXUS.RADIUS);
 
     this._version++;
   }

@@ -41,7 +41,8 @@ export const MOBAConfig = {
     RED: { x: 1300, y: -1300 },
     RADIUS: 75,
     HEALTH: 5000,
-    collision: { type: "circle" as const, radius: 75, offset: { x: 0, y: 0 } },
+    /** The building's footprint on the ground (the sprite's base is at the position) */
+    collision: { type: "rectangle" as const, width: 160, height: 100, offset: { x: 0, y: -46 } },
   },
 
   /**
