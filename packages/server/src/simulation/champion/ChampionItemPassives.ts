@@ -75,7 +75,7 @@ export class ChampionItemPassives {
     }
 
     for (const passive of this.passivesOfType('lifesteal')) {
-      champion.heal(dealt * Number(passive.effectData.percent));
+      champion.heal(dealt * Number(passive.effectData.percent), context, champion.id);
     }
   }
 

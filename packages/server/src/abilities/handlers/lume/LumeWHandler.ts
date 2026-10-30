@@ -58,7 +58,7 @@ export class LumeWHandler extends BaseAbilityHandler {
 
       if (isAlly && healAmount > 0) {
         // Heal allies (including Lume)
-        this.healEntity(entity, healAmount);
+        this.healEntity(entity, healAmount, context, champion.id);
       } else if (!isAlly && damageAmount > 0) {
         // Damage enemies
         this.dealDamage(entity, damageAmount, damageType, champion.id, context);

@@ -115,7 +115,7 @@ function applyNoTargetArea(
     // Apply healing to allies
     if (isAlly && healAmount > 0) {
       if ("heal" in entity && typeof entity.heal === "function") {
-        (entity as { heal: (amount: number) => void }).heal(healAmount);
+        entity.heal(healAmount, context, champion.id);
       }
     }
 

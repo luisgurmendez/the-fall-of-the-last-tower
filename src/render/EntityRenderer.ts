@@ -51,6 +51,7 @@ import {
   renderDamageNumbers,
   renderGoldNumbers,
   renderXpNumbers,
+  renderHealNumbers,
 } from "@/render/overlays/floatingNumbers";
 import { getChampionImages } from "@/render/champions";
 
@@ -339,6 +340,9 @@ export class EntityRenderer implements GameObject {
 
       // Render floating XP numbers
       renderXpNumbers(canvasRenderingContext, this.stateManager);
+
+      // Render floating heal numbers
+      renderHealNumbers(canvasRenderingContext, this.stateManager);
     }, true);
 
     element.positionType = "normal";

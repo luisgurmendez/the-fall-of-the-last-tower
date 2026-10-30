@@ -1,5 +1,5 @@
 /**
- * Floating combat text (state side): the damage, gold and XP numbers waiting
+ * Floating combat text (state side): the damage, heal, gold and XP numbers waiting
  * to be drawn. Game events add them; src/render/overlays/floatingNumbers.ts
  * draws them, rising and fading above the entity.
  */
@@ -59,7 +59,13 @@ export interface XpNumber {
   duration: number;
 }
 
+/**
+ * Floating heal number ("+N" in green), shaped like an XP number.
+ */
+export type HealNumber = XpNumber;
+
 const DAMAGE_NUMBER_DURATION = 1000; // ms
+const HEAL_NUMBER_DURATION = 1000; // ms
 const GOLD_NUMBER_DURATION = 1200; // ms (slightly longer than damage)
 const XP_NUMBER_DURATION = 1200; // ms
 
@@ -70,6 +76,7 @@ export class FloatingNumbers {
   private damageNumbers: DamageNumber[] = [];
   private goldNumbers: GoldNumber[] = [];
   private xpNumbers: XpNumber[] = [];
+  private healNumbers: HealNumber[] = [];
 
   addDamage(damageNumber: Omit<DamageNumber, 'duration'>): void {
     this.damageNumbers.push({ ...damageNumber, duration: DAMAGE_NUMBER_DURATION });
@@ -81,6 +88,19 @@ export class FloatingNumbers {
 
   addXp(xpNumber: Omit<XpNumber, 'duration'>): void {
     this.xpNumbers.push({ ...xpNumber, duration: XP_NUMBER_DURATION });
+  }
+
+  addHeal(healNumber: Omit<HealNumber, 'duration'>): void {
+    this.healNumbers.push({ ...healNumber, duration: HEAL_NUMBER_DURATION });
+  }
+
+  /**
+   * Active heal numbers (expired ones are dropped), with each one's progress (0-1).
+   */
+  getHealNumbers(): Array<{ heal: HealNumber; progress: number }> {
+    const now = Date.now();
+    this.healNumbers = this.healNumbers.filter((hn) => now - hn.startTime < hn.duration);
+    return this.healNumbers.map((heal) => ({ heal, progress: Math.min(1, (now - heal.startTime) / heal.duration) }));
   }
 
   /**

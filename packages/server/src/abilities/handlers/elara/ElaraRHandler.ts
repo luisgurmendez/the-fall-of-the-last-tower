@@ -40,7 +40,7 @@ export class ElaraRHandler extends BaseAbilityHandler {
     for (const entity of allies) {
       // Heal the ally
       if (healAmount > 0) {
-        this.healEntity(entity, healAmount);
+        this.healEntity(entity, healAmount, context, champion.id);
         alliesHealed++;
       }
 

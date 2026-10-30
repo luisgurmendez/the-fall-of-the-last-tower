@@ -356,6 +356,13 @@ export class OnlineStateManager {
   }
 
   /**
+   * Active heal numbers, each with its progress (0-1).
+   */
+  getHealNumbers(): ReturnType<FloatingNumbers['getHealNumbers']> {
+    return this.floatingNumbers.getHealNumbers();
+  }
+
+  /**
    * Get all active ability effects and remove expired ones.
    */
   getAbilityEffects(): AbilityEffect[] {

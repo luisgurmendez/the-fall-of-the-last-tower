@@ -165,6 +165,16 @@ export function processGameEvent(event: GameEvent, ctx: GameEventContext): void 
       });
       break;
     }
+    case GameEventType.HEAL: {
+      const entityId = event.data.entityId as string;
+      const amount = event.data.amount as number;
+      const entity = ctx.entities.get(entityId);
+      if (entity && amount > 0) {
+        ctx.floatingNumbers.addHeal({ entityId, x: entity.position.x, y: entity.position.y, amount, startTime: now });
+      }
+      break;
+    }
+
     case GameEventType.XP_EARNED: {
       const entityId = event.data.entityId as string;
       const amount = event.data.amount as number;

@@ -4,7 +4,7 @@
  */
 
 import { describe, test, expect } from 'bun:test';
-import { Vector, type ItemSlot } from '@siege/shared';
+import { GameEventType, Vector, type ItemSlot } from '@siege/shared';
 import { createTestArena } from './ServerTestUtils';
 import type { ServerChampion } from '../simulation/ServerChampion';
 
@@ -36,12 +36,15 @@ describe('Item passives', () => {
     expect(before - red.health).toBeLessThanOrEqual(12);
   });
 
-  test('Feast: basic attacks heal for 15% of the damage dealt', () => {
+  test('Feast: basic attacks heal for 15% of the damage dealt, and clients are told', () => {
     const { blue, red, context } = meleeArena();
     give(blue, 'crimson_fang');
     blue.health = 100;
+    context.flushEvents();
     blue.itemPassives.onBasicAttackHit(red, 100, context);
     expect(blue.health).toBe(115);
+    const heal = context.flushEvents().find(event => event.type === GameEventType.HEAL);
+    expect(heal?.data).toMatchObject({ entityId: blue.id, amount: 15 });
   });
 
   test('Feast heals from a real basic attack', () => {

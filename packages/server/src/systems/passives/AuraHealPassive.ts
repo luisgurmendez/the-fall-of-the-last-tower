@@ -39,7 +39,7 @@ export function handleAuraHeal(
       { maxHealth: entityMaxHealth }
     );
 
-    (entity as { heal: (amount: number) => void }).heal(healAmount);
+    entity.heal(healAmount, context, champion.id);
   }
 
   passiveState.isActive = true;

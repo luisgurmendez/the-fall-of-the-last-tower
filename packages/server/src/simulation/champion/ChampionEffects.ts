@@ -149,7 +149,7 @@ export class ChampionEffects {
           break;
         case 'heal':
           // Apply healing (HoT)
-          champion.heal(tickValue);
+          champion.heal(tickValue, context, effect.sourceId);
           break;
         case 'mana_drain':
           // Drain mana

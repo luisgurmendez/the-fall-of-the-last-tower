@@ -586,6 +586,8 @@ export enum GameEventType {
   XP_EARNED = 16,
   /** A jungle camp was cleared ({ campId, x, y, respawnAt }) */
   CAMP_CLEARED = 17,
+  /** An entity was healed ({ entityId, amount, sourceId }) */
+  HEAL = 18,
 }
 
 /**

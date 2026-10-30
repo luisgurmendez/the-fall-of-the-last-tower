@@ -128,14 +128,19 @@ export abstract class ServerEntity {
   onBasicAttackTaken(_attacker: ServerEntity, _context: ServerGameContext): void {}
 
   /**
-   * Heal the entity.
+   * Heal the entity. With a context, clients are told (HEAL event) so they
+   * show the heal; changes that aren't heals (max health going up) omit it.
    */
-  heal(amount: number): number {
+  heal(amount: number, context?: ServerGameContext, sourceId?: string): number {
     if (this.isDead) return 0;
 
     const previousHealth = this.health;
     this.health = Math.min(this.maxHealth, this.health + amount);
-    return this.health - previousHealth;
+    const healed = this.health - previousHealth;
+    if (context && healed >= 1) {
+      context.addEvent(GameEventType.HEAL, { entityId: this.id, amount: Math.round(healed), sourceId });
+    }
+    return healed;
   }
 
   /**

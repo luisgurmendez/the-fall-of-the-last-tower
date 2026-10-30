@@ -72,7 +72,7 @@ export function executeTargetAllyAbility(
   ) {
     const healAmount = calculateAbilityValue(definition.heal.scaling, rank, getScalingStats(champion, stats));
 
-    (target as { heal: (amount: number) => void }).heal(healAmount);
+    target.heal(healAmount, context, champion.id);
   }
 
   // Apply shield

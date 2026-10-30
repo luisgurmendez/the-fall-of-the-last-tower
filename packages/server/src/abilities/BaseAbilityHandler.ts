@@ -254,11 +254,9 @@ export abstract class BaseAbilityHandler implements IAbilityHandler {
   /**
    * Heal an entity.
    */
-  protected healEntity(entity: ServerEntity, amount: number): void {
+  protected healEntity(entity: ServerEntity, amount: number, context: ServerGameContext, sourceId?: string): void {
     if (entity.isDead || amount <= 0) return;
-    if ('heal' in entity && typeof entity.heal === 'function') {
-      (entity as { heal: (amount: number) => void }).heal(amount);
-    }
+    entity.heal(amount, context, sourceId);
   }
 
   /**

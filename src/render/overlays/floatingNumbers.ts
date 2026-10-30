@@ -207,3 +207,37 @@ export function renderXpNumbers(
     ctx.restore();
   }
 }
+
+/** Heal numbers: green "+N", rising on the right of the entity */
+const HEAL_NUMBER_CONFIG = {
+  FONT: "bold 16px m5x7",
+  FLOAT_DISTANCE: 30,
+  COLOR: "#4ade80",
+};
+
+/**
+ * Render floating heal numbers.
+ */
+export function renderHealNumbers(
+  ctx: CanvasRenderingContext2D,
+  stateManager: OnlineStateManager,
+): void {
+  for (const { heal, progress } of stateManager.getHealNumbers()) {
+    const easeOut = 1 - Math.pow(1 - progress, 3);
+    const alpha = progress < 0.7 ? 1 : 1 - (progress - 0.7) / 0.3;
+    const text = `+${heal.amount}`;
+
+    ctx.save();
+    ctx.translate(heal.x + 20, heal.y - 20 - HEAL_NUMBER_CONFIG.FLOAT_DISTANCE * easeOut);
+    ctx.font = HEAL_NUMBER_CONFIG.FONT;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = "#000000";
+    ctx.lineWidth = 2;
+    ctx.strokeText(text, 0, 0);
+    ctx.fillStyle = HEAL_NUMBER_CONFIG.COLOR;
+    ctx.fillText(text, 0, 0);
+    ctx.restore();
+  }
+}

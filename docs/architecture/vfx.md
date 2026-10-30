@@ -351,6 +351,10 @@ class EntityRenderer {
 }
 ```
 
+Heals show as a green "+N" rising beside the entity. `ServerEntity.heal(amount, context,
+sourceId)` sends a `HEAL` event `{ entityId, amount, sourceId }` when given a context: ability
+heals, healing auras, heals over time and lifesteal do; max health going up doesn't.
+
 Champions, minions and jungle creatures flash bright for 0.12 s when they take damage: the
 `DAMAGE` event stamps `animation.hitTime` (`src/core/state/gameEvents.ts`) and the renderers
 add a fading `brightness` filter (`stateManager.getHitFlash`).
