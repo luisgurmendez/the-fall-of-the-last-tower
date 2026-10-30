@@ -35,7 +35,6 @@ import {
   drawGroundCircle,
   drawFilledGroundCircle,
   drawShockwave,
-  drawScreenFlash,
 } from './effects/VFXPrimitives';
 import type {
   ActiveEffect,
@@ -69,6 +68,11 @@ import {
   renderShields,
   renderOrbitingParticles,
 } from './active/auras';
+import {
+  createScreenFlash,
+  updateScreenFlash,
+  renderScreenFlash,
+} from './active/screenFlash';
 
 /**
  * Performance statistics.
@@ -231,23 +235,8 @@ export class VFXManager {
         createDashAfterimage(this.generateId(), config as DashAfterimageConfig, casterId, x, y, startTime)
       );
     } else if (config.type === 'screen_flash') {
-      this.triggerScreenFlash(config as ScreenFlashConfig, startTime);
+      this.screenFlash = createScreenFlash(config as ScreenFlashConfig, startTime);
     }
-  }
-
-  /**
-   * Trigger a screen flash.
-   */
-  private triggerScreenFlash(
-    config: ScreenFlashConfig,
-    startTime: number
-  ): void {
-    this.screenFlash = {
-      color: config.color,
-      duration: config.duration * 1000,
-      maxAlpha: config.maxAlpha,
-      startTime,
-    };
   }
 
   /**
@@ -304,12 +293,7 @@ export class VFXManager {
     );
 
     // Update screen flash
-    if (this.screenFlash) {
-      const elapsed = now - this.screenFlash.startTime;
-      if (elapsed >= this.screenFlash.duration) {
-        this.screenFlash = null;
-      }
-    }
+    this.screenFlash = updateScreenFlash(this.screenFlash, now);
   }
 
   /**
@@ -344,20 +328,7 @@ export class VFXManager {
     ctx.restore();
 
     // Render screen flash (in screen space, not world space)
-    if (this.screenFlash) {
-      const elapsed = now - this.screenFlash.startTime;
-      const progress = elapsed / this.screenFlash.duration;
-      // Fade in then fade out
-      const alpha =
-        progress < 0.3
-          ? progress / 0.3
-          : 1 - (progress - 0.3) / 0.7;
-      drawScreenFlash(
-        ctx,
-        this.screenFlash.color,
-        alpha * this.screenFlash.maxAlpha
-      );
-    }
+    renderScreenFlash(ctx, this.screenFlash, now);
   }
 
   /**
