@@ -4,21 +4,30 @@
  * This system manages passive ability triggers for champions.
  * Passives are triggered by game events (damage, attacks, kills, etc.)
  * and process their effects accordingly.
+ *
+ * It owns the registry (passives per trigger, per champion type) and the
+ * dispatch. Passives registered without a handler get a default handler
+ * picked from their definition; those live in systems/passives/.
  */
 
 import {
   PassiveTrigger,
   PassiveAbilityDefinition,
   PassiveState,
-  getPassiveDefinition,
-  calculateAbilityValue,
   DamageType,
-  EntityType,
 } from '@siege/shared';
 import type { ServerChampion } from '../simulation/ServerChampion';
 import type { ServerEntity } from '../simulation/ServerEntity';
 import type { ServerGameContext } from '../game/ServerGameContext';
 import { Logger } from '../utils/Logger';
+import { handleLowHealthShield } from './passives/LowHealthShieldPassive';
+import {
+  handleStackAccumulation,
+  handleOnHitDamage,
+  handleTakeDamageStack,
+} from './passives/StackPassives';
+import { handleAuraHeal } from './passives/AuraHealPassive';
+import { handleSoulStacks } from './passives/SoulStacksPassive';
 
 /**
  * Data passed to passive trigger handlers.
@@ -75,22 +84,22 @@ export class PassiveTriggerSystem {
    */
   private initializeDefaultHandlers(): void {
     // Default handler for on_low_health (like Warrior's Undying Resolve)
-    this.defaultHandlers.set('on_low_health_shield', this.handleLowHealthShield.bind(this));
+    this.defaultHandlers.set('on_low_health_shield', handleLowHealthShield);
 
     // Default handler for stack-based passives (like Magnus's Arcane Surge)
-    this.defaultHandlers.set('stack_accumulation', this.handleStackAccumulation.bind(this));
+    this.defaultHandlers.set('stack_accumulation', handleStackAccumulation);
 
     // Default handler for on_hit damage (like Vex's Assassin's Mark)
-    this.defaultHandlers.set('on_hit_damage', this.handleOnHitDamage.bind(this));
+    this.defaultHandlers.set('on_hit_damage', handleOnHitDamage);
 
     // Default handler for on_take_damage stack (like Gorath's Immovable)
-    this.defaultHandlers.set('on_take_damage_stack', this.handleTakeDamageStack.bind(this));
+    this.defaultHandlers.set('on_take_damage_stack', handleTakeDamageStack);
 
     // Default handler for aura passives (like Elara's Blessed Presence)
-    this.defaultHandlers.set('aura_heal', this.handleAuraHeal.bind(this));
+    this.defaultHandlers.set('aura_heal', handleAuraHeal);
 
     // Default handler for Vile's Souls of Vilix (dual-trigger: on_kill + on_hit)
-    this.defaultHandlers.set('soul_stacks', this.handleSoulStacks.bind(this));
+    this.defaultHandlers.set('soul_stacks', handleSoulStacks);
   }
 
   /**
@@ -300,7 +309,7 @@ export class PassiveTriggerSystem {
   }
 
   // ==========================================================================
-  // Default Handlers
+  // Fallback Handler (the default handlers live in systems/passives/)
   // ==========================================================================
 
   /**
@@ -315,346 +324,6 @@ export class PassiveTriggerSystem {
   ): void {
     Logger.champion.debug(`Passive ${definition.id} triggered for ${champion.playerId}`);
     passiveState.isActive = true;
-  }
-
-  /**
-   * Handler for on_low_health shield passives (Warrior).
-   */
-  private handleLowHealthShield(
-    champion: ServerChampion,
-    passiveState: PassiveState,
-    definition: PassiveAbilityDefinition,
-    _context: ServerGameContext,
-    _data?: PassiveTriggerData
-  ): void {
-    const healthPercent = champion.health / champion.maxHealth;
-    const threshold = definition.healthThreshold ?? 0.3;
-
-    if (healthPercent > threshold) return;
-
-    // Apply shield
-    if (definition.shield) {
-      const stats = champion.getStats();
-      const baseShieldValue = definition.scalesWithLevel
-        ? this.getLevelScaledValue(definition, champion.level)
-        : definition.shield.scaling.base[0];
-
-      const shieldAmount = calculateAbilityValue(
-        { ...definition.shield.scaling, base: [baseShieldValue] },
-        1,
-        {
-          bonusHealth: stats.maxHealth - champion.definition.baseStats.health,
-          maxHealth: stats.maxHealth,
-        }
-      );
-
-      champion.shields.push({
-        amount: shieldAmount,
-        remainingDuration: definition.shield.duration,
-        sourceId: `passive_${definition.id}`,
-        shieldType: 'normal',
-      });
-    }
-
-    // Apply stat modifiers via effects (so they show in HUD)
-    if (definition.statModifiers) {
-      const effectDuration = definition.shield?.duration ?? 5;
-      for (const mod of definition.statModifiers) {
-        // For warrior passive, apply the undying resolve effect
-        if (definition.id === 'warrior_passive' && mod.stat === 'armor') {
-          champion.applyEffect('warrior_undying_resolve', effectDuration, `passive_${definition.id}`);
-        } else {
-          // Fallback to direct modifier for other passives
-          champion.addModifier({
-            source: `passive_${definition.id}`,
-            flat: mod.flatValue ? { [mod.stat]: mod.flatValue } as any : undefined,
-            percent: mod.percentValue ? { [mod.stat]: 1 + mod.percentValue } as any : undefined,
-            duration: effectDuration,
-            timeRemaining: effectDuration,
-          });
-        }
-      }
-    }
-
-    // Set cooldown
-    passiveState.cooldownRemaining = definition.internalCooldown ?? 60;
-    passiveState.isActive = true;
-
-    Logger.champion.info(`${champion.playerId} triggered ${definition.name}`);
-  }
-
-  /**
-   * Handler for stack accumulation passives (Magnus).
-   */
-  private handleStackAccumulation(
-    champion: ServerChampion,
-    passiveState: PassiveState,
-    definition: PassiveAbilityDefinition,
-    _context: ServerGameContext,
-    _data?: PassiveTriggerData
-  ): void {
-    const maxStacks = definition.maxStacks ?? 4;
-    const stacksToAdd = definition.stacksPerTrigger ?? 1;
-
-    passiveState.stacks = Math.min(maxStacks, passiveState.stacks + stacksToAdd);
-    passiveState.stackTimeRemaining = definition.stackDuration ?? 10;
-
-    // Check if required stacks reached
-    if (definition.requiredStacks && passiveState.stacks >= definition.requiredStacks) {
-      passiveState.isActive = true;
-    }
-
-    Logger.champion.debug(
-      `${champion.playerId} ${definition.name}: ${passiveState.stacks}/${maxStacks} stacks`
-    );
-  }
-
-  /**
-   * Handler for on-hit damage passives with stacks (Vex).
-   */
-  private handleOnHitDamage(
-    champion: ServerChampion,
-    passiveState: PassiveState,
-    definition: PassiveAbilityDefinition,
-    context: ServerGameContext,
-    data?: PassiveTriggerData
-  ): void {
-    if (!data?.target) return;
-
-    const maxStacks = definition.maxStacks ?? 3;
-    const stacksToAdd = definition.stacksPerTrigger ?? 1;
-
-    passiveState.stacks = Math.min(maxStacks, passiveState.stacks + stacksToAdd);
-    passiveState.stackTimeRemaining = definition.stackDuration ?? 5;
-
-    // Check if required stacks reached for proc
-    const requiredStacks = definition.requiredStacks ?? maxStacks;
-    if (passiveState.stacks >= requiredStacks) {
-      // Apply bonus damage
-      if (definition.damage) {
-        const target = data.target;
-        const targetMaxHealth = target.maxHealth;
-
-        const bonusDamage = calculateAbilityValue(
-          definition.damage.scaling,
-          1,
-          { maxHealth: targetMaxHealth }
-        );
-
-        target.takeDamage(bonusDamage, definition.damage.type, champion.id, context);
-
-        Logger.champion.debug(
-          `${champion.playerId} ${definition.name} proc: ${bonusDamage} ${definition.damage.type} damage`
-        );
-      }
-
-      // Consume stacks if configured
-      if (definition.consumeStacksOnActivation) {
-        passiveState.stacks = 0;
-      }
-
-      passiveState.isActive = false;
-    }
-  }
-
-  /**
-   * Handler for on-take-damage stack passives (Gorath).
-   */
-  private handleTakeDamageStack(
-    champion: ServerChampion,
-    passiveState: PassiveState,
-    definition: PassiveAbilityDefinition,
-    _context: ServerGameContext,
-    _data?: PassiveTriggerData
-  ): void {
-    // Check internal cooldown for stacking
-    if (passiveState.cooldownRemaining > 0) return;
-
-    const maxStacks = definition.maxStacks ?? 10;
-    const stacksToAdd = definition.stacksPerTrigger ?? 1;
-
-    const previousStacks = passiveState.stacks;
-    passiveState.stacks = Math.min(maxStacks, passiveState.stacks + stacksToAdd);
-    passiveState.stackTimeRemaining = definition.stackDuration ?? 4;
-
-    // Apply/update stat modifier based on stacks
-    if (definition.statModifiers) {
-      // Remove old modifier
-      champion.removeModifier(`passive_${definition.id}`);
-
-      // Add new modifier with stack scaling
-      for (const mod of definition.statModifiers) {
-        champion.addModifier({
-          source: `passive_${definition.id}`,
-          flat: mod.flatValue ? { [mod.stat]: mod.flatValue * passiveState.stacks } as any : undefined,
-          percent: mod.percentValue ? { [mod.stat]: 1 + mod.percentValue * passiveState.stacks } as any : undefined,
-        });
-      }
-    }
-
-    // Set mini cooldown between stack gains
-    passiveState.cooldownRemaining = definition.internalCooldown ?? 0.5;
-    passiveState.isActive = passiveState.stacks > 0;
-
-    if (passiveState.stacks > previousStacks) {
-      Logger.champion.debug(
-        `${champion.playerId} ${definition.name}: ${passiveState.stacks}/${maxStacks} stacks`
-      );
-    }
-  }
-
-  /**
-   * Handler for aura heal passives (Elara).
-   */
-  private handleAuraHeal(
-    champion: ServerChampion,
-    passiveState: PassiveState,
-    definition: PassiveAbilityDefinition,
-    context: ServerGameContext,
-    _data?: PassiveTriggerData
-  ): void {
-    if (!definition.auraRadius || !definition.heal) return;
-
-    // Get allies in range
-    const entities = context.getEntitiesInRadius(champion.position, definition.auraRadius);
-
-    for (const entity of entities) {
-      if (entity.side !== champion.side) continue;
-      if (entity.isDead) continue;
-      if (!('heal' in entity)) continue;
-
-      const entityMaxHealth = entity.maxHealth;
-      const healAmount = calculateAbilityValue(
-        definition.heal.scaling,
-        1,
-        { maxHealth: entityMaxHealth }
-      );
-
-      (entity as { heal: (amount: number) => void }).heal(healAmount);
-    }
-
-    passiveState.isActive = true;
-  }
-
-  /**
-   * Get level-scaled value for a passive.
-   */
-  private getLevelScaledValue(definition: PassiveAbilityDefinition, level: number): number {
-    if (!definition.levelScaling) {
-      return definition.shield?.scaling.base[0] ?? 0;
-    }
-
-    const { levels, values } = definition.levelScaling;
-
-    for (let i = levels.length - 1; i >= 0; i--) {
-      if (level >= levels[i]) {
-        return values[i];
-      }
-    }
-
-    return values[0];
-  }
-
-  /**
-   * Handler for Vile's Souls of Vilix passive.
-   * Dual-trigger:
-   * - on_kill: Gain soul stacks based on target type and champion level
-   * - on_hit: Consume all stacks to deal bonus physical damage to champions
-   */
-  private handleSoulStacks(
-    champion: ServerChampion,
-    passiveState: PassiveState,
-    definition: PassiveAbilityDefinition,
-    context: ServerGameContext,
-    data?: PassiveTriggerData
-  ): void {
-    if (!definition.soulScaling) return;
-
-    // Determine which trigger this is
-    // on_kill data will have target (the killed entity)
-    // on_hit data will have target (the attacked entity) and will be a champion
-
-    if (!data?.target) return;
-
-    const target = data.target;
-
-    // Check if this is an on_hit trigger (target is a champion, not dead)
-    // If target is alive and is a champion, this is an on_hit (basic attack)
-    if (target.entityType === EntityType.CHAMPION && !target.isDead) {
-      // on_hit: Consume stacks to deal damage
-      if (passiveState.stacks > 0) {
-        const bonusDamage = passiveState.stacks;
-        target.takeDamage(bonusDamage, 'physical', champion.id, context);
-
-        Logger.champion.debug(
-          `${champion.playerId} Souls of Vilix consumed ${passiveState.stacks} stacks for ${bonusDamage} physical damage`
-        );
-
-        // Reset stacks
-        passiveState.stacks = 0;
-        passiveState.isActive = false;
-      }
-      return;
-    }
-
-    // on_kill: Gain stacks based on target type
-    // This triggers when target is dead
-    if (!target.isDead) return;
-
-    const level = champion.level;
-    let stacksToGain = 0;
-
-    // Determine stacks based on target type
-    switch (target.entityType) {
-      case EntityType.MINION: {
-        stacksToGain = this.getSoulStacksByLevel(
-          definition.soulScaling.minion.levels,
-          definition.soulScaling.minion.stacks,
-          level
-        );
-        break;
-      }
-      case EntityType.JUNGLE_CAMP: {
-        stacksToGain = this.getSoulStacksByLevel(
-          definition.soulScaling.jungle.levels,
-          definition.soulScaling.jungle.stacks,
-          level
-        );
-        break;
-      }
-      case EntityType.CHAMPION: {
-        stacksToGain = this.getSoulStacksByLevel(
-          definition.soulScaling.champion.levels,
-          definition.soulScaling.champion.stacks,
-          level
-        );
-        break;
-      }
-      default:
-        // Unknown target type, no stacks
-        return;
-    }
-
-    // Add stacks (no max cap for Vile, no decay)
-    passiveState.stacks += stacksToGain;
-    passiveState.isActive = passiveState.stacks > 0;
-
-    Logger.champion.debug(
-      `${champion.playerId} Souls of Vilix gained ${stacksToGain} stacks (total: ${passiveState.stacks})`
-    );
-  }
-
-  /**
-   * Get soul stacks based on champion level using the scaling table.
-   */
-  private getSoulStacksByLevel(levels: number[], stacks: number[], championLevel: number): number {
-    // Find the appropriate bracket for the champion's level
-    for (let i = levels.length - 1; i >= 0; i--) {
-      if (championLevel >= levels[i]) {
-        return stacks[i];
-      }
-    }
-    return stacks[0];
   }
 
   /**
