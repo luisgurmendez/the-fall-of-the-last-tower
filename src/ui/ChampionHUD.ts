@@ -37,6 +37,8 @@ import {
   getTotalHeight,
   getItemsContainerHeight,
 } from '@/ui/hud/layout';
+import { drawStatsPanel } from '@/ui/hud/statsPanel';
+import { drawPortraitPanel } from '@/ui/hud/portrait';
 // Re-export for external use
 export type { ItemSlot, AbilitySlot };
 export type {
@@ -270,12 +272,12 @@ export class ChampionHUD extends ScreenEntity {
 
       // 1. Stats Panel (centered vertically)
       const statsY = contentTop + (centerHeight - (PANEL.statsHeight - PANEL.padding)) / 2;
-      this.drawStatsPanel(ctx, currentX, statsY);
+      drawStatsPanel(ctx, currentX, statsY, this.champion);
       currentX += PANEL.statsWidth + PANEL.margin;
 
       // 2. Portrait Panel (centered vertically)
       const portraitY = contentTop + (centerHeight - PANEL.portraitSize) / 2;
-      this.drawPortraitPanel(ctx, currentX, portraitY);
+      drawPortraitPanel(ctx, currentX, portraitY, this.champion, this.hud);
       currentX += PANEL.portraitSize + PANEL.margin;
 
       // 3. Passive Panel (centered vertically)
@@ -374,145 +376,6 @@ export class ChampionHUD extends ScreenEntity {
     // Accent line at top
     ctx.fillStyle = this.hud.config.accentColor;
     ctx.fillRect(x, y, width, 3);
-  }
-
-  /** Draw the stats panel (2 columns) */
-  private drawStatsPanel(ctx: CanvasRenderingContext2D, x: number, y: number): void {
-    if (!this.champion) return;
-    const stats = this.champion.getStats();
-    const width = PANEL.statsWidth;
-    const height = PANEL.statsHeight - PANEL.padding;
-
-    // Panel background
-    ctx.fillStyle = HUD_COLORS.backgroundLight;
-    ctx.fillRect(x, y, width, height);
-    ctx.strokeStyle = HUD_COLORS.border;
-    ctx.lineWidth = 1;
-    ctx.strokeRect(x, y, width, height);
-
-    // Stats data (2 columns)
-    const leftStats = [
-      { label: 'AD', value: Math.floor(stats.attackDamage) },
-      { label: 'AP', value: Math.floor(stats.abilityPower || 0) },
-      { label: 'AS', value: stats.attackSpeed.toFixed(2) },
-      { label: 'MS', value: Math.floor(stats.movementSpeed) },
-    ];
-
-    const rightStats = [
-      { label: 'ARM', value: Math.floor(stats.armor) },
-      { label: 'MR', value: Math.floor(stats.magicResist) },
-      { label: 'RNG', value: Math.floor(stats.attackRange) },
-      { label: 'CDR', value: '0%' },
-    ];
-
-    const lineHeight = 18;
-    const colWidth = width / 2;
-    const startY = y + 8;
-
-    // Left column
-    leftStats.forEach((stat, i) => {
-      RenderUtils.renderBitmapText(
-        ctx,
-        `${stat.label}`,
-        x + 4,
-        startY + i * lineHeight,
-        { color: HUD_COLORS.textDim, size: 22, shadow: false }
-      );
-      RenderUtils.renderBitmapText(
-        ctx,
-        `${stat.value}`,
-        x + colWidth - 4,
-        startY + i * lineHeight,
-        { color: HUD_COLORS.text, size: 22, shadow: false, rightAlign: true }
-      );
-    });
-
-    // Right column
-    rightStats.forEach((stat, i) => {
-      RenderUtils.renderBitmapText(
-        ctx,
-        `${stat.label}`,
-        x + colWidth + 4,
-        startY + i * lineHeight,
-        { color: HUD_COLORS.textDim, size: 22, shadow: false }
-      );
-      RenderUtils.renderBitmapText(
-        ctx,
-        `${stat.value}`,
-        x + width - 4,
-        startY + i * lineHeight,
-        { color: HUD_COLORS.text, size: 22, shadow: false, rightAlign: true }
-      );
-    });
-  }
-
-  /** Draw the champion portrait panel with XP bar */
-  private drawPortraitPanel(ctx: CanvasRenderingContext2D, x: number, y: number): void {
-    if (!this.champion) return;
-
-    const size = PANEL.portraitSize;
-    const level = this.champion.getLevel();
-    const experience = this.champion.getExperience();
-    const expToNext = this.champion.getExperienceToNextLevel();
-    const skillPoints = this.champion.getSkillPoints();
-    const xpPercent = expToNext > 0 ? experience / expToNext : 0;
-
-    // Portrait background (black placeholder)
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(x, y, size, size);
-
-    // Border
-    ctx.strokeStyle = this.hud.config.accentColor;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(x, y, size, size);
-
-    // Champion name
-    RenderUtils.renderBitmapText(
-      ctx,
-      this.hud.config.championName,
-      x + size / 2,
-      y + size - 26,
-      { color: HUD_COLORS.text, size: 22, centered: true, shadow: true }
-    );
-
-    // Level badge with pulse effect when skill points available
-    const pulseScale = skillPoints > 0 ? 1 + Math.sin(this.hud.levelUpPulseTime * 4) * 0.1 : 1;
-    const badgeRadius = 14 * pulseScale;
-    const badgeColor = skillPoints > 0 ? HUD_COLORS.levelUpButton : this.hud.config.accentColor;
-
-    ctx.fillStyle = badgeColor;
-    ctx.beginPath();
-    ctx.arc(x + size - 10, y + size - 10, badgeRadius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = HUD_COLORS.background;
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    RenderUtils.renderBitmapText(
-      ctx,
-      `${level}`,
-      x + size - 10,
-      y + size - 21,
-      { color: HUD_COLORS.text, size: 22, centered: true, shadow: false }
-    );
-
-    // XP Bar below portrait
-    const xpBarY = y + size + PANEL.xpBarSpacing;
-    const xpBarWidth = size;
-    const xpBarHeight = PANEL.xpBarHeight;
-
-    // XP bar background
-    ctx.fillStyle = HUD_COLORS.xpBarBg;
-    ctx.fillRect(x, xpBarY, xpBarWidth, xpBarHeight);
-
-    // XP bar fill
-    ctx.fillStyle = HUD_COLORS.xpBar;
-    ctx.fillRect(x, xpBarY, xpBarWidth * xpPercent, xpBarHeight);
-
-    // XP bar border
-    ctx.strokeStyle = HUD_COLORS.border;
-    ctx.lineWidth = 1;
-    ctx.strokeRect(x, xpBarY, xpBarWidth, xpBarHeight);
   }
 
   /** Draw the passive ability panel */
