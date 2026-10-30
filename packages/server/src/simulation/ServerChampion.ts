@@ -647,8 +647,8 @@ export class ServerChampion extends ServerEntity {
     const attackDamage = action.data.attackDamage as number;
     const abilityPower = action.data.abilityPower as number;
 
-    // Calculate damage
-    const damage = calculatePhysicalDamage(attackDamage, 0); // TODO: Get target armor
+    // Raw damage; the target applies its armor in takeDamage()
+    const damage = attackDamage;
 
     // Check if this champion is ranged
     const isRanged = this.definition.attackType === 'ranged';
