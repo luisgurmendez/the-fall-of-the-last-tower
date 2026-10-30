@@ -493,8 +493,7 @@ describe('Full Integration - FogOfWar + Prioritizer + Serializer', () => {
       // Entity appears to "freeze" or "disappear" on client
     });
 
-    // SKIPPED: FogOfWar integration has setup issues - entities show as invisible
-    it.skip('should maintain entity state when entity is near but outside CRITICAL range', () => {
+    it('should maintain entity state when entity is near but outside CRITICAL range', () => {
       const arena = createTestArena({
         bluePosition: new Vector(0, 0),
         redPosition: new Vector(5000, 0),
@@ -539,8 +538,7 @@ describe('Full Integration - FogOfWar + Prioritizer + Serializer', () => {
       console.log(`[TEST] Not always included: ${notAlwaysIncluded}`);
     });
 
-    // SKIPPED: FogOfWar integration has setup issues - entities show as invisible
-    it.skip('should handle entity moving from visible to non-visible', () => {
+    it('should handle entity moving from visible to non-visible', () => {
       const arena = createTestArena({
         bluePosition: new Vector(0, 0),
         redPosition: new Vector(5000, 0),
@@ -599,9 +597,9 @@ describe('Full Integration - FogOfWar + Prioritizer + Serializer', () => {
   });
 
   describe('Multiple Entity Tracking', () => {
-    // SKIPPED: FogOfWar integration test has setup issues unrelated to priority filtering
-    // The priority filtering fix is verified by other tests in this file
-    it.skip('should correctly track multiple entities with different priorities', () => {
+    // Everything within sight range (800) is CRITICAL, so visible entities are
+    // never de-prioritized; entities outside sight are not sent at all
+    it('should update every visible entity each tick and skip entities outside vision', () => {
       const arena = createTestArena({
         bluePosition: new Vector(0, 0),
         redPosition: new Vector(5000, 0),
@@ -609,9 +607,9 @@ describe('Full Integration - FogOfWar + Prioritizer + Serializer', () => {
       });
 
       // Create entities at different distances
-      const nearMinion = createTestMinion('near-minion', SIDE_RED, new Vector(200, 0)); // CRITICAL
-      const mediumMinion = createTestMinion('medium-minion', SIDE_RED, new Vector(700, 0)); // HIGH
-      const farMinion = createTestMinion('far-minion', SIDE_RED, new Vector(1200, 0)); // MEDIUM
+      const nearMinion = createTestMinion('near-minion', SIDE_RED, new Vector(200, 0));
+      const mediumMinion = createTestMinion('medium-minion', SIDE_RED, new Vector(700, 0));
+      const farMinion = createTestMinion('far-minion', SIDE_RED, new Vector(1200, 0)); // Outside sight
 
       arena.context.addEntity(nearMinion);
       arena.context.addEntity(mediumMinion);
@@ -646,14 +644,12 @@ describe('Full Integration - FogOfWar + Prioritizer + Serializer', () => {
         console.log(`  ${id}: updated at ticks [${ticks.join(', ')}] (${ticks.length}/20)`);
       }
 
-      // Near minion (CRITICAL) should be updated every tick
+      // Both minions within sight range are updated every tick
       expect(results.get('near-minion')!.length).toBe(20);
+      expect(results.get('medium-minion')!.length).toBe(20);
 
-      // Medium minion (HIGH) should be updated every 2 ticks
-      expect(results.get('medium-minion')!.length).toBeGreaterThanOrEqual(10);
-
-      // Far minion (MEDIUM) should be updated every 5 ticks
-      expect(results.get('far-minion')!.length).toBeGreaterThanOrEqual(4);
+      // The minion outside sight range is never visible, so never sent
+      expect(results.get('far-minion')!.length).toBe(0);
     });
   });
 });
@@ -751,20 +747,25 @@ describe('Bug Reproduction: Entity Disappears While Visible', () => {
     }
   });
 
-  // SKIPPED: FogOfWar integration test has setup issues - champions show as invisible
-  // The priority filtering fix is verified by other tests in this file
-  it.skip('CRITICAL BUG: Enemy champion disappears while chasing', () => {
+  // The chase path crosses a bush (x ~425-575), where the red champion is
+  // correctly hidden, and red stops moving at distance 100, after which there
+  // is nothing new to send. What must hold: whenever red is visible and moved,
+  // a delta is sent.
+  it('should send a delta every tick an approaching enemy champion is visible and moving', () => {
     const arena = createTestArena({
       bluePosition: new Vector(0, 0),
       redPosition: new Vector(1000, 0), // Red starts at distance
       learnAbilities: false,
     });
 
-    const states: { tick: number; distance: number; visible: boolean; deltasSent: number }[] = [];
+    const states: { tick: number; distance: number; visible: boolean; moved: boolean; deltasSent: number }[] = [];
+    let previousDistance = 1000;
 
     for (let tick = 1; tick <= 40; tick++) {
       // Red champion moves toward blue (simulating chase)
       const distance = Math.max(100, 1000 - tick * 25); // Gets closer over time
+      const moved = distance !== previousDistance;
+      previousDistance = distance;
       arena.red.position = new Vector(distance, 0);
 
       fogOfWar.updateVision(arena.context, tick);
@@ -776,7 +777,7 @@ describe('Bug Reproduction: Entity Disappears While Visible', () => {
       const isVisible = visibleEntities.some(e => e.id === 'test-red');
       const deltaCount = deltas.filter(d => d.entityId === 'test-red').length;
 
-      states.push({ tick, distance, visible: isVisible, deltasSent: deltaCount });
+      states.push({ tick, distance, visible: isVisible, moved, deltasSent: deltaCount });
     }
 
     console.log('[TEST] Enemy champion chase scenario:');
@@ -784,11 +785,10 @@ describe('Bug Reproduction: Entity Disappears While Visible', () => {
       console.log(`  Tick ${s.tick}: dist=${s.distance}, visible=${s.visible}, deltas=${s.deltasSent}`);
     }
 
-    // Champions should ALWAYS be CRITICAL priority, so should always get updates
-    const allHaveDeltas = states.filter(s => s.visible).every(s => s.deltasSent > 0);
-    console.log(`[TEST] All visible ticks have deltas: ${allHaveDeltas}`);
-
-    // This should pass because champions are always CRITICAL
-    expect(allHaveDeltas).toBe(true);
+    // Champions are always CRITICAL priority, so every visible tick with a
+    // position change must produce a delta
+    const visibleAndMoving = states.filter(s => s.visible && s.moved);
+    expect(visibleAndMoving.length).toBeGreaterThan(20);
+    expect(visibleAndMoving.every(s => s.deltasSent > 0)).toBe(true);
   });
 });
