@@ -78,7 +78,18 @@ export interface ServerChampionConfig extends Omit<ServerEntityConfig, 'entityTy
 
 export type { ActiveShield, ForcedMovement };
 
+/** What attack-move attacks on the way */
+const ATTACK_MOVE_TARGETS = new Set<EntityType>([
+  EntityType.CHAMPION,
+  EntityType.MINION,
+  EntityType.TOWER,
+  EntityType.NEXUS,
+]);
+
 export class ServerChampion extends ServerEntity {
+  /** How far past its attack range attack-move picks up enemies */
+  private static readonly ATTACK_MOVE_LEEWAY = 60;
+
   readonly playerId: string;
   readonly definition: ChampionDefinition;
 
@@ -92,6 +103,8 @@ export class ServerChampion extends ServerEntity {
 
   // Combat state
   inCombat = false;
+  /** Attack-move destination (attack enemies in range on the way), or null */
+  attackMoveTarget: Vector | null = null;
   timeSinceCombat = 0;
   respawnTimer = 0;
   isRecalling = false;
@@ -240,6 +253,7 @@ export class ServerChampion extends ServerEntity {
       updateForcedMovement(this, dt, context);
     } else if (this.ccStatus.canMove) {
       // Normal movement
+      this.updateAttackMove(context);
       this.updateMovement(dt, context);
     }
 
@@ -318,6 +332,49 @@ export class ServerChampion extends ServerEntity {
     this.ccStatus = defaultCCStatus();
     this.forcedMovement = null;
     this.dashAbilityId = null;
+  }
+
+  /**
+   * Attack-move: attack an enemy that comes within reach, and once there's
+   * nothing to fight, walk on to the destination.
+   */
+  private updateAttackMove(context: ServerGameContext): void {
+    const destination = this.attackMoveTarget;
+    if (!destination || this.targetEntityId) return;
+
+    const target = this.findAttackMoveTarget(context);
+    if (target) {
+      this.setAttackTarget(target.id);
+      return;
+    }
+
+    if (!this.targetPosition && !context.pathFollower.isFollowing(this.id)) {
+      if (this.position.distanceTo(destination) < 10) {
+        this.attackMoveTarget = null;
+      } else {
+        context.moveChampion(this, destination);
+      }
+    }
+  }
+
+  /**
+   * The closest visible enemy champion, minion or structure within attack
+   * range (plus a little), for attack-move. Jungle monsters are left alone.
+   */
+  private findAttackMoveTarget(context: ServerGameContext): ServerEntity | null {
+    const reach = this.getStats().attackRange + ServerChampion.ATTACK_MOVE_LEEWAY;
+    let closest: ServerEntity | null = null;
+    let closestDistance = Infinity;
+    for (const entity of context.getEnemiesInRadius(this.position, reach + this.getRadius() + 100, this.side)) {
+      if (entity.isDead || !ATTACK_MOVE_TARGETS.has(entity.entityType)) continue;
+      if (!context.isVisibleTo(entity, this.side) || !this.isInAttackRange(entity, reach)) continue;
+      const distance = this.position.distanceTo(entity.position);
+      if (distance < closestDistance) {
+        closest = entity;
+        closestDistance = distance;
+      }
+    }
+    return closest;
   }
 
   /**

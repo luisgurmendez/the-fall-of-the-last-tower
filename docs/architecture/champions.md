@@ -428,6 +428,14 @@ function calculateRespawnTime(level: number): number {
 | `packages/server/src/server.ts` | Champion definitions |
 | `src/render/champions/<championId>.ts` | How the client draws a champion: body, projectiles, status marks |
 
+### Movement orders
+
+A move (right-click) walks the champion along a path around walls (`PathFollower`). Attacking
+a unit chases it until it's in attack range. Attack-move (A + left-click, `ATTACK_MOVE`)
+walks to the point but attacks the closest visible enemy champion, minion or structure that
+comes within attack range (+60) on the way, then walks on (`ServerChampion.updateAttackMove`;
+jungle monsters are left alone). Any other move, attack, stop or recall order ends it.
+
 ### Champion art
 
 Vex and Lume have hand-made sprite sheets. The other five are generated with PixelLab by

@@ -206,6 +206,12 @@ export class InputHandler {
     input: ClientInput,
     context: ServerGameContext
   ): void {
+    // Any other order ends an attack-move
+    if (input.type === InputType.MOVE || input.type === InputType.TARGET_UNIT ||
+        input.type === InputType.STOP || input.type === InputType.RECALL) {
+      champion.attackMoveTarget = null;
+    }
+
     switch (input.type) {
       case InputType.MOVE:
       case InputType.ATTACK_MOVE:
@@ -269,8 +275,10 @@ export class InputHandler {
 
     context.moveChampion(champion, targetPos);
 
-    // For attack move, also set attack stance
-    // TODO: Implement attack-move behavior
+    // Attack-move: the champion attacks enemies that come in range on the way
+    if (input.type === InputType.ATTACK_MOVE) {
+      champion.attackMoveTarget = targetPos;
+    }
   }
 
   /**
