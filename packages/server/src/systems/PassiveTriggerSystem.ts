@@ -62,6 +62,8 @@ interface RegisteredPassive {
  */
 export class PassiveTriggerSystem {
   private triggerRegistry: Map<PassiveTrigger, RegisteredPassive[]> = new Map();
+  /** "championId:passiveId" pairs already registered */
+  private registeredKeys: Set<string> = new Set();
   private defaultHandlers: Map<string, PassiveHandler> = new Map();
 
   constructor() {
@@ -92,13 +94,20 @@ export class PassiveTriggerSystem {
   }
 
   /**
-   * Register a passive ability for a champion.
+   * Register a passive ability for a champion type.
+   * Registrations are per champion type (dispatch matches champion.definition.id),
+   * so registering the same passive again (every ServerChampion constructor does)
+   * is a no-op - otherwise each new champion would make the passive fire once more.
    */
   registerPassive(
     championId: string,
     definition: PassiveAbilityDefinition,
     handler?: PassiveHandler
   ): void {
+    const key = `${championId}:${definition.id}`;
+    if (this.registeredKeys.has(key)) return;
+    this.registeredKeys.add(key);
+
     const effectiveHandler = handler ?? this.getDefaultHandler(definition);
 
     const registered: RegisteredPassive = {
@@ -653,6 +662,7 @@ export class PassiveTriggerSystem {
    */
   clear(): void {
     this.triggerRegistry.clear();
+    this.registeredKeys.clear();
   }
 }
 

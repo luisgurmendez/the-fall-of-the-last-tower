@@ -111,6 +111,25 @@ describe('PassiveTriggerSystem', () => {
     });
   });
 
+  describe('registering the same passive again', () => {
+    test('fires the passive once, however many champions of that type were created', () => {
+      // Every ServerChampion constructor registers its passive; a leak here made
+      // passives fire once per champion of that type ever created on the server
+      const handler = mock(() => {});
+      const definition: PassiveAbilityDefinition = {
+        id: 'warrior_passive',
+        name: 'Warrior Passive',
+        description: 'Test',
+        trigger: 'on_hit',
+      };
+
+      for (let i = 0; i < 5; i++) system.registerPassive('warrior', definition, handler);
+      system.dispatchTrigger('on_hit', createMockChampion('warrior') as any, createMockContext() as any);
+
+      expect(handler).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('dispatchTrigger', () => {
     test('dispatches trigger to matching champion', () => {
       const handler = mock(() => {});
