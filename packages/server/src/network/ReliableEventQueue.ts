@@ -232,7 +232,6 @@ export function shouldSendReliably(event: GameEvent): boolean {
     GameEventType.CHAMPION_KILL,
     GameEventType.TOWER_DESTROYED,
     GameEventType.DRAGON_KILLED,
-    GameEventType.BARON_KILLED,
     GameEventType.INHIBITOR_DESTROYED,
     GameEventType.INHIBITOR_RESPAWNED,
     GameEventType.NEXUS_DESTROYED,

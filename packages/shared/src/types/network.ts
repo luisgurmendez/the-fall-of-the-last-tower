@@ -568,7 +568,7 @@ export enum GameEventType {
   CHAMPION_KILL = 0,
   TOWER_DESTROYED = 1,
   DRAGON_KILLED = 2,
-  BARON_KILLED = 3,
+  // 3 was BARON_KILLED (there is no baron)
   INHIBITOR_DESTROYED = 4,
   INHIBITOR_RESPAWNED = 5,
   NEXUS_DESTROYED = 6,
