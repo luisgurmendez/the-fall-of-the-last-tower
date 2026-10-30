@@ -499,11 +499,11 @@ export class OnlineMinimap extends ScreenEntity {
 
     const snapshot = localEntity.snapshot;
 
-    // Check if player has a movement target
+    // Check if player has a movement target (null once it's cleared)
     const targetX = (snapshot as any).targetX;
     const targetY = (snapshot as any).targetY;
 
-    if (targetX === undefined || targetY === undefined) return;
+    if (targetX == null || targetY == null) return;
 
     // Get positions on minimap
     const startPos = this.worldToMinimap(localEntity.position.x, localEntity.position.y);
