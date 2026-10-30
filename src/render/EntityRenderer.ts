@@ -89,6 +89,16 @@ export class EntityRenderer implements GameObject {
   private hoveredEnemyId: string | null = null;
   private hoveredAllyId: string | null = null;
 
+  // The local champion this frame, to see through buildings in front of it
+  private localChampionPosition: Vector | null = null;
+
+  /** Area of a building's sprite above its position: a champion there is behind it */
+  private static readonly BUILDING_SPRITE_AREAS: Partial<Record<EntityType, { halfWidth: number; height: number }>> = {
+    [EntityType.TOWER]: { halfWidth: 40, height: 170 },
+    [EntityType.NEXUS]: { halfWidth: 90, height: 230 },
+  };
+  private static readonly SEE_THROUGH_ALPHA = 0.5;
+
   constructor(stateManager: OnlineStateManager, localSide: number) {
     this.stateManager = stateManager;
     this.localSide = localSide;
@@ -243,45 +253,18 @@ export class EntityRenderer implements GameObject {
       const entities = this.stateManager.getEntities();
       const localEntityId = this.stateManager.getLocalEntityId();
 
-      // Sort entities by Y position (lower Y = rendered first = behind)
-      // Also sort by entity type to ensure structures render before units
+      // Zones are ground effects, under everything. Everything else, buildings
+      // included, goes back (lower Y) to front, so a unit walking behind a
+      // tower is hidden by it instead of drawn over it.
       const sortedEntities = [...entities].sort((a, b) => {
-        // Zones render first (ground effects, behind everything)
-        if (
-          a.snapshot.entityType === EntityType.ZONE &&
-          b.snapshot.entityType !== EntityType.ZONE
-        )
-          return -1;
-        if (
-          b.snapshot.entityType === EntityType.ZONE &&
-          a.snapshot.entityType !== EntityType.ZONE
-        )
-          return 1;
-        // Nexus renders next (behind most things)
-        if (
-          a.snapshot.entityType === EntityType.NEXUS &&
-          b.snapshot.entityType !== EntityType.NEXUS
-        )
-          return -1;
-        if (
-          b.snapshot.entityType === EntityType.NEXUS &&
-          a.snapshot.entityType !== EntityType.NEXUS
-        )
-          return 1;
-        // Then towers
-        if (
-          a.snapshot.entityType === EntityType.TOWER &&
-          b.snapshot.entityType !== EntityType.TOWER
-        )
-          return -1;
-        if (
-          b.snapshot.entityType === EntityType.TOWER &&
-          a.snapshot.entityType !== EntityType.TOWER
-        )
-          return 1;
-        // Then by Y position
+        const aIsZone = a.snapshot.entityType === EntityType.ZONE;
+        const bIsZone = b.snapshot.entityType === EntityType.ZONE;
+        if (aIsZone !== bIsZone) return aIsZone ? -1 : 1;
         return a.position.y - b.position.y;
       });
+      this.localChampionPosition = localEntityId
+        ? this.stateManager.getEntity(localEntityId)?.position ?? null
+        : null;
 
       for (const entity of sortedEntities) {
         // Skip dead entities (except light orbs which show a ghost when destroyed)
@@ -402,6 +385,9 @@ export class EntityRenderer implements GameObject {
 
     ctx.save();
     ctx.translate(pos.x, pos.y);
+    if (this.hidesLocalChampion(snapshot.entityType, pos)) {
+      ctx.globalAlpha = EntityRenderer.SEE_THROUGH_ALPHA;
+    }
 
     // Draw entity based on type
     switch (snapshot.entityType) {
@@ -441,6 +427,18 @@ export class EntityRenderer implements GameObject {
     }
 
     ctx.restore();
+  }
+
+  /**
+   * Whether a tower or the nexus stands in front of the local champion,
+   * hiding it. Such a building is drawn see-through.
+   */
+  private hidesLocalChampion(entityType: EntityType, buildingPos: Vector): boolean {
+    const champion = this.localChampionPosition;
+    const footprint = EntityRenderer.BUILDING_SPRITE_AREAS[entityType];
+    if (!champion || !footprint) return false;
+    const dy = champion.y - buildingPos.y;
+    return Math.abs(champion.x - buildingPos.x) < footprint.halfWidth && dy < 0 && dy > -footprint.height;
   }
 
   /**

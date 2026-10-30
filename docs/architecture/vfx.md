@@ -351,6 +351,10 @@ class EntityRenderer {
 }
 ```
 
+Entities are drawn back to front by Y, buildings included (zones first, under
+everything), so a unit behind a tower is hidden by it. A tower or nexus standing
+in front of the local champion is drawn at half opacity.
+
 ### OnlineStateManager
 
 `OnlineStateManager` hands each game event to `processGameEvent`
