@@ -207,7 +207,7 @@ Generic path details:
 | `GroundTarget.ts` | `ground_target`: picks trap, cone or circle; circles, delayed circles and `zoneDuration` zones |
 | `Cone.ts` | Cones (`ground_target` with `shape: 'cone'` and `coneAngle`) |
 | `Trap.ts` | Trap placement (`ground_target` with `trap`) |
-| `Movement.ts` | `dash` and `teleport`, run after the path or handler, and the generic recast dash |
+| `Movement.ts` | `dash` and `teleport`, run after the path or handler, and the generic recast dash. A dash puts its `appliesEffects` in the `buff` category on the caster and the rest on what it runs into |
 | `AbilityHelpers.ts` | Scaling stats and effect application shared by the paths |
 
 When a generic path learns a definition field, update its rule in the coverage contract's `GENERIC_SUPPORT`.

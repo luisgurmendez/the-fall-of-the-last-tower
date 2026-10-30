@@ -3,7 +3,7 @@
  *
  * - Dashes and teleports go to the target position, or else to the target
  *   entity's position (for target_enemy, target_ally and target_unit)
- * - A dash applies its self-buffs (`_empowered` / `_buff` effects) on cast;
+ * - A dash applies its self-buffs (effects in the 'buff' category) on cast;
  *   the other effects, and damage if the ability has an aoeRadius, hit what
  *   the dash runs into
  * - A teleport is instant and clamped to the ability's range
@@ -13,7 +13,13 @@
 import { calculateAbilityValue, type AbilityDefinition, type Vector } from "@siege/shared";
 import type { AbilityCastParams } from "../../simulation/ServerAbilityExecutor";
 import type { ServerChampion } from "../../simulation/ServerChampion";
+import { getServerEffectById } from "../../data/effects";
 import { getScalingStats } from "./AbilityHelpers";
+
+/** Whether an effect goes on the caster (a buff) rather than on what the dash hits */
+function isSelfBuff(effectId: string): boolean {
+  return getServerEffectById(effectId)?.category === 'buff';
+}
 
 /** Speed of the generic recast dash */
 const RECAST_DASH_SPEED = 1500;
@@ -102,8 +108,8 @@ function executeDash(
   // Check for effects that should be applied to caster (buff effects)
   if (definition.appliesEffects) {
     for (const effectId of definition.appliesEffects) {
-      // Check if this is a self-buff effect (like vex_empowered)
-      if (effectId.includes('_empowered') || effectId.includes('_buff')) {
+      // Self-buffs (like vex_empowered) go on the caster
+      if (isSelfBuff(effectId)) {
         champion.applyEffect(
           effectId,
           definition.effectDuration ?? 4,
@@ -133,9 +139,7 @@ function executeDash(
     damage: damageAmount,
     damageType: definition.damage?.type,
     // Only pass debuff effects to be applied on collision (not self-buffs)
-    appliesEffects: definition.appliesEffects?.filter(
-      e => !e.includes('_empowered') && !e.includes('_buff')
-    ),
+    appliesEffects: definition.appliesEffects?.filter(e => !isSelfBuff(e)),
     effectDuration: definition.effectDuration,
     hitEntities: new Set(),
   };
