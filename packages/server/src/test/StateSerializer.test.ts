@@ -323,6 +323,28 @@ describe('StateSerializer', () => {
       expect(deltas3.length).toBe(1);
       expect(deltas3[0].entityId).toBe('champ-1');
     });
+
+    it('should tell an entity that left sight apart from one that is gone', () => {
+      const playerId = 'player-1';
+      const inGame = new Set(['champ-1', 'minion-1']);
+      const isInGame = (id: string) => inGame.has(id);
+      const all = [createMockChampion('champ-1'), createMockMinion('minion-1')];
+      serializer.createDeltaUpdates(all as any, playerId, 1, all as any, isInGame);
+
+      // The champion walks into fog: still in the game, just not visible
+      const visible = [createMockMinion('minion-1')];
+      const [hidden] = serializer.createDeltaUpdates(visible as any, playerId, 2, visible as any, isInGame);
+      expect(hidden.entityId).toBe('champ-1');
+      expect((hidden.data as any).outOfSight).toBe(true);
+      expect((hidden.data as any).isDead).toBeUndefined();
+
+      // The minion dies and is removed from the game
+      inGame.delete('minion-1');
+      const [gone] = serializer.createDeltaUpdates([], playerId, 3, [], isInGame);
+      expect(gone.entityId).toBe('minion-1');
+      expect((gone.data as any).isDead).toBe(true);
+      expect((gone.data as any).outOfSight).toBeUndefined();
+    });
   });
 
   describe('createStateUpdate', () => {

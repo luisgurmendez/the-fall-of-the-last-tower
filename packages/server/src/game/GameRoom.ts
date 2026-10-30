@@ -226,7 +226,8 @@ export class GameRoom {
         this.context.getGameTime(),
         inputAcks,
         eventsForPlayer,
-        visibleEntities
+        visibleEntities,
+        entityId => this.context.getEntity(entityId) !== undefined
       );
 
       // Include the last event ID for acknowledgment

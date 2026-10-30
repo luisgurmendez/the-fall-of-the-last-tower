@@ -36,8 +36,15 @@ export function applyEntityDelta(
 ): void {
   const existing = entities.get(delta.entityId);
 
-  // Check if entity is being marked as dead/destroyed - remove it
   const data = delta.data as any;
+
+  // Left this player's sight (fog, a bush): still alive, so no death effects
+  if (data && data.outOfSight === true) {
+    entities.delete(delta.entityId);
+    return;
+  }
+
+  // Check if entity is being marked as dead/destroyed - remove it
   if (data && (data.isDead === true || data.isDestroyed === true)) {
     hooks.onRemoved(delta.entityId, existing, data);
     // Remove dead/destroyed entities from client state

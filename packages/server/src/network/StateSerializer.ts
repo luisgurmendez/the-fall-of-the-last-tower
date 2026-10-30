@@ -63,12 +63,16 @@ export class StateSerializer {
    * @param playerId - The player receiving this update
    * @param tick - Current game tick
    * @param allVisibleEntities - Optional: full list of visible entities (for removal detection)
+   * @param isInGame - Optional: whether an entity still exists. An entity that left the
+   *                   visible set but still exists left sight; otherwise it's gone (died,
+   *                   destroyed, expired). Without it, every removal counts as gone.
    */
   createDeltaUpdates(
     entities: ServerEntity[],
     playerId: string,
     tick: number,
-    allVisibleEntities?: ServerEntity[]
+    allVisibleEntities?: ServerEntity[],
+    isInGame?: (entityId: string) => boolean
   ): EntityDelta[] {
     const deltas: EntityDelta[] = [];
     const playerStates = this.getPreviousStates(playerId);
@@ -129,17 +133,17 @@ export class StateSerializer {
 
       for (const [entityId, state] of playerStates) {
         // If entity was in our previous state but is NOT in the full visible list,
-        // it has been removed from the game (died, destroyed, etc.)
+        // it either left this player's sight or was removed from the game (died,
+        // destroyed, etc.). The client plays death effects only for the latter.
         if (!visibleEntityIds.has(entityId)) {
+          const leftSight = isInGame?.(entityId) === true;
           deltas.push({
             entityId,
             changeMask: EntityChangeMask.STATE,
-            data: {
-              entityId,
-              entityType: state.snapshot.entityType,
-              isDead: true,
-              isDestroyed: true,
-            } as Partial<EntitySnapshot>,
+            data: (leftSight
+              ? { entityId, entityType: state.snapshot.entityType, outOfSight: true }
+              : { entityId, entityType: state.snapshot.entityType, isDead: true, isDestroyed: true }
+            ) as Partial<EntitySnapshot>,
           });
           playerStates.delete(entityId);
         }
@@ -169,6 +173,7 @@ export class StateSerializer {
    * @param allVisibleEntities - Optional: full list of visible entities (for removal detection)
    *                             If provided, removal deltas are sent for entities not in this list.
    *                             If not provided, no removal deltas are sent.
+   * @param isInGame - Optional: whether an entity still exists (see createDeltaUpdates)
    */
   createStateUpdate(
     entities: ServerEntity[],
@@ -177,9 +182,10 @@ export class StateSerializer {
     gameTime: number,
     inputAcks: Record<string, number>,
     events: { type: number; timestamp: number; data: Record<string, unknown> }[],
-    allVisibleEntities?: ServerEntity[]
+    allVisibleEntities?: ServerEntity[],
+    isInGame?: (entityId: string) => boolean
   ): StateUpdate {
-    const deltas = this.createDeltaUpdates(entities, playerId, tick, allVisibleEntities);
+    const deltas = this.createDeltaUpdates(entities, playerId, tick, allVisibleEntities, isInGame);
 
     return {
       tick,
