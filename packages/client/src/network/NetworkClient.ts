@@ -352,7 +352,7 @@ export class NetworkClient {
   /**
    * Send ready message to server (joins queue).
    */
-  sendReady(championId: string = 'warrior'): void {
+  sendReady(championId: string = 'warrior', options: { mode?: 'queue' | 'practice'; botChampionId?: string } = {}): void {
     console.log(`[NetworkClient] sendReady: playerId="${this.config.playerId}", championId="${championId}"`);
     this.sendMessage({
       type: ClientMessageType.READY,
@@ -360,6 +360,8 @@ export class NetworkClient {
         playerId: this.config.playerId,
         championId,
         sessionToken: this.sessionToken ?? undefined,
+        mode: options.mode,
+        botChampionId: options.botChampionId,
       },
     });
   }

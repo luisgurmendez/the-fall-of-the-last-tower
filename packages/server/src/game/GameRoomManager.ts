@@ -8,7 +8,8 @@
  * - Clean up ended games
  */
 
-import { GameRoom, type GameRoomConfig, type PlayerInfo, type GameRoomState } from './GameRoom';
+import { GameRoom, type PlayerInfo, type GameRoomState } from './GameRoom';
+import type { BotController } from '../bots/BotController';
 import type { ClientInput, StateUpdate, FullStateSnapshot, ChampionDefinition, Side } from '@siege/shared';
 import { Logger } from '../utils/Logger';
 
@@ -39,6 +40,8 @@ export interface GameRoomManagerConfig {
   onFullState?: FullStateCallback;
   /** Callback when a game ends */
   onGameEnd?: GameEndCallback;
+  /** How long a room with no connected humans is kept for reconnects (ms, default 60s) */
+  abandonTimeoutMs?: number;
 }
 
 /**
@@ -55,8 +58,13 @@ export class GameRoomManager {
 
   private gameIdCounter = 0;
 
+  // Rooms whose humans all disconnected, waiting to be cleaned up
+  private abandonTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
+  private readonly abandonTimeoutMs: number;
+
   constructor(config: GameRoomManagerConfig) {
     this.championDefinitions = config.championDefinitions;
+    this.abandonTimeoutMs = config.abandonTimeoutMs ?? 60_000;
     this.onStateUpdate = config.onStateUpdate;
     this.onFullState = config.onFullState;
     this.onGameEnd = config.onGameEnd;
@@ -64,13 +72,15 @@ export class GameRoomManager {
 
   /**
    * Create a new game room.
+   * @param bots Controllers for the players marked isBot
    */
-  createRoom(players: PlayerInfo[]): GameRoom {
+  createRoom(players: PlayerInfo[], bots: BotController[] = []): GameRoom {
     const gameId = `game-${Date.now()}-${this.gameIdCounter++}`;
 
     const room = new GameRoom({
       gameId,
       players,
+      bots,
       championDefinitions: this.championDefinitions,
       onStateUpdate: (playerId, update) => {
         this.onStateUpdate?.(playerId, update);
@@ -135,6 +145,16 @@ export class GameRoomManager {
     const room = this.getRoomByPlayer(playerId);
     if (room) {
       room.handleDisconnect(playerId);
+
+      // Nobody left to play: keep the room around for a reconnect, then close it
+      if (!room.hasConnectedHumans() && !this.abandonTimers.has(room.gameId)) {
+        const gameId = room.gameId;
+        this.abandonTimers.set(gameId, setTimeout(() => {
+          this.abandonTimers.delete(gameId);
+          Logger.game.info(`Closing abandoned room ${gameId}`);
+          this.cleanupRoom(gameId);
+        }, this.abandonTimeoutMs));
+      }
     }
   }
 
@@ -148,6 +168,11 @@ export class GameRoomManager {
     }
 
     const snapshot = room.handleReconnect(playerId);
+    const abandonTimer = this.abandonTimers.get(room.gameId);
+    if (snapshot && abandonTimer) {
+      clearTimeout(abandonTimer);
+      this.abandonTimers.delete(room.gameId);
+    }
     if (snapshot && this.onFullState) {
       this.onFullState(playerId, snapshot);
     }
@@ -161,6 +186,12 @@ export class GameRoomManager {
   cleanupRoom(gameId: string): void {
     const room = this.rooms.get(gameId);
     if (!room) return;
+
+    const abandonTimer = this.abandonTimers.get(gameId);
+    if (abandonTimer) {
+      clearTimeout(abandonTimer);
+      this.abandonTimers.delete(gameId);
+    }
 
     // Stop the game
     room.stop();

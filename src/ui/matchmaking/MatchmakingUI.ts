@@ -131,6 +131,7 @@ export class MatchmakingUI {
   private detailPassive: HTMLElement;
   private detailAbilities: HTMLElement;
   private lockInButton: HTMLButtonElement;
+  private practiceButton: HTMLButtonElement;
 
   // Network
   private networkClient: NetworkClient | null = null;
@@ -199,6 +200,7 @@ export class MatchmakingUI {
     this.detailPassive = getEl("detail-passive");
     this.detailAbilities = getEl("detail-abilities");
     this.lockInButton = getEl("btn-lock-in") as HTMLButtonElement;
+    this.practiceButton = getEl("btn-practice") as HTMLButtonElement;
 
     // Debug: Check if abilities element was found
     console.log("[MatchmakingUI] Constructor - detailAbilities element:", this.detailAbilities);
@@ -334,7 +336,10 @@ export class MatchmakingUI {
     // Update details panel
     this.updateChampionDetails(championId);
 
-    // Enable lock-in button
+    // Enable lock-in and practice buttons
+    if (this.practiceButton) {
+      this.practiceButton.disabled = false;
+    }
     if (this.lockInButton) {
       this.lockInButton.disabled = false;
     }
@@ -816,7 +821,21 @@ export class MatchmakingUI {
     if (!this.selectedChampionId) return;
 
     // Start matchmaking with selected champion
-    this.startMatchmaking();
+    this.startMatchmaking("queue");
+  }
+
+  /**
+   * Start a practice match against a bot with the selected champion.
+   */
+  private startPractice(): void {
+    if (!this.selectedChampionId) return;
+
+    // Bot plays a random enabled champion
+    const botChampionId =
+      MatchmakingUI.ENABLED_CHAMPIONS[
+        Math.floor(Math.random() * MatchmakingUI.ENABLED_CHAMPIONS.length)
+      ];
+    this.startMatchmaking("practice", botChampionId);
   }
 
   /**
@@ -836,6 +855,11 @@ export class MatchmakingUI {
     // Lock-in button - proceed to matchmaking
     document.getElementById("btn-lock-in")?.addEventListener("click", () => {
       this.lockInChampion();
+    });
+
+    // Practice button - start a match against a bot
+    document.getElementById("btn-practice")?.addEventListener("click", () => {
+      this.startPractice();
     });
 
     // Cancel connect button
@@ -932,7 +956,10 @@ export class MatchmakingUI {
   /**
    * Start matchmaking process.
    */
-  private startMatchmaking(): void {
+  private startMatchmaking(
+    mode: "queue" | "practice",
+    botChampionId?: string,
+  ): void {
     this.showScreen("connecting");
     this.updateConnectionStatus("connecting");
 
@@ -953,9 +980,14 @@ export class MatchmakingUI {
       console.log(
         `[MatchmakingUI] Sending ready with selectedChampionId="${this.selectedChampionId}"`,
       );
-      this.networkClient?.sendReady(this.selectedChampionId);
-      this.showScreen("queue");
-      this.startQueueTimer();
+      this.networkClient?.sendReady(this.selectedChampionId, {
+        mode,
+        botChampionId,
+      });
+      if (mode === "queue") {
+        this.showScreen("queue");
+        this.startQueueTimer();
+      }
     };
 
     this.networkClient.onDisconnect = (code, reason) => {

@@ -119,6 +119,18 @@ When a match is found, the server:
    - `yourSide`: Which team (0=Blue, 1=Red)
    - `players`: Array with all player info and entity IDs
 
+## Practice Mode
+
+`READY` accepts `mode: 'practice'` (and an optional `botChampionId`). The server skips the queue and starts a match immediately:
+the player on blue, a server-side `LaneBot` on red (mid lane). The bot is a `PlayerInfo` with `isBot: true`; `GameRoom` runs it
+through `BotDriver` each tick before processing inputs, and never sends it state. The client's **PRACTICE** button on champion
+select uses this (the bot gets a random enabled champion). See [simulation.md](simulation.md#bots).
+
+## Abandoned Rooms
+
+When every human in a room disconnects, `GameRoomManager` keeps the room for `abandonTimeoutMs` (60s) so players can reconnect,
+then closes it. A reconnect cancels the timer.
+
 ## Queue Management
 
 ### Queue Position

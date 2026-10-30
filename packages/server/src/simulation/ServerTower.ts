@@ -88,6 +88,13 @@ export class ServerTower extends ServerEntity {
   }
 
   /**
+   * Attack range for this tower's tier.
+   */
+  get attackRange(): number {
+    return this.stats.attackRange;
+  }
+
+  /**
    * Check if tower is destroyed.
    */
   get isDestroyed(): boolean {

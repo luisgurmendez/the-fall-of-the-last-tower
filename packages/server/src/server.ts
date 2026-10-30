@@ -22,6 +22,9 @@ import {
 import { BunWebSocketServer } from './network/BunWebSocketServer';
 import { GameRoomManager } from './game/GameRoomManager';
 import { Matchmaker, type MatchResult } from './matchmaking/Matchmaker';
+import type { PlayerInfo } from './game/GameRoom';
+import { LaneBot } from './bots/LaneBot';
+import type { BotController } from './bots/BotController';
 import type { WebSocketConnection, ParsedMessage } from './network/WebSocketServer';
 import { Logger } from './utils/Logger';
 import { initializeAbilityHandlers } from './abilities';
@@ -80,7 +83,7 @@ function handleMessage(connection: WebSocketConnection, message: ParsedMessage):
       break;
 
     case ClientMessageType.READY:
-      handleReadyMessage(connection, message.data as { playerId: string; championId?: string });
+      handleReadyMessage(connection, message.data as ReadyMessageData);
       break;
 
     default:
@@ -108,11 +111,18 @@ function handlePingMessage(connection: WebSocketConnection, data: { timestamp: n
   });
 }
 
-function handleReadyMessage(
-  connection: WebSocketConnection,
-  data: { playerId: string; championId?: string; sessionToken?: string }
-): void {
-  const { playerId, championId = 'warrior', sessionToken } = data ?? {};
+interface ReadyMessageData {
+  playerId: string;
+  championId?: string;
+  sessionToken?: string;
+  /** 'practice' starts a match against a bot right away instead of queueing */
+  mode?: 'queue' | 'practice';
+  /** Champion for the practice bot (defaults to the player's champion) */
+  botChampionId?: string;
+}
+
+function handleReadyMessage(connection: WebSocketConnection, data: ReadyMessageData): void {
+  const { playerId, championId = 'warrior', sessionToken, mode = 'queue', botChampionId } = data ?? {};
   if (typeof playerId !== 'string' || playerId.length === 0) {
     Logger.server.warn(`READY without a valid playerId from ${connection.id}`);
     return;
@@ -177,6 +187,11 @@ function handleReadyMessage(
     return;
   }
 
+  if (mode === 'practice') {
+    startPracticeMatch(playerId, championId, botChampionId);
+    return;
+  }
+
   // Add to matchmaking queue
   matchmaker.addToQueue(playerId, championId);
 
@@ -227,8 +242,31 @@ function handleDisconnect(connection: WebSocketConnection, code: number, reason:
 // ============================================================================
 
 function handleMatchFound(match: MatchResult): void {
+  startMatch(match.players);
+}
+
+/**
+ * Start a practice match: the player on blue against a LaneBot on red.
+ */
+function startPracticeMatch(playerId: string, championId: string, botChampionId?: string): void {
+  const botChampion = typeof botChampionId === 'string' && CHAMPION_DEFINITIONS.has(botChampionId)
+    ? botChampionId
+    : championId;
+  const botPlayerId = `bot-${playerId}`;
+
+  Logger.server.info(`Practice match: ${playerId} (${championId}) vs bot (${botChampion})`);
+  startMatch(
+    [
+      { playerId, side: 0, championId, connected: true },
+      { playerId: botPlayerId, side: 1, championId: botChampion, connected: true, isBot: true },
+    ],
+    [new LaneBot({ playerId: botPlayerId, lane: 'mid' })]
+  );
+}
+
+function startMatch(players: PlayerInfo[], bots: BotController[] = []): void {
   // Create the game room
-  const room = roomManager.createRoom(match.players);
+  const room = roomManager.createRoom(players, bots);
   const gameId = room.getState() === 'waiting' ? room.gameId : null;
 
   if (!gameId) {
@@ -236,8 +274,10 @@ function handleMatchFound(match: MatchResult): void {
     return;
   }
 
+  const humans = players.filter(player => !player.isBot);
+
   // Update connection game IDs
-  for (const player of match.players) {
+  for (const player of humans) {
     const connection = playerToConnection.get(player.playerId);
     if (connection) {
       connection.gameId = gameId;
@@ -251,7 +291,7 @@ function handleMatchFound(match: MatchResult): void {
   const playersWithEntityIds = room.getPlayersWithEntityIds();
 
   // Send game start to all players, followed immediately by full state
-  for (const player of match.players) {
+  for (const player of humans) {
     // Send game start notification
     wsServer.sendToPlayer(player.playerId, {
       type: ServerMessageType.GAME_START,
@@ -364,7 +404,7 @@ async function startServer(): Promise<void> {
       // Notify players
       const room = roomManager.getRoom(gameId);
       if (room) {
-        for (const playerId of room.getPlayerIds()) {
+        for (const playerId of room.getHumanPlayerIds()) {
           wsServer.sendToPlayer(playerId, {
             type: ServerMessageType.GAME_END,
             data: { winningSide, duration: room.getGameTime() },

@@ -9,8 +9,7 @@
  */
 
 import {
-  Vector,
-  MOBAConfig,
+  EntityType,
   Side,
   StateUpdate,
   FullStateSnapshot,
@@ -19,11 +18,10 @@ import {
 } from '@siege/shared';
 import { ServerGame } from './ServerGame';
 import { ServerGameContext } from './ServerGameContext';
-import { ServerChampion } from '../simulation/ServerChampion';
-import { ServerTower } from '../simulation/ServerTower';
-import { ServerNexus } from '../simulation/ServerNexus';
-import { ServerLightOrb, LUME_ORB_CONFIG } from '../simulation/ServerLightOrb';
+import { spawnStructures, spawnChampion } from './MatchSetup';
 import { InputHandler } from '../network/InputHandler';
+import { BotDriver } from '../bots/BotDriver';
+import type { BotController } from '../bots/BotController';
 import { StateSerializer } from '../network/StateSerializer';
 import { ReliableEventQueue, shouldSendReliably } from '../network/ReliableEventQueue';
 import type { ClientInput } from '@siege/shared';
@@ -34,12 +32,16 @@ export interface PlayerInfo {
   side: Side;
   championId: string;
   connected: boolean;
+  /** Played by a server-side bot instead of a connection */
+  isBot?: boolean;
 }
 
 export interface GameRoomConfig {
   gameId: string;
   players: PlayerInfo[];
   championDefinitions: Map<string, ChampionDefinition>;
+  /** Controllers for players with isBot set */
+  bots?: BotController[];
   onStateUpdate?: (playerId: string, update: StateUpdate) => void;
   onGameEnd?: (winningSide: Side) => void;
 }
@@ -55,6 +57,7 @@ export class GameRoom {
   private inputHandler: InputHandler;
   private stateSerializer: StateSerializer;
   private reliableEventQueue: ReliableEventQueue;
+  private botDriver = new BotDriver();
 
   private players: Map<string, PlayerInfo> = new Map();
   private championDefinitions: Map<string, ChampionDefinition>;
@@ -74,6 +77,9 @@ export class GameRoom {
     // Initialize players
     for (const player of config.players) {
       this.players.set(player.playerId, player);
+    }
+    for (const bot of config.bots ?? []) {
+      this.botDriver.add(bot);
     }
 
     // Create game context
@@ -110,7 +116,7 @@ export class GameRoom {
     Logger.game.info(`Starting game ${this.gameId} with ${this.players.size} players`);
 
     // Spawn structures first (nexuses and towers)
-    this.spawnStructures();
+    spawnStructures(this.context);
 
     // Spawn jungle camps
     this.context.spawnJungleCamps();
@@ -122,49 +128,6 @@ export class GameRoom {
     this.state = 'playing';
     this.gameStartTime = Date.now();
     this.game.start();
-  }
-
-  /**
-   * Spawn all structures (nexuses and towers).
-   */
-  private spawnStructures(): void {
-    // Spawn nexuses
-    const blueNexus = new ServerNexus({
-      id: this.context.generateEntityId(),
-      position: new Vector(MOBAConfig.NEXUS.BLUE.x, MOBAConfig.NEXUS.BLUE.y),
-      side: 0,
-    });
-    this.context.addEntity(blueNexus);
-
-    const redNexus = new ServerNexus({
-      id: this.context.generateEntityId(),
-      position: new Vector(MOBAConfig.NEXUS.RED.x, MOBAConfig.NEXUS.RED.y),
-      side: 1,
-    });
-    this.context.addEntity(redNexus);
-
-    // Spawn towers from MOBAConfig
-    // Group towers by side and lane to determine tier (1=outer, 2=inner)
-    const towersBySideLane = new Map<string, number>();
-    for (let i = 0; i < MOBAConfig.TOWERS.POSITIONS.length; i++) {
-      const towerConfig = MOBAConfig.TOWERS.POSITIONS[i];
-      const key = `${towerConfig.side}_${towerConfig.lane}`;
-      const count = towersBySideLane.get(key) || 0;
-      towersBySideLane.set(key, count + 1);
-
-      // Tier is based on order: first tower = outer (1), second = inner (2)
-      const tier = (count + 1) as 1 | 2 | 3;
-
-      const tower = new ServerTower({
-        id: this.context.generateEntityId(),
-        position: new Vector(towerConfig.position.x, towerConfig.position.y),
-        side: towerConfig.side as Side,
-        lane: towerConfig.lane,
-        tier,
-      });
-      this.context.addEntity(tower);
-    }
-    Logger.game.debug(`Spawned ${MOBAConfig.TOWERS.POSITIONS.length} towers and 2 nexuses`);
   }
 
   /**
@@ -185,34 +148,7 @@ export class GameRoom {
         Logger.game.error(`Unknown champion: ${playerInfo.championId} for player ${playerId}`);
         continue;
       }
-
-      const spawnPos = playerInfo.side === 0
-        ? MOBAConfig.CHAMPION_SPAWN.BLUE
-        : MOBAConfig.CHAMPION_SPAWN.RED;
-
-      const champion = new ServerChampion({
-        id: this.context.generateEntityId(),
-        position: spawnPos.clone(),
-        side: playerInfo.side,
-        definition,
-        playerId,
-      });
-
-      this.context.addChampion(champion, playerId);
-      Logger.champion.info(`Spawned ${definition.name} for player ${playerId}`);
-
-      // Spawn Lume's Light Orb at game start
-      if (definition.id === 'lume') {
-        const orb = new ServerLightOrb({
-          id: this.context.generateEntityId(),
-          position: champion.position.clone().add(new Vector(LUME_ORB_CONFIG.orbitRadius, 0)),
-          side: champion.side,
-          ownerId: champion.id,
-        });
-        // Type assertion needed due to ServerLightOrb inheritance issue
-        this.context.addEntity(orb as unknown as import('../simulation/ServerEntity').ServerEntity);
-        Logger.champion.info(`Spawned Light Orb for Lume (${playerId})`);
-      }
+      spawnChampion(this.context, { playerId, side: playerInfo.side, definition });
     }
   }
 
@@ -232,7 +168,8 @@ export class GameRoom {
    * Called each game tick.
    */
   private onTick(tick: number, dt: number): void {
-    // 1. Process inputs
+    // 1. Process inputs (bots queue theirs first, like a client would)
+    this.botDriver.update(this.context, this.inputHandler, dt, Date.now());
     this.inputHandler.processInputs(this.context);
 
     // 2. Update game state
@@ -252,7 +189,7 @@ export class GameRoom {
 
     const allEvents = this.context.flushEvents();
     const inputAcks = this.inputHandler.getAllAckedSeqs();
-    const playerIds = Array.from(this.players.keys());
+    const playerIds = this.getHumanPlayerIds();
 
     // Separate reliable and unreliable events
     const reliableEvents: GameEvent[] = [];
@@ -269,6 +206,8 @@ export class GameRoom {
     }
 
     for (const [playerId, playerInfo] of this.players) {
+      if (playerInfo.isBot) continue;
+
       // Get visible entities for this player (based on fog of war)
       // Send ALL visible entities every tick - simpler and no disappearing entity bugs
       const visibleEntities = this.context.getVisibleEntities(playerInfo.side);
@@ -304,8 +243,19 @@ export class GameRoom {
    * Check win conditions.
    */
   private checkWinConditions(): void {
-    // TODO: Check if nexus is destroyed
-    // For now, no automatic win
+    if (this.state !== 'playing') return;
+
+    for (const entity of this.context.getAllEntities()) {
+      if (entity.entityType === EntityType.NEXUS && entity.isDead) {
+        const winningSide = (1 - entity.side) as Side;
+        this.state = 'ended';
+        Logger.game.info(`Game ${this.gameId}: ${entity.side === 0 ? 'Blue' : 'Red'} nexus destroyed`);
+        // Let the final state (nexus death) reach clients before the room is torn down
+        this.broadcastState(this.game.getCurrentTick());
+        this.onGameEnd?.(winningSide);
+        return;
+      }
+    }
   }
 
   /**
@@ -376,13 +326,32 @@ export class GameRoom {
   }
 
   /**
-   * Check if all players are connected.
+   * Get IDs of players with a connection (not bots).
+   */
+  getHumanPlayerIds(): string[] {
+    return Array.from(this.players.values())
+      .filter(player => !player.isBot)
+      .map(player => player.playerId);
+  }
+
+  /**
+   * Check if all human players are connected.
    */
   allPlayersConnected(): boolean {
     for (const player of this.players.values()) {
-      if (!player.connected) return false;
+      if (!player.connected && !player.isBot) return false;
     }
     return true;
+  }
+
+  /**
+   * Check if any human player is still connected.
+   */
+  hasConnectedHumans(): boolean {
+    for (const player of this.players.values()) {
+      if (player.connected && !player.isBot) return true;
+    }
+    return false;
   }
 
   /**
