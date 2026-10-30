@@ -230,8 +230,9 @@ export class ServerTower extends ServerEntity {
     let bestDistance = Infinity;
 
     for (const entity of nearbyEntities) {
-      // Skip allies, self, and structures
+      // Skip allies, neutral jungle creatures, self, and structures
       if (entity.side === this.side) continue;
+      if (entity.entityType === EntityType.JUNGLE_CAMP) continue;
       if (entity.isDead) continue;
       if (
         entity.entityType === EntityType.TOWER ||

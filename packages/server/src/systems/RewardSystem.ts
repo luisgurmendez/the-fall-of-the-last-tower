@@ -48,6 +48,12 @@ export class RewardSystem {
       if (killer && killer.entityType === EntityType.CHAMPION) {
         const killerChampion = killer as ServerChampion;
         killerChampion.grantGold(gold);
+
+        if (killedEntity.entityType === EntityType.CHAMPION) {
+          killerChampion.kills++;
+        } else if (killedEntity.entityType === EntityType.MINION || killedEntity.entityType === EntityType.JUNGLE_CAMP) {
+          killerChampion.cs++;
+        }
         Logger.combat.info(`${killerChampion.playerId} earned ${gold}g for kill`);
 
         // Emit gold earned event for floating gold number
