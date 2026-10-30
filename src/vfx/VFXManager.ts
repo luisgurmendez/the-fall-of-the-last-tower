@@ -41,121 +41,14 @@ import {
   drawParticle,
   drawGlowCircle,
 } from './effects/VFXPrimitives';
-
-/**
- * Active effect instance - tracks a running VFX.
- */
-interface ActiveEffect {
-  /** Unique ID for this effect instance */
-  id: string;
-  /** Ability ID this effect is for */
-  abilityId: string;
-  /** Effect configuration */
-  config: VFXEffectConfig;
-  /** World position X */
-  x: number;
-  /** World position Y */
-  y: number;
-  /** Target position (for directional effects) */
-  targetX?: number;
-  targetY?: number;
-  /** When this effect started */
-  startTime: number;
-  /** Duration of this effect */
-  duration: number;
-  /** Entity ID of caster */
-  casterId?: string;
-  /** Current phase progress (0-1) */
-  progress: number;
-}
-
-/**
- * Trail point for trail effects.
- */
-interface TrailPoint {
-  x: number;
-  y: number;
-  time: number;
-}
-
-/**
- * Active trail effect.
- */
-interface ActiveTrail {
-  id: string;
-  entityId: string;
-  color: string;
-  thickness: number;
-  fadeLength: number;
-  points: TrailPoint[];
-  duration: number;
-  startTime: number;
-}
-
-/**
- * Active shield bubble effect.
- */
-interface ActiveShieldBubble {
-  id: string;
-  entityId: string;
-  color: string;
-  radius: number;
-  duration: number;
-  startTime: number;
-  pulseSpeed?: number;
-  hexagonal?: boolean;
-}
-
-/**
- * Active orbiting particles effect.
- */
-interface ActiveOrbitingParticles {
-  id: string;
-  entityId: string;
-  color: string;
-  size: number;
-  orbitRadius: number;
-  orbitSpeed: number;
-  count: number;
-  duration: number;
-  startTime: number;
-  particles: Array<{ angle: number }>;
-}
-
-/**
- * Screen flash state.
- */
-interface ScreenFlashState {
-  color: string;
-  duration: number;
-  maxAlpha: number;
-  startTime: number;
-}
-
-/**
- * Dash afterimage state.
- */
-interface DashAfterimage {
-  x: number;
-  y: number;
-  alpha: number;
-  color: string;
-}
-
-/**
- * Active dash afterimage effect.
- */
-interface ActiveDashAfterimage {
-  id: string;
-  entityId: string;
-  color: string;
-  images: DashAfterimage[];
-  fadeSpeed: number;
-  duration: number;
-  startTime: number;
-  lastImageTime: number;
-  imageInterval: number;
-}
+import type {
+  ActiveEffect,
+  ActiveTrail,
+  ActiveShieldBubble,
+  ActiveOrbitingParticles,
+  ScreenFlashState,
+  ActiveDashAfterimage,
+} from './active/types';
 
 /**
  * Performance statistics.
