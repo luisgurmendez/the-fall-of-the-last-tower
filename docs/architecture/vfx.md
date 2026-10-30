@@ -92,6 +92,15 @@ because importing `VFXRegistry.ts` from them would be an import cycle.
 `VFXRegistry.ts` re-exports `registerAbilityVFX`, `getAbilityVFX`,
 `getAllRegisteredVFX`, `CHAMPION_COLORS` and all the types from `VFXTypes.ts`.
 
+**The lookup key is the ability ID.** The server's `ABILITY_CAST` event carries
+the ability's definition ID (`champion.definition.abilities[slot]`, for example
+`lume_q`), and `OnlineStateManager` passes it unchanged to `spawnAbilityVFX`.
+There is no alias table, so a definition's `abilityId` must be the ability ID
+from `CHAMPION_DEFINITIONS`; VFX registered under any other key never plays.
+`packages/client/src/test/ChampionClientContract.test.ts` checks every
+champion's abilities against the registry and lists the known gaps (abilities
+whose VFX is registered under a different key).
+
 ```typescript
 registerAbilityVFX({
   abilityId: 'warrior_slash',
@@ -354,7 +363,8 @@ case GameEventType.ABILITY_CAST: {
 
 1. Define colors in `CHAMPION_COLORS` (`src/vfx/VFXColors.ts`) if needed
 2. Call `registerAbilityVFX()` with phases and effects in
-   `src/vfx/champions/<championId>.ts`. For a new champion, create that file
+   `src/vfx/champions/<championId>.ts`, using the ability's ID from
+   `CHAMPION_DEFINITIONS` as `abilityId`. For a new champion, create that file
    and import it from `src/vfx/champions/index.ts`.
 3. Test in-game to verify timing and visuals
 
