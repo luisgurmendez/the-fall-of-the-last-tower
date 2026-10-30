@@ -17,12 +17,9 @@
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { generatePixenImage, runPool } from './lib/pixellab';
 
-const API = 'https://api.pixellab.ai/v2';
 const STYLE = 'fantasy RPG inventory item icon, centered, clean readable silhouette';
-/** PixelLab answers 429 past a few jobs at once */
-const CONCURRENCY = 3;
-const MAX_ATTEMPTS = 5;
 
 /** What each item's icon shows, and the seed of the version we kept */
 export const ITEM_ICONS: Record<string, { prompt: string; seed: number }> = {
@@ -63,35 +60,6 @@ function parseArgs(argv: string[]): Options {
   return options;
 }
 
-async function generateIcon(apiKey: string, prompt: string, seed: number): Promise<{ png: Buffer; usd: number }> {
-  for (let attempt = 1; ; attempt++) {
-    try {
-      return await requestIcon(apiKey, prompt, seed);
-    } catch (error) {
-      const busy = (error as Error).message.startsWith('HTTP 429');
-      if (!busy || attempt >= MAX_ATTEMPTS) throw error;
-      await new Promise(resolve => setTimeout(resolve, 5000 * attempt));
-    }
-  }
-}
-
-async function requestIcon(apiKey: string, prompt: string, seed: number): Promise<{ png: Buffer; usd: number }> {
-  const response = await fetch(`${API}/create-image-pixen`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      description: `${STYLE}: ${prompt}`,
-      image_size: { width: 32, height: 32 },
-      no_background: true,
-      outline: 'single color black outline',
-      seed,
-    }),
-  });
-  if (!response.ok) throw new Error(`HTTP ${response.status}: ${await response.text()}`);
-  const body = await response.json() as { image: { base64: string }; usage?: { usd?: number } };
-  return { png: Buffer.from(body.image.base64, 'base64'), usd: body.usage?.usd ?? 0 };
-}
-
 async function main(): Promise<void> {
   const apiKey = process.env.PIXELLAB_API_KEY;
   if (!apiKey) throw new Error('Set PIXELLAB_API_KEY (for example in .env.local)');
@@ -106,22 +74,17 @@ async function main(): Promise<void> {
   });
 
   let spent = 0;
-  let next = 0;
-  const worker = async () => {
-    while (next < jobs.length) {
-      const job = jobs[next++];
-      try {
-        const { png, usd } = await generateIcon(apiKey, job.prompt, job.seed);
-        const name = options.variants > 1 ? `${job.itemId}.${job.seed}.png` : `${job.itemId}.png`;
-        writeFileSync(join(options.outDir, name), png);
-        spent += usd;
-        console.log(`ok   ${name}`);
-      } catch (error) {
-        console.error(`fail ${job.itemId} (seed ${job.seed}): ${(error as Error).message}`);
-      }
+  await runPool(jobs, async job => {
+    try {
+      const { png, usd } = await generatePixenImage(apiKey, { description: `${STYLE}: ${job.prompt}`, size: 32, seed: job.seed });
+      const name = options.variants > 1 ? `${job.itemId}.${job.seed}.png` : `${job.itemId}.png`;
+      writeFileSync(join(options.outDir, name), png);
+      spent += usd;
+      console.log(`ok   ${name}`);
+    } catch (error) {
+      console.error(`fail ${job.itemId} (seed ${job.seed}): ${(error as Error).message}`);
     }
-  };
-  await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+  });
   console.log(`${jobs.length} images, $${spent.toFixed(3)}`);
 }
 
