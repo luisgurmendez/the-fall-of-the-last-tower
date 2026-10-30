@@ -36,7 +36,6 @@ import {
   drawFilledGroundCircle,
   drawShockwave,
   drawScreenFlash,
-  drawGlowCircle,
 } from './effects/VFXPrimitives';
 import type {
   ActiveEffect,
@@ -62,6 +61,14 @@ import {
   renderTrails,
   renderDashAfterimages,
 } from './active/trails';
+import {
+  createShieldBubble,
+  createOrbitingParticles,
+  updateShields,
+  updateOrbitingParticles,
+  renderShields,
+  renderOrbitingParticles,
+} from './active/auras';
 
 /**
  * Performance statistics.
@@ -212,9 +219,13 @@ export class VFXManager {
         createTrail(this.generateId(), config as TrailConfig, casterId, x, y, startTime)
       );
     } else if (config.type === 'shield_bubble' && casterId) {
-      this.createShieldBubble(config as ShieldBubbleConfig, casterId, x, y, startTime);
+      this.activeShields.push(
+        createShieldBubble(this.generateId(), config as ShieldBubbleConfig, casterId, x, y, startTime)
+      );
     } else if (config.type === 'orbiting_particles' && casterId) {
-      this.createOrbitingParticles(config as OrbitingParticlesConfig, casterId, x, y, startTime);
+      this.activeOrbits.push(
+        createOrbitingParticles(this.generateId(), config as OrbitingParticlesConfig, casterId, x, y, startTime)
+      );
     } else if (config.type === 'dash_afterimage' && casterId) {
       this.activeDashAfterimages.push(
         createDashAfterimage(this.generateId(), config as DashAfterimageConfig, casterId, x, y, startTime)
@@ -222,57 +233,6 @@ export class VFXManager {
     } else if (config.type === 'screen_flash') {
       this.triggerScreenFlash(config as ScreenFlashConfig, startTime);
     }
-  }
-
-  /**
-   * Create a shield bubble effect attached to an entity.
-   */
-  private createShieldBubble(
-    config: ShieldBubbleConfig,
-    entityId: string,
-    x: number,
-    y: number,
-    startTime: number
-  ): void {
-    this.activeShields.push({
-      id: this.generateId(),
-      entityId,
-      color: config.color,
-      radius: config.radius,
-      duration: config.duration * 1000,
-      startTime,
-      pulseSpeed: config.pulseSpeed,
-      hexagonal: config.hexagonal,
-    });
-  }
-
-  /**
-   * Create orbiting particles effect attached to an entity.
-   */
-  private createOrbitingParticles(
-    config: OrbitingParticlesConfig,
-    entityId: string,
-    x: number,
-    y: number,
-    startTime: number
-  ): void {
-    const particles: Array<{ angle: number }> = [];
-    for (let i = 0; i < config.count; i++) {
-      particles.push({ angle: (i / config.count) * Math.PI * 2 });
-    }
-
-    this.activeOrbits.push({
-      id: this.generateId(),
-      entityId,
-      color: config.color,
-      size: config.size,
-      orbitRadius: config.orbitRadius,
-      orbitSpeed: config.orbitSpeed,
-      count: config.count,
-      duration: config.duration * 1000,
-      startTime,
-      particles,
-    });
   }
 
   /**
@@ -330,21 +290,10 @@ export class VFXManager {
     this.activeTrails = updateTrails(this.activeTrails, this.stateManager, now);
 
     // Update shields
-    this.activeShields = this.activeShields.filter((shield) => {
-      const elapsed = now - shield.startTime;
-      return elapsed < shield.duration;
-    });
+    this.activeShields = updateShields(this.activeShields, now);
 
     // Update orbiting particles
-    for (const orbit of this.activeOrbits) {
-      for (const particle of orbit.particles) {
-        particle.angle += orbit.orbitSpeed * dt;
-      }
-    }
-    this.activeOrbits = this.activeOrbits.filter((orbit) => {
-      const elapsed = now - orbit.startTime;
-      return elapsed < orbit.duration;
-    });
+    this.activeOrbits = updateOrbitingParticles(this.activeOrbits, dt, now);
 
     // Update dash afterimages
     this.activeDashAfterimages = updateDashAfterimages(
@@ -387,10 +336,10 @@ export class VFXManager {
     this.renderActiveEffects(ctx, cameraX, cameraY, now);
 
     // Render shields attached to entities
-    this.renderShields(ctx, cameraX, cameraY, now);
+    renderShields(ctx, this.activeShields, this.stateManager, cameraX, cameraY, now);
 
     // Render orbiting particles
-    this.renderOrbitingParticles(ctx, cameraX, cameraY, now);
+    renderOrbitingParticles(ctx, this.activeOrbits, this.stateManager, cameraX, cameraY);
 
     ctx.restore();
 
@@ -569,112 +518,6 @@ export class VFXManager {
           ctx.restore();
           break;
         }
-      }
-    }
-  }
-
-  /**
-   * Render shield bubbles attached to entities.
-   */
-  private renderShields(
-    ctx: CanvasRenderingContext2D,
-    cameraX: number,
-    cameraY: number,
-    now: number
-  ): void {
-    for (const shield of this.activeShields) {
-      const entity = this.stateManager.getEntity(shield.entityId);
-      if (!entity) continue;
-
-      const screenX = entity.position.x - cameraX;
-      const screenY = entity.position.y - cameraY;
-      const elapsed = (now - shield.startTime) / 1000;
-      const progress = elapsed / (shield.duration / 1000);
-
-      // Pulse effect
-      let radius = shield.radius;
-      if (shield.pulseSpeed) {
-        const pulse = Math.sin(elapsed * shield.pulseSpeed * Math.PI * 2) * 0.1;
-        radius *= 1 + pulse;
-      }
-
-      // Fade out near end
-      let alpha = 0.6;
-      if (progress > 0.8) {
-        alpha *= 1 - (progress - 0.8) / 0.2;
-      }
-
-      if (shield.hexagonal) {
-        // Draw hexagonal shield
-        ctx.save();
-        ctx.globalAlpha = alpha;
-        ctx.strokeStyle = shield.color;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        for (let i = 0; i < 6; i++) {
-          const angle = (i / 6) * Math.PI * 2 - Math.PI / 2;
-          const px = screenX + Math.cos(angle) * radius;
-          const py = screenY + Math.sin(angle) * radius;
-          if (i === 0) {
-            ctx.moveTo(px, py);
-          } else {
-            ctx.lineTo(px, py);
-          }
-        }
-        ctx.closePath();
-        ctx.stroke();
-        ctx.restore();
-      } else {
-        // Draw circular shield
-        drawGlowCircle(
-          ctx,
-          screenX,
-          screenY,
-          radius * 0.9,
-          'transparent',
-          shield.color,
-          radius * 1.2,
-          alpha * 0.5
-        );
-        drawExpandingRing(
-          ctx,
-          screenX,
-          screenY,
-          radius,
-          2,
-          shield.color,
-          alpha
-        );
-      }
-    }
-  }
-
-  /**
-   * Render orbiting particles attached to entities.
-   */
-  private renderOrbitingParticles(
-    ctx: CanvasRenderingContext2D,
-    cameraX: number,
-    cameraY: number,
-    _now: number
-  ): void {
-    for (const orbit of this.activeOrbits) {
-      const entity = this.stateManager.getEntity(orbit.entityId);
-      if (!entity) continue;
-
-      const centerX = entity.position.x - cameraX;
-      const centerY = entity.position.y - cameraY;
-
-      for (const particle of orbit.particles) {
-        const px = centerX + Math.cos(particle.angle) * orbit.orbitRadius;
-        const py = centerY + Math.sin(particle.angle) * orbit.orbitRadius;
-
-        ctx.save();
-        ctx.fillStyle = orbit.color;
-        ctx.beginPath();
-        ctx.arc(px, py, orbit.size / 2, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
       }
     }
   }
