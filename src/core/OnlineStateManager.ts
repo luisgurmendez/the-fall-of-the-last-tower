@@ -6,19 +6,19 @@
  * - Local player's entity
  * - Game time and tick
  * - Interpolation for smooth rendering
+ *
+ * It owns the entity map and coordinates the modules in ./state/:
+ * - deltas.ts: merges full snapshots and entity deltas into the entity map
+ * - gameEvents.ts: turns game events into animations, VFX, numbers and announcements
+ * - entityVFX.ts: death, respawn, level up and recall VFX
+ * - entities.ts: the entity record, interpolation and animation queries
+ * - abilityEffects.ts, floatingNumbers.ts, campTimers.ts, announcements.ts:
+ *   the effects, numbers, timers and messages the renderers and HUD read
  */
 
 import type Vector from '@/physics/vector';
 import type { MatchData } from '@/ui/matchmaking/MatchmakingUI';
-import {
-  GameEventType,
-  type StateUpdate,
-  type FullStateSnapshot,
-  type GameEvent,
-} from '@siege/shared';
-import { getVFXManager } from '@/vfx';
-import { WORLD_VFX } from '@/vfx/world';
-import { shakeScreen } from '@/core/screenShake';
+import type { StateUpdate, FullStateSnapshot } from '@siege/shared';
 import {
   getAbilityAnimationProgress,
   getAbilityCastState,
@@ -35,13 +35,10 @@ import {
   type XpNumber,
 } from './state/floatingNumbers';
 import { CampTimers, type CampTimer } from './state/campTimers';
-import {
-  ANNOUNCEMENT_DURATION,
-  Announcements,
-  type Announcement,
-} from './state/announcements';
-import { EntityVFX, spawnWorldVFX } from './state/entityVFX';
+import { Announcements, type Announcement } from './state/announcements';
+import { EntityVFX } from './state/entityVFX';
 import { addOrUpdateEntity, applyEntityDelta, type EntityLifecycleHooks } from './state/deltas';
+import { processGameEvent, type GameEventContext } from './state/gameEvents';
 
 export type { EntityAnimationState, InterpolatedEntity } from './state/entities';
 export type { AbilityEffect } from './state/abilityEffects';
@@ -54,13 +51,13 @@ export type { Announcement } from './state/announcements';
  */
 export class OnlineStateManager {
   // Current entity states
-  private entities: Map<string, InterpolatedEntity> = new Map();
+  private readonly entities: Map<string, InterpolatedEntity> = new Map();
 
   // Match data
   private matchData: MatchData;
   private localPlayerId: string;
-  private localEntityId: string;
-  private localSide: number;
+  private readonly localEntityId: string;
+  private readonly localSide: number;
 
   // Game timing
   private currentTick = 0;
@@ -71,22 +68,22 @@ export class OnlineStateManager {
   private interpolationDelay = 100; // ms
 
   // Floating damage, gold and XP numbers
-  private floatingNumbers = new FloatingNumbers();
+  private readonly floatingNumbers = new FloatingNumbers();
 
   // Cleared jungle camps waiting to respawn
-  private campTimers = new CampTimers();
+  private readonly campTimers = new CampTimers();
 
   // Big moments to announce on screen (dragon slain, ...)
-  private announcements = new Announcements();
+  private readonly announcements = new Announcements();
 
   // Death, respawn, level up and recall effects
-  private entityVFX = new EntityVFX();
+  private readonly entityVFX = new EntityVFX();
 
   // Game time when the local champion respawns, while it's dead
   private localRespawnAt: number | null = null;
 
   // Ability visual effects (legacy system)
-  private abilityEffects = new AbilityEffects();
+  private readonly abilityEffects = new AbilityEffects();
 
   // Called by the delta merge: entity effects and the local respawn timer
   private readonly lifecycleHooks: EntityLifecycleHooks = {
@@ -108,6 +105,9 @@ export class OnlineStateManager {
     },
   };
 
+  // What game events read and write
+  private readonly eventContext: GameEventContext;
+
   constructor(matchData: MatchData) {
     this.matchData = matchData;
     this.localSide = matchData.yourSide;
@@ -116,6 +116,16 @@ export class OnlineStateManager {
     const localPlayer = matchData.players.find(p => p.side === matchData.yourSide);
     this.localPlayerId = localPlayer?.playerId || '';
     this.localEntityId = localPlayer?.entityId || '';
+
+    this.eventContext = {
+      entities: this.entities,
+      localEntityId: this.localEntityId,
+      localSide: this.localSide,
+      floatingNumbers: this.floatingNumbers,
+      abilityEffects: this.abilityEffects,
+      campTimers: this.campTimers,
+      announcements: this.announcements,
+    };
   }
 
   /**
@@ -152,161 +162,7 @@ export class OnlineStateManager {
     // Process game events (for animations)
     if (update.events && update.events.length > 0) {
       for (const event of update.events) {
-        this.processEvent(event);
-      }
-    }
-  }
-
-  /**
-   * Process a game event.
-   */
-  private processEvent(event: GameEvent): void {
-    const now = Date.now();
-
-    switch (event.type) {
-      case GameEventType.BASIC_ATTACK: {
-        const entityId = event.data.entityId as string;
-        const duration = (event.data.animationDuration as number) * 1000; // Convert to ms
-        const entity = this.entities.get(entityId);
-        if (entity) {
-          entity.animation.isAttacking = true;
-          entity.animation.attackStartTime = now;
-          entity.animation.attackDuration = duration;
-        }
-        break;
-      }
-      case GameEventType.ABILITY_CAST: {
-        const entityId = event.data.entityId as string;
-        const abilityId = event.data.abilityId as string;
-        const targetX = event.data.targetX as number | undefined;
-        const targetY = event.data.targetY as number | undefined;
-        const duration = ((event.data.animationDuration as number) ?? 0.5) * 1000;
-        const entity = this.entities.get(entityId);
-
-        if (entity) {
-          entity.animation.isCastingAbility = true;
-          entity.animation.abilityId = abilityId;
-          entity.animation.abilityStartTime = now;
-          entity.animation.abilityDuration = duration;
-
-          // Create visual effect for the ability (legacy system)
-          this.abilityEffects.create(entity, abilityId, targetX, targetY, now);
-
-          // Spawn VFX for the ability (new VFX system)
-          try {
-            const vfxManager = getVFXManager();
-            vfxManager.spawnAbilityVFX(
-              abilityId,
-              entity.position.x,
-              entity.position.y,
-              targetX,
-              targetY,
-              entityId
-            );
-          } catch {
-            // VFXManager not initialized yet, skip
-          }
-        }
-        break;
-      }
-      case GameEventType.DAMAGE: {
-        const entityId = event.data.entityId as string;
-        const amount = event.data.amount as number;
-        const shieldAbsorbed = (event.data.shieldAbsorbed as number) || 0;
-        const damageType = event.data.damageType as 'physical' | 'magic' | 'true' | 'pure';
-        const entity = this.entities.get(entityId);
-
-        // A heavy hit on the local champion (over 15% of its health) shakes the screen
-        if (entity && entityId === this.localEntityId && amount > ((entity.snapshot as any).maxHealth ?? Infinity) * 0.15) {
-          shakeScreen(4, 0.25);
-        }
-
-        if (entity && amount > 0) {
-          const spark = damageType === 'magic' ? WORLD_VFX.HIT_MAGIC
-            : damageType === 'physical' ? WORLD_VFX.HIT_PHYSICAL
-            : WORLD_VFX.HIT_TRUE;
-          spawnWorldVFX(spark, entity.position.x, entity.position.y - 10);
-        }
-
-        if (entity && (amount > 0 || shieldAbsorbed > 0)) {
-          this.floatingNumbers.addDamage({
-            entityId,
-            x: entity.position.x,
-            y: entity.position.y,
-            amount,
-            shieldAbsorbed,
-            damageType,
-            startTime: now,
-          });
-        }
-        break;
-      }
-      case GameEventType.GOLD_EARNED: {
-        const entityId = event.data.entityId as string;
-        const amount = event.data.amount as number;
-        const entity = this.entities.get(entityId);
-
-        if (entity && amount > 0) {
-          this.floatingNumbers.addGold({
-            entityId,
-            x: entity.position.x,
-            y: entity.position.y,
-            amount,
-            startTime: now,
-          });
-        }
-        break;
-      }
-      case GameEventType.CAMP_CLEARED: {
-        this.campTimers.set({
-          campId: event.data.campId as string,
-          creatureType: event.data.creatureType as string,
-          x: event.data.x as number,
-          y: event.data.y as number,
-          respawnAt: event.data.respawnAt as number,
-        });
-        break;
-      }
-      case GameEventType.CHAMPION_KILL: {
-        this.announceChampionKill(event.data, now);
-        break;
-      }
-      case GameEventType.TOWER_DESTROYED: {
-        const ours = event.data.side === this.localSide;
-        this.announcements.add({
-          text: ours ? 'Your tower has been destroyed' : 'Your team destroyed a tower!',
-          color: ours ? '#ec7063' : '#5dade2',
-          startTime: now,
-          duration: ANNOUNCEMENT_DURATION,
-        });
-        break;
-      }
-      case GameEventType.DRAGON_KILLED: {
-        const allied = event.data.side === this.localSide;
-        this.announcements.add({
-          text: allied ? 'Your team slew the Dragon!' : 'The enemy team slew the Dragon!',
-          detail: "Dragon's Might: +8% attack damage and ability power",
-          color: allied ? '#5dade2' : '#ec7063',
-          startTime: now,
-          duration: ANNOUNCEMENT_DURATION,
-        });
-        break;
-      }
-      case GameEventType.XP_EARNED: {
-        const entityId = event.data.entityId as string;
-        const amount = event.data.amount as number;
-        const entity = this.entities.get(entityId);
-
-        if (entity && amount > 0) {
-          this.floatingNumbers.addXp({
-            entityId,
-            x: entity.position.x,
-            y: entity.position.y,
-            amount,
-            startTime: now,
-          });
-        }
-        break;
+        processGameEvent(event, this.eventContext);
       }
     }
   }
@@ -377,28 +233,6 @@ export class OnlineStateManager {
    */
   getCampTimers(): CampTimer[] {
     return this.campTimers.getActive(this.gameTime);
-  }
-
-  /**
-   * "You have slain an enemy!" and friends, from the local player's point of view.
-   */
-  private announceChampionKill(data: Record<string, unknown>, now: number): void {
-    const victimIsLocal = data.victimId === this.localEntityId;
-    const killerIsLocal = data.killerId === this.localEntityId;
-    const allyDied = data.victimSide === this.localSide;
-
-    let text: string;
-    if (victimIsLocal) text = 'You have been slain!';
-    else if (killerIsLocal) text = 'You have slain an enemy!';
-    else text = allyDied ? 'An ally has been slain' : 'An enemy has been slain';
-
-    this.announcements.add({
-      text: data.firstBlood ? 'First Blood!' : text,
-      detail: data.firstBlood ? text : undefined,
-      color: allyDied ? '#ec7063' : '#f5b041',
-      startTime: now,
-      duration: ANNOUNCEMENT_DURATION,
-    });
   }
 
   /**
