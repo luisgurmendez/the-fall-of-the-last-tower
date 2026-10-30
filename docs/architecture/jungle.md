@@ -28,6 +28,9 @@ Creatures are neutral monsters:
 - **Ranged creatures** (gromp and dragon) attack with projectiles (`jungle_spit`, `dragon_fire`). The others hit instantly.
 - **Special attacks.** Buff monsters and the dragon have a telegraphed area attack, see below.
 - Minions and towers never attack jungle creatures.
+- **Side 2.** Creatures have side 2 (neutral) on the server and in their snapshot. The client's
+  right-click targeting treats any side other than the player's as an enemy; without `side`
+  in the snapshot, creatures could only be hit with abilities.
 
 ## Special attacks
 

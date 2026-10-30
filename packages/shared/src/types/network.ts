@@ -411,6 +411,8 @@ export interface NexusSnapshot {
 export interface JungleCreatureSnapshot {
   entityId: string;
   entityType: EntityType.JUNGLE_CAMP;
+  /** Always 2 (neutral): every champion can attack it */
+  side: Side;
   campId: string;
   creatureType: string;
 

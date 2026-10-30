@@ -7,7 +7,8 @@
 
 import { describe, it, expect, beforeEach } from 'bun:test';
 import { StateSerializer } from '../network/StateSerializer';
-import { EntityType, EntityChangeMask, type EntitySnapshot, type ChampionSnapshot, type MinionSnapshot } from '@siege/shared';
+import { EntityType, EntityChangeMask, Vector, type EntitySnapshot, type ChampionSnapshot, type MinionSnapshot, type JungleCreatureSnapshot } from '@siege/shared';
+import { ServerJungleCreature } from '../simulation/ServerJungleCreature';
 
 // Mock entity that implements toSnapshot
 function createMockEntity(id: string, type: EntityType, overrides: Partial<EntitySnapshot> = {}) {
@@ -231,6 +232,18 @@ describe('StateSerializer', () => {
       const deltas = serializer.createDeltaUpdates(entities as any, playerId, 2);
 
       expect(deltas[0].changeMask & EntityChangeMask.STATE).toBeTruthy();
+    });
+
+    it('should tell clients a jungle creature is neutral', () => {
+      const creature = new ServerJungleCreature({
+        id: 'gromp-1',
+        position: new Vector(0, 0),
+        campId: 'camp',
+        creatureType: 'gromp',
+        homePosition: new Vector(0, 0),
+      });
+      const [delta] = serializer.createDeltaUpdates([creature], 'player-1', 1);
+      expect((delta.data as JungleCreatureSnapshot).side).toBe(2);
     });
 
     it('should return no deltas when nothing changed', () => {

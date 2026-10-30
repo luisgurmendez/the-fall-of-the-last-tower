@@ -455,6 +455,7 @@ export class ServerJungleCreature extends ServerEntity {
     return {
       entityId: this.id,
       entityType: EntityType.JUNGLE_CAMP,
+      side: this.side,
       campId: this.campId,
       creatureType: this.creatureType,
       x: this.position.x,
