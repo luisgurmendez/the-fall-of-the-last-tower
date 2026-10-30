@@ -49,6 +49,8 @@ export class ShopUI {
   private itemsGrid: HTMLElement | null = null;
   private detailsPanel: HTMLElement | null = null;
   private buyButton: HTMLButtonElement | null = null;
+  /** Whether the local champion is where it can shop (its fountain) */
+  private atShop = true;
   private sellButton: HTMLButtonElement | null = null;
   private undoButton: HTMLButtonElement | null = null;
   private closeButton: HTMLButtonElement | null = null;
@@ -423,17 +425,19 @@ export class ShopUI {
     const gold = this.onlineGold;
     const item = this.state.selectedItem;
 
-    // Buy button - check gold (server validates everything else)
+    // Buy button - check gold and being at base (server validates everything else)
     if (this.buyButton) {
-      const canBuy = item !== null &&
+      const canBuy = this.atShop &&
+                     item !== null &&
                      this.state.selectedInventorySlot === null &&
                      gold >= item.cost;
       this.buyButton.disabled = !canBuy;
+      this.buyButton.textContent = this.atShop ? "BUY" : "AT BASE ONLY";
     }
 
     // Sell button
     if (this.sellButton) {
-      const canSell = this.state.selectedInventorySlot !== null;
+      const canSell = this.atShop && this.state.selectedInventorySlot !== null;
       this.sellButton.disabled = !canSell;
     }
 
@@ -580,12 +584,15 @@ export class ShopUI {
    * Update online state from server snapshot.
    * Convenience method that sets both gold and items.
    */
-  updateOnlineState(gold: number, items: Array<{ definitionId: string } | null>): void {
+  updateOnlineState(gold: number, items: Array<{ definitionId: string } | null>, atShop = true): void {
     this.onlineGold = gold;
     this.onlineItems = items;
+    const shopChanged = atShop !== this.atShop;
+    this.atShop = atShop;
     if (this.state.isOpen) {
       this.updateGoldDisplay();
       this.updateInventorySlots();
+      if (shopChanged) this.updateButtons();
     }
   }
 

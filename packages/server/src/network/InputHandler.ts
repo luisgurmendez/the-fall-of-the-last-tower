@@ -21,6 +21,7 @@ import {
   RecallInput,
   PlaceWardInput,
   AbilitySlot,
+  GameConfig,
 } from '@siege/shared';
 import type { ServerChampion } from '../simulation/ServerChampion';
 import type { ServerGameContext } from '../game/ServerGameContext';
@@ -117,6 +118,15 @@ function hasValidPayload(input: ClientInput): boolean {
 export interface InputHandlerOptions {
   /** Clock for rate limiting (ms). Headless simulations pass game time so fast-forwarding isn't rate limited. */
   now?: () => number;
+}
+
+/**
+ * Whether a champion may use the shop: only at its fountain (unless the rule is off).
+ */
+export function canShop(champion: ServerChampion, context: ServerGameContext): boolean {
+  if (!GameConfig.ECONOMY.SHOP_ONLY_AT_BASE) return true;
+  const fountain = champion.side === 0 ? context.mapConfig.CHAMPION_SPAWN.BLUE : context.mapConfig.CHAMPION_SPAWN.RED;
+  return champion.position.distanceTo(fountain) <= context.mapConfig.FOUNTAIN.RADIUS;
 }
 
 export class InputHandler {
@@ -223,7 +233,7 @@ export class InputHandler {
         break;
 
       case InputType.SELL_ITEM:
-        this.handleSellItemInput(champion, input as SellItemInput);
+        this.handleSellItemInput(champion, input as SellItemInput, context);
         break;
 
       case InputType.RECALL:
@@ -339,13 +349,15 @@ export class InputHandler {
     input: BuyItemInput,
     context: ServerGameContext
   ): void {
+    if (!canShop(champion, context)) return;
     champion.buyItem(input.itemId);
   }
 
   /**
    * Handle sell item input.
    */
-  private handleSellItemInput(champion: ServerChampion, input: SellItemInput): void {
+  private handleSellItemInput(champion: ServerChampion, input: SellItemInput, context: ServerGameContext): void {
+    if (!canShop(champion, context)) return;
     champion.sellItem(input.slot);
   }
 

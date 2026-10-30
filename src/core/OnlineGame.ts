@@ -15,7 +15,7 @@ import { getShopUI } from '@/ui/shop/ShopUI';
 import { profiler } from '@/debug/PerformanceProfiler';
 import { getCursorManager } from './CursorManager';
 import { OnlineStateManager } from './OnlineStateManager';
-import { EntityType, type ChampionSnapshot } from '@siege/shared';
+import { EntityType, GameConfig, MOBAConfig, type ChampionSnapshot } from '@siege/shared';
 import type { NetworkClient } from '@siege/client';
 import type { MatchData } from '@/ui/matchmaking/MatchmakingUI';
 import type { GameApi } from './gameContext';
@@ -160,7 +160,12 @@ class OnlineGame {
       item ? { definitionId: item.definitionId } : null
     );
 
-    shopUI.updateOnlineState(championSnapshot.gold, items);
+    // The server only sells at the fountain
+    const fountain = championSnapshot.side === 0 ? MOBAConfig.CHAMPION_SPAWN.BLUE : MOBAConfig.CHAMPION_SPAWN.RED;
+    const atShop = !GameConfig.ECONOMY.SHOP_ONLY_AT_BASE ||
+      Math.hypot(championSnapshot.x - fountain.x, championSnapshot.y - fountain.y) <= MOBAConfig.FOUNTAIN.RADIUS;
+
+    shopUI.updateOnlineState(championSnapshot.gold, items, atShop);
   }
 
   /**

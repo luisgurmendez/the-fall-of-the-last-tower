@@ -117,3 +117,23 @@ describe('Fountain', () => {
     }
   });
 });
+
+describe('Shop', () => {
+  test('items can only be bought at the fountain', () => {
+    const sim = new Simulation({ seed: 1, minionWaves: false, jungle: false, structures: false });
+    try {
+      const champion = sim.addChampion({ playerId: 'p1', championId: 'vex', side: 'blue', at: { x: 0, y: 0 } });
+      champion.gold = 1000;
+      sim.buy('p1', 'long_sword');
+      sim.run(0.1);
+      expect(champion.items.some(item => item?.definitionId === 'long_sword')).toBe(false);
+
+      champion.position = sim.context.mapConfig.CHAMPION_SPAWN.BLUE.clone();
+      sim.buy('p1', 'long_sword');
+      sim.run(0.1);
+      expect(champion.items.some(item => item?.definitionId === 'long_sword')).toBe(true);
+    } finally {
+      sim.dispose();
+    }
+  });
+});

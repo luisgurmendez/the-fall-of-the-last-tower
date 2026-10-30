@@ -54,6 +54,8 @@ export const GameConfig = {
    * Economy constants.
    */
   ECONOMY: {
+    /** Items can only be bought and sold at your fountain */
+    SHOP_ONLY_AT_BASE: true,
     /** Starting gold */
     STARTING_GOLD: 300,
     /** Passive gold per second */
