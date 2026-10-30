@@ -1,0 +1,322 @@
+/**
+ * Generates the jungle monsters' animated sprites with PixelLab
+ * (https://api.pixellab.ai/v2).
+ *
+ * For each monster: a PixelLab character (its look), then idle, run and attack
+ * animations facing east; the game mirrors them to face west. Each
+ * animation's frames go side by side in
+ * public/assets/sprites/monsters/<creatureType>/<animation>.png, on a square
+ * canvas shared by the monster's animations with the feet on the same row,
+ * so switching animations doesn't make the monster jump.
+ *
+ * scripts/monster-sprites.json keeps each monster's character and animation
+ * ids: a later run reuses them and only generates what's missing.
+ *
+ * Usage (from the repo root; Bun loads PIXELLAB_API_KEY from .env.local):
+ *   bun scripts/generate-monster-sprites.ts                  # every monster
+ *   bun scripts/generate-monster-sprites.ts --only spider    # some monsters
+ *   bun scripts/generate-monster-sprites.ts --only spider --redo attack --seed 8
+ *     # generate those animations again (another seed gives another take)
+ *   bun scripts/generate-monster-sprites.ts --only spider --new-character
+ *
+ * A character takes about 3 minutes, an animation 1-5 minutes.
+ */
+
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { blit, bottomRow, createImage, decodePng, encodePng, type RgbaImage } from './lib/png';
+
+const API = 'https://api.pixellab.ai/v2';
+const MANIFEST_PATH = 'scripts/monster-sprites.json';
+const OUTPUT_DIR = 'public/assets/sprites/monsters';
+const ANIMATIONS = ['idle', 'run', 'attack'] as const;
+type AnimationName = typeof ANIMATIONS[number];
+
+type AnimationSpec =
+  /** Drawn frame by frame from a description (4-16 frames) */
+  | { mode: 'v3'; action: string; frames: number }
+  /** Drawn from a description on PixMiniMax (multiple of 4 frames) */
+  | { mode: 'pixminimax'; action: string; frames: number }
+  /** A PixelLab skeleton animation (needs a matching character template) */
+  | { mode: 'template'; template: string };
+
+interface MonsterSpec {
+  /** Creature type it draws (MOBAConfig.JUNGLE.CREATURE_STATS key) */
+  creatureType: string;
+  name: string;
+  description: string;
+  /** Character canvas in pixels */
+  size: number;
+  /** PixelLab skeleton the character is fitted to: mannequin, dog, bear, cat, horse, lion */
+  template: string;
+  animations: Record<AnimationName, AnimationSpec>;
+}
+
+export const MONSTERS: MonsterSpec[] = [
+  {
+    creatureType: 'wolf',
+    name: 'Cinder Hound',
+    description: 'a lean dark grey hound beast with glowing ember eyes and smoldering orange cracks along its back, four legs',
+    size: 64,
+    template: 'dog',
+    animations: {
+      idle: { mode: 'v3', action: 'standing still, breathing slowly, embers flickering', frames: 4 },
+      run: { mode: 'template', template: 'running-6-frames' },
+      attack: { mode: 'pixminimax', action: 'crouches, then pounces forward with jaws wide open and snaps shut, then steps back', frames: 8 },
+    },
+  },
+  {
+    creatureType: 'spider',
+    name: 'Gloom Crawler',
+    description: 'a small dark purple cave spider with eight spiky legs and glowing green eyes',
+    size: 48,
+    template: 'mannequin',
+    animations: {
+      idle: { mode: 'v3', action: 'standing still, legs twitching', frames: 4 },
+      run: { mode: 'pixminimax', action: 'scuttles forward, its eight legs moving quickly in a looping walk cycle', frames: 8 },
+      attack: { mode: 'pixminimax', action: 'rears up its front legs and bites forward with its fangs', frames: 8 },
+    },
+  },
+  {
+    creatureType: 'gromp',
+    name: 'Thornspitter',
+    description: 'a squat carnivorous plant monster on short root legs, a big green bulb head with a wide toothy mouth and thorny leaves',
+    size: 64,
+    template: 'mannequin',
+    animations: {
+      idle: { mode: 'v3', action: 'swaying gently, leaves rustling', frames: 4 },
+      run: { mode: 'pixminimax', action: 'waddles forward on its root legs in a looping walk cycle', frames: 8 },
+      attack: { mode: 'pixminimax', action: 'leans back then spits a glob of green goo forward from its mouth', frames: 8 },
+    },
+  },
+  {
+    creatureType: 'blue_buff',
+    name: 'Azure Warden',
+    description: 'a huge ancient tortoise with a glowing blue crystal shell and grey stone skin',
+    size: 96,
+    template: 'bear',
+    animations: {
+      idle: { mode: 'v3', action: 'standing still, breathing slowly, crystals glowing', frames: 4 },
+      run: { mode: 'pixminimax', action: 'walks forward slowly and heavily in a looping walk cycle', frames: 8 },
+      attack: { mode: 'pixminimax', action: 'rears up on its hind legs and stomps the ground hard with its front legs', frames: 8 },
+    },
+  },
+  {
+    creatureType: 'red_buff',
+    name: 'Ember Brute',
+    description: 'a hulking hunched brute made of black molten rock with glowing lava cracks and huge fists',
+    size: 96,
+    template: 'mannequin',
+    animations: {
+      idle: { mode: 'v3', action: 'standing hunched, breathing heavily, lava glowing', frames: 4 },
+      run: { mode: 'template', template: 'walking-6-frames' },
+      attack: { mode: 'pixminimax', action: 'raises both fists overhead and slams them into the ground', frames: 8 },
+    },
+  },
+  {
+    creatureType: 'dragon',
+    name: 'Dragon',
+    description: 'a large four-legged dragon with dark purple scales, folded bat wings, horns and a glowing orange belly',
+    size: 128,
+    template: 'lion',
+    animations: {
+      idle: { mode: 'v3', action: 'standing still, breathing slowly, wings shifting', frames: 4 },
+      run: { mode: 'pixminimax', action: 'walks forward on four legs in a looping walk cycle, wings folded', frames: 8 },
+      attack: { mode: 'pixminimax', action: 'rears its head back then breathes a burst of fire forward', frames: 8 },
+    },
+  },
+];
+
+interface ManifestEntry {
+  characterId?: string;
+  animations: Partial<Record<AnimationName, string>>;
+}
+type Manifest = Record<string, ManifestEntry>;
+
+interface Options {
+  only: string[] | null;
+  redo: AnimationName[];
+  newCharacter: boolean;
+  seed: number;
+}
+
+function parseArgs(argv: string[]): Options {
+  const options: Options = { only: null, redo: [], newCharacter: false, seed: 7 };
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i] === '--only') options.only = argv[++i].split(',');
+    else if (argv[i] === '--redo') options.redo = argv[++i].split(',') as AnimationName[];
+    else if (argv[i] === '--new-character') options.newCharacter = true;
+    else if (argv[i] === '--seed') options.seed = Number(argv[++i]);
+  }
+  return options;
+}
+
+const apiKey = process.env.PIXELLAB_API_KEY;
+
+async function api<T>(path: string, body?: unknown): Promise<T> {
+  for (let attempt = 1; ; attempt++) {
+    const response = await fetch(`${API}${path}`, {
+      method: body ? 'POST' : 'GET',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    // PixelLab answers 429 past a few jobs at once: wait for a slot
+    if (response.status === 429 && attempt < 30) {
+      await sleep(15_000);
+      continue;
+    }
+    if (!response.ok) throw new Error(`${path}: HTTP ${response.status} ${await response.text()}`);
+    return response.json() as Promise<T>;
+  }
+}
+
+async function waitForJob(jobId: string, label: string): Promise<void> {
+  const started = Date.now();
+  for (;;) {
+    const job = await api<{ status: string; last_response?: unknown }>(`/background-jobs/${jobId}`);
+    if (job.status === 'completed') {
+      log(`${label} done in ${Math.round((Date.now() - started) / 1000)}s`);
+      return;
+    }
+    if (job.status !== 'processing') throw new Error(`${label} ${job.status}: ${JSON.stringify(job.last_response)}`);
+    await sleep(10_000);
+  }
+}
+
+async function createCharacter(spec: MonsterSpec, seed: number): Promise<string> {
+  log(`${spec.name}: creating the character`);
+  const created = await api<{ character_id: string; background_job_id: string }>('/create-character-v3', {
+    description: spec.description,
+    image_size: { width: spec.size, height: spec.size },
+    view: 'low top-down',
+    template_id: spec.template,
+    seed,
+  });
+  await waitForJob(created.background_job_id, `${spec.name} character`);
+  return created.character_id;
+}
+
+async function createAnimation(characterId: string, spec: MonsterSpec, name: AnimationName, seed: number): Promise<string> {
+  const animation = spec.animations[name];
+  const body: Record<string, unknown> = {
+    character_id: characterId,
+    animation_name: name,
+    directions: ['east'],
+    seed,
+  };
+  if (animation.mode === 'template') {
+    Object.assign(body, { mode: 'template', template_animation_id: animation.template });
+  } else {
+    Object.assign(body, { mode: animation.mode, action_description: animation.action, frame_count: animation.frames });
+    if (animation.mode === 'pixminimax') body.subject_description = spec.description;
+  }
+  log(`${spec.name}: animating ${name} (${animation.mode})`);
+  const created = await api<{ animation_group_id: string; background_job_ids: string[] }>('/characters/animations', body);
+  await waitForJob(created.background_job_ids[0], `${spec.name} ${name}`);
+  return created.animation_group_id;
+}
+
+interface CharacterDetail {
+  animations: { animation_group_id: string; directions: { direction: string; frames: string[] }[] }[];
+}
+
+async function downloadFrames(characterId: string, groupId: string): Promise<RgbaImage[]> {
+  const character = await api<CharacterDetail>(`/characters/${characterId}`);
+  const animation = character.animations.find(a => a.animation_group_id === groupId);
+  const east = animation?.directions.find(d => d.direction === 'east');
+  if (!east) throw new Error(`Animation ${groupId} has no east frames`);
+  return Promise.all(east.frames.map(async url => {
+    // The file host rejects some default user agents
+    const response = await fetch(url, { headers: { 'User-Agent': 'curl/8' } });
+    if (!response.ok) throw new Error(`${url}: HTTP ${response.status}`);
+    return decodePng(new Uint8Array(await response.arrayBuffer()));
+  }));
+}
+
+/**
+ * Lay out each animation's frames side by side on a square canvas shared by
+ * all of them, centered, with every animation's feet on the idle's row.
+ */
+function buildStrips(animations: Record<AnimationName, RgbaImage[]>): Record<AnimationName, RgbaImage> {
+  const canvas = Math.max(...Object.values(animations).flat().map(frame => Math.max(frame.width, frame.height)));
+  const centered = (frame: RgbaImage, dy = 0) => {
+    const out = createImage(canvas, canvas);
+    blit(out, frame, Math.floor((canvas - frame.width) / 2), Math.floor((canvas - frame.height) / 2) + dy);
+    return out;
+  };
+  const feetRow = (frames: RgbaImage[]) => Math.max(...frames.map(frame => bottomRow(centered(frame))));
+  const idleFeet = feetRow(animations.idle);
+
+  const strips = {} as Record<AnimationName, RgbaImage>;
+  for (const name of ANIMATIONS) {
+    const frames = animations[name];
+    const dy = idleFeet - feetRow(frames);
+    const strip = createImage(canvas * frames.length, canvas);
+    frames.forEach((frame, i) => blit(strip, centered(frame, dy), i * canvas, 0));
+    strips[name] = strip;
+  }
+  return strips;
+}
+
+async function generateMonster(spec: MonsterSpec, manifest: Manifest, options: Options): Promise<void> {
+  const entry = (manifest[spec.creatureType] ??= { animations: {} });
+  if (!entry.characterId || options.newCharacter) {
+    entry.characterId = await createCharacter(spec, options.seed);
+    entry.animations = {};
+    saveManifest(manifest);
+  }
+  const characterId = entry.characterId;
+
+  // Missing animations, at the same time
+  await Promise.all(ANIMATIONS.map(async name => {
+    if (entry.animations[name] && !options.redo.includes(name)) return;
+    entry.animations[name] = await createAnimation(characterId, spec, name, options.seed);
+    saveManifest(manifest);
+  }));
+
+  const frames = {} as Record<AnimationName, RgbaImage[]>;
+  for (const name of ANIMATIONS) {
+    frames[name] = await downloadFrames(characterId, entry.animations[name]!);
+  }
+  const strips = buildStrips(frames);
+  const dir = join(OUTPUT_DIR, spec.creatureType);
+  mkdirSync(dir, { recursive: true });
+  for (const name of ANIMATIONS) {
+    writeFileSync(join(dir, `${name}.png`), encodePng(strips[name]));
+  }
+  log(`${spec.name}: wrote ${dir} (${ANIMATIONS.map(name => `${name} ${frames[name].length}`).join(', ')} frames, ${strips.idle.height}px)`);
+}
+
+function loadManifest(): Manifest {
+  return existsSync(MANIFEST_PATH) ? JSON.parse(readFileSync(MANIFEST_PATH, 'utf8')) : {};
+}
+
+function saveManifest(manifest: Manifest): void {
+  writeFileSync(MANIFEST_PATH, JSON.stringify(manifest, null, 2) + '\n');
+}
+
+function log(message: string): void {
+  console.log(`[${new Date().toISOString().slice(11, 19)}] ${message}`);
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function main(): Promise<void> {
+  if (!apiKey) throw new Error('Set PIXELLAB_API_KEY (for example in .env.local)');
+  const options = parseArgs(process.argv.slice(2));
+  const manifest = loadManifest();
+  const monsters = MONSTERS.filter(spec => !options.only || options.only.includes(spec.creatureType));
+
+  // Monsters one at a time: their animations already run three jobs at once
+  for (const spec of monsters) {
+    try {
+      await generateMonster(spec, manifest, options);
+    } catch (error) {
+      log(`${spec.name} failed: ${(error as Error).message}`);
+    }
+  }
+}
+
+await main();

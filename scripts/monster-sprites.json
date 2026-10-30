@@ -1,0 +1,50 @@
+{
+  "wolf": {
+    "characterId": "8a5b96d7-a42a-41a5-87b8-a35fb589a662",
+    "animations": {
+      "idle": "857c9751-da80-46d7-9fed-500eeb368815",
+      "run": "294093b1-6d02-4fc5-a57c-142ae333fca7",
+      "attack": "6deba05c-1ed7-4e6b-8500-2387f0e7c284"
+    }
+  },
+  "spider": {
+    "animations": {
+      "idle": "28514725-5002-4ae5-83e8-a9b4fdcb089c",
+      "run": "473c804d-93a1-4470-8ad1-ecb5ab35571b",
+      "attack": "1ba2c117-3bff-4a53-a5fb-1595ebe6e80b"
+    },
+    "characterId": "75785991-d91e-4419-b856-e417aa11232c"
+  },
+  "gromp": {
+    "animations": {
+      "run": "eb8a973f-9bad-4f43-ba97-56197d6f1300",
+      "idle": "9363c74c-1ddb-408f-8d14-164a6c029ec3",
+      "attack": "21209c88-e596-4ede-8432-7af97999c07a"
+    },
+    "characterId": "20426e1b-a5a7-424c-b581-9ea6ae04d80a"
+  },
+  "blue_buff": {
+    "animations": {
+      "idle": "ea54d0fa-4918-4e26-9672-39fceacb79d5",
+      "attack": "7a24a309-4d93-4561-9504-374adf762cca",
+      "run": "c1b5fa2e-cd20-4ec4-86f3-a0ffb5a00f1f"
+    },
+    "characterId": "9c71310b-f22f-4b0e-bb5c-2b8667b77ff3"
+  },
+  "red_buff": {
+    "animations": {
+      "attack": "cc66c037-5866-4c5f-85b6-7ce05b1856d9",
+      "idle": "a032d70b-f10a-4b70-b3c1-f3fdfc9a3a8d",
+      "run": "d25ddfe7-1dd1-40ae-85cb-941c86d491a7"
+    },
+    "characterId": "9d67ef4f-3f9b-4836-a029-8cd674cfd2d5"
+  },
+  "dragon": {
+    "animations": {
+      "run": "ebf9f930-97ea-4b21-87f4-a692f25257de",
+      "attack": "a8c1be07-0875-4862-9322-099a4917b5b5",
+      "idle": "202bc9b0-aef7-4bff-bed4-a936794e3ecc"
+    },
+    "characterId": "91ff0e7c-37ba-472d-a61e-b0f59c767a1c"
+  }
+}

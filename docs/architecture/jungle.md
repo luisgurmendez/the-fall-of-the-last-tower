@@ -46,7 +46,7 @@ During a fight the monster checks its special attack. It uses it when the attack
 
 The sizes are tuned to champion speed (about 60 units/s). A melee champion fighting a buff monster stands about 90 from its center (attack range 40 plus both bodies), inside the slam, and has about 0.4 s to spare when it steps out. The dragon's breath is too wide to outrun up close, so champions should fight it from beside or behind.
 
-The client draws the warning from the same config (`src/vfx/world.ts`). While winding up, the monster holds its first attack frame, trembles, swells and glows brighter until the attack lands (`renderJungleCamp`). The slam warning is a filled circle with a ring that grows from the center and reaches the edge when the slam lands. The breath warning is a faint cone, followed by a fire burst.
+The client draws the warning from the same config (`src/vfx/world.ts`). While winding up, the monster holds its attack's gathering pose, trembles, swells and glows brighter until the attack lands (`renderJungleCamp`). The slam warning is a filled circle with a ring that grows from the center and reaches the edge when the slam lands. The breath warning is a faint cone, followed by a fire burst.
 
 ## Balance
 
@@ -73,7 +73,39 @@ Buff-camp buffs are lost on death.
 
 ## Looks
 
-The client has two creature sprites, spider and bear. Each type gets its own size and canvas color filter. Buffs and the dragon also get a pulsing aura and a name plate ("Azure Warden", "Ember Brute", "Dragon").
+Each spawned creature type has its own monster, designed for Siege:
+
+| Type | Monster | Canvas |
+|------|---------|--------|
+| `wolf` | Cinder Hound: a dark hound with smoldering ember cracks | 80 px |
+| `spider` | Gloom Crawler: a small purple cave spider | 64 px |
+| `gromp` | Thornspitter: a carnivorous plant that spits | 84 px |
+| `blue_buff` | Azure Warden: an ancient tortoise with a blue crystal shell | 124 px |
+| `red_buff` | Ember Brute: a hunched brute of molten rock | 132 px |
+| `dragon` | Dragon: purple scales, folded wings, glowing belly | 164 px |
+
+Each has idle, run and attack strips in `public/assets/sprites/monsters/<type>/`: square
+frames side by side, facing right (`renderJungleCamp` mirrors them to face left). The
+frame size is the strip's height and the frame count its width over its height. Idle and
+run loop; the attack plays once over the server's attack animation; a special attack's
+wind-up holds the attack's gathering pose. Bars, name plates and the aura are placed from
+the art's measured top and width, so they fit any monster size. Buffs and the dragon also
+get a pulsing aura and a name plate ("Azure Warden", "Ember Brute", "Dragon").
+
+The strips come from PixelLab, made by `scripts/generate-monster-sprites.ts` (each
+monster's description, canvas and animation prompts are in `MONSTERS` there):
+
+- A character per monster (`create-character-v3`, 8 directions; only east is used).
+- Idle from a description (`v3` mode), the attack on PixMiniMax (8 frames), and the run
+  from a skeleton template (`running-6-frames`, `walking-6-frames`) when the monster's
+  body has one, else on PixMiniMax.
+- The frames are laid on one square canvas per monster with every animation's feet on
+  the idle's row, so switching animations doesn't make the monster jump.
+
+`scripts/monster-sprites.json` keeps the PixelLab character and animation ids; a run
+only generates what's missing (`--redo attack --seed 8` regenerates an animation with another seed). `public/` is
+not in git, so a machine without the strips draws the older looks: the shared bear and
+spider sprites with a color filter per type.
 
 ## Scenarios
 
