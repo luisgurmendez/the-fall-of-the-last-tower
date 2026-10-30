@@ -23,7 +23,6 @@ import {
   ActiveEffectState,
   CrowdControlStatus,
   EquippedItemState,
-  ItemSlot,
   PassiveState,
   LEVEL_EXPERIENCE,
   defaultCCStatus,
@@ -39,7 +38,6 @@ import {
 import { ServerEntity, ServerEntityConfig } from './ServerEntity';
 import { ServerTower } from './ServerTower';
 import type { ServerGameContext } from '../game/ServerGameContext';
-import { getServerItemById } from '../data/items';
 import { RewardSystem } from '../systems/RewardSystem';
 import { passiveTriggerSystem } from '../systems/PassiveTriggerSystem';
 import { championHooksRegistry } from '../abilities/ChampionHooksRegistry';
@@ -60,6 +58,7 @@ import {
 } from './champion/ChampionForcedMovement';
 import { ChampionRecall } from './champion/ChampionRecall';
 import { ChampionTrinket } from './champion/ChampionTrinket';
+import { ChampionInventory } from './champion/ChampionInventory';
 
 export interface ServerChampionConfig extends Omit<ServerEntityConfig, 'entityType'> {
   definition: ChampionDefinition;
@@ -115,6 +114,7 @@ export class ServerChampion extends ServerEntity {
   items: (EquippedItemState | null)[] = [null, null, null, null, null, null];
   gold = GameConfig.ECONOMY.STARTING_GOLD;
   totalGoldSpent = 0;
+  private readonly inventory = new ChampionInventory(this);
 
   // Basic attacks (attack timer, pending attack damage)
   private readonly basicAttacks = new ChampionBasicAttacks(this);
@@ -896,7 +896,7 @@ export class ServerChampion extends ServerEntity {
   }
 
   // =====================
-  // Item System
+  // Items (see ChampionInventory)
   // =====================
 
   /**
@@ -904,42 +904,7 @@ export class ServerChampion extends ServerEntity {
    * @returns true if purchase succeeded
    */
   buyItem(itemId: string): boolean {
-    const itemDef = getServerItemById(itemId);
-    if (!itemDef) {
-      return false;
-    }
-
-    // Check gold
-    if (this.gold < itemDef.cost) {
-      return false;
-    }
-
-    // Check if unique and already owned
-    if (itemDef.isUnique && this.hasItem(itemId)) {
-      return false;
-    }
-
-    // Find empty slot
-    const emptySlot = this.findEmptySlot();
-    if (emptySlot === null) {
-      return false;
-    }
-
-    // Deduct gold and add item
-    this.gold -= itemDef.cost;
-    this.totalGoldSpent += itemDef.cost;
-    this.items[emptySlot] = {
-      definitionId: itemId,
-      slot: emptySlot as ItemSlot,
-      passiveCooldowns: {},
-      nextIntervalTick: {},
-    };
-
-    // Invalidate cached stats
-    this.cachedStats = null;
-
-    Logger.champion.info(`${this.playerId} bought ${itemDef.name} for ${itemDef.cost}g`);
-    return true;
+    return this.inventory.buy(itemId);
   }
 
   /**
@@ -947,49 +912,14 @@ export class ServerChampion extends ServerEntity {
    * @returns gold gained, or 0 if failed
    */
   sellItem(slot: number): number {
-    if (slot < 0 || slot >= 6) {
-      return 0;
-    }
-
-    const item = this.items[slot];
-    if (!item) {
-      return 0;
-    }
-
-    const itemDef = getServerItemById(item.definitionId);
-    if (!itemDef) {
-      return 0;
-    }
-
-    // Add gold and remove item
-    const goldGained = itemDef.sellValue;
-    this.gold += goldGained;
-    this.items[slot] = null;
-
-    // Invalidate cached stats
-    this.cachedStats = null;
-
-    Logger.champion.info(`${this.playerId} sold ${itemDef.name} for ${goldGained}g`);
-    return goldGained;
+    return this.inventory.sell(slot);
   }
 
   /**
    * Check if champion has a specific item.
    */
   hasItem(itemId: string): boolean {
-    return this.items.some(item => item?.definitionId === itemId);
-  }
-
-  /**
-   * Find first empty inventory slot.
-   */
-  private findEmptySlot(): ItemSlot | null {
-    for (let i = 0; i < 6; i++) {
-      if (!this.items[i]) {
-        return i as ItemSlot;
-      }
-    }
-    return null;
+    return this.inventory.has(itemId);
   }
 
   // =====================
