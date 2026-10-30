@@ -8,21 +8,18 @@
  * - Interpolation for smooth rendering
  */
 
-import Vector from '@/physics/vector';
+import type Vector from '@/physics/vector';
 import type { MatchData } from '@/ui/matchmaking/MatchmakingUI';
 import {
   GameEventType,
   type StateUpdate,
   type FullStateSnapshot,
-  type EntitySnapshot,
-  type EntityDelta,
   type GameEvent,
 } from '@siege/shared';
 import { getVFXManager } from '@/vfx';
 import { WORLD_VFX } from '@/vfx/world';
 import { shakeScreen } from '@/core/screenShake';
 import {
-  createDefaultAnimationState,
   getAbilityAnimationProgress,
   getAbilityCastState,
   getAttackAnimationProgress,
@@ -44,6 +41,7 @@ import {
   type Announcement,
 } from './state/announcements';
 import { EntityVFX, spawnWorldVFX } from './state/entityVFX';
+import { addOrUpdateEntity, applyEntityDelta, type EntityLifecycleHooks } from './state/deltas';
 
 export type { EntityAnimationState, InterpolatedEntity } from './state/entities';
 export type { AbilityEffect } from './state/abilityEffects';
@@ -90,6 +88,26 @@ export class OnlineStateManager {
   // Ability visual effects (legacy system)
   private abilityEffects = new AbilityEffects();
 
+  // Called by the delta merge: entity effects and the local respawn timer
+  private readonly lifecycleHooks: EntityLifecycleHooks = {
+    onRemoved: (entityId, existing, data) => {
+      if (existing) this.entityVFX.spawnDeathVFX(existing);
+      if (entityId === this.localEntityId && typeof data.respawnTimer === 'number') {
+        this.localRespawnAt = this.gameTime + data.respawnTimer;
+      }
+    },
+    onChanged: (existing, data) => {
+      this.entityVFX.spawnChangeVFX(existing, data);
+    },
+    onAdded: (snapshot, position) => {
+      // A champion we saw die is back: respawn effect
+      this.entityVFX.spawnRespawnVFX(snapshot.entityId, position);
+      if (snapshot.entityId === this.localEntityId) {
+        this.localRespawnAt = null;
+      }
+    },
+  };
+
   constructor(matchData: MatchData) {
     this.matchData = matchData;
     this.localSide = matchData.yourSide;
@@ -114,7 +132,7 @@ export class OnlineStateManager {
     this.entities.clear();
 
     for (const entity of snapshot.entities) {
-      this.addOrUpdateEntity(entity);
+      addOrUpdateEntity(this.entities, entity, this.lifecycleHooks);
     }
   }
 
@@ -128,7 +146,7 @@ export class OnlineStateManager {
 
     // Process entity deltas
     for (const delta of update.deltas) {
-      this.processDelta(delta);
+      applyEntityDelta(this.entities, delta, this.lifecycleHooks);
     }
 
     // Process game events (for animations)
@@ -291,91 +309,6 @@ export class OnlineStateManager {
         break;
       }
     }
-  }
-
-  /**
-   * Process a single entity delta.
-   */
-  private processDelta(delta: EntityDelta): void {
-    const existing = this.entities.get(delta.entityId);
-
-    // Check if entity is being marked as dead/destroyed - remove it
-    const data = delta.data as any;
-    if (data && (data.isDead === true || data.isDestroyed === true)) {
-      if (existing) this.entityVFX.spawnDeathVFX(existing);
-      if (delta.entityId === this.localEntityId && typeof data.respawnTimer === 'number') {
-        this.localRespawnAt = this.gameTime + data.respawnTimer;
-      }
-      // Remove dead/destroyed entities from client state
-      this.entities.delete(delta.entityId);
-      return;
-    }
-
-    if (existing) {
-      this.entityVFX.spawnChangeVFX(existing, data);
-
-      // Update existing entity - merge delta into existing snapshot
-      const snapshot = { ...existing.snapshot, ...delta.data } as EntitySnapshot;
-
-      // Clearable values use `null` to indicate "cleared" vs absent meaning "no change"
-      // We must explicitly copy these since spread operator handles null correctly but
-      // we want to be explicit about the pattern for clarity
-      // Round target positions to integers to avoid floating point precision issues
-      if (data && 'targetX' in data) {
-        (snapshot as any).targetX = data.targetX != null ? Math.round(data.targetX) : null;
-      }
-      if (data && 'targetY' in data) {
-        (snapshot as any).targetY = data.targetY != null ? Math.round(data.targetY) : null;
-      }
-      if (data && 'targetEntityId' in data) {
-        (snapshot as any).targetEntityId = data.targetEntityId;
-      }
-
-      // Only update position if x/y are explicitly provided in delta
-      // This prevents position from being reset to (0,0) when delta doesn't include position
-      // Round positions to integers to avoid floating point precision issues
-      if (data && typeof data.x === 'number' && typeof data.y === 'number') {
-        existing.previousPosition = existing.position.clone();
-        existing.position = new Vector(Math.round(data.x), Math.round(data.y));
-      }
-
-      existing.snapshot = snapshot;
-      existing.lastUpdateTime = Date.now();
-    } else if (delta.data) {
-      // New entity - must have position data
-      const newData = delta.data as any;
-      if (typeof newData.x !== 'number' || typeof newData.y !== 'number') {
-        console.warn(`[OnlineStateManager] New entity ${delta.entityId} missing position data:`, delta.data);
-        return;
-      }
-      this.addOrUpdateEntity(delta.data as EntitySnapshot);
-    }
-  }
-
-  /**
-   * Add or update an entity.
-   */
-  private addOrUpdateEntity(snapshot: EntitySnapshot): void {
-    // Round positions to integers to avoid floating point precision issues
-    const pos = new Vector(Math.round(snapshot.x), Math.round(snapshot.y));
-
-    // A champion we saw die is back: respawn effect
-    this.entityVFX.spawnRespawnVFX(snapshot.entityId, pos);
-    if (snapshot.entityId === this.localEntityId) {
-      this.localRespawnAt = null;
-    }
-
-    // Preserve existing animation state if entity exists
-    const existing = this.entities.get(snapshot.entityId);
-    const animation = existing?.animation ?? createDefaultAnimationState();
-
-    this.entities.set(snapshot.entityId, {
-      snapshot,
-      position: pos,
-      previousPosition: pos.clone(),
-      lastUpdateTime: Date.now(),
-      animation,
-    });
   }
 
   /**
