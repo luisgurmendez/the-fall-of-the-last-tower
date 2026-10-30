@@ -27,8 +27,9 @@ give their stats.
 
 `src/ui/shop/ShopUI.ts` drives the shop overlay in `index.html` (styles in `shop.css`):
 category tabs, the item grid, the details panel (stats and passives) and the six
-inventory slots. Gold and inventory refresh from each server state update (`updateOnlineState`).
-Buying and selling only work at the fountain.
+inventory slots. Buying keeps the shop open; gold, inventory, affordability and the
+buttons refresh from each server state update (`updateOnlineState`). Buying and selling
+only work at the fountain.
 
 ## Icons
 

@@ -428,10 +428,8 @@ export class ShopUI {
 
     const item = this.state.selectedItem;
 
+    // The server validates it; gold and inventory update from its next state
     this.networkClient.sendBuyItemInput(item.id);
-    // Server will handle validation and gold deduction
-    // Close shop after purchase attempt
-    this.close();
   }
 
   /**
@@ -560,12 +558,13 @@ export class ShopUI {
   updateOnlineState(gold: number, items: Array<{ definitionId: string } | null>, atShop = true): void {
     this.onlineGold = gold;
     this.onlineItems = items;
-    const shopChanged = atShop !== this.atShop;
     this.atShop = atShop;
     if (this.state.isOpen) {
+      // Gold changes after a purchase or sale, and over time: refresh what it affects
       this.updateGoldDisplay();
       this.updateInventorySlots();
-      if (shopChanged) this.updateButtons();
+      this.updateItemAffordability();
+      this.updateButtons();
     }
   }
 
