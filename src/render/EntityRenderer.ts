@@ -19,7 +19,6 @@ import Vector from "@/physics/vector";
 import type {
   OnlineStateManager,
   InterpolatedEntity,
-  AbilityEffect,
 } from "@/core/OnlineStateManager";
 
 import {
@@ -46,17 +45,12 @@ import {
   renderMarkIndicators,
   renderAggroIndicator,
 } from "@/render/overlays/statusIndicators";
-
-/**
- * Colors for damage number types.
- */
-const DAMAGE_COLORS = {
-  physical: "#ffffff", // White for physical
-  magic: "#7B68EE", // Purple-blue for magic
-  true: "#FFD700", // Gold for true damage
-  pure: "#FFD700", // Gold for pure damage
-  shield: "#808080", // Gray for shield absorbed
-};
+import { renderAbilityEffects } from "@/render/overlays/abilityEffects";
+import {
+  renderDamageNumbers,
+  renderGoldNumbers,
+  renderXpNumbers,
+} from "@/render/overlays/floatingNumbers";
 
 /**
  * Light Orb particle configuration (comet tail effect).
@@ -99,35 +93,6 @@ const LIGHT_ORB_VISUALS = {
   AURA_COLOR: "rgba(255, 240, 180, 0.08)", // Passive aura indicator
   DESTROYED_ALPHA: 0.3, // Alpha when destroyed
 } as const;
-
-/**
- * Damage number display settings.
- */
-const DAMAGE_NUMBER_CONFIG = {
-  FONT: "16px m5x7",
-  FLOAT_DISTANCE: 30, // How far up the number floats
-  FONT_SIZE: 16,
-};
-
-/**
- * Gold number display settings.
- */
-const GOLD_NUMBER_CONFIG = {
-  FONT: "18px m5x7",
-  FLOAT_DISTANCE: 25,
-  COLOR: "#FFD700", // Gold color
-  FONT_SIZE: 18,
-};
-
-/**
- * XP number display settings.
- */
-const XP_NUMBER_CONFIG = {
-  FONT: "14px m5x7",
-  FLOAT_DISTANCE: 25,
-  COLOR: "#888888", // Gray color
-  FONT_SIZE: 14,
-};
 
 /**
  * Sprite configuration.
@@ -594,16 +559,16 @@ export class EntityRenderer implements GameObject {
       this.vfxManager.render(canvasRenderingContext, 0, 0);
 
       // Render ability visual effects (legacy system)
-      this.renderAbilityEffects(canvasRenderingContext);
+      renderAbilityEffects(canvasRenderingContext, this.stateManager);
 
       // Render floating damage numbers on top of all entities
-      this.renderDamageNumbers(canvasRenderingContext);
+      renderDamageNumbers(canvasRenderingContext, this.stateManager);
 
       // Render floating gold numbers
-      this.renderGoldNumbers(canvasRenderingContext);
+      renderGoldNumbers(canvasRenderingContext, this.stateManager);
 
       // Render floating XP numbers
-      this.renderXpNumbers(canvasRenderingContext);
+      renderXpNumbers(canvasRenderingContext, this.stateManager);
     }, true);
 
     element.positionType = "normal";
@@ -2680,319 +2645,6 @@ export class EntityRenderer implements GameObject {
    */
   getTeamId(): number {
     return this.localSide === 0 ? 0 : 1;
-  }
-
-  /**
-   * Render ability visual effects (cone sweeps, circles, etc.)
-   */
-  private renderAbilityEffects(ctx: CanvasRenderingContext2D): void {
-    const effects = this.stateManager.getAbilityEffects();
-
-    for (const effect of effects) {
-      const progress = this.stateManager.getAbilityEffectProgress(effect);
-
-      // Fade out effect as it progresses
-      const alpha = 1 - progress * 0.7; // Keep some visibility until end
-
-      ctx.save();
-      ctx.globalAlpha = alpha;
-
-      // Calculate direction from origin to target
-      const dx = effect.targetX - effect.originX;
-      const dy = effect.targetY - effect.originY;
-      const angle = Math.atan2(dy, dx);
-
-      switch (effect.shape) {
-        case "cone":
-          this.renderConeEffect(ctx, effect, angle, progress);
-          break;
-        case "circle":
-          this.renderCircleEffect(ctx, effect, progress);
-          break;
-        case "line":
-          this.renderLineEffect(ctx, effect, angle, progress);
-          break;
-        case "point":
-          this.renderPointEffect(ctx, effect, progress);
-          break;
-      }
-
-      ctx.restore();
-    }
-  }
-
-  /**
-   * Render a cone-shaped ability effect.
-   */
-  private renderConeEffect(
-    ctx: CanvasRenderingContext2D,
-    effect: AbilityEffect,
-    angle: number,
-    progress: number,
-  ): void {
-    const halfAngle = (effect.coneAngle || Math.PI / 2) / 2;
-
-    // Animate the cone expanding outward
-    const currentRange = effect.range * Math.min(1, progress * 2 + 0.3);
-
-    // Draw filled cone
-    ctx.fillStyle = effect.color;
-    ctx.beginPath();
-    ctx.moveTo(effect.originX, effect.originY);
-    ctx.arc(
-      effect.originX,
-      effect.originY,
-      currentRange,
-      angle - halfAngle,
-      angle + halfAngle,
-    );
-    ctx.closePath();
-    ctx.fill();
-
-    // Draw edge highlight
-    ctx.strokeStyle = effect.color.replace(/[\d.]+\)$/, "0.9)");
-    ctx.lineWidth = 2;
-    ctx.stroke();
-  }
-
-  /**
-   * Render a circle-shaped ability effect (AoE).
-   */
-  private renderCircleEffect(
-    ctx: CanvasRenderingContext2D,
-    effect: AbilityEffect,
-    progress: number,
-  ): void {
-    const radius = effect.aoeRadius || effect.range;
-
-    // Animate expanding ring
-    const innerRadius = radius * progress * 0.8;
-    const outerRadius = radius * Math.min(1, progress * 1.2);
-
-    // Draw outer circle
-    ctx.fillStyle = effect.color;
-    ctx.beginPath();
-    ctx.arc(effect.targetX, effect.targetY, outerRadius, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Draw inner highlight ring
-    ctx.strokeStyle = effect.color.replace(/[\d.]+\)$/, "0.8)");
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(effect.targetX, effect.targetY, innerRadius, 0, Math.PI * 2);
-    ctx.stroke();
-  }
-
-  /**
-   * Render a line-shaped ability effect (skillshot).
-   */
-  private renderLineEffect(
-    ctx: CanvasRenderingContext2D,
-    effect: AbilityEffect,
-    angle: number,
-    progress: number,
-  ): void {
-    const width = effect.width || 60;
-    const halfWidth = width / 2;
-
-    // Animate the line extending
-    const currentRange = effect.range * Math.min(1, progress * 2 + 0.3);
-
-    // Calculate perpendicular direction for width
-    const perpX = -Math.sin(angle) * halfWidth;
-    const perpY = Math.cos(angle) * halfWidth;
-
-    // Calculate end point
-    const endX = effect.originX + Math.cos(angle) * currentRange;
-    const endY = effect.originY + Math.sin(angle) * currentRange;
-
-    // Draw filled rectangle
-    ctx.fillStyle = effect.color;
-    ctx.beginPath();
-    ctx.moveTo(effect.originX + perpX, effect.originY + perpY);
-    ctx.lineTo(endX + perpX, endY + perpY);
-    ctx.lineTo(endX - perpX, endY - perpY);
-    ctx.lineTo(effect.originX - perpX, effect.originY - perpY);
-    ctx.closePath();
-    ctx.fill();
-
-    // Draw edge highlight
-    ctx.strokeStyle = effect.color.replace(/[\d.]+\)$/, "0.8)");
-    ctx.lineWidth = 2;
-    ctx.stroke();
-  }
-
-  /**
-   * Render a point-based ability effect (impact).
-   */
-  private renderPointEffect(
-    ctx: CanvasRenderingContext2D,
-    effect: AbilityEffect,
-    progress: number,
-  ): void {
-    // Expanding ring effect
-    const maxRadius = 50;
-    const currentRadius = maxRadius * progress;
-
-    ctx.strokeStyle = effect.color;
-    ctx.lineWidth = 4 * (1 - progress);
-    ctx.beginPath();
-    ctx.arc(effect.targetX, effect.targetY, currentRadius, 0, Math.PI * 2);
-    ctx.stroke();
-  }
-
-  /**
-   * Render floating damage numbers.
-   */
-  private renderDamageNumbers(ctx: CanvasRenderingContext2D): void {
-    const damageNumbers = this.stateManager.getDamageNumbers();
-
-    for (const dn of damageNumbers) {
-      const progress = this.stateManager.getDamageNumberProgress(dn);
-
-      // Ease out for smooth deceleration
-      const easeOut = 1 - Math.pow(1 - progress, 3);
-
-      // Calculate position (float upward)
-      const yOffset = -DAMAGE_NUMBER_CONFIG.FLOAT_DISTANCE * easeOut;
-
-      // Calculate alpha (fade out in the last 30%)
-      const fadeStart = 0.7;
-      const alpha =
-        progress < fadeStart ? 1 : 1 - (progress - fadeStart) / (1 - fadeStart);
-
-      ctx.save();
-      ctx.translate(dn.x, dn.y + yOffset);
-
-      // Set up font
-      ctx.font = DAMAGE_NUMBER_CONFIG.FONT;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.globalAlpha = alpha;
-
-      // Render shield absorbed amount first (gray, slightly left and up)
-      if (dn.shieldAbsorbed > 0) {
-        const shieldText = Math.round(dn.shieldAbsorbed).toString();
-
-        // Draw shadow/outline for readability
-        ctx.strokeStyle = "#000000";
-        ctx.lineWidth = 3;
-        ctx.strokeText(shieldText, -15, -8);
-
-        // Draw shield absorbed text
-        ctx.fillStyle = DAMAGE_COLORS.shield;
-        ctx.fillText(shieldText, -15, -8);
-      }
-
-      // Render damage amount
-      if (dn.amount > 0) {
-        const damageText = Math.round(dn.amount).toString();
-        const xOffset = dn.shieldAbsorbed > 0 ? 15 : 0;
-
-        // Draw shadow/outline for readability
-        ctx.strokeStyle = "#000000";
-        ctx.lineWidth = 3;
-        ctx.strokeText(damageText, xOffset, 0);
-
-        // Draw damage text with appropriate color
-        ctx.fillStyle = DAMAGE_COLORS[dn.damageType] || DAMAGE_COLORS.physical;
-        ctx.fillText(damageText, xOffset, 0);
-      }
-
-      ctx.restore();
-    }
-  }
-
-  /**
-   * Render floating gold numbers.
-   */
-  private renderGoldNumbers(ctx: CanvasRenderingContext2D): void {
-    const goldNumbers = this.stateManager.getGoldNumbers();
-
-    for (const gn of goldNumbers) {
-      const progress = this.stateManager.getGoldNumberProgress(gn);
-
-      // Ease out for smooth deceleration
-      const easeOut = 1 - Math.pow(1 - progress, 3);
-
-      // Calculate position (float upward, offset to the right to not overlap damage)
-      const yOffset = -GOLD_NUMBER_CONFIG.FLOAT_DISTANCE * easeOut;
-      const xOffset = 25; // Offset to the right of the entity
-
-      // Calculate alpha (fade out in the last 30%)
-      const fadeStart = 0.7;
-      const alpha =
-        progress < fadeStart ? 1 : 1 - (progress - fadeStart) / (1 - fadeStart);
-
-      ctx.save();
-      ctx.translate(gn.x + xOffset, gn.y + yOffset);
-
-      // Set up font
-      ctx.font = GOLD_NUMBER_CONFIG.FONT;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.globalAlpha = alpha;
-
-      // Format gold text with + prefix
-      const goldText = `+${gn.amount}`;
-
-      // Draw shadow/outline for readability
-      ctx.strokeStyle = "#000000";
-      ctx.lineWidth = 2;
-      ctx.strokeText(goldText, 0, 0);
-
-      // Draw gold text
-      ctx.fillStyle = GOLD_NUMBER_CONFIG.COLOR;
-      ctx.fillText(goldText, 0, 0);
-
-      ctx.restore();
-    }
-  }
-
-  /**
-   * Render floating XP numbers.
-   */
-  private renderXpNumbers(ctx: CanvasRenderingContext2D): void {
-    const xpNumbers = this.stateManager.getXpNumbers();
-
-    for (const xn of xpNumbers) {
-      const progress = this.stateManager.getXpNumberProgress(xn);
-
-      // Ease out for smooth deceleration
-      const easeOut = 1 - Math.pow(1 - progress, 3);
-
-      // Calculate position (float upward, offset to the left to not overlap gold)
-      const yOffset = -XP_NUMBER_CONFIG.FLOAT_DISTANCE * easeOut;
-      const xOffset = -25; // Offset to the left of the entity
-
-      // Calculate alpha (fade out in the last 30%)
-      const fadeStart = 0.7;
-      const alpha =
-        progress < fadeStart ? 1 : 1 - (progress - fadeStart) / (1 - fadeStart);
-
-      ctx.save();
-      ctx.translate(xn.x + xOffset, xn.y + yOffset);
-
-      // Set up font
-      ctx.font = XP_NUMBER_CONFIG.FONT;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.globalAlpha = alpha;
-
-      // Format XP text with "xp" prefix
-      const xpText = `xp ${xn.amount}`;
-
-      // Draw shadow/outline for readability
-      ctx.strokeStyle = "#000000";
-      ctx.lineWidth = 2;
-      ctx.strokeText(xpText, 0, 0);
-
-      // Draw XP text
-      ctx.fillStyle = XP_NUMBER_CONFIG.COLOR;
-      ctx.fillText(xpText, 0, 0);
-
-      ctx.restore();
-    }
   }
 
   // ============================================================================
