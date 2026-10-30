@@ -1,10 +1,11 @@
 /**
- * IChampionHooks - Interface for per-champion cast rules.
+ * IChampionHooks - Interface for per-champion rules.
  *
- * Some cast-time rules belong to a champion rather than to a single ability:
- * a passive that empowers the next ability, an ultimate that shortens other
- * cooldowns, an ability that must not break stealth. Champions implement the
- * hooks they need instead of the AbilityExecutor checking champion IDs.
+ * Some rules belong to a champion rather than to a single ability: a passive
+ * that empowers the next ability, an ultimate that shortens other cooldowns,
+ * an ability that must not break stealth, a passive tied to a summoned
+ * entity. Champions implement the hooks they need instead of the
+ * AbilityExecutor and ServerChampion checking champion IDs.
  *
  * DESIGN PRINCIPLES:
  * - Every hook is optional: champions without hooks get the generic defaults
@@ -15,6 +16,8 @@
 
 import type { AbilitySlot } from '@siege/shared';
 import type { ServerChampion } from '../simulation/ServerChampion';
+import type { ServerEntity } from '../simulation/ServerEntity';
+import type { ServerGameContext } from '../game/ServerGameContext';
 
 // =============================================================================
 // Interface
@@ -23,14 +26,18 @@ import type { ServerChampion } from '../simulation/ServerChampion';
 /**
  * Interface for champion hooks.
  *
- * The AbilityExecutor looks up the caster's hooks by champion ID and calls
- * them at fixed points of every cast.
+ * The AbilityExecutor and ServerChampion look up a champion's hooks by
+ * champion ID and call them at fixed points of casting and simulation.
  */
 export interface IChampionHooks {
   /**
    * The champion ID these hooks apply to (e.g., 'magnus').
    */
   readonly championId: string;
+
+  // ===================
+  // Ability casting (ServerAbilityExecutor)
+  // ===================
 
   /**
    * Damage multiplier for the ability about to be cast.
@@ -60,4 +67,25 @@ export interface IChampionHooks {
    * Return the cooldown unchanged for no change (e.g., Vex's Ninja Mode halves Q and E).
    */
   modifyAbilityCooldown?(champion: ServerChampion, slot: AbilitySlot, cooldown: number): number;
+
+  // ===================
+  // Champion simulation (ServerChampion)
+  // ===================
+
+  /**
+   * Called every tick after the passive system updates the champion's
+   * passive state (e.g., Lume's passive follows the Light Orb).
+   */
+  updatePassiveState?(champion: ServerChampion, context: ServerGameContext): void;
+
+  /**
+   * Called after a melee basic attack damages its target, before on_hit
+   * passives trigger (e.g., Vex's empowered attack after Shadow Step).
+   */
+  onMeleeAttackHit?(
+    champion: ServerChampion,
+    target: ServerEntity,
+    attack: { attackDamage: number; abilityPower: number },
+    context: ServerGameContext
+  ): void;
 }

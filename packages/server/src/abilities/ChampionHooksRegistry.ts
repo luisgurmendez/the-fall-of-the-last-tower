@@ -1,14 +1,15 @@
 /**
  * ChampionHooksRegistry - Central registry for champion hooks.
  *
- * Provides lookup of champion hooks by champion ID. The AbilityExecutor uses
- * this to apply champion-specific cast rules without checking champion IDs.
+ * Provides lookup of champion hooks by champion ID. The AbilityExecutor and
+ * ServerChampion use this to apply champion-specific rules without checking
+ * champion IDs.
  *
  * USAGE:
  * 1. Create an object implementing IChampionHooks
  * 2. Register it from handlers/<championId>/index.ts:
  *    championHooksRegistry.register(myChampionHooks)
- * 3. AbilityExecutor will call its hooks whenever that champion casts
+ * 3. AbilityExecutor and ServerChampion call its hooks for that champion
  */
 
 import type { IChampionHooks } from './IChampionHooks';

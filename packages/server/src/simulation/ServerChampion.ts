@@ -39,8 +39,6 @@ import {
   GameEventType,
   getPassiveDefinition,
   createDefaultPassiveState,
-  getAbilityDefinition,
-  calculateAbilityValue,
   DEFAULT_CHAMPION_COLLISION,
   type EntityCollision,
 } from '@siege/shared';
@@ -65,6 +63,7 @@ import {
 } from '../data/effects';
 import { RewardSystem } from '../systems/RewardSystem';
 import { passiveTriggerSystem } from '../systems/PassiveTriggerSystem';
+import { championHooksRegistry } from '../abilities/ChampionHooksRegistry';
 import { Logger } from '../utils/Logger';
 import { ServerProjectile } from './ServerProjectile';
 import { ServerTargetedProjectile } from './ServerTargetedProjectile';
@@ -327,40 +326,8 @@ export class ServerChampion extends ServerEntity {
       }
     }
 
-    // Lume-specific: sync passive state with Light Orb
-    if (this.definition.id === 'lume') {
-      this.updateLumePassiveFromOrb(context);
-    }
-  }
-
-  /**
-   * Update Lume's passive state based on the Light Orb's state.
-   * Shows orb respawn cooldown in the passive UI when orb is destroyed.
-   */
-  private updateLumePassiveFromOrb(context: ServerGameContext): void {
-    // Find the light orb owned by this champion
-    const orb = context.getAllEntities().find(
-      e => e.entityType === EntityType.LIGHT_ORB && (e as any).ownerId === this.id
-    );
-
-    if (orb) {
-      const orbSnapshot = orb.toSnapshot() as any;
-      if (orbSnapshot.state === 'destroyed') {
-        // Orb is destroyed - show respawn cooldown, disable abilities
-        this.passiveState.isActive = false;
-        this.passiveState.cooldownRemaining = orbSnapshot.respawnTimeRemaining;
-        this.abilityStates.Q.isDisabled = true;
-        this.abilityStates.W.isDisabled = true;
-        this.abilityStates.E.isDisabled = true;
-      } else {
-        // Orb is alive - passive is active, enable abilities
-        this.passiveState.isActive = true;
-        this.passiveState.cooldownRemaining = 0;
-        this.abilityStates.Q.isDisabled = false;
-        this.abilityStates.W.isDisabled = false;
-        this.abilityStates.E.isDisabled = false;
-      }
-    }
+    // Champion-specific passive state (e.g., Lume's passive follows the Light Orb)
+    championHooksRegistry.get(this.definition.id)?.updatePassiveState?.(this, context);
   }
 
   /**
@@ -721,27 +688,13 @@ export class ServerChampion extends ServerEntity {
   ): void {
     target.takeDamage(damage, 'physical', this.id, context);
 
-    // Check for empowered attack (Vex Shadow Step)
-    const empoweredEffect = this.activeEffects.find(e => e.definitionId === 'vex_empowered');
-    if (empoweredEffect) {
-      const dashAbility = getAbilityDefinition('vex_dash');
-      if (dashAbility?.damage) {
-        const abilityRank = this.abilityStates.E.rank;
-        if (abilityRank > 0) {
-          const bonusDamage = calculateAbilityValue(
-            dashAbility.damage.scaling,
-            abilityRank,
-            { attackDamage, abilityPower }
-          );
-          target.takeDamage(bonusDamage, dashAbility.damage.type, this.id, context);
-          Logger.champion.debug(
-            `${this.playerId} empowered attack dealt ${bonusDamage} bonus damage`
-          );
-        }
-      }
-      // Remove the empowered effect (consumed on attack)
-      this.activeEffects = this.activeEffects.filter(e => e.definitionId !== 'vex_empowered');
-    }
+    // Champion-specific on-attack rules (e.g., Vex's empowered attack)
+    championHooksRegistry.get(this.definition.id)?.onMeleeAttackHit?.(
+      this,
+      target,
+      { attackDamage, abilityPower },
+      context
+    );
 
     // Dispatch on_hit trigger AFTER attack lands
     passiveTriggerSystem.dispatchTrigger('on_hit', this, context, {
@@ -1144,8 +1097,7 @@ export class ServerChampion extends ServerEntity {
   breakStealth(): void {
     // Remove stealth effects
     this.activeEffects = this.activeEffects.filter(
-      e => e.definitionId !== 'vex_stealth' &&
-           !e.definitionId.includes('stealth') &&
+      e => !e.definitionId.includes('stealth') &&
            !e.definitionId.includes('invisible')
     );
   }

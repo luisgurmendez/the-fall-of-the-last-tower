@@ -13,6 +13,7 @@
  * Champion hooks (VexHooks):
  * - W (Shroud) does not break stealth when cast
  * - R (Ninja Mode) halves Q and E cooldowns while active
+ * - E (Dash) empowers the next melee attack
  */
 
 import { abilityHandlerRegistry } from '../../AbilityHandlerRegistry';
