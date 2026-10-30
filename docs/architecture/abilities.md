@@ -230,6 +230,21 @@ Rules that belong to a champion rather than to one ability implement `IChampionH
 
 `packages/server/src/test/AbilityCoverageContract.test.ts` checks every champion in `CHAMPION_DEFINITIONS`: each Q/W/E/R ability must have a registered handler, or use only definition fields the generic path executes for its target type. Its `GENERIC_SUPPORT` table mirrors the executor and the generic path modules and is typed over every `AbilityDefinition` field, so a new field fails the typecheck until it is classified. Known generic-path bugs are listed in `KNOWN_GAPS`.
 
+### Passive Triggers
+
+`PassiveTriggerSystem` registers each champion type's passive under its triggers and dispatches them: `dispatchTrigger` for events (`on_hit`, `on_take_damage`, `on_ability_cast`, `on_kill`, `on_low_health`, ...), and `processAlwaysPassives`/`processIntervalPassives` every tick. A passive registered without its own handler gets a default handler picked from its definition. The default handlers live in `packages/server/src/systems/passives/`:
+
+| Module | Default handler | Picked for | Example |
+|--------|-----------------|------------|---------|
+| `LowHealthShieldPassive.ts` | `on_low_health_shield` | `on_low_health` with a `shield` | Warrior: Undying Resolve |
+| `StackPassives.ts` | `stack_accumulation` | `usesStacks` on `on_ability_cast` | Magnus: Arcane Surge |
+| `StackPassives.ts` | `on_hit_damage` | `usesStacks` on `on_hit` with `damage` | Vex: Assassin's Mark |
+| `StackPassives.ts` | `on_take_damage_stack` | `usesStacks` on `on_take_damage` | Gorath: Immovable |
+| `AuraHealPassive.ts` | `aura_heal` | `always` with `auraRadius` and `heal` | Elara: Blessed Presence |
+| `SoulStacksPassive.ts` | `soul_stacks` | `soulScaling` with `usesStacks` | Vile: Souls of Vilix |
+
+Any other passive gets the generic handler, which only marks it active.
+
 ### Adding a Champion (Server)
 
 1. Define the champion and its abilities in `packages/shared/src/champions/definitions/`
@@ -297,6 +312,8 @@ abilities: {
 | `packages/server/src/simulation/ServerAbilityExecutor.ts` | Cast validation, recasts, costs, cooldowns, dispatch to a handler or generic path |
 | `packages/server/src/abilities/generic/` | Generic execution paths, one module per target type or path family |
 | `packages/server/src/abilities/` | Ability handlers, champion hooks and their registries |
+| `packages/server/src/systems/PassiveTriggerSystem.ts` | Passive registry and trigger dispatch |
+| `packages/server/src/systems/passives/` | Default passive handlers |
 | `packages/server/src/simulation/ServerChampion.ts` | Ability state (ranks, cooldowns, recasts) |
 | `src/core/input/OnlineInputHandler.ts` | Client ability input |
 
