@@ -555,3 +555,43 @@
     overflow: visible;
   }
 }
+
+/* ============================================ */
+/* How to Play                                 */
+/* ============================================ */
+
+.how-to-play-title {
+  font-family: var(--pixel-font);
+  font-size: 40px;
+  color: var(--pixel-gold);
+  text-shadow: 3px 3px 0 #000;
+  margin-bottom: 12px;
+}
+
+.how-to-play-goal {
+  font-family: var(--pixel-font);
+  font-size: 22px;
+  color: var(--pixel-text-dim);
+  max-width: 640px;
+  margin: 0 auto 18px;
+}
+
+.how-to-play-controls {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 18px;
+  max-width: 640px;
+  margin: 0 auto 24px;
+  text-align: left;
+  font-family: var(--pixel-font);
+  font-size: 22px;
+}
+
+.how-to-play-key {
+  color: var(--pixel-accent);
+  text-align: right;
+}
+
+.how-to-play-action {
+  color: var(--pixel-text);
+}

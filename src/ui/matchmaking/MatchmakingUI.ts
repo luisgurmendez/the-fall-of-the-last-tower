@@ -98,6 +98,7 @@ export class MatchmakingUI {
     this.screens.set("connecting", getEl("screen-connecting"));
     this.screens.set("queue", getEl("screen-queue"));
     this.screens.set("match-found", getEl("screen-match-found"));
+    this.screens.set("how-to-play", getEl("screen-how-to-play"));
     this.screens.set("error", getEl("screen-error"));
 
     // Get status elements
@@ -211,11 +212,16 @@ export class MatchmakingUI {
       console.log("Settings clicked");
     });
 
-    // How to play button (placeholder)
+    // How to play: the controls
     document
       .getElementById("btn-how-to-play")
       ?.addEventListener("click", () => {
-        console.log("How to play clicked");
+        this.showScreen("how-to-play");
+      });
+    document
+      .getElementById("btn-how-to-play-back")
+      ?.addEventListener("click", () => {
+        this.showScreen("menu");
       });
   }
 
