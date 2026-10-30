@@ -21,7 +21,6 @@ import { MOBAConfig } from '@siege/shared';
 import { InputManager } from '@/core/input/InputManager';
 import { EntityType } from '@siege/shared';
 import type { OnlineStateManager, InterpolatedEntity } from '@/core/OnlineStateManager';
-import type { EntitySnapshot, ChampionSnapshot, MinionSnapshot, TowerSnapshot, NexusSnapshot } from '@siege/shared';
 
 /**
  * OnlineMinimap configuration.

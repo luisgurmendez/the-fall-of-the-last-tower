@@ -17,7 +17,6 @@ import {
   type ItemDefinition,
   type AbilityScaling,
   type DamageType,
-  type ActiveEffectState,
   type PassiveStateSnapshot,
   getAbilityDefinition as getSharedAbilityDefinition,
   getChampionDefinition,

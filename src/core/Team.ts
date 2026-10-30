@@ -173,6 +173,9 @@ export class TeamManager {
   }
 }
 
+// Global default team manager
+export const defaultTeamManager = new TeamManager();
+
 // ===================
 // Utility Functions
 // ===================
@@ -239,8 +242,5 @@ export type ArmyUnitSide = TeamId;
  * @deprecated Use TeamId instead. Alias for backwards compatibility.
  */
 export type Side = TeamId;
-
-// Global default team manager
-export const defaultTeamManager = new TeamManager();
 
 export default TeamManager;

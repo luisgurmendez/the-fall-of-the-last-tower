@@ -89,13 +89,11 @@ class OnlineGame {
     window.addEventListener('keydown', (e) => {
       // 'P' key to toggle shop
       if (e.key === 'p' || e.key === 'P') {
-        const shopUI = getShopUI();
         shopUI.toggle();
       }
 
       // Escape to close shop (no pause in online mode)
       if (e.key === 'Escape') {
-        const shopUI = getShopUI();
         if (shopUI.isOpen()) {
           shopUI.close();
         }

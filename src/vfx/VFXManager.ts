@@ -663,7 +663,6 @@ export class VFXManager {
 
     // Update orbiting particles
     for (const orbit of this.activeOrbits) {
-      const elapsed = (now - orbit.startTime) / 1000;
       for (const particle of orbit.particles) {
         particle.angle += orbit.orbitSpeed * dt;
       }

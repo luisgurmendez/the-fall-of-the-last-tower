@@ -4,7 +4,7 @@ class PixelArtDrawUtils {
     size: number;
     constructor(ctx: CanvasRenderingContext2D, color: string, size: number = 1) {
         this.ctx = ctx;
-        this.color = color
+        this.color = color;
         this.size = size;
     }
 
@@ -16,7 +16,7 @@ class PixelArtDrawUtils {
     }
 
     drawPixelatedCircleFill(xCenter: number, yCenter: number, radius: number) {
-        this.drawPixelatedEllipseFill(xCenter, yCenter, radius, radius,)
+        this.drawPixelatedEllipseFill(xCenter, yCenter, radius, radius,);
     }
 
     drawPixelatedCircle(xCenter: number, yCenter: number, radius: number) {

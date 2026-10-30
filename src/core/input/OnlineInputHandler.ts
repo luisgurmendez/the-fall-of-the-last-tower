@@ -23,7 +23,6 @@ import type {
 } from "@/core/OnlineStateManager";
 import { getCursorManager } from "@/core/CursorManager";
 import RenderElement from "@/render/renderElement";
-import PixelArtDrawUtils from "@/utils/pixelartDrawUtils";
 
 /** Entity types that can be attacked (for cursor hover) */
 const ATTACKABLE_ENTITY_TYPES: Set<number> = new Set([
@@ -419,10 +418,6 @@ export class OnlineInputHandler implements GameObject {
     let closestAlly: InterpolatedEntity | null = null;
     let closestEnemyDistance = hitRadius;
     let closestAllyDistance = hitRadius;
-
-    // Get local player entity for self-targeting detection
-    const localPlayer = this.stateManager.getLocalPlayerEntity();
-    const localPlayerId = localPlayer?.snapshot.entityId;
 
     // Check all entities from state manager
     const entities = this.stateManager.getEntities();

@@ -2810,15 +2810,16 @@ export class EntityRenderer implements GameObject {
     const vx = -tracker.dirX * driftSpeed + (Math.random() - 0.5) * 10;
     const vy = -tracker.dirY * driftSpeed + (Math.random() - 0.5) * 10;
 
-    const lifetime = LIGHT_ORB_VISUALS.PARTICLE_LIFETIME * (0.7 + Math.random() * 0.3);
+    // Normalized life (1 = PARTICLE_LIFETIME seconds), randomized so the tail doesn't fade in lockstep
+    const life = 0.7 + Math.random() * 0.3;
 
     particles.push({
       x: spawnX,
       y: spawnY,
       vx,
       vy,
-      life: 1,
-      maxLife: 1,
+      life,
+      maxLife: life,
       size: LIGHT_ORB_VISUALS.PIXEL_SIZE,
       color,
     });

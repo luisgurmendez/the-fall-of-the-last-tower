@@ -8,7 +8,7 @@ import { Dimensions } from "@/core/canvas";
 import { BACKGROUND_ID } from "@/objects/MOBABackground";
 import { GameObject, hasPosition } from "@/core/GameObject";
 import { FogOfWarRenderer } from "@/render/FogOfWarRenderer";
-import { TEAM, TeamId } from "@/core/Team";
+import { TeamId } from "@/core/Team";
 import { GameConfig } from "@/config";
 import type { FogOfWar } from "@/core/FogOfWar";
 import { profiler } from "@/debug/PerformanceProfiler";

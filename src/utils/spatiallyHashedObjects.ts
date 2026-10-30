@@ -15,7 +15,7 @@ class SpatiallyHashedObjects {
         const cellX = Math.floor(p.x / this.cellSize);
         const cellY = Math.floor(p.y / this.cellSize);
         return `${cellX},${cellY}`;
-    }
+    };
 
     insert = (obj: BaseObject): void => {
         if (isCollisionableObject(obj)) {
@@ -25,7 +25,7 @@ class SpatiallyHashedObjects {
             /// fills all the cells in between bounds
             for (let x = upperLeft.x; x <= lowerRight.x; x += this.cellSize / 2) {
                 for (let y = upperLeft.y; y <= lowerRight.y; y += this.cellSize / 2) {
-                    const hashKey = this.hash(new Vector(x, y))
+                    const hashKey = this.hash(new Vector(x, y));
                     if (!this.table.has(hashKey)) {
                         this.table.set(hashKey, new Set());
                     }
@@ -33,12 +33,12 @@ class SpatiallyHashedObjects {
                 }
             }
         }
-    }
+    };
 
     query = (p: Vector): BaseObject[] => {
         const hashKey = this.hash(p);
         return this.table.get(hashKey)?.size ? Array.from(this.table.get(hashKey)!) : [];
-    }
+    };
 
     /// looks for objects in a radius of the given point
     queryInRange = (p: Vector, radius: number): BaseObject[] => {
@@ -47,12 +47,12 @@ class SpatiallyHashedObjects {
             for (let y = p.y - radius; y < p.y + radius; y += this.cellSize) {
                 const key = this.hash(new Vector(x, y));
                 if (this.table.has(key)) {
-                    this.table.get(key)!.forEach(objectsInRadius.add, objectsInRadius)
+                    this.table.get(key)!.forEach(objectsInRadius.add, objectsInRadius);
                 }
             }
         }
         return Array.from(objectsInRadius);
-    }
+    };
 
 }
 

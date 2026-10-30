@@ -875,7 +875,7 @@ export class MatchmakingUI {
    */
   private showScreen(screenId: ScreenId): void {
     // Hide all screens
-    for (const [id, element] of this.screens) {
+    for (const element of this.screens.values()) {
       element?.classList.remove("active");
     }
 

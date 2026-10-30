@@ -6,7 +6,6 @@
  */
 
 import type { InspectedEntity, DebugInspectorConfig, DebugPanelSection, DebugProperty } from './types';
-import { getEntityTypeName } from './types';
 
 /**
  * Color theme for the debug panel.

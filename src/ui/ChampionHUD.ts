@@ -13,8 +13,8 @@ import RenderElement from '@/render/renderElement';
 import RenderUtils from '@/render/utils';
 import GameContext from '@/core/gameContext';
 import { InputManager, MouseButton } from '@/core/input/InputManager';
-import { type StatModifier, type ChampionStats, type ItemSlot, type ItemDefinition, type AbilitySlot, type AbilityScaling, type DamageType, type ActiveEffectState, calculateAbilityValue } from '@siege/shared';
-import { getEffectDisplayInfo, type EffectDisplayInfo, EFFECT_CATEGORY_COLORS } from '@/data/effectDisplayInfo';
+import { type StatModifier, type ChampionStats, type ItemSlot, type ItemDefinition, type AbilitySlot, type AbilityScaling, type DamageType, calculateAbilityValue } from '@siege/shared';
+import { getEffectDisplayInfo } from '@/data/effectDisplayInfo';
 import AbilityIconLoader, { type AbilityIconSlot } from '@/ui/AbilityIconLoader';
 // Re-export for external use
 export type { ItemSlot, AbilitySlot };

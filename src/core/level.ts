@@ -197,7 +197,7 @@ class Level {
 
   private setMoney = (a: number) => {
     this.money = a;
-  }
+  };
 
   /**
    * Update the shop UI with current game context.

@@ -5,7 +5,6 @@
  * Similar to League of Legends trinkets.
  */
 
-import type { TeamId } from '@/core/Team';
 
 /**
  * Ward types available in the game.
