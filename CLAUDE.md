@@ -63,6 +63,7 @@ For detailed documentation on the multiplayer MOBA systems, see the following fi
 | **Effects & Buffs** | [docs/architecture/effects-and-buffs.md](docs/architecture/effects-and-buffs.md) | Buff/debuff system, crowd control, stat modifiers |
 | **Collision** | [docs/architecture/collision.md](docs/architecture/collision.md) | Unit collision detection, separation, spatial grid |
 | **VFX** | [docs/architecture/vfx.md](docs/architecture/vfx.md) | Visual effects system, particles, ability VFX |
+| **Lanes & Minions** | [docs/architecture/minions.md](docs/architecture/minions.md) | Waves, lane following, minion targeting and call for help |
 | **Simulation** | [docs/architecture/simulation.md](docs/architecture/simulation.md) | Headless scenarios, bots, PNG frames, HTTP sandbox for agents |
 
 ### Quick Reference
@@ -96,6 +97,7 @@ For detailed documentation on the multiplayer MOBA systems, see the following fi
 | Buffs, debuffs, CC types, effect stacking | `effects-and-buffs.md` |
 | Collision detection, unit separation, spatial grid | `collision.md` |
 | Visual effects, particles, ability VFX | `vfx.md` |
+| Minion waves, lane following, minion targeting | `minions.md` |
 | Simulation framework, scenarios, bots | `simulation.md` |
 
 **When adding new systems**, create a new doc file in `docs/architecture/` and add a reference here.

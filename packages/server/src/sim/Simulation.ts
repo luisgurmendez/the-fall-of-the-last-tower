@@ -20,6 +20,7 @@ import {
   getChampionDefinition,
   type AbilitySlot,
   type LaneId,
+  type MinionType,
   type Side,
 } from '@siege/shared';
 import { ServerGameContext } from '../game/ServerGameContext';
@@ -30,6 +31,8 @@ import { BotInputStamper, type BotController, type BotInput } from '../bots/BotC
 import { LaneBot } from '../bots/LaneBot';
 import type { ServerChampion } from '../simulation/ServerChampion';
 import type { ServerEntity } from '../simulation/ServerEntity';
+import { ServerMinion } from '../simulation/ServerMinion';
+import { LanePath } from '../navigation/LanePath';
 import { initializeAbilityHandlers } from '../abilities';
 import { abilityHandlerRegistry } from '../abilities/AbilityHandlerRegistry';
 import { Recorder, toSimEntity, type SimEntity, type SimFrame } from './Recorder';
@@ -145,6 +148,33 @@ export class Simulation {
 
   addBot(controller: BotController): void {
     this.botDriver.add(controller);
+  }
+
+  /**
+   * Spawn a single minion at a spot. It walks its lane from the closest
+   * point onward, like a minion that got there on its own.
+   */
+  addMinion(options: { side: SideInput; lane: LaneId; at: { x: number; y: number }; type?: MinionType; laneOffset?: number }): ServerMinion {
+    const side = toSide(options.side);
+    const laneKey = options.lane.toUpperCase() as 'TOP' | 'MID' | 'BOT';
+    const waypoints = this.context.mapConfig.LANES[laneKey].waypoints.map(w => w.clone());
+    if (side === 1) waypoints.reverse();
+
+    const position = new Vector(options.at.x, options.at.y);
+    const path = new LanePath(waypoints);
+    const ahead = waypoints.slice(path.nextWaypointIndex(path.project(position).distance));
+
+    const minion = new ServerMinion({
+      id: this.context.generateEntityId(),
+      position,
+      side,
+      minionType: options.type ?? 'melee',
+      lane: options.lane,
+      waypoints: ahead.length > 0 ? ahead : [waypoints[waypoints.length - 1]],
+      laneOffset: options.laneOffset,
+    });
+    this.context.addEntity(minion);
+    return minion;
   }
 
   /**

@@ -333,6 +333,12 @@ export const MOBAConfig = {
     },
     /** Offset from nexus for spawn position */
     SPAWN_OFFSET: 100,
+    /** Every Nth wave brings a siege minion */
+    SIEGE_EVERY: 3,
+    /** Minion stat growth per minute of game time (0.05 = +5% per minute) */
+    SCALING_PER_MINUTE: { health: 0.05, damage: 0.04 },
+    /** Scaling stops growing after this many minutes */
+    MAX_SCALING_MINUTES: 20,
   },
 
   /**

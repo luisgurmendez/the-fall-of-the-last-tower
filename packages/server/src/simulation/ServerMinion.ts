@@ -2,9 +2,11 @@
  * ServerMinion - Server-side minion entity.
  *
  * Handles:
- * - Lane waypoint following
- * - Target acquisition (towers, enemy minions, champions)
- * - Combat behavior
+ * - Lane following: steers toward a point a little ahead on the lane path,
+ *   so after a fight it rejoins the lane without walking backwards
+ * - Target acquisition within sight range, with "call for help": an enemy
+ *   champion that hits an allied champion nearby becomes the top target
+ * - Chasing (up to a leash from the lane) and combat
  * - Death and reward distribution
  */
 
@@ -22,6 +24,7 @@ import { ServerEntity, type ServerEntityConfig } from './ServerEntity';
 import type { ServerGameContext } from '../game/ServerGameContext';
 import { RewardSystem } from '../systems/RewardSystem';
 import { ServerTargetedProjectile } from './ServerTargetedProjectile';
+import { LanePath } from '../navigation/LanePath';
 import {
   getServerEffectById,
   isCCEffect,
@@ -50,6 +53,21 @@ export interface ServerMinionConfig extends Omit<ServerEntityConfig, 'entityType
   minionType: MinionType;
   lane: LaneId;
   waypoints: Vector[];
+  /** Sideways offset from the lane center, so a wave walks side by side (default 0) */
+  laneOffset?: number;
+  /** Stat multipliers for waves later in the game (default 1) */
+  statScale?: { health: number; damage: number };
+}
+
+/**
+ * Target priorities (higher wins; ties go to the closest).
+ */
+const enum MinionTargetPriority {
+  STRUCTURE = 10,
+  CHAMPION = 30,
+  MINION = 50,
+  /** Enemy champion that just damaged an allied champion near this minion */
+  CALL_FOR_HELP = 100,
 }
 
 /**
@@ -61,9 +79,21 @@ export class ServerMinion extends ServerEntity {
   readonly stats: MinionStats;
 
   // Movement
-  private waypoints: Vector[] = [];
-  private currentWaypointIndex: number = 0;
+  private lanePath: LanePath | null = null;
+  private readonly laneOffset: number;
   private moveTarget: Vector | null = null;
+
+  /** How far ahead on the lane the minion steers (world units) */
+  private static readonly LANE_LOOKAHEAD = 120;
+  /** Stop chasing a target once this far from the lane */
+  private static readonly LANE_LEASH = 350;
+  /** Allied champions this close can call for help */
+  private static readonly CALL_FOR_HELP_RANGE = 500;
+  /** How recent a champion's attack must be to call for help (seconds) */
+  private static readonly CALL_FOR_HELP_WINDOW = 2;
+  /** How often a minion with a target looks for a better one (seconds) */
+  private static readonly RETARGET_INTERVAL = 0.5;
+  private retargetTimer = 0;
 
   // Combat
   private attackTarget: string | null = null;
@@ -94,6 +124,12 @@ export class ServerMinion extends ServerEntity {
     this.minionType = config.minionType;
     this.lane = config.lane;
     this.stats = { ...DEFAULT_MINION_STATS[config.minionType] };
+    if (config.statScale) {
+      this.stats.health = Math.round(this.stats.health * config.statScale.health);
+      this.stats.maxHealth = Math.round(this.stats.maxHealth * config.statScale.health);
+      this.stats.attackDamage = Math.round(this.stats.attackDamage * config.statScale.damage);
+    }
+    this.laneOffset = config.laneOffset ?? 0;
 
     // Initialize from stats
     this.health = this.stats.health;
@@ -101,11 +137,9 @@ export class ServerMinion extends ServerEntity {
     this.goldReward = this.stats.goldReward;
     this.experienceReward = this.stats.experienceReward;
 
-    // Set waypoints
-    this.waypoints = config.waypoints.map(w => w.clone());
-    if (this.waypoints.length > 0) {
-      this.currentWaypointIndex = 0;
-      this.moveTarget = this.waypoints[0].clone();
+    // Lane path from the spawn point through the waypoints
+    if (config.waypoints.length > 0) {
+      this.lanePath = new LanePath([this.position.clone(), ...config.waypoints]);
     }
   }
 
@@ -343,16 +377,19 @@ export class ServerMinion extends ServerEntity {
     // Validate current target
     if (this.attackTarget) {
       const target = context.getEntity(this.attackTarget);
-      // Drop target if: doesn't exist, dead, out of range, or not visible (entered bush/stealth)
-      if (!target || target.isDead || !this.isInRange(target, this.stats.attackRange) ||
-          !context.isVisibleTo(target, this.side)) {
+      if (!target || !this.canKeepTarget(target, context)) {
         this.attackTarget = null;
       }
     }
 
-    // Find new target if needed
-    if (!this.attackTarget) {
-      this.attackTarget = this.findTarget(context);
+    // Find a target, or periodically check for a more important one (call for help)
+    this.retargetTimer -= dt;
+    if (!this.attackTarget || this.retargetTimer <= 0) {
+      this.retargetTimer = ServerMinion.RETARGET_INTERVAL;
+      const best = this.findTarget(context);
+      if (best && (!this.attackTarget || best.priority > this.getTargetPriority(this.attackTarget, context))) {
+        this.attackTarget = best.id;
+      }
     }
 
     // Attack if possible
@@ -365,55 +402,80 @@ export class ServerMinion extends ServerEntity {
   }
 
   /**
-   * Find a target to attack.
-   * Priority: Nearby enemies attacking allies > Champions > Minions > Towers
+   * Whether to keep chasing a target: alive, visible, within reach and not
+   * dragging the minion too far from its lane.
+   */
+  private canKeepTarget(target: ServerEntity, context: ServerGameContext): boolean {
+    if (target.isDead || !context.isVisibleTo(target, this.side)) return false;
+    if (this.isInRange(target, this.stats.attackRange)) return true;
+    if (this.position.distanceTo(target.position) > this.getAcquisitionRange() + 100) return false;
+    return !this.lanePath || this.lanePath.project(this.position).offset <= ServerMinion.LANE_LEASH;
+  }
+
+  /**
+   * How far away a minion notices enemies.
+   */
+  private getAcquisitionRange(): number {
+    return Math.max(this.stats.sightRange, this.stats.attackRange + 100);
+  }
+
+  /**
+   * Find the best target in acquisition range.
+   * Priority: champion calling for help > minions > champions > structures,
+   * closest first within a priority.
    * Note: Minions do NOT attack jungle creatures - they only fight lane units.
    */
-  private findTarget(context: ServerGameContext): string | null {
-    const nearbyEntities = context.getEntitiesInRadius(this.position, this.stats.sightRange);
+  private findTarget(context: ServerGameContext): { id: string; priority: number } | null {
+    const nearbyEntities = context.getEntitiesInRadius(this.position, this.getAcquisitionRange());
 
-    let bestTarget: ServerEntity | null = null;
-    let bestPriority = -1;
+    let best: { id: string; priority: number } | null = null;
+    let bestDistance = Infinity;
 
     for (const entity of nearbyEntities) {
-      // Skip allies and self
-      if (entity.side === this.side || entity.id === this.id) continue;
-      if (entity.isDead) continue;
-
-      // Skip jungle creatures - minions only fight lane units
-      if (entity.entityType === EntityType.JUNGLE_CAMP) continue;
-
-      // Skip projectiles, zones, and wards - minions only fight units
-      if (entity.entityType === EntityType.PROJECTILE) continue;
-      if (entity.entityType === EntityType.ZONE) continue;
-      if (entity.entityType === EntityType.WARD) continue;
-
-      // Skip targets not visible (in bush or stealthed)
+      if (entity.side === this.side || entity.id === this.id || entity.isDead) continue;
       if (!context.isVisibleTo(entity, this.side)) continue;
 
-      // Calculate priority
-      let priority = 0;
+      const priority = this.getPriority(entity, context);
+      if (priority === null) continue;
+
       const distance = this.position.distanceTo(entity.position);
-
-      // Prefer closer targets
-      priority += (this.stats.sightRange - distance) / this.stats.sightRange * 10;
-
-      // Entity type priorities
-      if (entity.entityType === EntityType.CHAMPION) {
-        priority += 100; // Champions high priority
-      } else if (entity.entityType === EntityType.MINION) {
-        priority += 50; // Other minions
-      } else if (entity.entityType === EntityType.TOWER) {
-        priority += 20; // Towers lower priority
-      }
-
-      if (priority > bestPriority && this.isInRange(entity, this.stats.attackRange + 50)) {
-        bestPriority = priority;
-        bestTarget = entity;
+      if (!best || priority > best.priority || (priority === best.priority && distance < bestDistance)) {
+        best = { id: entity.id, priority };
+        bestDistance = distance;
       }
     }
 
-    return bestTarget?.id ?? null;
+    return best;
+  }
+
+  private getTargetPriority(targetId: string, context: ServerGameContext): number {
+    const target = context.getEntity(targetId);
+    return target ? this.getPriority(target, context) ?? 0 : 0;
+  }
+
+  /**
+   * Priority for an enemy entity, or null if minions don't fight it
+   * (jungle creatures, projectiles, zones, wards).
+   */
+  private getPriority(entity: ServerEntity, context: ServerGameContext): number | null {
+    switch (entity.entityType) {
+      case EntityType.CHAMPION: {
+        const victim = context.getRecentChampionVictim(entity.id, ServerMinion.CALL_FOR_HELP_WINDOW);
+        if (victim && victim.side === this.side &&
+            victim.position.distanceTo(this.position) <= ServerMinion.CALL_FOR_HELP_RANGE) {
+          return MinionTargetPriority.CALL_FOR_HELP;
+        }
+        return MinionTargetPriority.CHAMPION;
+      }
+      case EntityType.MINION:
+        return MinionTargetPriority.MINION;
+      case EntityType.TOWER:
+      case EntityType.INHIBITOR:
+      case EntityType.NEXUS:
+        return MinionTargetPriority.STRUCTURE;
+      default:
+        return null;
+    }
   }
 
   /** Projectile speed for ranged minions (caster) */
@@ -441,8 +503,8 @@ export class ServerMinion extends ServerEntity {
     // Stop moving while attacking
     this.moveTarget = null;
 
-    // Caster minions fire projectiles, melee minions deal instant damage
-    if (this.minionType === 'caster') {
+    // Caster and siege minions fire projectiles, melee minions deal instant damage
+    if (this.minionType === 'caster' || this.minionType === 'siege') {
       this.fireProjectile(target, context);
     } else {
       // Melee - deal damage instantly
@@ -462,7 +524,7 @@ export class ServerMinion extends ServerEntity {
       speed: ServerMinion.PROJECTILE_SPEED,
       radius: ServerMinion.PROJECTILE_RADIUS,
       sourceId: this.id,
-      projectileType: 'minion_caster',
+      projectileType: this.minionType === 'siege' ? 'minion_siege' : 'minion_caster',
       damage: this.stats.attackDamage,
       damageType: 'physical',
     });
@@ -471,10 +533,9 @@ export class ServerMinion extends ServerEntity {
   }
 
   /**
-   * Handle movement along waypoints.
+   * Handle movement: chase the attack target, otherwise follow the lane.
    */
   private updateMovement(dt: number, context: ServerGameContext): void {
-    // If attacking, move toward attack target
     if (this.attackTarget) {
       const target = context.getEntity(this.attackTarget);
       if (target && !this.isInRange(target, this.stats.attackRange)) {
@@ -484,9 +545,8 @@ export class ServerMinion extends ServerEntity {
         this.moveTarget = null;
         return;
       }
-    } else if (!this.moveTarget && this.currentWaypointIndex < this.waypoints.length) {
-      // Resume waypoint following
-      this.moveTarget = this.waypoints[this.currentWaypointIndex].clone();
+    } else {
+      this.moveTarget = this.getLaneSteeringPoint();
     }
 
     if (!this.moveTarget) return;
@@ -496,21 +556,33 @@ export class ServerMinion extends ServerEntity {
     const speed = this.getEffectiveMovementSpeed() * dt;
 
     if (distance <= speed) {
-      // Reached target
       this.position = this.moveTarget.clone();
-
-      // If following waypoints, advance to next
-      if (!this.attackTarget && this.currentWaypointIndex < this.waypoints.length - 1) {
-        this.currentWaypointIndex++;
-        this.moveTarget = this.waypoints[this.currentWaypointIndex].clone();
-      } else {
-        this.moveTarget = null;
-      }
+      this.moveTarget = null;
     } else {
-      // Move toward target
       const direction = Vector.direction(this.position, this.moveTarget);
       this.position.add(direction.scalar(speed));
     }
+  }
+
+  /**
+   * A point a little ahead on the lane (shifted by this minion's lane offset).
+   * Steering toward it follows the lane, rounds corners, and after a fight
+   * leads back onto the lane further along instead of to an old waypoint.
+   */
+  private getLaneSteeringPoint(): Vector | null {
+    if (!this.lanePath) return null;
+
+    const path = this.lanePath;
+    const along = path.project(this.position).distance;
+    if (along >= path.length - 1) return null; // Reached the end of the lane
+
+    const ahead = Math.min(path.length, along + ServerMinion.LANE_LOOKAHEAD);
+    const point = path.pointAt(ahead);
+    if (this.laneOffset !== 0) {
+      const direction = Vector.direction(path.pointAt(ahead - 10), point);
+      point.add(new Vector(-direction.y, direction.x).scalar(this.laneOffset));
+    }
+    return point;
   }
 
   /**

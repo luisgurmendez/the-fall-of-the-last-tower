@@ -22,6 +22,7 @@ This directory contains detailed documentation for the Siege MOBA architecture.
 | [abilities.md](abilities.md) | Ability system, targeting types, cooldowns, scaling |
 | [effects-and-buffs.md](effects-and-buffs.md) | Buffs, debuffs, crowd control, stat modifiers |
 | [collision.md](collision.md) | Unit collision detection, separation, spatial grid |
+| [minions.md](minions.md) | Minion waves, lane following, targeting and call for help |
 
 ### Tooling
 

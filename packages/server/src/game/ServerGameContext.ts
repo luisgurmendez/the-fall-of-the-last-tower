@@ -67,6 +67,9 @@ export class ServerGameContext {
   // Jungle camps
   private jungleCamps: ServerJungleCamp[] = [];
 
+  // Champions that recently damaged an enemy champion (attackerId -> victim and time)
+  private championAggression: Map<string, { victimId: string; time: number }> = new Map();
+
   // Ward management
   private wards: Map<string, ServerWard> = new Map();
   private readonly MAX_WARDS_PER_PLAYER = 3; // Max wards a player can have active
@@ -313,29 +316,32 @@ export class ServerGameContext {
 
     const lanes: LaneId[] = ['top', 'mid', 'bot'];
     const waveConfig = this.mapConfig.MINION_WAVES.WAVE_COMPOSITION;
+    const withSiege = (this.minionWaveCount + 1) % this.mapConfig.MINION_WAVES.SIEGE_EVERY === 0;
 
     for (const lane of lanes) {
       // Spawn minions for both sides
-      this.spawnLaneMinions(0, lane, waveConfig); // Blue side
-      this.spawnLaneMinions(1, lane, waveConfig); // Red side
+      this.spawnLaneMinions(0, lane, waveConfig, withSiege); // Blue side
+      this.spawnLaneMinions(1, lane, waveConfig, withSiege); // Red side
     }
   }
 
   /**
    * Spawn one wave for a side in a lane, outside the wave timer.
    */
-  spawnLaneWave(side: Side, lane: LaneId): void {
-    this.spawnLaneMinions(side, lane, this.mapConfig.MINION_WAVES.WAVE_COMPOSITION);
+  spawnLaneWave(side: Side, lane: LaneId, options: { siege?: boolean } = {}): void {
+    this.spawnLaneMinions(side, lane, this.mapConfig.MINION_WAVES.WAVE_COMPOSITION, options.siege ?? false);
   }
 
   /**
    * Spawn minions for a specific side and lane.
-   * Minions are spawned in a staggered line formation to prevent clumping.
+   * The wave marches in rows (melee in front, then siege, then casters), up
+   * to three side by side, each minion keeping its own offset from the lane center.
    */
   private spawnLaneMinions(
     side: Side,
     lane: LaneId,
-    waveConfig: { swordsmen: number; archers: number }
+    waveConfig: { swordsmen: number; archers: number },
+    withSiege: boolean
   ): void {
     const laneConfig = this.mapConfig.LANES[lane.toUpperCase() as 'TOP' | 'MID' | 'BOT'];
 
@@ -344,89 +350,68 @@ export class ServerGameContext {
       ? laneConfig.waypoints.map(w => new Vector(w.x, w.y))
       : [...laneConfig.waypoints].reverse().map(w => new Vector(w.x, w.y));
 
-    // Calculate spawn position and lane direction
+    // Lane direction out of the base, for placing the formation
     const nexusPoint = waypoints[0].clone();
     const nextWaypoint = waypoints.length > 1 ? waypoints[1] : nexusPoint;
-
-    // Calculate lane direction for staggering
-    const laneDirection = new Vector(
-      nextWaypoint.x - nexusPoint.x,
-      nextWaypoint.y - nexusPoint.y
-    );
-    const laneDist = Math.sqrt(laneDirection.x * laneDirection.x + laneDirection.y * laneDirection.y);
-    if (laneDist > 0) {
-      laneDirection.x /= laneDist;
-      laneDirection.y /= laneDist;
-    }
-
-    // Offset spawn position AWAY from nexus (150 units in lane direction)
-    // This prevents minions from spawning inside the nexus collider
-    const NEXUS_SPAWN_OFFSET = 150;
-    const spawnBase = new Vector(
-      nexusPoint.x + laneDirection.x * NEXUS_SPAWN_OFFSET,
-      nexusPoint.y + laneDirection.y * NEXUS_SPAWN_OFFSET
-    );
-
-    // Perpendicular direction for spread
+    const laneDirection = Vector.direction(nexusPoint, nextWaypoint);
     const perpDirection = new Vector(-laneDirection.y, laneDirection.x);
 
-    // Spacing between minions in the formation
-    const MINION_SPACING = 60; // Distance between minions along the lane
-    const LATERAL_SPREAD = 40; // Random lateral spread
+    // Offset spawn position AWAY from nexus so minions don't spawn inside its collider
+    const NEXUS_SPAWN_OFFSET = 150;
+    const ROW_SPACING = 45; // Distance between rows along the lane
+    const LANE_SPREAD = 22; // Distance between minions side by side
+    const PER_ROW = 3;
 
-    // Spawn melee minions (swordsmen) in front
-    for (let i = 0; i < waveConfig.swordsmen; i++) {
-      // Stagger along lane direction (front minions spawn further along the lane)
-      const forwardOffset = i * MINION_SPACING;
-      // Small random lateral spread
-      const lateralOffset = (Math.random() - 0.5) * LATERAL_SPREAD;
-
-      const spawnPos = new Vector(
-        spawnBase.x + laneDirection.x * forwardOffset + perpDirection.x * lateralOffset,
-        spawnBase.y + laneDirection.y * forwardOffset + perpDirection.y * lateralOffset
-      );
-
-      // Skip waypoint[0] (nexus) since we spawn minions offset from there
-      // Minions should walk toward waypoint[1] immediately
-      const minionWaypoints = waypoints.slice(1).map(w => w.clone());
-
-      const minion = new ServerMinion({
-        id: this.generateEntityId(),
-        position: spawnPos,
-        side,
-        minionType: 'melee' as MinionType,
-        lane,
-        waypoints: minionWaypoints,
-      });
-
-      this.addEntity(minion);
+    const order: MinionType[] = [
+      ...Array<MinionType>(waveConfig.swordsmen).fill('melee'),
+      ...(withSiege ? ['siege' as MinionType] : []),
+      ...Array<MinionType>(waveConfig.archers).fill('caster'),
+    ];
+    const rows: MinionType[][] = [];
+    for (const type of order) {
+      const last = rows[rows.length - 1];
+      // Start a new row when full or when the minion type changes
+      if (!last || last.length >= PER_ROW || last[0] !== type) rows.push([type]);
+      else last.push(type);
     }
 
-    // Spawn caster minions (archers) behind melee
-    const casterStartOffset = -MINION_SPACING * 2; // Start behind the melee group
-    for (let i = 0; i < waveConfig.archers; i++) {
-      const forwardOffset = casterStartOffset - i * MINION_SPACING;
-      const lateralOffset = (Math.random() - 0.5) * LATERAL_SPREAD;
+    const statScale = this.getMinionStatScale();
+    // Skip waypoint[0] (nexus) since we spawn minions offset from there
+    const minionWaypoints = waypoints.slice(1);
 
-      const spawnPos = new Vector(
-        spawnBase.x + laneDirection.x * forwardOffset + perpDirection.x * lateralOffset,
-        spawnBase.y + laneDirection.y * forwardOffset + perpDirection.y * lateralOffset
-      );
+    rows.forEach((row, rowIndex) => {
+      // Front row is furthest along the lane
+      const forwardOffset = NEXUS_SPAWN_OFFSET + (rows.length - 1 - rowIndex) * ROW_SPACING;
+      row.forEach((minionType, i) => {
+        const laneOffset = (i - (row.length - 1) / 2) * LANE_SPREAD;
+        const spawnPos = nexusPoint.clone()
+          .add(laneDirection.scaled(forwardOffset))
+          .add(perpDirection.scaled(laneOffset));
 
-      // Skip waypoint[0] (nexus) since we spawn minions offset from there
-      const minionWaypoints = waypoints.slice(1).map(w => w.clone());
-
-      const minion = new ServerMinion({
-        id: this.generateEntityId(),
-        position: spawnPos,
-        side,
-        minionType: 'caster' as MinionType,
-        lane,
-        waypoints: minionWaypoints,
+        this.addEntity(new ServerMinion({
+          id: this.generateEntityId(),
+          position: spawnPos,
+          side,
+          minionType,
+          lane,
+          waypoints: minionWaypoints.map(w => w.clone()),
+          laneOffset,
+          statScale,
+        }));
       });
+    });
+  }
 
-      this.addEntity(minion);
-    }
+  /**
+   * Minions get stronger as the game goes on.
+   */
+  private getMinionStatScale(): { health: number; damage: number } {
+    const { SCALING_PER_MINUTE, MAX_SCALING_MINUTES } = this.mapConfig.MINION_WAVES;
+    const minutes = Math.min(Math.floor(this.gameTime / 60), MAX_SCALING_MINUTES);
+    return {
+      health: 1 + SCALING_PER_MINUTE.health * minutes,
+      damage: 1 + SCALING_PER_MINUTE.damage * minutes,
+    };
   }
 
   /**
@@ -438,6 +423,31 @@ export class ServerGameContext {
       timestamp: this.gameTime,
       data,
     });
+
+    if (type === GameEventType.DAMAGE) {
+      this.trackChampionAggression(data.sourceId as string | undefined, data.entityId as string);
+    }
+  }
+
+  /**
+   * Remember champion-on-champion damage so minions can respond to "calls for help".
+   */
+  private trackChampionAggression(sourceId: string | undefined, targetId: string): void {
+    if (!sourceId) return;
+    const source = this.champions.get(sourceId);
+    const target = this.champions.get(targetId);
+    if (source && target && source.side !== target.side) {
+      this.championAggression.set(sourceId, { victimId: targetId, time: this.gameTime });
+    }
+  }
+
+  /**
+   * The champion this champion last damaged, if it did within `withinSeconds`.
+   */
+  getRecentChampionVictim(attackerId: string, withinSeconds: number): ServerChampion | undefined {
+    const aggression = this.championAggression.get(attackerId);
+    if (!aggression || this.gameTime - aggression.time > withinSeconds) return undefined;
+    return this.champions.get(aggression.victimId);
   }
 
   /**
