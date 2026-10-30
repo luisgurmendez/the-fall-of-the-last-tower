@@ -58,6 +58,7 @@ import {
   remainingForcedMovementDistance,
   type ForcedMovement,
 } from './champion/ChampionForcedMovement';
+import { ChampionRecall } from './champion/ChampionRecall';
 
 export interface ServerChampionConfig extends Omit<ServerEntityConfig, 'entityType'> {
   definition: ChampionDefinition;
@@ -84,6 +85,7 @@ export class ServerChampion extends ServerEntity {
   respawnTimer = 0;
   isRecalling = false;
   recallProgress = 0;
+  private readonly recall = new ChampionRecall(this);
 
   // Stats
   private statModifiers: StatModifier[] = [];
@@ -248,7 +250,7 @@ export class ServerChampion extends ServerEntity {
 
     // Update recall
     if (this.isRecalling) {
-      this.updateRecall(dt);
+      this.recall.update(dt);
     }
 
     // Regeneration (out of combat)
@@ -403,52 +405,17 @@ export class ServerChampion extends ServerEntity {
   }
 
   /**
-   * Update recall.
-   */
-  private updateRecall(dt: number): void {
-    this.recallProgress += dt;
-    if (this.recallProgress >= GameConfig.TIMING.RECALL_DURATION) {
-      this.completeRecall();
-    }
-  }
-
-  /**
    * Start recalling.
    */
   startRecall(): boolean {
-    if (this.isRecalling || this.isDead || this.inCombat) {
-      return false;
-    }
-    this.isRecalling = true;
-    this.recallProgress = 0;
-    return true;
+    return this.recall.start();
   }
 
   /**
    * Cancel recall.
    */
   cancelRecall(): void {
-    this.isRecalling = false;
-    this.recallProgress = 0;
-  }
-
-  /**
-   * Complete recall (teleport to base).
-   */
-  private completeRecall(): void {
-    this.isRecalling = false;
-    this.recallProgress = 0;
-
-    // Teleport to spawn
-    const spawnPos = this.side === 0
-      ? new Vector(-1100, 1100)
-      : new Vector(1100, -1100);
-    this.position.setFrom(spawnPos);
-
-    // Restore health and mana
-    const stats = this.getStats();
-    this.health = stats.maxHealth;
-    this.resource = stats.maxResource;
+    this.recall.cancel();
   }
 
   /**
