@@ -45,6 +45,11 @@ export const DEFAULT_FOG_RENDER_CONFIG: FogRenderConfig = {
   desaturateExplored: true,
 };
 
+/** Seconds for fog to clear from a cell coming into sight */
+const FOG_REVEAL_SECONDS = 0.12;
+/** Seconds for fog to cover a cell going out of sight */
+const FOG_COVER_SECONDS = 0.3;
+
 /**
  * Parse hex color to RGB values.
  */
@@ -77,6 +82,12 @@ export class FogOfWarRenderer {
   // Grid dimensions cache
   private lastGridWidth: number = 0;
   private lastGridHeight: number = 0;
+
+  // Fog opacity drawn per cell (0-255). It eases toward the cell's state, so a
+  // cell at the edge of sight that flips state frame to frame (sight lines
+  // grazing a wall corner) doesn't blink.
+  private cellAlphas: Float32Array | null = null;
+  private lastRenderTime = 0;
 
   constructor(config: Partial<FogRenderConfig> = {}) {
     this.config = { ...DEFAULT_FOG_RENDER_CONFIG, ...config };
@@ -122,6 +133,7 @@ export class FogOfWarRenderer {
       this.fogCanvas.height = dims.height;
       this.fogCtx = this.fogCanvas.getContext("2d", { willReadFrequently: true });
       this.imageData = null;
+      this.cellAlphas = null;
       this.lastGridWidth = dims.width;
       this.lastGridHeight = dims.height;
     }
@@ -139,32 +151,34 @@ export class FogOfWarRenderer {
     const unexploredAlpha = Math.floor(this.config.unexploredOpacity * 255);
     const exploredAlpha = Math.floor(this.config.exploredOpacity * 255);
 
+    const now = performance.now();
+    const dt = this.lastRenderTime === 0 ? 0 : Math.min((now - this.lastRenderTime) / 1000, 0.1);
+    this.lastRenderTime = now;
+    const firstFrame = !this.cellAlphas;
+    const alphas = (this.cellAlphas ??= new Float32Array(dims.width * dims.height));
+    const revealStep = 255 * dt / FOG_REVEAL_SECONDS;
+    const coverStep = 255 * dt / FOG_COVER_SECONDS;
+
     // Write one pixel per grid cell
     for (let gy = 0; gy < dims.height; gy++) {
       const row = cells[gy];
       for (let gx = 0; gx < dims.width; gx++) {
         const state = row?.[gx] ?? "unexplored";
-        const idx = (gy * dims.width + gx) * 4;
+        const cell = gy * dims.width + gx;
+        const idx = cell * 4;
+        const target = state === "visible" ? 0 : state === "explored" ? exploredAlpha : unexploredAlpha;
 
-        if (state === "visible") {
-          // Fully transparent
-          data[idx] = 0;
-          data[idx + 1] = 0;
-          data[idx + 2] = 0;
-          data[idx + 3] = 0;
-        } else if (state === "explored") {
-          // Semi-transparent explored fog
-          data[idx] = this.exploredRgb.r;
-          data[idx + 1] = this.exploredRgb.g;
-          data[idx + 2] = this.exploredRgb.b;
-          data[idx + 3] = exploredAlpha;
-        } else {
-          // Fully opaque unexplored fog
-          data[idx] = this.unexploredRgb.r;
-          data[idx + 1] = this.unexploredRgb.g;
-          data[idx + 2] = this.unexploredRgb.b;
-          data[idx + 3] = unexploredAlpha;
-        }
+        const alpha = alphas[cell];
+        alphas[cell] = firstFrame ? target
+          : alpha > target ? Math.max(target, alpha - revealStep)
+          : Math.min(target, alpha + coverStep);
+
+        // Explored color while fading in or out of sight, black where never seen
+        const rgb = state === "unexplored" ? this.unexploredRgb : this.exploredRgb;
+        data[idx] = rgb.r;
+        data[idx + 1] = rgb.g;
+        data[idx + 2] = rgb.b;
+        data[idx + 3] = alphas[cell];
       }
     }
 

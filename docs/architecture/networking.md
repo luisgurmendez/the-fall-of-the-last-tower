@@ -357,6 +357,8 @@ team, so a modified client can't reveal them.
 The client fog (`src/core/FogOfWar.ts`) uses the same `WallGrid`. Each revealer works out how
 far it sees in each of 180 directions before a wall stops it, and only lights cells within
 that limit. The fog therefore shows the same shadows behind walls as the server's filtering.
+`FogOfWarRenderer` eases each cell's opacity toward its state (0.12 s to clear, 0.3 s to cover),
+so cells at the edge of a wall's shadow, which flip as revealers move, don't blink.
 
 ### Joining a match: full state, then buffered deltas
 
