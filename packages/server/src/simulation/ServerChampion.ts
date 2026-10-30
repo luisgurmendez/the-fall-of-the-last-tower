@@ -32,7 +32,6 @@ import {
   GameConfig,
   GameEventType,
   getPassiveDefinition,
-  getAbilityDefinition,
   createDefaultPassiveState,
   DEFAULT_CHAMPION_COLLISION,
   type EntityCollision,
@@ -41,15 +40,18 @@ import { ServerEntity, ServerEntityConfig } from './ServerEntity';
 import { ServerTower } from './ServerTower';
 import type { ServerGameContext } from '../game/ServerGameContext';
 import { getServerItemById } from '../data/items';
-import { AnimationScheduler, type ScheduledAction } from '../systems/AnimationScheduler';
 import { RewardSystem } from '../systems/RewardSystem';
 import { passiveTriggerSystem } from '../systems/PassiveTriggerSystem';
 import { championHooksRegistry } from '../abilities/ChampionHooksRegistry';
 import { Logger } from '../utils/Logger';
-import { ServerProjectile } from './ServerProjectile';
 import { calculateChampionStats } from './champion/ChampionStats';
 import { ChampionEffects, type ActiveShield } from './champion/ChampionEffects';
 import { ChampionBasicAttacks } from './champion/ChampionBasicAttacks';
+import {
+  ChampionAbilities,
+  createDefaultAbilityState,
+  type ScheduledAbilityProjectile,
+} from './champion/ChampionAbilities';
 
 export interface ServerChampionConfig extends Omit<ServerEntityConfig, 'entityType'> {
   definition: ChampionDefinition;
@@ -100,11 +102,12 @@ export class ServerChampion extends ServerEntity {
   abilityRanks: Record<AbilitySlot, number> = { Q: 0, W: 0, E: 0, R: 0 };
   abilityCooldowns: Record<AbilitySlot, number> = { Q: 0, W: 0, E: 0, R: 0 };
   abilityStates: Record<AbilitySlot, AbilityState> = {
-    Q: this.createDefaultAbilityState(),
-    W: this.createDefaultAbilityState(),
-    E: this.createDefaultAbilityState(),
-    R: this.createDefaultAbilityState(),
+    Q: createDefaultAbilityState(),
+    W: createDefaultAbilityState(),
+    E: createDefaultAbilityState(),
+    R: createDefaultAbilityState(),
   };
+  private readonly abilities = new ChampionAbilities(this);
 
   // Effects
   activeEffects: ActiveEffectState[] = [];
@@ -118,9 +121,6 @@ export class ServerChampion extends ServerEntity {
 
   // Basic attacks (attack timer, pending attack damage)
   private readonly basicAttacks = new ChampionBasicAttacks(this);
-
-  // Ability animation tracking
-  private abilityAnimationScheduler = new AnimationScheduler();  // Separate scheduler for abilities
 
   // Combat tracking
   kills = 0;
@@ -148,9 +148,6 @@ export class ServerChampion extends ServerEntity {
   trinketCooldown = 0;          // Cooldown after placing a ward
   trinketRechargeTimer = 0;     // Time accumulator for next charge
   trinketRechargeTime = 120;    // 120 seconds to recharge one ward
-
-  // Recast tracking - stores hit position for abilities with recast behavior
-  private recastHitPositions: Partial<Record<AbilitySlot, Vector>> = {}
 
   constructor(config: ServerChampionConfig) {
     super({
@@ -214,18 +211,6 @@ export class ServerChampion extends ServerEntity {
     }
   }
 
-  private createDefaultAbilityState(): AbilityState {
-    return {
-      rank: 0,
-      cooldownRemaining: 0,
-      cooldownTotal: 0,
-      isCasting: false,
-      castTimeRemaining: 0,
-      isToggled: false,
-      passiveCooldownRemaining: 0,
-    };
-  }
-
   /**
    * Update champion for one tick.
    */
@@ -253,10 +238,10 @@ export class ServerChampion extends ServerEntity {
     this.basicAttacks.processScheduledActions(dt, context);
 
     // Process scheduled ability actions (projectile spawns, etc.)
-    this.processScheduledAbilityActions(dt, context);
+    this.abilities.processScheduledActions(dt, context);
 
     // Update abilities
-    this.updateAbilities(dt);
+    this.abilities.update(dt);
 
     // Update effects
     this.updateEffects(dt, context);
@@ -473,125 +458,6 @@ export class ServerChampion extends ServerEntity {
 
     // Auto-attack target if in range and can attack
     this.basicAttacks.attackTargetIfReady(context);
-  }
-
-  /**
-   * Schedule an ability projectile to spawn at the animation keyframe time.
-   * Called by ServerAbilityExecutor for skillshot abilities with animations.
-   */
-  scheduleAbilityProjectile(
-    abilityId: string,
-    triggerTime: number,
-    projectileConfig: {
-      direction: Vector;
-      speed: number;
-      radius: number;
-      maxDistance: number;
-      damage: number;
-      damageType: DamageType;
-      piercing: boolean;
-      appliesEffects?: string[];
-      effectDuration?: number;
-    }
-  ): void {
-    this.abilityAnimationScheduler.schedule({
-      entityId: this.id,
-      actionType: 'projectile',
-      triggerTime,
-      data: {
-        abilityId,
-        direction: { x: projectileConfig.direction.x, y: projectileConfig.direction.y },
-        speed: projectileConfig.speed,
-        radius: projectileConfig.radius,
-        maxDistance: projectileConfig.maxDistance,
-        damage: projectileConfig.damage,
-        damageType: projectileConfig.damageType,
-        piercing: projectileConfig.piercing,
-        appliesEffects: projectileConfig.appliesEffects,
-        effectDuration: projectileConfig.effectDuration,
-        // Store caster position at time of scheduling for projectile spawn position
-        spawnPosition: { x: this.position.x, y: this.position.y },
-      },
-    });
-  }
-
-  /**
-   * Process scheduled ability actions (projectile spawns, etc.)
-   */
-  private processScheduledAbilityActions(dt: number, context: ServerGameContext): void {
-    // Cancel pending ability actions if silenced or stunned
-    if (!this.ccStatus.canCast) {
-      this.abilityAnimationScheduler.cancelForEntity(this.id, 'projectile');
-      return;
-    }
-
-    // Process scheduled ability actions
-    this.abilityAnimationScheduler.update(dt, (action) => {
-      if (action.actionType === 'projectile') {
-        this.spawnScheduledProjectile(action, context);
-      }
-    });
-  }
-
-  /**
-   * Spawn a projectile from a scheduled ability action.
-   */
-  private spawnScheduledProjectile(action: ScheduledAction, context: ServerGameContext): void {
-    const data = action.data;
-
-    // Create projectile at the caster's current position (not where they were when cast started)
-    // This allows "leading" shots if the caster moves during cast
-    const projectile = new ServerProjectile({
-      id: context.generateEntityId(),
-      position: this.position.clone(),
-      side: this.side,
-      direction: new Vector(
-        (data.direction as { x: number; y: number }).x,
-        (data.direction as { x: number; y: number }).y,
-      ).normalized(),
-      speed: data.speed as number,
-      radius: data.radius as number,
-      maxDistance: data.maxDistance as number,
-      sourceId: this.id,
-      abilityId: data.abilityId as string,
-      damage: data.damage as number,
-      damageType: data.damageType as DamageType,
-      piercing: data.piercing as boolean,
-      appliesEffects: data.appliesEffects as string[] | undefined,
-      effectDuration: data.effectDuration as number | undefined,
-    });
-
-    context.addEntity(projectile);
-  }
-
-  /**
-   * Update abilities (cooldowns and recast windows).
-   */
-  private updateAbilities(dt: number): void {
-    const slots: AbilitySlot[] = ['Q', 'W', 'E', 'R'];
-    for (const slot of slots) {
-      const state = this.abilityStates[slot];
-      if (state.cooldownRemaining > 0) {
-        // Cooldowns tick at normal rate - CDR is applied upfront when ability is cast
-        state.cooldownRemaining = Math.max(0, state.cooldownRemaining - dt);
-      }
-      if (state.castTimeRemaining > 0) {
-        state.castTimeRemaining = Math.max(0, state.castTimeRemaining - dt);
-        if (state.castTimeRemaining <= 0) {
-          state.isCasting = false;
-        }
-      }
-      // Update recast window
-      if (state.recastWindowRemaining !== undefined && state.recastWindowRemaining > 0) {
-        state.recastWindowRemaining = Math.max(0, state.recastWindowRemaining - dt);
-        // Clear recast state when window expires
-        if (state.recastWindowRemaining <= 0) {
-          state.recastCount = undefined;
-          state.recastWindowRemaining = undefined;
-          delete this.recastHitPositions[slot];
-        }
-      }
-    }
   }
 
   /**
@@ -1112,40 +978,28 @@ export class ServerChampion extends ServerEntity {
     this.targetEntityId = null;
   }
 
+  // =====================
+  // Abilities (see ChampionAbilities)
+  // =====================
+
   /**
    * Level up an ability.
    */
   levelUpAbility(slot: AbilitySlot): boolean {
-    if (this.skillPoints <= 0) {
-      return false;
-    }
-
-    const currentRank = this.abilityRanks[slot];
-    const maxRank = getAbilityDefinition(this.definition.abilities[slot])?.maxRank ?? (slot === 'R' ? 3 : 5);
-
-    // R ability has special level requirements (and stops at the last one)
-    if (slot === 'R') {
-      const rRequiredLevels = [6, 11, 16];
-      if (currentRank >= rRequiredLevels.length || this.level < rRequiredLevels[currentRank]) {
-        return false;
-      }
-    }
-
-    if (currentRank >= maxRank) {
-      return false;
-    }
-
-    this.abilityRanks[slot]++;
-    this.abilityStates[slot].rank = this.abilityRanks[slot];
-    this.skillPoints--;
-
-    // Logger.champion.info(`${this.playerId} leveled ${slot} to rank ${this.abilityRanks[slot]}`);
-    return true;
+    return this.abilities.levelUp(slot);
   }
 
-  // =====================
-  // Recast System
-  // =====================
+  /**
+   * Schedule an ability projectile to spawn at the animation keyframe time.
+   * Called by ServerAbilityExecutor for skillshot abilities with animations.
+   */
+  scheduleAbilityProjectile(
+    abilityId: string,
+    triggerTime: number,
+    projectileConfig: ScheduledAbilityProjectile
+  ): void {
+    this.abilities.scheduleProjectile(abilityId, triggerTime, projectileConfig);
+  }
 
   /**
    * Enable recast for an ability (called when projectile hits).
@@ -1155,19 +1009,14 @@ export class ServerChampion extends ServerEntity {
    * @param recastWindow - Time window for recast in seconds
    */
   enableRecast(slot: AbilitySlot, hitPosition: Vector, maxRecasts: number, recastWindow: number): void {
-    const state = this.abilityStates[slot];
-    state.recastCount = maxRecasts;
-    state.recastWindowRemaining = recastWindow;
-    this.recastHitPositions[slot] = hitPosition.clone();
-    Logger.champion.debug(`${this.playerId} ${slot} recast enabled at (${hitPosition.x.toFixed(0)}, ${hitPosition.y.toFixed(0)}) for ${recastWindow}s`);
+    this.abilities.enableRecast(slot, hitPosition, maxRecasts, recastWindow);
   }
 
   /**
    * Check if an ability has recast available.
    */
   hasRecastAvailable(slot: AbilitySlot): boolean {
-    const state = this.abilityStates[slot];
-    return (state.recastCount ?? 0) > 0 && (state.recastWindowRemaining ?? 0) > 0;
+    return this.abilities.hasRecastAvailable(slot);
   }
 
   /**
@@ -1175,22 +1024,14 @@ export class ServerChampion extends ServerEntity {
    * @returns The hit position or undefined if no recast available
    */
   getRecastHitPosition(slot: AbilitySlot): Vector | undefined {
-    return this.recastHitPositions[slot];
+    return this.abilities.getRecastHitPosition(slot);
   }
 
   /**
    * Consume a recast (called when recast is used).
    */
   consumeRecast(slot: AbilitySlot): void {
-    const state = this.abilityStates[slot];
-    if (state.recastCount !== undefined && state.recastCount > 0) {
-      state.recastCount--;
-      if (state.recastCount <= 0) {
-        state.recastCount = undefined;
-        state.recastWindowRemaining = undefined;
-        delete this.recastHitPositions[slot];
-      }
-    }
+    this.abilities.consumeRecast(slot);
   }
 
   /**
