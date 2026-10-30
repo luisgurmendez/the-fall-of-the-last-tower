@@ -78,7 +78,7 @@ const CREATURE_LOOKS: Record<string, CreatureLook> = {
   // Cinder Hound
   wolf: { sprites: monsterSprites("wolf"), scale: 0.83, fallback: OLD_LOOKS.wolf },
   // Gloom Crawler
-  spider: { sprites: monsterSprites("spider"), scale: 0.56, fallback: OLD_LOOKS.spider },
+  spider: { sprites: monsterSprites("spider"), scale: 0.85, fallback: OLD_LOOKS.spider },
   // Thornspitter
   gromp: { sprites: monsterSprites("gromp"), scale: 1, fallback: OLD_LOOKS.gromp },
   blue_buff: {
