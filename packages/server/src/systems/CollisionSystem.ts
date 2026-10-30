@@ -139,10 +139,16 @@ export class CollisionSystem {
     // Track processed pairs to avoid duplicate resolution
     const processedPairs = new Set<string>();
 
+    // Query range: own radius plus the largest radius of any entity (computed
+    // once per tick, not per entity, which made this O(n²))
+    let maxRadius = 0;
+    for (const entity of entities) {
+      maxRadius = Math.max(maxRadius, getEffectiveRadius(entity.getCollisionShape()));
+    }
+
     // For each entity, check only nearby entities
     for (const entity of entities) {
       const entityRadius = getEffectiveRadius(entity.getCollisionShape());
-      const maxRadius = this.getMaxCollisionRadius(entity, entities);
       const nearby = grid.getNearby(entity.position, entityRadius + maxRadius);
 
       for (const other of nearby) {
@@ -159,21 +165,6 @@ export class CollisionSystem {
         this.resolveCollisionPair(entity, other);
       }
     }
-  }
-
-  /**
-   * Get maximum effective collision radius among entities (for spatial query range).
-   * Uses getEffectiveRadius to get bounding circle for any collision shape.
-   */
-  private getMaxCollisionRadius(exclude: ServerEntity, entities: ServerEntity[]): number {
-    let maxRadius = 0;
-    for (const entity of entities) {
-      if (entity !== exclude) {
-        const radius = getEffectiveRadius(entity.getCollisionShape());
-        maxRadius = Math.max(maxRadius, radius);
-      }
-    }
-    return maxRadius;
   }
 
   /**
