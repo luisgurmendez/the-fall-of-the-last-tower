@@ -10,10 +10,7 @@
  * - Shield decay and damage absorption
  */
 
-import {
-  type ActiveEffectState,
-  type CrowdControlStatus,
-} from '@siege/shared';
+import type { ActiveEffectState, CrowdControlStatus } from '@siege/shared';
 import {
   getServerEffectById,
   isCCEffect,

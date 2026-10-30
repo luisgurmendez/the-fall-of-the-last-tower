@@ -1,11 +1,24 @@
 /**
  * ServerChampion - Server-side champion implementation.
  *
- * This class handles the authoritative champion state:
- * - Position, health, mana
- * - Abilities and cooldowns
- * - Effects and crowd control
- * - Items and stats
+ * Holds the authoritative champion state (position, health, resource,
+ * progression, abilities, effects, items) and runs the per-tick update.
+ * The rules for each concern live in collaborators under ./champion/:
+ *
+ * - ChampionStats          effective stats (level, modifiers, items, effects)
+ * - ChampionEffects        buffs/debuffs, crowd control, shields
+ * - ChampionBasicAttacks   attack timer, keyframe damage, ranged projectiles
+ * - ChampionAbilities      ranks, cooldowns, recasts, scheduled ability projectiles
+ * - ChampionTransform      Vile's R attack range override and aura
+ * - ChampionForcedMovement dashes and knockbacks
+ * - ChampionRecall         recall channel
+ * - ChampionTrinket        ward charges
+ * - ChampionInventory      buying and selling items
+ * - ChampionSnapshot       network snapshot
+ *
+ * State that other systems read or write directly (activeEffects, shields,
+ * abilityStates, forcedMovement, trinket fields, ...) stays on this class
+ * and the collaborators act on it. Public methods delegate to them.
  *
  * NO RENDERING - purely simulation.
  */
@@ -82,7 +95,6 @@ export class ServerChampion extends ServerEntity {
   respawnTimer = 0;
   isRecalling = false;
   recallProgress = 0;
-  private readonly recall = new ChampionRecall(this);
 
   // Stats
   private statModifiers: StatModifier[] = [];
@@ -97,24 +109,15 @@ export class ServerChampion extends ServerEntity {
     E: createDefaultAbilityState(),
     R: createDefaultAbilityState(),
   };
-  private readonly abilities = new ChampionAbilities(this);
-
-  // Transforms (Vile's R: attack range override and damage aura)
-  private readonly transform = new ChampionTransform(this);
 
   // Effects
   activeEffects: ActiveEffectState[] = [];
   ccStatus: CrowdControlStatus = defaultCCStatus();
-  private readonly effects = new ChampionEffects(this);
 
   // Items
   items: (EquippedItemState | null)[] = [null, null, null, null, null, null];
   gold = GameConfig.ECONOMY.STARTING_GOLD;
   totalGoldSpent = 0;
-  private readonly inventory = new ChampionInventory(this);
-
-  // Basic attacks (attack timer, pending attack damage)
-  private readonly basicAttacks = new ChampionBasicAttacks(this);
 
   // Combat tracking
   kills = 0;
@@ -142,7 +145,15 @@ export class ServerChampion extends ServerEntity {
   trinketCooldown = 0;          // Cooldown after placing a ward
   trinketRechargeTimer = 0;     // Time accumulator for next charge
   trinketRechargeTime = 120;    // 120 seconds to recharge one ward
+
+  // Collaborators (see ./champion/)
+  private readonly effects = new ChampionEffects(this);
+  private readonly basicAttacks = new ChampionBasicAttacks(this);
+  private readonly abilities = new ChampionAbilities(this);
+  private readonly transform = new ChampionTransform(this);
+  private readonly recall = new ChampionRecall(this);
   private readonly trinket = new ChampionTrinket(this);
+  private readonly inventory = new ChampionInventory(this);
 
   constructor(config: ServerChampionConfig) {
     super({
@@ -206,6 +217,10 @@ export class ServerChampion extends ServerEntity {
     }
   }
 
+  // =====================
+  // Tick
+  // =====================
+
   /**
    * Update champion for one tick.
    */
@@ -266,26 +281,6 @@ export class ServerChampion extends ServerEntity {
 
     // Invalidate cached stats
     this.cachedStats = null;
-  }
-
-  /**
-   * Update passive ability state.
-   */
-  private updatePassiveState(dt: number, context: ServerGameContext): void {
-    passiveTriggerSystem.updatePassiveState(dt, this, context);
-
-    // Check for low health trigger
-    const healthPercent = this.health / this.maxHealth;
-    const passiveDef = getPassiveDefinition(this.definition.passive);
-
-    if (passiveDef?.trigger === 'on_low_health' && passiveDef.healthThreshold) {
-      if (healthPercent <= passiveDef.healthThreshold && this.passiveState.cooldownRemaining <= 0) {
-        passiveTriggerSystem.dispatchTrigger('on_low_health', this, context);
-      }
-    }
-
-    // Champion-specific passive state (e.g., Lume's passive follows the Light Orb)
-    championHooksRegistry.get(this.definition.id)?.updatePassiveState?.(this, context);
   }
 
   /**
@@ -404,20 +399,6 @@ export class ServerChampion extends ServerEntity {
   }
 
   /**
-   * Start recalling.
-   */
-  startRecall(): boolean {
-    return this.recall.start();
-  }
-
-  /**
-   * Cancel recall.
-   */
-  cancelRecall(): void {
-    this.recall.cancel();
-  }
-
-  /**
    * Update regeneration.
    */
   private updateRegeneration(dt: number): void {
@@ -442,26 +423,57 @@ export class ServerChampion extends ServerEntity {
   }
 
   /**
-   * Check if can place a ward.
+   * Update passive ability state.
    */
-  canPlaceWard(): boolean {
-    return this.trinket.canPlaceWard();
+  private updatePassiveState(dt: number, context: ServerGameContext): void {
+    passiveTriggerSystem.updatePassiveState(dt, this, context);
+
+    // Check for low health trigger
+    const healthPercent = this.health / this.maxHealth;
+    const passiveDef = getPassiveDefinition(this.definition.passive);
+
+    if (passiveDef?.trigger === 'on_low_health' && passiveDef.healthThreshold) {
+      if (healthPercent <= passiveDef.healthThreshold && this.passiveState.cooldownRemaining <= 0) {
+        passiveTriggerSystem.dispatchTrigger('on_low_health', this, context);
+      }
+    }
+
+    // Champion-specific passive state (e.g., Lume's passive follows the Light Orb)
+    championHooksRegistry.get(this.definition.id)?.updatePassiveState?.(this, context);
+  }
+
+  // =====================
+  // Orders
+  // =====================
+
+  /**
+   * Set movement target.
+   */
+  setMoveTarget(position: Vector): void {
+    this.targetPosition = position.clone();
+    this.targetEntityId = null;
+    this.cancelRecall();
   }
 
   /**
-   * Consume a trinket charge when placing a ward.
-   * Returns true if successful.
+   * Set attack target.
    */
-  consumeTrinketCharge(): boolean {
-    return this.trinket.consumeCharge();
+  setAttackTarget(entityId: string): void {
+    this.targetEntityId = entityId;
+    this.cancelRecall();
   }
 
   /**
-   * Get trinket recharge progress (0-1).
+   * Stop all actions.
    */
-  getTrinketRechargeProgress(): number {
-    return this.trinket.getRechargeProgress();
+  stop(): void {
+    this.targetPosition = null;
+    this.targetEntityId = null;
   }
+
+  // =====================
+  // Combat, damage and death
+  // =====================
 
   /**
    * Enter combat state.
@@ -470,56 +482,6 @@ export class ServerChampion extends ServerEntity {
     this.inCombat = true;
     this.timeSinceCombat = 0;
     this.cancelRecall();
-  }
-
-  // =====================
-  // Transform (see ChampionTransform)
-  // =====================
-
-  /**
-   * Set temporary attack range override during transform.
-   * @param range - The new attack range
-   * @param duration - Duration in seconds
-   */
-  setTransformAttackRange(range: number, duration: number): void {
-    this.transform.setAttackRange(range, duration);
-  }
-
-  /**
-   * Start transform aura that deals damage to nearby enemies.
-   * @param abilityId - ID of the ability
-   * @param aura - Aura configuration
-   * @param rank - Ability rank
-   * @param duration - Duration in seconds
-   */
-  startTransformAura(
-    abilityId: string,
-    aura: TransformAuraConfig,
-    rank: number,
-    duration: number
-  ): void {
-    this.transform.startAura(abilityId, aura, rank, duration);
-  }
-
-  /**
-   * Get current attack range (accounting for transform).
-   */
-  getAttackRange(): number {
-    return this.transform.getAttackRange();
-  }
-
-  /**
-   * Check if currently transformed (melee mode for Vile).
-   */
-  isTransformed(): boolean {
-    return this.transform.isTransformed();
-  }
-
-  /**
-   * Update transform aura (called each tick).
-   */
-  updateTransformAura(context: ServerGameContext): void {
-    this.transform.updateAura(context);
   }
 
   /**
@@ -571,26 +533,34 @@ export class ServerChampion extends ServerEntity {
 
     // Tower aggro: if damaged by enemy champion, trigger aggro on allied towers
     if (context && sourceId && damage > 0) {
-      const sourceEntity = context.getEntity(sourceId);
-      if (sourceEntity &&
-          sourceEntity.entityType === EntityType.CHAMPION &&
-          sourceEntity.side !== this.side) {
-        // Find all allied towers and trigger aggro if enemy champion is in range
-        const allEntities = context.getAllEntities();
-        for (const entity of allEntities) {
-          if (entity.entityType === EntityType.TOWER &&
-              entity.side === this.side &&
-              !entity.isDead) {
-            const tower = entity as ServerTower;
-            if (tower.isInRange(sourceEntity)) {
-              tower.triggerAggro(sourceId);
-            }
+      this.alertAlliedTowers(sourceId, context);
+    }
+
+    return damage;
+  }
+
+  /**
+   * Make allied towers aggro an enemy champion that damaged this champion
+   * from inside their range.
+   */
+  private alertAlliedTowers(sourceId: string, context: ServerGameContext): void {
+    const sourceEntity = context.getEntity(sourceId);
+    if (sourceEntity &&
+        sourceEntity.entityType === EntityType.CHAMPION &&
+        sourceEntity.side !== this.side) {
+      // Find all allied towers and trigger aggro if enemy champion is in range
+      const allEntities = context.getAllEntities();
+      for (const entity of allEntities) {
+        if (entity.entityType === EntityType.TOWER &&
+            entity.side === this.side &&
+            !entity.isDead) {
+          const tower = entity as ServerTower;
+          if (tower.isInRange(sourceEntity)) {
+            tower.triggerAggro(sourceId);
           }
         }
       }
     }
-
-    return damage;
   }
 
   /**
@@ -643,6 +613,10 @@ export class ServerChampion extends ServerEntity {
     // when the champion respawns (effects are cleared in respawn())
   }
 
+  // =====================
+  // Stats (see ChampionStats)
+  // =====================
+
   /**
    * Get current stats (with modifiers).
    */
@@ -691,6 +665,104 @@ export class ServerChampion extends ServerEntity {
    */
   getModifier(source: string): StatModifier | undefined {
     return this.statModifiers.find(m => m.source === source);
+  }
+
+  // =====================
+  // Progression
+  // =====================
+
+  /**
+   * Grant gold to the champion.
+   */
+  grantGold(amount: number): void {
+    if (amount > 0) {
+      this.gold += amount;
+    }
+  }
+
+  /**
+   * Gain experience.
+   */
+  gainExperience(amount: number): void {
+    this.experience += amount;
+
+    // Check for level up
+    while (this.experience >= this.experienceToNextLevel && this.level < GameConfig.LIMITS.MAX_LEVEL) {
+      this.experience -= this.experienceToNextLevel;
+      this.levelUp();
+    }
+  }
+
+  /**
+   * Level up.
+   */
+  private levelUp(): void {
+    this.level++;
+    this.skillPoints++;
+    this.experienceToNextLevel = LEVEL_EXPERIENCE[this.level] ?? LEVEL_EXPERIENCE[17];
+
+    // Heal percentage of new max health
+    const stats = this.getStats();
+    this.health = Math.min(stats.maxHealth, this.health + stats.maxHealth * 0.1);
+    this.resource = Math.min(stats.maxResource, this.resource + stats.maxResource * 0.1);
+
+    this.cachedStats = null;
+  }
+
+  // =====================
+  // Abilities (see ChampionAbilities)
+  // =====================
+
+  /**
+   * Level up an ability.
+   */
+  levelUpAbility(slot: AbilitySlot): boolean {
+    return this.abilities.levelUp(slot);
+  }
+
+  /**
+   * Schedule an ability projectile to spawn at the animation keyframe time.
+   * Called by ServerAbilityExecutor for skillshot abilities with animations.
+   */
+  scheduleAbilityProjectile(
+    abilityId: string,
+    triggerTime: number,
+    projectileConfig: ScheduledAbilityProjectile
+  ): void {
+    this.abilities.scheduleProjectile(abilityId, triggerTime, projectileConfig);
+  }
+
+  /**
+   * Enable recast for an ability (called when projectile hits).
+   * @param slot - The ability slot to enable recast for
+   * @param hitPosition - The position where the projectile hit
+   * @param maxRecasts - Maximum number of recasts (default 1)
+   * @param recastWindow - Time window for recast in seconds
+   */
+  enableRecast(slot: AbilitySlot, hitPosition: Vector, maxRecasts: number, recastWindow: number): void {
+    this.abilities.enableRecast(slot, hitPosition, maxRecasts, recastWindow);
+  }
+
+  /**
+   * Check if an ability has recast available.
+   */
+  hasRecastAvailable(slot: AbilitySlot): boolean {
+    return this.abilities.hasRecastAvailable(slot);
+  }
+
+  /**
+   * Get the recast hit position for an ability.
+   * @returns The hit position or undefined if no recast available
+   */
+  getRecastHitPosition(slot: AbilitySlot): Vector | undefined {
+    return this.abilities.getRecastHitPosition(slot);
+  }
+
+  /**
+   * Consume a recast (called when recast is used).
+   */
+  consumeRecast(slot: AbilitySlot): void {
+    this.abilities.consumeRecast(slot);
   }
 
   // =====================
@@ -772,124 +844,98 @@ export class ServerChampion extends ServerEntity {
     return this.effects.extendDuration(effectId, amount, maxDuration);
   }
 
-
-  /**
-   * Set movement target.
-   */
-  setMoveTarget(position: Vector): void {
-    this.targetPosition = position.clone();
-    this.targetEntityId = null;
-    this.cancelRecall();
-  }
-
-  /**
-   * Set attack target.
-   */
-  setAttackTarget(entityId: string): void {
-    this.targetEntityId = entityId;
-    this.cancelRecall();
-  }
-
-  /**
-   * Stop all actions.
-   */
-  stop(): void {
-    this.targetPosition = null;
-    this.targetEntityId = null;
-  }
-
   // =====================
-  // Abilities (see ChampionAbilities)
+  // Transform (see ChampionTransform)
   // =====================
 
   /**
-   * Level up an ability.
+   * Set temporary attack range override during transform.
+   * @param range - The new attack range
+   * @param duration - Duration in seconds
    */
-  levelUpAbility(slot: AbilitySlot): boolean {
-    return this.abilities.levelUp(slot);
+  setTransformAttackRange(range: number, duration: number): void {
+    this.transform.setAttackRange(range, duration);
   }
 
   /**
-   * Schedule an ability projectile to spawn at the animation keyframe time.
-   * Called by ServerAbilityExecutor for skillshot abilities with animations.
+   * Start transform aura that deals damage to nearby enemies.
+   * @param abilityId - ID of the ability
+   * @param aura - Aura configuration
+   * @param rank - Ability rank
+   * @param duration - Duration in seconds
    */
-  scheduleAbilityProjectile(
+  startTransformAura(
     abilityId: string,
-    triggerTime: number,
-    projectileConfig: ScheduledAbilityProjectile
+    aura: TransformAuraConfig,
+    rank: number,
+    duration: number
   ): void {
-    this.abilities.scheduleProjectile(abilityId, triggerTime, projectileConfig);
+    this.transform.startAura(abilityId, aura, rank, duration);
   }
 
   /**
-   * Enable recast for an ability (called when projectile hits).
-   * @param slot - The ability slot to enable recast for
-   * @param hitPosition - The position where the projectile hit
-   * @param maxRecasts - Maximum number of recasts (default 1)
-   * @param recastWindow - Time window for recast in seconds
+   * Get current attack range (accounting for transform).
    */
-  enableRecast(slot: AbilitySlot, hitPosition: Vector, maxRecasts: number, recastWindow: number): void {
-    this.abilities.enableRecast(slot, hitPosition, maxRecasts, recastWindow);
+  getAttackRange(): number {
+    return this.transform.getAttackRange();
   }
 
   /**
-   * Check if an ability has recast available.
+   * Check if currently transformed (melee mode for Vile).
    */
-  hasRecastAvailable(slot: AbilitySlot): boolean {
-    return this.abilities.hasRecastAvailable(slot);
+  isTransformed(): boolean {
+    return this.transform.isTransformed();
   }
 
   /**
-   * Get the recast hit position for an ability.
-   * @returns The hit position or undefined if no recast available
+   * Update transform aura (called each tick).
    */
-  getRecastHitPosition(slot: AbilitySlot): Vector | undefined {
-    return this.abilities.getRecastHitPosition(slot);
+  updateTransformAura(context: ServerGameContext): void {
+    this.transform.updateAura(context);
+  }
+
+  // =====================
+  // Recall (see ChampionRecall)
+  // =====================
+
+  /**
+   * Start recalling.
+   */
+  startRecall(): boolean {
+    return this.recall.start();
   }
 
   /**
-   * Consume a recast (called when recast is used).
+   * Cancel recall.
    */
-  consumeRecast(slot: AbilitySlot): void {
-    this.abilities.consumeRecast(slot);
+  cancelRecall(): void {
+    this.recall.cancel();
+  }
+
+  // =====================
+  // Trinket (see ChampionTrinket)
+  // =====================
+
+  /**
+   * Check if can place a ward.
+   */
+  canPlaceWard(): boolean {
+    return this.trinket.canPlaceWard();
   }
 
   /**
-   * Grant gold to the champion.
+   * Consume a trinket charge when placing a ward.
+   * Returns true if successful.
    */
-  grantGold(amount: number): void {
-    if (amount > 0) {
-      this.gold += amount;
-    }
+  consumeTrinketCharge(): boolean {
+    return this.trinket.consumeCharge();
   }
 
   /**
-   * Gain experience.
+   * Get trinket recharge progress (0-1).
    */
-  gainExperience(amount: number): void {
-    this.experience += amount;
-
-    // Check for level up
-    while (this.experience >= this.experienceToNextLevel && this.level < GameConfig.LIMITS.MAX_LEVEL) {
-      this.experience -= this.experienceToNextLevel;
-      this.levelUp();
-    }
-  }
-
-  /**
-   * Level up.
-   */
-  private levelUp(): void {
-    this.level++;
-    this.skillPoints++;
-    this.experienceToNextLevel = LEVEL_EXPERIENCE[this.level] ?? LEVEL_EXPERIENCE[17];
-
-    // Heal percentage of new max health
-    const stats = this.getStats();
-    this.health = Math.min(stats.maxHealth, this.health + stats.maxHealth * 0.1);
-    this.resource = Math.min(stats.maxResource, this.resource + stats.maxResource * 0.1);
-
-    this.cachedStats = null;
+  getTrinketRechargeProgress(): number {
+    return this.trinket.getRechargeProgress();
   }
 
   // =====================
@@ -958,6 +1004,10 @@ export class ServerChampion extends ServerEntity {
   override getMass(): number {
     return 100; // Standard champion mass
   }
+
+  // =====================
+  // Snapshot (see ChampionSnapshot)
+  // =====================
 
   /**
    * Convert to network snapshot.

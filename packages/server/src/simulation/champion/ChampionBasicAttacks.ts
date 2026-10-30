@@ -10,10 +10,7 @@
  * - Pending damage is cancelled when the champion can no longer attack
  */
 
-import {
-  EntityType,
-  GameEventType,
-} from '@siege/shared';
+import { EntityType, GameEventType } from '@siege/shared';
 import { AnimationScheduler, type ScheduledAction } from '../../systems/AnimationScheduler';
 import { passiveTriggerSystem } from '../../systems/PassiveTriggerSystem';
 import { championHooksRegistry } from '../../abilities/ChampionHooksRegistry';
