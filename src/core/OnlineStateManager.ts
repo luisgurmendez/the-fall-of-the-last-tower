@@ -376,6 +376,20 @@ export class OnlineStateManager {
         });
         break;
       }
+      case GameEventType.CHAMPION_KILL: {
+        this.announceChampionKill(event.data, now);
+        break;
+      }
+      case GameEventType.TOWER_DESTROYED: {
+        const ours = event.data.side === this.localSide;
+        this.announcements.push({
+          text: ours ? 'Your tower has been destroyed' : 'Your team destroyed a tower!',
+          color: ours ? '#ec7063' : '#5dade2',
+          startTime: now,
+          duration: OnlineStateManager.ANNOUNCEMENT_DURATION,
+        });
+        break;
+      }
       case GameEventType.DRAGON_KILLED: {
         const allied = event.data.side === this.localSide;
         this.announcements.push({
@@ -623,6 +637,28 @@ export class OnlineStateManager {
       if (timer.respawnAt <= this.gameTime) this.campTimers.delete(campId);
     }
     return Array.from(this.campTimers.values());
+  }
+
+  /**
+   * "You have slain an enemy!" and friends, from the local player's point of view.
+   */
+  private announceChampionKill(data: Record<string, unknown>, now: number): void {
+    const victimIsLocal = data.victimId === this.localEntityId;
+    const killerIsLocal = data.killerId === this.localEntityId;
+    const allyDied = data.victimSide === this.localSide;
+
+    let text: string;
+    if (victimIsLocal) text = 'You have been slain!';
+    else if (killerIsLocal) text = 'You have slain an enemy!';
+    else text = allyDied ? 'An ally has been slain' : 'An enemy has been slain';
+
+    this.announcements.push({
+      text: data.firstBlood ? 'First Blood!' : text,
+      detail: data.firstBlood ? text : undefined,
+      color: allyDied ? '#ec7063' : '#f5b041',
+      startTime: now,
+      duration: OnlineStateManager.ANNOUNCEMENT_DURATION,
+    });
   }
 
   /**

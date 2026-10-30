@@ -30,11 +30,38 @@ export class RewardSystem {
    * @param killerId - ID of the entity that got the last hit (may be undefined)
    * @param context - Server game context
    */
+  /**
+   * Events for deaths players should hear about: champion kills (with first
+   * blood) and towers falling.
+   */
+  static announceDeath(killedEntity: ServerEntity, killerId: string | undefined, context: ServerGameContext): void {
+    const killer = killerId ? context.getEntity(killerId) : undefined;
+
+    if (killedEntity.entityType === EntityType.CHAMPION) {
+      const killedByChampion = killer?.entityType === EntityType.CHAMPION && killer.side !== killedEntity.side;
+      context.addEvent(GameEventType.CHAMPION_KILL, {
+        victimId: killedEntity.id,
+        victimSide: killedEntity.side,
+        killerId: killer?.id ?? null,
+        killerSide: killer?.side ?? null,
+        firstBlood: killedByChampion && context.claimFirstBlood(),
+      });
+    } else if (killedEntity.entityType === EntityType.TOWER) {
+      context.addEvent(GameEventType.TOWER_DESTROYED, {
+        towerId: killedEntity.id,
+        side: killedEntity.side,
+        lane: (killedEntity as ServerEntity & { lane?: string }).lane ?? null,
+      });
+    }
+  }
+
   static awardKillRewards(
     killedEntity: ServerEntity,
     killerId: string | undefined,
     context: ServerGameContext
   ): void {
+    RewardSystem.announceDeath(killedEntity, killerId, context);
+
     // Get XP and gold values from the killed entity
     const { xp, gold } = RewardSystem.getRewardValues(killedEntity, context);
 

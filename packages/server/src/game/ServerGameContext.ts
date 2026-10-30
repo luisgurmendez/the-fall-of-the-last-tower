@@ -73,6 +73,9 @@ export class ServerGameContext {
   // Jungle camps
   private jungleCamps: ServerJungleCamp[] = [];
 
+  // Whether a champion has already killed an enemy champion this match
+  private firstBloodTaken = false;
+
   // Actions to run at a later game time (delayed ability areas)
   private scheduledActions: { at: number; run: () => void }[] = [];
 
@@ -322,6 +325,15 @@ export class ServerGameContext {
     this.tick++;
     this.gameTime += dt;
     this.runScheduledActions();
+  }
+
+  /**
+   * True the first time it's called in a match (the first champion kill).
+   */
+  claimFirstBlood(): boolean {
+    if (this.firstBloodTaken) return false;
+    this.firstBloodTaken = true;
+    return true;
   }
 
   /**

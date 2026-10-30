@@ -446,6 +446,7 @@ Defined in `src/vfx/world.ts` (keys in `WORLD_VFX`). They use the same phase-bas
 Drawn directly by renderers rather than as VFX definitions:
 - **Recall channel** (`ChampionRenderer.renderRecallChannel`): a ground ring that fills over the recall, with rising motes.
 - **Tower lock-on** (`renderTower`): a pulsing dashed line and reticle while an enemy tower shoots the local champion.
+- **Announcements** (`AnnouncementBanner`, fed by `OnlineStateManager`): champion kills ("You have slain an enemy!" / "You have been slain!" / "First Blood!"), towers destroyed, dragon slain, and the match result.
 - **Screen shake** (`src/core/screenShake.ts`): a decaying jitter on top of the camera transform. It's triggered when a tower falls, when the nexus falls (stronger), and when the local champion takes a hit over 15% of its health.
 - **Low-health vignette** (`LowHealthVignette`): red screen edges below 30% health, pulsing faster as health drops.
 - **Status icons** (`statusIndicators.ts`): knockup, root, silence, slows, burn and the jungle buffs.

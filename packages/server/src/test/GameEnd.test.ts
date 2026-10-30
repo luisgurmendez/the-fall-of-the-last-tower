@@ -64,3 +64,26 @@ describe('Structure order', () => {
     }
   });
 });
+
+describe('Kill announcements', () => {
+  test('champion kills send CHAMPION_KILL, the first one marked first blood', async () => {
+    const { Simulation } = await import('../sim');
+    const { GameEventType } = await import('@siege/shared');
+    const sim = new Simulation({ seed: 1, minionWaves: false, jungle: false, structures: false });
+    try {
+      const killer = sim.addChampion({ playerId: 'blue', championId: 'vex', side: 'blue', at: { x: 0, y: 0 } });
+      const first = sim.addChampion({ playerId: 'red1', championId: 'vile', side: 'red', at: { x: 100, y: 0 } });
+      const second = sim.addChampion({ playerId: 'red2', championId: 'lume', side: 'red', at: { x: -100, y: 0 } });
+
+      first.takeDamage(first.health + 1000, 'true', killer.id, sim.context);
+      second.takeDamage(second.health + 1000, 'true', killer.id, sim.context);
+      sim.run(0.1);
+
+      const kills = sim.recorder.events.filter(e => e.type === GameEventType.CHAMPION_KILL);
+      expect(kills.map(k => [k.data.victimId, k.data.firstBlood])).toEqual([[first.id, true], [second.id, false]]);
+      expect(killer.kills).toBe(2);
+    } finally {
+      sim.dispose();
+    }
+  });
+});
