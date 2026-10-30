@@ -63,7 +63,7 @@ export interface ChampionBaseStats {
   critDamage: number;    // Multiplier (default 2.0)
 
   // Cooldown Reduction
-  abilityHaste: number;  // Reduces cooldowns: CDR% = AH / (100 + AH)
+  abilityHaste?: number;  // Reduces cooldowns: CDR% = AH / (100 + AH). Defaults to 0.
 }
 
 /**
@@ -87,7 +87,7 @@ export interface ChampionStats extends ChampionBaseStats {
   maxHealth: number;
   maxResource: number;
   level: number;
-  // abilityHaste is inherited from ChampionBaseStats
+  abilityHaste: number;
 }
 
 /**
@@ -97,8 +97,8 @@ export interface StatModifier {
   /** Unique identifier for the modifier source */
   source: string;
 
-  /** Flat bonus added to stat */
-  flat?: Partial<ChampionBaseStats>;
+  /** Flat bonus added to stat (maxHealth/maxResource raise the caps) */
+  flat?: Partial<Omit<ChampionStats, 'level'>>;
 
   /** Percentage multiplier (1.0 = no change, 1.1 = +10%) */
   percent?: Partial<Record<keyof ChampionBaseStats, number>>;

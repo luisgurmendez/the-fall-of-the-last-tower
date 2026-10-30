@@ -134,6 +134,7 @@ export type {
   NexusSnapshot,
   JungleCreatureSnapshot,
   WardSnapshot,
+  TrapSnapshot,
   ZoneSnapshot,
   LightOrbState,
   LightOrbSnapshot,

@@ -14,32 +14,12 @@ import {
   EntityType,
   DamageType,
   GameEventType,
+  type TrapSnapshot,
 } from '@siege/shared';
 import { ServerEntity, type ServerEntityConfig } from './ServerEntity';
 import type { ServerGameContext } from '../game/ServerGameContext';
 import type { ServerChampion } from './ServerChampion';
 import { Logger } from '../utils/Logger';
-
-/**
- * Trap snapshot for network sync.
- * Traps don't use EntityType.WARD - they're not visible like wards.
- * We'll use a custom snapshot type that the client can render differently.
- */
-export interface TrapSnapshot {
-  entityId: string;
-  entityType: EntityType;
-  side: Side;
-  ownerId: string;
-
-  x: number;
-  y: number;
-
-  // Trap state
-  isDead: boolean;
-  isStealthed: boolean;
-  triggerRadius: number;
-  remainingDuration: number;
-}
 
 /**
  * Configuration for creating a trap.
@@ -252,7 +232,7 @@ export class ServerTrap extends ServerEntity {
   toSnapshot(): TrapSnapshot {
     return {
       entityId: this.id,
-      entityType: EntityType.WARD, // Use WARD for network compatibility
+      entityType: EntityType.WARD,
       side: this.side,
       ownerId: this.ownerId,
       x: this.position.x,

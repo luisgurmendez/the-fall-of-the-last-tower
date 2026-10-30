@@ -67,6 +67,7 @@ console.log('[OnlineChampionAdapter] Test lookup elara:', testChampion ? `found:
  * Client-side ability definition for tooltips and targeting.
  */
 export interface ClientAbilityDefinition {
+  id?: string;
   name: string;
   description: string;
   range: number;
@@ -140,6 +141,7 @@ function getAbilityDefinition(championId: string, slot: AbilitySlot): ClientAbil
 
   if (shouldLog) console.log(`[getAbilityDefinition] Found ability: "${abilityDef.name}"`);
   return {
+    id: abilityDef.id,
     name: abilityDef.name,
     description: abilityDef.description,
     range: abilityDef.range ?? 0,
@@ -452,6 +454,7 @@ export class OnlineChampionAdapter {
     movementSpeed: 325,
     critChance: 0,
     critDamage: 2.0,
+    abilityHaste: 0,
     level: 1,
   };
 
@@ -482,6 +485,7 @@ export class OnlineChampionAdapter {
         movementSpeed: Number(snapshot.movementSpeed) || 325,
         critChance: 0,
         critDamage: 2.0,
+        abilityHaste: 0,
         level: Number(snapshot.level) || 1,
       };
     } catch (error) {

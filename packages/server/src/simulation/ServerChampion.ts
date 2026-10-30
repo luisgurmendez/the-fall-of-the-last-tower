@@ -821,7 +821,10 @@ export class ServerChampion extends ServerEntity {
       id: context.generateEntityId(),
       position: this.position.clone(),
       side: this.side,
-      direction: new Vector(data.direction.x as number, data.direction.y as number).normalized(),
+      direction: new Vector(
+        (data.direction as { x: number; y: number }).x,
+        (data.direction as { x: number; y: number }).y,
+      ).normalized(),
       speed: data.speed as number,
       radius: data.radius as number,
       maxDistance: data.maxDistance as number,
@@ -1169,7 +1172,7 @@ export class ServerChampion extends ServerEntity {
     abilityId: string;
     radius: number;
     damage: number;
-    damageType: 'physical' | 'magic' | 'true';
+    damageType: DamageType;
     tickRate: number;
     lastTickTime: number; // Game time of last tick
     expiry: number; // Game time when aura expires
@@ -1194,7 +1197,7 @@ export class ServerChampion extends ServerEntity {
    */
   startTransformAura(
     abilityId: string,
-    aura: { radius: number; damage: { type: 'physical' | 'magic' | 'true'; scaling: { base: number[] } }; tickRate: number },
+    aura: { radius: number; damage: { type: DamageType; scaling: { base: number[] } }; tickRate: number },
     rank: number,
     duration: number
   ): void {
@@ -1280,8 +1283,8 @@ export class ServerChampion extends ServerEntity {
 
     // Calculate actual extension (respecting max cap)
     let actualExtension = amount;
+    const currentTotal = effect.totalDuration ?? effect.timeRemaining;
     if (maxDuration !== undefined) {
-      const currentTotal = effect.totalDuration;
       const newTotal = Math.min(currentTotal + amount, maxDuration);
       actualExtension = newTotal - currentTotal;
 
@@ -1294,7 +1297,7 @@ export class ServerChampion extends ServerEntity {
 
       effect.totalDuration = newTotal;
     } else {
-      effect.totalDuration += amount;
+      effect.totalDuration = currentTotal + amount;
     }
 
     effect.timeRemaining += actualExtension;

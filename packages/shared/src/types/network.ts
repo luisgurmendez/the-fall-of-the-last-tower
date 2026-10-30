@@ -451,6 +451,27 @@ export interface WardSnapshot {
 }
 
 /**
+ * Snapshot of a trap (e.g. Vile's E) for network sync.
+ * Sent as EntityType.WARD for network compatibility; the client tells traps
+ * apart from wards by the presence of `triggerRadius`.
+ */
+export interface TrapSnapshot {
+  entityId: string;
+  entityType: EntityType.WARD;
+  side: Side;
+  ownerId: string;
+
+  x: number;
+  y: number;
+
+  // Trap state
+  isDead: boolean;
+  isStealthed: boolean;
+  triggerRadius: number;
+  remainingDuration: number;
+}
+
+/**
  * Snapshot of a zone effect (persistent ground AoE) for network sync.
  */
 export interface ZoneSnapshot {
@@ -517,6 +538,7 @@ export type EntitySnapshot =
   | NexusSnapshot
   | JungleCreatureSnapshot
   | WardSnapshot
+  | TrapSnapshot
   | ZoneSnapshot
   | LightOrbSnapshot;
 

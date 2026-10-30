@@ -54,6 +54,7 @@ export interface HUDTrinket {
  * Ability definition interface for HUD tooltips.
  */
 export interface HUDAbilityDefinition {
+  id?: string;
   name: string;
   description: string;
   maxRank?: number;
