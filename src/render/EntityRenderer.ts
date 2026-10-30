@@ -29,188 +29,23 @@ import {
   isCircleCollision,
 } from "@siege/shared";
 import { VFXManager, getVFXManager } from "@/vfx";
-import { BitmapFont } from "@/render/BitmapFont";
 import PixelArtDrawUtils from "@/utils/pixelartDrawUtils";
 import {
   getOutlinedSprite,
   getOutlinePadding,
   OUTLINE_COLORS,
 } from "@/render/OutlinedSpriteCache";
-
-/**
- * Colors for different teams.
- */
-const TEAM_COLORS = {
-  BLUE: "#3498db",
-  RED: "#e74c3c",
-  NEUTRAL: "#95a5a6",
-};
-
-/**
- * Health bar colors based on relationship to local player.
- * - SELF: Green for the local player's champion
- * - ALLY: Blue for allied units (champions, minions, towers)
- * - ENEMY: Red for enemy units
- */
-const HEALTH_BAR_COLORS = {
-  SELF: "#2ecc71", // Green - local player
-  ALLY: "#3498db", // Blue - allied units
-  ENEMY: "#e74c3c", // Red - enemy units
-  NEUTRAL: "#95a5a6", // Gray - neutral units (jungle camps)
-};
-
-/**
- * Shield visual configuration by type.
- * Extensible: add new shield types here with their colors and stripe patterns.
- */
-const SHIELD_STYLES: Record<
-  string,
-  { baseColor: string; stripeColor: string; stripeWidth: number }
-> = {
-  normal: {
-    baseColor: "#e5e5e5", // Light gray
-    stripeColor: "#9ca3af", // Darker gray
-    stripeWidth: 3,
-  },
-  magic: {
-    baseColor: "#c4b5fd", // Light purple
-    stripeColor: "#8b5cf6", // Purple
-    stripeWidth: 3,
-  },
-  physical: {
-    baseColor: "#fcd34d", // Light yellow/gold
-    stripeColor: "#f59e0b", // Amber
-    stripeWidth: 3,
-  },
-  passive: {
-    baseColor: "#fef08a", // Pale gold
-    stripeColor: "#ca8a04", // Dark gold
-    stripeWidth: 3,
-  },
-};
-
-/**
- * Mark indicator visual configuration.
- * Used for showing debuff marks, stacks, and other indicators above champions.
- */
-interface MarkVisualConfig {
-  icon: string; // Icon character or emoji
-  bgColor: string; // Background color
-  borderColor: string; // Border color
-  iconColor: string; // Icon text color
-  showTimer?: boolean; // Whether to show countdown timer
-  showStacks?: boolean; // Whether to show stack count
-  isDebuff?: boolean; // True for debuffs (shown on enemies)
-  isBuff?: boolean; // True for buffs (shown on self/allies)
-}
-
-/**
- * Visual configurations for different mark types.
- * These show as small icons above health bars.
- */
-const MARK_VISUALS: Record<string, MarkVisualConfig> = {
-  // Vex marks
-  vex_mark: {
-    icon: "X",
-    bgColor: "rgba(155, 89, 182, 0.8)", // Purple
-    borderColor: "#9b59b6",
-    iconColor: "#ffffff",
-    showTimer: true,
-    isDebuff: true,
-  },
-  vex_death_mark: {
-    icon: "!",
-    bgColor: "rgba(44, 62, 80, 0.9)", // Dark
-    borderColor: "#e74c3c", // Red border (danger)
-    iconColor: "#e74c3c",
-    showTimer: true,
-    isDebuff: true,
-  },
-  vex_stealth: {
-    icon: "?",
-    bgColor: "rgba(44, 62, 80, 0.8)",
-    borderColor: "#2c3e50",
-    iconColor: "#ffffff",
-    showTimer: true,
-    isBuff: true,
-  },
-  // CC marks
-  stun: {
-    icon: "!",
-    bgColor: "rgba(231, 76, 60, 0.8)",
-    borderColor: "#e74c3c",
-    iconColor: "#ffffff",
-    showTimer: true,
-    isDebuff: true,
-  },
-  taunt: {
-    icon: "T",
-    bgColor: "rgba(233, 30, 99, 0.8)",
-    borderColor: "#e91e63",
-    iconColor: "#ffffff",
-    showTimer: true,
-    isDebuff: true,
-  },
-  slow_30: {
-    icon: "v",
-    bgColor: "rgba(52, 152, 219, 0.8)",
-    borderColor: "#3498db",
-    iconColor: "#ffffff",
-    showTimer: true,
-    isDebuff: true,
-  },
-  slow_40: {
-    icon: "v",
-    bgColor: "rgba(41, 128, 185, 0.8)",
-    borderColor: "#2980b9",
-    iconColor: "#ffffff",
-    showTimer: true,
-    isDebuff: true,
-  },
-  // Gorath buffs
-  gorath_fortify_buff: {
-    icon: "S",
-    bgColor: "rgba(139, 115, 85, 0.8)",
-    borderColor: "#8b7355",
-    iconColor: "#ffffff",
-    showTimer: true,
-    isBuff: true,
-  },
-  gorath_fortify_mr_buff: {
-    icon: "S",
-    bgColor: "rgba(139, 92, 246, 0.8)",
-    borderColor: "#8b5cf6",
-    iconColor: "#ffffff",
-    showTimer: true,
-    isBuff: true,
-  },
-  // Speed buffs
-  speed_20: {
-    icon: ">",
-    bgColor: "rgba(46, 204, 113, 0.8)",
-    borderColor: "#2ecc71",
-    iconColor: "#ffffff",
-    showTimer: true,
-    isBuff: true,
-  },
-  speed_30: {
-    icon: ">",
-    bgColor: "rgba(39, 174, 96, 0.8)",
-    borderColor: "#27ae60",
-    iconColor: "#ffffff",
-    showTimer: true,
-    isBuff: true,
-  },
-};
-
-/** Default visual for unknown marks */
-const DEFAULT_MARK_VISUAL: MarkVisualConfig = {
-  icon: "?",
-  bgColor: "rgba(149, 165, 166, 0.8)",
-  borderColor: "#95a5a6",
-  iconColor: "#ffffff",
-  showTimer: true,
-};
+import type { EntityRenderState } from "@/render/entities/types";
+import { TEAM_COLORS, lightenColor } from "@/render/entities/shared";
+import {
+  HEALTH_BAR_COLORS,
+  renderHealthBar,
+  renderResourceBar,
+} from "@/render/overlays/healthBars";
+import {
+  renderMarkIndicators,
+  renderAggroIndicator,
+} from "@/render/overlays/statusIndicators";
 
 /**
  * Colors for damage number types.
@@ -473,21 +308,6 @@ function loadImages(): void {
   }
 
   imagesLoaded = true;
-}
-
-/**
- * Track entity state for animations and direction.
- */
-interface EntityRenderState {
-  lastX: number;
-  lastY: number;
-  facingRight: boolean; // true = facing right, false = facing left
-  attackAnimTime: number; // Time into attack animation
-  isAttacking: boolean;
-  // Animation state tracking for smooth transitions
-  isWalking: boolean; // Current animation state
-  smoothedVelocity: number; // Smoothed velocity magnitude
-  idleFrameCount: number; // Frames since velocity dropped below threshold
 }
 
 /**
@@ -928,7 +748,7 @@ export class EntityRenderer implements GameObject {
         0,
         size * 0.5,
       );
-      gradient.addColorStop(0, this.lightenColor(color, 30));
+      gradient.addColorStop(0, lightenColor(color, 30));
       gradient.addColorStop(1, color);
       ctx.fillStyle = gradient;
       ctx.beginPath();
@@ -959,7 +779,7 @@ export class EntityRenderer implements GameObject {
       const shields = snapshot.shields as
         | Array<{ amount: number; shieldType: string }>
         | undefined;
-      this.renderHealthBar(
+      renderHealthBar(
         ctx,
         snapshot.health,
         snapshot.maxHealth,
@@ -980,7 +800,7 @@ export class EntityRenderer implements GameObject {
           stacks: number;
         }>
       | undefined;
-    this.renderMarkIndicators(
+    renderMarkIndicators(
       ctx,
       activeEffects,
       size,
@@ -995,7 +815,7 @@ export class EntityRenderer implements GameObject {
       snapshot.resource !== undefined &&
       snapshot.maxResource !== undefined
     ) {
-      this.renderResourceBar(
+      renderResourceBar(
         ctx,
         snapshot.resource,
         snapshot.maxResource,
@@ -1710,7 +1530,7 @@ export class EntityRenderer implements GameObject {
         side === this.localSide
           ? HEALTH_BAR_COLORS.ALLY // Blue for allied minions
           : HEALTH_BAR_COLORS.ENEMY; // Red for enemy minions
-      this.renderHealthBar(
+      renderHealthBar(
         ctx,
         snapshot.health,
         snapshot.maxHealth,
@@ -1803,7 +1623,7 @@ export class EntityRenderer implements GameObject {
         side === this.localSide
           ? HEALTH_BAR_COLORS.ALLY // Blue for allied towers
           : HEALTH_BAR_COLORS.ENEMY; // Red for enemy towers
-      this.renderHealthBar(
+      renderHealthBar(
         ctx,
         snapshot.health,
         snapshot.maxHealth,
@@ -1897,7 +1717,7 @@ export class EntityRenderer implements GameObject {
         side === this.localSide
           ? HEALTH_BAR_COLORS.ALLY // Blue for allied nexus
           : HEALTH_BAR_COLORS.ENEMY; // Red for enemy nexus
-      this.renderHealthBar(
+      renderHealthBar(
         ctx,
         snapshot.health,
         snapshot.maxHealth,
@@ -2256,7 +2076,7 @@ export class EntityRenderer implements GameObject {
 
     // Draw health bar - red because jungle camps are hostile to all players
     if (snapshot.health !== undefined && snapshot.maxHealth !== undefined) {
-      this.renderHealthBar(
+      renderHealthBar(
         ctx,
         snapshot.health,
         snapshot.maxHealth,
@@ -2268,44 +2088,8 @@ export class EntityRenderer implements GameObject {
 
     // Draw aggro indicator (red "!") when creature has a target
     if (snapshot.targetEntityId) {
-      this.renderAggroIndicator(ctx, -45);
+      renderAggroIndicator(ctx, -45, this.animationTime);
     }
-  }
-
-  /**
-   * Render a red "!" aggro indicator above an entity.
-   */
-  private renderAggroIndicator(
-    ctx: CanvasRenderingContext2D,
-    yOffset: number,
-  ): void {
-    const x = 0;
-    const y = yOffset;
-
-    // Pulsing effect
-    const pulseScale = 1 + Math.sin(this.animationTime * 8) * 0.1;
-
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.scale(pulseScale, pulseScale);
-
-    // Red circle background
-    ctx.beginPath();
-    ctx.arc(0, 0, 10, 0, Math.PI * 2);
-    ctx.fillStyle = "#ff3333";
-    ctx.fill();
-    ctx.strokeStyle = "#aa0000";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    // White "!" text (using pixel font)
-    ctx.fillStyle = "#ffffff";
-    ctx.font = BitmapFont.getFont(18);
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("!", 0, -3);
-
-    ctx.restore();
   }
 
   /**
@@ -2342,7 +2126,7 @@ export class EntityRenderer implements GameObject {
     // Outer glow effect
     const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, size * 1.5);
     gradient.addColorStop(0, baseColor);
-    gradient.addColorStop(0.5, this.lightenColor(baseColor, -30));
+    gradient.addColorStop(0.5, lightenColor(baseColor, -30));
     gradient.addColorStop(1, "transparent");
     ctx.fillStyle = gradient;
     ctx.fillRect(-size * 1.5, -size * 1.5, size * 3, size * 3);
@@ -2356,7 +2140,7 @@ export class EntityRenderer implements GameObject {
     ctx.fillRect(-size / 4, -size / 2, size / 2, size / 4);
 
     // Border
-    ctx.strokeStyle = this.lightenColor(baseColor, -40);
+    ctx.strokeStyle = lightenColor(baseColor, -40);
     ctx.lineWidth = 1;
     ctx.strokeRect(-size / 2, -size / 2, size, size);
 
@@ -2877,353 +2661,6 @@ export class EntityRenderer implements GameObject {
   }
 
   /**
-   * Render a health bar with optional shields.
-   * Shields extend beyond the health bar with diagonal stripes.
-   *
-   * @param healthBarColor - The color for the health fill (green=self, blue=ally, red=enemy)
-   */
-  private renderHealthBar(
-    ctx: CanvasRenderingContext2D,
-    health: number,
-    maxHealth: number,
-    width: number,
-    yOffset: number,
-    healthBarColor: string,
-    shields?: Array<{ amount: number; shieldType: string }>,
-  ): void {
-    const barWidth = width;
-    const barHeight = 6;
-
-    // Calculate total shield amount
-    const totalShield = shields?.reduce((sum, s) => sum + s.amount, 0) ?? 0;
-
-    // Calculate display percentages
-    // When health + shield > maxHealth, scale both down to fit within the bar
-    const totalEffectiveHealth = health + totalShield;
-    let healthDisplayPercent: number;
-    let shieldDisplayPercent: number;
-
-    if (totalEffectiveHealth > maxHealth) {
-      // Scale down: both health and shield proportionally fit within bar
-      healthDisplayPercent = health / totalEffectiveHealth;
-      shieldDisplayPercent = totalShield / totalEffectiveHealth;
-    } else {
-      // Normal case: use maxHealth as the scale
-      healthDisplayPercent = health / maxHealth;
-      shieldDisplayPercent = totalShield / maxHealth;
-    }
-
-    // Clamp values
-    healthDisplayPercent = Math.max(0, Math.min(1, healthDisplayPercent));
-    shieldDisplayPercent = Math.max(
-      0,
-      Math.min(1 - healthDisplayPercent, shieldDisplayPercent),
-    );
-
-    // Background - always fixed width
-    ctx.fillStyle = "#333333";
-    ctx.fillRect(-barWidth / 2, yOffset, barWidth, barHeight);
-
-    // Health fill - use provided color
-    ctx.fillStyle = healthBarColor;
-    ctx.fillRect(
-      -barWidth / 2,
-      yOffset,
-      barWidth * healthDisplayPercent,
-      barHeight,
-    );
-
-    // Render shields to the right of health
-    if (
-      shields &&
-      shields.length > 0 &&
-      totalShield > 0 &&
-      shieldDisplayPercent > 0
-    ) {
-      const shieldStartX = -barWidth / 2 + barWidth * healthDisplayPercent;
-      let currentShieldX = shieldStartX;
-
-      // Group shields by type for visual consistency
-      const shieldsByType = new Map<string, number>();
-      for (const shield of shields) {
-        const existing = shieldsByType.get(shield.shieldType) ?? 0;
-        shieldsByType.set(shield.shieldType, existing + shield.amount);
-      }
-
-      // Calculate total shield for proportional rendering
-      const totalShieldAmount = Array.from(shieldsByType.values()).reduce(
-        (a, b) => a + b,
-        0,
-      );
-
-      // Render each shield type proportionally within the shield display area
-      for (const [shieldType, amount] of shieldsByType) {
-        // Each shield type gets its proportion of the shield display area
-        const shieldProportion = amount / totalShieldAmount;
-        const shieldWidth = barWidth * shieldDisplayPercent * shieldProportion;
-        if (shieldWidth <= 0) continue;
-
-        // Get style for this shield type
-        const style = SHIELD_STYLES[shieldType] || SHIELD_STYLES.normal;
-
-        // Create diagonal stripe pattern
-        this.renderShieldSegment(
-          ctx,
-          currentShieldX,
-          yOffset,
-          shieldWidth,
-          barHeight,
-          style.baseColor,
-          style.stripeColor,
-          style.stripeWidth,
-        );
-
-        currentShieldX += shieldWidth;
-      }
-
-      // Divider line between health and shield
-      ctx.strokeStyle = "#666666";
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(shieldStartX, yOffset);
-      ctx.lineTo(shieldStartX, yOffset + barHeight);
-      ctx.stroke();
-    }
-
-    // Border around bar (always fixed width)
-    ctx.strokeStyle = "#000000";
-    ctx.lineWidth = 1;
-    ctx.strokeRect(-barWidth / 2, yOffset, barWidth, barHeight);
-  }
-
-  /**
-   * Render a shield segment with diagonal stripes.
-   */
-  private renderShieldSegment(
-    ctx: CanvasRenderingContext2D,
-    x: number,
-    y: number,
-    width: number,
-    height: number,
-    baseColor: string,
-    stripeColor: string,
-    stripeWidth: number,
-  ): void {
-    // Save context for clipping
-    ctx.save();
-
-    // Create clipping region for this segment
-    ctx.beginPath();
-    ctx.rect(x, y, width, height);
-    ctx.clip();
-
-    // Fill with base color first
-    ctx.fillStyle = baseColor;
-    ctx.fillRect(x, y, width, height);
-
-    // Draw diagonal stripes
-    ctx.fillStyle = stripeColor;
-    const stripeSpacing = stripeWidth * 2;
-    const diagonalLength = Math.sqrt(width * width + height * height) * 2;
-
-    // Draw stripes from top-left to bottom-right
-    for (let i = -diagonalLength; i < diagonalLength; i += stripeSpacing) {
-      ctx.beginPath();
-      ctx.moveTo(x + i, y);
-      ctx.lineTo(x + i + height, y + height);
-      ctx.lineTo(x + i + height + stripeWidth, y + height);
-      ctx.lineTo(x + i + stripeWidth, y);
-      ctx.closePath();
-      ctx.fill();
-    }
-
-    ctx.restore();
-  }
-
-  /**
-   * Render a resource (mana) bar.
-   */
-  private renderResourceBar(
-    ctx: CanvasRenderingContext2D,
-    resource: number,
-    maxResource: number,
-    width: number,
-    yOffset: number,
-  ): void {
-    const barWidth = width;
-    const barHeight = 4;
-    const resourcePercent = Math.max(0, Math.min(1, resource / maxResource));
-
-    // Background
-    ctx.fillStyle = "#333333";
-    ctx.fillRect(-barWidth / 2, yOffset, barWidth, barHeight);
-
-    // Resource fill (blue for mana)
-    ctx.fillStyle = "#3498db";
-    ctx.fillRect(-barWidth / 2, yOffset, barWidth * resourcePercent, barHeight);
-
-    // Border
-    ctx.strokeStyle = "#000000";
-    ctx.lineWidth = 1;
-    ctx.strokeRect(-barWidth / 2, yOffset, barWidth, barHeight);
-  }
-
-  /**
-   * Render mark indicators above a champion's health bar.
-   * Shows active effects like vex_mark, stun, slow, etc. as small icons.
-   *
-   * @param activeEffects - Array of active effects on the champion
-   * @param width - Width of the health bar (for positioning)
-   * @param healthBarY - Y offset of the health bar
-   * @param isLocalPlayer - Whether this is the local player
-   * @param isEnemy - Whether this is an enemy champion
-   */
-  private renderMarkIndicators(
-    ctx: CanvasRenderingContext2D,
-    activeEffects:
-      | Array<{
-          definitionId: string;
-          timeRemaining: number;
-          totalDuration?: number;
-          stacks: number;
-        }>
-      | undefined,
-    width: number,
-    healthBarY: number,
-    isLocalPlayer: boolean,
-    isEnemy: boolean,
-  ): void {
-    if (!activeEffects || activeEffects.length === 0) return;
-
-    // Filter effects to show: debuffs on enemies, buffs on self/allies
-    const visibleEffects = activeEffects.filter((effect) => {
-      const visual = MARK_VISUALS[effect.definitionId] || DEFAULT_MARK_VISUAL;
-      if (isEnemy) {
-        // On enemies, show debuffs
-        return visual.isDebuff;
-      } else {
-        // On self/allies, show buffs
-        return visual.isBuff || isLocalPlayer; // Local player sees all their effects
-      }
-    });
-
-    if (visibleEffects.length === 0) return;
-
-    const iconSize = 14;
-    const iconSpacing = 2;
-    const totalWidth =
-      visibleEffects.length * iconSize +
-      (visibleEffects.length - 1) * iconSpacing;
-    const startX = -totalWidth / 2;
-    const markY = healthBarY - iconSize - 4; // Above health bar
-
-    visibleEffects.forEach((effect, index) => {
-      const visual = MARK_VISUALS[effect.definitionId] || DEFAULT_MARK_VISUAL;
-      const x = startX + index * (iconSize + iconSpacing);
-
-      // Background
-      ctx.fillStyle = visual.bgColor;
-      ctx.fillRect(x, markY, iconSize, iconSize);
-
-      // Radial timer overlay (drains clockwise as time expires)
-      if (
-        visual.showTimer &&
-        effect.timeRemaining > 0 &&
-        effect.totalDuration &&
-        effect.totalDuration > 0
-      ) {
-        const progress = effect.timeRemaining / effect.totalDuration;
-        const expiredAngle = (1 - progress) * Math.PI * 2;
-        const centerX = x + iconSize / 2;
-        const centerY = markY + iconSize / 2;
-
-        ctx.save();
-        ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-        ctx.beginPath();
-        ctx.moveTo(centerX, centerY);
-        ctx.arc(
-          centerX,
-          centerY,
-          iconSize / 2,
-          -Math.PI / 2,
-          -Math.PI / 2 + expiredAngle,
-          false,
-        );
-        ctx.lineTo(centerX, centerY);
-        ctx.fill();
-        ctx.restore();
-      }
-
-      // Border
-      ctx.strokeStyle = visual.borderColor;
-      ctx.lineWidth = 1;
-      ctx.strokeRect(x, markY, iconSize, iconSize);
-
-      // Icon
-      ctx.fillStyle = visual.iconColor;
-      ctx.font = "bold 10px Arial";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(visual.icon, x + iconSize / 2, markY + iconSize / 2);
-
-      // Stack count (small number in corner)
-      if (visual.showStacks && effect.stacks > 1) {
-        ctx.fillStyle = "#FFD700";
-        ctx.font = "bold 8px Arial";
-        ctx.textAlign = "right";
-        ctx.fillText(
-          effect.stacks.toString(),
-          x + iconSize - 1,
-          markY + iconSize - 2,
-        );
-      }
-    });
-  }
-
-  /**
-   * Render passive stack indicator below health bar.
-   * Shows stacks like Magnus's Arcane Surge (0-4) or Gorath's Immovable (0-10).
-   *
-   * @param stacks - Current stack count
-   * @param maxStacks - Maximum stacks possible
-   * @param width - Width of the health bar (for positioning)
-   * @param healthBarY - Y offset of the health bar
-   * @param color - Color for filled stacks
-   */
-  private renderStackIndicator(
-    ctx: CanvasRenderingContext2D,
-    stacks: number,
-    maxStacks: number,
-    width: number,
-    healthBarY: number,
-    color: string = "#FFD700",
-  ): void {
-    if (maxStacks <= 0) return;
-
-    const pipSize = 4;
-    const pipSpacing = 2;
-    const totalWidth = maxStacks * pipSize + (maxStacks - 1) * pipSpacing;
-    const startX = -totalWidth / 2;
-    const pipY = healthBarY + 8; // Below health bar
-
-    for (let i = 0; i < maxStacks; i++) {
-      const isFilled = i < stacks;
-      ctx.fillStyle = isFilled ? color : "#333333";
-      ctx.fillRect(startX + i * (pipSize + pipSpacing), pipY, pipSize, pipSize);
-
-      // Border
-      ctx.strokeStyle = "#000000";
-      ctx.lineWidth = 0.5;
-      ctx.strokeRect(
-        startX + i * (pipSize + pipSpacing),
-        pipY,
-        pipSize,
-        pipSize,
-      );
-    }
-  }
-
-  /**
    * Render waiting message when no state received yet.
    */
   private renderWaitingMessage(ctx: CanvasRenderingContext2D): void {
@@ -3236,18 +2673,6 @@ export class EntityRenderer implements GameObject {
     ctx.fillText("Waiting for game state...", 0, 0);
     ctx.shadowBlur = 0;
     ctx.restore();
-  }
-
-  /**
-   * Lighten a color by a percentage.
-   */
-  private lightenColor(color: string, percent: number): string {
-    const num = parseInt(color.replace("#", ""), 16);
-    const amt = Math.round(2.55 * percent);
-    const R = Math.max(0, Math.min(255, (num >> 16) + amt));
-    const G = Math.max(0, Math.min(255, ((num >> 8) & 0x00ff) + amt));
-    const B = Math.max(0, Math.min(255, (num & 0x0000ff) + amt));
-    return `#${((1 << 24) | (R << 16) | (G << 8) | B).toString(16).slice(1)}`;
   }
 
   /**
