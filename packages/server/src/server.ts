@@ -118,6 +118,15 @@ function handleReadyMessage(
     return;
   }
 
+  if (typeof championId !== 'string' || !CHAMPION_DEFINITIONS.has(championId)) {
+    Logger.server.warn(`READY with unknown champion "${championId}" from ${connection.id}`);
+    wsServer.sendToConnection(connection.id, {
+      type: ServerMessageType.ERROR,
+      data: { error: 'unknown_champion' },
+    });
+    return;
+  }
+
   const existingToken = playerSessions.get(playerId);
   if (existingToken !== undefined && sessionToken !== existingToken) {
     Logger.server.warn(`Rejected READY for ${playerId} from ${connection.id}: invalid session token`);
