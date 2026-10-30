@@ -21,7 +21,21 @@ bun run src/server.ts
 npm run serve
 ```
 
+Pick a champion and press **PRACTICE** to play right away against a bot, or **LOCK IN** to queue for a 1v1.
 To test ultimates without leveling up, start the server with `SIEGE_STARTING_LEVEL=6`.
+
+### Simulate without a browser
+
+The server can run matches headlessly and draw what happened. This is useful for checking gameplay changes, by people or AI agents:
+
+```bash
+cd packages/server
+bun run sim list                 # scenarios
+bun run sim bot-vs-bot-mid       # report + sim-output/bot-vs-bot-mid/sheet.png
+bun run sim:serve                # HTTP sandbox to play step by step
+```
+
+See [`docs/architecture/simulation.md`](docs/architecture/simulation.md).
 
 ### Tests
 
