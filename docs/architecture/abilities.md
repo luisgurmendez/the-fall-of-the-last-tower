@@ -166,6 +166,7 @@ function calculateAbilityValue(
    - `targetType`: How it's being targeted
    - `targetX`, `targetY`: For ground/skillshot
    - `targetEntityId`: For unit targeting
+4. The HUD (`ui/hud/abilityBar.ts`) tints a ready ability blue when the champion can't pay for it. If the key is pressed while the ability can't be cast (not learned, on cooldown or too expensive, see `canCastAbility`), its slot flashes red, since the server ignores the press.
 
 ### Server Side
 

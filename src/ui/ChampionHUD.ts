@@ -48,7 +48,10 @@ import {
 } from '@/ui/hud/layout';
 import { drawStatsPanel } from '@/ui/hud/statsPanel';
 import { drawPortraitPanel } from '@/ui/hud/portrait';
-import { drawPassivePanel, drawAbilitiesPanel } from '@/ui/hud/abilityBar';
+import { drawPassivePanel, drawAbilitiesPanel, canCastAbility } from '@/ui/hud/abilityBar';
+
+/** Ability slots, whose keys are the slot letters */
+const ABILITY_KEYS: AbilitySlot[] = ['Q', 'W', 'E', 'R'];
 import { drawItemsPanel, drawWardPanel } from '@/ui/hud/items';
 import { drawActiveEffects, drawBuffs } from '@/ui/hud/effectIcons';
 import {
@@ -115,6 +118,7 @@ export class ChampionHUD extends ScreenEntity {
       hoveredLevelUpButton: null,
       levelUpPulseTime: 0,
       chargeState: null,
+      deniedAt: new Map(),
     };
 
     // Preload ability icons if championId is available
@@ -145,6 +149,20 @@ export class ChampionHUD extends ScreenEntity {
     this.hud.chargeState = state;
   }
 
+  /**
+   * Flash the slot of an ability pressed while it can't be cast (not
+   * learned, on cooldown, not enough mana): the server ignores the press.
+   */
+  private flashDeniedAbilities(): void {
+    if (!this.champion || this.inputManager.isKeyDown('Control')) return;
+    for (const slot of ABILITY_KEYS) {
+      if (!this.inputManager.isKeyJustPressed(slot.toLowerCase())) continue;
+      if (!canCastAbility(this.champion.getAbility(slot), this.champion)) {
+        this.hud.deniedAt.set(slot, performance.now());
+      }
+    }
+  }
+
   /** Get current hover state */
   getHoverState(): HUDHoverState {
     return { ...this.hud.hoverState };
@@ -164,6 +182,8 @@ export class ChampionHUD extends ScreenEntity {
   override step(gctx: GameContext): void {
     // Update pulse animation time
     this.hud.levelUpPulseTime += gctx.dt;
+
+    this.flashDeniedAbilities();
 
     const mousePos = this.inputManager.getMousePosition();
     if (!mousePos) return;

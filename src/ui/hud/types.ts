@@ -241,4 +241,7 @@ export interface HUDContext {
 
   /** Current charge state (for charge abilities) */
   chargeState: HUDChargeState | null;
+
+  /** When (performance.now) each ability was last pressed while it couldn't be cast */
+  readonly deniedAt: Map<AbilitySlot, number>;
 }

@@ -10,7 +10,31 @@ import type { AbilitySlot } from '@siege/shared';
 import type { AbilityIconSlot } from '@/ui/AbilityIconLoader';
 import { HUD_COLORS, PANEL } from '@/ui/hud/layout';
 import { drawHealthBar, drawResourceBar } from '@/ui/hud/resourceBars';
-import type { HUDChampionData, HUDContext } from '@/ui/hud/types';
+import type { HUDAbility, HUDChampionData, HUDContext } from '@/ui/hud/types';
+
+/** How long a slot flashes red after pressing an ability that can't be cast */
+export const DENIED_FLASH_MS = 300;
+const NO_MANA_TINT = 'rgba(40, 90, 200, 0.45)';
+const DENIED_COLOR = '#e74c3c';
+
+/**
+ * Whether the champion can't pay for a learned ability's current rank.
+ */
+export function lacksResourceFor(ability: HUDAbility, champion: HUDChampionData): boolean {
+  if (ability.rank <= 0) return false;
+  const cost = ability.definition?.manaCost?.[ability.rank - 1] ?? 0;
+  return cost > champion.getCurrentResource();
+}
+
+/**
+ * Whether pressing an ability's key would cast it (learned, ready or
+ * recastable, affordable).
+ */
+export function canCastAbility(ability: HUDAbility | undefined, champion: HUDChampionData): boolean {
+  if (!ability || ability.rank <= 0) return false;
+  if ((ability.recastWindowRemaining ?? 0) > 0) return true;
+  return ability.isReady && !lacksResourceFor(ability, champion);
+}
 
 /** Draw the passive ability panel */
 export function drawPassivePanel(
@@ -269,6 +293,13 @@ function drawAbilityBox(
     ctx.fillRect(x, y, size, size * (1 - progress));
   }
 
+  // Ready but not affordable: tinted blue
+  const lacksMana = !!ability && isReady && !hasRecast && lacksResourceFor(ability, champion);
+  if (lacksMana) {
+    ctx.fillStyle = NO_MANA_TINT;
+    ctx.fillRect(x, y, size, size);
+  }
+
   // Border (highlight when hovered, golden glow for recast)
   if (hasRecast) {
     // Golden glowing border for recast available
@@ -284,9 +315,24 @@ function drawAbilityBox(
     ctx.lineWidth = 3;
     ctx.strokeRect(x, y, size, size);
   } else {
-    ctx.strokeStyle = isReady ? hud.config.accentColor : HUD_COLORS.abilityNotReady;
+    ctx.strokeStyle = isReady && !lacksMana ? hud.config.accentColor : HUD_COLORS.abilityNotReady;
     ctx.lineWidth = 2;
     ctx.strokeRect(x, y, size, size);
+  }
+
+  // Pressed while it couldn't be cast: a red flash
+  const deniedAt = hud.deniedAt.get(slot);
+  const sinceDenied = deniedAt === undefined ? Infinity : performance.now() - deniedAt;
+  if (sinceDenied < DENIED_FLASH_MS) {
+    const fade = 1 - sinceDenied / DENIED_FLASH_MS;
+    ctx.save();
+    ctx.globalAlpha = fade;
+    ctx.strokeStyle = DENIED_COLOR;
+    ctx.lineWidth = 3;
+    ctx.strokeRect(x - 1, y - 1, size + 2, size + 2);
+    ctx.fillStyle = 'rgba(231, 76, 60, 0.25)';
+    ctx.fillRect(x, y, size, size);
+    ctx.restore();
   }
 
   // Only show key label if no icon (fallback)
