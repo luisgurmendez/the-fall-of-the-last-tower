@@ -193,10 +193,13 @@ the renderers read (`abilityEffects.ts`, `floatingNumbers.ts`, `campTimers.ts`,
 ### 3. Online Input Handler (`src/core/input/OnlineInputHandler.ts`)
 
 Captures player input and sends to server:
-- Right-click → Move command
-- Q/W/E/R → Ability cast
+- Right-click → Move command (or attack the unit under the cursor)
+- A + left-click → Attack-move (attacks enemies that come in range on the way)
+- Q/W/E/R → Ability cast (Ctrl + key levels it)
 - S → Stop
 - B → Recall
+
+Escape opens the in-match menu (`src/ui/GameMenu.ts`: resume, surrender).
 
 ### 4. Entity Renderer (`src/render/EntityRenderer.ts`)
 
