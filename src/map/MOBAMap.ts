@@ -44,7 +44,7 @@ export class MOBAMap extends LogicEntity implements Initializable {
    * Create a MOBA map.
    * @param options.renderOnly - Ignored (always render-only for online mode)
    */
-  constructor(options?: { renderOnly?: boolean }) {
+  constructor(_options?: { renderOnly?: boolean }) {
     super('moba-map');
 
     // Create navigation grid

@@ -83,7 +83,7 @@ export class TabScoreboard extends ScreenEntity {
     this.inputManager = InputManager.getInstance();
   }
 
-  step(ctx: GameContext): void {
+  step(_ctx: GameContext): void {
     // No update logic needed - visibility is checked each frame
   }
 

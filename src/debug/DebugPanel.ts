@@ -226,7 +226,7 @@ export class DebugPanel {
   render(ctx: CanvasRenderingContext2D): void {
     if (!this.inspectedEntity) return;
 
-    const { panelWidth, fontSize, opacity, position } = this.config;
+    const { panelWidth, fontSize, opacity } = this.config;
 
     // Compute panel position
     this.computePanelPosition(ctx.canvas.width, ctx.canvas.height);
@@ -502,7 +502,7 @@ export class DebugPanel {
   /**
    * Calculate total content height.
    */
-  private calculateContentHeight(ctx: CanvasRenderingContext2D): number {
+  private calculateContentHeight(_ctx: CanvasRenderingContext2D): number {
     const lineHeight = this.config.fontSize + 6;
     let height = 0;
 

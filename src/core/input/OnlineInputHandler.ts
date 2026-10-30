@@ -251,7 +251,7 @@ export class OnlineInputHandler implements GameObject {
     return this.chargeState !== null;
   }
 
-  init(ctx: GameContext): void {
+  init(_ctx: GameContext): void {
     // Nothing to initialize
   }
 

@@ -97,7 +97,7 @@ export class TargetInfoHUD extends ScreenEntity {
     this.localSide = config.localSide;
   }
 
-  step(ctx: GameContext): void {
+  step(_ctx: GameContext): void {
     // No update logic needed - we read selection from inputHandler each frame
   }
 

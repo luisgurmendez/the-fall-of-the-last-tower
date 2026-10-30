@@ -1035,7 +1035,7 @@ export class MatchmakingUI {
       this.bufferedFullState = snapshot;
     };
 
-    this.networkClient.onStateUpdate = (update: any) => {
+    this.networkClient.onStateUpdate = (_update: any) => {
       // Handle state updates during game
       // This will be passed to the game once it starts
     };

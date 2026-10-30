@@ -556,7 +556,7 @@ export class VFXManager {
   /**
    * Clean up an effect when it expires.
    */
-  private cleanupEffect(effect: ActiveEffect): void {
+  private cleanupEffect(_effect: ActiveEffect): void {
     // Effect-specific cleanup could go here
   }
 
@@ -1027,7 +1027,7 @@ export class VFXManager {
     ctx: CanvasRenderingContext2D,
     cameraX: number,
     cameraY: number,
-    now: number
+    _now: number
   ): void {
     for (const orbit of this.activeOrbits) {
       const entity = this.stateManager.getEntity(orbit.entityId);

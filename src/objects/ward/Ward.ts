@@ -96,7 +96,7 @@ export class Ward implements FogRevealer, Disposable, Renderable, Stepable, Atta
   // Attackable Implementation
   // ===================
 
-  takeDamage(damage: number, _type: AttackDamageType): void {
+  takeDamage(_damage: number, _type: AttackDamageType): void {
     // Wards take 1 damage per hit regardless of actual damage or type
     this.health -= 1;
 

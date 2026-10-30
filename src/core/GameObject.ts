@@ -68,7 +68,7 @@ export class WorldEntity implements GameObject {
   /**
    * Update each frame. Override in subclasses.
    */
-  step(gctx: GameContext): void {
+  step(_gctx: GameContext): void {
     // Override in subclass
   }
 
@@ -101,7 +101,7 @@ export class ScreenEntity implements GameObject {
   /**
    * Update each frame. Override in subclasses.
    */
-  step(gctx: GameContext): void {
+  step(_gctx: GameContext): void {
     // Override in subclass
   }
 
@@ -144,7 +144,7 @@ export class LogicEntity implements GameObject {
   /**
    * Update each frame. Override in subclasses.
    */
-  step(gctx: GameContext): void {
+  step(_gctx: GameContext): void {
     // Override in subclass
   }
 

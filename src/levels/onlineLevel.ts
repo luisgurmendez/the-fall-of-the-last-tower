@@ -257,7 +257,7 @@ class OnlineCameraController implements GameObject {
     }
   }
 
-  step(ctx: any): void {
+  step(_ctx: any): void {
     if (!this.camera) return;
 
     // Only follow champion if camera is locked

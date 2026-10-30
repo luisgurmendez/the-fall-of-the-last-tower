@@ -309,7 +309,7 @@ export class OnlineStateManager {
               targetY,
               entityId
             );
-          } catch (e) {
+          } catch {
             // VFXManager not initialized yet, skip
           }
         }

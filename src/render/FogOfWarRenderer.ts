@@ -97,10 +97,10 @@ export class FogOfWarRenderer {
     ctx: CanvasRenderingContext2D,
     fogOfWar: FogOfWar,
     teamId: TeamId,
-    cameraPosition: Vector,
-    cameraZoom: number,
-    viewportWidth: number,
-    viewportHeight: number
+    _cameraPosition: Vector,
+    _cameraZoom: number,
+    _viewportWidth: number,
+    _viewportHeight: number
   ): void {
     if (!fogOfWar.isEnabled()) return;
 
