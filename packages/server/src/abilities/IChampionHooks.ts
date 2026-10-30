@@ -1,8 +1,9 @@
 /**
  * IChampionHooks - Interface for per-champion cast rules.
  *
- * Some cast-time rules belong to a champion rather than to a single ability,
- * e.g. a passive that empowers the next ability. Champions implement the
+ * Some cast-time rules belong to a champion rather than to a single ability:
+ * a passive that empowers the next ability, an ultimate that shortens other
+ * cooldowns, an ability that must not break stealth. Champions implement the
  * hooks they need instead of the AbilityExecutor checking champion IDs.
  *
  * DESIGN PRINCIPLES:
@@ -12,6 +13,7 @@
  *   from handlers/<championId>/index.ts
  */
 
+import type { AbilitySlot } from '@siege/shared';
 import type { ServerChampion } from '../simulation/ServerChampion';
 
 // =============================================================================
@@ -43,4 +45,19 @@ export interface IChampionHooks {
    * to consume whatever granted it (e.g., Arcane Surge stacks).
    */
   consumeAbilityDamageMultiplier?(champion: ServerChampion): void;
+
+  /**
+   * Whether casting this ability breaks the caster's stealth.
+   * Not called for recasts, which always break stealth.
+   *
+   * Default: true (e.g., false for Vex's Shadow Shroud, which grants stealth).
+   */
+  breaksStealthOnCast?(abilityId: string): boolean;
+
+  /**
+   * Adjust the cooldown an ability goes on, after ability haste is applied.
+   *
+   * Return the cooldown unchanged for no change (e.g., Vex's Ninja Mode halves Q and E).
+   */
+  modifyAbilityCooldown?(champion: ServerChampion, slot: AbilitySlot, cooldown: number): number;
 }

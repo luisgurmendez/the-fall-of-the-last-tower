@@ -171,8 +171,8 @@ export class ServerAbilityExecutor {
     // Check for damage amplification (e.g., Magnus's Arcane Surge)
     const damageMultiplier = hooks?.getAbilityDamageMultiplier?.(champion) ?? 1.0;
 
-    // Break stealth when casting abilities (except stealth ability itself)
-    if (abilityId !== 'vex_shroud' && 'breakStealth' in champion) {
+    // Break stealth when casting abilities (unless hooks exempt it, e.g. a stealth ability)
+    if (hooks?.breaksStealthOnCast?.(abilityId) !== false && 'breakStealth' in champion) {
       (champion as any).breakStealth();
     }
 
@@ -198,9 +198,9 @@ export class ServerAbilityExecutor {
       GameConfig.ABILITIES.MAX_CDR
     );
 
-    // Apply Ninja Mode's 50% CDR for Q and E abilities
-    if ((slot === 'Q' || slot === 'E') && champion.hasEffect('vex_ninja_mode')) {
-      effectiveCooldown *= 0.5;
+    // Apply champion-specific cooldown changes (e.g., Vex's Ninja Mode halves Q and E)
+    if (hooks?.modifyAbilityCooldown) {
+      effectiveCooldown = hooks.modifyAbilityCooldown(champion, slot, effectiveCooldown);
     }
 
     state.cooldownRemaining = effectiveCooldown;
@@ -1331,7 +1331,7 @@ export class ServerAbilityExecutor {
     if (definition.appliesEffects) {
       for (const effectId of definition.appliesEffects) {
         // Check if this is a self-buff effect (like vex_empowered)
-        if (effectId === 'vex_empowered' || effectId.includes('_empowered') || effectId.includes('_buff')) {
+        if (effectId.includes('_empowered') || effectId.includes('_buff')) {
           champion.applyEffect(
             effectId,
             definition.effectDuration ?? 4,
@@ -1431,34 +1431,6 @@ export class ServerAbilityExecutor {
     while (angle > Math.PI) angle -= 2 * Math.PI;
     while (angle < -Math.PI) angle += 2 * Math.PI;
     return angle;
-  }
-
-  /**
-   * Check if there's an enemy with vex_mark effect nearby.
-   * Used for Vex's Shadow Step cooldown reset mechanic.
-   */
-  private checkForMarkedEnemy(
-    champion: ServerChampion,
-    context: ServerGameContext
-  ): boolean {
-    // Check radius around champion (dash range + some buffer)
-    const checkRadius = 500;
-    const entities = context.getEntitiesInRadius(champion.position, checkRadius);
-
-    for (const entity of entities) {
-      // Skip allies and dead entities
-      if (entity.side === champion.side || entity.isDead) continue;
-
-      // Check if entity has vex_mark effect
-      if ('activeEffects' in entity) {
-        const activeEffects = (entity as any).activeEffects as Array<{ definitionId: string }>;
-        if (activeEffects?.some(e => e.definitionId === 'vex_mark')) {
-          return true;
-        }
-      }
-    }
-
-    return false;
   }
 }
 

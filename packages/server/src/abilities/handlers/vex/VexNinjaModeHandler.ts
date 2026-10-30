@@ -45,7 +45,7 @@ export class VexNinjaModeHandler extends BaseAbilityHandler {
     }
 
     // Apply the ninja mode effect for state tracking and CDR
-    // The effect drives all Ninja Mode behavior (CDR checked in updateAbilities,
+    // The effect drives all Ninja Mode behavior (CDR applied by VexHooks,
     // takedown extension via extendEffectDuration in RewardSystem)
     if (definition.appliesEffects) {
       for (const effectId of definition.appliesEffects) {
