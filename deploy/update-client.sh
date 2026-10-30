@@ -21,9 +21,8 @@ echo ""
 cd "$PROJECT_DIR"
 
 echo ">>> Building client..."
-# Set production WebSocket URL and use simple build (no js13k compression)
+# Set production WebSocket URL
 export VITE_WS_URL="ws://$EC2_HOST:8080"
-export SIMPLE_BUILD=true
 npx vite build
 
 echo ">>> Uploading to EC2..."

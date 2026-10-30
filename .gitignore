@@ -20,3 +20,5 @@ deploy/siege-key.pem
 .env.production
 .env.local
 .env*.local
+# TypeScript incremental build info
+*.tsbuildinfo
