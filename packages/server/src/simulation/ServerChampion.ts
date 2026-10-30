@@ -362,7 +362,7 @@ export class ServerChampion extends ServerEntity {
    * range (plus a little), for attack-move. Jungle monsters are left alone.
    */
   private findAttackMoveTarget(context: ServerGameContext): ServerEntity | null {
-    const reach = this.getStats().attackRange + ServerChampion.ATTACK_MOVE_LEEWAY;
+    const reach = this.getAttackRange() + ServerChampion.ATTACK_MOVE_LEEWAY;
     let closest: ServerEntity | null = null;
     let closestDistance = Infinity;
     for (const entity of context.getEnemiesInRadius(this.position, reach + this.getRadius() + 100, this.side)) {
@@ -393,9 +393,8 @@ export class ServerChampion extends ServerEntity {
           this.direction = dir.normalized();
         }
 
-        // Check if we're in attack range - if so, stop moving to attack
-        const attackRange = this.getStats().attackRange;
-        if (this.isInAttackRange(target, attackRange)) {
+        // Check if we're in attack range (a transform may change it) - if so, stop moving to attack
+        if (this.isInAttackRange(target, this.getAttackRange())) {
           // In range - stop moving, let updateCombat handle attacking
           this.targetPosition = null;
           return;

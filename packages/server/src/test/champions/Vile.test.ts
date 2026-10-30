@@ -443,6 +443,20 @@ describe('Vile', () => {
       expect(arena.blue.getAttackRange()).toBe(40);
     });
 
+    test('should attack from melee range while transformed', () => {
+      arena.castAbility(arena.blue, 'R');
+      arena.tick();
+
+      // 200 away: in his normal range, out of his transformed one
+      arena.red.position.setFrom(arena.blue.position.added(new Vector(200, 0)));
+      arena.blue.setAttackTarget(arena.red.id);
+      arena.tick(0.1);
+
+      // He walks in instead of starting an attack from there
+      expect(arena.blue.basicAttacks.cooldownRemaining).toBe(0);
+      expect(arena.blue.targetPosition).not.toBeNull();
+    });
+
     test('should mark Vile as transformed for clients', () => {
       arena.castAbility(arena.blue, 'R');
       arena.tick();

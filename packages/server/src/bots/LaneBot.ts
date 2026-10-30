@@ -432,6 +432,7 @@ export class LaneBot implements BotController {
     const stats = champion.getStats();
     const ranged = champion.definition.attackType === 'ranged';
     const projectileSpeed = champion.definition.basicAttackProjectileSpeed ?? 800;
+    const attackRange = champion.getAttackRange();
     const damageDelay = champion.basicAttacks.getDamageDelay();
     const cooldown = champion.basicAttacks.cooldownRemaining;
 
@@ -440,8 +441,8 @@ export class LaneBot implements BotController {
       const incomingDps = this.alliedDamagePerSecond(minion, context) * armorFactor;
 
       const gap = Math.max(0, champion.position.distanceTo(minion.position) - champion.getRadius() - minion.getRadius());
-      const walkTime = Math.max(0, gap - stats.attackRange) / Math.max(1, stats.movementSpeed);
-      const travelTime = ranged ? Math.min(gap, stats.attackRange) / projectileSpeed : 0;
+      const walkTime = Math.max(0, gap - attackRange) / Math.max(1, stats.movementSpeed);
+      const travelTime = ranged ? Math.min(gap, attackRange) / projectileSpeed : 0;
       const timeToHit = Math.max(cooldown, walkTime) + damageDelay + travelTime;
 
       return {
@@ -507,11 +508,11 @@ export class LaneBot implements BotController {
    * Stop attacking and stand in range of a minion until it's time to hit it.
    */
   private holdFor(champion: ServerChampion, minion: ServerEntity): BotInput[] | null {
-    if (champion.isInAttackRange(minion, champion.getStats().attackRange)) {
+    if (champion.isInAttackRange(minion, champion.getAttackRange())) {
       return champion.targetEntityId ? this.command('stop', [{ type: InputType.STOP }]) : null;
     }
     const away = champion.position.subtracted(minion.position).normalized();
-    const standOff = champion.getStats().attackRange * 0.8 + champion.getRadius() + minion.getRadius();
+    const standOff = champion.getAttackRange() * 0.8 + champion.getRadius() + minion.getRadius();
     return this.moveTo(minion.position.added(away.scaled(standOff)));
   }
 

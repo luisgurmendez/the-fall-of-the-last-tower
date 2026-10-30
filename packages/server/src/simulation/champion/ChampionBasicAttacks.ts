@@ -71,7 +71,7 @@ export class ChampionBasicAttacks {
     const champion = this.champion;
     if (champion.targetEntityId && this.attackCooldown <= 0 && champion.ccStatus.canAttack) {
       const target = context.getEntity(champion.targetEntityId);
-      if (target && !target.isDead && champion.isInAttackRange(target, champion.getStats().attackRange)) {
+      if (target && !target.isDead && champion.isInAttackRange(target, champion.getAttackRange())) {
         this.performBasicAttack(target, context);
       }
     }
@@ -158,8 +158,7 @@ export class ChampionBasicAttacks {
     }
 
     // Check if target is still in range (leeway for movement during animation)
-    const attackRange = champion.getStats().attackRange;
-    const leewayRange = attackRange + 50; // Small leeway for target movement
+    const leewayRange = champion.getAttackRange() + 50; // Small leeway for target movement
     if (!champion.isInAttackRange(target, leewayRange)) {
       return;
     }
