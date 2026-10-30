@@ -234,6 +234,34 @@ describe('StateSerializer', () => {
       expect(deltas[0].changeMask & EntityChangeMask.STATE).toBeTruthy();
     });
 
+    it("should send a minion's move target when it stops, starts or drifts far, not every tick", () => {
+      const playerId = 'player-1';
+      const targetOf = (deltas: ReturnType<StateSerializer['createDeltaUpdates']>) =>
+        deltas[0] && deltas[0].changeMask & EntityChangeMask.TARGET ? (deltas[0].data as MinionSnapshot) : null;
+      serializer.createDeltaUpdates([createMockMinion('m-1', { targetX: 120, targetY: 0 })] as any, playerId, 1);
+
+      // Following the lane: the target slides ahead a little every tick
+      for (let tick = 2; tick <= 4; tick++) {
+        const deltas = serializer.createDeltaUpdates(
+          [createMockMinion('m-1', { x: tick * 10, targetX: 120 + tick * 10, targetY: 0 })] as any, playerId, tick);
+        expect(targetOf(deltas)).toBeNull();
+      }
+      // Far enough from the target the client has (120): sent again
+      const drifted = targetOf(serializer.createDeltaUpdates(
+        [createMockMinion('m-1', { x: 50, targetX: 180, targetY: 0 })] as any, playerId, 5));
+      expect(drifted?.targetX).toBe(180);
+
+      // Reached attack range: stopped, even though its attack target didn't change
+      const stopped = targetOf(serializer.createDeltaUpdates(
+        [createMockMinion('m-1', { x: 60, targetX: null, targetY: null })] as any, playerId, 7));
+      expect(stopped).not.toBeNull();
+      expect(stopped!.targetX).toBeNull();
+
+      const started = targetOf(serializer.createDeltaUpdates(
+        [createMockMinion('m-1', { x: 60, targetX: 200, targetY: 0 })] as any, playerId, 8));
+      expect(started?.targetX).toBe(200);
+    });
+
     it('should tell clients a jungle creature is neutral', () => {
       const creature = new ServerJungleCreature({
         id: 'gromp-1',

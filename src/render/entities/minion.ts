@@ -94,8 +94,8 @@ export function renderMinion(
   // Determine animation state: attacking, moving, or idle
   const isAttacking = state.isAttacking;
   const isMoving =
-    snapshot.targetX !== undefined &&
-    snapshot.targetY !== undefined &&
+    snapshot.targetX != null &&
+    snapshot.targetY != null &&
     !isAttacking;
 
   // Select the correct sprite based on state and side

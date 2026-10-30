@@ -150,8 +150,8 @@ export function renderJungleCamp(
   // Determine animation state
   const isAttacking = state.isAttacking || windup > 0;
   const isMoving =
-    snapshot.targetX !== undefined &&
-    snapshot.targetY !== undefined &&
+    snapshot.targetX != null &&
+    snapshot.targetY != null &&
     !isAttacking;
 
   let spriteSrc: string;

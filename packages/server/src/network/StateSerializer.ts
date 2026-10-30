@@ -33,6 +33,13 @@ interface EntityState {
 }
 
 /**
+ * How far a minion's move target can drift from the one its client has before
+ * it is sent again. Following the lane moves the target every tick; the client
+ * only needs it to tell walking from standing and to face the right way.
+ */
+const MINION_TARGET_RESEND_DISTANCE = 48;
+
+/**
  * Serializes game state for network transmission with delta compression.
  */
 export class StateSerializer {
@@ -97,6 +104,16 @@ export class StateSerializer {
             changeMask,
             data: this.getChangedFields(previousState.snapshot, currentSnapshot, changeMask),
           });
+        }
+
+        if (currentSnapshot.entityType === EntityType.MINION && !(changeMask & EntityChangeMask.TARGET)) {
+          // Compare later move targets with the one the client has, not this tick's
+          const sent = previousState.snapshot as MinionSnapshot;
+          playerStates.set(entity.id, {
+            snapshot: { ...currentSnapshot, targetX: sent.targetX, targetY: sent.targetY },
+            tick,
+          });
+          continue;
         }
       }
 
@@ -172,6 +189,17 @@ export class StateSerializer {
       deltas,
       events,
     };
+  }
+
+  /**
+   * Whether a minion started or stopped moving, or its move target moved far
+   * from the one the client has.
+   */
+  private moveTargetDrifted(sent: MinionSnapshot, current: MinionSnapshot): boolean {
+    if (sent.targetX == null || sent.targetY == null || current.targetX == null || current.targetY == null) {
+      return (sent.targetX == null) !== (current.targetX == null);
+    }
+    return Math.hypot(current.targetX - sent.targetX, current.targetY - sent.targetY) > MINION_TARGET_RESEND_DISTANCE;
   }
 
   /**
@@ -262,7 +290,9 @@ export class StateSerializer {
       const prev = previous as MinionSnapshot | TowerSnapshot;
       const curr = current as MinionSnapshot | TowerSnapshot;
 
-      if (prev.targetEntityId !== curr.targetEntityId) {
+      if (prev.targetEntityId !== curr.targetEntityId ||
+          (current.entityType === EntityType.MINION &&
+            this.moveTargetDrifted(prev as MinionSnapshot, curr as MinionSnapshot))) {
         mask |= EntityChangeMask.TARGET;
       }
 
