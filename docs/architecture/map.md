@@ -11,6 +11,7 @@ Coordinates run from -1800 to 1800 on both axes, with +y pointing down. A 192-un
 - **Lanes:** top runs along the left and top edges (x or y = ±1330), mid follows the diagonal, and bot runs along the bottom and right edges.
 - **River:** the other diagonal, from top-left to bottom-right. It's walkable. The dragon pit is in the bot river at (720, 720), and a matching empty pit sits in the top river.
 - **Jungle:** each team has two quadrants. The top-side jungle has the blue buff, gromp and wolves. The bot-side jungle has the red buff, spiders and a second gromp.
+- **Fountain:** within `FOUNTAIN.RADIUS` (300) of its spawn point, an allied champion regains 12% of its max health and resource per second (`ServerGameContext.applyFountainRegen`).
 - **Towers:** two per lane per side. The outer tower is listed first and is tier 1. Tower range is 600. Positions are chosen so the outer towers' ranges don't reach the point where waves meet, in every lane.
 
 ## Walls

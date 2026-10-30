@@ -387,6 +387,16 @@ export const MOBAConfig = {
   },
 
   /**
+   * The fountain around each spawn point: allied champions inside regain
+   * health and mana/energy quickly.
+   */
+  FOUNTAIN: {
+    RADIUS: 300,
+    /** Fraction of max health and resource restored per second */
+    REGEN_PER_SECOND: 0.12,
+  },
+
+  /**
    * Bush group positions and configuration.
    */
   BUSH_GROUPS: [

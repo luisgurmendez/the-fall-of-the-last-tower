@@ -619,6 +619,13 @@ export class OnlineStateManager {
   }
 
   /**
+   * Show a message in the middle of the screen (e.g. the match result).
+   */
+  announce(announcement: Omit<Announcement, 'startTime'>): void {
+    this.announcements.push({ ...announcement, startTime: Date.now() });
+  }
+
+  /**
    * Announcements still on screen (expired ones are dropped).
    */
   getAnnouncements(now = Date.now()): Announcement[] {

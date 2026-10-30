@@ -126,6 +126,10 @@ the player on blue, a server-side `LaneBot` on red (mid lane). The bot is a `Pla
 through `BotDriver` each tick before processing inputs, and never sends it state. The client's **PRACTICE** button on champion
 select uses this (the bot gets a random enabled champion). See [simulation.md](simulation.md#bots).
 
+## Game End
+
+`GameRoom.checkWinConditions` ends the match when a nexus dies: it broadcasts the final state, then sends `GAME_END` with the winning side. The client shows VICTORY or DEFEAT with the match length for 5 seconds, then returns to the menu.
+
 ## Abandoned Rooms
 
 When every human in a room disconnects, `GameRoomManager` keeps the room for `abandonTimeoutMs` (60s) so players can reconnect,

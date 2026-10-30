@@ -18,6 +18,9 @@ function getServerUrl(): string {
   return 'ws://localhost:8080/ws';
 }
 
+/** How long the victory/defeat banner shows before returning to the menu */
+const GAME_END_SCREEN_MS = 5000;
+
 async function startOnlineGame(matchData: MatchData, matchmakingUI: MatchmakingUI) {
   console.log('[Game] Starting online game with match data:', matchData);
 
@@ -55,11 +58,22 @@ async function startOnlineGame(matchData: MatchData, matchmakingUI: MatchmakingU
   const init = game.loop();
   init();
 
-  // Handle game end - show matchmaking UI again
+  // Handle game end - announce the result, then show matchmaking UI again
   networkClient.onGameEnd = (data: any) => {
     console.log('[Game] Game ended:', data);
-    matchmakingUI.reset();
-    matchmakingUI.show();
+    const won = data.winningSide === matchData.yourSide;
+    const minutes = Math.floor((data.duration ?? 0) / 60);
+    const seconds = Math.floor((data.duration ?? 0) % 60).toString().padStart(2, '0');
+    game.getStateManager().announce({
+      text: won ? 'VICTORY' : 'DEFEAT',
+      detail: `Match length ${minutes}:${seconds}`,
+      color: won ? '#f1c40f' : '#e74c3c',
+      duration: GAME_END_SCREEN_MS,
+    });
+    setTimeout(() => {
+      matchmakingUI.reset();
+      matchmakingUI.show();
+    }, GAME_END_SCREEN_MS);
   };
 
   networkClient.onDisconnect = (code: number, reason: string) => {

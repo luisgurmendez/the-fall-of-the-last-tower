@@ -103,3 +103,17 @@ describe('LanePath', () => {
     expect(path.nextWaypointIndex(150)).toBe(2);
   });
 });
+
+describe('Fountain', () => {
+  test('heals champions standing in their own fountain', () => {
+    const sim = new Simulation({ seed: 1, minionWaves: false, jungle: false, structures: false });
+    try {
+      const champion = sim.addChampion({ playerId: 'p1', championId: 'vex', side: 'blue' });
+      champion.health = champion.maxHealth * 0.2;
+      sim.run(8);
+      expect(champion.health).toBeCloseTo(champion.maxHealth, 0);
+    } finally {
+      sim.dispose();
+    }
+  });
+});

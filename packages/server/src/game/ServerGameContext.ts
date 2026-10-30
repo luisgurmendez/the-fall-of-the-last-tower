@@ -281,6 +281,9 @@ export class ServerGameContext {
       entity.update(dt, this);
     }
 
+    // Champions at their fountain heal up quickly
+    this.applyFountainRegen(dt);
+
     // Process passive abilities (auras, interval effects)
     const allChampions = Array.from(this.champions.values());
     passiveTriggerSystem.processAlwaysPassives(dt, allChampions, this);
@@ -334,6 +337,20 @@ export class ServerGameContext {
     if (due.length === 0) return;
     this.scheduledActions = this.scheduledActions.filter(action => action.at > this.gameTime + 1e-9);
     for (const action of due) action.run();
+  }
+
+  /**
+   * Allied champions inside their fountain regain health and mana/energy.
+   */
+  private applyFountainRegen(dt: number): void {
+    const { RADIUS, REGEN_PER_SECOND } = this.mapConfig.FOUNTAIN;
+    for (const champion of this.champions.values()) {
+      if (champion.isDead) continue;
+      const fountain = champion.side === 0 ? this.mapConfig.CHAMPION_SPAWN.BLUE : this.mapConfig.CHAMPION_SPAWN.RED;
+      if (champion.position.distanceTo(fountain) > RADIUS) continue;
+      champion.health = Math.min(champion.maxHealth, champion.health + champion.maxHealth * REGEN_PER_SECOND * dt);
+      champion.resource = Math.min(champion.maxResource, champion.resource + champion.maxResource * REGEN_PER_SECOND * dt);
+    }
   }
 
   /**
