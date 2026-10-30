@@ -721,7 +721,7 @@ export class ServerChampion extends ServerEntity {
 
   /**
    * Schedule an ability projectile to spawn at the animation keyframe time.
-   * Called by ServerAbilityExecutor for skillshot abilities with animations.
+   * Called by the generic skillshot path (abilities/generic/Skillshot.ts) for skillshots with animations.
    */
   scheduleAbilityProjectile(
     abilityId: string,
