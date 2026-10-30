@@ -36,7 +36,6 @@ import {
   drawFilledGroundCircle,
   drawShockwave,
   drawScreenFlash,
-  drawTrail,
   drawGlowCircle,
 } from './effects/VFXPrimitives';
 import type {
@@ -55,6 +54,14 @@ import {
   updateParticle,
   renderParticles,
 } from './active/particles';
+import {
+  createTrail,
+  createDashAfterimage,
+  updateTrails,
+  updateDashAfterimages,
+  renderTrails,
+  renderDashAfterimages,
+} from './active/trails';
 
 /**
  * Performance statistics.
@@ -201,38 +208,20 @@ export class VFXManager {
     } else if (config.type === 'falling_particles') {
       spawnFallingParticles(this.particlePool, config as FallingParticlesConfig, x, y);
     } else if (config.type === 'trail' && casterId) {
-      this.createTrail(config as TrailConfig, casterId, x, y, startTime);
+      this.activeTrails.push(
+        createTrail(this.generateId(), config as TrailConfig, casterId, x, y, startTime)
+      );
     } else if (config.type === 'shield_bubble' && casterId) {
       this.createShieldBubble(config as ShieldBubbleConfig, casterId, x, y, startTime);
     } else if (config.type === 'orbiting_particles' && casterId) {
       this.createOrbitingParticles(config as OrbitingParticlesConfig, casterId, x, y, startTime);
     } else if (config.type === 'dash_afterimage' && casterId) {
-      this.createDashAfterimage(config as DashAfterimageConfig, casterId, x, y, startTime);
+      this.activeDashAfterimages.push(
+        createDashAfterimage(this.generateId(), config as DashAfterimageConfig, casterId, x, y, startTime)
+      );
     } else if (config.type === 'screen_flash') {
       this.triggerScreenFlash(config as ScreenFlashConfig, startTime);
     }
-  }
-
-  /**
-   * Create a trail effect attached to an entity.
-   */
-  private createTrail(
-    config: TrailConfig,
-    entityId: string,
-    x: number,
-    y: number,
-    startTime: number
-  ): void {
-    this.activeTrails.push({
-      id: this.generateId(),
-      entityId,
-      color: config.color,
-      thickness: config.thickness,
-      fadeLength: config.fadeLength,
-      points: [{ x, y, time: startTime }],
-      duration: config.duration * 1000,
-      startTime,
-    });
   }
 
   /**
@@ -283,29 +272,6 @@ export class VFXManager {
       duration: config.duration * 1000,
       startTime,
       particles,
-    });
-  }
-
-  /**
-   * Create dash afterimage effect attached to an entity.
-   */
-  private createDashAfterimage(
-    config: DashAfterimageConfig,
-    entityId: string,
-    x: number,
-    y: number,
-    startTime: number
-  ): void {
-    this.activeDashAfterimages.push({
-      id: this.generateId(),
-      entityId,
-      color: config.color,
-      images: [],
-      fadeSpeed: config.fadeSpeed,
-      duration: config.duration * 1000,
-      startTime,
-      lastImageTime: startTime,
-      imageInterval: (config.duration * 1000) / config.imageCount,
     });
   }
 
@@ -361,36 +327,7 @@ export class VFXManager {
     });
 
     // Update trails - follow entity positions
-    this.activeTrails = this.activeTrails.filter((trail) => {
-      const elapsed = now - trail.startTime;
-      if (elapsed >= trail.duration) {
-        return false;
-      }
-
-      // Get entity position
-      const entity = this.stateManager.getEntity(trail.entityId);
-      if (entity) {
-        const lastPoint = trail.points[0];
-        const dx = entity.position.x - lastPoint.x;
-        const dy = entity.position.y - lastPoint.y;
-
-        // Only add point if entity moved
-        if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
-          trail.points.unshift({
-            x: entity.position.x,
-            y: entity.position.y,
-            time: now,
-          });
-        }
-
-        // Limit trail length
-        while (trail.points.length > trail.fadeLength) {
-          trail.points.pop();
-        }
-      }
-
-      return true;
-    });
+    this.activeTrails = updateTrails(this.activeTrails, this.stateManager, now);
 
     // Update shields
     this.activeShields = this.activeShields.filter((shield) => {
@@ -410,31 +347,12 @@ export class VFXManager {
     });
 
     // Update dash afterimages
-    for (const afterimage of this.activeDashAfterimages) {
-      const elapsed = now - afterimage.startTime;
-      const entity = this.stateManager.getEntity(afterimage.entityId);
-
-      // Only add new images while within duration AND entity is dashing
-      const isDashing = entity && (entity as any).isDashing;
-      if (isDashing && elapsed < afterimage.duration && now - afterimage.lastImageTime >= afterimage.imageInterval) {
-        afterimage.images.unshift({
-          x: entity.position.x,
-          y: entity.position.y,
-          alpha: 0.8,
-          color: afterimage.color,
-        });
-        afterimage.lastImageTime = now;
-      }
-
-      // Fade existing images
-      for (const image of afterimage.images) {
-        image.alpha -= afterimage.fadeSpeed * dt;
-      }
-      afterimage.images = afterimage.images.filter((img) => img.alpha > 0);
-    }
-    this.activeDashAfterimages = this.activeDashAfterimages.filter((ai) => {
-      return ai.images.length > 0;
-    });
+    this.activeDashAfterimages = updateDashAfterimages(
+      this.activeDashAfterimages,
+      this.stateManager,
+      dt,
+      now
+    );
 
     // Update screen flash
     if (this.screenFlash) {
@@ -457,28 +375,10 @@ export class VFXManager {
     this.renderGroundEffects(ctx, cameraX, cameraY, now);
 
     // Render trails
-    for (const trail of this.activeTrails) {
-      if (trail.points.length >= 2) {
-        const screenPoints = trail.points.map((p) => ({
-          x: p.x - cameraX,
-          y: p.y - cameraY,
-        }));
-        drawTrail(ctx, screenPoints, trail.thickness, trail.color, true);
-      }
-    }
+    renderTrails(ctx, this.activeTrails, cameraX, cameraY);
 
     // Render dash afterimages
-    for (const afterimage of this.activeDashAfterimages) {
-      for (const image of afterimage.images) {
-        ctx.save();
-        ctx.globalAlpha = image.alpha * 0.5;
-        ctx.fillStyle = image.color;
-        ctx.beginPath();
-        ctx.arc(image.x - cameraX, image.y - cameraY, 15, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-      }
-    }
+    renderDashAfterimages(ctx, this.activeDashAfterimages, cameraX, cameraY);
 
     // Render particles
     renderParticles(ctx, this.particlePool, cameraX, cameraY);
