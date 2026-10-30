@@ -68,7 +68,7 @@ export function renderTower(
   }
 
   if (snapshot.isProtected) {
-    renderProtectionDome(ctx, 45, -30, rc.animationTime);
+    renderProtectionDome(ctx, 62, -42, rc.animationTime);
   }
 
   renderTargetLockOnLocalPlayer(ctx, snapshot, side, rc);

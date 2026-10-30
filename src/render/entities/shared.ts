@@ -208,12 +208,12 @@ export function renderProtectionDome(
   ctx.save();
   const glow = ctx.createRadialGradient(0, centerY, radius * 0.3, 0, centerY, radius);
   glow.addColorStop(0, "rgba(180, 220, 255, 0)");
-  glow.addColorStop(1, `rgba(180, 220, 255, ${0.25 * shimmer})`);
+  glow.addColorStop(1, `rgba(180, 220, 255, ${0.35 * shimmer})`);
   ctx.fillStyle = glow;
   ctx.beginPath();
   ctx.arc(0, centerY, radius, 0, Math.PI * 2);
   ctx.fill();
-  ctx.strokeStyle = `rgba(200, 235, 255, ${0.5 * shimmer})`;
+  ctx.strokeStyle = `rgba(200, 235, 255, ${0.7 * shimmer})`;
   ctx.lineWidth = 1.5;
   ctx.stroke();
   ctx.restore();

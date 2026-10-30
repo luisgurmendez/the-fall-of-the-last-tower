@@ -146,6 +146,9 @@ export class MatchmakingUI {
   private matchData: MatchData | null = null;
   private selectedChampionId: string = "lume";
   private bufferedFullState: any = null;
+  private bufferedStateUpdates: any[] = [];
+  /** About 30 seconds of updates at 30 Hz */
+  private static readonly MAX_BUFFERED_UPDATES = 900;
 
   // Callbacks
   private callbacks: MatchmakingUICallbacks;
@@ -1033,11 +1036,17 @@ export class MatchmakingUI {
         "entities",
       );
       this.bufferedFullState = snapshot;
+      // Updates from before this full state are already included in it
+      this.bufferedStateUpdates = [];
     };
 
-    this.networkClient.onStateUpdate = (_update: any) => {
-      // Handle state updates during game
-      // This will be passed to the game once it starts
+    this.networkClient.onStateUpdate = (update: any) => {
+      // Keep the deltas that arrive during the loading screen: the server
+      // won't resend what they changed, so OnlineGame replays them after
+      // the full state (see getBufferedStateUpdates)
+      if (this.bufferedStateUpdates.length < MatchmakingUI.MAX_BUFFERED_UPDATES) {
+        this.bufferedStateUpdates.push(update);
+      }
     };
 
     // Handle custom events (session, queue joined, etc.)
@@ -1281,6 +1290,15 @@ export class MatchmakingUI {
   }
 
   /**
+   * State updates received after the buffered full state, in order. Clears the buffer.
+   */
+  takeBufferedStateUpdates(): any[] {
+    const updates = this.bufferedStateUpdates;
+    this.bufferedStateUpdates = [];
+    return updates;
+  }
+
+  /**
    * Reset to initial state.
    */
   reset(): void {
@@ -1290,6 +1308,7 @@ export class MatchmakingUI {
     this.matchData = null;
     this.loadingProgress = 0;
     this.bufferedFullState = null;
+    this.bufferedStateUpdates = [];
     this.updateConnectionStatus("offline");
     this.showScreen("menu");
   }

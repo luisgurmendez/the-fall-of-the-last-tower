@@ -51,6 +51,13 @@ async function startOnlineGame(matchData: MatchData, matchmakingUI: MatchmakingU
     console.log('[Game] Processing buffered full state:', bufferedFullState.entities?.length || 0, 'entities');
     game.getStateManager().processFullState(bufferedFullState);
     matchmakingUI.clearBufferedFullState();
+
+    // Then the deltas that arrived during the loading screen (all after the
+    // full state: the buffer is cleared when one arrives), which the server
+    // won't send again
+    for (const update of matchmakingUI.takeBufferedStateUpdates()) {
+      game.getStateManager().processStateUpdate(update);
+    }
   } else {
     console.warn('[Game] No buffered full state available - entities may not appear immediately');
   }

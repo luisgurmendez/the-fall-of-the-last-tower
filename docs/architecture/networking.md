@@ -350,6 +350,10 @@ The client fog (`src/core/FogOfWar.ts`) uses the same `WallGrid`. Each revealer 
 far it sees in each of 180 directions before a wall stops it, and only lights cells within
 that limit. The fog therefore shows the same shadows behind walls as the server's filtering.
 
+### Joining a match: full state, then buffered deltas
+
+At `GAME_START` the server sends a `FULL_STATE` and starts streaming `STATE_UPDATE` deltas. The client shows a loading screen before `OnlineGame` exists, so `MatchmakingUI` buffers both the full state and the deltas that arrive meanwhile. A new full state clears the delta buffer. When the game starts, it applies the full state and then replays the buffered deltas in order. The server assumes every delta was applied, so a change made during loading that never changes again (for example `isProtected` on towers) would otherwise never reach the client.
+
 ## Reliable Event Delivery
 
 Important events use sequence IDs and acknowledgment:

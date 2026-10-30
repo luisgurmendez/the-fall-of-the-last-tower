@@ -15,6 +15,7 @@ import {
   type ChampionSnapshot,
   type MinionSnapshot,
   type TowerSnapshot,
+  type NexusSnapshot,
   type JungleCreatureSnapshot,
   type StateUpdate,
 } from '@siege/shared';
@@ -256,7 +257,17 @@ export class StateSerializer {
       }
 
       if ((prev as any).isDead !== (curr as any).isDead ||
-          (prev as any).isDestroyed !== (curr as any).isDestroyed) {
+          (prev as any).isDestroyed !== (curr as any).isDestroyed ||
+          (prev as any).isProtected !== (curr as any).isProtected) {
+        mask |= EntityChangeMask.STATE;
+      }
+    }
+
+    // For the nexus
+    if (current.entityType === EntityType.NEXUS) {
+      const prev = previous as NexusSnapshot;
+      const curr = current as NexusSnapshot;
+      if (prev.isDestroyed !== curr.isDestroyed || prev.isProtected !== curr.isProtected) {
         mask |= EntityChangeMask.STATE;
       }
     }
@@ -389,6 +400,16 @@ export class StateSerializer {
 
       if (mask & EntityChangeMask.STATE) {
         (result as any).isDestroyed = currTower.isDestroyed;
+        (result as any).isProtected = currTower.isProtected;
+      }
+    }
+
+    if (current.entityType === EntityType.NEXUS) {
+      const currNexus = current as NexusSnapshot;
+
+      if (mask & EntityChangeMask.STATE) {
+        (result as any).isDestroyed = currNexus.isDestroyed;
+        (result as any).isProtected = currNexus.isProtected;
       }
     }
 
