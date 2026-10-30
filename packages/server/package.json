@@ -10,7 +10,9 @@
     "start": "bun run src/server.ts",
     "start:prod": "bun run dist/server.js",
     "test": "bun test",
-    "typecheck": "tsc -b ../shared && tsc -p tsconfig.test.json"
+    "typecheck": "tsc -b ../shared && tsc -p tsconfig.test.json",
+    "sim": "LOG_LEVEL=${LOG_LEVEL:-warn} bun run src/sim/cli.ts",
+    "sim:serve": "LOG_LEVEL=${LOG_LEVEL:-warn} bun run src/sim/serve.ts"
   },
   "dependencies": {
     "@siege/shared": "*"

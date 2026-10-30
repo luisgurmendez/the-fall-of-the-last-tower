@@ -15,6 +15,7 @@ import {
 } from '@siege/shared';
 import { ServerEntity, type ServerEntityConfig } from './ServerEntity';
 import type { ServerGameContext } from '../game/ServerGameContext';
+import { Logger } from '../utils/Logger';
 
 /**
  * Configuration for creating a nexus.
@@ -75,7 +76,7 @@ export class ServerNexus extends ServerEntity {
   protected onDeath(killerId?: string): void {
     super.onDeath(killerId);
     this._isDestroyed = true;
-    console.log(`[ServerNexus] ${this.side === 0 ? 'Blue' : 'Red'} nexus destroyed!`);
+    Logger.game.info(`[ServerNexus] ${this.side === 0 ? 'Blue' : 'Red'} nexus destroyed!`);
   }
 
   /**

@@ -30,11 +30,14 @@ import { Logger } from '../utils/Logger';
 export interface GameContextConfig {
   gameId: string;
   mapConfig?: typeof MOBAConfig;
+  /** Spawn minion waves on a timer (default true). Scenarios turn this off to spawn waves by hand. */
+  minionWaves?: boolean;
 }
 
 export class ServerGameContext {
   readonly gameId: string;
   readonly mapConfig: typeof MOBAConfig;
+  private readonly minionWavesEnabled: boolean;
 
   // Entity management
   private entities: Map<string, ServerEntity> = new Map();
@@ -71,6 +74,7 @@ export class ServerGameContext {
   constructor(config: GameContextConfig) {
     this.gameId = config.gameId;
     this.mapConfig = config.mapConfig ?? MOBAConfig;
+    this.minionWavesEnabled = config.minionWaves ?? true;
     this.fogOfWar = new FogOfWarServer();
     this.collisionSystem = new CollisionSystem();
 
@@ -293,6 +297,7 @@ export class ServerGameContext {
    * Check if it's time to spawn a minion wave.
    */
   private checkMinionWaveSpawn(): void {
+    if (!this.minionWavesEnabled) return;
     if (this.gameTime >= this.nextMinionWaveTime) {
       this.spawnMinionWave();
       this.minionWaveCount++;
@@ -314,6 +319,13 @@ export class ServerGameContext {
       this.spawnLaneMinions(0, lane, waveConfig); // Blue side
       this.spawnLaneMinions(1, lane, waveConfig); // Red side
     }
+  }
+
+  /**
+   * Spawn one wave for a side in a lane, outside the wave timer.
+   */
+  spawnLaneWave(side: Side, lane: LaneId): void {
+    this.spawnLaneMinions(side, lane, this.mapConfig.MINION_WAVES.WAVE_COMPOSITION);
   }
 
   /**

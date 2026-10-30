@@ -22,3 +22,7 @@ deploy/siege-key.pem
 .env*.local
 # TypeScript incremental build info
 *.tsbuildinfo
+
+# Simulation output (bun run sim)
+packages/server/sim-output/
+.claude/worktrees/

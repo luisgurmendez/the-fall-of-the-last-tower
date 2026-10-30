@@ -2,9 +2,22 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "noEmit": true,
-    "types": ["bun"]
+    "types": [
+      "bun"
+    ],
+    "rootDir": "."
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"],
-  "references": [{ "path": "../shared" }]
+  "include": [
+    "src/**/*",
+    "scenarios/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ],
+  "references": [
+    {
+      "path": "../shared"
+    }
+  ]
 }

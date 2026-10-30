@@ -23,6 +23,12 @@ This directory contains detailed documentation for the Siege MOBA architecture.
 | [effects-and-buffs.md](effects-and-buffs.md) | Buffs, debuffs, crowd control, stat modifiers |
 | [collision.md](collision.md) | Unit collision detection, separation, spatial grid |
 
+### Tooling
+
+| Document | Description |
+|----------|-------------|
+| [simulation.md](simulation.md) | Headless scenarios, bots and PNG frames for checking gameplay without a browser |
+
 ## Architecture Overview
 
 ```

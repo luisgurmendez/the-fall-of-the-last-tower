@@ -63,6 +63,7 @@ For detailed documentation on the multiplayer MOBA systems, see the following fi
 | **Effects & Buffs** | [docs/architecture/effects-and-buffs.md](docs/architecture/effects-and-buffs.md) | Buff/debuff system, crowd control, stat modifiers |
 | **Collision** | [docs/architecture/collision.md](docs/architecture/collision.md) | Unit collision detection, separation, spatial grid |
 | **VFX** | [docs/architecture/vfx.md](docs/architecture/vfx.md) | Visual effects system, particles, ability VFX |
+| **Simulation** | [docs/architecture/simulation.md](docs/architecture/simulation.md) | Headless scenarios, bots, PNG frames, HTTP sandbox for agents |
 
 ### Quick Reference
 
@@ -95,6 +96,7 @@ For detailed documentation on the multiplayer MOBA systems, see the following fi
 | Buffs, debuffs, CC types, effect stacking | `effects-and-buffs.md` |
 | Collision detection, unit separation, spatial grid | `collision.md` |
 | Visual effects, particles, ability VFX | `vfx.md` |
+| Simulation framework, scenarios, bots | `simulation.md` |
 
 **When adding new systems**, create a new doc file in `docs/architecture/` and add a reference here.
 
@@ -256,6 +258,22 @@ bun test FogOfWarComprehensive
 npx tsc --noEmit -p .                    # client (src/) + packages/client
 cd packages/server && npm run typecheck  # shared + server, including tests
 ```
+
+### Seeing gameplay changes without a browser (agents: use this)
+
+Gameplay changes (minions, jungle, abilities, bots, map) can be checked headlessly:
+
+```bash
+cd packages/server
+bun run sim list                 # available scenarios
+bun run sim minion-waves-mid     # prints a report; writes sim-output/minion-waves-mid/{sheet,final}.png
+```
+
+Look at `sheet.png` (frames over time) to see what happened, read `report.md` for deaths, damage and the log, and add a scenario in
+`packages/server/scenarios/` with `check()` assertions for new behavior; scenarios run in `bun test`.
+For step-by-step play there is an HTTP sandbox (`bun run sim:serve`). See [docs/architecture/simulation.md](docs/architecture/simulation.md).
+
+To play the real client alone, use the **PRACTICE** button on champion select (you vs a bot).
 
 ### Debug starting level
 

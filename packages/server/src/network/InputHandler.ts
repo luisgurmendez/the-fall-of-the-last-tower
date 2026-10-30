@@ -114,7 +114,14 @@ function hasValidPayload(input: ClientInput): boolean {
   }
 }
 
+export interface InputHandlerOptions {
+  /** Clock for rate limiting (ms). Headless simulations pass game time so fast-forwarding isn't rate limited. */
+  now?: () => number;
+}
+
 export class InputHandler {
+  private readonly now: () => number;
+
   // Input queue per player
   private inputQueues: Map<string, PendingInput[]> = new Map();
 
@@ -123,6 +130,10 @@ export class InputHandler {
 
   // Last acknowledged sequence per player
   private lastAckedSeq: Map<string, number> = new Map();
+
+  constructor(options: InputHandlerOptions = {}) {
+    this.now = options.now ?? Date.now;
+  }
 
   /**
    * Queue an input for processing.
@@ -149,7 +160,7 @@ export class InputHandler {
     queue.push({
       playerId,
       input,
-      receivedAt: Date.now(),
+      receivedAt: this.now(),
     });
 
     return { valid: true };
@@ -419,7 +430,7 @@ export class InputHandler {
    * Check rate limiting.
    */
   private checkRateLimit(playerId: string, inputType: InputType): boolean {
-    const now = Date.now();
+    const now = this.now();
     const windowMs = 1000; // 1 second window
 
     let playerTracking = this.rateLimitTracking.get(playerId);

@@ -10,6 +10,7 @@
 import { Vector, MOBAConfig } from '@siege/shared';
 import { ServerJungleCreature } from './ServerJungleCreature';
 import type { ServerGameContext } from '../game/ServerGameContext';
+import { Logger } from '../utils/Logger';
 
 type JungleCreatureType = keyof typeof MOBAConfig.JUNGLE.CREATURE_STATS;
 
@@ -66,7 +67,7 @@ export class ServerJungleCamp {
     }
 
     this.isCleared = false;
-    console.log(`[ServerJungleCamp] Spawned ${this.count} ${this.creatureType}(s) at camp ${this.id}`);
+    Logger.game.debug(`[ServerJungleCamp] Spawned ${this.count} ${this.creatureType}(s) at camp ${this.id}`);
   }
 
   /**
@@ -105,7 +106,7 @@ export class ServerJungleCamp {
         this.isCleared = true;
         this.respawnTimer = this.respawnTime;
         this.creatureIds.clear();
-        console.log(`[ServerJungleCamp] Camp ${this.id} cleared, respawning in ${this.respawnTime}s`);
+        Logger.game.debug(`[ServerJungleCamp] Camp ${this.id} cleared, respawning in ${this.respawnTime}s`);
       }
     }
 
