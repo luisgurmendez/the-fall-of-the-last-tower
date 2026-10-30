@@ -10,7 +10,7 @@
  * snapshots and the network layer.
  */
 
-import { Vector, GameConfig } from '@siege/shared';
+import { GameConfig, MOBAConfig } from '@siege/shared';
 import type { ServerChampion } from '../ServerChampion';
 
 export class ChampionRecall {
@@ -55,10 +55,10 @@ export class ChampionRecall {
     champion.isRecalling = false;
     champion.recallProgress = 0;
 
-    // Teleport to spawn
+    // Teleport to the fountain (the spawn point), where the shop is
     const spawnPos = champion.side === 0
-      ? new Vector(-1100, 1100)
-      : new Vector(1100, -1100);
+      ? MOBAConfig.CHAMPION_SPAWN.BLUE
+      : MOBAConfig.CHAMPION_SPAWN.RED;
     champion.position.setFrom(spawnPos);
 
     // Restore health and mana

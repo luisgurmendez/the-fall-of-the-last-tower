@@ -59,7 +59,7 @@ function champions() {
       deaths: champion.deaths,
       skillPoints: champion.skillPoints,
       ranks: champion.abilityRanks,
-      cooldowns: Object.fromEntries(Object.entries(champion.abilityCooldowns).map(([k, v]) => [k, Math.round(v * 10) / 10])),
+      cooldowns: Object.fromEntries(Object.entries(champion.abilityStates).map(([k, state]) => [k, Math.round(state.cooldownRemaining * 10) / 10])),
     };
   });
 }

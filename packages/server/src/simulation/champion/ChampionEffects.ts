@@ -174,6 +174,15 @@ export class ChampionEffects {
     this.champion.ccStatus = calculateCCStatus(this.champion.activeEffects);
   }
 
+  /**
+   * After effects were removed outside the normal flow (stealth broken, a
+   * cleanse): recompute crowd control and stats right away instead of next tick.
+   */
+  refreshAfterRemoval(): void {
+    this.refreshCrowdControl();
+    this.champion.invalidateStats();
+  }
+
   // =====================
   // Applying and removing
   // =====================
@@ -292,10 +301,14 @@ export class ChampionEffects {
    * Remove stealth effects (called when attacking or using abilities).
    */
   breakStealth(): void {
+    const before = this.champion.activeEffects.length;
     this.champion.activeEffects = this.champion.activeEffects.filter(
       e => !e.definitionId.includes('stealth') &&
            !e.definitionId.includes('invisible')
     );
+    if (this.champion.activeEffects.length !== before) {
+      this.refreshAfterRemoval();
+    }
   }
 
   /**

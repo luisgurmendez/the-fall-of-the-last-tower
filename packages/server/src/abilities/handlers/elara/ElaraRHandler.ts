@@ -74,9 +74,10 @@ export class ElaraRHandler extends BaseAbilityHandler {
       return !isDebuff;
     });
 
-    // Reset CC status after cleanse
-    if ('updateCrowdControlStatus' in champion) {
-      (champion as any).updateCrowdControlStatus();
+    // Champions reset CC status and stats right away, so a cleansed stun ends
+    // this tick (minions pick it up on their next effects update)
+    if (typeof (champion as Partial<ServerChampion>).refreshEffectState === 'function') {
+      champion.refreshEffectState();
     }
 
     return initialCount - champion.activeEffects.length;

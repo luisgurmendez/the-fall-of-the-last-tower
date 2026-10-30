@@ -663,7 +663,7 @@ export const CrestOfInsightRegenEffect: ServerStatEffectDef = {
   flatValue: 4,
 };
 
-/** Red buff: health regeneration; basic attacks burn and slow (see ServerChampion.applyOnHitBuffs) */
+/** Red buff: health regeneration; basic attacks burn and slow (see ChampionBasicAttacks.applyOnHitBuffs) */
 export const CrestOfCindersEffect: ServerStatEffectDef = {
   id: 'crest_of_cinders',
   name: 'Crest of Cinders',

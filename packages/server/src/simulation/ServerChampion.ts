@@ -102,7 +102,6 @@ export class ServerChampion extends ServerEntity {
 
   // Abilities
   abilityRanks: Record<AbilitySlot, number> = { Q: 0, W: 0, E: 0, R: 0 };
-  abilityCooldowns: Record<AbilitySlot, number> = { Q: 0, W: 0, E: 0, R: 0 };
   abilityStates: Record<AbilitySlot, AbilityState> = {
     Q: createDefaultAbilityState(),
     W: createDefaultAbilityState(),
@@ -816,6 +815,14 @@ export class ServerChampion extends ServerEntity {
    */
   breakStealth(): void {
     this.effects.breakStealth();
+  }
+
+  /**
+   * Recompute crowd control and stats after effects were removed from
+   * activeEffects directly (e.g. by a cleanse in an ability handler).
+   */
+  refreshEffectState(): void {
+    this.effects.refreshAfterRemoval();
   }
 
   /**

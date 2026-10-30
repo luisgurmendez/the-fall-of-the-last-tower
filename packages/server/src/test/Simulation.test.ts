@@ -137,3 +137,18 @@ describe('Shop', () => {
     }
   });
 });
+
+describe('Recall', () => {
+  test('recalling lands in the fountain, where the shop is', () => {
+    const sim = new Simulation({ seed: 1, minionWaves: false, jungle: false, structures: false });
+    try {
+      const champion = sim.addChampion({ playerId: 'p1', championId: 'vex', side: 'blue', at: { x: 0, y: 0 } });
+      sim.recall('p1');
+      sim.run(9);
+      const fountain = sim.context.mapConfig.CHAMPION_SPAWN.BLUE;
+      expect(champion.position.distanceTo(fountain)).toBeLessThan(sim.context.mapConfig.FOUNTAIN.RADIUS);
+    } finally {
+      sim.dispose();
+    }
+  });
+});

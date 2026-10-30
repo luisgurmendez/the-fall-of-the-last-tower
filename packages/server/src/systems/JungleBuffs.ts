@@ -4,7 +4,7 @@
  * - Blue buff (Crest of Insight): +15 ability haste and +4 mana/energy regen
  *   per second for the killer
  * - Red buff (Crest of Cinders): +4 health regen per second for the killer, and
- *   their basic attacks burn and slow (ServerChampion.applyOnHitBuffs)
+ *   their basic attacks burn and slow (ChampionBasicAttacks.applyOnHitBuffs)
  * - Dragon (Dragon's Might): +8% attack damage and ability power for every
  *   champion on the killer's team, kept through death
  */

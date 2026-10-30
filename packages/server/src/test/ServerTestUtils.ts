@@ -168,7 +168,6 @@ export class TestChampion extends ServerChampion {
   resetCooldowns(): void {
     for (const slot of ['Q', 'W', 'E', 'R'] as AbilitySlot[]) {
       this.abilityStates[slot].cooldownRemaining = 0;
-      this.abilityCooldowns[slot] = 0;
     }
   }
 
