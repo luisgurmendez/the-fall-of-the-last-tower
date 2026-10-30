@@ -3,15 +3,15 @@
  */
 
 import type { EntityRenderContext } from "@/render/entities/types";
-import { TEAM_COLORS, imageCache } from "@/render/entities/shared";
+import {
+  TEAM_COLORS,
+  drawBuildingSprite,
+  imageCache,
+} from "@/render/entities/shared";
 import {
   HEALTH_BAR_COLORS,
   renderHealthBar,
 } from "@/render/overlays/healthBars";
-import {
-  getOutlinedSprite,
-  getOutlinePadding,
-} from "@/render/OutlinedSpriteCache";
 
 /**
  * Sprite configuration.
@@ -44,59 +44,18 @@ export function renderTower(
   const image = imageCache.get(spriteSrc);
 
   if (image && image.complete && image.naturalWidth > 0) {
-    const scaledWidth = SPRITES.TOWER.WIDTH * SPRITES.TOWER.SCALE;
-    const scaledHeight = SPRITES.TOWER.HEIGHT * SPRITES.TOWER.SCALE;
-
     // Check if tower is hovered for outline highlighting
     const outlineColor = rc.getOutlineColor(snapshot.entityId);
 
-    if (outlineColor) {
-      // Draw outlined sprite when hovered
-      const outlinedSprite = getOutlinedSprite(
-        image,
-        0,
-        0,
-        image.naturalWidth,
-        image.naturalHeight,
-        outlineColor
-      );
-
-      if (outlinedSprite) {
-        const padding = getOutlinePadding();
-        const outlinedWidth = (SPRITES.TOWER.WIDTH + padding * 2) * SPRITES.TOWER.SCALE;
-        const outlinedHeight = (SPRITES.TOWER.HEIGHT + padding * 2) * SPRITES.TOWER.SCALE;
-
-        ctx.drawImage(
-          outlinedSprite,
-          0,
-          0,
-          outlinedSprite.width,
-          outlinedSprite.height,
-          -outlinedWidth / 2,
-          -outlinedHeight + 30 + padding * SPRITES.TOWER.SCALE,
-          outlinedWidth,
-          outlinedHeight,
-        );
-      } else {
-        // Fallback to normal sprite
-        ctx.drawImage(
-          image,
-          -scaledWidth / 2,
-          -scaledHeight + 30,
-          scaledWidth,
-          scaledHeight,
-        );
-      }
-    } else {
-      // Draw normal sprite when not hovered
-      ctx.drawImage(
-        image,
-        -scaledWidth / 2,
-        -scaledHeight + 30, // Offset so base is near position
-        scaledWidth,
-        scaledHeight,
-      );
-    }
+    drawBuildingSprite(
+      ctx,
+      image,
+      SPRITES.TOWER.WIDTH,
+      SPRITES.TOWER.HEIGHT,
+      SPRITES.TOWER.SCALE,
+      30,
+      outlineColor,
+    );
   } else {
     // Fallback: draw colored rectangle
     const color = side === 0 ? TEAM_COLORS.BLUE : TEAM_COLORS.RED;

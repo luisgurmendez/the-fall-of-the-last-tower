@@ -3,15 +3,15 @@
  */
 
 import type { EntityRenderContext } from "@/render/entities/types";
-import { TEAM_COLORS, imageCache } from "@/render/entities/shared";
+import {
+  TEAM_COLORS,
+  drawBuildingSprite,
+  imageCache,
+} from "@/render/entities/shared";
 import {
   HEALTH_BAR_COLORS,
   renderHealthBar,
 } from "@/render/overlays/healthBars";
-import {
-  getOutlinedSprite,
-  getOutlinePadding,
-} from "@/render/OutlinedSpriteCache";
 
 /**
  * Sprite configuration.
@@ -44,59 +44,18 @@ export function renderNexus(
   const image = imageCache.get(spriteSrc);
 
   if (image && image.complete && image.naturalWidth > 0) {
-    const scaledWidth = SPRITES.NEXUS.WIDTH * SPRITES.NEXUS.SCALE;
-    const scaledHeight = SPRITES.NEXUS.HEIGHT * SPRITES.NEXUS.SCALE;
-
     // Check if nexus is hovered for outline highlighting
     const outlineColor = rc.getOutlineColor(snapshot.entityId);
 
-    if (outlineColor) {
-      // Draw outlined sprite when hovered
-      const outlinedSprite = getOutlinedSprite(
-        image,
-        0,
-        0,
-        image.naturalWidth,
-        image.naturalHeight,
-        outlineColor
-      );
-
-      if (outlinedSprite) {
-        const padding = getOutlinePadding();
-        const outlinedWidth = (SPRITES.NEXUS.WIDTH + padding * 2) * SPRITES.NEXUS.SCALE;
-        const outlinedHeight = (SPRITES.NEXUS.HEIGHT + padding * 2) * SPRITES.NEXUS.SCALE;
-
-        ctx.drawImage(
-          outlinedSprite,
-          0,
-          0,
-          outlinedSprite.width,
-          outlinedSprite.height,
-          -outlinedWidth / 2,
-          -outlinedHeight + 20 + padding * SPRITES.NEXUS.SCALE,
-          outlinedWidth,
-          outlinedHeight,
-        );
-      } else {
-        // Fallback to normal sprite
-        ctx.drawImage(
-          image,
-          -scaledWidth / 2,
-          -scaledHeight + 20,
-          scaledWidth,
-          scaledHeight,
-        );
-      }
-    } else {
-      // Draw normal sprite when not hovered
-      ctx.drawImage(
-        image,
-        -scaledWidth / 2,
-        -scaledHeight + 20, // Offset so base is near position
-        scaledWidth,
-        scaledHeight,
-      );
-    }
+    drawBuildingSprite(
+      ctx,
+      image,
+      SPRITES.NEXUS.WIDTH,
+      SPRITES.NEXUS.HEIGHT,
+      SPRITES.NEXUS.SCALE,
+      20,
+      outlineColor,
+    );
   } else {
     // Fallback: draw colored rectangle
     const color = side === 0 ? TEAM_COLORS.BLUE : TEAM_COLORS.RED;

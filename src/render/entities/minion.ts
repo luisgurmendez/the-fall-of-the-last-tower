@@ -6,15 +6,15 @@ import type {
   EntityRenderContext,
   EntityRenderState,
 } from "@/render/entities/types";
-import { TEAM_COLORS, imageCache } from "@/render/entities/shared";
+import {
+  TEAM_COLORS,
+  drawSpriteFrame,
+  imageCache,
+} from "@/render/entities/shared";
 import {
   HEALTH_BAR_COLORS,
   renderHealthBar,
 } from "@/render/overlays/healthBars";
-import {
-  getOutlinedSprite,
-  getOutlinePadding,
-} from "@/render/OutlinedSpriteCache";
 
 /**
  * Sprite configuration.
@@ -148,9 +148,6 @@ export function renderMinion(
     const frameIndex = Math.floor(animTime * animSpeed) % frameCount;
     const srcX = frameIndex * spriteConfig.FRAME_WIDTH;
 
-    const scaledWidth = spriteConfig.FRAME_WIDTH * spriteConfig.SCALE;
-    const scaledHeight = spriteConfig.FRAME_HEIGHT * spriteConfig.SCALE;
-
     // Check if entity is hovered for outline highlighting
     const outlineColor = rc.getOutlineColor(snapshot.entityId);
 
@@ -160,62 +157,15 @@ export function renderMinion(
       ctx.scale(-1, 1);
     }
 
-    if (outlineColor) {
-      // Draw outlined sprite when hovered
-      const outlinedSprite = getOutlinedSprite(
-        image,
-        srcX,
-        0,
-        spriteConfig.FRAME_WIDTH,
-        spriteConfig.FRAME_HEIGHT,
-        outlineColor
-      );
-
-      if (outlinedSprite) {
-        // Outlined sprite has padding, so adjust dimensions
-        const padding = getOutlinePadding();
-        const outlinedWidth = (spriteConfig.FRAME_WIDTH + padding * 2) * spriteConfig.SCALE;
-        const outlinedHeight = (spriteConfig.FRAME_HEIGHT + padding * 2) * spriteConfig.SCALE;
-
-        ctx.drawImage(
-          outlinedSprite,
-          0,
-          0,
-          outlinedSprite.width,
-          outlinedSprite.height,
-          -outlinedWidth / 2,
-          -outlinedHeight / 2,
-          outlinedWidth,
-          outlinedHeight,
-        );
-      } else {
-        // Fallback to normal sprite if outline generation failed
-        ctx.drawImage(
-          image,
-          srcX,
-          0,
-          spriteConfig.FRAME_WIDTH,
-          spriteConfig.FRAME_HEIGHT,
-          -scaledWidth / 2,
-          -scaledHeight / 2,
-          scaledWidth,
-          scaledHeight,
-        );
-      }
-    } else {
-      // Draw normal sprite when not hovered
-      ctx.drawImage(
-        image,
-        srcX,
-        0,
-        spriteConfig.FRAME_WIDTH,
-        spriteConfig.FRAME_HEIGHT,
-        -scaledWidth / 2,
-        -scaledHeight / 2,
-        scaledWidth,
-        scaledHeight,
-      );
-    }
+    drawSpriteFrame(
+      ctx,
+      image,
+      srcX,
+      spriteConfig.FRAME_WIDTH,
+      spriteConfig.FRAME_HEIGHT,
+      spriteConfig.SCALE,
+      outlineColor,
+    );
 
     ctx.restore();
   } else {

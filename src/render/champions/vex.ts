@@ -8,11 +8,7 @@ import type {
   EntityRenderContext,
   EntityRenderState,
 } from "@/render/entities/types";
-import { imageCache } from "@/render/entities/shared";
-import {
-  getOutlinedSprite,
-  getOutlinePadding,
-} from "@/render/OutlinedSpriteCache";
+import { drawSpriteFrame, imageCache } from "@/render/entities/shared";
 import type { ChampionBodyRenderer, ChampionRendererEntry } from "./types";
 
 /**
@@ -279,63 +275,15 @@ class VexBodyRenderer implements ChampionBodyRenderer {
         this.drawNinjaModeAura(ctx, scaledWidth, scaledHeight);
       }
 
-      if (outlineColor) {
-        // Draw outlined sprite when hovered
-        const outlinedSprite = getOutlinedSprite(
-          image,
-          srcX,
-          0,
-          frameWidth,
-          frameHeight,
-          outlineColor
-        );
-
-        if (outlinedSprite) {
-          // Outlined sprite has padding, so adjust dimensions
-          const padding = getOutlinePadding();
-          const outlinedWidth = (frameWidth + padding * 2) * SPRITES.VEX.SCALE;
-          const outlinedHeight =
-            (frameHeight + padding * 2) * SPRITES.VEX.SCALE;
-
-          ctx.drawImage(
-            outlinedSprite,
-            0,
-            0,
-            outlinedSprite.width,
-            outlinedSprite.height,
-            -outlinedWidth / 2,
-            -outlinedHeight / 2,
-            outlinedWidth,
-            outlinedHeight
-          );
-        } else {
-          // Fallback to normal sprite if outline generation failed
-          ctx.drawImage(
-            image,
-            srcX,
-            0,
-            frameWidth,
-            frameHeight,
-            -scaledWidth / 2,
-            -scaledHeight / 2,
-            scaledWidth,
-            scaledHeight
-          );
-        }
-      } else {
-        // Draw normal sprite when not hovered
-        ctx.drawImage(
-          image,
-          srcX,
-          0,
-          frameWidth,
-          frameHeight,
-          -scaledWidth / 2,
-          -scaledHeight / 2,
-          scaledWidth,
-          scaledHeight
-        );
-      }
+      drawSpriteFrame(
+        ctx,
+        image,
+        srcX,
+        frameWidth,
+        frameHeight,
+        SPRITES.VEX.SCALE,
+        outlineColor,
+      );
 
       ctx.restore();
       return true;
