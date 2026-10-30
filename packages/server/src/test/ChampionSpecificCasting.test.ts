@@ -9,7 +9,7 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach, spyOn, type Mock } from 'bun:test';
-import { Vector, type AbilitySlot } from '@siege/shared';
+import { Vector, getAbilityDefinition, type AbilitySlot } from '@siege/shared';
 import { createTestArena, type TestArena } from './ServerTestUtils';
 import { ServerZone } from '../simulation/ServerZone';
 import { ServerLightOrb } from '../simulation/ServerLightOrb';
@@ -213,5 +213,26 @@ describe('Lume - orb abilities', () => {
     expect(arena.blue.abilityStates.Q.isDisabled).toBe(true);
     expect(arena.blue.abilityStates.W.isDisabled).toBe(true);
     expect(arena.blue.abilityStates.E.isDisabled).toBe(true);
+  });
+});
+
+describe('Leveling abilities', () => {
+  test('R stops at rank 3 and basic abilities stop at their max rank', () => {
+    const arena = createTestArena({ blueChampion: 'vex', redChampion: 'warrior' });
+    const champion = arena.blue;
+    champion.level = 18;
+
+    for (let i = 0; i < 10; i++) {
+      champion.skillPoints = 1;
+      champion.levelUpAbility('R');
+    }
+    expect(champion.abilityRanks.R).toBe(3);
+
+    const qMaxRank = getAbilityDefinition(champion.definition.abilities.Q)!.maxRank;
+    for (let i = 0; i < 10; i++) {
+      champion.skillPoints = 1;
+      champion.levelUpAbility('Q');
+    }
+    expect(champion.abilityRanks.Q).toBe(qMaxRank);
   });
 });

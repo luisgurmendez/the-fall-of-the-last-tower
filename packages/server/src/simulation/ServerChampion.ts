@@ -38,6 +38,7 @@ import {
   GameConfig,
   GameEventType,
   getPassiveDefinition,
+  getAbilityDefinition,
   createDefaultPassiveState,
   DEFAULT_CHAMPION_COLLISION,
   type EntityCollision,
@@ -1749,13 +1750,12 @@ export class ServerChampion extends ServerEntity {
     }
 
     const currentRank = this.abilityRanks[slot];
-    const maxRank = 5; // TODO: Get from ability definition
+    const maxRank = getAbilityDefinition(this.definition.abilities[slot])?.maxRank ?? (slot === 'R' ? 3 : 5);
 
-    // R ability has special level requirements
+    // R ability has special level requirements (and stops at the last one)
     if (slot === 'R') {
       const rRequiredLevels = [6, 11, 16];
-      const currentRRank = this.abilityRanks.R;
-      if (this.level < rRequiredLevels[currentRRank]) {
+      if (currentRank >= rRequiredLevels.length || this.level < rRequiredLevels[currentRank]) {
         return false;
       }
     }
