@@ -21,6 +21,10 @@ import { MOBAConfig } from '@siege/shared';
 import { InputManager } from '@/core/input/InputManager';
 import { EntityType } from '@siege/shared';
 import type { OnlineStateManager, InterpolatedEntity } from '@/core/OnlineStateManager';
+import { getPortraitCanvas } from '@/ui/matchmaking/portraits';
+
+/** Radius of a champion's portrait on the minimap */
+const CHAMPION_ICON_RADIUS = 9;
 
 /**
  * OnlineMinimap configuration.
@@ -383,20 +387,41 @@ export class OnlineMinimap extends ScreenEntity {
     entity: InterpolatedEntity
   ): void {
     const isLocalPlayer = entity.snapshot.entityId === this.stateManager.getLocalEntityId();
-    const radius = isLocalPlayer ? 7 : (isPlayerTeam ? 6 : 5);
     const color = isPlayerTeam ? '#00ff00' : '#ff4444';
+    const portrait = getPortraitCanvas((entity.snapshot as { championId?: string }).championId ?? '');
 
-    ctx.fillStyle = color;
+    // No art yet: a team-colored dot
+    if (!portrait) {
+      const radius = isLocalPlayer ? 7 : (isPlayerTeam ? 6 : 5);
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
+      ctx.fill();
+      if (isLocalPlayer) {
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+      return;
+    }
+
+    // The champion's portrait in a circle, ringed in its team color (white for us)
+    const radius = CHAMPION_ICON_RADIUS;
+    ctx.save();
     ctx.beginPath();
     ctx.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
+    ctx.fillStyle = '#1a1a2e';
     ctx.fill();
+    ctx.clip();
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(portrait, pos.x - radius, pos.y - radius, radius * 2, radius * 2);
+    ctx.restore();
 
-    // Draw border for local player champion
-    if (isLocalPlayer) {
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
+    ctx.strokeStyle = isLocalPlayer ? '#ffffff' : color;
+    ctx.lineWidth = 2;
+    ctx.stroke();
   }
 
   /**
