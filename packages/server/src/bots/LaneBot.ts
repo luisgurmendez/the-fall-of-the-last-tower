@@ -4,7 +4,8 @@
  * Plays one lane with a handful of rules, in priority order:
  * 1. Spend skill points (R when allowed, then Q/W/E, learning each once first)
  * 2. Retreat and recall when low on health (using defensive abilities if
- *    the enemy is close); shop at base
+ *    the enemy is close); shop at base. Also recall to shop when it has
+ *    enough gold for its next item and no enemy champion is near
  * 3. Fight the enemy champion when it is close and the trade looks even or better
  * 4. Last-hit minions; harass the enemy champion in range when no minion is
  *    about to die; otherwise push the lowest-health minion
@@ -74,6 +75,10 @@ const R_REQUIRED_LEVELS = [6, 11, 16];
 const RETREAT_HEALTH = 0.3;
 /** Health ratio at which the bot leaves base again */
 const RETURN_HEALTH = 0.8;
+/** Gold worth a trip home to shop (when its next item is affordable) */
+const SHOPPING_GOLD = 1100;
+/** An enemy champion this close keeps the bot from recalling */
+const RECALL_SAFE_DISTANCE = 900;
 /** How far behind the wave front the bot stands */
 const FRONT_OFFSET = 120;
 /** Extra margin kept outside enemy tower range */
@@ -94,6 +99,8 @@ export class LaneBot implements BotController {
   private timeUntilDecision = 0;
   private time = 0;
   private retreating = false;
+  /** Heading home to spend gold (see SHOPPING_GOLD) */
+  private shopping = false;
   private lastCommandKey = '';
   private lastCommandTime = -Infinity;
   private farmTargetId: string | null = null;
@@ -134,15 +141,22 @@ export class LaneBot implements BotController {
     if (this.retreating && healthRatio >= RETURN_HEALTH) this.retreating = false;
 
     const enemyChampion = this.findEnemyChampion(champion, context);
+    const threatened = enemyChampion !== null &&
+      enemyChampion.position.distanceTo(champion.position) < RECALL_SAFE_DISTANCE;
 
-    // At base: shop first
+    // At base: shop first, until there's nothing left to buy
     if (champion.position.distanceTo(spawn) < 300) {
       const purchase = this.chooseItemToBuy(champion);
       if (purchase) return [purchase];
+      this.shopping = false;
+    }
+
+    // Enough gold for the next item: go home to spend it
+    if (!this.shopping && champion.gold >= SHOPPING_GOLD && this.chooseItemToBuy(champion)) {
+      this.shopping = true;
     }
 
     if (this.retreating) {
-      const threatened = enemyChampion !== null && enemyChampion.position.distanceTo(champion.position) < 900;
       if (champion.position.distanceTo(spawn) < 250) {
         this.lastDecision = 'heal at base';
         return null; // Home - wait for health to come back
@@ -161,6 +175,12 @@ export class LaneBot implements BotController {
     }
 
     if (champion.isRecalling) return null;
+
+    // Shopping trip: recall when it's safe; with an enemy near, keep playing
+    if (this.shopping && !threatened && !champion.inCombat) {
+      this.lastDecision = 'recall to shop';
+      return this.command(`recall`, [{ type: InputType.RECALL }]);
+    }
 
     if (enemyChampion && this.shouldFight(champion, enemyChampion, context)) {
       this.lastDecision = 'fight';

@@ -115,12 +115,13 @@ Command actions: `move`, `attack` (`targetId`), `stop`, `cast` (`slot`, plus `x,
 
 `LaneBot` follows these rules, in priority order:
 1. Spend skill points.
-2. Shop at base. The build depends on the champion's class.
+2. Shop at base. The build depends on the champion's class and follows item trees.
 3. Retreat and recall when low, using defensive abilities if the enemy is close.
+   Also recall to shop with 1100+ gold and an affordable next item, when no enemy champion is within 900 and it's out of combat.
 4. Fight the enemy champion when it is weak, when the bot has a clear health lead, or to hit back when attacked (including from range).
 5. Last-hit minions, starting the attack a little early.
 6. Poke the enemy champion only from ahead.
 7. Otherwise keep hitting the same minion.
 8. Stand behind the allied wave and stay out of enemy tower range unless minions are tanking it.
 
-Champion abilities are bespoke. `ABILITY_ROLES` in `LaneBot.ts` says how to use the ones the generic rules would misuse: offense (self buffs, transforms), defense (stealth, invulnerability) or engage (dashes). `lastDecision` shows what the bot is doing. Scenarios `bot-vs-bot-mid` and `bot-fights-back` cover the bot.
+Champion abilities are bespoke. `ABILITY_ROLES` in `LaneBot.ts` says how to use the ones the generic rules would misuse: offense (self buffs, transforms), defense (stealth, invulnerability) or engage (dashes). `lastDecision` shows what the bot is doing. Scenarios `bot-vs-bot-mid`, `bot-fights-back` and `bot-goes-shopping` cover the bot.
