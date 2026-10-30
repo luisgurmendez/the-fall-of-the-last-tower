@@ -22,8 +22,14 @@ export interface ActiveEffect {
   /** Target position (for directional effects) */
   targetX?: number;
   targetY?: number;
-  /** When this effect started */
+  /** When this effect starts (later than the cast for delayed phases) */
   startTime: number;
+  /**
+   * Whether its one-shot parts (particles, trails, shields, orbits,
+   * afterimages, screen flash) have been created. They are created when the
+   * effect starts, not when it's scheduled.
+   */
+  started: boolean;
   /** Duration of this effect */
   duration: number;
   /** Entity ID of caster */

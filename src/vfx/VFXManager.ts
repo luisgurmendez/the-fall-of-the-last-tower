@@ -209,11 +209,26 @@ export class VFXManager {
       duration: duration * 1000, // Convert to ms
       casterId,
       progress: 0,
+      started: false,
     };
 
     this.activeEffects.push(effect);
 
-    // Immediately spawn particles for instant effects
+    // Effects of undelayed phases start right away; delayed ones in update()
+    if (startTime <= performance.now()) {
+      this.startEffect(effect);
+    }
+  }
+
+  /**
+   * Create the one-shot parts of an effect when it starts: particles, and the
+   * trails, shields, orbits, afterimages and screen flash that follow the
+   * caster.
+   */
+  private startEffect(effect: ActiveEffect): void {
+    effect.started = true;
+    const { config, x, y, targetX, targetY, casterId, startTime } = effect;
+
     if (config.type === 'particle_burst') {
       spawnParticleBurst(this.particlePool, config as ParticleBurstConfig, x, y, targetX, targetY);
     } else if (config.type === 'rising_particles') {
@@ -263,6 +278,9 @@ export class VFXManager {
       if (elapsed < 0) {
         // Effect hasn't started yet
         return true;
+      }
+      if (!effect.started) {
+        this.startEffect(effect);
       }
 
       effect.progress = Math.min(1, elapsed / effect.duration);

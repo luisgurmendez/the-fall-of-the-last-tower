@@ -325,6 +325,8 @@ Each ability VFX is divided into phases:
 | `anchor` | Where to spawn: `'caster'`, `'target'`, `'ground_target'` |
 | `effects` | Array of effect configurations |
 
+Every effect of a delayed phase starts when the phase does. That includes one-shot parts: particle bursts, trails, shields, orbits, afterimages and screen flashes are created when their phase starts (`VFXManager.startEffect`), not at cast time. `packages/client/src/test/VFXManager.test.ts` checks this.
+
 ## Integration Points
 
 ### EntityRenderer
