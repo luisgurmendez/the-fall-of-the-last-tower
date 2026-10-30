@@ -443,6 +443,13 @@ describe('Vile', () => {
       expect(arena.blue.getAttackRange()).toBe(40);
     });
 
+    test('should mark Vile as transformed for clients', () => {
+      arena.castAbility(arena.blue, 'R');
+      arena.tick();
+
+      expect(arena.blue.activeEffects.some(effect => effect.definitionId === 'vile_transformed')).toBe(true);
+    });
+
     test('should grant 100 soul stacks on cast', () => {
       const initialStacks = arena.blue.passiveState.stacks;
       arena.castAbility(arena.blue, 'R');

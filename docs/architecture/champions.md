@@ -450,7 +450,8 @@ All seven champions are playable (`ENABLED_CHAMPIONS` in `src/ui/matchmaking/cha
 champion select shows each one's idle sprite as its portrait (`portraits.ts`). `src/render/champions/stripBody.ts` draws such
 strips for any champion: an ability's strip over its cast animation, the attack once per
 basic attack, walk while moving, idle otherwise. A champion's `visualHeight` places its
-health bar above its art. Champions without art are drawn as a team-colored circle.
+health bar above its art. During Vile's R the server puts a `vile_transformed` marker effect
+on him; his renderer draws him 30% bigger with a pulsing violet glow. Champions without art are drawn as a team-colored circle.
 
 ## Server Champion
 

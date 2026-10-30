@@ -738,7 +738,19 @@ export const HoldTheLineEffect: ServerEffectDefinition = {
   persistsThroughDeath: false,
 };
 
+/** Vile's R: transformed (no stats; the transform applies its own) */
+export const VileTransformedEffect: ServerEffectDefinition = {
+  id: 'vile_transformed',
+  name: 'Restoration of Vilix',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+};
+
 export const ALL_SERVER_EFFECTS: AnyServerEffectDef[] = [
+  // Champion markers
+  VileTransformedEffect,
   // Item passives
   StarfallEffect,
   HoldTheLineEffect,

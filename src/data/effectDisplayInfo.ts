@@ -220,6 +220,17 @@ const EFFECT_DISPLAY_INFO: Record<string, EffectDisplayInfo> = {
   // Over-Time Effects
   // ===================
   // ===================
+  // Champion Markers
+  // ===================
+  vile_transformed: {
+    name: 'Restoration of Vilix',
+    description: 'Transformed: melee range, bonus stats and a damaging aura.',
+    category: 'buff',
+    icon: 'V',
+    color: '#a855f7',
+  },
+
+  // ===================
   // Item Passives
   // ===================
   item_starfall: {

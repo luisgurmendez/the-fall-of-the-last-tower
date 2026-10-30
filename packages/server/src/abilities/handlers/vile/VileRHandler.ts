@@ -101,6 +101,9 @@ export class VileRHandler extends BaseAbilityHandler {
       champion.setTransformAttackRange(transform.attackRange, duration);
     }
 
+    // Marker effect so clients draw him transformed (and show it in the HUD)
+    champion.applyEffect('vile_transformed', duration, champion.id);
+
     // Grant soul stacks
     if (transform.soulStacksOnCast) {
       champion.passiveState.stacks += transform.soulStacksOnCast;

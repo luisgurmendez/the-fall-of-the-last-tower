@@ -6,7 +6,7 @@
  */
 
 import type { EntityRenderContext } from "@/render/entities/types";
-import type { ChampionRendererEntry } from "./types";
+import type { ChampionBodyRenderer, ChampionRendererEntry } from "./types";
 import { createStripBodyRenderer, generatedStrips, stripImages } from "./stripBody";
 
 const VILE_STRIPS = generatedStrips("vile", {
@@ -17,6 +17,30 @@ const VILE_STRIPS = generatedStrips("vile", {
 
 /** World units per sprite pixel: about 55 tall, like Vex */
 const VILE_SCALE = 0.6;
+/** During his R (the vile_transformed marker) he's drawn this much bigger, glowing violet */
+const TRANSFORMED_SCALE = 1.3;
+
+/**
+ * Vile's body: his strips, swelling and glowing violet while transformed.
+ */
+function createVileBody(rc: EntityRenderContext): ChampionBodyRenderer {
+  const strips = createStripBodyRenderer(VILE_STRIPS, VILE_SCALE, rc);
+  return {
+    render(ctx, snapshot, state) {
+      const transformed = (snapshot.activeEffects as Array<{ definitionId: string }> | undefined)
+        ?.some((effect) => effect.definitionId === "vile_transformed");
+      if (!transformed) return strips.render(ctx, snapshot, state);
+
+      ctx.save();
+      ctx.scale(TRANSFORMED_SCALE, TRANSFORMED_SCALE);
+      const pulse = 0.5 + 0.5 * Math.sin(rc.animationTime * 5);
+      ctx.filter = `saturate(1.3) drop-shadow(0 0 ${3 + pulse * 3}px #a855f7)`;
+      const drawn = strips.render(ctx, snapshot, state);
+      ctx.restore();
+      return drawn;
+    },
+  };
+}
 
 /**
  * Vile's dark soul auto-attack - eerie purple/black orb.
@@ -83,9 +107,18 @@ function renderVileAutoProjectile(
  */
 export const vileRenderer: ChampionRendererEntry = {
   images: stripImages(VILE_STRIPS),
-  createBodyRenderer: (rc) => createStripBodyRenderer(VILE_STRIPS, VILE_SCALE, rc),
+  createBodyRenderer: createVileBody,
   projectiles: {
     vile_auto: renderVileAutoProjectile,
   },
-  markVisuals: {},
+  markVisuals: {
+    vile_transformed: {
+      icon: "V",
+      bgColor: "rgba(126, 34, 206, 0.85)",
+      borderColor: "#a855f7",
+      iconColor: "#ffffff",
+      showTimer: true,
+      isBuff: true,
+    },
+  },
 };

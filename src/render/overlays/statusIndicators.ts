@@ -131,6 +131,23 @@ const MARK_VISUALS: Record<string, MarkVisualConfig> = {
     showTimer: true,
     isBuff: true,
   },
+  // Item passives (ChampionItemPassives markers)
+  item_starfall: {
+    icon: "*",
+    bgColor: "rgba(155, 89, 182, 0.85)",
+    borderColor: "#c39bff",
+    iconColor: "#ffe082",
+    showTimer: true,
+    isBuff: true,
+  },
+  item_hold_the_line: {
+    icon: "H",
+    bgColor: "rgba(127, 140, 141, 0.85)",
+    borderColor: "#d0d6e0",
+    iconColor: "#ffffff",
+    showTimer: true,
+    isBuff: true,
+  },
   // Speed buffs
   speed_20: {
     icon: ">",
