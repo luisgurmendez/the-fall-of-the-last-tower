@@ -27,6 +27,7 @@ import {
   CHAMPION_DEFINITIONS,
   MOBAConfig,
   DEFAULT_MINION_STATS,
+  type Side,
 } from '@siege/shared';
 
 // =============================================================================
@@ -89,7 +90,7 @@ function createTestContext(): ServerGameContext {
 
 function createMinion(
   id: string,
-  side: 0 | 1,
+  side: Side,
   position: Vector
 ): ServerMinion {
   return new ServerMinion({
@@ -104,7 +105,7 @@ function createMinion(
 
 function createChampion(
   id: string,
-  side: 0 | 1,
+  side: Side,
   position: Vector,
   playerId: string
 ): ServerChampion {
@@ -120,7 +121,7 @@ function createChampion(
 
 function createTower(
   id: string,
-  side: 0 | 1,
+  side: Side,
   position: Vector
 ): ServerTower {
   return new ServerTower({
@@ -138,7 +139,7 @@ function createTower(
  */
 function createWard(
   id: string,
-  side: 0 | 1,
+  side: Side,
   position: Vector
 ): any {
   return {

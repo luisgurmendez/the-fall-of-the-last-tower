@@ -11,13 +11,13 @@ import { EntityType, EntityChangeMask, type EntitySnapshot, type ChampionSnapsho
 
 // Mock entity that implements toSnapshot
 function createMockEntity(id: string, type: EntityType, overrides: Partial<EntitySnapshot> = {}) {
-  const baseSnapshot: EntitySnapshot = {
+  const baseSnapshot = {
     entityId: id,
     entityType: type,
     x: 0,
     y: 0,
     ...overrides,
-  };
+  } as EntitySnapshot;
 
   return {
     id,
@@ -27,7 +27,7 @@ function createMockEntity(id: string, type: EntityType, overrides: Partial<Entit
 }
 
 function createMockChampion(id: string, overrides: Partial<ChampionSnapshot> = {}) {
-  const snapshot: ChampionSnapshot = {
+  const snapshot = {
     entityId: id,
     entityType: EntityType.CHAMPION,
     x: 0,
@@ -48,7 +48,7 @@ function createMockChampion(id: string, overrides: Partial<ChampionSnapshot> = {
     armor: 30,
     magicResist: 30,
     attackSpeed: 1.0,
-    abilities: {},
+    abilities: {} as ChampionSnapshot['abilities'],
     items: [],
     activeEffects: [],
     isDead: false,
@@ -60,7 +60,7 @@ function createMockChampion(id: string, overrides: Partial<ChampionSnapshot> = {
     assists: 0,
     cs: 0,
     ...overrides,
-  };
+  } as ChampionSnapshot;
 
   return {
     id,
@@ -79,9 +79,6 @@ function createMockMinion(id: string, overrides: Partial<MinionSnapshot> = {}) {
     minionType: 'melee',
     health: 477,
     maxHealth: 477,
-    attackDamage: 12,
-    armor: 0,
-    magicResist: 0,
     isDead: false,
     targetEntityId: undefined,
     targetX: undefined,
@@ -430,7 +427,7 @@ describe('StateSerializer', () => {
       const playerId = 'player-1';
 
       // This shouldn't happen in practice but tests robustness
-      let entities = [createMockChampion('entity-1')];
+      let entities: unknown[] = [createMockChampion('entity-1')];
       serializer.createDeltaUpdates(entities as any, playerId, 1);
 
       // Same ID but now it's a minion (hypothetically)

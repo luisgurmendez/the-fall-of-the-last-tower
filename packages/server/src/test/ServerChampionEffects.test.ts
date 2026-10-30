@@ -45,6 +45,7 @@ const mockChampionDef: ChampionDefinition = {
     E: 'test_e',
     R: 'test_r',
   },
+  passive: 'test_passive',
 };
 
 function createTestChampion(overrides?: Partial<ServerChampionConfig>): ServerChampion {

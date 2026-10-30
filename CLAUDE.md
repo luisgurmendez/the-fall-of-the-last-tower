@@ -254,8 +254,7 @@ bun test FogOfWarComprehensive
 
 ```bash
 npx tsc --noEmit -p .                    # client (src/) + packages/client
-cd packages/shared && npx tsc -p .       # shared (emits dist/, needed by the server check)
-cd packages/server && npx tsc --noEmit -p .
+cd packages/server && npm run typecheck  # shared + server, including tests
 ```
 
 ### Debug starting level

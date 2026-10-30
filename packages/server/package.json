@@ -9,7 +9,8 @@
     "dev": "tsc --watch",
     "start": "bun run src/server.ts",
     "start:prod": "bun run dist/server.js",
-    "test": "bun test"
+    "test": "bun test",
+    "typecheck": "tsc -b ../shared && tsc -p tsconfig.test.json"
   },
   "dependencies": {
     "@siege/shared": "*"

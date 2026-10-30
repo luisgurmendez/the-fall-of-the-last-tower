@@ -169,7 +169,7 @@ describe('WebSocketServer', () => {
   describe('Handler Registration', () => {
     it('should call connect handler on new connection', () => {
       let connectCalled = false;
-      let connectedConn: WebSocketConnection | null = null;
+      let connectedConn = null as WebSocketConnection | null;
 
       server.onConnect((conn) => {
         connectCalled = true;
@@ -185,7 +185,7 @@ describe('WebSocketServer', () => {
 
     it('should call disconnect handler on close', () => {
       let disconnectCalled = false;
-      let disconnectedConn: WebSocketConnection | null = null;
+      let disconnectedConn = null as WebSocketConnection | null;
       let receivedCode = 0;
       let receivedReason = '';
 
@@ -208,8 +208,8 @@ describe('WebSocketServer', () => {
 
     it('should call message handler on incoming message', () => {
       let messageCalled = false;
-      let receivedConn: WebSocketConnection | null = null;
-      let receivedMessage: ParsedMessage | null = null;
+      let receivedConn = null as WebSocketConnection | null;
+      let receivedMessage = null as ParsedMessage | null;
 
       server.onMessage((conn, message) => {
         messageCalled = true;
@@ -393,6 +393,7 @@ describe('WebSocketServer', () => {
         timestamp: Date.now(),
         gameTime: 60.5,
         entities: [],
+        events: [],
       };
 
       const result = server.sendFullState('player-1', snapshot);
