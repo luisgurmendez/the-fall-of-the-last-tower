@@ -9,6 +9,19 @@
  * - Match found display
  * - Loading progress
  * - Error handling
+ *
+ * MatchmakingUI is the coordinator: it switches screens, wires the buttons,
+ * shows the connection status, ping and errors, and starts the game when
+ * loading ends. The screens and the network wiring live next to it:
+ * - championSelect.ts: champion grid, detail panel and the selected champion
+ * - abilityCards.ts, abilityText.ts: ability and passive cards; their
+ *   tooltip text and scaling previews
+ * - queueScreen.ts: queue timer, position and size
+ * - matchFound.ts: each team's champion and the loading bar
+ * - matchConnection.ts: NetworkClient setup, player ID and session token,
+ *   and the full state and updates buffered for OnlineGame
+ * - tips.ts: rotating gameplay tips
+ * - types.ts: screen, status, match data and callback types (re-exported here)
  */
 
 import type { NetworkClient } from "../../../packages/client/src/network/NetworkClient";

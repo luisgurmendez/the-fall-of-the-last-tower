@@ -148,7 +148,7 @@ src/
 │   ├── AnnouncementBanner.ts  # Kills, towers, dragon, match result
 │   ├── DeathOverlay.ts  # Respawn countdown
 │   ├── LowHealthVignette.ts   # Red screen edges at low health
-│   ├── matchmaking/     # Matchmaking UI
+│   ├── matchmaking/     # Matchmaking UI (MatchmakingUI coordinator, screens, connection)
 │   └── shop/            # Shop UI
 ├── utils/               # Utility functions
 ├── vfx/                 # Visual effects system

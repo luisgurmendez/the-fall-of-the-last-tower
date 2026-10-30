@@ -352,7 +352,7 @@ that limit. The fog therefore shows the same shadows behind walls as the server'
 
 ### Joining a match: full state, then buffered deltas
 
-At `GAME_START` the server sends a `FULL_STATE` and starts streaming `STATE_UPDATE` deltas. The client shows a loading screen before `OnlineGame` exists, so `MatchmakingUI` buffers both the full state and the deltas that arrive meanwhile. A new full state clears the delta buffer. When the game starts, it applies the full state and then replays the buffered deltas in order. The server assumes every delta was applied, so a change made during loading that never changes again (for example `isProtected` on towers) would otherwise never reach the client.
+At `GAME_START` the server sends a `FULL_STATE` and starts streaming `STATE_UPDATE` deltas. The client shows a loading screen before `OnlineGame` exists, so `MatchmakingUI` buffers both the full state and the deltas that arrive meanwhile (in `MatchConnection`, `src/ui/matchmaking/matchConnection.ts`). A new full state clears the delta buffer. When the game starts, it applies the full state and then replays the buffered deltas in order. The server assumes every delta was applied, so a change made during loading that never changes again (for example `isProtected` on towers) would otherwise never reach the client.
 
 ## Reliable Event Delivery
 
@@ -448,5 +448,6 @@ Ping sent every 5 seconds to maintain connection and measure latency.
 7. Resume game with current state
 
 The client keeps the token in `NetworkClient` and `MatchmakingUI` persists it in
-`sessionStorage`, so rejoining after a page reload works too. The server forgets a
+`sessionStorage` (in `src/ui/matchmaking/matchConnection.ts`), so rejoining after a
+page reload works too. The server forgets a
 player's token when they disconnect while not in a game.

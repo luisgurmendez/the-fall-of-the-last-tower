@@ -244,7 +244,9 @@ getStats(): { queueSize: number; matchReady: boolean } {
 |------|---------|
 | `packages/server/src/matchmaking/Matchmaker.ts` | Matchmaking logic |
 | `packages/server/src/server.ts` | Integration with server |
-| `src/ui/matchmaking/MatchmakingUI.ts` | Client UI for queue |
+| `src/ui/matchmaking/MatchmakingUI.ts` | Client UI for queue (coordinates the screens below) |
+| `src/ui/matchmaking/matchConnection.ts` | Client connection: sends READY with the champion and mode, buffers state during loading |
+| `src/ui/matchmaking/championSelect.ts`, `queueScreen.ts`, `matchFound.ts` | Champion select, queue and match found screens |
 
 ## Future Improvements
 
