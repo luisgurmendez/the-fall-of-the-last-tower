@@ -446,6 +446,7 @@ Defined in `src/vfx/world.ts` (keys in `WORLD_VFX`). They use the same phase-bas
 
 Drawn directly by renderers rather than as VFX definitions:
 - **Recall channel** (`ChampionRenderer.renderRecallChannel`): a ground ring that fills over the recall, with rising motes.
+- **Jungle buff auras** (`ChampionRenderer.renderJungleBuffAuras`): a ring at the feet of any champion holding a buff, so everyone can see who has it. Crest of Insight is a blue ring with orbiting sparks; Crest of Cinders is a red-orange ring with sparks and rising embers. A champion with both shows the red ring outside the blue one.
 - **Tower lock-on** (`renderTower`): a pulsing dashed line and reticle while an enemy tower shoots the local champion.
 - **Announcements** (`AnnouncementBanner`, fed by `OnlineStateManager`): champion kills ("You have slain an enemy!" / "You have been slain!" / "First Blood!"), towers destroyed, dragon slain, and the match result.
 - **Screen shake** (`src/core/screenShake.ts`): a decaying jitter on top of the camera transform. It's triggered when a tower falls, when the nexus falls (stronger), and when the local champion takes a hit over 15% of its health.

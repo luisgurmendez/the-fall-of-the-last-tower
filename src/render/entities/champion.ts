@@ -85,6 +85,64 @@ export class ChampionRenderer {
   }
 
   /**
+   * Jungle buffs on the ground under the champion, so everyone can see who
+   * holds them: a blue ring with orbiting sparks for Crest of Insight, a
+   * flickering red-orange ring with rising embers for Crest of Cinders.
+   */
+  private renderJungleBuffAuras(
+    ctx: CanvasRenderingContext2D,
+    activeEffects: Array<{ definitionId: string }> | undefined,
+  ): void {
+    if (!activeEffects) return;
+    const hasInsight = activeEffects.some((effect) => effect.definitionId === "crest_of_insight");
+    const hasCinders = activeEffects.some((effect) => effect.definitionId === "crest_of_cinders");
+    if (!hasInsight && !hasCinders) return;
+
+    const time = this.rc.animationTime;
+    const auras: Array<{ color: string; radius: number; speed: number }> = [];
+    if (hasInsight) auras.push({ color: "79, 195, 247", radius: 32, speed: 1.6 });
+    if (hasCinders) auras.push({ color: "255, 112, 67", radius: hasInsight ? 40 : 32, speed: -2.2 });
+
+    for (const aura of auras) {
+      const pulse = 0.5 + 0.5 * Math.sin(time * 3 + aura.radius);
+
+      ctx.save();
+      ctx.translate(0, 14);
+      ctx.scale(1, 0.45);
+      ctx.fillStyle = `rgba(${aura.color}, 0.12)`;
+      ctx.beginPath();
+      ctx.arc(0, 0, aura.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = `rgba(${aura.color}, ${0.6 + pulse * 0.3})`;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(0, 0, aura.radius, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Three sparks running around the ring
+      ctx.fillStyle = `rgba(${aura.color}, 0.9)`;
+      for (let i = 0; i < 3; i++) {
+        const angle = time * aura.speed + (i * Math.PI * 2) / 3;
+        ctx.beginPath();
+        ctx.arc(Math.cos(angle) * aura.radius, Math.sin(angle) * aura.radius, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    // Embers drifting up from the red buff
+    if (hasCinders) {
+      for (let i = 0; i < 5; i++) {
+        const phase = (time * 0.7 + i / 5) % 1;
+        const x = Math.sin(i * 2.4 + time * 2) * 20;
+        const y = 12 - phase * 46;
+        ctx.fillStyle = `rgba(255, ${150 + Math.round(phase * 80)}, 64, ${0.9 * (1 - phase)})`;
+        ctx.fillRect(x - 2, y - 2, 4, 4);
+      }
+    }
+  }
+
+  /**
    * Render a champion.
    */
   render(
@@ -125,6 +183,7 @@ export class ChampionRenderer {
     if (snapshot.isRecalling) {
       this.renderRecallChannel(ctx, snapshot.recallProgress ?? 0);
     }
+    this.renderJungleBuffAuras(ctx, snapshot.activeEffects);
 
     // Check if this champion has sprite support
     let renderedWithSprite = false;
