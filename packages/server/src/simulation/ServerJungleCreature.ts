@@ -8,7 +8,7 @@
  * - Resets when pulled past its leash or kited (no damage taken for a few
  *   seconds while its target is out of reach): walks home invulnerable,
  *   regenerating quickly, then heals to full
- * - Ranged creatures (gromp, dragon) attack with projectiles
+ * - Ranged creatures (thornspitter, dragon) attack with projectiles
  * - Buff monsters and the dragon have a telegraphed area attack
  *   (JungleSpecialAttacks)
  * - Gold/XP rewards on death; buff camps and the dragon grant buffs
@@ -83,7 +83,7 @@ export class ServerJungleCreature extends ServerEntity {
 
   /** Creatures that attack with projectiles, and how their projectiles look */
   private static readonly RANGED: Partial<Record<string, { projectileType: string; damageType: DamageType; speed: number }>> = {
-    gromp: { projectileType: 'jungle_spit', damageType: 'magic', speed: 600 },
+    thornspitter: { projectileType: 'jungle_spit', damageType: 'magic', speed: 600 },
     dragon: { projectileType: 'dragon_fire', damageType: 'magic', speed: 700 },
   };
 
@@ -128,9 +128,9 @@ export class ServerJungleCreature extends ServerEntity {
       return stats.collision.radius;
     }
     // Fallback based on creature type
-    if (this.creatureType === 'gromp' || this.creatureType === 'krug') {
+    if (this.creatureType === 'thornspitter') {
       return 30;
-    } else if (this.creatureType === 'dragon' || this.creatureType === 'baron') {
+    } else if (this.creatureType === 'dragon') {
       return 50;
     }
     return 20;
@@ -138,7 +138,7 @@ export class ServerJungleCreature extends ServerEntity {
 
   override getMass(): number {
     // Jungle creatures are heavier than minions
-    if (this.creatureType === 'dragon' || this.creatureType === 'baron') {
+    if (this.creatureType === 'dragon') {
       return 200;
     }
     return 80;

@@ -397,7 +397,7 @@ export function createTestArena(options: TestArenaOptions = {}): TestArena {
       return tower;
     },
 
-    addJungleCreature: (position, creatureType = 'gromp') => {
+    addJungleCreature: (position, creatureType = 'thornspitter') => {
       const creature = new ServerJungleCreature({
         id: `test-jungle-${jungleCreatureCounter++}`,
         position: position.clone(),

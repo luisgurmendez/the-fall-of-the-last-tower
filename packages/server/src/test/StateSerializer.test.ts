@@ -275,10 +275,10 @@ describe('StateSerializer', () => {
 
     it('should tell clients a jungle creature is neutral', () => {
       const creature = new ServerJungleCreature({
-        id: 'gromp-1',
+        id: 'thornspitter-1',
         position: new Vector(0, 0),
         campId: 'camp',
-        creatureType: 'gromp',
+        creatureType: 'thornspitter',
         homePosition: new Vector(0, 0),
       });
       const [delta] = serializer.createDeltaUpdates([creature], 'player-1', 1);

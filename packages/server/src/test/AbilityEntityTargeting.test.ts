@@ -66,7 +66,7 @@ describe('Warrior Abilities - Entity Targeting', () => {
     });
 
     test('should damage jungle creatures', () => {
-      const creature = arena.addJungleCreature(new Vector(150, 0), 'gromp');
+      const creature = arena.addJungleCreature(new Vector(150, 0), 'thornspitter');
       const initialHealth = creature.health;
 
       arena.castAbility(arena.blue, 'Q', {
@@ -144,7 +144,7 @@ describe('Warrior Abilities - Entity Targeting', () => {
     });
 
     test('should damage jungle creatures', () => {
-      const creature = arena.addJungleCreature(new Vector(250, 0), 'gromp');
+      const creature = arena.addJungleCreature(new Vector(250, 0), 'thornspitter');
       const initialHealth = creature.health;
 
       arena.castAbility(arena.blue, 'E', {
@@ -233,7 +233,7 @@ describe('Gorath Abilities - Entity Targeting', () => {
     });
 
     test('should damage jungle creatures', () => {
-      const creature = arena.addJungleCreature(new Vector(150, 0), 'gromp');
+      const creature = arena.addJungleCreature(new Vector(150, 0), 'thornspitter');
       const initialHealth = creature.health;
 
       arena.castAbility(arena.blue, 'Q', {
@@ -290,7 +290,7 @@ describe('Gorath Abilities - Entity Targeting', () => {
     });
 
     test('should affect jungle creatures', () => {
-      const creature = arena.addJungleCreature(new Vector(150, 0), 'gromp');
+      const creature = arena.addJungleCreature(new Vector(150, 0), 'thornspitter');
 
       arena.castAbility(arena.blue, 'E', {
         targetPosition: new Vector(0, 0),
@@ -354,7 +354,7 @@ describe('Gorath Abilities - Entity Targeting', () => {
     });
 
     test('should damage jungle creatures', () => {
-      const creature = arena.addJungleCreature(new Vector(200, 0), 'gromp');
+      const creature = arena.addJungleCreature(new Vector(200, 0), 'thornspitter');
       const initialHealth = creature.health;
 
       arena.castAbility(arena.blue, 'R', {
@@ -400,7 +400,7 @@ describe('Magnus Abilities - Entity Targeting', () => {
     });
 
     test('should damage jungle creatures', () => {
-      const creature = arena.addJungleCreature(new Vector(300, 0), 'gromp');
+      const creature = arena.addJungleCreature(new Vector(300, 0), 'thornspitter');
       const initialHealth = creature.health;
 
       arena.castAbility(arena.blue, 'Q', {
@@ -502,7 +502,7 @@ describe('Magnus Abilities - Entity Targeting', () => {
     });
 
     test('should damage jungle creatures over time', () => {
-      const creature = arena.addJungleCreature(new Vector(300, 0), 'gromp');
+      const creature = arena.addJungleCreature(new Vector(300, 0), 'thornspitter');
       // Keep creature in place
       // @ts-ignore
       creature['aiState'] = 'idle';
@@ -553,7 +553,7 @@ describe('Vex Abilities - Entity Targeting', () => {
     });
 
     test('should damage jungle creatures', () => {
-      const creature = arena.addJungleCreature(new Vector(300, 0), 'gromp');
+      const creature = arena.addJungleCreature(new Vector(300, 0), 'thornspitter');
       const initialHealth = creature.health;
 
       arena.castAbility(arena.blue, 'Q', {
@@ -622,7 +622,7 @@ describe('Champion-only targeted abilities', () => {
   });
 
   test('should fail to target jungle creature (affectsJungleCamps: false)', () => {
-    const creature = arena.addJungleCreature(new Vector(300, 0), 'gromp');
+    const creature = arena.addJungleCreature(new Vector(300, 0), 'thornspitter');
 
     const result = arena.castAbility(arena.blue, 'R', {
       targetPosition: creature.position.clone(),
@@ -1021,7 +1021,7 @@ describe('Jungle Creature - Ability Interactions', () => {
   });
 
   test('skillshots should damage jungle creatures', () => {
-    const creature = arena.addJungleCreature(new Vector(300, 0), 'gromp');
+    const creature = arena.addJungleCreature(new Vector(300, 0), 'thornspitter');
     const initialHealth = creature.health;
 
     arena.castAbility(arena.blue, 'Q', {
@@ -1041,7 +1041,7 @@ describe('Jungle Creature - Ability Interactions', () => {
       redPosition: new Vector(500, 0),
     });
 
-    const creature = gorathArena.addJungleCreature(new Vector(200, 0), 'gromp');
+    const creature = gorathArena.addJungleCreature(new Vector(200, 0), 'thornspitter');
     const initialHealth = creature.health;
 
     gorathArena.castAbility(gorathArena.blue, 'Q', {
@@ -1064,7 +1064,7 @@ describe('Jungle Creature - Ability Interactions', () => {
         redPosition: new Vector(500, 0),
       });
 
-      const creature = warriorArena.addJungleCreature(new Vector(300, 0), 'gromp');
+      const creature = warriorArena.addJungleCreature(new Vector(300, 0), 'thornspitter');
 
       const result = warriorArena.castAbility(warriorArena.blue, 'R', {
         targetPosition: creature.position.clone(),

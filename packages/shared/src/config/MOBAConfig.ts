@@ -113,9 +113,9 @@ export const MOBAConfig = {
         respawnTime: 120,
       },
       {
-        id: "blue_gromp",
+        id: "blue_thornspitter",
         position: new Vector(-980, -400),
-        creatureType: "gromp" as const,
+        creatureType: "thornspitter" as const,
         count: 1,
         respawnTime: 60,
       },
@@ -142,9 +142,9 @@ export const MOBAConfig = {
         respawnTime: 45,
       },
       {
-        id: "blue_gromp_2",
+        id: "blue_thornspitter_2",
         position: new Vector(-160, 760),
-        creatureType: "gromp" as const,
+        creatureType: "thornspitter" as const,
         count: 1,
         respawnTime: 60,
       },
@@ -158,9 +158,9 @@ export const MOBAConfig = {
         respawnTime: 120,
       },
       {
-        id: "red_gromp",
+        id: "red_thornspitter",
         position: new Vector(980, 400),
-        creatureType: "gromp" as const,
+        creatureType: "thornspitter" as const,
         count: 1,
         respawnTime: 60,
       },
@@ -186,9 +186,9 @@ export const MOBAConfig = {
         respawnTime: 45,
       },
       {
-        id: "red_gromp_2",
+        id: "red_thornspitter_2",
         position: new Vector(160, -760),
-        creatureType: "gromp" as const,
+        creatureType: "thornspitter" as const,
         count: 1,
         respawnTime: 60,
       },
@@ -207,7 +207,7 @@ export const MOBAConfig = {
      * Stats for each creature type.
      */
     CREATURE_STATS: {
-      gromp: {
+      thornspitter: {
         health: 500,
         damage: 30,
         attackRange: 200, // Spits from range
@@ -236,38 +236,6 @@ export const MOBAConfig = {
         collision: {
           type: "circle" as const,
           radius: 14,
-          offset: { x: 0, y: 0 },
-        },
-      },
-      raptor: {
-        health: 200,
-        damage: 20,
-        attackRange: 35,
-        attackCooldown: 1.2,
-        movementSpeed: 42,
-        sightRange: 220,
-        leashRange: 300,
-        goldReward: 40,
-        expReward: 30,
-        collision: {
-          type: "circle" as const,
-          radius: 10,
-          offset: { x: 0, y: 0 },
-        },
-      },
-      krug: {
-        health: 600,
-        damage: 35,
-        attackRange: 35,
-        attackCooldown: 1.8,
-        movementSpeed: 60,
-        sightRange: 150,
-        leashRange: 300,
-        goldReward: 90,
-        expReward: 55,
-        collision: {
-          type: "circle" as const,
-          radius: 22,
           offset: { x: 0, y: 0 },
         },
       },
@@ -316,22 +284,6 @@ export const MOBAConfig = {
         collision: {
           type: "circle" as const,
           radius: 40,
-          offset: { x: 0, y: 0 },
-        },
-      },
-      baron: {
-        health: 5000,
-        damage: 150,
-        attackRange: 100,
-        attackCooldown: 2.5,
-        movementSpeed: 40,
-        sightRange: 300,
-        leashRange: 450,
-        goldReward: 500,
-        expReward: 500,
-        collision: {
-          type: "circle" as const,
-          radius: 55,
           offset: { x: 0, y: 0 },
         },
       },

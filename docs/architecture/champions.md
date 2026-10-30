@@ -39,7 +39,7 @@ Ranges are sized to the bodies and to movement speed (about 60 units/s): a melee
 with its body almost touching the target's, and a ranged champion's range is a few seconds
 of walking. Current values: Vex and Warrior 40, Gorath 50, Vile 325 (40 during R),
 Elara 375, Magnus and Lume 400. Minions: melee 35, super 50, caster and siege 300. Towers
-450 (they see 600). Melee monsters 30-45, gromp 200, dragon 250.
+450 (they see 600). Melee monsters 30-45, thornspitter 200, dragon 250.
 
 ## Resource Types
 

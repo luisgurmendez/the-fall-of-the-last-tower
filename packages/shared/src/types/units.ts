@@ -34,8 +34,7 @@ export type UnitType =
   | 'inhibitor'
   | 'nexus'
   | 'jungle_camp'
-  | 'dragon'
-  | 'baron';
+  | 'dragon';
 
 /**
  * Damage types in the game.

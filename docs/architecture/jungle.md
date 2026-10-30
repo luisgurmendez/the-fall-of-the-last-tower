@@ -12,7 +12,7 @@ Each team has six camps, two quadrants with three camps each, plus the dragon in
 |----------|------|-------|
 | `blue_buff` | 1 per side | Drops Crest of Insight |
 | `red_buff` | 1 per side | Drops Crest of Cinders |
-| `gromp` | 2 per side | Ranged (spits) |
+| `thornspitter` | 2 per side | Ranged (spits) |
 | `wolf` | 2 wolves | |
 | `spider` | 3 spiders | |
 | `dragon` | river, respawns in 300s | Ranged (fire); team buff |
@@ -25,7 +25,7 @@ Creatures are neutral monsters:
 - **Camp-wide aggro.** Hitting one creature makes every creature in that camp fight the attacker.
 - **Sticky targets.** A creature keeps attacking whoever hit it first. When that target dies or leaves the leash area, it switches to the closest other champion that damaged it in the last few seconds.
 - **Reset.** A creature resets when it is pulled more than `leashRange` from home, when it has no valid target, or when it is kited (no damage taken for 5s while its target is out of reach). It then walks home along a path around walls. It can't be damaged on the way and regains 30% of its health per second. It is back to full health when it arrives.
-- **Ranged creatures** (gromp and dragon) attack with projectiles (`jungle_spit`, `dragon_fire`). The others hit instantly.
+- **Ranged creatures** (thornspitter and dragon) attack with projectiles (`jungle_spit`, `dragon_fire`). The others hit instantly.
 - **Special attacks.** Buff monsters and the dragon have a telegraphed area attack, see below.
 - Minions and towers never attack jungle creatures.
 - **Side 2.** Creatures have side 2 (neutral) on the server and in their snapshot. The client's
@@ -79,7 +79,7 @@ Each spawned creature type has its own monster, designed for Siege:
 |------|---------|--------|
 | `wolf` | Cinder Hound: a dark hound with smoldering ember cracks | 80 px |
 | `spider` | Gloom Crawler: a small purple cave spider | 64 px |
-| `gromp` | Thornspitter: a carnivorous plant that spits | 84 px |
+| `thornspitter` | Thornspitter: a carnivorous plant that spits | 84 px |
 | `blue_buff` | Azure Warden: an ancient tortoise with a blue crystal shell | 124 px |
 | `red_buff` | Ember Brute: a hunched brute of molten rock | 132 px |
 | `dragon` | Dragon: purple scales, folded wings, glowing belly | 164 px |
@@ -92,8 +92,8 @@ wind-up holds the attack's gathering pose. Bars, name plates and the aura are pl
 the art's measured top and width, so they fit any monster size. Buffs and the dragon also
 get a pulsing aura and a name plate ("Azure Warden", "Ember Brute", "Dragon").
 
-The strips come from PixelLab, made by `scripts/generate-monster-sprites.ts` (each
-monster's description, canvas and animation prompts are in `MONSTERS` there):
+The strips come from PixelLab, made by `scripts/generate-sprites.ts` (each
+monster's description, canvas and animation prompts are in `SPRITE_SETS` there):
 
 - A character per monster (`create-character-v3`, 8 directions; only east is used).
 - Idle from a description (`v3` mode), the attack on PixMiniMax (8 frames), and the run
@@ -102,7 +102,7 @@ monster's description, canvas and animation prompts are in `MONSTERS` there):
 - The frames are laid on one square canvas per monster with every animation's feet on
   the idle's row, so switching animations doesn't make the monster jump.
 
-`scripts/monster-sprites.json` keeps the PixelLab character and animation ids; a run
+`scripts/sprites.json` keeps the PixelLab character and animation ids; a run
 only generates what's missing (`--redo attack --seed 8` regenerates an animation with another seed). `public/` is
 not in git, so a machine without the strips draws the older looks: the shared bear and
 spider sprites with a color filter per type.

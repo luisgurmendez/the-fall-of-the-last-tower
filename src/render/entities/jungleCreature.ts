@@ -3,7 +3,7 @@
  *
  * Each creature type has idle, run and attack sprite strips: square frames
  * side by side, facing right (mirrored when the creature faces left). The
- * monsters' strips are made by scripts/generate-monster-sprites.ts; until a
+ * monsters' strips are made by scripts/generate-sprites.ts; until a
  * machine has them, a creature falls back to the older recolored look.
  */
 
@@ -32,7 +32,7 @@ interface SpriteSet {
   attack: string;
 }
 
-/** Strips made by scripts/generate-monster-sprites.ts */
+/** Strips made by scripts/generate-sprites.ts */
 function monsterSprites(creatureType: string): SpriteSet {
   const dir = `/assets/sprites/monsters/${creatureType}`;
   return { idle: `${dir}/idle.png`, run: `${dir}/run.png`, attack: `${dir}/attack.png` };
@@ -68,7 +68,7 @@ interface CreatureLook {
 const OLD_LOOKS: Record<string, CreatureLook> = {
   spider: { sprites: SPIDER, scale: 0.4 },
   wolf: { sprites: BEAR, scale: 0.3, filter: "grayscale(0.7) brightness(0.85)" },
-  gromp: { sprites: BEAR, scale: 0.38, filter: "hue-rotate(70deg) saturate(1.3)" },
+  thornspitter: { sprites: BEAR, scale: 0.38, filter: "hue-rotate(70deg) saturate(1.3)" },
   blue_buff: { sprites: BEAR, scale: 0.55, filter: "hue-rotate(185deg) saturate(1.5)" },
   red_buff: { sprites: BEAR, scale: 0.55, filter: "hue-rotate(-25deg) saturate(2) brightness(0.95)" },
   dragon: { sprites: BEAR, scale: 0.85, filter: "hue-rotate(250deg) saturate(1.7)" },
@@ -79,8 +79,7 @@ const CREATURE_LOOKS: Record<string, CreatureLook> = {
   wolf: { sprites: monsterSprites("wolf"), scale: 0.83, fallback: OLD_LOOKS.wolf },
   // Gloom Crawler
   spider: { sprites: monsterSprites("spider"), scale: 0.85, fallback: OLD_LOOKS.spider },
-  // Thornspitter
-  gromp: { sprites: monsterSprites("gromp"), scale: 1, fallback: OLD_LOOKS.gromp },
+  thornspitter: { sprites: monsterSprites("thornspitter"), scale: 1, fallback: OLD_LOOKS.thornspitter },
   blue_buff: {
     sprites: monsterSprites("blue_buff"),
     scale: 0.78,
@@ -206,7 +205,7 @@ export function renderJungleCamp(
   state: EntityRenderState,
   rc: EntityRenderContext,
 ): void {
-  const creatureType = (snapshot as any).creatureType || "gromp";
+  const creatureType = (snapshot as any).creatureType || "thornspitter";
   const look = resolveLook(creatureType);
 
   // Winding up a special attack (JungleSpecialAttacks): from 0 to 1 when it lands
