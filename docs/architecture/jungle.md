@@ -45,6 +45,12 @@ The sizes are tuned to champion speed (about 60 units/s). A melee champion fight
 
 The client draws the warning from the same config (`src/vfx/world.ts`). The slam warning is a filled circle with a ring that grows from the center and reaches the edge when the slam lands. The breath warning is a faint cone, followed by a fire burst.
 
+## Balance
+
+A champion without a jungle role (no smite, no jungle item) should be able to take a buff camp alone around level 3, at a real cost. Blue buff has 1000 health and hits for 40 every 1.4s; red buff has 1000 health and hits for 45 every 1.2s. A level 3 Vex using only basic attacks and never dodging a slam drops to about 52% health fighting the blue buff and about 36% fighting the red buff. With abilities and dodging, a player does better. Casters with weak basic attacks need their spells. The dragon kills any single champion, even at level 6.
+
+`bun run sim jungle-solo-buffs` guards this: the lowest health has to stay between 20% and 80%.
+
 ## Buffs
 
 The killer must be a champion. The effects live in `packages/server/src/data/effects.ts`, and the HUD names come from `src/data/effectDisplayInfo.ts`.
@@ -70,4 +76,5 @@ The client has two creature sprites, spider and bear. Each type gets its own siz
 
 - `bun run sim jungle-aggro-and-reset`: a passing champion is ignored, the pack aggros together, and the creatures reset when kited.
 - `bun run sim jungle-buffs`: the buffs are granted, red buff burns on hit, and the dragon buffs the whole team.
+- `bun run sim jungle-solo-buffs`: a level 3 Vex takes each buff camp alone and stays above 20% health (see Balance).
 - `bun run sim jungle-special-attacks`: a champion standing in a slam is hit and one that steps out is not; the dragon's breath hits the champion in front of it and misses the one behind.

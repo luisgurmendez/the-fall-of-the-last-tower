@@ -271,8 +271,8 @@ export const MOBAConfig = {
         },
       },
       blue_buff: {
-        health: 1200,
-        damage: 50,
+        health: 1000,
+        damage: 40,
         attackRange: 100,
         attackCooldown: 1.4,
         movementSpeed: 80,
@@ -287,8 +287,8 @@ export const MOBAConfig = {
         },
       },
       red_buff: {
-        health: 1200,
-        damage: 60,
+        health: 1000,
+        damage: 45,
         attackRange: 80,
         attackCooldown: 1.2,
         movementSpeed: 80,

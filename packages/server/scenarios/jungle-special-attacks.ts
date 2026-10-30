@@ -8,13 +8,9 @@ import { defineScenario } from '../src/sim';
 import type { Simulation } from '../src/sim';
 import type { ServerJungleCreature } from '../src/simulation/ServerJungleCreature';
 
-function creature(sim: Simulation, creatureType: string, campId: string): ServerJungleCreature {
-  const found = sim.context.getAllEntities().find(e => {
-    const c = e as unknown as ServerJungleCreature;
-    return c.creatureType === creatureType && c.campId === campId && !e.isDead;
-  });
-  if (!found) throw new Error(`No ${creatureType} in ${campId}`);
-  return found as unknown as ServerJungleCreature;
+function creature(sim: Simulation, campId: string): ServerJungleCreature | undefined {
+  return sim.context.getAllEntities().find(e => (e as unknown as ServerJungleCreature).campId === campId && !e.isDead) as
+    ServerJungleCreature | undefined;
 }
 
 /** Champions that were ever slowed by a monster's special attack */
@@ -32,7 +28,7 @@ export default defineScenario({
     dodging = false;
     dodges = 0;
     sim.addChampion({ playerId: 'tank', championId: 'vex', side: 'blue', at: { x: -620, y: -150 }, level: 6 });
-    sim.addChampion({ playerId: 'dodger', championId: 'vex', side: 'blue', at: { x: 400, y: 820 }, level: 6 });
+    sim.addChampion({ playerId: 'dodger', championId: 'vex', side: 'blue', at: { x: 400, y: 820 }, level: 3 });
     sim.addChampion({ playerId: 'front', championId: 'vile', side: 'red', at: { x: 470, y: 720 }, level: 6 });
     sim.addChampion({ playerId: 'behind', championId: 'vile', side: 'red', at: { x: 900, y: 720 }, level: 6 });
 
@@ -43,7 +39,8 @@ export default defineScenario({
       }
 
       // The dodger walks out of the red buff's slam whenever it winds up
-      const redBuff = creature(s, 'red_buff', 'blue_redbuff');
+      const redBuff = creature(s, 'blue_redbuff');
+      if (!redBuff) return;
       if (redBuff.isWindingUp() && !dodging) {
         dodging = true;
         dodges++;
@@ -56,9 +53,9 @@ export default defineScenario({
   },
   steps: [
     { at: 0.5, note: 'tank attacks blue buff, dodger attacks red buff, front attacks the dragon', run: sim => {
-      sim.attack('tank', creature(sim, 'blue_buff', 'blue_bluebuff').id);
-      sim.attack('dodger', creature(sim, 'red_buff', 'blue_redbuff').id);
-      sim.attack('front', creature(sim, 'dragon', 'dragon').id);
+      sim.attack('tank', creature(sim, 'blue_bluebuff')!.id);
+      sim.attack('dodger', creature(sim, 'blue_redbuff')!.id);
+      sim.attack('front', creature(sim, 'dragon')!.id);
     } },
   ],
   view: { center: { x: 300, y: 450 }, size: 1700 },
