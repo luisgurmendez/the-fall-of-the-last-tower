@@ -2,9 +2,24 @@
  * ChampionHUD - Reusable HUD component for displaying champion information.
  *
  * Layout:
- * [Stats Panel] [Portrait] [Abilities Panel] [Items Grid]
- *                          [  Health Bar   ]
- *                          [  Mana Bar     ]
+ *                                                        [ Buffs, Effects ]
+ * [Stats Panel] [Portrait] [Passive] [Abilities Panel] [Items Grid] [Ward]
+ *               [XP Bar  ]           [  Health Bar   ] [   Gold   ]
+ *                                    [  Mana Bar     ]
+ *
+ * ChampionHUD is the coordinator: it owns the HUDContext (config, hover
+ * state, hit-test caches, animation state), detects hover and level-up clicks
+ * in step(), and positions and draws the panels in render(). The panels live
+ * in src/ui/hud/:
+ * - layout.ts: colors, panel dimensions, section sizes and hit tests
+ * - types.ts: HUD data interfaces (re-exported here) and the HUDContext
+ * - statsPanel.ts, portrait.ts: stat columns; portrait, level badge and XP bar
+ * - abilityBar.ts, resourceBars.ts: passive and ability boxes, level-up
+ *   buttons; health and resource bars
+ * - items.ts: item slots, gold count and ward trinket
+ * - effectIcons.ts: buff and active effect rows
+ * - tooltips.ts, tooltipText.ts: hover tooltips and their text helpers
+ * - rangePreview.ts: range preview for the hovered ability
  */
 
 import { ScreenEntity } from '@/core/GameObject';

@@ -140,7 +140,8 @@ src/
 ├── sprites/             # Sprite system
 ├── types/               # Common type definitions
 ├── ui/                  # UI components
-│   ├── ChampionHUD.ts   # HUD display
+│   ├── ChampionHUD.ts   # HUD display (coordinator: state, hover, layout)
+│   ├── hud/             # HUD panels, tooltips, layout constants and types
 │   ├── matchmaking/     # Matchmaking UI
 │   └── shop/            # Shop UI
 ├── utils/               # Utility functions

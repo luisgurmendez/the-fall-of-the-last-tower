@@ -108,7 +108,7 @@
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
     <section id="hud">
       <h2 class="text-2xl font-bold text-white mb-2">HUD Components</h2>
-      <p class="file-path mb-6">src/ui/ChampionHUD.ts</p>
+      <p class="file-path mb-6">src/ui/ChampionHUD.ts, src/ui/hud/</p>
 
       <!-- Full HUD Layout -->
       <div class="mb-8">
@@ -1282,17 +1282,17 @@
             </tr>
           </thead>
           <tbody class="text-gray-300">
-            <tr class="border-b border-gray-800"><td class="py-2 px-3">Stats Panel</td><td class="py-2 px-3"><code class="code-name">drawStatsPanel()</code></td><td class="py-2 px-3 text-gray-500">ChampionHUD.ts</td><td class="py-2 px-3">140×140px</td></tr>
-            <tr class="border-b border-gray-800"><td class="py-2 px-3">Portrait Panel</td><td class="py-2 px-3"><code class="code-name">drawPortraitPanel()</code></td><td class="py-2 px-3 text-gray-500">ChampionHUD.ts</td><td class="py-2 px-3">110×110px</td></tr>
-            <tr class="border-b border-gray-800"><td class="py-2 px-3">Passive Box</td><td class="py-2 px-3"><code class="code-name">drawPassivePanel()</code></td><td class="py-2 px-3 text-gray-500">ChampionHUD.ts</td><td class="py-2 px-3">52×52px</td></tr>
-            <tr class="border-b border-gray-800"><td class="py-2 px-3">Abilities Panel</td><td class="py-2 px-3"><code class="code-name">drawAbilitiesPanel()</code></td><td class="py-2 px-3 text-gray-500">ChampionHUD.ts</td><td class="py-2 px-3">280×80px</td></tr>
-            <tr class="border-b border-gray-800"><td class="py-2 px-3">Ability Box</td><td class="py-2 px-3"><code class="code-name">PANEL.abilityBoxSize</code></td><td class="py-2 px-3 text-gray-500">ChampionHUD.ts</td><td class="py-2 px-3">64×64px</td></tr>
-            <tr class="border-b border-gray-800"><td class="py-2 px-3">Health Bar</td><td class="py-2 px-3"><code class="code-name">PANEL.barHeight</code></td><td class="py-2 px-3 text-gray-500">ChampionHUD.ts</td><td class="py-2 px-3">28px height</td></tr>
-            <tr class="border-b border-gray-800"><td class="py-2 px-3">Items Panel</td><td class="py-2 px-3"><code class="code-name">drawItemsPanel()</code></td><td class="py-2 px-3 text-gray-500">ChampionHUD.ts</td><td class="py-2 px-3">170×120px</td></tr>
-            <tr class="border-b border-gray-800"><td class="py-2 px-3">Item Box</td><td class="py-2 px-3"><code class="code-name">PANEL.itemBoxSize</code></td><td class="py-2 px-3 text-gray-500">ChampionHUD.ts</td><td class="py-2 px-3">48×48px</td></tr>
-            <tr class="border-b border-gray-800"><td class="py-2 px-3">Ward Panel</td><td class="py-2 px-3"><code class="code-name">PANEL.wardBoxSize</code></td><td class="py-2 px-3 text-gray-500">ChampionHUD.ts</td><td class="py-2 px-3">48×48px</td></tr>
-            <tr class="border-b border-gray-800"><td class="py-2 px-3">Buff Icon</td><td class="py-2 px-3"><code class="code-name">PANEL.buffSize</code></td><td class="py-2 px-3 text-gray-500">ChampionHUD.ts</td><td class="py-2 px-3">32×32px</td></tr>
-            <tr class="border-b border-gray-800"><td class="py-2 px-3">Effect Icon</td><td class="py-2 px-3"><code class="code-name">PANEL.effectSize</code></td><td class="py-2 px-3 text-gray-500">ChampionHUD.ts</td><td class="py-2 px-3">36×36px</td></tr>
+            <tr class="border-b border-gray-800"><td class="py-2 px-3">Stats Panel</td><td class="py-2 px-3"><code class="code-name">drawStatsPanel()</code></td><td class="py-2 px-3 text-gray-500">hud/statsPanel.ts</td><td class="py-2 px-3">140×140px</td></tr>
+            <tr class="border-b border-gray-800"><td class="py-2 px-3">Portrait Panel</td><td class="py-2 px-3"><code class="code-name">drawPortraitPanel()</code></td><td class="py-2 px-3 text-gray-500">hud/portrait.ts</td><td class="py-2 px-3">110×110px</td></tr>
+            <tr class="border-b border-gray-800"><td class="py-2 px-3">Passive Box</td><td class="py-2 px-3"><code class="code-name">drawPassivePanel()</code></td><td class="py-2 px-3 text-gray-500">hud/abilityBar.ts</td><td class="py-2 px-3">52×52px</td></tr>
+            <tr class="border-b border-gray-800"><td class="py-2 px-3">Abilities Panel</td><td class="py-2 px-3"><code class="code-name">drawAbilitiesPanel()</code></td><td class="py-2 px-3 text-gray-500">hud/abilityBar.ts</td><td class="py-2 px-3">280×80px</td></tr>
+            <tr class="border-b border-gray-800"><td class="py-2 px-3">Ability Box</td><td class="py-2 px-3"><code class="code-name">PANEL.abilityBoxSize</code></td><td class="py-2 px-3 text-gray-500">hud/layout.ts</td><td class="py-2 px-3">64×64px</td></tr>
+            <tr class="border-b border-gray-800"><td class="py-2 px-3">Health Bar</td><td class="py-2 px-3"><code class="code-name">PANEL.barHeight</code></td><td class="py-2 px-3 text-gray-500">hud/layout.ts</td><td class="py-2 px-3">28px height</td></tr>
+            <tr class="border-b border-gray-800"><td class="py-2 px-3">Items Panel</td><td class="py-2 px-3"><code class="code-name">drawItemsPanel()</code></td><td class="py-2 px-3 text-gray-500">hud/items.ts</td><td class="py-2 px-3">170×120px</td></tr>
+            <tr class="border-b border-gray-800"><td class="py-2 px-3">Item Box</td><td class="py-2 px-3"><code class="code-name">PANEL.itemBoxSize</code></td><td class="py-2 px-3 text-gray-500">hud/layout.ts</td><td class="py-2 px-3">48×48px</td></tr>
+            <tr class="border-b border-gray-800"><td class="py-2 px-3">Ward Panel</td><td class="py-2 px-3"><code class="code-name">PANEL.wardBoxSize</code></td><td class="py-2 px-3 text-gray-500">hud/layout.ts</td><td class="py-2 px-3">48×48px</td></tr>
+            <tr class="border-b border-gray-800"><td class="py-2 px-3">Buff Icon</td><td class="py-2 px-3"><code class="code-name">PANEL.buffSize</code></td><td class="py-2 px-3 text-gray-500">hud/layout.ts</td><td class="py-2 px-3">32×32px</td></tr>
+            <tr class="border-b border-gray-800"><td class="py-2 px-3">Effect Icon</td><td class="py-2 px-3"><code class="code-name">PANEL.effectSize</code></td><td class="py-2 px-3 text-gray-500">hud/layout.ts</td><td class="py-2 px-3">36×36px</td></tr>
             <tr class="border-b border-gray-800"><td class="py-2 px-3">Minimap</td><td class="py-2 px-3"><code class="code-name">OnlineMinimap</code></td><td class="py-2 px-3 text-gray-500">OnlineMinimap.ts</td><td class="py-2 px-3">200×200px</td></tr>
             <tr class="border-b border-gray-800"><td class="py-2 px-3">Champion (world)</td><td class="py-2 px-3"><code class="code-name">renderChampion()</code></td><td class="py-2 px-3 text-gray-500">EntityRenderer.ts</td><td class="py-2 px-3">40px radius</td></tr>
             <tr class="border-b border-gray-800"><td class="py-2 px-3">World Health Bar</td><td class="py-2 px-3"><code class="code-name">renderHealthBar()</code></td><td class="py-2 px-3 text-gray-500">EntityRenderer.ts</td><td class="py-2 px-3">6px height</td></tr>
