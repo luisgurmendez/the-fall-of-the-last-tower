@@ -12,18 +12,6 @@ import { getItemIcon, getItemCategoryColor } from '@/ui/hud/items';
 import { wrapText, interpolateAbilityDescription, formatTriggerType, formatBuffName } from '@/ui/hud/tooltipText';
 import type { EquippedItem, HUDActiveEffect, HUDChampionData, HUDPassive } from '@/ui/hud/types';
 
-/** Get ability cooldown (placeholder - should come from ability) */
-function getAbilityCooldown(slot: 'Q' | 'W' | 'E' | 'R'): number {
-  // TODO: Get actual cooldown from ability
-  switch (slot) {
-    case 'Q': return 6;
-    case 'W': return 12;
-    case 'E': return 4;
-    case 'R': return 70;
-    default: return 10;
-  }
-}
-
 /** Draw ability tooltip above the ability box */
 export function drawAbilityTooltip(
   ctx: CanvasRenderingContext2D,
@@ -144,15 +132,17 @@ export function drawAbilityTooltip(
     );
   }
 
-  // Cooldown info (right aligned)
-  const cooldown = getAbilityCooldown(slot);
-  RenderUtils.renderBitmapText(
-    ctx,
-    `CD: ${cooldown}s`,
-    clampedX + tooltipWidth - padding,
-    currentY,
-    { color: '#AAAAAA', size: 20, shadow: false, rightAlign: true }
-  );
+  // Cooldown at the current rank (rank 1 before it's learned), right aligned
+  const cooldown = ability.definition?.cooldown?.[Math.max(0, rank - 1)] ?? 0;
+  if (cooldown > 0) {
+    RenderUtils.renderBitmapText(
+      ctx,
+      `CD: ${cooldown}s`,
+      clampedX + tooltipWidth - padding,
+      currentY,
+      { color: '#AAAAAA', size: 20, shadow: false, rightAlign: true }
+    );
+  }
 
   ctx.restore();
 }
