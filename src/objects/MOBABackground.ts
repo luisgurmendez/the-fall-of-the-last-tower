@@ -9,7 +9,7 @@
  * - Lane paths and jungle areas
  */
 
-import GameContext from "@/core/gameContext";
+import type GameContext from "@/core/gameContext";
 import Vector from "@/physics/vector";
 import RenderElement from "@/render/renderElement";
 import BaseObject from "./baseObject";

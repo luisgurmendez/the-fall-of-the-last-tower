@@ -5,7 +5,7 @@
  */
 
 import Vector from '@/physics/vector';
-import GameContext from '@/core/gameContext';
+import type GameContext from '@/core/gameContext';
 import BaseObject from '@/objects/baseObject';
 import RenderElement from '@/render/renderElement';
 

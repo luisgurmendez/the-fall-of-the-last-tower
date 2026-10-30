@@ -11,7 +11,7 @@
  */
 
 import Vector from '@/physics/vector';
-import GameContext from '@/core/gameContext';
+import type GameContext from '@/core/gameContext';
 import { LogicEntity } from '@/core/GameObject';
 import { Initializable } from '@/behaviors/initializable';
 import { MOBAConfig, MapSide } from '@siege/shared';

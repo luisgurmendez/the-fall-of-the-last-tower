@@ -11,7 +11,7 @@ import Vector from '@/physics/vector';
 import { TeamId } from '@/core/Team';
 import { TrinketDefinition, TRINKET_DEFINITIONS, WardType } from './types';
 import { Ward } from './Ward';
-import GameContext from '@/core/gameContext';
+import type GameContext from '@/core/gameContext';
 
 /**
  * Trinket state.

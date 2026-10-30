@@ -16,7 +16,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "circular": "madge --circular --extensions ts src/*",
+    "circular": "madge --circular --extensions ts --ts-config tsconfig.json src",
     "test:packages": "npm run test --workspaces --if-present"
   },
   "dependencies": {

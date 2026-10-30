@@ -12,7 +12,7 @@ import Vector from '@/physics/vector';
 import { TeamId, TEAM } from '@/core/Team';
 import { FogRevealer } from '@/core/FogOfWar';
 import { WardDefinition, WardType, WARD_DEFINITIONS } from './types';
-import GameContext from '@/core/gameContext';
+import type GameContext from '@/core/gameContext';
 import Disposable from '@/behaviors/disposable';
 import Renderable from '@/behaviors/renderable';
 import Stepable from '@/behaviors/stepable';

@@ -15,7 +15,7 @@ import { BushGroup } from './BushGroup';
 import type { IGameUnit } from './index';
 import { TeamId } from '@/core/Team';
 import { Ward } from '@/objects/ward';
-import GameContext from '@/core/gameContext';
+import type GameContext from '@/core/gameContext';
 
 /**
  * Result of a visibility check.

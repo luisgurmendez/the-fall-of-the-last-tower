@@ -10,7 +10,7 @@
 
 import Vector from '@/physics/vector';
 import { WorldEntity } from '@/core/GameObject';
-import GameContext from '@/core/gameContext';
+import type GameContext from '@/core/gameContext';
 import RenderElement from '@/render/renderElement';
 import ImageSpriteSheet from '@/sprites/ImageSpriteSheet';
 import { TeamId, TEAM } from '@/core/Team';
