@@ -123,9 +123,10 @@ src/
 ├── core/                # Core game systems
 │   ├── events/          # Event system (EventEmitter, GameEvents)
 │   ├── input/           # Input handling (InputManager, OnlineInputHandler)
+│   ├── state/           # OnlineStateManager's parts: deltas, game events, entity VFX, floating numbers, ...
 │   ├── camera.ts        # Camera with zoom/pan
 │   ├── OnlineGame.ts    # Multiplayer game class
-│   ├── OnlineStateManager.ts  # Server state tracking
+│   ├── OnlineStateManager.ts  # Server state tracking (coordinator, owns the entity map)
 │   ├── gameContext.ts   # Per-frame game state
 │   └── level.ts         # Level management
 ├── levels/              # Level definitions
@@ -179,6 +180,13 @@ Tracks and interpolates server state for smooth rendering:
 - Stores entity snapshots from server
 - Interpolates positions between server updates
 - Provides local player entity access
+
+It owns the entity map and delegates to `src/core/state/`: `deltas.ts` (snapshot
+and delta merging), `gameEvents.ts` (game events → animations, VFX, floating
+numbers, announcements), `entityVFX.ts` (death/respawn/level-up VFX),
+`entities.ts` (entity record, interpolation, animation queries) and the stores
+the renderers read (`abilityEffects.ts`, `floatingNumbers.ts`, `campTimers.ts`,
+`announcements.ts`). See [docs/architecture/infrastructure.md](docs/architecture/infrastructure.md).
 
 ### 3. Online Input Handler (`src/core/input/OnlineInputHandler.ts`)
 

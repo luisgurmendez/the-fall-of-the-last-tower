@@ -91,8 +91,23 @@ interface InterpolatedEntity {
   position: Vector;            // Current interpolated position
   previousPosition: Vector;    // For interpolation
   lastUpdateTime: number;      // When last updated
+  animation: EntityAnimationState; // Attack/cast animation from events
 }
 ```
+
+`OnlineStateManager` owns the entity map, game time and the local player, and
+hands the work to modules in `src/core/state/`:
+
+| Module | Does |
+|--------|------|
+| `deltas.ts` | Merges full snapshots and entity deltas into the entity map (`null` clears a field, absent means no change) |
+| `gameEvents.ts` | Turns game events into animations, ability effects and VFX, hit sparks, floating numbers, camp timers and announcements |
+| `entityVFX.ts` | Death, respawn, level up and recall VFX from entity deltas |
+| `entities.ts` | `InterpolatedEntity`, interpolation and animation queries |
+| `abilityEffects.ts` | Legacy ability effect shapes and colors |
+| `floatingNumbers.ts`, `campTimers.ts`, `announcements.ts` | The numbers, camp timers and messages the renderers and HUD read |
+
+For each `STATE_UPDATE` it applies the deltas first, then the events, in order.
 
 ### Input Handler (`src/core/input/OnlineInputHandler.ts`)
 
@@ -143,6 +158,7 @@ Captures player input and sends to server:
 | `packages/server/src/network/BunWebSocketServer.ts` | WebSocket server |
 | `src/core/OnlineGame.ts` | Client multiplayer game |
 | `src/core/OnlineStateManager.ts` | Client state tracking |
+| `src/core/state/` | Delta merging, game event handling and other client state modules |
 
 ## Scalability Considerations
 

@@ -423,6 +423,9 @@ Ping sent every 5 seconds to maintain connection and measure latency.
 | `packages/server/src/network/ReliableEventQueue.ts` | Reliable delivery |
 | `packages/server/src/network/InputHandler.ts` | Input validation |
 | `packages/client/src/network/NetworkClient.ts` | Client networking |
+| `src/core/OnlineStateManager.ts` | Client state: applies full state, deltas and events |
+| `src/core/state/deltas.ts` | Client: merges snapshots and deltas into the entity map |
+| `src/core/state/gameEvents.ts` | Client: turns game events into effects |
 
 ## Error Handling
 

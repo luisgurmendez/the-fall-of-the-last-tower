@@ -112,7 +112,8 @@ because importing `VFXRegistry.ts` from them would be an import cycle.
 
 **The lookup key is the ability ID.** The server's `ABILITY_CAST` event carries
 the ability's definition ID (`champion.definition.abilities[slot]`, for example
-`lume_q`), and `OnlineStateManager` passes it unchanged to `spawnAbilityVFX`.
+`lume_q`), and `OnlineStateManager` passes it unchanged to `spawnAbilityVFX`
+(the event handlers are in `src/core/state/gameEvents.ts`).
 There is no alias table, so a definition's `abilityId` must be the ability ID
 from `CHAMPION_DEFINITIONS`; VFX registered under any other key never plays.
 `packages/client/src/test/ChampionClientContract.test.ts` checks every
@@ -352,8 +353,13 @@ class EntityRenderer {
 
 ### OnlineStateManager
 
+`OnlineStateManager` hands each game event to `processGameEvent`
+(`src/core/state/gameEvents.ts`), which spawns ability VFX and hit sparks.
+Death, respawn, level up and recall VFX come from entity deltas, in
+`src/core/state/entityVFX.ts`.
+
 ```typescript
-// src/core/OnlineStateManager.ts
+// src/core/state/gameEvents.ts
 import { getVFXManager } from '@/vfx';
 
 // On ability cast event
@@ -451,10 +457,12 @@ vfxManager.clear();
 | `src/vfx/champions/<championId>.ts` | One champion's ability VFX definitions |
 | `src/vfx/effects/VFXPrimitives.ts` | Drawing functions |
 | `src/vfx/index.ts` | Module exports |
+| `src/core/state/gameEvents.ts` | Spawns ability VFX and hit sparks from game events |
+| `src/core/state/entityVFX.ts` | Spawns death, respawn, level up and recall VFX from entity deltas |
 
 ## World VFX
 
-Defined in `src/vfx/world.ts` (keys in `WORLD_VFX`). They use the same phase-based definitions as ability VFX. `OnlineStateManager` spawns them from events and state changes:
+Defined in `src/vfx/world.ts` (keys in `WORLD_VFX`). They use the same phase-based definitions as ability VFX. `OnlineStateManager` spawns them from events (`src/core/state/gameEvents.ts`) and state changes (`src/core/state/entityVFX.ts`):
 
 | Key | When |
 |-----|------|
@@ -470,7 +478,7 @@ Drawn directly by renderers rather than as VFX definitions:
 - **Recall channel** (`ChampionRenderer.renderRecallChannel`): a ground ring that fills over the recall, with rising motes.
 - **Jungle buff auras** (`ChampionRenderer.renderJungleBuffAuras`): a ring at the feet of any champion holding a buff, so everyone can see who has it. Crest of Insight is a blue ring with orbiting sparks; Crest of Cinders is a red-orange ring with sparks and rising embers. A champion with both shows the red ring outside the blue one.
 - **Tower lock-on** (`renderTower`): a pulsing dashed line and reticle while an enemy tower shoots the local champion.
-- **Announcements** (`AnnouncementBanner`, fed by `OnlineStateManager`): champion kills ("You have slain an enemy!" / "You have been slain!" / "First Blood!"), towers destroyed, dragon slain, and the match result.
+- **Announcements** (`AnnouncementBanner`, fed by `OnlineStateManager`; the texts are in `src/core/state/gameEvents.ts`): champion kills ("You have slain an enemy!" / "You have been slain!" / "First Blood!"), towers destroyed, dragon slain, and the match result.
 - **Screen shake** (`src/core/screenShake.ts`): a decaying jitter on top of the camera transform. It's triggered when a tower falls, when the nexus falls (stronger), and when the local champion takes a hit over 15% of its health.
 - **Low-health vignette** (`LowHealthVignette`): red screen edges below 30% health, pulsing faster as health drops.
 - **Status icons** (`statusIndicators.ts`): knockup, root, silence, slows, burn and the jungle buffs.
