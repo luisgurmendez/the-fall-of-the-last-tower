@@ -24,7 +24,7 @@ import { BotDriver } from '../bots/BotDriver';
 import type { BotController } from '../bots/BotController';
 import { StateSerializer } from '../network/StateSerializer';
 import { ReliableEventQueue, shouldSendReliably } from '../network/ReliableEventQueue';
-import type { ClientInput } from '@siege/shared';
+import type { ClientInput, FinalPlayerStats } from '@siege/shared';
 import { Logger } from '../utils/Logger';
 
 export interface PlayerInfo {
@@ -331,6 +331,24 @@ export class GameRoom {
    */
   getPlayerIds(): string[] {
     return Array.from(this.players.keys());
+  }
+
+  /**
+   * Every champion's final stats, for the end-of-match scoreboard.
+   */
+  getFinalStats(): FinalPlayerStats[] {
+    return this.context.getAllChampions().map(champion => ({
+      playerId: champion.playerId,
+      championId: champion.definition.id,
+      side: champion.side,
+      level: champion.level,
+      kills: champion.kills,
+      deaths: champion.deaths,
+      assists: champion.assists,
+      cs: champion.cs,
+      gold: Math.floor(champion.gold),
+      items: champion.items.map(item => item?.definitionId ?? null),
+    }));
   }
 
   /**

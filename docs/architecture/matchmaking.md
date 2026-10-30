@@ -128,7 +128,7 @@ select uses this (the bot gets a random enabled champion). See [simulation.md](s
 
 ## Game End
 
-`GameRoom.checkWinConditions` ends the match when a nexus dies: it broadcasts the final state, then sends `GAME_END` with the winning side. The client shows VICTORY or DEFEAT with the match length for 5 seconds, then returns to the menu.
+`GameRoom.checkWinConditions` ends the match when a nexus dies: it broadcasts the final state, then sends `GAME_END` (`GameEndData`) with the winning side, the match length and every champion's final stats (`GameRoom.getFinalStats`: level, K/D/A, CS, gold, items). The client shows VICTORY or DEFEAT for 3 seconds, then the final scoreboard (`TabScoreboard`, titled with the result) until the player clicks or presses a key (or 60 seconds pass), then returns to the menu.
 
 ## Abandoned Rooms
 

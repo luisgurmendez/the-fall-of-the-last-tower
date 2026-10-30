@@ -420,7 +420,7 @@ describe('WebSocketServer', () => {
       conn.playerId = 'player-1';
       server.simulateConnection(conn);
 
-      const result = server.sendGameEnd('player-1', { winningSide: 0, duration: 1800 });
+      const result = server.sendGameEnd('player-1', { winningSide: 0, duration: 1800, players: [] });
       expect(result).toBe(true);
 
       const sent = JSON.parse(conn.sentMessages[0] as string);

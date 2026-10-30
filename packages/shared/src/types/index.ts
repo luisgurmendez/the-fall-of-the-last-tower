@@ -144,6 +144,8 @@ export type {
   GameEvent,
   StateUpdate,
   FullStateSnapshot,
+  FinalPlayerStats,
+  GameEndData,
 } from './network';
 export {
   InputType,

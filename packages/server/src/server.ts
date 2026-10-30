@@ -423,7 +423,7 @@ async function startServer(): Promise<void> {
         for (const playerId of room.getHumanPlayerIds()) {
           wsServer.sendToPlayer(playerId, {
             type: ServerMessageType.GAME_END,
-            data: { winningSide, duration: room.getGameTime() },
+            data: { winningSide, duration: room.getGameTime(), players: room.getFinalStats() },
           });
         }
       }

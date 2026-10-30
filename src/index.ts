@@ -2,6 +2,7 @@ import OnlineGame from "./core/OnlineGame";
 import { BitmapFont } from "./render/BitmapFont";
 import { MatchmakingUI, type MatchData } from "./ui/matchmaking/MatchmakingUI";
 import { setupFullscreenButton } from "./ui/FullscreenButton";
+import type { GameEndData } from "@siege/shared";
 
 // Get server URL from environment or default
 function getServerUrl(): string {
@@ -19,8 +20,12 @@ function getServerUrl(): string {
   return 'ws://localhost:8080/ws';
 }
 
-/** How long the victory/defeat banner shows before returning to the menu */
-const GAME_END_SCREEN_MS = 5000;
+/** How long the victory/defeat banner shows before the final scoreboard */
+const GAME_END_BANNER_MS = 3000;
+/** The final scoreboard ignores input this long, so a click mid-fight doesn't skip it */
+const GAME_END_INPUT_GRACE_MS = 1500;
+/** Back to the menu after this long even if the player is away */
+const GAME_END_SCREEN_MAX_MS = 60000;
 
 async function startOnlineGame(matchData: MatchData, matchmakingUI: MatchmakingUI) {
   console.log('[Game] Starting online game with match data:', matchData);
@@ -67,7 +72,7 @@ async function startOnlineGame(matchData: MatchData, matchmakingUI: MatchmakingU
   init();
 
   // Handle game end - announce the result, then show matchmaking UI again
-  networkClient.onGameEnd = (data: any) => {
+  networkClient.onGameEnd = (data: GameEndData) => {
     console.log('[Game] Game ended:', data);
     const won = data.winningSide === matchData.yourSide;
     const minutes = Math.floor((data.duration ?? 0) / 60);
@@ -76,12 +81,27 @@ async function startOnlineGame(matchData: MatchData, matchmakingUI: MatchmakingU
       text: won ? 'VICTORY' : 'DEFEAT',
       detail: `Match length ${minutes}:${seconds}`,
       color: won ? '#f1c40f' : '#e74c3c',
-      duration: GAME_END_SCREEN_MS,
+      duration: GAME_END_BANNER_MS,
     });
+
+    // Then the final scoreboard, until the player clicks or presses a key
     setTimeout(() => {
-      matchmakingUI.reset();
-      matchmakingUI.show();
-    }, GAME_END_SCREEN_MS);
+      game.getStateManager().setMatchResult({ won, duration: data.duration ?? 0, players: data.players ?? [] });
+      let finished = false;
+      const backToMenu = () => {
+        if (finished) return;
+        finished = true;
+        window.removeEventListener('keydown', backToMenu);
+        window.removeEventListener('mousedown', backToMenu);
+        matchmakingUI.reset();
+        matchmakingUI.show();
+      };
+      setTimeout(() => {
+        window.addEventListener('keydown', backToMenu);
+        window.addEventListener('mousedown', backToMenu);
+      }, GAME_END_INPUT_GRACE_MS);
+      setTimeout(backToMenu, GAME_END_SCREEN_MAX_MS);
+    }, GAME_END_BANNER_MS);
   };
 
   networkClient.onDisconnect = (code: number, reason: string) => {

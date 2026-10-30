@@ -145,7 +145,7 @@ Captures player input and sends to server:
 - `EVENT` (2): Game events (kills, objectives)
 - `PONG` (4): Ping response
 - `GAME_START` (5): Match begins
-- `GAME_END` (6): Match concludes
+- `GAME_END` (6): Match concludes (winning side, length, every champion's final stats)
 
 ## Key Files
 

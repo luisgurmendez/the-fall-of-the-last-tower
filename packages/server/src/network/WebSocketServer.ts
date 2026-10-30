@@ -14,6 +14,7 @@ import {
   type ClientInput,
   type StateUpdate,
   type FullStateSnapshot,
+  type GameEndData,
 } from '@siege/shared';
 
 /**
@@ -231,7 +232,7 @@ export abstract class WebSocketServer {
   /**
    * Send game end message.
    */
-  sendGameEnd(playerId: string, data: { winningSide: number; duration: number }): boolean {
+  sendGameEnd(playerId: string, data: GameEndData): boolean {
     return this.sendToPlayer(playerId, {
       type: ServerMessageType.GAME_END,
       data,

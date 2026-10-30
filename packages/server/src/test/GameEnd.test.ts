@@ -39,6 +39,12 @@ describe('Game end', () => {
       const winner = await Promise.race([ended, new Promise<number>((_, reject) => setTimeout(() => reject(new Error('game did not end')), 2000))]);
       expect(winner).toBe(0);
       expect(room.getState()).toBe('ended');
+
+      // Everyone's final line, for the end-of-match scoreboard
+      const stats = room.getFinalStats();
+      expect(stats.map(line => [line.playerId, line.championId, line.side])).toEqual([['a', 'vex', 0], ['b', 'vile', 1]]);
+      expect(stats[0]).toMatchObject({ level: 1, kills: 0, deaths: 0, assists: 0, cs: 0 });
+      expect(stats[0].items).toHaveLength(6);
     } finally {
       room.stop();
     }

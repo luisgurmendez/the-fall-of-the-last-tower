@@ -1,7 +1,7 @@
 /**
- * Champion portraits for champion select: the first frame of the champion's
- * idle sprite, cropped to the figure. A champion without art (or while it
- * loads) shows its emoji icon.
+ * Champion portraits for champion select and the scoreboard: the first frame
+ * of the champion's idle sprite, cropped to the figure. A champion without
+ * art (or while it loads) shows its emoji icon.
  */
 
 /**
@@ -30,6 +30,29 @@ const IDLE_SPRITES: Record<string, string> = {
 
 /** Cropped portraits, by sprite, drawn once */
 const portraits = new Map<string, Promise<HTMLCanvasElement | null>>();
+/** The ones that have loaded */
+const loadedPortraits = new Map<string, HTMLCanvasElement | null>();
+
+function getPortrait(src: string): Promise<HTMLCanvasElement | null> {
+  let portrait = portraits.get(src);
+  if (!portrait) {
+    portrait = loadPortrait(src);
+    portraits.set(src, portrait);
+    void portrait.then((canvas) => loadedPortraits.set(src, canvas));
+  }
+  return portrait;
+}
+
+/**
+ * A champion's portrait for drawing on a canvas, once it has loaded (the
+ * first call starts loading it); null until then or without art.
+ */
+export function getPortraitCanvas(championId: string): HTMLCanvasElement | null {
+  const src = IDLE_SPRITES[championId];
+  if (!src) return null;
+  void getPortrait(src);
+  return loadedPortraits.get(src) ?? null;
+}
 
 /**
  * Show a champion's portrait in `el`, replacing what it held.
@@ -40,12 +63,7 @@ export function showPortrait(el: HTMLElement, championId: string): void {
   const src = IDLE_SPRITES[championId];
   if (!src) return;
 
-  let portrait = portraits.get(src);
-  if (!portrait) {
-    portrait = loadPortrait(src);
-    portraits.set(src, portrait);
-  }
-  void portrait.then((canvas) => {
+  void getPortrait(src).then((canvas) => {
     // Another champion may have been picked while it loaded
     if (!canvas || el.dataset.portraitFor !== championId) return;
     const copy = document.createElement("canvas");

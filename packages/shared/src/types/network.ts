@@ -656,6 +656,33 @@ export enum ServerMessageType {
 }
 
 /**
+ * A champion's line on the final scoreboard.
+ */
+export interface FinalPlayerStats {
+  playerId: string;
+  championId: string;
+  side: number;
+  level: number;
+  kills: number;
+  deaths: number;
+  assists: number;
+  cs: number;
+  gold: number;
+  /** Item ids by inventory slot (null for an empty slot) */
+  items: (string | null)[];
+}
+
+/**
+ * GAME_END data: who won, how long it took, and every champion's final stats.
+ */
+export interface GameEndData {
+  winningSide: number;
+  /** Seconds */
+  duration: number;
+  players: FinalPlayerStats[];
+}
+
+/**
  * Client message types.
  */
 export enum ClientMessageType {

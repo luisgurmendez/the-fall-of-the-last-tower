@@ -18,7 +18,7 @@
 
 import type Vector from '@/physics/vector';
 import type { MatchData } from '@/ui/matchmaking/MatchmakingUI';
-import type { StateUpdate, FullStateSnapshot } from '@siege/shared';
+import type { StateUpdate, FullStateSnapshot, FinalPlayerStats } from '@siege/shared';
 import {
   getAbilityAnimationProgress,
   getAbilityCastState,
@@ -46,6 +46,14 @@ export type { AbilityEffect } from './state/abilityEffects';
 export type { DamageNumber, GoldNumber, XpNumber } from './state/floatingNumbers';
 export type { CampTimer } from './state/campTimers';
 export type { Announcement } from './state/announcements';
+
+/** How the match ended, for the final scoreboard */
+export interface MatchResult {
+  won: boolean;
+  /** Match length, seconds */
+  duration: number;
+  players: FinalPlayerStats[];
+}
 
 /**
  * OnlineStateManager tracks and interpolates server state.
@@ -82,6 +90,8 @@ export class OnlineStateManager {
 
   // Game time when the local champion respawns, while it's dead
   private localRespawnAt: number | null = null;
+  /** Set when the match ends */
+  private matchResult: MatchResult | null = null;
 
   // Ability visual effects (legacy system)
   private readonly abilityEffects = new AbilityEffects();
@@ -234,6 +244,21 @@ export class OnlineStateManager {
    */
   getCampTimers(): CampTimer[] {
     return this.campTimers.getActive(this.gameTime);
+  }
+
+  /**
+   * The match is over: whether the local player's team won, and everyone's
+   * final stats.
+   */
+  setMatchResult(result: MatchResult): void {
+    this.matchResult = result;
+  }
+
+  /**
+   * The match result once it's over, or null while it's being played.
+   */
+  getMatchResult(): MatchResult | null {
+    return this.matchResult;
   }
 
   /**

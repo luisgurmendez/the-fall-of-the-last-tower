@@ -19,6 +19,7 @@ import {
   type GameEvent,
   type AbilitySlot,
   type WardType,
+  type GameEndData,
 } from '@siege/shared';
 
 /**
@@ -62,7 +63,7 @@ export interface NetworkEventHandlers {
   onStateUpdate?: (update: StateUpdate) => void;
   onFullState?: (snapshot: FullStateSnapshot) => void;
   onGameStart?: (data: { tick: number; gameTime: number; gameId?: string; yourSide?: number; players?: any[] }) => void;
-  onGameEnd?: (data: { winningSide: number; duration: number }) => void;
+  onGameEnd?: (data: GameEndData) => void;
   onError?: (error: string) => void;
   onLatencyUpdate?: (latency: number) => void;
   onEvent?: (event: { event: string; [key: string]: any }) => void;
@@ -99,7 +100,7 @@ export class NetworkClient {
   onStateUpdate?: (update: StateUpdate) => void;
   onFullState?: (snapshot: FullStateSnapshot) => void;
   onGameStart?: (data: any) => void;
-  onGameEnd?: (data: { winningSide: number; duration: number }) => void;
+  onGameEnd?: (data: GameEndData) => void;
   onError?: (error: string) => void;
   onLatencyUpdate?: (latency: number) => void;
   onEvent?: (event: { event: string; [key: string]: any }) => void;
@@ -417,7 +418,7 @@ export class NetworkClient {
           break;
 
         case ServerMessageType.GAME_END:
-          (this.onGameEnd || this.handlers.onGameEnd)?.(message.data as { winningSide: number; duration: number });
+          (this.onGameEnd || this.handlers.onGameEnd)?.(message.data as GameEndData);
           break;
 
         case ServerMessageType.ERROR:

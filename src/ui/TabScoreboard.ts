@@ -7,6 +7,10 @@
  * - CS (creep score)
  * - Items (6 slots)
  * - Gold (hidden for enemies)
+ *
+ * A champion out of sight keeps the line it had when last seen. When the
+ * match ends it stays up, titled with the result and filled with the
+ * server's final stats, until the player moves on.
  */
 
 import { ScreenEntity } from '@/core/GameObject';
@@ -14,12 +18,29 @@ import RenderElement from '@/render/renderElement';
 import RenderUtils from '@/render/utils';
 import GameContext from '@/core/gameContext';
 import { InputManager } from '@/core/input/InputManager';
-import type { OnlineStateManager, InterpolatedEntity } from '@/core/OnlineStateManager';
+import type { OnlineStateManager, MatchResult } from '@/core/OnlineStateManager';
 import {
   EntityType,
   type ChampionSnapshot,
   getChampionDefinition,
 } from '@siege/shared';
+import { getItemDefinition } from '@/data/items';
+import { drawItemIcon } from '@/ui/itemIcons';
+import { getPortraitCanvas } from '@/ui/matchmaking/portraits';
+
+/** One champion's line */
+interface ScoreboardRow {
+  side: number;
+  championId: string;
+  level: number;
+  kills: number;
+  deaths: number;
+  assists: number;
+  cs: number;
+  gold: number;
+  /** Item ids by slot */
+  items: (string | null)[];
+}
 
 /** Scoreboard layout configuration - BIGGER sizes */
 const LAYOUT = {
@@ -75,6 +96,8 @@ export class TabScoreboard extends ScreenEntity {
   private stateManager: OnlineStateManager;
   private localSide: number;
   private inputManager: InputManager;
+  /** Each champion's line when last seen, by entity id */
+  private lastSeen = new Map<string, ScoreboardRow>();
 
   constructor(stateManager: OnlineStateManager, localSide: number) {
     super('tab-scoreboard');
@@ -84,25 +107,47 @@ export class TabScoreboard extends ScreenEntity {
   }
 
   step(_ctx: GameContext): void {
-    // No update logic needed - visibility is checked each frame
+    // Remember every champion in sight, for when it leaves
+    for (const entity of this.stateManager.getEntities()) {
+      if (entity.snapshot.entityType !== EntityType.CHAMPION) continue;
+      const snapshot = entity.snapshot as ChampionSnapshot;
+      this.lastSeen.set(snapshot.entityId, {
+        side: snapshot.side,
+        championId: snapshot.championId,
+        level: snapshot.level,
+        kills: snapshot.kills,
+        deaths: snapshot.deaths,
+        assists: snapshot.assists,
+        cs: snapshot.cs,
+        gold: snapshot.gold,
+        items: (snapshot.items ?? []).map(item => item?.definitionId ?? null),
+      });
+    }
+  }
+
+  /**
+   * The lines to show: the final stats once the match is over, otherwise
+   * what's been seen.
+   */
+  private getRows(result: MatchResult | null): ScoreboardRow[] {
+    if (result && result.players.length > 0) return result.players;
+    return Array.from(this.lastSeen.values());
   }
 
   render(): RenderElement {
     return this.createOverlayRender((ctx: GameContext) => {
-      // Only show when Tab is held
-      if (!this.inputManager.isKeyDown('Tab')) return;
+      // Show while Tab is held, and for good once the match is over
+      const result = this.stateManager.getMatchResult();
+      if (!this.inputManager.isKeyDown('Tab') && !result) return;
 
       const { canvasRenderingContext: c } = ctx;
       const canvasWidth = c.canvas.width;
       const canvasHeight = c.canvas.height;
 
-      // Get all champion entities
-      const entities = this.stateManager.getEntities();
-      const champions = entities.filter(e => e.snapshot.entityType === EntityType.CHAMPION);
-
       // Split by team
-      const blueTeam = champions.filter(e => (e.snapshot as ChampionSnapshot).side === 0);
-      const redTeam = champions.filter(e => (e.snapshot as ChampionSnapshot).side === 1);
+      const rows = this.getRows(result);
+      const blueTeam = rows.filter(row => row.side === 0);
+      const redTeam = rows.filter(row => row.side === 1);
 
       // Calculate total height
       const numRows = Math.max(blueTeam.length, redTeam.length, 1);
@@ -125,37 +170,47 @@ export class TabScoreboard extends ScreenEntity {
       c.stroke();
 
       // Draw header
-      this.drawHeader(c, x, y);
+      this.drawHeader(c, x, y, result);
 
       // Draw blue team section
       const blueY = y + LAYOUT.headerHeight + LAYOUT.padding;
-      this.drawTeamSection(c, x, blueY, blueTeam, 0);
+      this.drawTeamSection(c, x, blueY, blueTeam, 0, result !== null);
 
       // Draw red team section
       const redY = blueY + LAYOUT.teamHeaderHeight + LAYOUT.rowHeight * Math.max(blueTeam.length, 1) + LAYOUT.padding * 2;
-      this.drawTeamSection(c, x, redY, redTeam, 1);
+      this.drawTeamSection(c, x, redY, redTeam, 1, result !== null);
+
+      if (result) {
+        RenderUtils.renderBitmapText(c, 'Click or press any key to continue',
+          canvasWidth / 2,
+          y + totalHeight + LAYOUT.padding,
+          { size: FONT.normal, color: COLORS.textDim, centered: true }
+        );
+      }
     });
   }
 
   /**
    * Draw the scoreboard header with title.
    */
-  private drawHeader(c: CanvasRenderingContext2D, x: number, y: number): void {
+  private drawHeader(c: CanvasRenderingContext2D, x: number, y: number, result: MatchResult | null): void {
     // Header background
     c.fillStyle = COLORS.headerBg;
     c.beginPath();
     c.roundRect(x, y, LAYOUT.width, LAYOUT.headerHeight, [LAYOUT.borderRadius, LAYOUT.borderRadius, 0, 0]);
     c.fill();
 
-    // Title
-    RenderUtils.renderBitmapText(c, 'SCOREBOARD',
+    // Title: the result once the match is over
+    const title = result ? (result.won ? 'VICTORY' : 'DEFEAT') : 'SCOREBOARD';
+    const titleColor = result ? (result.won ? COLORS.textGold : COLORS.teamRedBorder) : COLORS.text;
+    RenderUtils.renderBitmapText(c, title,
       x + LAYOUT.width / 2,
       y + LAYOUT.headerHeight / 2 - 10,
-      { size: FONT.title, color: COLORS.text, centered: true }
+      { size: FONT.title, color: titleColor, centered: true }
     );
 
-    // Game time
-    const gameTime = this.stateManager.getGameTime();
+    // Game time (the match length once it's over)
+    const gameTime = result ? result.duration : this.stateManager.getGameTime();
     const minutes = Math.floor(gameTime / 60);
     const seconds = Math.floor(gameTime % 60);
     const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
@@ -172,8 +227,9 @@ export class TabScoreboard extends ScreenEntity {
   private drawTeamSection(
     c: CanvasRenderingContext2D,
     x: number, y: number,
-    players: InterpolatedEntity[],
-    side: number
+    players: ScoreboardRow[],
+    side: number,
+    matchOver: boolean
   ): void {
     const isBlue = side === 0;
     const teamColor = isBlue ? COLORS.teamBlueBorder : COLORS.teamRedBorder;
@@ -196,7 +252,7 @@ export class TabScoreboard extends ScreenEntity {
     );
 
     // Team total kills
-    const totalKills = players.reduce((sum, p) => sum + (p.snapshot as ChampionSnapshot).kills, 0);
+    const totalKills = players.reduce((sum, row) => sum + row.kills, 0);
     RenderUtils.renderBitmapText(c, `Kills: ${totalKills}`,
       x + LAYOUT.width - LAYOUT.padding,
       y + LAYOUT.teamHeaderHeight / 2 - 8,
@@ -221,7 +277,7 @@ export class TabScoreboard extends ScreenEntity {
     } else {
       for (let i = 0; i < players.length; i++) {
         const rowY = rowsY + i * LAYOUT.rowHeight;
-        this.drawPlayerRow(c, x, rowY, players[i], i % 2 === 1);
+        this.drawPlayerRow(c, x, rowY, players[i], i % 2 === 1, matchOver);
       }
     }
   }
@@ -259,11 +315,11 @@ export class TabScoreboard extends ScreenEntity {
   private drawPlayerRow(
     c: CanvasRenderingContext2D,
     x: number, y: number,
-    entity: InterpolatedEntity,
-    isAlt: boolean
+    row: ScoreboardRow,
+    isAlt: boolean,
+    matchOver: boolean
   ): void {
-    const snapshot = entity.snapshot as ChampionSnapshot;
-    const isAlly = snapshot.side === this.localSide;
+    const isAlly = row.side === this.localSide;
 
     // Row background
     c.fillStyle = isAlt ? COLORS.rowAlt : 'transparent';
@@ -280,19 +336,26 @@ export class TabScoreboard extends ScreenEntity {
     let colX = x + LAYOUT.padding;
     const textY = y + LAYOUT.rowHeight / 2 - 8;
 
-    // Champion icon (placeholder - colored square)
+    // Champion portrait on a team-colored square
     const iconSize = LAYOUT.iconCol - 8;
     const iconY = y + (LAYOUT.rowHeight - iconSize) / 2;
     c.fillStyle = isAlly ? COLORS.teamBlueBorder : COLORS.teamRedBorder;
     c.fillRect(colX, iconY, iconSize, iconSize);
+    const portrait = getPortraitCanvas(row.championId);
+    if (portrait) {
+      const smoothing = c.imageSmoothingEnabled;
+      c.imageSmoothingEnabled = false;
+      c.drawImage(portrait, colX + 2, iconY + 2, iconSize - 4, iconSize - 4);
+      c.imageSmoothingEnabled = smoothing;
+    }
     c.strokeStyle = COLORS.border;
     c.lineWidth = 2;
     c.strokeRect(colX, iconY, iconSize, iconSize);
     colX += LAYOUT.iconCol + 10;
 
     // Champion name
-    const champDef = getChampionDefinition(snapshot.championId);
-    const champName = champDef?.name || snapshot.championId;
+    const champDef = getChampionDefinition(row.championId);
+    const champName = champDef?.name || row.championId;
     RenderUtils.renderBitmapText(c, champName, colX, textY, {
       size: FONT.normal,
       color: COLORS.text,
@@ -300,14 +363,14 @@ export class TabScoreboard extends ScreenEntity {
     colX += LAYOUT.nameCol;
 
     // Level
-    RenderUtils.renderBitmapText(c, snapshot.level.toString(), colX, textY, {
+    RenderUtils.renderBitmapText(c, row.level.toString(), colX, textY, {
       size: FONT.normal,
       color: COLORS.text,
     });
     colX += LAYOUT.levelCol;
 
     // K/D/A
-    const kdaStr = `${snapshot.kills}/${snapshot.deaths}/${snapshot.assists}`;
+    const kdaStr = `${row.kills}/${row.deaths}/${row.assists}`;
     RenderUtils.renderBitmapText(c, kdaStr, colX, textY, {
       size: FONT.normal,
       color: COLORS.text,
@@ -315,7 +378,7 @@ export class TabScoreboard extends ScreenEntity {
     colX += LAYOUT.kdaCol;
 
     // CS
-    RenderUtils.renderBitmapText(c, snapshot.cs.toString(), colX, textY, {
+    RenderUtils.renderBitmapText(c, row.cs.toString(), colX, textY, {
       size: FONT.normal,
       color: COLORS.text,
     });
@@ -325,26 +388,29 @@ export class TabScoreboard extends ScreenEntity {
     const itemY = y + (LAYOUT.rowHeight - LAYOUT.itemSize) / 2;
     for (let i = 0; i < 6; i++) {
       const itemX = colX + i * (LAYOUT.itemSize + LAYOUT.itemGap);
-      const item = snapshot.items?.[i];
+      const itemId = row.items[i] ?? null;
 
       // Item slot background
-      c.fillStyle = item ? '#333355' : '#1a1a2e';
+      c.fillStyle = itemId ? '#333355' : '#1a1a2e';
       c.fillRect(itemX, itemY, LAYOUT.itemSize, LAYOUT.itemSize);
       c.strokeStyle = COLORS.border;
       c.lineWidth = 1;
       c.strokeRect(itemX, itemY, LAYOUT.itemSize, LAYOUT.itemSize);
 
-      // Item indicator (if has item)
+      // Item icon, or its color until the art loads
+      const item = itemId ? getItemDefinition(itemId) : undefined;
       if (item) {
-        c.fillStyle = this.getItemColor(item.definitionId);
-        c.fillRect(itemX + 3, itemY + 3, LAYOUT.itemSize - 6, LAYOUT.itemSize - 6);
+        drawItemIcon(c, item, itemX + 1, itemY + 1, 1, () => {
+          c.fillStyle = this.getItemColor(item.id);
+          c.fillRect(itemX + 3, itemY + 3, LAYOUT.itemSize - 6, LAYOUT.itemSize - 6);
+        });
       }
     }
     colX += LAYOUT.itemsCol;
 
-    // Gold (hidden for enemies)
-    if (isAlly) {
-      const goldStr = Math.floor(snapshot.gold).toString();
+    // Gold (hidden for enemies until the match is over)
+    if (isAlly || matchOver) {
+      const goldStr = Math.floor(row.gold).toString();
       RenderUtils.renderBitmapText(c, goldStr, colX, textY, {
         size: FONT.normal,
         color: COLORS.textGold,
