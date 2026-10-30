@@ -15,7 +15,7 @@ import { getShopUI } from '@/ui/shop/ShopUI';
 import { profiler } from '@/debug/PerformanceProfiler';
 import { getCursorManager } from './CursorManager';
 import { OnlineStateManager } from './OnlineStateManager';
-import { EntityType, GameConfig, MOBAConfig, type ChampionSnapshot } from '@siege/shared';
+import { EntityType, GameConfig, MOBAConfig, getChampionDefinition, type ChampionSnapshot } from '@siege/shared';
 import type { NetworkClient } from '@siege/client';
 import type { MatchData } from '@/ui/matchmaking/MatchmakingUI';
 import type { GameApi } from './gameContext';
@@ -166,6 +166,8 @@ class OnlineGame {
       Math.hypot(championSnapshot.x - fountain.x, championSnapshot.y - fountain.y) <= MOBAConfig.FOUNTAIN.RADIUS;
 
     shopUI.updateOnlineState(championSnapshot.gold, items, atShop);
+    const championClass = getChampionDefinition(championSnapshot.championId)?.class;
+    if (championClass) shopUI.setChampionClass(championClass);
   }
 
   /**

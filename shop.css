@@ -732,3 +732,14 @@
   gap: 6px;
   flex-wrap: wrap;
 }
+
+/* Items that suit the local champion's class */
+.shop-item.recommended::before {
+  content: "\2605";
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  color: var(--shop-gold);
+  font-size: 14px;
+  text-shadow: 1px 1px 0 #000;
+}

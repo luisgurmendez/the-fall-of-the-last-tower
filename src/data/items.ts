@@ -5,7 +5,9 @@
 
 import {
   ITEM_CATALOG,
+  type ChampionClass,
   type ItemCatalogEntry,
+  type ItemCategory,
   type ItemDefinition,
   type ItemPassiveData,
 } from '@siege/shared';
@@ -46,4 +48,21 @@ export function getItemDefinition(itemId: string): ItemDefinition | undefined {
  */
 export function getItemPassive(passiveId: string): ItemPassiveData | undefined {
   return PASSIVES_BY_ID.get(passiveId);
+}
+
+/** Item categories that suit each champion class, for the shop's recommendations */
+const RECOMMENDED_CATEGORIES: Record<ChampionClass, ItemCategory[]> = {
+  mage: ['ability_power', 'magic_resist', 'utility', 'movement'],
+  support: ['ability_power', 'health', 'utility', 'movement'],
+  assassin: ['attack_damage', 'attack_speed', 'movement'],
+  marksman: ['attack_damage', 'attack_speed', 'movement'],
+  warrior: ['attack_damage', 'health', 'armor', 'movement'],
+  tank: ['armor', 'magic_resist', 'health', 'movement'],
+};
+
+/**
+ * Whether an item suits a champion class.
+ */
+export function isRecommendedFor(item: ItemDefinition, championClass: ChampionClass): boolean {
+  return RECOMMENDED_CATEGORIES[championClass].includes(item.category);
 }

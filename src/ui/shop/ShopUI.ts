@@ -4,10 +4,10 @@
  */
 
 import GameContext from "@/core/gameContext";
-import type { ItemDefinition, ItemSlot, ItemCategory } from "@siege/shared";
+import type { ChampionClass, ItemDefinition, ItemSlot, ItemCategory } from "@siege/shared";
 import type { NetworkClient } from "@siege/client";
 import { createItemIconElement } from "@/ui/itemIcons";
-import { SHOP_ITEMS, getItemDefinition, getItemPassive } from "@/data/items";
+import { SHOP_ITEMS, getItemDefinition, getItemPassive, isRecommendedFor } from "@/data/items";
 import { renderItemTree, renderBuildsInto } from "@/ui/shop/itemTree";
 import { planItemPurchase } from "@siege/shared";
 
@@ -28,6 +28,9 @@ interface ShopState {
  * Shop UI Controller - manages the HTML shop overlay
  */
 export class ShopUI {
+  /** The local champion's class, to star the items that suit it */
+  private championClass: ChampionClass | null = null;
+
   private state: ShopState = {
     isOpen: false,
     selectedCategory: "all",
@@ -174,6 +177,12 @@ export class ShopUI {
     const div = document.createElement("div");
     div.className = "shop-item";
     div.dataset.itemId = item.id;
+
+    // Items that suit the local champion get a star
+    if (this.championClass && isRecommendedFor(item, this.championClass)) {
+      div.classList.add("recommended");
+      div.title = "Recommended for your champion";
+    }
 
     // Icon
     const iconDiv = document.createElement("div");
@@ -602,6 +611,15 @@ export class ShopUI {
   setOnlineItems(items: Array<{ definitionId: string } | null>): void {
     this.onlineItems = items;
     this.updateInventorySlots();
+  }
+
+  /**
+   * Set the local champion's class: the items that suit it are starred.
+   */
+  setChampionClass(championClass: ChampionClass): void {
+    if (championClass === this.championClass) return;
+    this.championClass = championClass;
+    if (this.state.isOpen) this.refreshUI();
   }
 
   /**

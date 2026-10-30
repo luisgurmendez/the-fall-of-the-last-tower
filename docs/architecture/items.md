@@ -95,7 +95,9 @@ category tabs, the item grid (each item at its price for the current inventory, 
 green when parts lower it), the details panel and the six inventory slots. The details
 panel shows the item's build tree with owned parts outlined in green, its stats and
 passives, and what it builds into (`src/ui/shop/itemTree.ts`); clicking an item there
-selects it. Buying keeps the shop open; gold, inventory, affordability and the
+selects it. Items that suit the local champion's class have a star (`isRecommendedFor` in
+`src/data/items.ts`: mages and supports get ability power, assassins attack damage and
+speed, tanks armor, magic resist and health, and so on). Buying keeps the shop open; gold, inventory, affordability and the
 buttons refresh from each server state update (`updateOnlineState`). Buying and selling
 only work at the fountain.
 
