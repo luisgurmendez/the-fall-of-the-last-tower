@@ -24,26 +24,17 @@ import {
 import { getVFXManager } from '@/vfx';
 import { WORLD_VFX } from '@/vfx/world';
 import { shakeScreen } from '@/core/screenShake';
+import {
+  createDefaultAnimationState,
+  getAbilityAnimationProgress,
+  getAbilityCastState,
+  getAttackAnimationProgress,
+  interpolatePosition,
+  isAttackAnimationPlaying,
+  type InterpolatedEntity,
+} from './state/entities';
 
-/**
- * Animation state for an entity.
- */
-export interface EntityAnimationState {
-  /** True if currently playing attack animation */
-  isAttacking: boolean;
-  /** When the attack animation started (ms) */
-  attackStartTime: number;
-  /** Duration of attack animation (ms) */
-  attackDuration: number;
-  /** True if currently playing ability animation */
-  isCastingAbility: boolean;
-  /** ID of ability being cast */
-  abilityId?: string;
-  /** When the ability cast started (ms) */
-  abilityStartTime: number;
-  /** Duration of ability animation (ms) */
-  abilityDuration: number;
-}
+export type { EntityAnimationState, InterpolatedEntity } from './state/entities';
 
 /**
  * Floating damage number for visual feedback.
@@ -154,18 +145,6 @@ export interface AbilityEffect {
   width?: number;
   /** Color of the effect */
   color: string;
-}
-
-/**
- * Interpolated entity state for rendering.
- */
-export interface InterpolatedEntity {
-  snapshot: EntitySnapshot;
-  position: Vector;
-  previousPosition: Vector;
-  lastUpdateTime: number;
-  /** Animation state from events */
-  animation: EntityAnimationState;
 }
 
 /**
@@ -484,21 +463,6 @@ export class OnlineStateManager {
   }
 
   /**
-   * Create default animation state.
-   */
-  private createDefaultAnimationState(): EntityAnimationState {
-    return {
-      isAttacking: false,
-      attackStartTime: 0,
-      attackDuration: 0,
-      isCastingAbility: false,
-      abilityId: undefined,
-      abilityStartTime: 0,
-      abilityDuration: 0,
-    };
-  }
-
-  /**
    * Add or update an entity.
    */
   private addOrUpdateEntity(snapshot: EntitySnapshot): void {
@@ -515,7 +479,7 @@ export class OnlineStateManager {
 
     // Preserve existing animation state if entity exists
     const existing = this.entities.get(snapshot.entityId);
-    const animation = existing?.animation ?? this.createDefaultAnimationState();
+    const animation = existing?.animation ?? createDefaultAnimationState();
 
     this.entities.set(snapshot.entityId, {
       snapshot,
@@ -616,12 +580,7 @@ export class OnlineStateManager {
   getInterpolatedPosition(entityId: string): Vector | null {
     const entity = this.entities.get(entityId);
     if (!entity) return null;
-
-    // Simple linear interpolation based on time since last update
-    const timeSinceUpdate = Date.now() - entity.lastUpdateTime;
-    const t = Math.min(1, timeSinceUpdate / this.interpolationDelay);
-
-    return Vector.lerp(entity.previousPosition, entity.position, t);
+    return interpolatePosition(entity, this.interpolationDelay);
   }
 
   /**
@@ -725,57 +684,28 @@ export class OnlineStateManager {
    * Check if an entity is currently in attack animation.
    */
   isEntityAttacking(entityId: string): boolean {
-    const entity = this.entities.get(entityId);
-    if (!entity || !entity.animation.isAttacking) return false;
-
-    const elapsed = Date.now() - entity.animation.attackStartTime;
-    if (elapsed >= entity.animation.attackDuration) {
-      // Animation finished, clear the flag
-      entity.animation.isAttacking = false;
-      return false;
-    }
-    return true;
+    return isAttackAnimationPlaying(this.entities.get(entityId));
   }
 
   /**
    * Check if an entity is currently casting an ability.
    */
   isEntityCastingAbility(entityId: string): { casting: boolean; abilityId?: string } {
-    const entity = this.entities.get(entityId);
-    if (!entity || !entity.animation.isCastingAbility) {
-      return { casting: false };
-    }
-
-    const elapsed = Date.now() - entity.animation.abilityStartTime;
-    if (elapsed >= entity.animation.abilityDuration) {
-      // Animation finished, clear the flag
-      entity.animation.isCastingAbility = false;
-      entity.animation.abilityId = undefined;
-      return { casting: false };
-    }
-    return { casting: true, abilityId: entity.animation.abilityId };
+    return getAbilityCastState(this.entities.get(entityId));
   }
 
   /**
    * Get animation progress (0-1) for attack animation.
    */
   getAttackAnimationProgress(entityId: string): number {
-    const entity = this.entities.get(entityId);
-    if (!entity || !entity.animation.isAttacking) return 0;
-
-    const elapsed = Date.now() - entity.animation.attackStartTime;
-    return Math.min(1, elapsed / entity.animation.attackDuration);
+    return getAttackAnimationProgress(this.entities.get(entityId));
   }
 
   /**
    * Get animation progress (0-1) for ability animation.
    */
   getAbilityAnimationProgress(entityId: string): number {
-    const entity = this.entities.get(entityId);
-    if (!entity || !entity.animation.isCastingAbility) return 0;
-
-    const elapsed = Date.now() - entity.animation.abilityStartTime;
-    return Math.min(1, elapsed / entity.animation.abilityDuration);
+    return getAbilityAnimationProgress(this.entities.get(entityId));
   }
 
   /**
