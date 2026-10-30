@@ -276,6 +276,8 @@ export interface ChampionSnapshot {
   magicResist: number;
   attackSpeed: number;
   movementSpeed: number;
+  /** Basic attack range, edge to edge (transforms like Vile's R change it) */
+  attackRange: number;
 
   // State
   isDead: boolean;

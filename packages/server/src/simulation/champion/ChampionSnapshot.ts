@@ -46,6 +46,7 @@ export function buildChampionSnapshot(champion: ServerChampion): ChampionSnapsho
     magicResist: stats.magicResist,
     attackSpeed: stats.attackSpeed,
     movementSpeed: stats.movementSpeed,
+    attackRange: champion.getAttackRange(),
 
     isDead: champion.isDead,
     respawnTimer: champion.respawnTimer,

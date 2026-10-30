@@ -663,11 +663,16 @@ export class OnlineInputHandler implements GameObject {
   }
 
   /**
-   * Render visual feedback (move markers only - entity highlighting is now done via sprite outlines).
+   * Render visual feedback: move markers, and the attack range while A is
+   * held (entity highlighting is done via sprite outlines).
    */
   render(): RenderElement {
     const element = new RenderElement((ctx: GameContext) => {
       const { canvasRenderingContext } = ctx;
+
+      if (this.inputManager.isKeyDown("a")) {
+        this.renderAttackRange(canvasRenderingContext);
+      }
 
       // Render move markers
       for (const marker of this.moveMarkers) {
@@ -678,6 +683,30 @@ export class OnlineInputHandler implements GameObject {
     element.positionType = "normal";
     element.zIndex = -100; // Render behind entities
     return element;
+  }
+
+  /**
+   * Circle around the local champion showing how far its basic attacks
+   * reach (attack range is edge to edge, so it's drawn from its edge).
+   */
+  private renderAttackRange(ctx: CanvasRenderingContext2D): void {
+    const local = this.stateManager.getLocalPlayerEntity();
+    if (!local) return;
+    const snapshot = local.snapshot as { attackRange?: number; isDead?: boolean; championId?: string };
+    if (snapshot.isDead) return;
+    const attackRange = snapshot.attackRange ??
+      (snapshot.championId ? getChampionDefinition(snapshot.championId)?.baseStats.attackRange : undefined) ?? 0;
+    const radius = attackRange + getEntityCollisionRadius(local);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(local.position.x, local.position.y, radius, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(231, 76, 60, 0.08)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(231, 76, 60, 0.6)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.restore();
   }
 
   /**
