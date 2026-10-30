@@ -31,7 +31,6 @@ import {
   isAttackAnimationPlaying,
   type InterpolatedEntity,
 } from './state/entities';
-
 import { AbilityEffects, type AbilityEffect } from './state/abilityEffects';
 import {
   FloatingNumbers,
@@ -39,34 +38,18 @@ import {
   type GoldNumber,
   type XpNumber,
 } from './state/floatingNumbers';
+import { CampTimers, type CampTimer } from './state/campTimers';
+import {
+  ANNOUNCEMENT_DURATION,
+  Announcements,
+  type Announcement,
+} from './state/announcements';
 
 export type { EntityAnimationState, InterpolatedEntity } from './state/entities';
 export type { AbilityEffect } from './state/abilityEffects';
 export type { DamageNumber, GoldNumber, XpNumber } from './state/floatingNumbers';
-
-/**
- * A cleared jungle camp and when it comes back.
- */
-export interface CampTimer {
-  campId: string;
-  creatureType: string;
-  x: number;
-  y: number;
-  /** Game time (seconds) when the camp respawns */
-  respawnAt: number;
-}
-
-/**
- * A message shown in the middle of the screen for a few seconds.
- */
-export interface Announcement {
-  text: string;
-  detail?: string;
-  color: string;
-  startTime: number;
-  /** ms */
-  duration: number;
-}
+export type { CampTimer } from './state/campTimers';
+export type { Announcement } from './state/announcements';
 
 /**
  * OnlineStateManager tracks and interpolates server state.
@@ -92,11 +75,11 @@ export class OnlineStateManager {
   // Floating damage, gold and XP numbers
   private floatingNumbers = new FloatingNumbers();
 
-  // Cleared jungle camps waiting to respawn (campId -> timer)
-  private campTimers: Map<string, CampTimer> = new Map();
+  // Cleared jungle camps waiting to respawn
+  private campTimers = new CampTimers();
 
   // Big moments to announce on screen (dragon slain, ...)
-  private announcements: Announcement[] = [];
+  private announcements = new Announcements();
 
   // Champions removed from state when they died, to spot their respawn
   private deadChampionIds: Set<string> = new Set();
@@ -106,7 +89,6 @@ export class OnlineStateManager {
 
   // Ability visual effects (legacy system)
   private abilityEffects = new AbilityEffects();
-  private static readonly ANNOUNCEMENT_DURATION = 4000; // ms
 
   constructor(matchData: MatchData) {
     this.matchData = matchData;
@@ -258,7 +240,7 @@ export class OnlineStateManager {
         break;
       }
       case GameEventType.CAMP_CLEARED: {
-        this.campTimers.set(event.data.campId as string, {
+        this.campTimers.set({
           campId: event.data.campId as string,
           creatureType: event.data.creatureType as string,
           x: event.data.x as number,
@@ -273,22 +255,22 @@ export class OnlineStateManager {
       }
       case GameEventType.TOWER_DESTROYED: {
         const ours = event.data.side === this.localSide;
-        this.announcements.push({
+        this.announcements.add({
           text: ours ? 'Your tower has been destroyed' : 'Your team destroyed a tower!',
           color: ours ? '#ec7063' : '#5dade2',
           startTime: now,
-          duration: OnlineStateManager.ANNOUNCEMENT_DURATION,
+          duration: ANNOUNCEMENT_DURATION,
         });
         break;
       }
       case GameEventType.DRAGON_KILLED: {
         const allied = event.data.side === this.localSide;
-        this.announcements.push({
+        this.announcements.add({
           text: allied ? 'Your team slew the Dragon!' : 'The enemy team slew the Dragon!',
           detail: "Dragon's Might: +8% attack damage and ability power",
           color: allied ? '#5dade2' : '#ec7063',
           startTime: now,
-          duration: OnlineStateManager.ANNOUNCEMENT_DURATION,
+          duration: ANNOUNCEMENT_DURATION,
         });
         break;
       }
@@ -517,10 +499,7 @@ export class OnlineStateManager {
    * Jungle camps waiting to respawn (expired timers are dropped).
    */
   getCampTimers(): CampTimer[] {
-    for (const [campId, timer] of this.campTimers) {
-      if (timer.respawnAt <= this.gameTime) this.campTimers.delete(campId);
-    }
-    return Array.from(this.campTimers.values());
+    return this.campTimers.getActive(this.gameTime);
   }
 
   /**
@@ -536,12 +515,12 @@ export class OnlineStateManager {
     else if (killerIsLocal) text = 'You have slain an enemy!';
     else text = allyDied ? 'An ally has been slain' : 'An enemy has been slain';
 
-    this.announcements.push({
+    this.announcements.add({
       text: data.firstBlood ? 'First Blood!' : text,
       detail: data.firstBlood ? text : undefined,
       color: allyDied ? '#ec7063' : '#f5b041',
       startTime: now,
-      duration: OnlineStateManager.ANNOUNCEMENT_DURATION,
+      duration: ANNOUNCEMENT_DURATION,
     });
   }
 
@@ -549,15 +528,14 @@ export class OnlineStateManager {
    * Show a message in the middle of the screen (e.g. the match result).
    */
   announce(announcement: Omit<Announcement, 'startTime'>): void {
-    this.announcements.push({ ...announcement, startTime: Date.now() });
+    this.announcements.add({ ...announcement, startTime: Date.now() });
   }
 
   /**
    * Announcements still on screen (expired ones are dropped).
    */
   getAnnouncements(now = Date.now()): Announcement[] {
-    this.announcements = this.announcements.filter(a => now - a.startTime < a.duration);
-    return this.announcements;
+    return this.announcements.getActive(now);
   }
 
   /**
