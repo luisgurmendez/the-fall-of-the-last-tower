@@ -142,8 +142,13 @@ export function renderJungleCamp(
     renderAura(ctx, look.aura, 45 * sizeFactor, rc.animationTime);
   }
 
+  // Winding up a special attack (JungleSpecialAttacks): from 0 to 1 when it lands
+  const windup = rc.stateManager.isEntityCastingAbility(snapshot.entityId).casting
+    ? rc.stateManager.getAbilityAnimationProgress(snapshot.entityId)
+    : 0;
+
   // Determine animation state
-  const isAttacking = state.isAttacking;
+  const isAttacking = state.isAttacking || windup > 0;
   const isMoving =
     snapshot.targetX !== undefined &&
     snapshot.targetY !== undefined &&
@@ -169,7 +174,8 @@ export function renderJungleCamp(
     const animTime = isAttacking ? state.attackAnimTime : rc.animationTime;
     // Use appropriate animation speed: faster for attack, moderate for movement/idle
     const animSpeed = isAttacking ? 12 : isMoving ? 10 : 8;
-    const frameIndex = Math.floor(animTime * animSpeed) % frameCount;
+    // A wind-up holds the first attack frame (rearing up) until the hit
+    const frameIndex = windup > 0 ? 0 : Math.floor(animTime * animSpeed) % frameCount;
     const srcX = frameIndex * spriteConfig.FRAME_WIDTH;
 
     // Check if entity is hovered for outline highlighting
@@ -177,11 +183,17 @@ export function renderJungleCamp(
 
     // Apply horizontal flip if facing left
     ctx.save();
+    if (windup > 0) {
+      // Tremble harder, swell and glow brighter as the attack is about to land
+      ctx.translate(Math.sin(rc.animationTime * 70) * windup * 3, 0);
+      ctx.scale(1 + windup * 0.12, 1 + windup * 0.12);
+    }
     if (!state.facingRight) {
       ctx.scale(-1, 1);
     }
-    if (look.filter) {
-      ctx.filter = look.filter;
+    const filters = [look.filter, windup > 0 ? `brightness(${1 + windup * 0.7})` : undefined].filter(Boolean);
+    if (filters.length > 0) {
+      ctx.filter = filters.join(" ");
     }
 
     drawSpriteFrame(

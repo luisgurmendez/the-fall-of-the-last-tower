@@ -43,7 +43,7 @@ During a fight the monster checks its special attack. It uses it when the attack
 
 The sizes are tuned to champion speed (about 60 units/s). A melee champion fighting a buff monster stands 125-170 from its center, inside the slam, and has at least half a second to step out. The dragon's breath is too wide to outrun up close, so champions should fight it from beside or behind.
 
-The client draws the warning from the same config (`src/vfx/world.ts`). The slam warning is a filled circle with a ring that grows from the center and reaches the edge when the slam lands. The breath warning is a faint cone, followed by a fire burst.
+The client draws the warning from the same config (`src/vfx/world.ts`). While winding up, the monster holds its first attack frame, trembles, swells and glows brighter until the attack lands (`renderJungleCamp`). The slam warning is a filled circle with a ring that grows from the center and reaches the edge when the slam lands. The breath warning is a faint cone, followed by a fire burst.
 
 ## Balance
 
