@@ -1,0 +1,167 @@
+/**
+ * Generic movement: dashes, teleports and the generic recast dash.
+ *
+ * - Dashes and teleports go to the target position, or else to the target
+ *   entity's position (for target_enemy, target_ally and target_unit)
+ * - A dash applies its self-buffs (`_empowered` / `_buff` effects) on cast;
+ *   the other effects, and damage if the ability has an aoeRadius, hit what
+ *   the dash runs into
+ * - A teleport is instant and clamped to the ability's range
+ * - The generic recast dashes to where the ability's projectile hit
+ */
+
+import { calculateAbilityValue, type AbilityDefinition, type Vector } from "@siege/shared";
+import type { AbilityCastParams } from "../../simulation/ServerAbilityExecutor";
+import type { ServerChampion } from "../../simulation/ServerChampion";
+import { getScalingStats } from "./AbilityHelpers";
+
+/** Speed of the generic recast dash */
+const RECAST_DASH_SPEED = 1500;
+
+/**
+ * Dash toward the ability's destination, if it has one.
+ */
+export function dashToDestination(
+  params: AbilityCastParams,
+  definition: AbilityDefinition,
+  rank: number,
+  damageMultiplier: number
+): void {
+  const destination = getDestination(params);
+  if (destination) {
+    executeDash({ ...params, targetPosition: destination }, definition, rank, damageMultiplier);
+  }
+}
+
+/**
+ * Teleport to the ability's destination, if it has one.
+ */
+export function teleportToDestination(params: AbilityCastParams, definition: AbilityDefinition): void {
+  const destination = getDestination(params);
+  if (destination) {
+    executeTeleport({ ...params, targetPosition: destination }, definition);
+  }
+}
+
+/**
+ * Execute the recast dash to the hit position (e.g., Vile's Q dash to hit location).
+ */
+export function executeRecastDash(champion: ServerChampion, hitPosition: Vector): void {
+  const direction = hitPosition.subtracted(champion.position);
+  const distance = direction.length();
+
+  if (distance < 10) {
+    // Already at the position
+    return;
+  }
+
+  const normalizedDir = direction.normalized();
+
+  champion.forcedMovement = {
+    direction: normalizedDir,
+    distance: distance,
+    duration: distance / RECAST_DASH_SPEED,
+    elapsed: 0,
+    type: "dash",
+    hitEntities: new Set(),
+  };
+
+  // Update facing direction
+  champion.direction = normalizedDir;
+}
+
+/**
+ * The target position, or else the target entity's position.
+ */
+function getDestination(params: AbilityCastParams): Vector | undefined {
+  if (params.targetPosition) return params.targetPosition;
+  if (!params.targetEntityId) return undefined;
+  return params.context.getEntity(params.targetEntityId)?.position.clone();
+}
+
+/**
+ * Execute a dash ability.
+ */
+function executeDash(
+  params: AbilityCastParams,
+  definition: AbilityDefinition,
+  rank: number,
+  damageMultiplier: number
+): void {
+  const { champion, targetPosition } = params;
+
+  if (!targetPosition || !definition.dash) return;
+
+  const direction = targetPosition.subtracted(champion.position);
+  if (direction.length() < 0.1) return;
+
+  const normalizedDir = direction.normalized();
+  const dashDistance = Math.min(direction.length(), definition.dash.distance);
+
+  // Apply self-buff effects (like Vex's empowered attack)
+  // Check for effects that should be applied to caster (buff effects)
+  if (definition.appliesEffects) {
+    for (const effectId of definition.appliesEffects) {
+      // Check if this is a self-buff effect (like vex_empowered)
+      if (effectId.includes('_empowered') || effectId.includes('_buff')) {
+        champion.applyEffect(
+          effectId,
+          definition.effectDuration ?? 4,
+          champion.id
+        );
+      }
+    }
+  }
+
+  // Calculate damage for collision if ability has damage (with passive multiplier)
+  // For Vex dash, damage is used for empowered attack, not dash collision
+  let damageAmount = 0;
+  const dashHasDamageOnCollision = definition.damage && definition.aoeRadius;
+  if (dashHasDamageOnCollision) {
+    const stats = champion.getStats();
+    damageAmount = calculateAbilityValue(definition.damage!.scaling, rank, getScalingStats(champion, stats)) * damageMultiplier;
+  }
+
+  champion.forcedMovement = {
+    direction: normalizedDir,
+    distance: dashDistance,
+    duration: dashDistance / definition.dash.speed,
+    elapsed: 0,
+    type: "dash",
+    // Collision data for dash abilities that damage/apply effects on hit
+    hitbox: definition.aoeRadius ?? 60,
+    damage: damageAmount,
+    damageType: definition.damage?.type,
+    // Only pass debuff effects to be applied on collision (not self-buffs)
+    appliesEffects: definition.appliesEffects?.filter(
+      e => !e.includes('_empowered') && !e.includes('_buff')
+    ),
+    effectDuration: definition.effectDuration,
+    hitEntities: new Set(),
+  };
+
+  // Update facing direction
+  champion.direction = normalizedDir;
+}
+
+/**
+ * Execute a teleport/blink ability.
+ */
+function executeTeleport(params: AbilityCastParams, definition: AbilityDefinition): void {
+  const { champion, targetPosition } = params;
+
+  if (!targetPosition) return;
+
+  // Clamp to range
+  const direction = targetPosition.subtracted(champion.position);
+  const maxRange = definition.range ?? 500;
+
+  if (direction.length() > maxRange) {
+    direction.normalize().scalar(maxRange);
+  }
+
+  const finalPosition = champion.position.added(direction);
+
+  // Instant teleport
+  champion.position.setFrom(finalPosition);
+}

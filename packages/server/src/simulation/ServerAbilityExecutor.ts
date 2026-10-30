@@ -35,6 +35,7 @@ import { ServerTrap, getPlayerTraps } from "./ServerTrap";
 import { Logger } from "../utils/Logger";
 import { getServerEffectById } from "../data/effects";
 import { getScalingStats, applyEffectsToEntity } from "../abilities/generic/AbilityHelpers";
+import { dashToDestination, teleportToDestination, executeRecastDash } from "../abilities/generic/Movement";
 
 export interface AbilityCastParams {
   /** The champion casting the ability */
@@ -276,7 +277,7 @@ export class ServerAbilityExecutor {
     }
 
     // Execute recast as a dash to the hit position
-    this.executeRecastDash(champion, hitPosition, definition);
+    executeRecastDash(champion, hitPosition);
 
     // Consume the recast
     champion.consumeRecast(slot);
@@ -300,36 +301,6 @@ export class ServerAbilityExecutor {
       manaCost: 0,
       cooldown: 0,
     };
-  }
-
-  /**
-   * Execute the recast dash to the hit position.
-   */
-  private executeRecastDash(champion: ServerChampion, hitPosition: Vector, definition: AbilityDefinition): void {
-    const direction = hitPosition.subtracted(champion.position);
-    const distance = direction.length();
-
-    if (distance < 10) {
-      // Already at the position
-      return;
-    }
-
-    const normalizedDir = direction.normalized();
-
-    // Default dash speed for recast (fast dash)
-    const dashSpeed = 1500;
-
-    champion.forcedMovement = {
-      direction: normalizedDir,
-      distance: distance,
-      duration: distance / dashSpeed,
-      elapsed: 0,
-      type: "dash",
-      hitEntities: new Set(),
-    };
-
-    // Update facing direction
-    champion.direction = normalizedDir;
   }
 
   /**
@@ -489,30 +460,12 @@ export class ServerAbilityExecutor {
 
       // Handle dash if defined and handler didn't set up forced movement
       if (definition.dash && !champion.forcedMovement) {
-        let dashTargetPosition = params.targetPosition;
-        if (!dashTargetPosition && params.targetEntityId) {
-          const target = context.getEntity(params.targetEntityId);
-          if (target) {
-            dashTargetPosition = target.position.clone();
-          }
-        }
-        if (dashTargetPosition) {
-          this.executeDash({ ...params, targetPosition: dashTargetPosition }, definition, rank, damageMultiplier);
-        }
+        dashToDestination(params, definition, rank, damageMultiplier);
       }
 
       // Handle teleport if defined
       if (definition.teleport) {
-        let teleportTargetPosition = params.targetPosition;
-        if (!teleportTargetPosition && params.targetEntityId) {
-          const target = context.getEntity(params.targetEntityId);
-          if (target) {
-            teleportTargetPosition = target.position.clone();
-          }
-        }
-        if (teleportTargetPosition) {
-          this.executeTeleport({ ...params, targetPosition: teleportTargetPosition }, definition);
-        }
+        teleportToDestination(params, definition);
       }
 
       return result;
@@ -545,34 +498,13 @@ export class ServerAbilityExecutor {
         break;
     }
 
-    // Handle dash if the ability has one
-    // For target_enemy abilities, get position from target entity
+    // Handle dash and teleport/blink. Targeted abilities (no target position)
+    // go to the target entity's position
     if (definition.dash) {
-      let dashTargetPosition = params.targetPosition;
-      if (!dashTargetPosition && params.targetEntityId) {
-        const target = params.context.getEntity(params.targetEntityId);
-        if (target) {
-          dashTargetPosition = target.position.clone();
-        }
-      }
-      if (dashTargetPosition) {
-        this.executeDash({ ...params, targetPosition: dashTargetPosition }, definition, rank, damageMultiplier);
-      }
+      dashToDestination(params, definition, rank, damageMultiplier);
     }
-
-    // Handle teleport/blink
-    // For target_enemy abilities, get position from target entity
     if (definition.teleport) {
-      let teleportTargetPosition = params.targetPosition;
-      if (!teleportTargetPosition && params.targetEntityId) {
-        const target = params.context.getEntity(params.targetEntityId);
-        if (target) {
-          teleportTargetPosition = target.position.clone();
-        }
-      }
-      if (teleportTargetPosition) {
-        this.executeTeleport({ ...params, targetPosition: teleportTargetPosition }, definition);
-      }
+      teleportToDestination(params, definition);
     }
   }
 
@@ -1280,96 +1212,6 @@ export class ServerAbilityExecutor {
         }
       }
     }
-  }
-
-  /**
-   * Execute a dash ability.
-   */
-  private executeDash(
-    params: AbilityCastParams,
-    definition: AbilityDefinition,
-    rank: number = 1,
-    damageMultiplier: number = 1.0
-  ): void {
-    const { champion, targetPosition } = params;
-
-    if (!targetPosition || !definition.dash) return;
-
-    const direction = targetPosition.subtracted(champion.position);
-    if (direction.length() < 0.1) return;
-
-    const normalizedDir = direction.normalized();
-    const dashDistance = Math.min(direction.length(), definition.dash.distance);
-
-    // Apply self-buff effects (like Vex's empowered attack)
-    // Check for effects that should be applied to caster (buff effects)
-    if (definition.appliesEffects) {
-      for (const effectId of definition.appliesEffects) {
-        // Check if this is a self-buff effect (like vex_empowered)
-        if (effectId.includes('_empowered') || effectId.includes('_buff')) {
-          champion.applyEffect(
-            effectId,
-            definition.effectDuration ?? 4,
-            champion.id
-          );
-        }
-      }
-    }
-
-    // Calculate damage for collision if ability has damage (with passive multiplier)
-    // For Vex dash, damage is used for empowered attack, not dash collision
-    let damageAmount = 0;
-    const dashHasDamageOnCollision = definition.damage && definition.aoeRadius;
-    if (dashHasDamageOnCollision) {
-      const stats = champion.getStats();
-      damageAmount = calculateAbilityValue(definition.damage!.scaling, rank, getScalingStats(champion, stats)) * damageMultiplier;
-    }
-
-    champion.forcedMovement = {
-      direction: normalizedDir,
-      distance: dashDistance,
-      duration: dashDistance / definition.dash.speed,
-      elapsed: 0,
-      type: "dash",
-      // Collision data for dash abilities that damage/apply effects on hit
-      hitbox: definition.aoeRadius ?? 60,
-      damage: damageAmount,
-      damageType: definition.damage?.type,
-      // Only pass debuff effects to be applied on collision (not self-buffs)
-      appliesEffects: definition.appliesEffects?.filter(
-        e => !e.includes('_empowered') && !e.includes('_buff')
-      ),
-      effectDuration: definition.effectDuration,
-      hitEntities: new Set(),
-    };
-
-    // Update facing direction
-    champion.direction = normalizedDir;
-  }
-
-  /**
-   * Execute a teleport/blink ability.
-   */
-  private executeTeleport(
-    params: AbilityCastParams,
-    definition: AbilityDefinition
-  ): void {
-    const { champion, targetPosition } = params;
-
-    if (!targetPosition) return;
-
-    // Clamp to range
-    const direction = targetPosition.subtracted(champion.position);
-    const maxRange = definition.range ?? 500;
-
-    if (direction.length() > maxRange) {
-      direction.normalize().scalar(maxRange);
-    }
-
-    const finalPosition = champion.position.added(direction);
-
-    // Instant teleport
-    champion.position.setFrom(finalPosition);
   }
 
   /**
