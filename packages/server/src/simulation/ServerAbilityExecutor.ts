@@ -28,13 +28,13 @@ import { abilityHandlerRegistry } from "../abilities/AbilityHandlerRegistry";
 import { championHooksRegistry } from "../abilities/ChampionHooksRegistry";
 import type { AbilityHandlerParams, AbilityExecutionResult } from "../abilities/IAbilityHandler";
 import type { ServerChampion } from "./ServerChampion";
-import type { ServerEntity } from "./ServerEntity";
 import type { ServerGameContext } from "../game/ServerGameContext";
 import { ServerProjectile } from "./ServerProjectile";
 import { ServerZone, ZoneEffectType } from "./ServerZone";
 import { ServerTrap, getPlayerTraps } from "./ServerTrap";
 import { Logger } from "../utils/Logger";
 import { getServerEffectById } from "../data/effects";
+import { getScalingStats, applyEffectsToEntity } from "../abilities/generic/AbilityHelpers";
 
 export interface AbilityCastParams {
   /** The champion casting the ability */
@@ -595,16 +595,7 @@ export class ServerAbilityExecutor {
 
     // Apply shield
     if (definition.shield) {
-      const shieldAmount = calculateAbilityValue(
-        definition.shield.scaling,
-        rank,
-        {
-          attackDamage: stats.attackDamage,
-          abilityPower: stats.abilityPower,
-          bonusHealth: stats.maxHealth - champion.definition.baseStats.health,
-          maxHealth: stats.maxHealth,
-        }
-      );
+      const shieldAmount = calculateAbilityValue(definition.shield.scaling, rank, getScalingStats(champion, stats));
 
       champion.shields.push({
         amount: shieldAmount,
@@ -751,23 +742,13 @@ export class ServerAbilityExecutor {
     // Calculate damage if applicable (with passive multiplier)
     let damageAmount = 0;
     if (definition.damage) {
-      damageAmount = calculateAbilityValue(definition.damage.scaling, rank, {
-        attackDamage: stats.attackDamage,
-        abilityPower: stats.abilityPower,
-        bonusHealth: stats.maxHealth - champion.definition.baseStats.health,
-        maxHealth: stats.maxHealth,
-      }) * damageMultiplier;
+      damageAmount = calculateAbilityValue(definition.damage.scaling, rank, getScalingStats(champion, stats)) * damageMultiplier;
     }
 
     // Calculate heal if applicable
     let healAmount = 0;
     if (definition.heal) {
-      healAmount = calculateAbilityValue(definition.heal.scaling, rank, {
-        attackDamage: stats.attackDamage,
-        abilityPower: stats.abilityPower,
-        bonusHealth: stats.maxHealth - champion.definition.baseStats.health,
-        maxHealth: stats.maxHealth,
-      });
+      healAmount = calculateAbilityValue(definition.heal.scaling, rank, getScalingStats(champion, stats));
     }
 
     // Buffs go to the caster and allies, debuffs (slows, taunts, knockups) to enemies
@@ -775,7 +756,7 @@ export class ServerAbilityExecutor {
     const effectDuration = definition.effectDuration ?? 0;
 
     if (buffs.length > 0) {
-      this.applyEffectsToEntity(champion, buffs, effectDuration, champion.id);
+      applyEffectsToEntity(champion, buffs, effectDuration, champion.id);
     }
 
     // The area is where the caster stood when casting; with aoeDelay it lands later
@@ -836,7 +817,7 @@ export class ServerAbilityExecutor {
 
       // Apply debuffs to enemies (stun, slow, taunt), whether or not the ability does damage
       if (isEnemy && debuffs.length > 0) {
-        this.applyEffectsToEntity(entity, debuffs, effectDuration, champion.id);
+        applyEffectsToEntity(entity, debuffs, effectDuration, champion.id);
       }
 
       // Apply healing to allies
@@ -848,7 +829,7 @@ export class ServerAbilityExecutor {
 
       // Apply buffs to allies (like the speed buff from Elara's E)
       if (isAlly && buffs.length > 0) {
-        this.applyEffectsToEntity(entity, buffs, effectDuration, champion.id);
+        applyEffectsToEntity(entity, buffs, effectDuration, champion.id);
       }
     }
   }
@@ -873,23 +854,14 @@ export class ServerAbilityExecutor {
 
     // Calculate and apply damage (with passive multiplier)
     if (definition.damage) {
-      const damageAmount = calculateAbilityValue(
-        definition.damage.scaling,
-        rank,
-        {
-          attackDamage: stats.attackDamage,
-          abilityPower: stats.abilityPower,
-          bonusHealth: stats.maxHealth - champion.definition.baseStats.health,
-          maxHealth: stats.maxHealth,
-        }
-      ) * damageMultiplier;
+      const damageAmount = calculateAbilityValue(definition.damage.scaling, rank, getScalingStats(champion, stats)) * damageMultiplier;
 
       target.takeDamage(damageAmount, definition.damage.type, champion.id, context);
     }
 
     // Apply effects
     if (definition.appliesEffects) {
-      this.applyEffectsToEntity(
+      applyEffectsToEntity(
         target,
         definition.appliesEffects,
         definition.effectDuration ?? 0,
@@ -921,28 +893,14 @@ export class ServerAbilityExecutor {
       "heal" in target &&
       typeof target.heal === "function"
     ) {
-      const healAmount = calculateAbilityValue(definition.heal.scaling, rank, {
-        attackDamage: stats.attackDamage,
-        abilityPower: stats.abilityPower,
-        bonusHealth: stats.maxHealth - champion.definition.baseStats.health,
-        maxHealth: stats.maxHealth,
-      });
+      const healAmount = calculateAbilityValue(definition.heal.scaling, rank, getScalingStats(champion, stats));
 
       (target as { heal: (amount: number) => void }).heal(healAmount);
     }
 
     // Apply shield
     if (definition.shield && "shields" in target) {
-      const shieldAmount = calculateAbilityValue(
-        definition.shield.scaling,
-        rank,
-        {
-          attackDamage: stats.attackDamage,
-          abilityPower: stats.abilityPower,
-          bonusHealth: stats.maxHealth - champion.definition.baseStats.health,
-          maxHealth: stats.maxHealth,
-        }
-      );
+      const shieldAmount = calculateAbilityValue(definition.shield.scaling, rank, getScalingStats(champion, stats));
 
       (target as ServerChampion).shields.push({
         amount: shieldAmount,
@@ -954,7 +912,7 @@ export class ServerAbilityExecutor {
 
     // Apply effects
     if (definition.appliesEffects) {
-      this.applyEffectsToEntity(
+      applyEffectsToEntity(
         target,
         definition.appliesEffects,
         definition.effectDuration ?? 0,
@@ -996,12 +954,7 @@ export class ServerAbilityExecutor {
     let damageAmount = 0;
     let damageType: DamageType = "physical";
     if (definition.damage) {
-      damageAmount = calculateAbilityValue(definition.damage.scaling, rank, {
-        attackDamage: stats.attackDamage,
-        abilityPower: stats.abilityPower,
-        bonusHealth: stats.maxHealth - champion.definition.baseStats.health,
-        maxHealth: stats.maxHealth,
-      }) * damageMultiplier;
+      damageAmount = calculateAbilityValue(definition.damage.scaling, rank, getScalingStats(champion, stats)) * damageMultiplier;
       damageType = definition.damage.type;
     }
 
@@ -1186,12 +1139,7 @@ export class ServerAbilityExecutor {
     // Calculate damage (with passive multiplier)
     let damageAmount = 0;
     if (definition.damage) {
-      damageAmount = calculateAbilityValue(definition.damage.scaling, rank, {
-        attackDamage: stats.attackDamage,
-        abilityPower: stats.abilityPower,
-        bonusHealth: stats.maxHealth - champion.definition.baseStats.health,
-        maxHealth: stats.maxHealth,
-      }) * damageMultiplier;
+      damageAmount = calculateAbilityValue(definition.damage.scaling, rank, getScalingStats(champion, stats)) * damageMultiplier;
     }
 
     // Apply to enemies
@@ -1211,7 +1159,7 @@ export class ServerAbilityExecutor {
 
       // Apply effects
       if (definition.appliesEffects) {
-        this.applyEffectsToEntity(
+        applyEffectsToEntity(
           entity,
           definition.appliesEffects,
           definition.effectDuration ?? 0,
@@ -1240,12 +1188,7 @@ export class ServerAbilityExecutor {
     // Calculate damage per tick (with passive multiplier)
     let damageAmount = 0;
     if (definition.damage) {
-      damageAmount = calculateAbilityValue(definition.damage.scaling, rank, {
-        attackDamage: stats.attackDamage,
-        abilityPower: stats.abilityPower,
-        bonusHealth: stats.maxHealth - champion.definition.baseStats.health,
-        maxHealth: stats.maxHealth,
-      }) * damageMultiplier;
+      damageAmount = calculateAbilityValue(definition.damage.scaling, rank, getScalingStats(champion, stats)) * damageMultiplier;
     }
 
     // Determine zone type for visual
@@ -1303,12 +1246,7 @@ export class ServerAbilityExecutor {
     // Calculate damage (with passive multiplier)
     let damageAmount = 0;
     if (definition.damage) {
-      damageAmount = calculateAbilityValue(definition.damage.scaling, rank, {
-        attackDamage: stats.attackDamage,
-        abilityPower: stats.abilityPower,
-        bonusHealth: stats.maxHealth - champion.definition.baseStats.health,
-        maxHealth: stats.maxHealth,
-      }) * damageMultiplier;
+      damageAmount = calculateAbilityValue(definition.damage.scaling, rank, getScalingStats(champion, stats)) * damageMultiplier;
     }
 
     for (const entity of entities) {
@@ -1333,7 +1271,7 @@ export class ServerAbilityExecutor {
         }
 
         if (definition.appliesEffects) {
-          this.applyEffectsToEntity(
+          applyEffectsToEntity(
             entity,
             definition.appliesEffects,
             definition.effectDuration ?? 0,
@@ -1384,12 +1322,7 @@ export class ServerAbilityExecutor {
     const dashHasDamageOnCollision = definition.damage && definition.aoeRadius;
     if (dashHasDamageOnCollision) {
       const stats = champion.getStats();
-      damageAmount = calculateAbilityValue(definition.damage!.scaling, rank, {
-        attackDamage: stats.attackDamage,
-        abilityPower: stats.abilityPower,
-        bonusHealth: stats.maxHealth - champion.definition.baseStats.health,
-        maxHealth: stats.maxHealth,
-      }) * damageMultiplier;
+      damageAmount = calculateAbilityValue(definition.damage!.scaling, rank, getScalingStats(champion, stats)) * damageMultiplier;
     }
 
     champion.forcedMovement = {
@@ -1437,28 +1370,6 @@ export class ServerAbilityExecutor {
 
     // Instant teleport
     champion.position.setFrom(finalPosition);
-  }
-
-  /**
-   * Apply effects to an entity.
-   */
-  private applyEffectsToEntity(
-    entity: ServerEntity,
-    effectIds: string[],
-    duration: number,
-    sourceId: string
-  ): void {
-    if (!("applyEffect" in entity)) return;
-
-    const applyEffect = (
-      entity as {
-        applyEffect: (id: string, duration: number, sourceId?: string) => void;
-      }
-    ).applyEffect;
-
-    for (const effectId of effectIds) {
-      applyEffect.call(entity, effectId, duration, sourceId);
-    }
   }
 
   /**
