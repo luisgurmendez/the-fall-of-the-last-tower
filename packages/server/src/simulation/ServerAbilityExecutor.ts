@@ -1,19 +1,19 @@
 /**
- * ServerAbilityExecutor - Executes champion abilities on the server.
+ * ServerAbilityExecutor - Casts champion abilities on the server.
  *
- * This class is responsible for:
- * - Validating ability cast conditions (mana, cooldowns, range)
- * - Executing ability effects (damage, healing, shields)
- * - Spawning projectiles for skillshots
- * - Creating AoE damage zones
- * - Applying effects (CC, buffs, debuffs)
+ * This class owns the cast flow:
+ * - Validating cast conditions (rank, crowd control, cooldown, mana, target)
+ * - Recasts: handler-owned, or the generic recast dash
+ * - Running the ability's handler, or else the generic path for its target
+ *   type (abilities/generic/), then its dash or teleport
+ * - Mana cost, cooldown, combat state, the ABILITY_CAST event and the
+ *   on_ability_cast passive trigger
  */
 
 import {
   Vector,
   AbilitySlot,
   AbilityDefinition,
-  calculateAbilityValue,
   getAbilityDefinition,
   canAbilityAffectEntityType,
   hasRecastBehavior,
@@ -27,15 +27,13 @@ import { championHooksRegistry } from "../abilities/ChampionHooksRegistry";
 import type { AbilityHandlerParams, AbilityExecutionResult } from "../abilities/IAbilityHandler";
 import type { ServerChampion } from "./ServerChampion";
 import type { ServerGameContext } from "../game/ServerGameContext";
-import { ServerZone, ZoneEffectType } from "./ServerZone";
-import { ServerTrap } from "./ServerTrap";
 import { Logger } from "../utils/Logger";
-import { getScalingStats, applyEffectsToEntity } from "../abilities/generic/AbilityHelpers";
 import { dashToDestination, teleportToDestination, executeRecastDash } from "../abilities/generic/Movement";
 import { executeSelfAbility } from "../abilities/generic/SelfAbility";
 import { executeNoTargetAbility } from "../abilities/generic/NoTargetArea";
 import { executeTargetEnemyAbility, executeTargetAllyAbility } from "../abilities/generic/TargetedAbility";
 import { executeSkillshot } from "../abilities/generic/Skillshot";
+import { executeGroundTarget } from "../abilities/generic/GroundTarget";
 
 export interface AbilityCastParams {
   /** The champion casting the ability */
@@ -471,7 +469,7 @@ export class ServerAbilityExecutor {
       return result;
     }
 
-    // Execute based on target type
+    // No handler: run the generic path for the target type (abilities/generic/)
     switch (definition.targetType) {
       case "self":
         executeSelfAbility(params, definition, rank);
@@ -494,7 +492,7 @@ export class ServerAbilityExecutor {
         break;
 
       case "ground_target":
-        this.executeGroundTarget(params, definition, rank, damageMultiplier);
+        executeGroundTarget(params, definition, rank, damageMultiplier);
         break;
     }
 
@@ -506,262 +504,6 @@ export class ServerAbilityExecutor {
     if (definition.teleport) {
       teleportToDestination(params, definition);
     }
-  }
-
-  /**
-   * Execute a ground-targeted ability.
-   */
-  private executeGroundTarget(
-    params: AbilityCastParams,
-    definition: AbilityDefinition,
-    rank: number,
-    damageMultiplier: number = 1.0
-  ): void {
-    const { champion, targetPosition, context } = params;
-
-    if (!targetPosition) return;
-
-    // Handle trap placement (like Vile's E)
-    if (definition.trap) {
-      this.executeTrapPlacement(params, definition, rank);
-      return;
-    }
-
-    // Handle cone-shaped abilities
-    if (definition.shape === "cone" && definition.coneAngle) {
-      this.executeConeAbility(params, definition, rank, damageMultiplier);
-      return;
-    }
-
-    // Delayed AoE (like meteor): lands at the target point after aoeDelay
-    if (definition.aoeDelay && definition.aoeDelay > 0) {
-      const landing = { ...params, targetPosition: targetPosition.clone() };
-      context.schedule(definition.aoeDelay, () => {
-        this.executeCircleAoE(landing, definition, rank, damageMultiplier);
-      });
-      return;
-    }
-
-    // Default: immediate circular AoE
-    this.executeCircleAoE(params, definition, rank, damageMultiplier);
-  }
-
-  /**
-   * Execute trap placement (like Vile's E).
-   */
-  private executeTrapPlacement(
-    params: AbilityCastParams,
-    definition: AbilityDefinition,
-    rank: number
-  ): void {
-    const { champion, targetPosition, context } = params;
-
-    if (!targetPosition || !definition.trap) return;
-
-    // Get R rank for explosion damage scaling
-    const rState = champion.abilityStates.R;
-    const rRank = Math.max(1, rState.rank); // Default to rank 1 if R not learned
-    const explosionDamage = definition.trap.explosionDamage?.[rRank - 1] ?? 0;
-
-    // Create the trap
-    const trap = new ServerTrap({
-      id: context.generateEntityId(),
-      position: targetPosition.clone(),
-      side: champion.side,
-      ownerId: champion.id,
-      triggerRadius: definition.trap.triggerRadius,
-      duration: definition.trap.duration,
-      isStealthed: definition.trap.isStealthed,
-      rootDuration: definition.trap.rootDuration,
-      soulStacksOnTrigger: definition.trap.soulStacksOnTrigger ?? 0,
-      explosionDamage: explosionDamage,
-      explosionRadius: definition.trap.explosionRadius ?? 300,
-      explosionRootDuration: definition.trap.explosionRootDuration ?? 1,
-    });
-
-    context.addEntity(trap);
-
-    Logger.debug("Ability", `${champion.playerId} placed trap at (${targetPosition.x}, ${targetPosition.y})`);
-  }
-
-  /**
-   * Execute a circular AoE at a position.
-   */
-  private executeCircleAoE(
-    params: AbilityCastParams,
-    definition: AbilityDefinition,
-    rank: number,
-    damageMultiplier: number = 1.0
-  ): void {
-    const { champion, targetPosition, context } = params;
-
-    if (!targetPosition) return;
-
-    const stats = champion.getStats();
-    const radius = definition.aoeRadius ?? 200;
-
-    // If this is a zone ability (has zoneDuration), create a persistent zone
-    if (definition.zoneDuration && definition.zoneDuration > 0) {
-      this.createZone(params, definition, rank, damageMultiplier);
-      return;
-    }
-
-    // Get entities in the AoE
-    const entities = context.getEntitiesInRadius(targetPosition, radius);
-
-    // Calculate damage (with passive multiplier)
-    let damageAmount = 0;
-    if (definition.damage) {
-      damageAmount = calculateAbilityValue(definition.damage.scaling, rank, getScalingStats(champion, stats)) * damageMultiplier;
-    }
-
-    // Apply to enemies
-    for (const entity of entities) {
-      if (entity.side === champion.side) continue;
-      if (entity.isDead) continue;
-
-      // Check if ability can affect this entity type
-      if (!canAbilityAffectEntityType(definition, entity.entityType)) {
-        continue;
-      }
-
-      // Apply damage
-      if (damageAmount > 0 && definition.damage) {
-        entity.takeDamage(damageAmount, definition.damage.type, champion.id, context);
-      }
-
-      // Apply effects
-      if (definition.appliesEffects) {
-        applyEffectsToEntity(
-          entity,
-          definition.appliesEffects,
-          definition.effectDuration ?? 0,
-          champion.id
-        );
-      }
-    }
-  }
-
-  /**
-   * Create a persistent zone at target position.
-   */
-  private createZone(
-    params: AbilityCastParams,
-    definition: AbilityDefinition,
-    rank: number,
-    damageMultiplier: number = 1.0
-  ): void {
-    const { champion, targetPosition, context } = params;
-
-    if (!targetPosition) return;
-
-    const stats = champion.getStats();
-    const radius = definition.aoeRadius ?? 200;
-
-    // Calculate damage per tick (with passive multiplier)
-    let damageAmount = 0;
-    if (definition.damage) {
-      damageAmount = calculateAbilityValue(definition.damage.scaling, rank, getScalingStats(champion, stats)) * damageMultiplier;
-    }
-
-    // Determine zone type for visual
-    let zoneType: ZoneEffectType = 'slow';
-    if (damageAmount > 0) {
-      zoneType = 'damage';
-    } else if (definition.heal) {
-      zoneType = 'heal';
-    }
-
-    // Create the zone
-    const zone = new ServerZone({
-      id: context.generateEntityId(),
-      position: targetPosition.clone(),
-      side: champion.side,
-      radius,
-      duration: definition.zoneDuration ?? 2,
-      sourceId: champion.id,
-      abilityId: definition.id,
-      zoneType,
-      damage: damageAmount,
-      damageType: definition.damage?.type ?? 'magic',
-      appliesEffects: definition.appliesEffects,
-      effectDuration: definition.effectDuration ?? 0,
-      tickRate: definition.zoneTickRate ?? 0,
-    });
-
-    context.addEntity(zone);
-  }
-
-  /**
-   * Execute a cone-shaped ability.
-   */
-  private executeConeAbility(
-    params: AbilityCastParams,
-    definition: AbilityDefinition,
-    rank: number,
-    damageMultiplier: number = 1.0
-  ): void {
-    const { champion, targetPosition, context } = params;
-
-    if (!targetPosition) return;
-
-    const stats = champion.getStats();
-    const radius = definition.aoeRadius ?? definition.range ?? 300;
-    const coneAngle = definition.coneAngle ?? Math.PI / 2; // 90 degrees default
-
-    // Direction from champion to target
-    const direction = targetPosition.subtracted(champion.position).normalized();
-    const dirAngle = Math.atan2(direction.y, direction.x);
-
-    // Get entities in range
-    const entities = context.getEntitiesInRadius(champion.position, radius);
-
-    // Calculate damage (with passive multiplier)
-    let damageAmount = 0;
-    if (definition.damage) {
-      damageAmount = calculateAbilityValue(definition.damage.scaling, rank, getScalingStats(champion, stats)) * damageMultiplier;
-    }
-
-    for (const entity of entities) {
-      if (entity.side === champion.side) continue;
-      if (entity.isDead) continue;
-      if (entity.id === champion.id) continue;
-
-      // Check if ability can affect this entity type
-      if (!canAbilityAffectEntityType(definition, entity.entityType)) {
-        continue;
-      }
-
-      // Check if entity is in cone
-      const toEntity = entity.position.subtracted(champion.position);
-      const entityAngle = Math.atan2(toEntity.y, toEntity.x);
-      const angleDiff = Math.abs(this.normalizeAngle(entityAngle - dirAngle));
-
-      if (angleDiff <= coneAngle / 2) {
-        // Entity is in cone
-        if (damageAmount > 0 && definition.damage) {
-          entity.takeDamage(damageAmount, definition.damage.type, champion.id, context);
-        }
-
-        if (definition.appliesEffects) {
-          applyEffectsToEntity(
-            entity,
-            definition.appliesEffects,
-            definition.effectDuration ?? 0,
-            champion.id
-          );
-        }
-      }
-    }
-  }
-
-  /**
-   * Normalize an angle to be within -PI to PI.
-   */
-  private normalizeAngle(angle: number): number {
-    while (angle > Math.PI) angle -= 2 * Math.PI;
-    while (angle < -Math.PI) angle += 2 * Math.PI;
-    return angle;
   }
 }
 
