@@ -14,7 +14,9 @@
  *    the enemy champion in range, or push: a minion nothing else is
  *    hitting, else the healthiest one (hitting a weak one hands it to
  *    allied minions)
- * 5. Walk to just behind the allied wave front, staying out of enemy tower
+ * 5. With nothing to last-hit, hit an enemy tower its minions are tanking
+ *    (or the nexus) once the structure order lets it take damage
+ * 6. Walk to just behind the allied wave front, staying out of enemy tower
  *    range unless allied minions are already tanking it
  *
  * Champion abilities are bespoke, so ABILITY_ROLES says how a bot should use
@@ -43,6 +45,7 @@ import type { ServerEntity } from '../simulation/ServerEntity';
 import type { ServerTower } from '../simulation/ServerTower';
 import type { ServerGameContext } from '../game/ServerGameContext';
 import { LanePath } from '../navigation/LanePath';
+import { isStructureVulnerable } from '../systems/StructureRules';
 
 export interface LaneBotConfig {
   playerId: string;
@@ -103,8 +106,14 @@ const FRONT_OFFSET = 120;
 const TOWER_MARGIN = 80;
 /** Collision radius assumed for the unit at a position (the largest champion's) */
 const UNIT_RADIUS = 25;
+/** How far past its attack range the bot looks for a structure to hit */
+const SIEGE_REACH = 300;
 /** Allied minions under an enemy tower before the bot follows them in */
 const MIN_TOWER_TANKS = 2;
+/** Seconds of tower shots on minions to spare after walking back out of its range */
+const TOWER_EXIT_MARGIN = 1.5;
+/** How much of the enemy minions' damage on our minions under a tower to count (they spread it, and die too) */
+const ENEMY_MINION_DPS_WEIGHT = 0.5;
 /** How far the bot looks for allied units hitting a minion */
 const MINION_DAMAGE_RADIUS = 700;
 /** Same command is re-sent after this long in case it was dropped */
@@ -183,6 +192,8 @@ export class LaneBot implements BotController {
     const enemyChampion = this.findEnemyChampion(champion, context);
     const threatened = enemyChampion !== null &&
       enemyChampion.position.distanceTo(champion.position) < RECALL_SAFE_DISTANCE;
+    const enemySide = 1 - champion.side as Side;
+    const underEnemyTower = this.findTowerCovering(champion.position, enemySide, context, TOWER_MARGIN) !== null;
 
     // At base: shop first, until there's nothing left to buy
     if (champion.position.distanceTo(spawn) < 300) {
@@ -201,8 +212,8 @@ export class LaneBot implements BotController {
         this.lastDecision = 'heal at base';
         return null; // Home - wait for health to come back
       }
-      // Damage cancels a recall: walk off until out of combat first
-      if (!threatened && !champion.inCombat) {
+      // Damage cancels a recall: walk off until out of combat and tower range first
+      if (!threatened && !champion.inCombat && !underEnemyTower) {
         this.lastDecision = 'recall';
         if (champion.isRecalling) return null;
         return this.command(`recall`, [{ type: InputType.RECALL }]);
@@ -218,15 +229,14 @@ export class LaneBot implements BotController {
     if (champion.isRecalling) return null;
 
     // Shopping trip: recall when it's safe; with an enemy near, keep playing
-    if (this.shopping && !threatened && !champion.inCombat) {
+    if (this.shopping && !threatened && !champion.inCombat && !underEnemyTower) {
       this.lastDecision = 'recall to shop';
       return this.command(`recall`, [{ type: InputType.RECALL }]);
     }
 
     // Under an enemy tower with no allied minions for it to shoot: get out
-    const enemySide = 1 - champion.side as Side;
     if (this.findTowerCovering(champion.position, enemySide, context) &&
-        !this.alliesTankingTowerAt(champion.position, champion.side, context)) {
+        !this.alliesTankingTowerAt(champion.position, champion, context)) {
       this.lastDecision = 'leave tower range';
       return this.moveTo(this.findLanePosition(champion, context));
     }
@@ -256,6 +266,13 @@ export class LaneBot implements BotController {
     if (enemyChampion && this.canHarass(champion, enemyChampion, context)) {
       this.lastDecision = 'harass';
       return this.attack(enemyChampion);
+    }
+
+    // Nothing to last-hit: hit the structure the wave is tanking
+    const structure = this.findSiegeTarget(champion, context);
+    if (structure) {
+      this.lastDecision = 'siege';
+      return this.attack(structure);
     }
 
     const minion = this.findFarmTarget(minions);
@@ -446,7 +463,7 @@ export class LaneBot implements BotController {
 
     return this.reachableMinions(champion, context).map(minion => {
       const armorFactor = 100 / (100 + armorOf(minion));
-      const incomingDps = this.alliedDamagePerSecond(minion, context) * armorFactor;
+      const incomingDps = this.incomingDamagePerSecond(minion, context) * armorFactor;
 
       const gap = Math.max(0, champion.position.distanceTo(minion.position) - champion.getRadius() - minion.getRadius());
       const walkTime = Math.max(0, gap - attackRange) / Math.max(1, stats.movementSpeed);
@@ -463,9 +480,10 @@ export class LaneBot implements BotController {
   }
 
   /**
-   * Damage per second (before armor) allied minions and towers are dealing a unit.
+   * Damage per second (before armor) the minions and towers attacking a unit
+   * are dealing it (for an enemy minion: ours).
    */
-  private alliedDamagePerSecond(target: ServerEntity, context: ServerGameContext): number {
+  private incomingDamagePerSecond(target: ServerEntity, context: ServerGameContext): number {
     let dps = 0;
     for (const ally of context.getEnemiesInRadius(target.position, MINION_DAMAGE_RADIUS, target.side)) {
       if (ally.isDead) continue;
@@ -554,6 +572,23 @@ export class LaneBot implements BotController {
   }
 
   /**
+   * An enemy tower or nexus near enough to attack that can take damage
+   * (StructureRules), with allied minions tanking it if it's a tower.
+   */
+  private findSiegeTarget(champion: ServerChampion, context: ServerGameContext): ServerEntity | null {
+    const reach = champion.getAttackRange() + SIEGE_REACH;
+    for (const entity of context.getEnemiesInRadius(champion.position, reach, champion.side)) {
+      if (entity.isDead) continue;
+      if (entity.entityType !== EntityType.TOWER && entity.entityType !== EntityType.NEXUS) continue;
+      if (!isStructureVulnerable(entity, context)) continue;
+      // Towers shoot back once they run out of minions; the nexus doesn't
+      if (entity.entityType === EntityType.TOWER && !this.alliesTankingTowerAt(this.attackSpot(champion, entity), champion, context)) continue;
+      return entity;
+    }
+    return null;
+  }
+
+  /**
    * Visible enemy minions near enough to attack, and that can be hit from
    * outside their tower's range (or allied minions are already tanking it).
    */
@@ -572,8 +607,8 @@ export class LaneBot implements BotController {
    * the spot it would hit from is outside it, or allied minions are tanking it.
    */
   private safeToHit(champion: ServerChampion, minion: ServerEntity, context: ServerGameContext): boolean {
-    return !this.findTowerCovering(this.attackSpot(champion, minion), minion.side, context) ||
-      this.alliesTankingTowerAt(minion.position, champion.side, context);
+    const spot = this.attackSpot(champion, minion);
+    return !this.findTowerCovering(spot, minion.side, context) || this.alliesTankingTowerAt(spot, champion, context);
   }
 
   /**
@@ -615,7 +650,7 @@ export class LaneBot implements BotController {
     let distance = front - FRONT_OFFSET;
     let position = path.pointAt(distance);
     while (distance > 0 && this.findTowerCovering(position, 1 - champion.side as Side, context, TOWER_MARGIN) &&
-           !this.alliesTankingTowerAt(position, champion.side, context)) {
+           !this.alliesTankingTowerAt(position, champion, context)) {
       distance -= 25;
       position = path.pointAt(distance);
     }
@@ -639,20 +674,32 @@ export class LaneBot implements BotController {
   }
 
   /**
-   * Whether allied minions are inside the range of the enemy tower covering
-   * `position`: enough of them that the tower won't run out of minions to
-   * shoot (and turn on the champion) in the next few seconds.
+   * Whether the champion can stand at `position`, under an enemy tower: at
+   * least MIN_TOWER_TANKS allied minions are in its range, and at the rate
+   * they're taking damage (tower and enemy minions) they'll last long enough
+   * for the champion to walk back out of range from there before the tower
+   * turns on it. True if no tower covers it.
    */
-  private alliesTankingTowerAt(position: Vector, side: Side, context: ServerGameContext): boolean {
-    const tower = this.findTowerCovering(position, 1 - side as Side, context, TOWER_MARGIN);
+  private alliesTankingTowerAt(position: Vector, champion: ServerChampion, context: ServerGameContext): boolean {
+    const tower = this.findTowerCovering(position, 1 - champion.side as Side, context, TOWER_MARGIN) as ServerTower | null;
     if (!tower) return true;
     const tanks = context.getAllEntities().filter(entity =>
       entity.entityType === EntityType.MINION &&
       !entity.isDead &&
-      entity.side === side &&
-      tower.isInAttackRange(entity, (tower as ServerTower).attackRange)
+      entity.side === champion.side &&
+      tower.isInAttackRange(entity, tower.attackRange)
     );
-    return tanks.length >= MIN_TOWER_TANKS;
+    if (tanks.length < MIN_TOWER_TANKS) return false;
+
+    const tankHealth = tanks.reduce((total, minion) => total + minion.health, 0);
+    const towerDps = tower.stats.attackDamage / tower.stats.attackCooldown;
+    // The tower's damage counts once even if it's shooting one of them
+    const minionDps = tanks.reduce((total, minion) => total + this.incomingDamagePerSecond(minion, context), 0) -
+      (tanks.some(minion => tower.getAttackTargetId() === minion.id) ? towerDps : 0);
+    const busyFor = tankHealth / (towerDps + ENEMY_MINION_DPS_WEIGHT * Math.max(0, minionDps));
+    const walkOut = Math.max(0, this.towerReach(tower) - tower.position.distanceTo(position));
+    const exitTime = walkOut / Math.max(1, champion.getStats().movementSpeed);
+    return busyFor > exitTime + TOWER_EXIT_MARGIN;
   }
 
   /**
