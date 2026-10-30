@@ -163,12 +163,14 @@ export class OnlineMinimap extends ScreenEntity {
     this.isHovering = this.isInsideMinimap(mousePos.x, mousePos.y);
 
     // Handle click to move camera
-    if (this.isHovering && this.inputManager.isLeftMouseJustPressed()) {
+    const justPressed = this.isHovering && this.inputManager.isLeftMouseJustPressed();
+    if (justPressed) {
       this.isDragging = true;
     }
 
     if (this.isDragging) {
-      if (this.inputManager.isLeftMouseDown()) {
+      // A quick click can be released within the frame it was pressed in
+      if (this.inputManager.isLeftMouseDown() || justPressed) {
         // Move camera to clicked position
         const worldPos = this.minimapToWorld(mousePos.x, mousePos.y);
         context.camera.position.x = worldPos.x;
