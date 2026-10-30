@@ -28,6 +28,7 @@ import {
   CHAMPION_ICONS,
   ENABLED_CHAMPIONS,
 } from "./championSelect";
+import { QueueScreen } from "./queueScreen";
 import { startTipRotation, showRandomTip } from "./tips";
 // Re-export for external use
 export type {
@@ -57,10 +58,8 @@ export class MatchmakingUI {
   private pingValue: HTMLElement;
   private tipText: HTMLElement;
 
-  // Queue elements
-  private queueTimer: HTMLElement;
-  private queuePosition: HTMLElement;
-  private queueSize: HTMLElement;
+  // Queue screen
+  private queue: QueueScreen;
 
   // Match found elements
   private blueChampion: HTMLElement;
@@ -80,8 +79,6 @@ export class MatchmakingUI {
 
   // State
   private currentScreen: ScreenId = "menu";
-  private queueStartTime: number = 0;
-  private queueTimerInterval: ReturnType<typeof setInterval> | null = null;
   private loadingProgress: number = 0;
   private matchData: MatchData | null = null;
   private bufferedFullState: any = null;
@@ -120,9 +117,7 @@ export class MatchmakingUI {
     this.tipText = getEl("tip-text");
 
     // Get queue elements
-    this.queueTimer = getEl("queue-timer");
-    this.queuePosition = getEl("queue-position");
-    this.queueSize = getEl("queue-size");
+    this.queue = new QueueScreen(getEl);
 
     // Get match found elements
     this.blueChampion = getEl("blue-champion");
@@ -341,7 +336,7 @@ export class MatchmakingUI {
       });
       if (mode === "queue") {
         this.showScreen("queue");
-        this.startQueueTimer();
+        this.queue.startTimer();
       }
     };
 
@@ -400,7 +395,7 @@ export class MatchmakingUI {
         // Persist so the player can rejoin their game after a page reload
         sessionStorage.setItem("siege-session-token", event.sessionToken);
       } else if (event.event === "queue_joined") {
-        this.updateQueueInfo(event.position, event.queueSize);
+        this.queue.updateInfo(event.position, event.queueSize);
       }
     };
 
@@ -422,7 +417,7 @@ export class MatchmakingUI {
    * Cancel queue.
    */
   private cancelQueue(): void {
-    this.stopQueueTimer();
+    this.queue.stopTimer();
     this.networkClient?.disconnect();
     this.networkClient = null;
     this.updateConnectionStatus("offline");
@@ -430,44 +425,10 @@ export class MatchmakingUI {
   }
 
   /**
-   * Start the queue timer.
-   */
-  private startQueueTimer(): void {
-    this.queueStartTime = Date.now();
-    this.queueTimerInterval = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - this.queueStartTime) / 1000);
-      const minutes = Math.floor(elapsed / 60);
-      const seconds = elapsed % 60;
-      if (this.queueTimer) {
-        this.queueTimer.textContent = `${minutes}:${seconds.toString().padStart(2, "0")}`;
-      }
-    }, 1000);
-  }
-
-  /**
-   * Stop the queue timer.
-   */
-  private stopQueueTimer(): void {
-    if (this.queueTimerInterval) {
-      clearInterval(this.queueTimerInterval);
-      this.queueTimerInterval = null;
-    }
-  }
-
-  /**
-   * Update queue info display.
-   */
-  private updateQueueInfo(position: number, size: number): void {
-    if (this.queuePosition)
-      this.queuePosition.textContent = position.toString();
-    if (this.queueSize) this.queueSize.textContent = size.toString();
-  }
-
-  /**
    * Handle match found from server.
    */
   private handleMatchFound(data: any): void {
-    this.stopQueueTimer();
+    this.queue.stopTimer();
     this.matchData = data;
 
     // Update team displays
@@ -555,7 +516,7 @@ export class MatchmakingUI {
       this.errorMessage.textContent = message;
     }
     this.showScreen("error");
-    this.stopQueueTimer();
+    this.queue.stopTimer();
   }
 
   /**
@@ -629,7 +590,7 @@ export class MatchmakingUI {
    * Reset to initial state.
    */
   reset(): void {
-    this.stopQueueTimer();
+    this.queue.stopTimer();
     this.networkClient?.disconnect();
     this.networkClient = null;
     this.matchData = null;
