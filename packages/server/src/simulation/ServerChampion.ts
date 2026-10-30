@@ -59,6 +59,7 @@ import {
   type ForcedMovement,
 } from './champion/ChampionForcedMovement';
 import { ChampionRecall } from './champion/ChampionRecall';
+import { ChampionTrinket } from './champion/ChampionTrinket';
 
 export interface ServerChampionConfig extends Omit<ServerEntityConfig, 'entityType'> {
   definition: ChampionDefinition;
@@ -144,6 +145,7 @@ export class ServerChampion extends ServerEntity {
   trinketCooldown = 0;          // Cooldown after placing a ward
   trinketRechargeTimer = 0;     // Time accumulator for next charge
   trinketRechargeTime = 120;    // 120 seconds to recharge one ward
+  private readonly trinket = new ChampionTrinket(this);
 
   constructor(config: ServerChampionConfig) {
     super({
@@ -257,7 +259,7 @@ export class ServerChampion extends ServerEntity {
     this.updateRegeneration(dt);
 
     // Update trinket (ward) charges
-    this.updateTrinket(dt);
+    this.trinket.update(dt);
 
     // Update passive state
     this.updatePassiveState(dt, context);
@@ -443,30 +445,10 @@ export class ServerChampion extends ServerEntity {
   }
 
   /**
-   * Update trinket (ward) charges.
-   */
-  private updateTrinket(dt: number): void {
-    // Update cooldown
-    if (this.trinketCooldown > 0) {
-      this.trinketCooldown = Math.max(0, this.trinketCooldown - dt);
-    }
-
-    // Recharge if not at max charges
-    if (this.trinketCharges < this.trinketMaxCharges) {
-      this.trinketRechargeTimer += dt;
-
-      if (this.trinketRechargeTimer >= this.trinketRechargeTime) {
-        this.trinketCharges++;
-        this.trinketRechargeTimer = 0;
-      }
-    }
-  }
-
-  /**
    * Check if can place a ward.
    */
   canPlaceWard(): boolean {
-    return this.trinketCharges > 0 && this.trinketCooldown <= 0 && !this.isDead;
+    return this.trinket.canPlaceWard();
   }
 
   /**
@@ -474,22 +456,14 @@ export class ServerChampion extends ServerEntity {
    * Returns true if successful.
    */
   consumeTrinketCharge(): boolean {
-    if (!this.canPlaceWard()) {
-      return false;
-    }
-
-    this.trinketCharges--;
-    this.trinketCooldown = 1; // 1 second cooldown after placing
-
-    return true;
+    return this.trinket.consumeCharge();
   }
 
   /**
    * Get trinket recharge progress (0-1).
    */
   getTrinketRechargeProgress(): number {
-    if (this.trinketCharges >= this.trinketMaxCharges) return 1;
-    return this.trinketRechargeTimer / this.trinketRechargeTime;
+    return this.trinket.getRechargeProgress();
   }
 
   /**
