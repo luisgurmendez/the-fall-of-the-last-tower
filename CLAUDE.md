@@ -66,6 +66,7 @@ For detailed documentation on the multiplayer MOBA systems, see the following fi
 | **Map & Terrain** | [docs/architecture/map.md](docs/architecture/map.md) | Layout, walls, river, pathfinding, wall collision |
 | **Jungle** | [docs/architecture/jungle.md](docs/architecture/jungle.md) | Camps, neutral monster AI, buffs, dragon, camp timers |
 | **Lanes & Minions** | [docs/architecture/minions.md](docs/architecture/minions.md) | Waves, lane following, minion targeting and call for help |
+| **Items & Shop** | [docs/architecture/items.md](docs/architecture/items.md) | Item catalog, shop UI, item icons (PixelLab) |
 | **Simulation** | [docs/architecture/simulation.md](docs/architecture/simulation.md) | Headless scenarios, bots, PNG frames, HTTP sandbox for agents |
 
 ### Quick Reference
@@ -102,6 +103,7 @@ For detailed documentation on the multiplayer MOBA systems, see the following fi
 | Map layout, walls, pathfinding, terrain collision | `map.md` |
 | Jungle camps, creature AI, jungle buffs | `jungle.md` |
 | Minion waves, lane following, minion targeting | `minions.md` |
+| Items, the shop, item icons | `items.md` |
 | Simulation framework, scenarios, bots | `simulation.md` |
 
 **When adding new systems**, create a new doc file in `docs/architecture/` and add a reference here.

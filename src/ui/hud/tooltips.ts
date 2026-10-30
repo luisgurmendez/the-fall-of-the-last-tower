@@ -8,7 +8,9 @@ import RenderUtils from '@/render/utils';
 import type { StatModifier, AbilitySlot } from '@siege/shared';
 import { getEffectDisplayInfo } from '@/data/effectDisplayInfo';
 import { HUD_COLORS, PANEL } from '@/ui/hud/layout';
-import { getItemIcon, getItemCategoryColor } from '@/ui/hud/items';
+import { getItemCategoryColor } from '@/ui/hud/items';
+import { drawItemIcon, ITEM_ICON_SIZE } from '@/ui/itemIcons';
+import { getItemPassive } from '@/data/items';
 import { wrapText, interpolateAbilityDescription, formatTriggerType, formatBuffName } from '@/ui/hud/tooltipText';
 import type { EquippedItem, HUDActiveEffect, HUDChampionData, HUDPassive } from '@/ui/hud/types';
 
@@ -534,19 +536,21 @@ export function drawItemTooltip(
 
   // Calculate tooltip dimensions
   const tooltipWidth = 340;
-  const headerHeight = lineHeight + 8;
+  const headerHeight = ITEM_ICON_SIZE + 8;
   const statsHeight = statLines.length * lineHeight;
   const sellHeight = lineHeight + 4;
 
   // Wrap description text (use smaller char width for pixel font)
-  const descLines = wrapText(item.description, tooltipWidth - padding * 2, 16, 0.45);
+  const descLines = item.description ? wrapText(item.description, tooltipWidth - padding * 2, 16, 0.45) : [];
   const descHeight = descLines.length * lineHeight + 4;
 
-  // Passive display - passiveIds are just string IDs, display them simply
-  const passiveData = (item.passiveIds || []).map((passiveId: string) => ({
-    name: passiveId,
-    descLines: [] as string[],
-  }));
+  const passiveData = (item.passiveIds || []).map((passiveId: string) => {
+    const passive = getItemPassive(passiveId);
+    return {
+      name: passive?.name ?? passiveId,
+      descLines: passive ? wrapText(passive.description, tooltipWidth - padding * 2, 16, 0.45) : [],
+    };
+  });
   let passivesHeight = 0;
   passiveData.forEach((p: { name: string; descLines: string[] }) => {
     passivesHeight += lineHeight + p.descLines.length * lineHeight + 4;
@@ -576,14 +580,17 @@ export function drawItemTooltip(
 
   let currentY = clampedY + padding;
 
-  // Item name with icon
-  const icon = getItemIcon(item);
+  // Item icon and name
+  const nameColor = getItemCategoryColor(item.category);
+  drawItemIcon(ctx, item, clampedX + padding, currentY, 1, (symbol) => {
+    RenderUtils.renderBitmapText(ctx, symbol, clampedX + padding + 4, currentY + 4, { color: nameColor, size: 24, shadow: false });
+  });
   RenderUtils.renderBitmapText(
     ctx,
-    `${icon} ${item.name}`,
-    clampedX + padding,
-    currentY,
-    { color: getItemCategoryColor(item.category), size: 24, shadow: false }
+    item.name,
+    clampedX + padding + ITEM_ICON_SIZE + 8,
+    currentY + 4,
+    { color: nameColor, size: 24, shadow: false }
   );
   currentY += headerHeight;
 

@@ -14,3 +14,6 @@ export type { MapSide, LaneId, JungleCreatureType, BushSpread, BushGroupBounds, 
 export { GameConfig } from './GameConfig';
 
 export { WallGrid } from './WallGrid';
+
+export { ITEM_CATALOG, getItemCatalogEntry } from './items';
+export type { ItemCatalogEntry, ItemPassiveData } from './items';

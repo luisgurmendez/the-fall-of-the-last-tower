@@ -14,8 +14,8 @@ export type { Shape } from './math/shapes';
 export * from './types';
 
 // Configuration
-export { MOBAConfig, GameConfig, calculateBushGroupBounds, calculateIndividualBushPositions, isPointInBushGroup, WallGrid } from './config';
-export type { MapSide, LaneId, JungleCreatureType, BushSpread, BushGroupBounds, BushPosition } from './config';
+export { MOBAConfig, GameConfig, calculateBushGroupBounds, calculateIndividualBushPositions, isPointInBushGroup, WallGrid, ITEM_CATALOG, getItemCatalogEntry } from './config';
+export type { MapSide, LaneId, JungleCreatureType, BushSpread, BushGroupBounds, BushPosition, ItemCatalogEntry, ItemPassiveData } from './config';
 
 // Utility functions
 export * from './utils';

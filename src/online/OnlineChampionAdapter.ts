@@ -23,6 +23,7 @@ import {
   getPassiveDefinition,
 } from '@siege/shared';
 import type { HUDTrinket, HUDActiveEffect, HUDPassive, HUDPassiveDefinition } from '@/ui/ChampionHUD';
+import { getItemDefinition } from '@/data/items';
 
 /**
  * Local interface for inventory display.
@@ -298,8 +299,8 @@ class OnlineInventoryAdapter implements ChampionInventory {
   }
 
   private createEquippedItem(itemState: any, slot: ItemSlot): EquippedItem {
-    // Create a mock equipped item from server state
-    const definition: ItemDefinition = {
+    // An item missing from the catalog still shows, as a generic item
+    const definition: ItemDefinition = getItemDefinition(itemState.definitionId) ?? {
       id: itemState.definitionId || 'unknown',
       name: itemState.definitionId || 'Item',
       description: 'An item',

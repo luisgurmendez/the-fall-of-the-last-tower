@@ -5,8 +5,9 @@
  */
 
 import RenderUtils from '@/render/utils';
-import type { ItemSlot, ItemDefinition } from '@siege/shared';
+import type { ItemSlot } from '@siege/shared';
 import { HUD_COLORS, PANEL } from '@/ui/hud/layout';
+import { drawItemIcon, ITEM_ICON_SIZE } from '@/ui/itemIcons';
 import type { HUDChampionData, HUDContext } from '@/ui/hud/types';
 
 /** Draw the items panel (2 rows x 3 cols) with gold display */
@@ -92,16 +93,16 @@ function drawItemSlot(
   ctx.strokeRect(x, y, size, size);
 
   if (equipped) {
-    // Draw item icon
-    const icon = getItemIcon(equipped.definition);
-    const iconColor = getItemCategoryColor(equipped.definition.category);
-    RenderUtils.renderBitmapText(
-      ctx,
-      icon,
-      x + size / 2,
-      y + size / 2 - 14,
-      { color: iconColor, size: 28, centered: true, shadow: true }
-    );
+    const iconOffset = (size - ITEM_ICON_SIZE) / 2;
+    drawItemIcon(ctx, equipped.definition, x + iconOffset, y + iconOffset, 1, (symbol) => {
+      RenderUtils.renderBitmapText(
+        ctx,
+        symbol,
+        x + size / 2,
+        y + size / 2 - 14,
+        { color: getItemCategoryColor(equipped.definition.category), size: 28, centered: true, shadow: true }
+      );
+    });
   } else {
     // Show empty slot with number
     RenderUtils.renderBitmapText(
@@ -112,21 +113,6 @@ function drawItemSlot(
       { color: isHovered ? HUD_COLORS.text : HUD_COLORS.textDim, size: 22, centered: true, shadow: false }
     );
   }
-}
-
-/** Get emoji icon for an item based on its category */
-export function getItemIcon(item: ItemDefinition): string {
-  const icons: Record<string, string> = {
-    attack_damage: '⚔',
-    ability_power: '✦',
-    attack_speed: '⚡',
-    armor: '🛡',
-    magic_resist: '✧',
-    health: '♥',
-    movement: '👢',
-    utility: '⚙',
-  };
-  return icons[item.category] || '?';
 }
 
 /** Get color for an item category */

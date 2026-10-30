@@ -6,23 +6,13 @@
 import GameContext from "@/core/gameContext";
 import type { ItemDefinition, ItemSlot, ItemCategory } from "@siege/shared";
 import type { NetworkClient } from "@siege/client";
+import { createItemIconElement } from "@/ui/itemIcons";
+import { SHOP_ITEMS, getItemDefinition, getItemPassive } from "@/data/items";
 
 type ShopCategory = ItemCategory | "all";
 
-/**
- * Placeholder item data until real definitions are added to @siege/shared.
- * The server validates all purchases, so these are just for display.
- */
-const ALL_ITEMS: ItemDefinition[] = [
-  { id: 'long_sword', name: 'Long Sword', description: '+10 Attack Damage', category: 'attack_damage', cost: 350, sellValue: 245, stats: { attackDamage: 10 }, isUnique: false, tags: [], passiveIds: [] },
-  { id: 'amplifying_tome', name: 'Amplifying Tome', description: '+20 Ability Power', category: 'ability_power', cost: 435, sellValue: 305, stats: { abilityPower: 20 }, isUnique: false, tags: [], passiveIds: [] },
-  { id: 'cloth_armor', name: 'Cloth Armor', description: '+15 Armor', category: 'armor', cost: 300, sellValue: 210, stats: { armor: 15 }, isUnique: false, tags: [], passiveIds: [] },
-  { id: 'ruby_crystal', name: 'Ruby Crystal', description: '+150 Health', category: 'health', cost: 400, sellValue: 280, stats: { health: 150 }, isUnique: false, tags: [], passiveIds: [] },
-  { id: 'boots', name: 'Boots', description: '+25 Movement Speed', category: 'movement', cost: 300, sellValue: 210, stats: { movementSpeed: 25 }, isUnique: false, tags: [], passiveIds: [] },
-];
-
 function getItemsByCategory(category: ItemCategory): ItemDefinition[] {
-  return ALL_ITEMS.filter(item => item.category === category);
+  return SHOP_ITEMS.filter(item => item.category === category);
 }
 
 interface ShopState {
@@ -166,7 +156,7 @@ export class ShopUI {
 
     const items =
       this.state.selectedCategory === "all"
-        ? ALL_ITEMS
+        ? SHOP_ITEMS
         : getItemsByCategory(this.state.selectedCategory);
 
     for (const item of items) {
@@ -192,7 +182,7 @@ export class ShopUI {
     // Icon
     const iconDiv = document.createElement("div");
     iconDiv.className = `shop-item-icon item-icon-${item.category}`;
-    iconDiv.textContent = this.getItemIcon(item);
+    iconDiv.appendChild(createItemIconElement(item));
     div.appendChild(iconDiv);
 
     // Cost
@@ -212,23 +202,6 @@ export class ShopUI {
     });
 
     return div;
-  }
-
-  /**
-   * Get an emoji icon for an item based on its category.
-   */
-  private getItemIcon(item: ItemDefinition): string {
-    const icons: Record<string, string> = {
-      attack_damage: "⚔",
-      ability_power: "✦",
-      attack_speed: "⚡",
-      armor: "🛡",
-      magic_resist: "✧",
-      health: "♥",
-      movement: "👢",
-      utility: "⚙",
-    };
-    return icons[item.category] || "?";
   }
 
   /**
@@ -280,7 +253,7 @@ export class ShopUI {
 
     if (itemState && itemState.definitionId) {
       // Look up item definition
-      const itemDef = ALL_ITEMS.find(i => i.id === itemState.definitionId);
+      const itemDef = getItemDefinition(itemState.definitionId);
 
       if (itemDef) {
         this.state.selectedItem = itemDef;
@@ -321,9 +294,7 @@ export class ShopUI {
 
     this.detailsPanel.innerHTML = `
       <div class="item-detail-header">
-        <div class="item-detail-icon item-icon-${item.category}">
-          ${this.getItemIcon(item)}
-        </div>
+        <div class="item-detail-icon item-icon-${item.category}"></div>
         <div class="item-detail-title">
           <div class="item-detail-name">${item.name}</div>
           <div class="item-detail-cost">${
@@ -331,7 +302,7 @@ export class ShopUI {
           }</div>
         </div>
       </div>
-      <div class="item-detail-description">${item.description}</div>
+      ${item.description ? `<div class="item-detail-description">${item.description}</div>` : ""}
       ${statsHtml ? `<div class="item-detail-stats">${statsHtml}</div>` : ""}
       ${
         passivesHtml
@@ -339,6 +310,7 @@ export class ShopUI {
           : ""
       }
     `;
+    this.detailsPanel.querySelector(".item-detail-icon")?.appendChild(createItemIconElement(item));
   }
 
   /**
@@ -406,15 +378,16 @@ export class ShopUI {
   private formatItemPassives(item: ItemDefinition): string {
     if (!item.passiveIds || !item.passiveIds.length) return "";
 
-    // For now, just display passive IDs since full definitions aren't available client-side
     return item.passiveIds
-      .map(
-        (passiveId) => `
+      .map((passiveId) => {
+        const passive = getItemPassive(passiveId);
+        return `
       <div class="item-passive">
-        <div class="item-passive-name">${passiveId}</div>
+        <div class="item-passive-name">${passive?.name ?? passiveId}</div>
+        ${passive ? `<div class="item-passive-desc">${passive.description}</div>` : ""}
       </div>
-    `
-      )
+    `;
+      })
       .join("");
   }
 
@@ -527,14 +500,14 @@ export class ShopUI {
 
       if (itemState && itemState.definitionId) {
         // Look up item definition by ID
-        const itemDef = ALL_ITEMS.find(i => i.id === itemState.definitionId);
+        const itemDef = getItemDefinition(itemState.definitionId);
 
         if (itemDef) {
           slot.classList.add("has-item");
 
           const iconDiv = document.createElement("div");
           iconDiv.className = `slot-item-icon item-icon-${itemDef.category}`;
-          iconDiv.textContent = this.getItemIcon(itemDef);
+          iconDiv.appendChild(createItemIconElement(itemDef));
           slot.appendChild(iconDiv);
         }
       } else {
@@ -667,7 +640,7 @@ export class ShopUI {
 
     itemEls.forEach((el) => {
       const itemId = (el as HTMLElement).dataset.itemId;
-      const item = ALL_ITEMS.find((i) => i.id === itemId);
+      const item = itemId ? getItemDefinition(itemId) : undefined;
       if (item) {
         el.classList.toggle("cannot-afford", gold < item.cost);
       }
