@@ -73,6 +73,10 @@ export function renderHealthBar(
   shields?: Array<{ amount: number; shieldType: string }>,
   options: HealthBarOptions = {},
 ): void {
+  // Bars are drawn plain, whatever filter (hit flash, tint) the unit's body uses
+  ctx.save();
+  ctx.filter = "none";
+
   const barWidth = width;
   const barHeight = 6;
 
@@ -188,6 +192,7 @@ export function renderHealthBar(
   ctx.strokeStyle = "#000000";
   ctx.lineWidth = 1;
   ctx.strokeRect(-barWidth / 2, yOffset, barWidth, barHeight);
+  ctx.restore();
 }
 
 /**
@@ -270,6 +275,9 @@ export function renderResourceBar(
   const barHeight = 4;
   const resourcePercent = Math.max(0, Math.min(1, resource / maxResource));
 
+  ctx.save();
+  ctx.filter = "none";
+
   // Background
   ctx.fillStyle = "#333333";
   ctx.fillRect(-barWidth / 2, yOffset, barWidth, barHeight);
@@ -282,6 +290,7 @@ export function renderResourceBar(
   ctx.strokeStyle = "#000000";
   ctx.lineWidth = 1;
   ctx.strokeRect(-barWidth / 2, yOffset, barWidth, barHeight);
+  ctx.restore();
 }
 
 /**
