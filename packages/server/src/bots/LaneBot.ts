@@ -4,20 +4,23 @@
  * Plays one lane with a handful of rules, in priority order:
  * 1. Spend skill points (R when allowed, then Q/W/E, learning each once first)
  * 2. Retreat and recall when low on health (using defensive abilities if
- *    the enemy is close; walking off until out of combat, since damage
- *    cancels a recall); shop at base. Also recall to shop when it has
- *    enough gold for its next item and no enemy champion is near
- * 3. Fight the enemy champion when it is close and the trade looks even or better
- * 4. Last-hit minions: predict each minion's health when our hit would land
+ *    the enemy is close; walking off until out of combat and out of enemy
+ *    tower range, since damage cancels a recall); shop at base. Also recall
+ *    to shop when it has enough gold for its next item and no enemy
+ *    champion is near
+ * 3. Leave enemy tower range unless allied minions are tanking the tower
+ *    (enough of them, for long enough to walk back out)
+ * 4. Fight the enemy champion when it is close and the trade looks even or better
+ * 5. Last-hit minions: predict each minion's health when our hit would land
  *    (allied minions and towers keep hitting it), hit when that kills it,
- *    and hold the attack when one is about to be ready. Otherwise harass
- *    the enemy champion in range, or push: a minion nothing else is
- *    hitting, else the healthiest one (hitting a weak one hands it to
- *    allied minions)
- * 5. With nothing to last-hit, hit an enemy tower its minions are tanking
- *    (or the nexus) once the structure order lets it take damage
- * 6. Walk to just behind the allied wave front, staying out of enemy tower
- *    range unless allied minions are already tanking it
+ *    and hold the attack when one is about to be ready
+ * 6. Harass the enemy champion in range, only from ahead
+ * 7. Siege: hit an enemy tower its minions are tanking (or the nexus) once
+ *    the structure order lets it take damage
+ * 8. Push: a minion nothing else is hitting, else the healthiest one
+ *    (hitting a weak one hands it to allied minions)
+ * 9. Walk to just behind the allied wave front, staying out of enemy tower
+ *    range unless allied minions are tanking it
  *
  * Champion abilities are bespoke, so ABILITY_ROLES says how a bot should use
  * the ones the generic rules would misuse (stealth, invulnerability, dashes).
