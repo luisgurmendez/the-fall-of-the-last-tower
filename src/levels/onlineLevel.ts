@@ -136,7 +136,7 @@ export function generateOnlineLevel(config: OnlineLevelConfig): Level {
   });
 
   // Create tab scoreboard (shows full scoreboard when Tab is held)
-  const tabScoreboard = new TabScoreboard(stateManager, matchData.yourSide);
+  const tabScoreboard = new TabScoreboard(stateManager, matchData.yourSide, matchData.players ?? []);
 
   // Build objects list
   const objects: GameObject[] = [

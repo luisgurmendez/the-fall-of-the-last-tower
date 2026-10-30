@@ -8,9 +8,10 @@
  * - Items (6 slots)
  * - Gold (hidden for enemies)
  *
- * A champion out of sight keeps the line it had when last seen. When the
- * match ends it stays up, titled with the result and filled with the
- * server's final stats, until the player moves on.
+ * Every champion in the match is listed from the start; one not seen yet
+ * shows dashes, and one out of sight keeps the line it had when last seen.
+ * When the match ends it stays up, titled with the result and filled with
+ * the server's final stats, until the player moves on.
  */
 
 import { ScreenEntity } from '@/core/GameObject';
@@ -40,6 +41,15 @@ interface ScoreboardRow {
   gold: number;
   /** Item ids by slot */
   items: (string | null)[];
+  /** False for a champion not seen yet: its stats are unknown */
+  known?: boolean;
+}
+
+/** A champion in the match, from the match data */
+export interface ScoreboardPlayer {
+  entityId: string;
+  championId: string;
+  side: number;
 }
 
 /** Scoreboard layout configuration - BIGGER sizes */
@@ -99,7 +109,11 @@ export class TabScoreboard extends ScreenEntity {
   /** Each champion's line when last seen, by entity id */
   private lastSeen = new Map<string, ScoreboardRow>();
 
-  constructor(stateManager: OnlineStateManager, localSide: number) {
+  constructor(
+    stateManager: OnlineStateManager,
+    localSide: number,
+    private readonly roster: ScoreboardPlayer[] = [],
+  ) {
     super('tab-scoreboard');
     this.stateManager = stateManager;
     this.localSide = localSide;
@@ -131,7 +145,23 @@ export class TabScoreboard extends ScreenEntity {
    */
   private getRows(result: MatchResult | null): ScoreboardRow[] {
     if (result && result.players.length > 0) return result.players;
-    return Array.from(this.lastSeen.values());
+    const rows = this.roster.map(player => this.lastSeen.get(player.entityId) ?? {
+      side: player.side,
+      championId: player.championId,
+      level: 0,
+      kills: 0,
+      deaths: 0,
+      assists: 0,
+      cs: 0,
+      gold: 0,
+      items: [],
+      known: false,
+    });
+    // Anyone seen who isn't in the roster (no match data)
+    for (const [entityId, row] of this.lastSeen) {
+      if (!this.roster.some(player => player.entityId === entityId)) rows.push(row);
+    }
+    return rows;
   }
 
   render(): RenderElement {
@@ -363,14 +393,15 @@ export class TabScoreboard extends ScreenEntity {
     colX += LAYOUT.nameCol;
 
     // Level
-    RenderUtils.renderBitmapText(c, row.level.toString(), colX, textY, {
+    const known = row.known !== false;
+    RenderUtils.renderBitmapText(c, known ? row.level.toString() : '-', colX, textY, {
       size: FONT.normal,
       color: COLORS.text,
     });
     colX += LAYOUT.levelCol;
 
     // K/D/A
-    const kdaStr = `${row.kills}/${row.deaths}/${row.assists}`;
+    const kdaStr = known ? `${row.kills}/${row.deaths}/${row.assists}` : '-';
     RenderUtils.renderBitmapText(c, kdaStr, colX, textY, {
       size: FONT.normal,
       color: COLORS.text,
@@ -378,7 +409,7 @@ export class TabScoreboard extends ScreenEntity {
     colX += LAYOUT.kdaCol;
 
     // CS
-    RenderUtils.renderBitmapText(c, row.cs.toString(), colX, textY, {
+    RenderUtils.renderBitmapText(c, known ? row.cs.toString() : '-', colX, textY, {
       size: FONT.normal,
       color: COLORS.text,
     });
@@ -409,7 +440,7 @@ export class TabScoreboard extends ScreenEntity {
     colX += LAYOUT.itemsCol;
 
     // Gold (hidden for enemies until the match is over)
-    if (isAlly || matchOver) {
+    if (known && (isAlly || matchOver)) {
       const goldStr = Math.floor(row.gold).toString();
       RenderUtils.renderBitmapText(c, goldStr, colX, textY, {
         size: FONT.normal,
