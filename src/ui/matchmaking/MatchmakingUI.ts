@@ -23,50 +23,25 @@ import {
   type PassiveAbilityDefinition,
   type AbilityScaling,
 } from "@siege/shared";
+import type {
+  ScreenId,
+  ConnectionStatus,
+  MatchData,
+  MatchmakingUICallbacks,
+} from "./types";
+// Re-export for external use
+export type {
+  ScreenId,
+  ConnectionStatus,
+  MatchData,
+  MatchmakingUICallbacks,
+} from "./types";
 
 // Debug: verify imports
 console.log("[MatchmakingUI] Module loaded");
 console.log("[MatchmakingUI] getAbilityDefinition:", typeof getAbilityDefinition);
 console.log("[MatchmakingUI] ABILITY_DEFINITIONS:", ABILITY_DEFINITIONS);
 console.log("[MatchmakingUI] Test lookup warrior_slash:", getAbilityDefinition("warrior_slash"));
-
-/**
- * Screen identifiers.
- */
-export type ScreenId =
-  | "menu"
-  | "champion-select"
-  | "connecting"
-  | "queue"
-  | "match-found"
-  | "error";
-
-/**
- * Connection status.
- */
-export type ConnectionStatus = "offline" | "connecting" | "online";
-
-/**
- * Match data received from server.
- */
-export interface MatchData {
-  gameId: string;
-  yourSide: number;
-  players: Array<{
-    playerId: string;
-    championId: string;
-    side: number;
-    entityId: string;
-  }>;
-}
-
-/**
- * Callbacks for game events.
- */
-export interface MatchmakingUICallbacks {
-  onGameStart?: (matchData: MatchData) => void;
-  onGameReady?: () => void;
-}
 
 /**
  * Tips to display randomly.
