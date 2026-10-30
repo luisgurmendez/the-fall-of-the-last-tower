@@ -1,0 +1,35 @@
+# Map, Terrain and Pathfinding
+
+Config: `packages/shared/src/config/MOBAConfig.ts` (lanes, river, towers, camps, bushes, decorations, walls).
+Wall layout: `packages/shared/src/config/siegeMap.ts`, built with the helpers in `mapLayout.ts`.
+Server: `packages/server/src/navigation/` (`Terrain`, `PathFollower`, `ServerNavGrid`, `LanePath`).
+
+## Layout
+
+Coordinates run from -1800 to 1800 on both axes, with +y pointing down. A 192-unit water border surrounds the playable area. Blue's base is in the bottom-left corner (nexus at (-1300, 1300)) and red's is in the top-right (1300, -1300). The map is point-symmetric: any blue position (x, y) has a red counterpart at (-x, -y).
+
+- **Lanes:** top runs along the left and top edges (x or y = ±1330), mid follows the diagonal, and bot runs along the bottom and right edges.
+- **River:** the other diagonal, from top-left to bottom-right. It's walkable. The dragon pit is in the bot river at (720, 720), and a matching empty pit sits in the top river.
+- **Jungle:** each team has two quadrants. The top-side jungle has the blue buff, gromp and wolves. The bot-side jungle has the red buff, spiders and a second gromp.
+- **Towers:** two per lane per side. The outer tower is listed first and is tier 1. Tower range is 600. Positions are chosen so the outer towers' ranges don't reach the point where waves meet, in every lane.
+
+## Walls
+
+Walls are designed as polygons for blue's top-side jungle (`stroke`, `blob`, `arc`). They are reflected across mid for blue's bot-side jungle (`reflectAcrossMid`), and `buildWalls()` then mirrors everything through the map center for red. Finally `buildWalls()` rasterizes them to 64-unit tiles and merges the tiles into rectangles. The result is `MOBAConfig.WALLS`: rectangles centered on `position`. The client draws them as cliffs (`MOBABackground.drawInteriorWalls`) and on the minimap.
+
+To change the layout:
+1. Edit the polygons in `siegeMap.ts`.
+2. Run `bun run sim map-overview --px 900` in `packages/server` and look at `sim-output/map-overview/final.png`.
+3. Run `bun test Terrain`. It checks that every camp, tower and lane waypoint is reachable from both spawns and that none of them is inside a wall.
+
+## Terrain on the server
+
+`ServerGameContext.terrain` is a `Terrain` built from the map config.
+
+- **Collision.** Each tick, after unit collisions, champions, minions and jungle creatures are pushed out of walls and the water (`resolveCircle`). Dashes and knockbacks therefore stop at walls. Projectiles and skillshots fly over walls.
+- **Pathfinding.** A `MOVE` input calls `context.moveChampion()`. If the straight line is clear the champion walks straight. Otherwise A* runs on `ServerNavGrid` (25-unit cells, walls inflated by 30 units so paths don't hug cliffs, binary-heap open set; a cross-map path takes a few ms), and the path is smoothed by line of sight. A destination inside a wall is replaced by the nearest walkable point.
+- **Following.** `PathFollower` hands the champion one waypoint at a time as a normal move target. A stop, attack, dash or new command (anything that changes the move target) ends the path. Recalling stops the champion.
+- **Minions** follow their lane paths, which stay clear of walls, and slide along walls when chasing.
+- **Jungle creatures** also slide along walls; they walk home when leashed.
+
+Vision is not blocked by walls yet.

@@ -42,6 +42,7 @@ const COLORS = {
   water: hexColor('#1f4e66'),
   grass: hexColor('#3f6b35'),
   lane: hexColor('#8a7a52', 0.55),
+  river: hexColor('#3d7a9a', 0.75),
   bush: hexColor('#1f4020', 0.85),
   wall: hexColor('#5b5348'),
   wallEdge: hexColor('#2e2a25'),
@@ -120,6 +121,15 @@ export class FrameRenderer {
     const [gx0, gy0] = this.toPx(-half + border, -half + border);
     const [gx1, gy1] = this.toPx(half - border, half - border);
     raster.fillRect(gx0, gy0, gx1 - gx0, gy1 - gy0, COLORS.grass);
+
+    const river = (this.map as { RIVER?: { points: readonly { x: number; y: number }[]; width: number } }).RIVER;
+    if (river) {
+      for (let i = 0; i < river.points.length - 1; i++) {
+        const [x0, y0] = this.toPx(river.points[i].x, river.points[i].y);
+        const [x1, y1] = this.toPx(river.points[i + 1].x, river.points[i + 1].y);
+        raster.line(x0, y0, x1, y1, COLORS.river, Math.max(2, river.width * this.scale));
+      }
+    }
 
     for (const lane of Object.values(this.map.LANES)) {
       const points = lane.waypoints;

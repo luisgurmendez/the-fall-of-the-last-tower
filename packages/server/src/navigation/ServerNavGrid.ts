@@ -10,16 +10,68 @@ import { Vector } from '@siege/shared';
 /** Grid cell size in world units */
 export const CELL_SIZE = 25;
 
+/** Neighbor offsets (8-directional movement) */
+const NEIGHBORS = [
+  { dx: 0, dy: -1, cost: 1 },
+  { dx: 1, dy: 0, cost: 1 },
+  { dx: 0, dy: 1, cost: 1 },
+  { dx: -1, dy: 0, cost: 1 },
+  { dx: 1, dy: -1, cost: 1.41 },
+  { dx: 1, dy: 1, cost: 1.41 },
+  { dx: -1, dy: 1, cost: 1.41 },
+  { dx: -1, dy: -1, cost: 1.41 },
+];
+
 /**
- * A node in the A* pathfinding algorithm.
+ * Binary min-heap of cell indices keyed by priority (A* open set).
+ * Stale entries are skipped by the caller via the closed set.
  */
-interface PathNode {
-  x: number;
-  y: number;
-  g: number; // Cost from start
-  h: number; // Heuristic (estimated cost to end)
-  f: number; // Total cost (g + h)
-  parent: PathNode | null;
+class MinHeap {
+  private indices: number[] = [];
+  private priorities: number[] = [];
+
+  get size(): number {
+    return this.indices.length;
+  }
+
+  push(index: number, priority: number): void {
+    this.indices.push(index);
+    this.priorities.push(priority);
+    let i = this.indices.length - 1;
+    while (i > 0) {
+      const up = (i - 1) >> 1;
+      if (this.priorities[up] <= this.priorities[i]) break;
+      this.swap(i, up);
+      i = up;
+    }
+  }
+
+  pop(): number {
+    const top = this.indices[0];
+    const lastIndex = this.indices.pop()!;
+    const lastPriority = this.priorities.pop()!;
+    if (this.indices.length > 0) {
+      this.indices[0] = lastIndex;
+      this.priorities[0] = lastPriority;
+      let i = 0;
+      for (;;) {
+        const left = i * 2 + 1;
+        const right = left + 1;
+        let smallest = i;
+        if (left < this.indices.length && this.priorities[left] < this.priorities[smallest]) smallest = left;
+        if (right < this.indices.length && this.priorities[right] < this.priorities[smallest]) smallest = right;
+        if (smallest === i) break;
+        this.swap(i, smallest);
+        i = smallest;
+      }
+    }
+    return top;
+  }
+
+  private swap(a: number, b: number): void {
+    [this.indices[a], this.indices[b]] = [this.indices[b], this.indices[a]];
+    [this.priorities[a], this.priorities[b]] = [this.priorities[b], this.priorities[a]];
+  }
 }
 
 /**
@@ -309,100 +361,56 @@ export class ServerNavGrid {
       end.y = nearest.y;
     }
 
-    // A* implementation
-    const openSet: PathNode[] = [];
-    const closedSet = new Set<string>();
+    // A* over flat typed arrays with a binary heap (open set), so a path across
+    // the whole map stays in the low milliseconds
+    const cellCount = this.width * this.height;
+    const gScore = new Float32Array(cellCount).fill(Infinity);
+    const parent = new Int32Array(cellCount).fill(-1);
+    const closed = new Uint8Array(cellCount);
+    const heap = new MinHeap();
 
     const heuristic = (x: number, y: number): number => {
       // Octile distance - optimal for 8-directional movement
-      // Accounts for diagonal movement costing ~1.41
       const dx = Math.abs(x - end.x);
       const dy = Math.abs(y - end.y);
       return Math.max(dx, dy) + 0.41 * Math.min(dx, dy);
     };
 
-    const startNode: PathNode = {
-      x: start.x,
-      y: start.y,
-      g: 0,
-      h: heuristic(start.x, start.y),
-      f: heuristic(start.x, start.y),
-      parent: null,
-    };
+    const startIndex = this.getIndex(start.x, start.y);
+    const endIndex = this.getIndex(end.x, end.y);
+    gScore[startIndex] = 0;
+    heap.push(startIndex, heuristic(start.x, start.y));
 
-    openSet.push(startNode);
+    while (heap.size > 0) {
+      const current = heap.pop();
+      if (closed[current]) continue;
+      closed[current] = 1;
 
-    // Neighbor offsets (8-directional movement)
-    const neighbors = [
-      { dx: 0, dy: -1, cost: 1 },    // Up
-      { dx: 1, dy: 0, cost: 1 },     // Right
-      { dx: 0, dy: 1, cost: 1 },     // Down
-      { dx: -1, dy: 0, cost: 1 },    // Left
-      { dx: 1, dy: -1, cost: 1.41 }, // Up-Right
-      { dx: 1, dy: 1, cost: 1.41 },  // Down-Right
-      { dx: -1, dy: 1, cost: 1.41 }, // Down-Left
-      { dx: -1, dy: -1, cost: 1.41 }, // Up-Left
-    ];
-
-    const maxIterations = 15000; // Prevent infinite loops
-    let iterations = 0;
-
-    while (openSet.length > 0 && iterations < maxIterations) {
-      iterations++;
-
-      // Find node with lowest f score
-      let lowestIndex = 0;
-      for (let i = 1; i < openSet.length; i++) {
-        if (openSet[i].f < openSet[lowestIndex].f) {
-          lowestIndex = i;
-        }
+      if (current === endIndex) {
+        return this.reconstructPath(parent, endIndex);
       }
 
-      const current = openSet[lowestIndex];
+      const cx = current % this.width;
+      const cy = Math.floor(current / this.width);
 
-      // Reached the goal
-      if (current.x === end.x && current.y === end.y) {
-        return this.reconstructPath(current);
-      }
+      for (const { dx, dy, cost } of NEIGHBORS) {
+        const nx = cx + dx;
+        const ny = cy + dy;
+        if (!this.isWalkable(nx, ny)) continue;
 
-      // Move current from open to closed
-      openSet.splice(lowestIndex, 1);
-      closedSet.add(`${current.x},${current.y}`);
-
-      // Check neighbors
-      for (const { dx, dy, cost } of neighbors) {
-        const nx = current.x + dx;
-        const ny = current.y + dy;
-        const key = `${nx},${ny}`;
-
-        // Skip if not walkable or already evaluated
-        if (!this.isWalkable(nx, ny) || closedSet.has(key)) {
+        // For diagonal movement, both adjacent cells must be walkable (no corner cutting)
+        if (dx !== 0 && dy !== 0 && (!this.isWalkable(cx + dx, cy) || !this.isWalkable(cx, cy + dy))) {
           continue;
         }
 
-        // For diagonal movement, check that adjacent cells are also walkable
-        // (prevents cutting corners)
-        if (dx !== 0 && dy !== 0) {
-          if (!this.isWalkable(current.x + dx, current.y) ||
-              !this.isWalkable(current.x, current.y + dy)) {
-            continue;
-          }
-        }
+        const neighbor = this.getIndex(nx, ny);
+        if (closed[neighbor]) continue;
 
-        const g = current.g + cost;
-        const h = heuristic(nx, ny);
-        const f = g + h;
-
-        // Check if this path to neighbor is better
-        const existingIndex = openSet.findIndex(n => n.x === nx && n.y === ny);
-        if (existingIndex !== -1) {
-          if (g < openSet[existingIndex].g) {
-            openSet[existingIndex].g = g;
-            openSet[existingIndex].f = f;
-            openSet[existingIndex].parent = current;
-          }
-        } else {
-          openSet.push({ x: nx, y: ny, g, h, f, parent: current });
+        const g = gScore[current] + cost;
+        if (g < gScore[neighbor]) {
+          gScore[neighbor] = g;
+          parent[neighbor] = current;
+          heap.push(neighbor, g + heuristic(nx, ny));
         }
       }
     }
@@ -412,15 +420,12 @@ export class ServerNavGrid {
   }
 
   /**
-   * Reconstruct path from end node to start.
+   * Reconstruct path from the end cell back to the start.
    */
-  private reconstructPath(endNode: PathNode): Vector[] {
+  private reconstructPath(parent: Int32Array, endIndex: number): Vector[] {
     const path: Vector[] = [];
-    let current: PathNode | null = endNode;
-
-    while (current !== null) {
-      path.unshift(this.gridToWorld(current.x, current.y));
-      current = current.parent;
+    for (let index = endIndex; index !== -1; index = parent[index]) {
+      path.unshift(this.gridToWorld(index % this.width, Math.floor(index / this.width)));
     }
 
     // Simplify path by removing intermediate points on straight lines

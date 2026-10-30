@@ -227,7 +227,7 @@ export class InputHandler {
         break;
 
       case InputType.RECALL:
-        this.handleRecallInput(champion);
+        this.handleRecallInput(champion, context);
         break;
 
       case InputType.PLACE_WARD:
@@ -257,7 +257,7 @@ export class InputHandler {
       return; // Invalid position
     }
 
-    champion.setMoveTarget(targetPos);
+    context.moveChampion(champion, targetPos);
 
     // For attack move, also set attack stance
     // TODO: Implement attack-move behavior
@@ -352,8 +352,17 @@ export class InputHandler {
   /**
    * Handle recall input.
    */
-  private handleRecallInput(champion: ServerChampion): void {
-    champion.startRecall();
+  private handleRecallInput(champion: ServerChampion, context: ServerGameContext): void {
+    // Recalling means standing still: stop walking (and any path) first
+    const wasMoving = champion.targetPosition !== null;
+    const targetPosition = champion.targetPosition;
+    if (wasMoving) champion.stop();
+    if (champion.startRecall()) {
+      context.pathFollower.clear(champion.id);
+    } else if (targetPosition) {
+      // Couldn't recall (in combat): keep walking
+      champion.targetPosition = targetPosition;
+    }
   }
 
   /**

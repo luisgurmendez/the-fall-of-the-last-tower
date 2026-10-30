@@ -31,9 +31,11 @@ A minion notices enemies within `max(sightRange, attackRange + 100)`. Targets in
 | 30 | Enemy champions |
 | 10 | Towers, inhibitors, nexus |
 
+Every wave minion moves at the same speed (42) so the formation holds. Attack timings (melee 1.0s, casters 22 damage every 1.6s) are tuned so a wave deals more damage per second than the next wave brings in health; otherwise waves pile up. Over a 9-minute simulation without champions, each side holds a steady 45-50 minions across the three lanes.
+
 Minions never attack jungle creatures, wards, zones or projectiles, and never target units their side can't see.
 
-A minion keeps its target while it's alive, visible, in reach and the minion is within `LANE_LEASH` (350) of its lane. Every 0.5s it checks whether a higher-priority target has appeared, so a call for help interrupts a minion fight. Champion-on-champion damage is recorded by `ServerGameContext` from `DAMAGE` events (`getRecentChampionVictim()`).
+A minion keeps its target while it's alive, visible, in reach and the minion is within `LANE_LEASH` (350) of its lane. Every 0.5s it checks for a better target. It switches to a higher-priority one, so a call for help interrupts a minion fight. It also switches to an enemy of the same priority that is clearly closer when its current target is out of range (for example walled off by other units). Champion-on-champion damage is recorded by `ServerGameContext` from `DAMAGE` events (`getRecentChampionVictim()`).
 
 Casters and siege minions fire targeted projectiles (`minion_caster`, `minion_siege`). Melee minions hit instantly.
 

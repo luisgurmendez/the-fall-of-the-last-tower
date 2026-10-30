@@ -405,11 +405,11 @@ class MOBABackground extends BaseObject {
     // 2. Draw the grass platform with proper edges
     this.drawGrassPlatform(ctx, playableX, playableY, tilesWide, tilesHigh);
 
-    // 3. Draw interior walls with cliff faces
-    this.drawInteriorWalls(ctx);
-
-    // 4. Draw lane paths (subtle overlay)
+    // 3. Draw river and lane paths
     this.drawLanes(ctx);
+
+    // 4. Draw interior walls with cliff faces (on top of river and lanes)
+    this.drawInteriorWalls(ctx);
 
     // 5. Draw jungle area indicators
     this.drawJungleAreas(ctx);
@@ -737,8 +737,38 @@ class MOBABackground extends BaseObject {
    * Draw subtle lane path indicators on the grass.
    * NOTE: Lane rendering removed - server entities are rendered by EntityRenderer.
    */
-  private drawLanes(_ctx: CanvasRenderingContext2D): void {
-    // Lane paths are no longer drawn - minions are rendered from server state
+  private drawLanes(ctx: CanvasRenderingContext2D): void {
+    // River: shallow water with a lighter edge
+    const river = MOBAConfig.RIVER;
+    ctx.save();
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    this.strokePolyline(ctx, river.points, river.width + 24, "rgba(120, 170, 140, 0.35)");
+    this.strokePolyline(ctx, river.points, river.width, "rgba(54, 110, 150, 0.55)");
+    this.strokePolyline(ctx, river.points, river.width * 0.55, "rgba(70, 135, 175, 0.35)");
+
+    // Lanes: worn dirt paths
+    for (const lane of Object.values(MOBAConfig.LANES)) {
+      this.strokePolyline(ctx, lane.waypoints, lane.width + 20, "rgba(110, 92, 58, 0.18)");
+      this.strokePolyline(ctx, lane.waypoints, lane.width, "rgba(140, 116, 72, 0.28)");
+    }
+    ctx.restore();
+  }
+
+  private strokePolyline(
+    ctx: CanvasRenderingContext2D,
+    points: readonly { x: number; y: number }[],
+    width: number,
+    color: string
+  ): void {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    points.forEach((point, i) => {
+      if (i === 0) ctx.moveTo(point.x, point.y);
+      else ctx.lineTo(point.x, point.y);
+    });
+    ctx.stroke();
   }
 
   /**

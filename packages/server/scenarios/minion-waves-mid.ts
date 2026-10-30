@@ -8,7 +8,7 @@ export default defineScenario({
   name: 'minion-waves-mid',
   description: 'A blue and a red wave walk mid and fight (no champions, no jungle)',
   options: { minionWaves: false, jungle: false },
-  duration: 45,
+  duration: 75,
   setup(sim) {
     sim.spawnWave('mid');
   },
@@ -18,5 +18,6 @@ export default defineScenario({
     const deaths = report.deaths.filter(d => d.text.includes('minion'));
     expect(deaths.some(d => d.text.startsWith('blue')), 'some blue minions should die');
     expect(deaths.some(d => d.text.startsWith('red')), 'some red minions should die');
+    expect(deaths.every(d => !d.text.includes('tower')), 'waves should meet outside tower range');
   },
 });

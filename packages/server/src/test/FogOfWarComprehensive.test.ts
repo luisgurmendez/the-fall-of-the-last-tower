@@ -52,7 +52,8 @@ const RANGE_BUFFER = 100;
  */
 function getBushGroupBounds(): { minX: number; maxX: number; minY: number; maxY: number } {
   const groupConfig = MOBAConfig.BUSH_GROUPS[0];
-  const { bushCount, spread } = groupConfig;
+  const { bushCount } = groupConfig;
+  const spread: string = groupConfig.spread;
   const spacing = MOBAConfig.BUSH_SETTINGS.SPACING;
   const bushWidth = 100;
   const bushHeight = 60;

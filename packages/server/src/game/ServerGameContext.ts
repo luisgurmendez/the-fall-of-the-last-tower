@@ -23,6 +23,8 @@ import { ServerMinion } from '../simulation/ServerMinion';
 import { ServerJungleCamp } from '../simulation/ServerJungleCamp';
 import { ServerWard } from '../simulation/ServerWard';
 import { FogOfWarServer } from '../systems/FogOfWarServer';
+import { Terrain } from '../navigation/Terrain';
+import { PathFollower } from '../navigation/PathFollower';
 import { CollisionSystem } from '../systems/CollisionSystem';
 import { passiveTriggerSystem } from '../systems/PassiveTriggerSystem';
 import { Logger } from '../utils/Logger';
@@ -64,6 +66,10 @@ export class ServerGameContext {
   // Collision system
   private collisionSystem: CollisionSystem;
 
+  // Walls and water: unit push-out and pathfinding
+  readonly terrain: Terrain;
+  readonly pathFollower = new PathFollower();
+
   // Jungle camps
   private jungleCamps: ServerJungleCamp[] = [];
 
@@ -80,6 +86,7 @@ export class ServerGameContext {
     this.minionWavesEnabled = config.minionWaves ?? true;
     this.fogOfWar = new FogOfWarServer();
     this.collisionSystem = new CollisionSystem();
+    this.terrain = new Terrain(this.mapConfig);
 
     // Initialize jungle camps
     this.initializeJungleCamps();
@@ -264,6 +271,9 @@ export class ServerGameContext {
     this.tick++;
     this.gameTime += dt;
 
+    // Champions walking around walls get their next waypoint
+    this.pathFollower.update(this, dt);
+
     // Update all entities
     for (const entity of this.entities.values()) {
       entity.update(dt, this);
@@ -276,6 +286,9 @@ export class ServerGameContext {
 
     // Resolve collisions (after movement, before fog of war)
     this.collisionSystem.resolveCollisions(this.getAllEntities());
+
+    // Keep units out of walls and water
+    this.resolveTerrain();
 
     // Update fog of war vision
     this.fogOfWar.updateVision(this, this.tick);
@@ -294,6 +307,27 @@ export class ServerGameContext {
         this.removeEntity(id);
       }
     }
+  }
+
+  /**
+   * Push units out of walls and the water border.
+   */
+  private resolveTerrain(): void {
+    for (const entity of this.entities.values()) {
+      if (entity.isDead) continue;
+      if (entity.entityType !== EntityType.CHAMPION &&
+          entity.entityType !== EntityType.MINION &&
+          entity.entityType !== EntityType.JUNGLE_CAMP) continue;
+      this.terrain.resolveCircle(entity.position, entity.getRadius());
+    }
+  }
+
+  /**
+   * Send a champion to a point, walking around walls.
+   */
+  moveChampion(champion: ServerChampion, destination: Vector): void {
+    const path = this.terrain.findPath(champion.position, destination) ?? [destination];
+    this.pathFollower.follow(champion, path);
   }
 
   /**

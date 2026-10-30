@@ -238,6 +238,26 @@ export class OnlineMinimap extends ScreenEntity {
     ctx.arc(redNexusPos.x, redNexusPos.y, Math.max(nexusRadius, 6), 0, Math.PI * 2);
     ctx.fill();
 
+    // Draw river
+    const river = MOBAConfig.RIVER;
+    ctx.strokeStyle = '#2f5f78';
+    ctx.lineWidth = river.width * scale;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    river.points.forEach((point, i) => {
+      const pt = this.worldToMinimap(point.x, point.y);
+      if (i === 0) ctx.moveTo(pt.x, pt.y);
+      else ctx.lineTo(pt.x, pt.y);
+    });
+    ctx.stroke();
+
+    // Draw walls
+    ctx.fillStyle = '#4a4238';
+    for (const wall of MOBAConfig.WALLS) {
+      const topLeft = this.worldToMinimap(wall.position.x - wall.width / 2, wall.position.y - wall.height / 2);
+      ctx.fillRect(topLeft.x, topLeft.y, wall.width * scale, wall.height * scale);
+    }
+
     // Draw lanes
     ctx.strokeStyle = '#3d5a3d';
     ctx.lineWidth = MOBAConfig.LANES.TOP.width * scale * 0.5;

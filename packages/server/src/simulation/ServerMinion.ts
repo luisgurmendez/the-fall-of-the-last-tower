@@ -382,12 +382,13 @@ export class ServerMinion extends ServerEntity {
       }
     }
 
-    // Find a target, or periodically check for a more important one (call for help)
+    // Find a target, or periodically check for a better one: more important
+    // (call for help), or closer when the current one can't be reached
     this.retargetTimer -= dt;
     if (!this.attackTarget || this.retargetTimer <= 0) {
       this.retargetTimer = ServerMinion.RETARGET_INTERVAL;
       const best = this.findTarget(context);
-      if (best && (!this.attackTarget || best.priority > this.getTargetPriority(this.attackTarget, context))) {
+      if (best && best.id !== this.attackTarget && this.shouldSwitchTo(best, context)) {
         this.attackTarget = best.id;
       }
     }
@@ -399,6 +400,23 @@ export class ServerMinion extends ServerEntity {
         this.attack(target, context);
       }
     }
+  }
+
+  /**
+   * Whether a newly found target beats the current one.
+   */
+  private shouldSwitchTo(best: { id: string; priority: number; distance: number }, context: ServerGameContext): boolean {
+    if (!this.attackTarget) return true;
+    const current = context.getEntity(this.attackTarget);
+    if (!current) return true;
+
+    const currentPriority = this.getPriority(current, context) ?? 0;
+    if (best.priority !== currentPriority) return best.priority > currentPriority;
+
+    // Same priority: stay on a target in range; otherwise take a clearly closer one
+    // (the current one may be walled off by other units)
+    if (this.isInRange(current, this.stats.attackRange)) return false;
+    return best.distance < this.position.distanceTo(current.position) - 50;
   }
 
   /**
@@ -425,10 +443,10 @@ export class ServerMinion extends ServerEntity {
    * closest first within a priority.
    * Note: Minions do NOT attack jungle creatures - they only fight lane units.
    */
-  private findTarget(context: ServerGameContext): { id: string; priority: number } | null {
+  private findTarget(context: ServerGameContext): { id: string; priority: number; distance: number } | null {
     const nearbyEntities = context.getEntitiesInRadius(this.position, this.getAcquisitionRange());
 
-    let best: { id: string; priority: number } | null = null;
+    let best: { id: string; priority: number; distance: number } | null = null;
     let bestDistance = Infinity;
 
     for (const entity of nearbyEntities) {
@@ -440,17 +458,12 @@ export class ServerMinion extends ServerEntity {
 
       const distance = this.position.distanceTo(entity.position);
       if (!best || priority > best.priority || (priority === best.priority && distance < bestDistance)) {
-        best = { id: entity.id, priority };
+        best = { id: entity.id, priority, distance };
         bestDistance = distance;
       }
     }
 
     return best;
-  }
-
-  private getTargetPriority(targetId: string, context: ServerGameContext): number {
-    const target = context.getEntity(targetId);
-    return target ? this.getPriority(target, context) ?? 0 : 0;
   }
 
   /**
