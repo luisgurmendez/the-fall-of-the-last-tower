@@ -210,6 +210,17 @@ describe('StateSerializer', () => {
       expect(deltas[0].changeMask & EntityChangeMask.RESOURCE).toBeTruthy();
     });
 
+    it('should send champion stats when they change', () => {
+      const playerId = 'player-1';
+      serializer.createDeltaUpdates([createMockChampion('champ-1', { movementSpeed: 58 })] as any, playerId, 1);
+
+      // Bought boots
+      const [delta] = serializer.createDeltaUpdates([createMockChampion('champ-1', { movementSpeed: 83 })] as any, playerId, 2);
+      expect(delta.changeMask & EntityChangeMask.STATS).toBeTruthy();
+      expect((delta.data as ChampionSnapshot).movementSpeed).toBe(83);
+      expect((delta.data as ChampionSnapshot).attackDamage).toBe(60);
+    });
+
     it('should detect level changes', () => {
       const playerId = 'player-1';
 

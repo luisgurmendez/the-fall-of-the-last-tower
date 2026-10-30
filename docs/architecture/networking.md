@@ -188,6 +188,11 @@ enum EntityChangeMask {
   ITEMS     = 1 << 6,   // inventory
   TARGET    = 1 << 7,   // current target
   STATE     = 1 << 8,   // dead, recalling
+  TRINKET   = 1 << 9,
+  GOLD      = 1 << 10,
+  SHIELDS   = 1 << 11,
+  PASSIVE   = 1 << 12,
+  STATS     = 1 << 13,  // champion attack damage, ability power, armor, magic resist, attack and movement speed
 }
 ```
 
@@ -301,6 +306,7 @@ Only send changed fields (60-70% reduction):
 - **New entities** get their full snapshot.
 - **Changed entities** get only the changed fields.
 - **Entities that left the visible set** get a removal delta. If the entity still exists (it walked into fog or a bush), the delta says `outOfSight: true` and the client drops it quietly. If it's gone from the game (died, destroyed, expired), the delta says `isDead: true, isDestroyed: true` and the client plays its death effects. Minions and monsters are removed from the game in the tick they die, so this removal delta is the only death the client sees.
+- **Champion stats** (attack damage, ability power, armor, magic resist, attack and movement speed) are sent under `STATS` whenever items, levels, buffs or slows change them. The level delta also carries `experienceToNextLevel` for the XP bar.
 - **Minion move targets.** Following the lane moves a minion's `targetX/targetY` every tick. They are sent when the minion starts or stops moving, when its attack target changes, or when the target is more than 48 units from the one the client has (`MINION_TARGET_RESEND_DISTANCE`). The client uses them to play the walk animation (a `null` target means standing) and to face the right way.
 - **Dead entities.** The client removes an entity as soon as a delta marks it dead. Allied champions stay visible while dead, so the serializer sends nothing for them until they come back. A champion that respawns gets its full snapshot again, because the client rebuilds it from scratch; with only the changed fields, it came back without its `championId`.
 

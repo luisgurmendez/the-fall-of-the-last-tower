@@ -236,6 +236,8 @@ export enum EntityChangeMask {
   GOLD = 1 << 10,
   SHIELDS = 1 << 11,
   PASSIVE = 1 << 12,
+  /** Champion combat stats: attack damage, ability power, armor, magic resist, attack and movement speed */
+  STATS = 1 << 13,
 }
 
 /**

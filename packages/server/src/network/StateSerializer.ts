@@ -39,6 +39,16 @@ interface EntityState {
  */
 const MINION_TARGET_RESEND_DISTANCE = 48;
 
+/** Champion stats sent together under EntityChangeMask.STATS */
+const CHAMPION_STATS = [
+  'attackDamage',
+  'abilityPower',
+  'armor',
+  'magicResist',
+  'attackSpeed',
+  'movementSpeed',
+] as const satisfies readonly (keyof ChampionSnapshot)[];
+
 /**
  * Serializes game state for network transmission with delta compression.
  */
@@ -240,6 +250,11 @@ export class StateSerializer {
         mask |= EntityChangeMask.LEVEL;
       }
 
+      // Items, levels, buffs and slows change these
+      if (CHAMPION_STATS.some(stat => prevChamp[stat] !== currChamp[stat])) {
+        mask |= EntityChangeMask.STATS;
+      }
+
       // Check abilities (simplified - in production use deep comparison)
       if (JSON.stringify(prevChamp.abilities) !== JSON.stringify(currChamp.abilities)) {
         mask |= EntityChangeMask.ABILITIES;
@@ -374,7 +389,14 @@ export class StateSerializer {
       if (mask & EntityChangeMask.LEVEL) {
         (result as any).level = currChamp.level;
         (result as any).experience = currChamp.experience;
+        (result as any).experienceToNextLevel = currChamp.experienceToNextLevel;
         (result as any).skillPoints = currChamp.skillPoints;
+      }
+
+      if (mask & EntityChangeMask.STATS) {
+        for (const stat of CHAMPION_STATS) {
+          (result as any)[stat] = currChamp[stat];
+        }
       }
 
       if (mask & EntityChangeMask.ABILITIES) {
