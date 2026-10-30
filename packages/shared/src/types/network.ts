@@ -77,6 +77,8 @@ export enum InputType {
   CHAT = 10,
   /** Place a ward */
   PLACE_WARD = 11,
+  /** Concede the match */
+  SURRENDER = 12,
 }
 
 /**
@@ -191,6 +193,14 @@ export interface PlaceWardInput extends InputMessage {
 /**
  * Union type for all input messages.
  */
+/**
+ * Concede the match. The other side wins once every human on the
+ * player's side has surrendered.
+ */
+export interface SurrenderInput extends InputMessage {
+  type: InputType.SURRENDER;
+}
+
 export type ClientInput =
   | MoveInput
   | TargetUnitInput
@@ -201,7 +211,8 @@ export type ClientInput =
   | SellItemInput
   | RecallInput
   | PingInput
-  | PlaceWardInput;
+  | PlaceWardInput
+  | SurrenderInput;
 
 /**
  * Entity types in the game.

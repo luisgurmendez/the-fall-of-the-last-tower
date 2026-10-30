@@ -55,6 +55,7 @@ const RATE_LIMITS: Record<InputType, number> = {
   [InputType.PING]: 5,
   [InputType.CHAT]: 3,
   [InputType.PLACE_WARD]: 3,      // 3 per second
+  [InputType.SURRENDER]: 1,       // Handled by GameRoom before queueing
 };
 
 const ABILITY_SLOTS: ReadonlySet<unknown> = new Set<AbilitySlot>(['Q', 'W', 'E', 'R']);

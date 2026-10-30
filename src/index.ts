@@ -74,6 +74,7 @@ async function startOnlineGame(matchData: MatchData, matchmakingUI: MatchmakingU
   // Handle game end - announce the result, then show matchmaking UI again
   networkClient.onGameEnd = (data: GameEndData) => {
     console.log('[Game] Game ended:', data);
+    game.onMatchEnd();
     const won = data.winningSide === matchData.yourSide;
     const minutes = Math.floor((data.duration ?? 0) / 60);
     const seconds = Math.floor((data.duration ?? 0) % 60).toString().padStart(2, '0');

@@ -10,6 +10,7 @@
 
 import {
   EntityType,
+  InputType,
   Side,
   StateUpdate,
   FullStateSnapshot,
@@ -55,6 +56,8 @@ export class GameRoom {
   private game: ServerGame;
   private context: ServerGameContext;
   private inputHandler: InputHandler;
+  /** Players who have surrendered */
+  private readonly surrendered = new Set<string>();
   private stateSerializer: StateSerializer;
   private reliableEventQueue: ReliableEventQueue;
   private botDriver = new BotDriver();
@@ -158,6 +161,11 @@ export class GameRoom {
   handleInput(playerId: string, input: ClientInput): void {
     if (this.state !== 'playing') return;
 
+    if (input.type === InputType.SURRENDER) {
+      this.surrender(playerId);
+      return;
+    }
+
     const result = this.inputHandler.queueInput(playerId, input);
     if (!result.valid) {
       Logger.input.debug(`Invalid input from ${playerId}: ${result.reason}`);
@@ -248,15 +256,36 @@ export class GameRoom {
 
     for (const entity of this.context.getAllEntities()) {
       if (entity.entityType === EntityType.NEXUS && entity.isDead) {
-        const winningSide = (1 - entity.side) as Side;
-        this.state = 'ended';
         Logger.game.info(`Game ${this.gameId}: ${entity.side === 0 ? 'Blue' : 'Red'} nexus destroyed`);
-        // Let the final state (nexus death) reach clients before the room is torn down
-        this.broadcastState(this.game.getCurrentTick());
-        this.onGameEnd?.(winningSide);
+        this.endGame((1 - entity.side) as Side);
         return;
       }
     }
+  }
+
+  /**
+   * A player concedes. Once every human on their side has, the other side wins.
+   */
+  private surrender(playerId: string): void {
+    const player = this.players.get(playerId);
+    if (!player || player.isBot) return;
+    this.surrendered.add(playerId);
+
+    const team = Array.from(this.players.values()).filter(member => member.side === player.side && !member.isBot);
+    if (!team.every(member => this.surrendered.has(member.playerId))) return;
+
+    Logger.game.info(`Game ${this.gameId}: ${player.side === 0 ? 'Blue' : 'Red'} surrendered`);
+    this.endGame((1 - player.side) as Side);
+  }
+
+  /**
+   * End the match with `winningSide` winning.
+   */
+  private endGame(winningSide: Side): void {
+    this.state = 'ended';
+    // Let the final state reach clients before the room is torn down
+    this.broadcastState(this.game.getCurrentTick());
+    this.onGameEnd?.(winningSide);
   }
 
   /**

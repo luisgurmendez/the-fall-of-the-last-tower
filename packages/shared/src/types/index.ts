@@ -123,6 +123,7 @@ export type {
   RecallInput,
   PingInput,
   PlaceWardInput,
+  SurrenderInput,
   WardType,
   ClientInput,
   PassiveStateSnapshot,

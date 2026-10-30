@@ -3,7 +3,7 @@
  */
 import './ServerTestUtils';
 import { describe, test, expect } from 'bun:test';
-import { CHAMPION_DEFINITIONS, EntityType, type ChampionDefinition } from '@siege/shared';
+import { CHAMPION_DEFINITIONS, EntityType, InputType, type ChampionDefinition } from '@siege/shared';
 import { GameRoom } from '../game/GameRoom';
 import type { ServerGameContext } from '../game/ServerGameContext';
 
@@ -45,6 +45,46 @@ describe('Game end', () => {
       expect(stats.map(line => [line.playerId, line.championId, line.side])).toEqual([['a', 'vex', 0], ['b', 'vile', 1]]);
       expect(stats[0]).toMatchObject({ level: 1, kills: 0, deaths: 0, assists: 0, cs: 0 });
       expect(stats[0].items).toHaveLength(6);
+    } finally {
+      room.stop();
+    }
+  });
+});
+
+describe('Surrender', () => {
+  function practiceRoom(onGameEnd: (side: number) => void) {
+    return new GameRoom({
+      gameId: 'surrender-test',
+      players: [
+        { playerId: 'human', side: 0, championId: 'vex', connected: true },
+        { playerId: 'bot', side: 1, championId: 'vile', connected: true, isBot: true },
+      ],
+      championDefinitions: new Map<string, ChampionDefinition>(Object.entries(CHAMPION_DEFINITIONS)),
+      onGameEnd,
+    });
+  }
+
+  test('a player who surrenders loses the match', () => {
+    let winner: number | null = null;
+    const room = practiceRoom(side => { winner = side; });
+    room.start();
+    try {
+      room.handleInput('human', { type: InputType.SURRENDER, seq: 1, clientTime: 0 });
+      expect(winner).toBe(1);
+      expect(room.getState()).toBe('ended');
+    } finally {
+      room.stop();
+    }
+  });
+
+  test('a bot can\'t surrender', () => {
+    let winner: number | null = null;
+    const room = practiceRoom(side => { winner = side; });
+    room.start();
+    try {
+      room.handleInput('bot', { type: InputType.SURRENDER, seq: 1, clientTime: 0 });
+      expect(winner).toBeNull();
+      expect(room.getState()).toBe('playing');
     } finally {
       room.stop();
     }

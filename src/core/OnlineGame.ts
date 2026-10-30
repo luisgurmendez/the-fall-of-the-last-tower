@@ -16,6 +16,7 @@ import { profiler } from '@/debug/PerformanceProfiler';
 import { getCursorManager } from './CursorManager';
 import { OnlineStateManager } from './OnlineStateManager';
 import { EntityType, GameConfig, MOBAConfig, getChampionDefinition, type ChampionSnapshot } from '@siege/shared';
+import { GameMenu } from '@/ui/GameMenu';
 import type { NetworkClient } from '@siege/client';
 import type { MatchData } from '@/ui/matchmaking/MatchmakingUI';
 import type { GameApi } from './gameContext';
@@ -33,6 +34,8 @@ export interface OnlineGameConfig {
  * Note: No pause functionality - real-time multiplayer games can't be paused client-side.
  */
 class OnlineGame {
+  /** The Escape menu (resume, surrender) */
+  private gameMenu!: GameMenu;
   private clock: Clock;
   private canvasRenderingContext: CanvasRenderingContext2D;
   private canvas: HTMLCanvasElement;
@@ -82,6 +85,8 @@ class OnlineGame {
   init() {
     // Note: No pause on blur/focus - online games continue running on server
 
+    this.gameMenu = new GameMenu(() => this.networkClient.sendSurrender());
+
     // Wire up shop to network client for online buy/sell
     const shopUI = getShopUI();
     shopUI.setNetworkClient(this.networkClient);
@@ -92,10 +97,12 @@ class OnlineGame {
         shopUI.toggle();
       }
 
-      // Escape to close shop (no pause in online mode)
+      // Escape closes the shop, or opens the menu (no pause in online mode)
       if (e.key === 'Escape') {
         if (shopUI.isOpen()) {
           shopUI.close();
+        } else {
+          this.gameMenu.toggle();
         }
       }
     });
@@ -168,6 +175,13 @@ class OnlineGame {
     shopUI.updateOnlineState(championSnapshot.gold, items, atShop);
     const championClass = getChampionDefinition(championSnapshot.championId)?.class;
     if (championClass) shopUI.setChampionClass(championClass);
+  }
+
+  /**
+   * The match is over: the in-match menu goes away.
+   */
+  onMatchEnd(): void {
+    this.gameMenu.dispose();
   }
 
   /**

@@ -259,6 +259,17 @@ export class NetworkClient {
   }
 
   /**
+   * Concede the match.
+   */
+  sendSurrender(): void {
+    this.sendInput({
+      seq: ++this.inputSeq,
+      clientTime: Date.now(),
+      type: InputType.SURRENDER,
+    });
+  }
+
+  /**
    * Send an ability input.
    * @param slot - Ability slot (Q, W, E, R)
    * @param targetType - How the ability is targeted

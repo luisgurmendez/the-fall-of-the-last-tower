@@ -130,6 +130,8 @@ select uses this (the bot gets a random enabled champion). See [simulation.md](s
 
 `GameRoom.checkWinConditions` ends the match when a nexus dies: it broadcasts the final state, then sends `GAME_END` (`GameEndData`) with the winning side, the match length and every champion's final stats (`GameRoom.getFinalStats`: level, K/D/A, CS, gold, items). The client shows VICTORY or DEFEAT for 3 seconds, then the final scoreboard (`TabScoreboard`, titled with the result) until the player clicks or presses a key (or 60 seconds pass), then returns to the menu.
 
+A player can also surrender from the Escape menu (`src/ui/GameMenu.ts`, two clicks). The client sends a `SURRENDER` input, which `GameRoom.handleInput` handles itself instead of queueing it. Once every human on that side has surrendered (just them in 1v1 and practice), the other side wins through the same `endGame` as a destroyed nexus. Bots can't surrender.
+
 ## Abandoned Rooms
 
 When every human in a room disconnects, `GameRoomManager` keeps the room for `abandonTimeoutMs` (60s) so players can reconnect,
