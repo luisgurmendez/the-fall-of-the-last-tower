@@ -135,8 +135,9 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  max-width: 900px;
-  width: 100%;
+  /* Fixed width so the panel doesn't resize with each champion's text */
+  box-sizing: border-box;
+  width: min(900px, 90vw);
   overflow: visible;
 }
 
@@ -603,6 +604,29 @@
 #btn-back-menu:hover {
   border-color: var(--pixel-gold);
   color: var(--pixel-gold);
+}
+
+/* Practice button: same frame as Back, teal to stand apart from Lock In */
+#btn-practice {
+  font-family: var(--pixel-font);
+  font-size: 36px;
+  padding: 12px 32px;
+  background: transparent;
+  border: 4px solid #2a8a8a;
+  color: #7fd6d6;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-shadow: 2px 2px 0 #000;
+}
+
+#btn-practice:hover:not(:disabled) {
+  border-color: #5fe0e0;
+  color: #b5f5f5;
+}
+
+#btn-practice:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 /* Lock-in button */

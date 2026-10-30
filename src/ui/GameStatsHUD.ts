@@ -26,6 +26,8 @@ const STATS_COLORS = {
 export interface GameStatsHUDConfig {
   /** Optional function to get current latency in ms (for online mode) */
   getLatency?: () => number;
+  /** Optional function to get the match time in seconds (online mode: server time, right after a rejoin too) */
+  getGameTime?: () => number;
 }
 
 export class GameStatsHUD extends ScreenEntity {
@@ -36,11 +38,13 @@ export class GameStatsHUD extends ScreenEntity {
   private fpsUpdateInterval = 0.5; // Update FPS every 0.5 seconds
   private fpsAccumulator = 0;
   private getLatency?: () => number;
+  private getGameTime?: () => number;
 
   constructor(config?: GameStatsHUDConfig) {
     super();
     this.lastFrameTime = performance.now();
     this.getLatency = config?.getLatency;
+    this.getGameTime = config?.getGameTime;
   }
 
   override step(context: GameContext): void {
@@ -116,7 +120,7 @@ export class GameStatsHUD extends ScreenEntity {
       ctx.strokeRect(x, y, panelWidth, panelHeight);
 
       // Draw time
-      const timeStr = this.formatTime(this.elapsedTime);
+      const timeStr = this.formatTime(this.getGameTime?.() ?? this.elapsedTime);
       RenderUtils.renderBitmapText(
         ctx,
         timeStr,

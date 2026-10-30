@@ -456,7 +456,8 @@ export class OnlineChampionAdapter {
         attackDamage: Number(snapshot.attackDamage) || 50,
         abilityPower: Number(snapshot.abilityPower) || 0,
         attackSpeed: Number(snapshot.attackSpeed) || 1.0,
-        attackRange: 125, // Default, could be sent in snapshot
+        // Not sent in snapshots; the champion's base range (transforms like Vile R aren't reflected)
+        attackRange: getChampionDefinition(snapshot.championId)?.baseStats.attackRange ?? 125,
         armor: Number(snapshot.armor) || 30,
         magicResist: Number(snapshot.magicResist) || 30,
         movementSpeed: Number(snapshot.movementSpeed) || 325,

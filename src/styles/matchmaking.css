@@ -23,6 +23,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  /* Keep content above the fixed tip at the bottom */
+  box-sizing: border-box;
+  padding-bottom: 70px;
   background: var(--pixel-bg-darker);
   font-family: var(--pixel-font);
   image-rendering: pixelated;
@@ -77,7 +80,7 @@
   text-align: center;
   color: var(--pixel-text);
   max-width: 1200px;
-  max-height: 90vh;
+  max-height: calc(100vh - 80px);
   padding: 40px;
   overflow-y: auto;
   overflow-x: hidden;
@@ -206,15 +209,15 @@
 /* ============================================ */
 
 .status-bar {
+  /* Bottom-right corner, out of the way of the screens' buttons */
   position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: 12px;
+  right: 20px;
   display: flex;
   align-items: center;
-  gap: 30px;
+  gap: 24px;
   font-family: var(--pixel-font);
-  font-size: 24px;
+  font-size: 18px;
   color: var(--pixel-text-muted);
   z-index: 3;
   text-shadow: 2px 2px 0 #000;
@@ -521,6 +524,15 @@
 .matchmaking-container.champion-select-mode .game-logo,
 .matchmaking-container.champion-select-mode .game-title,
 .matchmaking-container.champion-select-mode .game-subtitle {
+  display: none;
+}
+
+/* Champion select needs the whole height: no tips there */
+#matchmaking-overlay:has(.champion-select-mode) {
+  padding-bottom: 0;
+}
+
+#matchmaking-overlay:has(.champion-select-mode) .tip-text {
   display: none;
 }
 

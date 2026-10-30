@@ -381,7 +381,7 @@ export class MatchmakingUI {
           <span class="champion-stat-value health">${stats.health}</span>
         </div>
         <div class="champion-stat-row">
-          <span class="champion-stat-label">Mana</span>
+          <span class="champion-stat-label">${this.formatResourceName(champion.resourceType)}</span>
           <span class="champion-stat-value mana">${stats.resource}</span>
         </div>
         <div class="champion-stat-row">
@@ -543,6 +543,13 @@ export class MatchmakingUI {
    * Create a passive card element for the champion select screen.
    * Shows icon only, with dialog tooltip on hover.
    */
+  /**
+   * Display name for a champion's resource ("Mana", "Energy", ...).
+   */
+  private formatResourceName(resourceType: string): string {
+    return resourceType.charAt(0).toUpperCase() + resourceType.slice(1);
+  }
+
   private createPassiveCard(passive: PassiveAbilityDefinition, championId: string): HTMLElement {
     const card = document.createElement("div");
     card.className = "passive-card";

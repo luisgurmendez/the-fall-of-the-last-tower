@@ -154,7 +154,10 @@ export function generateOnlineLevel(config: OnlineLevelConfig): Level {
     cameraController,
     // HUD layers
     championHUD,
-    new GameStatsHUD({ getLatency: () => networkClient.getLatency() }),
+    new GameStatsHUD({
+      getLatency: () => networkClient.getLatency(),
+      getGameTime: () => stateManager.getGameTime(),
+    }),
     // Target info HUD (selected entity info in top-left)
     targetInfoHUD,
     minimap,

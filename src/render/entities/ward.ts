@@ -1,6 +1,6 @@
 /**
  * Ward renderer (EntityType.WARD). Vile's traps are synced as wards too
- * (with no wardType), so they draw here as stealth wards.
+ * (with a triggerRadius and no wardType); they get their own look.
  */
 
 import type { EntityRenderContext } from "@/render/entities/types";
@@ -15,6 +15,11 @@ export function renderWard(
   side: number,
   rc: EntityRenderContext,
 ): void {
+  if (snapshot.triggerRadius !== undefined && !snapshot.wardType) {
+    renderTrap(ctx, snapshot, side, rc);
+    return;
+  }
+
   const wardType = snapshot.wardType || "stealth";
   const isOwn = side === rc.localSide;
   const isStealthed = snapshot.isStealthed && !isOwn;
@@ -124,4 +129,54 @@ export function renderWard(
       );
     }
   }
+}
+
+/**
+ * Render a trap: a dark bramble of thorns. Its team sees the trigger radius;
+ * a stealthed trap is drawn faint for its team (enemies don't receive it).
+ */
+function renderTrap(
+  ctx: CanvasRenderingContext2D,
+  snapshot: any,
+  side: number,
+  rc: EntityRenderContext,
+): void {
+  const isOwn = side === rc.localSide;
+  const pulse = 0.85 + Math.sin(rc.animationTime * 4) * 0.15;
+
+  ctx.save();
+  ctx.globalAlpha = snapshot.isStealthed ? 0.55 : 1;
+
+  if (isOwn && snapshot.triggerRadius > 0) {
+    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = "rgba(155, 89, 182, 0.45)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(0, 0, snapshot.triggerRadius, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Thorns
+  ctx.strokeStyle = "#4a235a";
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2 + 0.2;
+    const length = (i % 2 === 0 ? 11 : 8) * pulse;
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(angle) * 3, Math.sin(angle) * 3);
+    ctx.lineTo(Math.cos(angle) * length, Math.sin(angle) * length);
+    ctx.stroke();
+  }
+
+  // Core
+  const core = ctx.createRadialGradient(0, 0, 1, 0, 0, 7);
+  core.addColorStop(0, "#c39bd3");
+  core.addColorStop(1, "#5b2c6f");
+  ctx.fillStyle = core;
+  ctx.beginPath();
+  ctx.arc(0, 0, 6, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
 }
