@@ -112,6 +112,8 @@ export const vileRenderer: ChampionRendererEntry = {
     vile_auto: renderVileAutoProjectile,
   },
   markVisuals: {
+    // His R shows one icon (vile_transformed)
+    vile_transform_aura: { icon: "", bgColor: "", borderColor: "", iconColor: "", showTimer: false, hidden: true },
     vile_transformed: {
       icon: "V",
       bgColor: "rgba(126, 34, 206, 0.85)",

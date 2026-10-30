@@ -5,6 +5,7 @@
 
 import { BitmapFont } from "@/render/BitmapFont";
 import { getChampionMarkVisuals } from "@/render/champions";
+import { getEffectDisplayInfo, hasEffectDisplayInfo, type EffectDisplayInfo } from "@/data/effectDisplayInfo";
 
 /**
  * Mark indicator visual configuration.
@@ -176,6 +177,44 @@ const DEFAULT_MARK_VISUAL: MarkVisualConfig = {
   showTimer: true,
 };
 
+/** Visuals built from effect display info, by effect id */
+const derivedVisuals = new Map<string, MarkVisualConfig>();
+
+/**
+ * An effect's icon: its own entry, or one made from its display info
+ * (letter, color, buff or debuff), or the "?" default.
+ */
+export function getMarkVisual(effectId: string): MarkVisualConfig {
+  const own = MARK_VISUALS[effectId];
+  if (own) return own;
+  let derived = derivedVisuals.get(effectId);
+  if (!derived) {
+    derived = hasEffectDisplayInfo(effectId)
+      ? visualFromDisplayInfo(getEffectDisplayInfo(effectId))
+      : DEFAULT_MARK_VISUAL;
+    derivedVisuals.set(effectId, derived);
+  }
+  return derived;
+}
+
+function visualFromDisplayInfo(info: EffectDisplayInfo): MarkVisualConfig {
+  return {
+    icon: info.icon,
+    bgColor: withAlpha(info.color, 0.8),
+    borderColor: info.color,
+    iconColor: "#ffffff",
+    showTimer: true,
+    isBuff: info.category === "buff",
+    isDebuff: info.category === "debuff",
+  };
+}
+
+/** "#rrggbb" with an alpha, as rgba() */
+function withAlpha(hex: string, alpha: number): string {
+  const value = parseInt(hex.slice(1), 16);
+  return `rgba(${(value >> 16) & 255}, ${(value >> 8) & 255}, ${value & 255}, ${alpha})`;
+}
+
 /**
  * Render mark indicators above a champion's health bar.
  * Shows active effects like vex_mark, stun, slow, etc. as small icons.
@@ -205,7 +244,7 @@ export function renderMarkIndicators(
 
   // Filter effects to show: debuffs on enemies, buffs on self/allies
   const visibleEffects = activeEffects.filter((effect) => {
-    const visual = MARK_VISUALS[effect.definitionId] || DEFAULT_MARK_VISUAL;
+    const visual = getMarkVisual(effect.definitionId);
     if (visual.hidden) return false;
     if (isEnemy) {
       // On enemies, show debuffs
@@ -227,7 +266,7 @@ export function renderMarkIndicators(
   const markY = healthBarY - iconSize - 4; // Above health bar
 
   visibleEffects.forEach((effect, index) => {
-    const visual = MARK_VISUALS[effect.definitionId] || DEFAULT_MARK_VISUAL;
+    const visual = getMarkVisual(effect.definitionId);
     const x = startX + index * (iconSize + iconSpacing);
 
     // Background

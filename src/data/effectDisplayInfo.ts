@@ -231,6 +231,108 @@ const EFFECT_DISPLAY_INFO: Record<string, EffectDisplayInfo> = {
   },
 
   // ===================
+  // Champion Effects
+  // ===================
+  lume_guiding_glow_amp: {
+    name: 'Exposed by Light',
+    description: 'Takes more damage from Lume.',
+    category: 'debuff',
+    icon: 'L',
+    color: '#f1c40f',
+  },
+  lume_guiding_glow_speed: {
+    name: 'Guiding Glow',
+    description: 'Moving faster.',
+    category: 'buff',
+    icon: 'L',
+    color: '#f1c40f',
+  },
+  slow_10: {
+    name: 'Slowed',
+    description: 'Movement speed reduced.',
+    category: 'debuff',
+    icon: 'S',
+    color: '#3498db',
+  },
+  slow_20: {
+    name: 'Slowed',
+    description: 'Movement speed reduced.',
+    category: 'debuff',
+    icon: 'S',
+    color: '#3498db',
+  },
+  vex_empowered: {
+    name: 'Shadow Step',
+    description: 'The next attack is empowered.',
+    category: 'buff',
+    icon: 'E',
+    color: '#8e44ad',
+  },
+  vex_ninja_mode: {
+    name: 'Ninja Mode',
+    description: 'Empowered for a short time.',
+    category: 'buff',
+    icon: 'N',
+    color: '#8e44ad',
+  },
+  vile_invulnerable: {
+    name: 'Veil of Darkness',
+    description: 'Takes no damage.',
+    category: 'buff',
+    icon: 'I',
+    color: '#7e22ce',
+  },
+  vile_post_veil_speed: {
+    name: 'Dark Swiftness',
+    description: 'Moving faster.',
+    category: 'buff',
+    icon: '>',
+    color: '#7e22ce',
+  },
+  vile_q_slow: {
+    name: 'Black Arrow',
+    description: 'Slowed.',
+    category: 'debuff',
+    icon: 'S',
+    color: '#7e22ce',
+  },
+  vile_root: {
+    name: 'Roots of Vilix',
+    description: 'Rooted in place.',
+    category: 'debuff',
+    icon: 'R',
+    color: '#7e22ce',
+  },
+  vile_rooted_self: {
+    name: 'Veil of Darkness',
+    description: 'Rooted while veiled.',
+    category: 'debuff',
+    icon: 'R',
+    color: '#7e22ce',
+  },
+  vile_slow_resist: {
+    name: 'Dark Resilience',
+    description: 'Slows are weaker.',
+    category: 'buff',
+    icon: 'D',
+    color: '#7e22ce',
+  },
+  vile_stealth: {
+    name: 'Veil of Darkness',
+    description: 'Invisible to enemies.',
+    category: 'buff',
+    icon: 'V',
+    color: '#7e22ce',
+  },
+  vile_transform_aura: {
+    name: 'Restoration of Vilix',
+    description: 'Damages nearby enemies.',
+    category: 'buff',
+    icon: 'V',
+    color: '#a855f7',
+  },
+
+  // ===================
   // Item Passives
   // ===================
   item_starfall: {
@@ -446,6 +548,13 @@ function formatEffectName(effectId: string): string {
     .split('_')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
+}
+
+/**
+ * Whether an effect has its own display info (not the generic default).
+ */
+export function hasEffectDisplayInfo(effectId: string): boolean {
+  return effectId in EFFECT_DISPLAY_INFO;
 }
 
 /**
