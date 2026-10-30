@@ -13,7 +13,13 @@ src/vfx/
   index.ts              # Module exports
   VFXManager.ts         # Central manager - spawn, update, render
   VFXParticlePool.ts    # Object pooling for particles
-  VFXRegistry.ts        # Maps ability IDs to VFX configs
+  VFXRegistry.ts        # Public registry API; importing it loads every champion's VFX
+  VFXRegistryStore.ts   # Registry storage (register / get)
+  VFXTypes.ts           # Phase and effect configuration types
+  VFXColors.ts          # CHAMPION_COLORS palettes
+  champions/
+    index.ts            # Imports every champion file below
+    <championId>.ts     # registerAbilityVFX() calls for one champion
   effects/
     VFXPrimitives.ts    # Reusable drawing functions
 ```
@@ -75,7 +81,16 @@ pool.updateAll(dt, (particle, dt) => {
 
 ### VFXRegistry
 
-Stores VFX definitions for each ability:
+Stores VFX definitions for each ability. Each champion's definitions live in
+`src/vfx/champions/<championId>.ts`, which calls `registerAbilityVFX()` when it
+is imported. `VFXRegistry.ts` imports `./champions` (which imports every
+champion file), so anything that reads the registry through `VFXRegistry.ts`
+(as `VFXManager` and `src/vfx/index.ts` do) sees every definition before its
+first lookup. Champion files register through `VFXRegistryStore.ts` directly,
+because importing `VFXRegistry.ts` from them would be an import cycle.
+
+`VFXRegistry.ts` re-exports `registerAbilityVFX`, `getAbilityVFX`,
+`getAllRegisteredVFX`, `CHAMPION_COLORS` and all the types from `VFXTypes.ts`.
 
 ```typescript
 registerAbilityVFX({
@@ -337,8 +352,10 @@ case GameEventType.ABILITY_CAST: {
 
 ## Adding New VFX
 
-1. Define colors in `CHAMPION_COLORS` if needed
-2. Call `registerAbilityVFX()` with phases and effects
+1. Define colors in `CHAMPION_COLORS` (`src/vfx/VFXColors.ts`) if needed
+2. Call `registerAbilityVFX()` with phases and effects in
+   `src/vfx/champions/<championId>.ts`. For a new champion, create that file
+   and import it from `src/vfx/champions/index.ts`.
 3. Test in-game to verify timing and visuals
 
 ```typescript
@@ -395,6 +412,10 @@ vfxManager.clear();
 |------|---------|
 | `src/vfx/VFXManager.ts` | Central manager |
 | `src/vfx/VFXParticlePool.ts` | Particle pooling |
-| `src/vfx/VFXRegistry.ts` | Ability VFX definitions |
+| `src/vfx/VFXRegistry.ts` | Registry API; loads all champion VFX |
+| `src/vfx/VFXRegistryStore.ts` | Registry storage |
+| `src/vfx/VFXTypes.ts` | VFX phase and effect types |
+| `src/vfx/VFXColors.ts` | Champion color palettes |
+| `src/vfx/champions/<championId>.ts` | One champion's ability VFX definitions |
 | `src/vfx/effects/VFXPrimitives.ts` | Drawing functions |
 | `src/vfx/index.ts` | Module exports |
