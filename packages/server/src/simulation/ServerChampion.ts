@@ -51,14 +51,11 @@ import {
   type ScheduledAbilityProjectile,
 } from './champion/ChampionAbilities';
 import { ChampionTransform, type TransformAuraConfig } from './champion/ChampionTransform';
-import {
-  updateForcedMovement,
-  remainingForcedMovementDistance,
-  type ForcedMovement,
-} from './champion/ChampionForcedMovement';
+import { updateForcedMovement, type ForcedMovement } from './champion/ChampionForcedMovement';
 import { ChampionRecall } from './champion/ChampionRecall';
 import { ChampionTrinket } from './champion/ChampionTrinket';
 import { ChampionInventory } from './champion/ChampionInventory';
+import { buildChampionSnapshot } from './champion/ChampionSnapshot';
 
 export interface ServerChampionConfig extends Omit<ServerEntityConfig, 'entityType'> {
   definition: ChampionDefinition;
@@ -966,80 +963,6 @@ export class ServerChampion extends ServerEntity {
    * Convert to network snapshot.
    */
   toSnapshot(): ChampionSnapshot {
-    const stats = this.getStats();
-
-    return {
-      entityId: this.id,
-      entityType: EntityType.CHAMPION,
-      side: this.side,
-      championId: this.definition.id,
-      playerId: this.playerId,
-
-      x: this.position.x,
-      y: this.position.y,
-      // Use null for cleared values (not undefined) for proper delta updates
-      targetX: this.targetPosition?.x ?? null,
-      targetY: this.targetPosition?.y ?? null,
-      targetEntityId: this.targetEntityId,
-
-      health: this.health,
-      maxHealth: stats.maxHealth,
-      resource: this.resource,
-      maxResource: stats.maxResource,
-      level: this.level,
-      experience: this.experience,
-      experienceToNextLevel: this.experienceToNextLevel,
-      skillPoints: this.skillPoints,
-
-      attackDamage: stats.attackDamage,
-      abilityPower: stats.abilityPower,
-      armor: stats.armor,
-      magicResist: stats.magicResist,
-      attackSpeed: stats.attackSpeed,
-      movementSpeed: stats.movementSpeed,
-
-      isDead: this.isDead,
-      respawnTimer: this.respawnTimer,
-      isRecalling: this.isRecalling,
-      recallProgress: this.recallProgress,
-
-      // Dash state for ability animations
-      isDashing: this.forcedMovement?.type === 'dash' && this.dashAbilityId != null,
-      dashTargetX: this.forcedMovement ? this.position.x + this.forcedMovement.direction.x * remainingForcedMovementDistance(this.forcedMovement) : undefined,
-      dashTargetY: this.forcedMovement ? this.position.y + this.forcedMovement.direction.y * remainingForcedMovementDistance(this.forcedMovement) : undefined,
-      dashAbilityId: this.dashAbilityId ?? undefined,
-
-      abilities: {
-        Q: { ...this.abilityStates.Q },
-        W: { ...this.abilityStates.W },
-        E: { ...this.abilityStates.E },
-        R: { ...this.abilityStates.R },
-      },
-      passive: {
-        isActive: this.passiveState.isActive,
-        cooldownRemaining: this.passiveState.cooldownRemaining,
-        stacks: this.passiveState.stacks,
-        stackTimeRemaining: this.passiveState.stackTimeRemaining,
-      },
-      activeEffects: this.activeEffects.map(e => ({ ...e })),
-      shields: this.shields.map(s => ({
-        amount: s.amount,
-        remainingDuration: s.remainingDuration,
-        sourceId: s.sourceId ?? 'unknown',
-        shieldType: s.shieldType ?? 'normal',
-      })),
-      items: this.items.map(i => i ? { ...i } : null),
-      gold: this.gold,
-
-      kills: this.kills,
-      deaths: this.deaths,
-      assists: this.assists,
-      cs: this.cs,
-
-      trinketCharges: this.trinketCharges,
-      trinketMaxCharges: this.trinketMaxCharges,
-      trinketCooldown: this.trinketCooldown,
-      trinketRechargeProgress: this.getTrinketRechargeProgress(),
-    };
+    return buildChampionSnapshot(this);
   }
 }
