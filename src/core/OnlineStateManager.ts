@@ -210,6 +210,9 @@ export class OnlineStateManager {
   // Champions removed from state when they died, to spot their respawn
   private deadChampionIds: Set<string> = new Set();
 
+  // Game time when the local champion respawns, while it's dead
+  private localRespawnAt: number | null = null;
+
   // Ability visual effects
   private abilityEffects: AbilityEffect[] = [];
   private static readonly ABILITY_EFFECT_DURATION = 300; // ms (quick flash)
@@ -431,6 +434,9 @@ export class OnlineStateManager {
     const data = delta.data as any;
     if (data && (data.isDead === true || data.isDestroyed === true)) {
       if (existing) this.spawnDeathVFX(existing);
+      if (delta.entityId === this.localEntityId && typeof data.respawnTimer === 'number') {
+        this.localRespawnAt = this.gameTime + data.respawnTimer;
+      }
       // Remove dead/destroyed entities from client state
       this.entities.delete(delta.entityId);
       return;
@@ -502,6 +508,9 @@ export class OnlineStateManager {
     // A champion we saw die is back: respawn effect
     if (this.deadChampionIds.delete(snapshot.entityId)) {
       this.spawnWorldVFX(WORLD_VFX.RESPAWN, pos.x, pos.y);
+    }
+    if (snapshot.entityId === this.localEntityId) {
+      this.localRespawnAt = null;
     }
 
     // Preserve existing animation state if entity exists
@@ -627,6 +636,14 @@ export class OnlineStateManager {
    */
   getGameTime(): number {
     return this.gameTime;
+  }
+
+  /**
+   * Seconds until the local champion respawns, or null while it's alive.
+   */
+  getLocalRespawnIn(): number | null {
+    if (this.localRespawnAt === null) return null;
+    return Math.max(0, this.localRespawnAt - this.gameTime);
   }
 
   /**
