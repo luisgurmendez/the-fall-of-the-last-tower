@@ -11,7 +11,7 @@
  * - Error handling
  */
 
-import { NetworkClient } from "../../../packages/client/src/network/NetworkClient";
+import type { NetworkClient } from "../../../packages/client/src/network/NetworkClient";
 import {
   getAbilityDefinition,
   ABILITY_DEFINITIONS,
@@ -23,6 +23,7 @@ import type {
   MatchmakingUICallbacks,
 } from "./types";
 import { ChampionSelect, ENABLED_CHAMPIONS } from "./championSelect";
+import { MatchConnection } from "./matchConnection";
 import { MatchFoundScreen } from "./matchFound";
 import { QueueScreen } from "./queueScreen";
 import { startTipRotation, showRandomTip } from "./tips";
@@ -66,18 +67,12 @@ export class MatchmakingUI {
   // Champion select screen
   private championSelect: ChampionSelect;
 
-  // Network
-  private networkClient: NetworkClient | null = null;
-  private serverUrl: string;
-  private playerId: string;
+  // Network client and the state buffered for OnlineGame
+  private connection: MatchConnection;
 
   // State
   private currentScreen: ScreenId = "menu";
   private matchData: MatchData | null = null;
-  private bufferedFullState: any = null;
-  private bufferedStateUpdates: any[] = [];
-  /** About 30 seconds of updates at 30 Hz */
-  private static readonly MAX_BUFFERED_UPDATES = 900;
 
   // Callbacks
   private callbacks: MatchmakingUICallbacks;
@@ -86,8 +81,7 @@ export class MatchmakingUI {
     serverUrl: string = "ws://localhost:8080/ws",
     callbacks: MatchmakingUICallbacks = {},
   ) {
-    this.serverUrl = serverUrl;
-    this.playerId = this.generatePlayerId();
+    this.connection = new MatchConnection(serverUrl);
     this.callbacks = callbacks;
 
     // Get DOM elements - use safe getter that won't crash if element missing
@@ -140,19 +134,6 @@ export class MatchmakingUI {
 
     // Show random tip
     showRandomTip(this.tipText);
-  }
-
-  /**
-   * Generate a unique player ID.
-   * Uses sessionStorage so each tab/window gets a unique ID.
-   */
-  private generatePlayerId(): string {
-    const stored = sessionStorage.getItem("siege-player-id");
-    if (stored) return stored;
-
-    const id = `player-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    sessionStorage.setItem("siege-player-id", id);
-    return id;
   }
 
   /**
@@ -304,102 +285,34 @@ export class MatchmakingUI {
     this.showScreen("connecting");
     this.updateConnectionStatus("connecting");
 
-    // Create network client
-    this.networkClient = new NetworkClient({
-      serverUrl: this.serverUrl,
-      playerId: this.playerId,
-      gameId: "", // Will be assigned by server
-      sessionToken: sessionStorage.getItem("siege-session-token") ?? undefined,
-    });
-
-    // Setup event handlers
-    this.networkClient.onConnect = () => {
-      console.log("[MatchmakingUI] Connected to server");
-      this.updateConnectionStatus("online");
-
-      // Send ready message to join queue with selected champion
-      console.log(
-        `[MatchmakingUI] Sending ready with selectedChampionId="${this.championSelect.getSelectedChampionId()}"`,
-      );
-      this.networkClient?.sendReady(this.championSelect.getSelectedChampionId(), {
-        mode,
-        botChampionId,
-      });
-      if (mode === "queue") {
+    this.connection.connect(mode, botChampionId, {
+      getChampionId: () => this.championSelect.getSelectedChampionId(),
+      onStatusChange: (status) => this.updateConnectionStatus(status),
+      onQueueEntered: () => {
         this.showScreen("queue");
         this.queue.startTimer();
-      }
-    };
-
-    this.networkClient.onDisconnect = (code, reason) => {
-      console.log(`[MatchmakingUI] Disconnected: ${code} - ${reason}`);
-      this.updateConnectionStatus("offline");
-
-      if (
-        this.currentScreen !== "menu" &&
-        this.currentScreen !== "champion-select"
-      ) {
-        this.showError("Connection lost. Please try again.");
-      }
-    };
-
-    this.networkClient.onLatencyUpdate = (latency) => {
-      this.updatePing(latency);
-    };
-
-    this.networkClient.onError = (error) => {
-      console.error("[MatchmakingUI] Error:", error);
-      this.showError(error);
-    };
-
-    this.networkClient.onGameStart = (data: any) => {
-      console.log("[MatchmakingUI] Game starting:", data);
-      this.handleMatchFound(data);
-    };
-
-    this.networkClient.onFullState = (snapshot: any) => {
-      // Buffer the full state so OnlineGame can process it after initialization
-      // This is needed because FULL_STATE is sent immediately after GAME_START,
-      // but OnlineGame isn't created until after the loading animation
-      console.log(
-        "[MatchmakingUI] Buffering full state:",
-        snapshot?.entities?.length || 0,
-        "entities",
-      );
-      this.bufferedFullState = snapshot;
-      // Updates from before this full state are already included in it
-      this.bufferedStateUpdates = [];
-    };
-
-    this.networkClient.onStateUpdate = (update: any) => {
-      // Keep the deltas that arrive during the loading screen: the server
-      // won't resend what they changed, so OnlineGame replays them after
-      // the full state (see getBufferedStateUpdates)
-      if (this.bufferedStateUpdates.length < MatchmakingUI.MAX_BUFFERED_UPDATES) {
-        this.bufferedStateUpdates.push(update);
-      }
-    };
-
-    // Handle custom events (session, queue joined, etc.)
-    this.networkClient.onEvent = (event) => {
-      if (event.event === "session") {
-        // Persist so the player can rejoin their game after a page reload
-        sessionStorage.setItem("siege-session-token", event.sessionToken);
-      } else if (event.event === "queue_joined") {
-        this.queue.updateInfo(event.position, event.queueSize);
-      }
-    };
-
-    // Connect to server
-    this.networkClient.connect();
+      },
+      onDisconnect: () => {
+        if (
+          this.currentScreen !== "menu" &&
+          this.currentScreen !== "champion-select"
+        ) {
+          this.showError("Connection lost. Please try again.");
+        }
+      },
+      onLatencyUpdate: (latency) => this.updatePing(latency),
+      onError: (error) => this.showError(error),
+      onGameStart: (data) => this.handleMatchFound(data),
+      onQueueJoined: (position, queueSize) =>
+        this.queue.updateInfo(position, queueSize),
+    });
   }
 
   /**
    * Cancel connection attempt.
    */
   private cancelConnection(): void {
-    this.networkClient?.disconnect();
-    this.networkClient = null;
+    this.connection.disconnect();
     this.updateConnectionStatus("offline");
     this.showScreen("champion-select");
   }
@@ -409,8 +322,7 @@ export class MatchmakingUI {
    */
   private cancelQueue(): void {
     this.queue.stopTimer();
-    this.networkClient?.disconnect();
-    this.networkClient = null;
+    this.connection.disconnect();
     this.updateConnectionStatus("offline");
     this.showScreen("champion-select");
   }
@@ -484,7 +396,7 @@ export class MatchmakingUI {
    * Get the network client (for game to use).
    */
   getNetworkClient(): NetworkClient | null {
-    return this.networkClient;
+    return this.connection.getNetworkClient();
   }
 
   /**
@@ -506,23 +418,21 @@ export class MatchmakingUI {
    * Returns null if no state has been received.
    */
   getBufferedFullState(): any {
-    return this.bufferedFullState;
+    return this.connection.getBufferedFullState();
   }
 
   /**
    * Clear the buffered full state after it has been processed.
    */
   clearBufferedFullState(): void {
-    this.bufferedFullState = null;
+    this.connection.clearBufferedFullState();
   }
 
   /**
    * State updates received after the buffered full state, in order. Clears the buffer.
    */
   takeBufferedStateUpdates(): any[] {
-    const updates = this.bufferedStateUpdates;
-    this.bufferedStateUpdates = [];
-    return updates;
+    return this.connection.takeBufferedStateUpdates();
   }
 
   /**
@@ -530,12 +440,10 @@ export class MatchmakingUI {
    */
   reset(): void {
     this.queue.stopTimer();
-    this.networkClient?.disconnect();
-    this.networkClient = null;
+    this.connection.disconnect();
     this.matchData = null;
     this.matchFound.resetProgress();
-    this.bufferedFullState = null;
-    this.bufferedStateUpdates = [];
+    this.connection.clearBufferedState();
     this.updateConnectionStatus("offline");
     this.showScreen("menu");
   }
