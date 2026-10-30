@@ -35,7 +35,8 @@ export function executeStatTransform(
         duration,
         timeRemaining: duration,
       });
-      // Also heal for the bonus max health
+      // Also heal for the bonus max health (refresh stats first so the heal isn't capped at the old maximum)
+      champion.getStats();
       champion.heal(mods.maxHealth[rank - 1]);
     }
 

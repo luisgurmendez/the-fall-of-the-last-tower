@@ -347,3 +347,24 @@ describe('Mobility abilities under crowd control', () => {
     expect(result.success).toBe(true);
   });
 });
+
+describe('Vile - Restoration of Vilix (R)', () => {
+  test('raises max health by the bonus and heals for it', () => {
+    const arena = createTestArena({
+      blueChampion: 'vile',
+      redChampion: 'warrior',
+      bluePosition: new Vector(0, 0),
+      redPosition: new Vector(400, 0),
+    });
+    arena.blue.abilityStates.R.rank = 1;
+    arena.blue.setResource(arena.blue.maxResource);
+    const maxBefore = arena.blue.getStats().maxHealth;
+    arena.blue.health = maxBefore;
+
+    const result = arena.castAbility(arena.blue, 'R');
+
+    expect(result.success).toBe(true);
+    expect(arena.blue.getStats().maxHealth).toBe(maxBefore + 200);
+    expect(arena.blue.health).toBe(maxBefore + 200);
+  });
+});

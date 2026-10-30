@@ -40,11 +40,12 @@ export class VileRHandler extends BaseAbilityHandler {
       if (mods.maxHealth && mods.maxHealth[rank - 1] > 0) {
         champion.addModifier({
           source: `transform_${definition.id}`,
-          flat: { health: mods.maxHealth[rank - 1] },
+          flat: { maxHealth: mods.maxHealth[rank - 1] },
           duration,
           timeRemaining: duration,
         });
-        // Heal for the bonus max health
+        // Heal for the bonus max health (refresh stats first so the heal isn't capped at the old maximum)
+        champion.getStats();
         champion.heal(mods.maxHealth[rank - 1]);
       }
 
