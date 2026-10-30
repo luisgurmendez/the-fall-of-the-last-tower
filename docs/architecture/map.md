@@ -17,7 +17,9 @@ Coordinates run from -1800 to 1800 on both axes, with +y pointing down. A 192-un
 
 ## Walls
 
-Walls are designed as polygons for blue's top-side jungle (`stroke`, `blob`, `arc`). They are reflected across mid for blue's bot-side jungle (`reflectAcrossMid`), and `buildWalls()` then mirrors everything through the map center for red. Finally `buildWalls()` rasterizes them to 64-unit tiles and merges the tiles into rectangles. The result is `MOBAConfig.WALLS`: rectangles centered on `position`. The client draws them as cliffs (`MOBABackground.drawInteriorWalls`) and on the minimap.
+Walls are designed as polygons for blue's top-side jungle (`stroke`, `blob`, `arc`). They are reflected across mid for blue's bot-side jungle (`reflectAcrossMid`), and `buildWalls()` then mirrors everything through the map center for red. Finally `buildWalls()` rasterizes them to 64-unit tiles and merges the tiles into rectangles. Every column of wall is made at least two tiles tall, so it can show a plateau above a cliff face. The result is `MOBAConfig.WALLS`: rectangles centered on `position`.
+
+The client draws walls per 64-unit cell from the union of all rectangles (`MOBABackground.drawInteriorWalls`), so neighboring rectangles form one mass. In each column, the lowest wall cell is the rock cliff face. The cells above it are grass plateau, and each plateau tile is picked from its neighbors: edges where the plateau ends, interior elsewhere, plus one-wide and one-tall variants. Diagonal walls therefore render as stepped cliffs rather than stacked slabs. The minimap draws the rectangles.
 
 To change the layout:
 1. Edit the polygons in `siegeMap.ts`.

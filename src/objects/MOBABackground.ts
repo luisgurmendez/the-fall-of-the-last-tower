@@ -19,6 +19,8 @@ import NavigationGrid from "@/navigation/NavigationGrid";
 
 // Use shared constant from config
 const WATER_BORDER_SIZE = MOBAConfig.WATER_BORDER_SIZE;
+/** Wall tiles are aligned to a 64-unit grid starting at -WALL_GRID_HALF (see shared mapLayout.ts) */
+const WALL_GRID_HALF = 1600;
 
 export const BACKGROUND_ID = "bg";
 
@@ -91,60 +93,30 @@ const TILES = {
   },
 
   /**
-   * ELEVATED GRASS TILES (cols 5-7, rows 0-1)
-   * Top surface of elevated walls/platforms.
+   * ELEVATED PLATEAU TILES (cols 5-8, rows 0-3)
+   * Grass on top of a wall, picked per cell from its neighbors.
    *
-   * Usage:
-   * - For the grass surface on top of walls
-   * - Combined with cliff tiles below for full wall appearance
+   * Columns: 5 = left edge, 6 = interior, 7 = right edge, 8 = one tile wide
+   * Rows:    0 = top edge,  1 = interior, 2 = bottom edge (cliff face below),
+   *          3 = one tile tall
    */
-  elevatedGrass: {
-    topLeft: { col: 5, row: 0 },
-    topCenter: { col: 6, row: 0 },
-    topRight: { col: 7, row: 0 },
-    middleLeft: { col: 5, row: 1 },
-    middleCenter: { col: 6, row: 1 },
-    middleRight: { col: 7, row: 1 },
+  plateau: {
+    leftCol: 5,
+    centerCol: 6,
+    rightCol: 7,
+    singleCol: 8,
+    topRow: 0,
+    middleRow: 1,
+    bottomRow: 2,
+    singleRow: 3,
   },
 
   /**
-   * GRASS WITH CLIFF EDGE TILES (cols 5-7, row 2)
-   * Grass surface with cliff edge visible below.
-   *
-   * Usage:
-   * - For the bottom row of elevated grass (before cliff face)
-   * - Shows the transition from grass to cliff
+   * CLIFF FACE TILES (cols 5-8, row 4)
+   * Rock face under a plateau, standing on grass (row 5 is the same face
+   * standing in water). Same columns as the plateau.
    */
-  grassWithCliffEdge: {
-    left: { col: 5, row: 2 },
-    center: { col: 6, row: 2 },
-    right: { col: 7, row: 2 },
-  },
-
-  /**
-   * CLIFF/WALL FACE TILES (cols 5-7, rows 3-5)
-   * The vertical cliff face of elevated terrain.
-   *
-   * Usage:
-   * - For rendering the height/depth of walls
-   * - Stack multiple rows for taller cliffs
-   *
-   * Layout (3x3 cliff face):
-   *   TL ─ TC ─ TR  (top of cliff face)
-   *   ML   MC   MR  (middle of cliff)
-   *   BL ─ BC ─ BR  (bottom/base of cliff)
-   */
-  cliff: {
-    topLeft: { col: 5, row: 3 },
-    topCenter: { col: 6, row: 3 },
-    topRight: { col: 7, row: 3 },
-    middleLeft: { col: 5, row: 4 },
-    middleCenter: { col: 6, row: 4 },
-    middleRight: { col: 7, row: 4 },
-    bottomLeft: { col: 5, row: 5 },
-    bottomCenter: { col: 6, row: 5 },
-    bottomRight: { col: 7, row: 5 },
-  },
+  cliffRow: 4,
 };
 
 /**
@@ -555,178 +527,62 @@ class MOBABackground extends BaseObject {
 
   /**
    * Draw all interior walls (elevated terrain inside the grass area).
+   *
+   * Walls are drawn per 64-unit cell from the union of all wall rectangles,
+   * so neighboring rectangles join into one mass. In each column, the lowest
+   * wall cell is the cliff face and the cells above it are the grass plateau;
+   * plateau and cliff edges are only drawn where the mass actually ends.
    */
   private drawInteriorWalls(ctx: CanvasRenderingContext2D): void {
     if (!this.tilemap) return;
 
-    for (const wallConfig of MOBAConfig.WALLS) {
-      const x = wallConfig.position.x - wallConfig.width / 2;
-      const y = wallConfig.position.y - wallConfig.height / 2;
-      this.drawElevatedWall(ctx, x, y, wallConfig.width, wallConfig.height);
-    }
-  }
-
-  /**
-   * Draw an elevated wall with grass surface on top and cliff face below.
-   *
-   * Wall structure (from top to bottom):
-   * ┌─────────────────────────────┐
-   * │  Elevated Grass (top row)  │  ← elevatedGrass tiles
-   * │  Elevated Grass (middle)   │  ← elevatedGrass tiles
-   * │  Grass with Cliff Edge     │  ← grassWithCliffEdge tiles
-   * │  Cliff Face                │  ← cliff tiles
-   * └─────────────────────────────┘
-   *
-   * For single-row walls: Use grassWithCliffEdge only
-   * For 2-row walls: grassWithCliffEdge on top, cliff below
-   * For 3+ row walls: elevatedGrass top, grassWithCliffEdge, cliff bottom
-   */
-  private drawElevatedWall(
-    ctx: CanvasRenderingContext2D,
-    x: number,
-    y: number,
-    width: number,
-    height: number
-  ): void {
-    const tilesWide = Math.max(1, Math.ceil(width / TILE_SIZE));
-    const tilesHigh = Math.max(1, Math.ceil(height / TILE_SIZE));
-
-    for (let ty = 0; ty < tilesHigh; ty++) {
-      for (let tx = 0; tx < tilesWide; tx++) {
-        const destX = x + tx * TILE_SIZE;
-        const destY = y + ty * TILE_SIZE;
-
-        const tile = this.selectWallTile(tx, ty, tilesWide, tilesHigh);
-        this.drawTile(ctx, tile, destX, destY);
+    const cells = new Set<string>();
+    const key = (cx: number, cy: number) => `${cx},${cy}`;
+    const toCell = (value: number) => Math.floor((value + WALL_GRID_HALF) / TILE_SIZE);
+    for (const wall of MOBAConfig.WALLS) {
+      const minX = toCell(wall.position.x - wall.width / 2 + 1);
+      const maxX = toCell(wall.position.x + wall.width / 2 - 1);
+      const minY = toCell(wall.position.y - wall.height / 2 + 1);
+      const maxY = toCell(wall.position.y + wall.height / 2 - 1);
+      for (let cy = minY; cy <= maxY; cy++) {
+        for (let cx = minX; cx <= maxX; cx++) cells.add(key(cx, cy));
       }
     }
-  }
 
-  /**
-   * Select the appropriate wall tile based on position within the wall.
-   *
-   * Wall structure (from top to bottom):
-   * - Elevated Grass Top     (only if tilesHigh >= 5)
-   * - Elevated Grass Middle  (only if tilesHigh >= 6, can repeat)
-   * - Grass with Cliff Edge  (ALWAYS present - the transition row)
-   * - Cliff Top              (cliff face starts here)
-   * - Cliff Middle           (only if tilesHigh >= 4)
-   * - Cliff Bottom           (only if tilesHigh >= 3)
-   *
-   * Minimum wall height: 2 tiles (grassWithCliffEdge + cliff.top)
-   *
-   * Height breakdown:
-   * - 2 tiles: grassWithCliffEdge, cliff.top
-   * - 3 tiles: grassWithCliffEdge, cliff.top, cliff.bottom
-   * - 4 tiles: grassWithCliffEdge, cliff.top, cliff.middle, cliff.bottom
-   * - 5 tiles: elevatedGrass.top, grassWithCliffEdge, cliff.top/mid/bottom
-   * - 6+ tiles: elevatedGrass.top, elevatedGrass.middle(s), grassWithCliffEdge, cliff
-   */
-  private selectWallTile(
-    tx: number,
-    ty: number,
-    tilesWide: number,
-    tilesHigh: number
-  ): TilePos {
-    const isLeft = tx === 0;
-    const isRight = tx === tilesWide - 1;
+    const isWall = (cx: number, cy: number) => cells.has(key(cx, cy));
+    const isCliff = (cx: number, cy: number) => isWall(cx, cy) && !isWall(cx, cy + 1);
+    const isPlateau = (cx: number, cy: number) => isWall(cx, cy) && isWall(cx, cy + 1);
 
-    // Helper to get left/center/right variant of a tile row
-    const getHorizontalVariant = (
-      left: TilePos,
-      center: TilePos,
-      right: TilePos
-    ): TilePos => {
-      if (tilesWide === 1) return center; // Single column uses center
-      if (isLeft) return left;
-      if (isRight) return right;
-      return center;
+    // Left edge, interior, right edge or single column, from which sides continue
+    const pickColumn = (continuesLeft: boolean, continuesRight: boolean): number => {
+      const { leftCol, centerCol, rightCol, singleCol } = TILES.plateau;
+      if (continuesLeft && continuesRight) return centerCol;
+      if (continuesRight) return leftCol;
+      if (continuesLeft) return rightCol;
+      return singleCol;
     };
 
-    // Calculate structure dimensions:
-    // - Cliff takes 1-3 rows at bottom (top, middle, bottom)
-    // - grassWithCliffEdge is always 1 row above cliff
-    // - Remaining rows above are elevated grass
-    const cliffRows = Math.min(3, tilesHigh - 1); // Reserve at least 1 row for grassWithCliffEdge
-    const grassWithCliffEdgeRow = tilesHigh - cliffRows - 1; // Row index for the transition
-    const elevatedGrassRows = grassWithCliffEdgeRow; // Number of elevated grass rows (0 if none)
+    for (const cell of cells) {
+      const [cx, cy] = cell.split(",").map(Number);
+      let tile: TilePos;
 
-    // Elevated grass region (top rows, if wall is tall enough)
-    if (ty < elevatedGrassRows) {
-      if (ty === 0) {
-        // Top edge of elevated grass
-        return getHorizontalVariant(
-          TILES.elevatedGrass.topLeft,
-          TILES.elevatedGrass.topCenter,
-          TILES.elevatedGrass.topRight
-        );
+      if (isCliff(cx, cy)) {
+        tile = {
+          col: pickColumn(isCliff(cx - 1, cy), isCliff(cx + 1, cy)),
+          row: TILES.cliffRow,
+        };
+      } else {
+        const { topRow, middleRow, bottomRow, singleRow } = TILES.plateau;
+        const topEdge = !isWall(cx, cy - 1);
+        const bottomEdge = isCliff(cx, cy + 1);
+        tile = {
+          col: pickColumn(isPlateau(cx - 1, cy), isPlateau(cx + 1, cy)),
+          row: topEdge && bottomEdge ? singleRow : topEdge ? topRow : bottomEdge ? bottomRow : middleRow,
+        };
       }
-      // Middle rows of elevated grass
-      return getHorizontalVariant(
-        TILES.elevatedGrass.middleLeft,
-        TILES.elevatedGrass.middleCenter,
-        TILES.elevatedGrass.middleRight
-      );
-    }
 
-    // Grass with cliff edge (the transition from grass to cliff face)
-    if (ty === grassWithCliffEdgeRow) {
-      return getHorizontalVariant(
-        TILES.grassWithCliffEdge.left,
-        TILES.grassWithCliffEdge.center,
-        TILES.grassWithCliffEdge.right
-      );
+      this.drawTile(ctx, tile, cx * TILE_SIZE - WALL_GRID_HALF, cy * TILE_SIZE - WALL_GRID_HALF);
     }
-
-    // Cliff region (below grassWithCliffEdge)
-    const cliffRowIndex = ty - grassWithCliffEdgeRow - 1; // 0 = first cliff row from top
-
-    // Map to cliff tiles based on how many cliff rows we have
-    if (cliffRows === 1) {
-      // Only 1 cliff row - use cliff.top
-      return getHorizontalVariant(
-        TILES.cliff.topLeft,
-        TILES.cliff.topCenter,
-        TILES.cliff.topRight
-      );
-    }
-
-    if (cliffRows === 2) {
-      // 2 cliff rows: cliff.top + cliff.bottom (skip middle)
-      if (cliffRowIndex === 0) {
-        return getHorizontalVariant(
-          TILES.cliff.topLeft,
-          TILES.cliff.topCenter,
-          TILES.cliff.topRight
-        );
-      }
-      return getHorizontalVariant(
-        TILES.cliff.bottomLeft,
-        TILES.cliff.bottomCenter,
-        TILES.cliff.bottomRight
-      );
-    }
-
-    // 3 cliff rows: cliff.top + cliff.middle + cliff.bottom
-    if (cliffRowIndex === 0) {
-      return getHorizontalVariant(
-        TILES.cliff.topLeft,
-        TILES.cliff.topCenter,
-        TILES.cliff.topRight
-      );
-    }
-    if (cliffRowIndex === 1) {
-      return getHorizontalVariant(
-        TILES.cliff.middleLeft,
-        TILES.cliff.middleCenter,
-        TILES.cliff.middleRight
-      );
-    }
-    return getHorizontalVariant(
-      TILES.cliff.bottomLeft,
-      TILES.cliff.bottomCenter,
-      TILES.cliff.bottomRight
-    );
   }
 
   // ===========================================================================

@@ -34,9 +34,9 @@ function pointInPolygon(x: number, y: number, polygon: Polygon): boolean {
 }
 
 /**
- * Rasterize polygons (plus their mirror images) to tiles and merge the tiles
- * into as few rectangles as possible (runs per row, then identical runs on
- * consecutive rows).
+ * Rasterize polygons (plus their mirror images) to tiles, make every column
+ * of wall at least two tiles tall, and merge the tiles into as few rectangles
+ * as possible (runs per row, then identical runs on consecutive rows).
  */
 export function buildWalls(sidePolygons: Polygon[]): WallRect[] {
   const polygons: Polygon[] = [
@@ -52,6 +52,15 @@ export function buildWalls(sidePolygons: Polygon[]): WallRect[] {
       const cx = -WALL_GRID_HALF + (col + 0.5) * WALL_TILE_SIZE;
       const cy = -WALL_GRID_HALF + (row + 0.5) * WALL_TILE_SIZE;
       solid[row].push(polygons.some(polygon => pointInPolygon(cx, cy, polygon)));
+    }
+  }
+
+  // Every column of wall is at least two tiles tall, so the client can draw
+  // a grass plateau with a cliff face under it (a lone row would be all cliff)
+  for (let row = 0; row < count - 1; row++) {
+    for (let col = 0; col < count; col++) {
+      const runStart = solid[row][col] && (row === 0 || !solid[row - 1][col]);
+      if (runStart && !solid[row + 1][col]) solid[row + 1][col] = true;
     }
   }
 
