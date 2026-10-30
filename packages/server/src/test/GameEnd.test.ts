@@ -26,6 +26,14 @@ describe('Game end', () => {
     try {
       const context = (room as unknown as { context: ServerGameContext }).context;
       const redNexus = context.getAllEntities().find(e => e.entityType === EntityType.NEXUS && e.side === 1)!;
+
+      // The nexus is protected until a lane is open
+      expect(redNexus.takeDamage(1000, 'true', undefined, context)).toBe(0);
+      const redMidTowers = context.getAllEntities()
+        .filter(e => e.entityType === EntityType.TOWER && e.side === 1 && (e as unknown as { lane: string }).lane === 'mid')
+        .sort((a, b) => (a as unknown as { tier: number }).tier - (b as unknown as { tier: number }).tier);
+      for (const tower of redMidTowers) tower.takeDamage(tower.health + 1, 'true', undefined, context);
+
       redNexus.takeDamage(redNexus.health + 1, 'true', undefined, context);
 
       const winner = await Promise.race([ended, new Promise<number>((_, reject) => setTimeout(() => reject(new Error('game did not end')), 2000))]);
@@ -33,6 +41,26 @@ describe('Game end', () => {
       expect(room.getState()).toBe('ended');
     } finally {
       room.stop();
+    }
+  });
+});
+
+describe('Structure order', () => {
+  test('an inner tower takes no damage while its outer tower stands', async () => {
+    const { Simulation } = await import('../sim');
+    const sim = new Simulation({ seed: 1, minionWaves: false, jungle: false });
+    try {
+      const towers = sim.context.getAllEntities()
+        .filter(e => e.entityType === EntityType.TOWER && e.side === 1 && (e as unknown as { lane: string }).lane === 'top') as unknown as
+          { tier: number; health: number; takeDamage: (amount: number, type: 'true', source: undefined, context: unknown) => number }[];
+      const outer = towers.find(t => t.tier === 1)!;
+      const inner = towers.find(t => t.tier === 2)!;
+
+      expect(inner.takeDamage(500, 'true', undefined, sim.context)).toBe(0);
+      outer.takeDamage(outer.health + 1, 'true', undefined, sim.context);
+      expect(inner.takeDamage(500, 'true', undefined, sim.context)).toBeGreaterThan(0);
+    } finally {
+      sim.dispose();
     }
   });
 });

@@ -14,6 +14,7 @@ import {
   type NexusSnapshot,
 } from '@siege/shared';
 import { ServerEntity, type ServerEntityConfig } from './ServerEntity';
+import { isStructureVulnerable } from '../systems/StructureRules';
 import type { ServerGameContext } from '../game/ServerGameContext';
 import { Logger } from '../utils/Logger';
 
@@ -77,6 +78,15 @@ export class ServerNexus extends ServerEntity {
     super.onDeath(killerId);
     this._isDestroyed = true;
     Logger.game.info(`[ServerNexus] ${this.side === 0 ? 'Blue' : 'Red'} nexus destroyed!`);
+  }
+
+  /**
+   * Structures fall in lane order: damage is ignored while this one is protected
+   * (see StructureRules).
+   */
+  override takeDamage(amount: number, type: DamageType, sourceId?: string, context?: ServerGameContext): number {
+    if (context && !isStructureVulnerable(this, context)) return 0;
+    return super.takeDamage(amount, type, sourceId, context);
   }
 
   /**

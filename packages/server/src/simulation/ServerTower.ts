@@ -29,6 +29,7 @@ import {
   TowerTargetPriority,
 } from "@siege/shared";
 import { ServerEntity, type ServerEntityConfig } from "./ServerEntity";
+import { isStructureVulnerable } from '../systems/StructureRules';
 import type { ServerGameContext } from "../game/ServerGameContext";
 import { RewardSystem } from "../systems/RewardSystem";
 import { ServerTargetedProjectile } from "./ServerTargetedProjectile";
@@ -354,6 +355,15 @@ export class ServerTower extends ServerEntity {
       // Also award global gold to all allied champions
       RewardSystem.awardGlobalTowerGold(this.side, context);
     }
+  }
+
+  /**
+   * Structures fall in lane order: damage is ignored while this one is protected
+   * (see StructureRules).
+   */
+  override takeDamage(amount: number, type: DamageType, sourceId?: string, context?: ServerGameContext): number {
+    if (context && !isStructureVulnerable(this, context)) return 0;
+    return super.takeDamage(amount, type, sourceId, context);
   }
 
   /**

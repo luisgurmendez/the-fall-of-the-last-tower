@@ -123,7 +123,7 @@ describe('Shop', () => {
     const sim = new Simulation({ seed: 1, minionWaves: false, jungle: false, structures: false });
     try {
       const champion = sim.addChampion({ playerId: 'p1', championId: 'vex', side: 'blue', at: { x: 0, y: 0 } });
-      champion.gold = 1000;
+      (champion as { gold: number }).gold = 1000;
       sim.buy('p1', 'long_sword');
       sim.run(0.1);
       expect(champion.items.some(item => item?.definitionId === 'long_sword')).toBe(false);
