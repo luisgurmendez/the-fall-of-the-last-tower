@@ -45,6 +45,18 @@ const SHIELD_STYLES: Record<
   },
 };
 
+/** Color of the health a recent hit took (see damageTrail.ts) */
+const DAMAGE_TRAIL_COLOR = "rgba(255, 244, 214, 0.85)";
+/** Small health ticks closer than this (pixels) are left out */
+const MIN_TICK_SPACING = 3;
+
+export interface HealthBarOptions {
+  /** Health the bar showed before recent hits (getTrailHealth), drawn as a light trail */
+  trailHealth?: number;
+  /** Draw a tick every this much health, and a full-height one every ten */
+  tickEvery?: number;
+}
+
 /**
  * Render a health bar with optional shields.
  * Shields extend beyond the health bar with diagonal stripes.
@@ -59,6 +71,7 @@ export function renderHealthBar(
   yOffset: number,
   healthBarColor: string,
   shields?: Array<{ amount: number; shieldType: string }>,
+  options: HealthBarOptions = {},
 ): void {
   const barWidth = width;
   const barHeight = 6;
@@ -92,6 +105,14 @@ export function renderHealthBar(
   // Background - always fixed width
   ctx.fillStyle = "#333333";
   ctx.fillRect(-barWidth / 2, yOffset, barWidth, barHeight);
+
+  // Health a recent hit took, under the health fill
+  const healthPerBar = Math.max(maxHealth, totalEffectiveHealth);
+  if (options.trailHealth !== undefined && options.trailHealth > health && healthPerBar > 0) {
+    const trailPercent = Math.min(1, options.trailHealth / healthPerBar);
+    ctx.fillStyle = DAMAGE_TRAIL_COLOR;
+    ctx.fillRect(-barWidth / 2, yOffset, barWidth * trailPercent, barHeight);
+  }
 
   // Health fill - use provided color
   ctx.fillStyle = healthBarColor;
@@ -159,10 +180,36 @@ export function renderHealthBar(
     ctx.stroke();
   }
 
+  if (options.tickEvery && healthPerBar > 0) {
+    renderHealthTicks(ctx, barWidth, barHeight, yOffset, healthPerBar, options.tickEvery);
+  }
+
   // Border around bar (always fixed width)
   ctx.strokeStyle = "#000000";
   ctx.lineWidth = 1;
   ctx.strokeRect(-barWidth / 2, yOffset, barWidth, barHeight);
+}
+
+/**
+ * Ticks across a health bar, one per `tickEvery` health (half height) and a
+ * full-height one every ten; the small ones are left out when too crowded.
+ */
+function renderHealthTicks(
+  ctx: CanvasRenderingContext2D,
+  barWidth: number,
+  barHeight: number,
+  yOffset: number,
+  healthPerBar: number,
+  tickEvery: number,
+): void {
+  const showSmall = (barWidth * tickEvery) / healthPerBar >= MIN_TICK_SPACING;
+  ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
+  for (let tick = 1; tick * tickEvery < healthPerBar; tick++) {
+    const big = tick % 10 === 0;
+    if (!big && !showSmall) continue;
+    const x = Math.round(-barWidth / 2 + (barWidth * tick * tickEvery) / healthPerBar);
+    ctx.fillRect(x, yOffset, 1, big ? barHeight : Math.ceil(barHeight / 2));
+  }
 }
 
 /**

@@ -20,11 +20,15 @@ import {
   renderHealthBar,
   renderResourceBar,
 } from "@/render/overlays/healthBars";
+import { getTrailHealth } from "@/render/overlays/damageTrail";
 import { renderMarkIndicators } from "@/render/overlays/statusIndicators";
 import {
   createChampionBodyRenderers,
   type ChampionBodyRenderer,
 } from "@/render/champions";
+
+/** Champion health bars get a tick every this much health */
+const CHAMPION_HEALTH_TICK = 100;
 
 /**
  * Renders champions. Holds the champion body renderers, which can keep
@@ -303,6 +307,10 @@ export class ChampionRenderer {
         healthBarY,
         healthBarColor,
         shields,
+        {
+          trailHealth: getTrailHealth(snapshot.entityId, snapshot.health),
+          tickEvery: CHAMPION_HEALTH_TICK,
+        },
       );
     }
 

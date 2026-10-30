@@ -13,6 +13,7 @@ import {
   HEALTH_BAR_COLORS,
   renderHealthBar,
 } from "@/render/overlays/healthBars";
+import { getTrailHealth } from "@/render/overlays/damageTrail";
 
 /**
  * Sprite configuration.
@@ -87,6 +88,8 @@ export function renderTower(
       60,
       barY,
       healthBarColor,
+      undefined,
+      { trailHealth: getTrailHealth(snapshot.entityId, snapshot.health) },
     );
   }
 }

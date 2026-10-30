@@ -20,6 +20,7 @@ import {
   HEALTH_BAR_COLORS,
   renderHealthBar,
 } from "@/render/overlays/healthBars";
+import { getTrailHealth } from "@/render/overlays/damageTrail";
 import { renderAggroIndicator } from "@/render/overlays/statusIndicators";
 
 /**
@@ -297,6 +298,8 @@ export function renderJungleCamp(
       look.name ? 56 : 40,
       barY,
       HEALTH_BAR_COLORS.ENEMY,
+      undefined,
+      { trailHealth: getTrailHealth(snapshot.entityId, snapshot.health) },
     );
   }
 
