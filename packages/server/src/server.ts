@@ -176,6 +176,22 @@ function handleReadyMessage(connection: WebSocketConnection, data: ReadyMessageD
     connection.gameId = gameId || null;
 
     Logger.server.info(`Player reconnecting: ${playerId} -> game ${gameId}`);
+
+    // A reloaded client is back in the menu and only enters a game on GAME_START
+    const room = roomManager.getRoomByPlayer(playerId);
+    if (room && gameId) {
+      wsServer.sendToConnection(connection.id, {
+        type: ServerMessageType.GAME_START,
+        data: {
+          gameId,
+          tick: 0,
+          gameTime: room.getGameTime(),
+          yourSide: room.getPlayerSide(playerId),
+          players: room.getPlayersWithEntityIds(),
+        },
+      });
+    }
+
     const snapshot = roomManager.handleReconnect(playerId);
 
     if (snapshot) {

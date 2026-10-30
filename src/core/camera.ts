@@ -29,6 +29,8 @@ class Camera implements GameObject, Stepable, Disposable, Initializable {
   shouldDispose = false;
   worldDimensions: Rectangle | null = null;
   mousePosition: Vector | null = null;
+  /** Edge panning is skipped while this says the pointer is over UI (e.g. the minimap) */
+  isPointerOverUI: ((x: number, y: number) => boolean) | null = null;
   // flying: Flying = new Flying();
 
   constructor() {
@@ -152,7 +154,7 @@ class Camera implements GameObject, Stepable, Disposable, Initializable {
     const maxSpeed = CAMERA_CONFIG.EDGE_SCROLL_SPEED;
 
     // Update the camera position based on mouse coordinates
-    if (this.mousePosition !== null) {
+    if (this.mousePosition !== null && !this.isPointerOverUI?.(this.mousePosition.x, this.mousePosition.y)) {
       const mouseX = this.mousePosition.x;
       const mouseY = this.mousePosition.y;
       let deltaX = 0, deltaY = 0;

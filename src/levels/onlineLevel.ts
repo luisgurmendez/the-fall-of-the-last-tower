@@ -16,6 +16,7 @@ import Camera from '@/core/camera';
 import { ChampionHUD } from '@/ui/ChampionHUD';
 import { GameStatsHUD } from '@/ui/GameStatsHUD';
 import { OnlineMinimap } from '@/ui/OnlineMinimap';
+import { AnnouncementBanner } from '@/ui/AnnouncementBanner';
 import { TargetInfoHUD } from '@/ui/TargetInfoHUD';
 import { TabScoreboard } from '@/ui/TabScoreboard';
 import { OnlineInputHandler } from '@/core/input/OnlineInputHandler';
@@ -84,8 +85,16 @@ export function generateOnlineLevel(config: OnlineLevelConfig): Level {
   // Pass the selected championId as fallback for before server state arrives
   const championAdapter = new OnlineChampionAdapter(stateManager, localChampionId);
 
+  // OnlineMinimap reads from server state instead of local objects; right-clicks on it are map moves
+  const minimap = new OnlineMinimap(stateManager, matchData.yourSide, { size: 200, corner: 'bottom-right' });
+  inputHandler.setMinimapLocator((x, y) => minimap.screenToWorldIfInside(x, y));
+
   // Create camera controller that follows local player
-  const cameraController = new OnlineCameraController(stateManager, matchData.yourSide);
+  const cameraController = new OnlineCameraController(
+    stateManager,
+    matchData.yourSide,
+    (x, y) => minimap.screenToWorldIfInside(x, y) !== null,
+  );
 
   // Create fog of war provider (reveals fog based on server entity positions)
   const fogProvider = new OnlineFogProvider(stateManager, matchData.yourSide);
@@ -148,8 +157,9 @@ export function generateOnlineLevel(config: OnlineLevelConfig): Level {
     new GameStatsHUD({ getLatency: () => networkClient.getLatency() }),
     // Target info HUD (selected entity info in top-left)
     targetInfoHUD,
-    // OnlineMinimap reads from server state instead of local objects
-    new OnlineMinimap(stateManager, matchData.yourSide, { size: 200, corner: 'bottom-right' }),
+    minimap,
+    // Big moments (dragon slain)
+    new AnnouncementBanner(stateManager),
     // Tab scoreboard (full scoreboard overlay when Tab is held)
     tabScoreboard,
     // Debug inspector for entity inspection (F3 to toggle)
@@ -182,7 +192,11 @@ class OnlineCameraController implements GameObject {
   private isLocked = false; // Start with camera unlocked (Y to toggle, Space to focus)
   private keyListener: ((e: KeyboardEvent) => void) | null = null;
 
-  constructor(stateManager: OnlineStateManager, localSide: number) {
+  constructor(
+    stateManager: OnlineStateManager,
+    localSide: number,
+    private isPointerOverUI: (x: number, y: number) => boolean,
+  ) {
     this.stateManager = stateManager;
     this.localSide = localSide;
   }
@@ -194,10 +208,12 @@ class OnlineCameraController implements GameObject {
     // Blue (0) spawns at bottom-left, Red (1) spawns at top-right
     if (this.camera) {
       const spawnPos = this.localSide === 0
-        ? { x: -1200, y: 1200 }   // Blue spawn (bottom-left)
-        : { x: 1200, y: -1200 };  // Red spawn (top-right)
+        ? MOBAConfig.CHAMPION_SPAWN.BLUE
+        : MOBAConfig.CHAMPION_SPAWN.RED;
       this.camera.position.x = spawnPos.x;
       this.camera.position.y = spawnPos.y;
+      // Don't edge-pan while the pointer is on the minimap (it sits at the screen edge)
+      this.camera.isPointerOverUI = this.isPointerOverUI;
     }
 
     // Listen for camera control keys

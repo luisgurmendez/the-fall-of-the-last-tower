@@ -18,7 +18,8 @@ export const GameConfig = {
     MIN_ZOOM: 0.4,
     MAX_ZOOM: 14,
     INITIAL_ZOOM: 0.6,
-    EDGE_SCROLL_THRESHOLD: 150,
+    /** Pixels from the screen edge where the camera pans (only the very edge, like other MOBAs) */
+    EDGE_SCROLL_THRESHOLD: 30,
     EDGE_SCROLL_SPEED: 20,
   },
 

@@ -319,6 +319,13 @@ export class GameRoom {
   }
 
   /**
+   * Get a player's side.
+   */
+  getPlayerSide(playerId: string): Side | undefined {
+    return this.players.get(playerId)?.side;
+  }
+
+  /**
    * Get all player IDs.
    */
   getPlayerIds(): string[] {

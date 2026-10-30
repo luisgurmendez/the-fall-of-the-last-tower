@@ -158,6 +158,9 @@ export class OnlineInputHandler implements GameObject {
   /** Champion ID for ability lookups */
   private championId: string = "warrior";
 
+  /** Converts minimap clicks to world positions */
+  private minimapLocator: ((screenX: number, screenY: number) => Vector | null) | null = null;
+
   /** Callback for charge state updates (for HUD) */
   private onChargeStateChange: ((state: { slot: AbilitySlot; progress: number } | null) => void) | null = null;
 
@@ -189,6 +192,14 @@ export class OnlineInputHandler implements GameObject {
    */
   setChampionId(championId: string): void {
     this.championId = championId;
+  }
+
+  /**
+   * Set how to turn a screen position over the minimap into a world position
+   * (returns null when the position isn't over the minimap).
+   */
+  setMinimapLocator(locator: (screenX: number, screenY: number) => Vector | null): void {
+    this.minimapLocator = locator;
   }
 
   /**
@@ -260,15 +271,16 @@ export class OnlineInputHandler implements GameObject {
       this.onChargeStateChange(this.getChargeProgress());
     }
 
+    // Clicks on the minimap are about map positions, not what's under the cursor in the world
+    const mousePosition = this.inputManager.getMousePosition();
+    const minimapTarget = this.minimapLocator?.(mousePosition.x, mousePosition.y) ?? null;
+
     // Handle right-click movement or attack
     if (this.inputManager.isMouseButtonJustPressed(MouseButton.RIGHT)) {
-      const worldPos = this.screenToWorld(
-        this.inputManager.getMousePosition(),
-        camera,
-      );
+      const worldPos = minimapTarget ?? this.screenToWorld(mousePosition, camera);
 
       // If hovering an enemy, send target attack instead of move
-      if (this.hoveredEnemyId) {
+      if (this.hoveredEnemyId && !minimapTarget) {
         this.networkClient.sendTargetUnitInput(this.hoveredEnemyId);
       } else {
         this.networkClient.sendMoveInput(worldPos.x, worldPos.y);
@@ -279,6 +291,7 @@ export class OnlineInputHandler implements GameObject {
 
     // Handle entity selection (left-click when NOT holding A)
     if (
+      !minimapTarget &&
       !this.inputManager.isKeyDown("a") &&
       this.inputManager.isMouseButtonJustPressed(MouseButton.LEFT)
     ) {

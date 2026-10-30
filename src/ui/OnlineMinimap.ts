@@ -105,6 +105,15 @@ export class OnlineMinimap extends ScreenEntity {
   }
 
   /**
+   * The world point under a screen position, or null when it's not over the minimap.
+   * Used by the input handler so right-clicking the minimap moves the champion there.
+   */
+  screenToWorldIfInside(screenX: number, screenY: number): Vector | null {
+    if (!this.isInsideMinimap(screenX, screenY)) return null;
+    return this.minimapToWorld(screenX, screenY);
+  }
+
+  /**
    * Check if a screen position is within the minimap.
    */
   private isInsideMinimap(screenX: number, screenY: number): boolean {
@@ -186,6 +195,9 @@ export class OnlineMinimap extends ScreenEntity {
 
       // Draw server entities
       this.renderEntities(ctx);
+
+      // Draw respawn timers of cleared jungle camps
+      this.renderCampTimers(ctx);
 
       // Draw player movement path
       this.renderPlayerPath(ctx);
@@ -296,6 +308,25 @@ export class OnlineMinimap extends ScreenEntity {
       ctx.lineTo(pt.x, pt.y);
     }
     ctx.stroke();
+  }
+
+  /**
+   * Render seconds until each cleared jungle camp respawns.
+   */
+  private renderCampTimers(ctx: CanvasRenderingContext2D): void {
+    const gameTime = this.stateManager.getGameTime();
+    ctx.font = 'bold 9px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (const timer of this.stateManager.getCampTimers()) {
+      const pos = this.worldToMinimap(timer.x, timer.y);
+      const seconds = Math.ceil(timer.respawnAt - gameTime);
+      const epic = timer.creatureType === 'dragon' || timer.creatureType.endsWith('_buff');
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+      ctx.fillRect(pos.x - 9, pos.y - 5, 18, 10);
+      ctx.fillStyle = epic ? '#f5b041' : '#d5d8dc';
+      ctx.fillText(String(seconds), pos.x, pos.y + 0.5);
+    }
   }
 
   /**
