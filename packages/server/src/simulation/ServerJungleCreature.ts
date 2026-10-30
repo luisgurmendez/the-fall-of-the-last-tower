@@ -9,6 +9,8 @@
  *   seconds while its target is out of reach): walks home invulnerable,
  *   regenerating quickly, then heals to full
  * - Ranged creatures (gromp, dragon) attack with projectiles
+ * - Buff monsters and the dragon have a telegraphed area attack
+ *   (JungleSpecialAttacks)
  * - Gold/XP rewards on death; buff camps and the dragon grant buffs
  */
 
@@ -25,6 +27,7 @@ import type { ServerGameContext } from '../game/ServerGameContext';
 import { RewardSystem } from '../systems/RewardSystem';
 import { grantJungleBuffs } from '../systems/JungleBuffs';
 import { ServerTargetedProjectile } from './ServerTargetedProjectile';
+import { JUNGLE_SPECIAL_ATTACKS, isInSpecialArea, type JungleSpecialAttack } from './JungleSpecialAttacks';
 
 type JungleCreatureType = keyof typeof MOBAConfig.JUNGLE.CREATURE_STATS;
 
@@ -68,14 +71,15 @@ export class ServerJungleCreature extends ServerEntity {
   /** Champions that damaged this creature, with the game time they last did */
   private aggressors: Map<string, number> = new Map();
   private lastDamagedAt = 0;
+  /** Seconds until the special attack can be used (counts down while fighting) */
+  private specialCooldownTimer = 0;
+  /** The special attack being wound up: when it lands and where it's aimed */
+  private windup: { landsAt: number; aim: Vector } | null = null;
 
   /** Reset if not damaged for this long while the target is out of reach (seconds) */
   private static readonly KITE_RESET_TIME = 5;
   /** Health regained per second while walking home, as a fraction of max health */
   private static readonly RETURN_REGEN = 0.3;
-  override getMovementTarget(): Vector | null {
-    return this.moveTarget;
-  }
 
   /** Creatures that attack with projectiles, and how their projectiles look */
   private static readonly RANGED: Partial<Record<string, { projectileType: string; damageType: DamageType; speed: number }>> = {
@@ -140,6 +144,10 @@ export class ServerJungleCreature extends ServerEntity {
     return 80;
   }
 
+  override getMovementTarget(): Vector | null {
+    return this.moveTarget;
+  }
+
   /**
    * Update creature each tick.
    */
@@ -149,6 +157,9 @@ export class ServerJungleCreature extends ServerEntity {
     // Update cooldowns
     if (this.attackCooldownTimer > 0) {
       this.attackCooldownTimer -= dt;
+    }
+    if (this.aiState === 'aggro' && this.specialCooldownTimer > 0) {
+      this.specialCooldownTimer -= dt;
     }
 
     // State machine (idle creatures wait to be attacked)
@@ -182,13 +193,32 @@ export class ServerJungleCreature extends ServerEntity {
       this.aiState = 'aggro';
       this.attackTarget = attackerId;
       this.lastDamagedAt = context.getGameTime();
+      this.specialCooldownTimer = this.getSpecialAttack()?.firstUseAfter ?? 0;
     }
+  }
+
+  /**
+   * Whether this creature is winding up its special attack.
+   */
+  isWindingUp(): boolean {
+    return this.windup !== null;
+  }
+
+  private getSpecialAttack(): JungleSpecialAttack | undefined {
+    return JUNGLE_SPECIAL_ATTACKS[this.creatureType];
   }
 
   /**
    * Aggro state - chase and attack the target; reset when leashed or kited.
    */
   private updateAggro(context: ServerGameContext): void {
+    // Winding up: stand still until the special attack lands
+    if (this.windup) {
+      this.moveTarget = null;
+      if (context.getGameTime() >= this.windup.landsAt - 1e-9) this.landSpecialAttack(context);
+      return;
+    }
+
     if (this.position.distanceTo(this.homePosition) > this.leashRange) {
       this.startReturning(context);
       return;
@@ -209,6 +239,12 @@ export class ServerJungleCreature extends ServerEntity {
     // Kited: nobody has hit us for a while and we can't hit back
     if (!inRange && context.getGameTime() - this.lastDamagedAt > ServerJungleCreature.KITE_RESET_TIME) {
       this.startReturning(context);
+      return;
+    }
+
+    const special = this.getSpecialAttack();
+    if (special && this.specialCooldownTimer <= 0 && isInSpecialArea(special, this.position, target.position, target)) {
+      this.startSpecialAttack(special, target, context);
       return;
     }
 
@@ -280,11 +316,45 @@ export class ServerJungleCreature extends ServerEntity {
   }
 
   /**
+   * Stop and warn: clients draw the area for the wind-up.
+   */
+  private startSpecialAttack(special: JungleSpecialAttack, target: ServerEntity, context: ServerGameContext): void {
+    const aim = special.shape === 'cone' ? target.position.clone() : this.position.clone();
+    this.windup = { landsAt: context.getGameTime() + special.windup, aim };
+    this.moveTarget = null;
+    context.addEvent(GameEventType.ABILITY_CAST, {
+      entityId: this.id,
+      abilityId: special.abilityId,
+      targetX: aim.x,
+      targetY: aim.y,
+      animationDuration: special.windup,
+    });
+  }
+
+  /**
+   * The special attack lands: hit every champion still in the area.
+   */
+  private landSpecialAttack(context: ServerGameContext): void {
+    const special = this.getSpecialAttack();
+    const aim = this.windup?.aim ?? this.position;
+    this.windup = null;
+    if (!special) return;
+
+    this.specialCooldownTimer = special.cooldown;
+    for (const champion of context.getAllChampions()) {
+      if (champion.isDead || !isInSpecialArea(special, this.position, aim, champion)) continue;
+      champion.takeDamage(special.damage, special.damageType, this.id, context);
+      for (const effect of special.effects) champion.applyEffect(effect.id, effect.duration, this.id);
+    }
+  }
+
+  /**
    * Give up the fight and walk home around walls.
    */
   private startReturning(context: ServerGameContext): void {
     this.aiState = 'returning';
     this.attackTarget = null;
+    this.windup = null;
     this.aggressors.clear();
     this.returnPath = context.terrain.findPath(this.position, this.homePosition) ?? [this.homePosition.clone()];
     this.moveTarget = this.returnPath.shift() ?? null;
@@ -374,6 +444,7 @@ export class ServerJungleCreature extends ServerEntity {
 
     this.attackTarget = null;
     this.moveTarget = null;
+    this.windup = null;
     this.markForRemoval();
   }
 

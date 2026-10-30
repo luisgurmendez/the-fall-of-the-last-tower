@@ -17,7 +17,7 @@
  */
 
 import { describe, it, expect } from 'bun:test';
-import { CHAMPION_DEFINITIONS } from '@siege/shared';
+import { CHAMPION_DEFINITIONS, MOBAConfig } from '@siege/shared';
 import { CHAMPION_RENDERERS, getChampionRenderer } from '@/render/champions';
 import { getAbilityVFX, getAllRegisteredVFX } from '@/vfx/VFXRegistry';
 import { WORLD_VFX } from '@/vfx/world';
@@ -37,9 +37,14 @@ const ABILITIES_WITHOUT_VFX: Record<string, NoVFX> = {};
 
 /**
  * ABILITY_CAST events the server sends that aren't a plain cast: recasts use
- * `<abilityId>_recast` (handled below) and Vile's traps send these.
+ * `<abilityId>_recast` (handled below), Vile's traps send these, and so do
+ * the jungle monsters' special attacks.
  */
-const OTHER_CAST_EVENT_IDS = ['vile_trap_trigger', 'vile_trap_explosion'];
+const OTHER_CAST_EVENT_IDS = [
+  'vile_trap_trigger',
+  'vile_trap_explosion',
+  ...Object.values(MOBAConfig.JUNGLE.SPECIAL_ATTACKS).map((attack) => attack.abilityId),
+];
 
 const ALL_ABILITY_IDS = Object.values(CHAMPION_DEFINITIONS).flatMap((definition) =>
   Object.values(definition.abilities)

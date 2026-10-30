@@ -1,10 +1,12 @@
 /**
  * World VFX: feedback for things that happen in the match rather than for a
- * champion's ability (hits, level ups, deaths, recalls, towers falling).
+ * champion's ability (hits, level ups, deaths, recalls, towers falling,
+ * monster attacks).
  * Registered when this module is imported (see VFXRegistry.ts) and spawned
  * by OnlineStateManager when it sees the matching event or state change.
  */
 
+import { MOBAConfig } from '@siege/shared';
 import { registerAbilityVFX } from './VFXRegistryStore';
 
 /** Keys of the world VFX, spawned with VFXManager.spawnAbilityVFX */
@@ -285,6 +287,153 @@ registerAbilityVFX({
           spread: Math.PI * 2,
           gravity: 150,
           particleType: 'square',
+        },
+      ],
+    },
+  ],
+});
+
+// =============================================================================
+// Monster attacks (server: JungleSpecialAttacks)
+// =============================================================================
+// The warning lasts the wind-up and fills from the center: when the inner
+// ring reaches the edge, the attack lands.
+
+const SPECIAL_ATTACKS = MOBAConfig.JUNGLE.SPECIAL_ATTACKS;
+
+function registerMonsterSlam(
+  attack: { abilityId: string; radius: number; windup: number },
+  color: string,
+  fillColor: string,
+  dustColor: string
+): void {
+  registerAbilityVFX({
+    abilityId: attack.abilityId,
+    phases: [
+      {
+        name: 'warning',
+        delay: 0,
+        duration: attack.windup,
+        anchor: 'caster',
+        effects: [
+          {
+            type: 'ground_circle',
+            color,
+            fillColor,
+            radius: attack.radius,
+            duration: attack.windup,
+            fadeIn: true,
+          },
+          {
+            type: 'expanding_ring',
+            color,
+            startRadius: 0,
+            endRadius: attack.radius,
+            thickness: 3,
+            duration: attack.windup,
+            fadeOut: false,
+          },
+        ],
+      },
+      {
+        name: 'slam',
+        delay: attack.windup,
+        duration: 0.8,
+        anchor: 'caster',
+        effects: [
+          {
+            type: 'shockwave',
+            color,
+            startRadius: attack.radius * 0.3,
+            endRadius: attack.radius,
+            thickness: 10,
+            duration: 0.35,
+          },
+          {
+            type: 'particle_burst',
+            count: 28,
+            color: dustColor,
+            colorSecondary: '#5d4037',
+            size: { min: 3, max: 6 },
+            speed: { min: 60, max: 170 },
+            lifetime: { min: 0.4, max: 0.8 },
+            spread: Math.PI * 2,
+            gravity: 160,
+            friction: 0.9,
+            particleType: 'square',
+          },
+        ],
+      },
+    ],
+  });
+}
+
+registerMonsterSlam(SPECIAL_ATTACKS.blue_buff, '#64b5f6', '#1e88e5', '#90caf9');
+registerMonsterSlam(SPECIAL_ATTACKS.red_buff, '#ff8a65', '#e64a19', '#bcaaa4');
+
+const DRAGON_BREATH = SPECIAL_ATTACKS.dragon;
+
+registerAbilityVFX({
+  abilityId: DRAGON_BREATH.abilityId,
+  phases: [
+    {
+      name: 'warning',
+      delay: 0,
+      duration: DRAGON_BREATH.windup,
+      anchor: 'caster',
+      effects: [
+        {
+          type: 'cone_slash',
+          color: 'rgba(255, 112, 67, 0.22)',
+          radius: DRAGON_BREATH.radius,
+          arcAngle: DRAGON_BREATH.coneAngle,
+          duration: DRAGON_BREATH.windup,
+          fadeOut: false,
+        },
+      ],
+    },
+    {
+      name: 'breath',
+      delay: DRAGON_BREATH.windup,
+      duration: 0.7,
+      anchor: 'caster',
+      effects: [
+        {
+          type: 'cone_slash',
+          color: '#ff7043',
+          radius: DRAGON_BREATH.radius,
+          arcAngle: DRAGON_BREATH.coneAngle,
+          duration: 0.5,
+          fadeOut: true,
+        },
+        {
+          type: 'cone_slash',
+          color: '#ffd54f',
+          radius: DRAGON_BREATH.radius * 0.7,
+          arcAngle: DRAGON_BREATH.coneAngle * 0.6,
+          duration: 0.4,
+          fadeOut: true,
+        },
+      ],
+    },
+    {
+      name: 'embers',
+      delay: DRAGON_BREATH.windup,
+      duration: 1,
+      anchor: 'ground_target',
+      effects: [
+        {
+          type: 'particle_burst',
+          count: 24,
+          color: '#ffab40',
+          colorSecondary: '#d84315',
+          size: { min: 2, max: 5 },
+          speed: { min: 30, max: 110 },
+          lifetime: { min: 0.5, max: 1 },
+          spread: Math.PI * 2,
+          gravity: -40,
+          particleType: 'spark',
+          glowIntensity: 0.6,
         },
       ],
     },

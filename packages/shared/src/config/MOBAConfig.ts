@@ -351,6 +351,56 @@ export const MOBAConfig = {
         },
       },
     },
+
+    /**
+     * Telegraphed area attacks of the big monsters (server:
+     * JungleSpecialAttacks.ts, client VFX: src/vfx/world.ts). The monster
+     * stands still for `windup` seconds while clients draw the area, then
+     * hits every champion still inside. `radius` is the circle radius or
+     * the cone length; `coneAngle` is the full cone width in radians.
+     *
+     * Sizes are tuned to champion speed (about 60 units/s). A melee champion
+     * fighting a buff monster stands 125-170 from its center, inside the
+     * slam, and has at least half a second to react and step out. The
+     * dragon's breath is too wide to outrun up close; stand beside or behind
+     * the dragon instead.
+     */
+    SPECIAL_ATTACKS: {
+      blue_buff: {
+        abilityId: "jungle_slam_blue",
+        shape: "circle" as const,
+        radius: 150,
+        windup: 1.5,
+        cooldown: 8,
+        firstUseAfter: 3,
+        damage: 80,
+        damageType: "magic" as const,
+        effects: [{ id: "slow_30", duration: 1.5 }],
+      },
+      red_buff: {
+        abilityId: "jungle_slam_red",
+        shape: "circle" as const,
+        radius: 150,
+        windup: 1.5,
+        cooldown: 8,
+        firstUseAfter: 3,
+        damage: 90,
+        damageType: "physical" as const,
+        effects: [{ id: "slow_30", duration: 1.5 }],
+      },
+      dragon: {
+        abilityId: "dragon_breath",
+        shape: "cone" as const,
+        radius: 300,
+        coneAngle: (50 * Math.PI) / 180,
+        windup: 1.3,
+        cooldown: 9,
+        firstUseAfter: 4,
+        damage: 160,
+        damageType: "magic" as const,
+        effects: [{ id: "slow_20", duration: 1 }],
+      },
+    },
   },
 
   /**
