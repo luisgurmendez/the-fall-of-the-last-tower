@@ -26,6 +26,9 @@ export interface KeyboardState {
   justReleased: Set<string>;
 }
 
+/** Keys that level an ability with Ctrl held (OnlineInputHandler) */
+const LEVEL_UP_KEYS = new Set(['q', 'w', 'e', 'r']);
+
 export class InputManager {
   private static instance: InputManager | null = null;
 
@@ -79,6 +82,12 @@ export class InputManager {
       // Toggle fullscreen on F key
       if (e.key === 'f' || e.key === 'F') {
         this.toggleFullscreen();
+      }
+
+      // Ctrl+Q/W/E/R levels abilities: keep the browser's own shortcuts out
+      // of it where it allows (Ctrl+R reloads; Ctrl+W can't be stopped)
+      if (e.ctrlKey && LEVEL_UP_KEYS.has(e.key.toLowerCase())) {
+        e.preventDefault();
       }
 
       if (!this.keysDown.has(e.key)) {
