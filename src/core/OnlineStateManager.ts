@@ -33,47 +33,16 @@ import {
 } from './state/entities';
 
 import { AbilityEffects, type AbilityEffect } from './state/abilityEffects';
+import {
+  FloatingNumbers,
+  type DamageNumber,
+  type GoldNumber,
+  type XpNumber,
+} from './state/floatingNumbers';
 
 export type { EntityAnimationState, InterpolatedEntity } from './state/entities';
 export type { AbilityEffect } from './state/abilityEffects';
-
-/**
- * Floating damage number for visual feedback.
- */
-export interface DamageNumber {
-  /** Entity that received damage */
-  entityId: string;
-  /** World position where damage occurred */
-  x: number;
-  y: number;
-  /** Amount of damage dealt to health */
-  amount: number;
-  /** Amount absorbed by shield */
-  shieldAbsorbed: number;
-  /** Type of damage */
-  damageType: 'physical' | 'magic' | 'true' | 'pure';
-  /** When the damage occurred (ms) */
-  startTime: number;
-  /** Duration to display (ms) */
-  duration: number;
-}
-
-/**
- * Floating gold number for visual feedback.
- */
-export interface GoldNumber {
-  /** Entity that earned gold */
-  entityId: string;
-  /** World position where gold was earned */
-  x: number;
-  y: number;
-  /** Amount of gold earned */
-  amount: number;
-  /** When the gold was earned (ms) */
-  startTime: number;
-  /** Duration to display (ms) */
-  duration: number;
-}
+export type { DamageNumber, GoldNumber, XpNumber } from './state/floatingNumbers';
 
 /**
  * A cleared jungle camp and when it comes back.
@@ -100,23 +69,6 @@ export interface Announcement {
 }
 
 /**
- * Floating XP number for visual feedback.
- */
-export interface XpNumber {
-  /** Entity that earned XP */
-  entityId: string;
-  /** World position where XP was earned */
-  x: number;
-  y: number;
-  /** Amount of XP earned */
-  amount: number;
-  /** When the XP was earned (ms) */
-  startTime: number;
-  /** Duration to display (ms) */
-  duration: number;
-}
-
-/**
  * OnlineStateManager tracks and interpolates server state.
  */
 export class OnlineStateManager {
@@ -137,17 +89,8 @@ export class OnlineStateManager {
   // Interpolation settings
   private interpolationDelay = 100; // ms
 
-  // Floating damage numbers
-  private damageNumbers: DamageNumber[] = [];
-  private static readonly DAMAGE_NUMBER_DURATION = 1000; // ms
-
-  // Floating gold numbers
-  private goldNumbers: GoldNumber[] = [];
-  private static readonly GOLD_NUMBER_DURATION = 1200; // ms (slightly longer than damage)
-
-  // Floating XP numbers
-  private xpNumbers: XpNumber[] = [];
-  private static readonly XP_NUMBER_DURATION = 1200; // ms
+  // Floating damage, gold and XP numbers
+  private floatingNumbers = new FloatingNumbers();
 
   // Cleared jungle camps waiting to respawn (campId -> timer)
   private campTimers: Map<string, CampTimer> = new Map();
@@ -286,7 +229,7 @@ export class OnlineStateManager {
         }
 
         if (entity && (amount > 0 || shieldAbsorbed > 0)) {
-          this.damageNumbers.push({
+          this.floatingNumbers.addDamage({
             entityId,
             x: entity.position.x,
             y: entity.position.y,
@@ -294,7 +237,6 @@ export class OnlineStateManager {
             shieldAbsorbed,
             damageType,
             startTime: now,
-            duration: OnlineStateManager.DAMAGE_NUMBER_DURATION,
           });
         }
         break;
@@ -305,13 +247,12 @@ export class OnlineStateManager {
         const entity = this.entities.get(entityId);
 
         if (entity && amount > 0) {
-          this.goldNumbers.push({
+          this.floatingNumbers.addGold({
             entityId,
             x: entity.position.x,
             y: entity.position.y,
             amount,
             startTime: now,
-            duration: OnlineStateManager.GOLD_NUMBER_DURATION,
           });
         }
         break;
@@ -357,13 +298,12 @@ export class OnlineStateManager {
         const entity = this.entities.get(entityId);
 
         if (entity && amount > 0) {
-          this.xpNumbers.push({
+          this.floatingNumbers.addXp({
             entityId,
             x: entity.position.x,
             y: entity.position.y,
             amount,
             startTime: now,
-            duration: OnlineStateManager.XP_NUMBER_DURATION,
           });
         }
         break;
@@ -680,66 +620,42 @@ export class OnlineStateManager {
    * Get all active damage numbers and remove expired ones.
    */
   getDamageNumbers(): DamageNumber[] {
-    const now = Date.now();
-
-    // Remove expired damage numbers
-    this.damageNumbers = this.damageNumbers.filter(
-      (dn) => now - dn.startTime < dn.duration
-    );
-
-    return this.damageNumbers;
+    return this.floatingNumbers.getDamageNumbers();
   }
 
   /**
    * Get progress (0-1) for a damage number animation.
    */
   getDamageNumberProgress(damageNumber: DamageNumber): number {
-    const elapsed = Date.now() - damageNumber.startTime;
-    return Math.min(1, elapsed / damageNumber.duration);
+    return this.floatingNumbers.getDamageNumberProgress(damageNumber);
   }
 
   /**
    * Get all active gold numbers and remove expired ones.
    */
   getGoldNumbers(): GoldNumber[] {
-    const now = Date.now();
-
-    // Remove expired gold numbers
-    this.goldNumbers = this.goldNumbers.filter(
-      (gn) => now - gn.startTime < gn.duration
-    );
-
-    return this.goldNumbers;
+    return this.floatingNumbers.getGoldNumbers();
   }
 
   /**
    * Get progress (0-1) for a gold number animation.
    */
   getGoldNumberProgress(goldNumber: GoldNumber): number {
-    const elapsed = Date.now() - goldNumber.startTime;
-    return Math.min(1, elapsed / goldNumber.duration);
+    return this.floatingNumbers.getGoldNumberProgress(goldNumber);
   }
 
   /**
    * Get all active XP numbers and remove expired ones.
    */
   getXpNumbers(): XpNumber[] {
-    const now = Date.now();
-
-    // Remove expired XP numbers
-    this.xpNumbers = this.xpNumbers.filter(
-      (xn) => now - xn.startTime < xn.duration
-    );
-
-    return this.xpNumbers;
+    return this.floatingNumbers.getXpNumbers();
   }
 
   /**
    * Get progress (0-1) for an XP number animation.
    */
   getXpNumberProgress(xpNumber: XpNumber): number {
-    const elapsed = Date.now() - xpNumber.startTime;
-    return Math.min(1, elapsed / xpNumber.duration);
+    return this.floatingNumbers.getXpNumberProgress(xpNumber);
   }
 
   /**
