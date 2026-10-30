@@ -234,29 +234,17 @@ export class Bush extends WorldEntity {
     return this.group;
   }
 
-  // Debug counter for logging
-  private static renderDebugCounter = 0;
-
   /**
    * Check if player has units in this bush's group (or just this bush if no group).
    * Also checks online mode player position via callback if set.
    */
   hasPlayerInsideGroup(): boolean {
-    // Debug log every 300 calls (about every 5 seconds at 60fps)
-    Bush.renderDebugCounter++;
-    const shouldLog = Bush.renderDebugCounter % 300 === 0;
-
     // Check online mode state first
     if (Bush.onlinePlayerCheckFn && this.group) {
       const result = Bush.onlinePlayerCheckFn(this.group);
-      if (shouldLog) {
-        console.log(`[Bush] hasPlayerInsideGroup check - group: ${this.group.id}, onlineCheckFn result: ${result}`);
-      }
       if (result) {
         return true;
       }
-    } else if (shouldLog) {
-      console.log(`[Bush] hasPlayerInsideGroup - onlinePlayerCheckFn: ${!!Bush.onlinePlayerCheckFn}, group: ${this.group?.id ?? 'null'}`);
     }
 
     // Fallback: check group or individual bush state

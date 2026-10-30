@@ -130,9 +130,6 @@ export class BushManager {
     this.onlinePlayerBushGroup = group;
   }
 
-  // Debug counter for logging
-  private onlineDebugCounter = 0;
-
   /**
    * For online mode: update player-in-bush state based on a position.
    * Returns the bush group if player is in one, null otherwise.
@@ -141,56 +138,14 @@ export class BushManager {
     const group = this.getGroupAtPoint(position);
     this.onlinePlayerBushGroup = group ?? null;
 
-    // Debug log every 120 calls (~2 seconds)
-    this.onlineDebugCounter++;
-
-    // Log on first call to confirm this function is being invoked
-    if (this.onlineDebugCounter === 1) {
-      console.log(`[BushManager] updateOnlinePlayerPosition FIRST CALL - position: (${position.x.toFixed(0)}, ${position.y.toFixed(0)}), groups: ${this.groups.length}`);
-    }
-    if (this.onlineDebugCounter % 120 === 0) {
-      // Check distance to nearest bush group center for debugging
-      let nearestDist = Infinity;
-      let nearestGroup = '';
-      let nearestGroupBounds = '';
-      for (const g of this.groups) {
-        const dist = Math.sqrt(
-          Math.pow(position.x - g.center.x, 2) +
-          Math.pow(position.y - g.center.y, 2)
-        );
-        if (dist < nearestDist) {
-          nearestDist = dist;
-          nearestGroup = g.id;
-          // Get bounds of first bush in group for reference
-          const bushes = g.getBushes();
-          if (bushes.length > 0) {
-            const b = bushes[0].getBounds();
-            nearestGroupBounds = `bush0:(${b.x.toFixed(0)},${b.y.toFixed(0)},${b.width}x${b.height})`;
-          }
-        }
-      }
-      console.log(`[BushManager] updateOnlinePlayerPosition called`);
-      console.log(`[BushManager] Player at (${position.x.toFixed(0)}, ${position.y.toFixed(0)}), nearest bush: ${nearestGroup} (${nearestDist.toFixed(0)} units), ${nearestGroupBounds}, inBush: ${!!group}`);
-      console.log(`[BushManager] Total groups: ${this.groups.length}, onlinePlayerBushGroup: ${this.onlinePlayerBushGroup?.id ?? 'null'}`);
-    }
-
     return this.onlinePlayerBushGroup;
   }
-
-  // Debug counter for isOnlinePlayerInGroup logging
-  private isOnlinePlayerInGroupDebugCounter = 0;
 
   /**
    * For online mode: check if the local player is in a specific bush group.
    */
   isOnlinePlayerInGroup(group: BushGroup): boolean {
-    this.isOnlinePlayerInGroupDebugCounter++;
     const result = this.onlinePlayerBushGroup === group;
-
-    // Log every 300 calls (about every 5 seconds)
-    if (this.isOnlinePlayerInGroupDebugCounter % 300 === 0) {
-      console.log(`[BushManager] isOnlinePlayerInGroup - checking group: ${group.id}, playerGroup: ${this.onlinePlayerBushGroup?.id ?? 'null'}, result: ${result}`);
-    }
 
     return result;
   }

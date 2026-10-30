@@ -106,7 +106,6 @@ export class ShopUI {
     this.populateItems();
 
     this.domInitialized = true;
-    console.log("[ShopUI] DOM initialized successfully");
   }
 
   /**
@@ -167,8 +166,6 @@ export class ShopUI {
       this.state.selectedCategory === "all"
         ? ALL_ITEMS
         : getItemsByCategory(this.state.selectedCategory);
-
-    console.log("[ShopUI] populateItems:", items.length, "items");
 
     for (const item of items) {
       const itemEl = this.createItemElement(item);
@@ -251,7 +248,6 @@ export class ShopUI {
    * Select an item to view details.
    */
   private selectItem(item: ItemDefinition): void {
-    console.log("[ShopUI] selectItem:", item.name);
     this.state.selectedItem = item;
     this.state.selectedInventorySlot = null;
 
@@ -313,12 +309,6 @@ export class ShopUI {
     item: ItemDefinition,
     isOwned: boolean = false
   ): void {
-    console.log(
-      "[ShopUI] showItemDetails:",
-      item.name,
-      "detailsPanel:",
-      this.detailsPanel
-    );
     if (!this.detailsPanel) {
       console.warn("[ShopUI] detailsPanel not found!");
       return;
@@ -461,7 +451,6 @@ export class ShopUI {
 
     const item = this.state.selectedItem;
 
-    console.log(`[ShopUI] Sending buy request for ${item.name} (${item.id})`);
     this.networkClient.sendBuyItemInput(item.id);
     // Server will handle validation and gold deduction
     // Close shop after purchase attempt
@@ -476,7 +465,6 @@ export class ShopUI {
 
     const slot = this.state.selectedInventorySlot;
 
-    console.log(`[ShopUI] Sending sell request for slot ${slot}`);
     this.networkClient.sendSellItemInput(slot);
     // Server will handle validation and gold credit
     // Clear selection
@@ -491,7 +479,6 @@ export class ShopUI {
    */
   private undoLastAction(): void {
     // Undo is not available in online mode
-    console.log('[ShopUI] Undo not available in online mode');
   }
 
   /**

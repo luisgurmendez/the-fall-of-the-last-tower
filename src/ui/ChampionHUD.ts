@@ -280,9 +280,6 @@ export class ChampionHUD extends ScreenEntity {
   /** Animation state for level-up button pulse */
   private levelUpPulseTime: number = 0;
 
-  /** Debug: last time we logged skill points */
-  private _lastSkillPointsLogTime: number = 0;
-
   /** Current charge state (for charge abilities) */
   private chargeState: { slot: AbilitySlot; progress: number } | null = null;
 
@@ -411,18 +408,11 @@ export class ChampionHUD extends ScreenEntity {
 
     // Handle level-up button click
     if (this.hoveredLevelUpButton && this.inputManager.isMouseButtonJustPressed(MouseButton.LEFT)) {
-      console.log(`[ChampionHUD] Level-up button ${this.hoveredLevelUpButton} clicked`);
       if (this.onLevelUp && this.champion) {
         const skillPoints = this.champion.getSkillPoints();
-        console.log(`[ChampionHUD] Skill points available: ${skillPoints}`);
         if (skillPoints > 0) {
-          console.log(`[ChampionHUD] Calling onLevelUp for slot ${this.hoveredLevelUpButton}`);
           this.onLevelUp(this.hoveredLevelUpButton);
-        } else {
-          console.log(`[ChampionHUD] No skill points available, cannot level up`);
         }
-      } else {
-        console.log(`[ChampionHUD] Missing onLevelUp handler or champion`);
       }
     }
 
@@ -897,13 +887,6 @@ export class ChampionHUD extends ScreenEntity {
     const width = PANEL.abilitiesWidth;
     const skillPoints = this.champion?.getSkillPoints() ?? 0;
 
-    // Debug: Log skill points once per second
-    const now = Date.now();
-    if (!this._lastSkillPointsLogTime || now - this._lastSkillPointsLogTime > 1000) {
-      console.log(`[ChampionHUD.drawAbilitiesPanel] skillPoints=${skillPoints}, hasChampion=${!!this.champion}`);
-      this._lastSkillPointsLogTime = now;
-    }
-
     // Clear level-up buttons cache
     this.levelUpButtons.clear();
 
@@ -950,18 +933,12 @@ export class ChampionHUD extends ScreenEntity {
     slot: AbilitySlot
   ): void {
     if (!this.champion) {
-      console.log(`[drawLevelUpButton] No champion for slot ${slot}`);
       return;
     }
 
     const ability = this.champion.getAbility(slot);
     const currentRank = ability?.rank ?? 0;
     const maxRank = slot === 'R' ? 3 : 5;
-
-    // Debug logging (throttled)
-    if (slot === 'Q' && Math.random() < 0.01) {
-      console.log(`[drawLevelUpButton] Q: currentRank=${currentRank}, maxRank=${maxRank}, level=${this.champion.getLevel()}`);
-    }
 
     // Don't show button if ability is maxed
     if (currentRank >= maxRank) return;
@@ -971,11 +948,6 @@ export class ChampionHUD extends ScreenEntity {
       const level = this.champion.getLevel();
       const rRequiredLevels = [6, 11, 16];
       if (level < rRequiredLevels[currentRank]) return;
-    }
-
-    // Debug: We're actually drawing a button
-    if (Math.random() < 0.01) {
-      console.log(`[drawLevelUpButton] Drawing button for slot ${slot} at (${abilityX}, ${y})`);
     }
 
     const buttonWidth = PANEL.levelUpButtonWidth;

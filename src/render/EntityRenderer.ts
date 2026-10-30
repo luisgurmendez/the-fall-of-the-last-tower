@@ -465,11 +465,6 @@ function loadImages(): void {
 
   for (const src of imagesToLoad) {
     const img = new Image();
-    img.onload = () => {
-      console.log(
-        `[EntityRenderer] Image loaded: ${src}, size: ${img.naturalWidth}x${img.naturalHeight}`,
-      );
-    };
     img.onerror = () => {
       console.error(`[EntityRenderer] Failed to load image: ${src}`);
     };
@@ -506,7 +501,6 @@ export class EntityRenderer implements GameObject {
 
   private stateManager: OnlineStateManager;
   private localSide: number;
-  private frameCount = 0;
   private animationTime = 0;
 
   // Client-side animation timing (independent of server tick rate)
@@ -665,14 +659,10 @@ export class EntityRenderer implements GameObject {
           : Math.min((currentTime - this.lastRenderTime) / 1000, 0.1);
       this.lastRenderTime = currentTime;
 
-      this.frameCount++;
       this.animationTime += clientDt;
       this.selectionAnimTime += clientDt;
 
       if (!this.stateManager.hasState()) {
-        if (this.frameCount % 60 === 0) {
-          console.log("[EntityRenderer] Waiting for state...");
-        }
         this.renderWaitingMessage(canvasRenderingContext);
         return;
       }
@@ -680,34 +670,6 @@ export class EntityRenderer implements GameObject {
       // Get all entities and sort by Y position for proper depth
       const entities = this.stateManager.getEntities();
       const localEntityId = this.stateManager.getLocalEntityId();
-
-      // DEBUG: Log entity types being rendered
-      if (this.frameCount % 120 === 1) {
-        const typeCounts: Record<number, number> = {};
-        for (const e of entities) {
-          typeCounts[e.snapshot.entityType] =
-            (typeCounts[e.snapshot.entityType] || 0) + 1;
-        }
-        const towers = entities.filter(
-          (e) => e.snapshot.entityType === EntityType.TOWER,
-        );
-        const nexuses = entities.filter(
-          (e) => e.snapshot.entityType === EntityType.NEXUS,
-        );
-        console.log(
-          `[EntityRenderer] Entities: ${entities.length} total, types: ${JSON.stringify(typeCounts)}`,
-        );
-        if (towers.length > 0) {
-          console.log(
-            `[EntityRenderer] Towers: ${towers.map((t) => `${t.snapshot.entityId}@(${t.position.x.toFixed(0)},${t.position.y.toFixed(0)})`).join(", ")}`,
-          );
-        }
-        if (nexuses.length > 0) {
-          console.log(
-            `[EntityRenderer] Nexuses: ${nexuses.map((n) => `${n.snapshot.entityId}@(${n.position.x.toFixed(0)},${n.position.y.toFixed(0)})`).join(", ")}`,
-          );
-        }
-      }
 
       // Sort entities by Y position (lower Y = rendered first = behind)
       // Also sort by entity type to ensure structures render before units
@@ -950,29 +912,10 @@ export class EntityRenderer implements GameObject {
     // Check if this champion has sprite support
     let renderedWithSprite = false;
 
-    // Debug: log championId periodically
-    if (this.frameCount % 120 === 0) {
-      console.log(
-        `[EntityRenderer] renderChampion: championId="${championId}", type=${typeof championId}`,
-      );
-    }
-
     if (championId === "lume") {
       renderedWithSprite = this.renderLumeSprite(ctx, snapshot, state, size);
-      // Debug: log if sprite rendering failed
-      if (!renderedWithSprite && this.frameCount % 60 === 0) {
-        console.log(
-          `[EntityRenderer] Lume sprite render failed, falling back to circle`,
-        );
-      }
     } else if (championId === "vex") {
       renderedWithSprite = this.renderVexSprite(ctx, snapshot, state, size);
-      // Debug: log if sprite rendering failed
-      if (!renderedWithSprite && this.frameCount % 60 === 0) {
-        console.log(
-          `[EntityRenderer] Vex sprite render failed, falling back to circle`,
-        );
-      }
     }
 
     // Fallback: Draw body as circle with gradient if no sprite
@@ -1168,13 +1111,6 @@ export class EntityRenderer implements GameObject {
     }
 
     const image = imageCache.get(spriteSrc);
-
-    // Debug logging
-    if (this.frameCount % 120 === 0) {
-      console.log(
-        `[Lume] spriteSrc=${spriteSrc}, casting=${castingState.casting}, abilityId=${castingState.abilityId}`,
-      );
-    }
 
     if (image && image.complete && image.naturalWidth > 0) {
       // Calculate frame dimensions from actual image
@@ -1400,13 +1336,6 @@ export class EntityRenderer implements GameObject {
     }
 
     const image = imageCache.get(spriteSrc);
-
-    // Debug logging
-    if (this.frameCount % 120 === 0) {
-      console.log(
-        `[Vex] spriteSrc=${spriteSrc}, casting=${castingState.casting}, abilityId=${castingState.abilityId}, ninjaMode=${hasNinjaMode}`
-      );
-    }
 
     if (image && image.complete && image.naturalWidth > 0) {
       // Calculate frame dimensions from actual image
@@ -1800,13 +1729,6 @@ export class EntityRenderer implements GameObject {
     snapshot: any,
     side: number,
   ): void {
-    // DEBUG: Log tower positions
-    if (this.frameCount % 120 === 1) {
-      console.log(
-        `[EntityRenderer] Tower: id=${snapshot.entityId}, side=${side}, x=${snapshot.x}, y=${snapshot.y}, lane=${snapshot.lane}`,
-      );
-    }
-
     const spriteSrc = side === 0 ? SPRITES.TOWER.BLUE : SPRITES.TOWER.RED;
     const image = imageCache.get(spriteSrc);
 
@@ -3339,14 +3261,6 @@ export class EntityRenderer implements GameObject {
    */
   private renderAbilityEffects(ctx: CanvasRenderingContext2D): void {
     const effects = this.stateManager.getAbilityEffects();
-
-    if (effects.length > 0) {
-      console.log(
-        "[EntityRenderer] Rendering",
-        effects.length,
-        "ability effects",
-      );
-    }
 
     for (const effect of effects) {
       const progress = this.stateManager.getAbilityEffectProgress(effect);

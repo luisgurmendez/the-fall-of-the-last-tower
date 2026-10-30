@@ -56,13 +56,6 @@ function getEffectDisplayInfo(effectId: string): { name: string; flat?: Record<s
   };
 }
 
-// DEBUG: Log when module loads and verify imports work
-console.log('[OnlineChampionAdapter] Module loaded!');
-console.log('[OnlineChampionAdapter] getChampionDefinition exists:', typeof getChampionDefinition);
-console.log('[OnlineChampionAdapter] getSharedAbilityDefinition exists:', typeof getSharedAbilityDefinition);
-const testChampion = getChampionDefinition('elara');
-console.log('[OnlineChampionAdapter] Test lookup elara:', testChampion ? `found: ${testChampion.name}` : 'NOT FOUND');
-
 /**
  * Client-side ability definition for tooltips and targeting.
  */
@@ -96,25 +89,14 @@ export interface ClientAbilityDefinition {
   };
 }
 
-// Debug: track which champion abilities have been logged to avoid spam
-const _loggedAbilities = new Set<string>();
-
 /**
  * Get ability definition for a champion and slot.
  * Uses the shared registry from @siege/shared.
  */
 function getAbilityDefinition(championId: string, slot: AbilitySlot): ClientAbilityDefinition {
-  const logKey = `${championId}-${slot}`;
-  const shouldLog = !_loggedAbilities.has(logKey);
-  if (shouldLog) {
-    _loggedAbilities.add(logKey);
-    console.log(`[getAbilityDefinition] Looking up: championId="${championId}", slot="${slot}"`);
-  }
-
   // Get champion definition to find ability ID
   const championDef = getChampionDefinition(championId);
   if (!championDef) {
-    if (shouldLog) console.log(`[getAbilityDefinition] No champion def found for "${championId}"`);
     return {
       name: `Ability ${slot}`,
       description: 'An ability.',
@@ -125,12 +107,10 @@ function getAbilityDefinition(championId: string, slot: AbilitySlot): ClientAbil
 
   // Get ability definition from shared registry
   const abilityId = championDef.abilities[slot];
-  if (shouldLog) console.log(`[getAbilityDefinition] Champion "${championId}" ability ${slot} = "${abilityId}"`);
 
   const abilityDef = getSharedAbilityDefinition(abilityId);
 
   if (!abilityDef) {
-    if (shouldLog) console.log(`[getAbilityDefinition] No ability def found for "${abilityId}"`);
     return {
       name: `Ability ${slot}`,
       description: 'An ability.',
@@ -139,7 +119,6 @@ function getAbilityDefinition(championId: string, slot: AbilitySlot): ClientAbil
     };
   }
 
-  if (shouldLog) console.log(`[getAbilityDefinition] Found ability: "${abilityDef.name}"`);
   return {
     id: abilityDef.id,
     name: abilityDef.name,
@@ -398,7 +377,6 @@ export class OnlineChampionAdapter {
   constructor(stateManager: OnlineStateManager, fallbackChampionId: string = 'warrior') {
     this.stateManager = stateManager;
     this._fallbackChampionId = fallbackChampionId;
-    console.log(`[OnlineChampionAdapter] Created with fallbackChampionId="${fallbackChampionId}"`);
   }
 
   /**
@@ -698,10 +676,6 @@ export class OnlineChampionAdapter {
   getSkillPoints(): number {
     const snapshot = this.getSnapshot();
     const skillPoints = snapshot?.skillPoints ?? 0;
-    // Debug: log occasionally
-    if (Math.random() < 0.01) {
-      console.log(`[OnlineChampionAdapter.getSkillPoints] snapshot=${!!snapshot}, skillPoints=${skillPoints}, raw=${snapshot?.skillPoints}`);
-    }
     return skillPoints;
   }
 

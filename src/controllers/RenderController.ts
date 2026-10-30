@@ -20,9 +20,6 @@ function hasTeamId(obj: unknown): obj is { getTeamId(): TeamId } {
   return obj !== null && typeof obj === 'object' && 'getTeamId' in obj && typeof (obj as any).getTeamId === 'function';
 }
 
-// DEBUG: Counter for logging
-let fogCheckCount = 0;
-
 /**
  * Check if an object should be rendered based on fog of war visibility.
  * Returns true if:
@@ -36,20 +33,6 @@ function shouldRenderWithFog(
   fogOfWar: FogOfWar | null,
   localPlayerTeam: number
 ): boolean {
-  // DEBUG: Log for entity-renderer specifically
-  if (obj.id === 'entity-renderer') {
-    fogCheckCount++;
-    if (fogCheckCount % 120 === 1) {
-      console.log('[shouldRenderWithFog] entity-renderer check:', {
-        fogOfWar: !!fogOfWar,
-        fogEnabled: fogOfWar?.isEnabled(),
-        hasPos: hasPosition(obj),
-        hasTeam: hasTeamId(obj),
-        localPlayerTeam,
-      });
-    }
-  }
-
   // No fog or fog disabled - render everything
   if (!fogOfWar || !fogOfWar.isEnabled()) {
     return true;
@@ -90,28 +73,11 @@ class RenderController {
     desaturateExplored: true,
   });
 
-  // DEBUG: Frame counter for periodic logging
-  private frameCount = 0;
-
   render(gameContext: GameContext) {
     const { canvasRenderingContext, camera, objects, fogOfWar, localPlayerTeam } = gameContext;
     canvasRenderingContext.font = "25px Comic Sans MS";
 
-    this.frameCount++;
-
     profiler.begin('Render: Filter Objects', { threshold: 2 });
-
-    // DEBUG: Log all objects and their renderable status
-    if (this.frameCount % 120 === 1) {
-      console.log('[RenderController] Total objects:', objects.length);
-      console.log('[RenderController] Fog enabled:', fogOfWar?.isEnabled());
-      console.log('[RenderController] localPlayerTeam:', localPlayerTeam);
-      const entityRenderer = objects.find(o => o.id === 'entity-renderer');
-      console.log('[RenderController] EntityRenderer found:', !!entityRenderer);
-      if (entityRenderer) {
-        console.log('[RenderController] EntityRenderer isRenderable:', isRenderable(entityRenderer));
-      }
-    }
 
     const renderableObjects = objects
       .filter(isRenderable)

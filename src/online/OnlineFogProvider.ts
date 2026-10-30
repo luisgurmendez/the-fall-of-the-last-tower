@@ -91,7 +91,6 @@ export class OnlineFogProvider implements GameObject, FogRevealer {
 
   // Bush manager reference for updating bush transparency
   private bushManager: BushManager | null = null;
-  private lastBushGroup: BushGroup | null = null;
 
   constructor(stateManager: OnlineStateManager, localSide: number) {
     this.stateManager = stateManager;
@@ -104,44 +103,25 @@ export class OnlineFogProvider implements GameObject, FogRevealer {
    */
   setBushManager(bushManager: BushManager): void {
     this.bushManager = bushManager;
-    const groups = bushManager.getGroups();
-    console.log(`[OnlineFogProvider] Bush manager connected with ${groups.length} groups`);
-
-    // Log first few groups for debugging
-    for (let i = 0; i < Math.min(3, groups.length); i++) {
-      const g = groups[i];
-      console.log(`  - Group ${g.id} at (${g.center.x.toFixed(0)}, ${g.center.y.toFixed(0)}) with ${g.getBushes().length} bushes`);
-    }
 
     // Set up the online player check callback on Bush class
-    console.log(`[OnlineFogProvider] Setting up Bush.onlinePlayerCheckFn callback`);
     Bush.setOnlinePlayerCheckFn((group: BushGroup) => {
       const result = this.bushManager?.isOnlinePlayerInGroup(group) ?? false;
       return result;
     });
-    console.log(`[OnlineFogProvider] Bush.onlinePlayerCheckFn is now: ${!!Bush.onlinePlayerCheckFn}`);
   }
 
-  // Debug counter
-  private debugCounter = 0;
+  // Ensures the missing local entity ID warning is only logged once
+  private warnedNoLocalEntityId = false;
 
   /**
    * Update revealers from server state each frame.
    */
   step(ctx: GameContext): void {
     this.revealers = [];
-    this.debugCounter++;
 
     const entities = this.stateManager.getEntities();
     const localEntityId = this.stateManager.getLocalEntityId();
-
-    // Debug log every 120 frames (~2 seconds at 60fps)
-    if (this.debugCounter % 120 === 0) {
-      console.log(`[OnlineFogProvider] Step: ${entities.length} entities, localEntityId=${localEntityId}, bushManager=${!!this.bushManager}`);
-      // Debug: Log entity IDs to see if local entity is in the list
-      const entityIds = entities.map(e => `${e.snapshot.entityId}(side${(e.snapshot as any).side})`).slice(0, 5);
-      console.log(`[OnlineFogProvider] First 5 entity IDs: ${entityIds.join(', ')}`);
-    }
 
     // First, find the local player entity and update bush state (regardless of side filter)
     if (localEntityId) {
@@ -153,49 +133,25 @@ export class OnlineFogProvider implements GameObject, FogRevealer {
 
         // Update bush manager with local player position for transparency effect
         if (this.bushManager) {
-          const newBushGroup = this.bushManager.updateOnlinePlayerPosition(this.localPlayerPos);
-          if (newBushGroup !== this.lastBushGroup) {
-            if (newBushGroup) {
-              console.log(`[OnlineFogProvider] Player entered bush group: ${newBushGroup.id}`);
-            } else if (this.lastBushGroup) {
-              console.log(`[OnlineFogProvider] Player exited bush`);
-            }
-            this.lastBushGroup = newBushGroup;
-          }
-        } else if (this.debugCounter % 120 === 0) {
-          console.log(`[OnlineFogProvider] WARNING: bushManager is null when trying to update player position`);
+          this.bushManager.updateOnlinePlayerPosition(this.localPlayerPos);
         }
-      } else if (this.debugCounter % 120 === 0) {
-        console.log(`[OnlineFogProvider] WARNING: Could not find local entity with ID: ${localEntityId}`);
-        // Log all entity IDs for comparison
-        const allIds = entities.map(e => e.snapshot.entityId).slice(0, 10);
-        console.log(`[OnlineFogProvider] Available entity IDs: ${allIds.join(', ')}`);
       }
-    } else if (this.debugCounter % 120 === 0) {
-      console.log(`[OnlineFogProvider] WARNING: No local entity ID set`);
+    } else if (!this.warnedNoLocalEntityId) {
+      console.warn(`[OnlineFogProvider] No local entity ID set`);
+      this.warnedNoLocalEntityId = true;
     }
 
     // Now process entities for fog revealers
-    // Debug counters
-    let championRevealers = 0;
-    let minionRevealers = 0;
-    let towerRevealers = 0;
-    let wardRevealers = 0;
-    let skippedWrongSide = 0;
-    let skippedDead = 0;
-
     for (const entity of entities) {
       const snapshot = entity.snapshot as any;
 
       // Only reveal for our team's entities
       if (snapshot.side !== this.localSide) {
-        skippedWrongSide++;
         continue;
       }
 
       // Skip dead entities
       if (snapshot.isDead || snapshot.isDestroyed) {
-        skippedDead++;
         continue;
       }
 
@@ -218,17 +174,6 @@ export class OnlineFogProvider implements GameObject, FogRevealer {
         continue;
       }
 
-      // Count by type
-      if (snapshot.entityType === EntityType.CHAMPION) {
-        championRevealers++;
-      } else if (snapshot.entityType === EntityType.MINION) {
-        minionRevealers++;
-      } else if (snapshot.entityType === EntityType.TOWER) {
-        towerRevealers++;
-      } else if (snapshot.entityType === EntityType.WARD) {
-        wardRevealers++;
-      }
-
       this.revealers.push(new ServerEntityRevealer(
         entity.position.x,
         entity.position.y,
@@ -237,30 +182,9 @@ export class OnlineFogProvider implements GameObject, FogRevealer {
       ));
     }
 
-    // Debug log every 120 frames (~2 seconds at 60fps)
-    if (this.debugCounter % 120 === 0) {
-      console.log(`[OnlineFogProvider] Revealers: ${championRevealers} champions, ${minionRevealers} minions, ${towerRevealers} towers, ${wardRevealers} wards. Total: ${this.revealers.length}`);
-      console.log(`[OnlineFogProvider] Skipped: ${skippedWrongSide} wrong side, ${skippedDead} dead. Local side: ${this.localSide}`);
-      // Log first few entities to verify types
-      const sampleEntities = entities.slice(0, 5).map(e => ({
-        id: e.snapshot.entityId,
-        type: (e.snapshot as any).entityType,
-        side: (e.snapshot as any).side,
-        pos: `(${e.position.x.toFixed(0)}, ${e.position.y.toFixed(0)})`
-      }));
-      console.log(`[OnlineFogProvider] Sample entities:`, sampleEntities);
-    }
-
     // Update the fog of war system with our revealers
     if (ctx.fogOfWar) {
       ctx.fogOfWar.update(this.revealers);
-
-      // Debug: verify fog update was called
-      if (this.debugCounter % 120 === 0) {
-        console.log(`[OnlineFogProvider] Called fogOfWar.update() with ${this.revealers.length} revealers. Fog enabled: ${ctx.fogOfWar.isEnabled()}`);
-      }
-    } else if (this.debugCounter % 120 === 0) {
-      console.log(`[OnlineFogProvider] WARNING: ctx.fogOfWar is undefined!`);
     }
   }
 

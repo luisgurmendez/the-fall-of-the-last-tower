@@ -50,25 +50,11 @@ export class BushGroup {
     return this.bushes;
   }
 
-  // Debug counter for containsPoint logging
-  private static containsPointDebugCounter = 0;
-
   /**
    * Check if a point is inside any bush in this group.
    */
   containsPoint(point: Vector): boolean {
     const result = this.bushes.some(bush => bush.containsPoint(point));
-
-    // Debug log every 600 checks (about every 10 seconds)
-    BushGroup.containsPointDebugCounter++;
-    if (BushGroup.containsPointDebugCounter % 600 === 0 && this.bushes.length > 0) {
-      // Check distance to first bush for debugging
-      const firstBush = this.bushes[0];
-      const bounds = firstBush.getBounds();
-      const distX = Math.abs(point.x - (bounds.x + bounds.width / 2));
-      const distY = Math.abs(point.y - (bounds.y + bounds.height / 2));
-      console.log(`[BushGroup] containsPoint for ${this.id}: point(${point.x.toFixed(0)}, ${point.y.toFixed(0)}), bushCenter(${(bounds.x + bounds.width/2).toFixed(0)}, ${(bounds.y + bounds.height/2).toFixed(0)}), dist(${distX.toFixed(0)}, ${distY.toFixed(0)}), result: ${result}`);
-    }
 
     return result;
   }

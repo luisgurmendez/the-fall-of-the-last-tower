@@ -100,7 +100,6 @@ export function generateOnlineLevel(config: OnlineLevelConfig): Level {
   // Create champion HUD and wire up level-up handler
   const championHUD = new ChampionHUD(hudConfig, championAdapter);
   championHUD.setLevelUpHandler((slot) => {
-    console.log(`[OnlineLevel] Level up ability ${slot} requested`);
     networkClient.sendLevelUpInput(slot);
   });
 
@@ -206,7 +205,6 @@ class OnlineCameraController implements GameObject {
       // Y key: Toggle camera lock
       if (e.key === 'y' || e.key === 'Y') {
         this.isLocked = !this.isLocked;
-        console.log(`[Camera] Lock ${this.isLocked ? 'ON' : 'OFF'} (press Y to toggle, Space to focus)`);
 
         // If re-locking, snap to player position
         if (this.isLocked && this.camera) {

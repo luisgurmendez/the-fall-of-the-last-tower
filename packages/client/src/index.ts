@@ -57,5 +57,3 @@ export {
   type EntitySnapshot,
   type ChampionSnapshot,
 } from '@siege/shared';
-
-console.log('[Siege Client] Module loaded');

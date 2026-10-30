@@ -187,12 +187,6 @@ export class OnlineStateManager {
     const localPlayer = matchData.players.find(p => p.side === matchData.yourSide);
     this.localPlayerId = localPlayer?.playerId || '';
     this.localEntityId = localPlayer?.entityId || '';
-
-    console.log('[OnlineStateManager] Initialized:', {
-      localPlayerId: this.localPlayerId,
-      localEntityId: this.localEntityId,
-      localSide: this.localSide,
-    });
   }
 
   /**
@@ -200,27 +194,6 @@ export class OnlineStateManager {
    */
   processFullState(snapshot: FullStateSnapshot): void {
     console.log('[StateManager] Processing full state:', snapshot.entities.length, 'entities');
-
-    // DEBUG: Log entity types in full state
-    const typeCounts: Record<number, number> = {};
-    for (const e of snapshot.entities) {
-      typeCounts[e.entityType] = (typeCounts[e.entityType] || 0) + 1;
-    }
-    console.log('[StateManager] Entity types in full state:', JSON.stringify(typeCounts));
-
-    // Log towers specifically
-    const towers = snapshot.entities.filter(e => e.entityType === 2);
-    console.log(`[StateManager] Towers in full state: ${towers.length}`);
-    for (const t of towers) {
-      console.log(`  - Tower: id=${t.entityId}, side=${(t as any).side}, x=${t.x}, y=${t.y}`);
-    }
-
-    // Log nexuses specifically
-    const nexuses = snapshot.entities.filter(e => e.entityType === 4);
-    console.log(`[StateManager] Nexuses in full state: ${nexuses.length}`);
-    for (const n of nexuses) {
-      console.log(`  - Nexus: id=${n.entityId}, side=${(n as any).side}, x=${n.x}, y=${n.y}`);
-    }
 
     this.currentTick = snapshot.tick;
     this.gameTime = snapshot.gameTime;
@@ -242,11 +215,6 @@ export class OnlineStateManager {
     this.gameTime = update.gameTime;
     this.lastUpdateTimestamp = Date.now();
 
-    // DEBUG: Log incoming updates
-    if (update.tick % 30 === 0) {
-      console.log(`[OnlineStateManager] Tick ${update.tick}: received ${update.deltas.length} deltas, current entities: ${this.entities.size}`);
-    }
-
     // Process entity deltas
     for (const delta of update.deltas) {
       this.processDelta(delta);
@@ -257,11 +225,6 @@ export class OnlineStateManager {
       for (const event of update.events) {
         this.processEvent(event);
       }
-    }
-
-    // DEBUG: Log after processing
-    if (update.tick % 30 === 0) {
-      console.log(`[OnlineStateManager] After processing: ${this.entities.size} entities stored`);
     }
   }
 
@@ -458,14 +421,6 @@ export class OnlineStateManager {
   private addOrUpdateEntity(snapshot: EntitySnapshot): void {
     // Round positions to integers to avoid floating point precision issues
     const pos = new Vector(Math.round(snapshot.x), Math.round(snapshot.y));
-
-    // DEBUG: Log tower and nexus entities
-    if (snapshot.entityType === EntityType.TOWER) {
-      console.log(`[OnlineStateManager] Tower: id=${snapshot.entityId}, side=${(snapshot as any).side}, x=${snapshot.x}, y=${snapshot.y}`);
-    }
-    if (snapshot.entityType === EntityType.NEXUS) {
-      console.log(`[OnlineStateManager] Nexus: id=${snapshot.entityId}, side=${(snapshot as any).side}, x=${snapshot.x}, y=${snapshot.y}`);
-    }
 
     // Preserve existing animation state if entity exists
     const existing = this.entities.get(snapshot.entityId);
@@ -701,19 +656,15 @@ export class OnlineStateManager {
   ): void {
     // Skip if no target position
     if (targetX === undefined || targetY === undefined) {
-      console.log('[AbilityEffect] Skipping - no target position');
       return;
     }
 
     // Determine effect properties based on ability ID
     const effectConfig = this.getAbilityEffectConfig(abilityId);
-    console.log('[AbilityEffect] Config for', abilityId, ':', effectConfig);
     if (!effectConfig) {
-      console.log('[AbilityEffect] No config found for ability:', abilityId);
       return;
     }
 
-    console.log('[AbilityEffect] Creating effect:', { abilityId, originX: entity.position.x, originY: entity.position.y, targetX, targetY });
     this.abilityEffects.push({
       entityId: entity.snapshot.entityId,
       abilityId,
@@ -749,7 +700,6 @@ export class OnlineStateManager {
     // Get the ability definition from shared registry
     const abilityDef = getAbilityDefinition(abilityId);
     if (!abilityDef) {
-      console.log('[AbilityEffect] No ability definition found for:', abilityId);
       return null;
     }
 
