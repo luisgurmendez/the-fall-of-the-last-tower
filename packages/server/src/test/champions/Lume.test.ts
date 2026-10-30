@@ -15,6 +15,19 @@ import { Vector, EntityType, TEAM_BLUE, TEAM_RED } from "@siege/shared";
 import { createTestArena, TestArena } from "../ServerTestUtils";
 import { ServerLightOrb } from "../../simulation/ServerLightOrb";
 
+/**
+ * Give Lume her Light Orb, as a real match does (W, E and R need it).
+ */
+function giveLumeOrb(arena: TestArena): void {
+  const orb = new ServerLightOrb({
+    id: arena.context.generateEntityId(),
+    position: arena.blue.position.clone().add(new Vector(60, 0)),
+    side: arena.blue.side,
+    ownerId: arena.blue.id,
+  });
+  arena.context.addEntity(orb as unknown as Parameters<typeof arena.context.addEntity>[0]);
+}
+
 describe("Lume", () => {
   let arena: TestArena;
 
@@ -274,6 +287,8 @@ describe("Lume", () => {
   });
 
   describe("W - Warmth", () => {
+    beforeEach(() => giveLumeOrb(arena));
+
     test("should cast successfully", () => {
       const result = arena.castAbility(arena.blue, "W");
       expect(result.success).toBe(true);
@@ -292,6 +307,8 @@ describe("Lume", () => {
   });
 
   describe("E - Dazzle Step", () => {
+    beforeEach(() => giveLumeOrb(arena));
+
     test("should cast successfully", () => {
       const result = arena.castAbility(arena.blue, "E");
       expect(result.success).toBe(true);
@@ -318,6 +335,8 @@ describe("Lume", () => {
   });
 
   describe("R - Beaconfall", () => {
+    beforeEach(() => giveLumeOrb(arena));
+
     test("should cast successfully", () => {
       const result = arena.castAbility(arena.blue, "R");
       expect(result.success).toBe(true);

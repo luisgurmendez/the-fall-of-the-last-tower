@@ -236,3 +236,80 @@ describe('Leveling abilities', () => {
     expect(champion.abilityRanks.Q).toBe(qMaxRank);
   });
 });
+
+describe('no_target abilities: buffs for allies, debuffs for enemies', () => {
+  test("Gorath's slam slows enemies but not Gorath", () => {
+    const arena = createTestArena({
+      blueChampion: 'gorath',
+      redChampion: 'warrior',
+      bluePosition: new Vector(0, 0),
+      redPosition: new Vector(100, 0),
+    });
+    arena.blue.setResource(arena.blue.maxResource);
+    expect(arena.castAbility(arena.blue, 'Q').success).toBe(true);
+
+    expect(arena.red.hasEffect('slow_40')).toBe(true);
+    expect(arena.blue.hasEffect('slow_40')).toBe(false);
+  });
+
+  test("Elara's speed boost doesn't speed up enemies", () => {
+    const arena = createTestArena({
+      blueChampion: 'elara',
+      redChampion: 'warrior',
+      bluePosition: new Vector(0, 0),
+      redPosition: new Vector(100, 0),
+    });
+    const slot = (['Q', 'W', 'E', 'R'] as AbilitySlot[]).find(s => arena.blue.definition.abilities[s] === 'elara_speed')!;
+    arena.blue.setResource(arena.blue.maxResource);
+    expect(arena.castAbility(arena.blue, slot).success).toBe(true);
+
+    expect(arena.blue.hasEffect('speed_30')).toBe(true);
+    expect(arena.red.hasEffect('speed_30')).toBe(false);
+  });
+
+  test("Gorath's earthquake lands after its delay", () => {
+    const arena = createTestArena({
+      blueChampion: 'gorath',
+      redChampion: 'warrior',
+      bluePosition: new Vector(0, 0),
+      redPosition: new Vector(100, 0),
+      maxLevel: true,
+    });
+    arena.blue.setResource(arena.blue.maxResource);
+    expect(arena.castAbility(arena.blue, 'R').success).toBe(true);
+
+    expect(arena.red.hasEffect('knockup')).toBe(false);
+    arena.tickAllFrames(40);
+    expect(arena.red.hasEffect('knockup')).toBe(true);
+    expect(arena.blue.hasEffect('knockup')).toBe(false);
+  });
+});
+
+describe('Handler results', () => {
+  test("Vex's Shadow Step comes off cooldown when a marked enemy is near", () => {
+    const arena = createTestArena({
+      blueChampion: 'vex',
+      redChampion: 'warrior',
+      bluePosition: new Vector(0, 0),
+      redPosition: new Vector(200, 0),
+    });
+    const slot = (['Q', 'W', 'E', 'R'] as AbilitySlot[]).find(s => arena.blue.definition.abilities[s] === 'vex_dash')!;
+    arena.red.applyEffect('vex_mark', 4, arena.blue.id);
+    arena.blue.setResource(arena.blue.maxResource);
+
+    expect(arena.castAbility(arena.blue, slot, { targetPosition: new Vector(150, 0) }).success).toBe(true);
+    expect(arena.blue.abilityStates[slot].cooldownRemaining).toBe(0);
+  });
+
+  test('a cast the handler refuses costs nothing (Lume W without her orb)', () => {
+    const arena = createTestArena({ blueChampion: 'lume', redChampion: 'warrior' });
+    arena.blue.setResource(arena.blue.maxResource);
+    const resourceBefore = arena.blue.resource;
+
+    const result = arena.castAbility(arena.blue, 'W');
+
+    expect(result.success).toBe(false);
+    expect(arena.blue.resource).toBe(resourceBefore);
+    expect(arena.blue.abilityStates.W.cooldownRemaining).toBe(0);
+  });
+});

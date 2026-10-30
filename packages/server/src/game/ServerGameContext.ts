@@ -73,6 +73,9 @@ export class ServerGameContext {
   // Jungle camps
   private jungleCamps: ServerJungleCamp[] = [];
 
+  // Actions to run at a later game time (delayed ability areas)
+  private scheduledActions: { at: number; run: () => void }[] = [];
+
   // Champions that recently damaged an enemy champion (attackerId -> victim and time)
   private championAggression: Map<string, { victimId: string; time: number }> = new Map();
 
@@ -268,8 +271,7 @@ export class ServerGameContext {
    * Update game state for one tick.
    */
   update(dt: number): void {
-    this.tick++;
-    this.gameTime += dt;
+    this.advanceTime(dt);
 
     // Champions walking around walls get their next waypoint
     this.pathFollower.update(this, dt);
@@ -307,6 +309,31 @@ export class ServerGameContext {
         this.removeEntity(id);
       }
     }
+  }
+
+  /**
+   * Advance the clock and run delayed actions that became due.
+   * Called by update(); tests that update entities directly call it too.
+   */
+  advanceTime(dt: number): void {
+    this.tick++;
+    this.gameTime += dt;
+    this.runScheduledActions();
+  }
+
+  /**
+   * Run an action after a delay in game time (e.g. an area that lands later).
+   */
+  schedule(delaySeconds: number, action: () => void): void {
+    this.scheduledActions.push({ at: this.gameTime + delaySeconds, run: action });
+  }
+
+  private runScheduledActions(): void {
+    if (this.scheduledActions.length === 0) return;
+    const due = this.scheduledActions.filter(action => action.at <= this.gameTime + 1e-9);
+    if (due.length === 0) return;
+    this.scheduledActions = this.scheduledActions.filter(action => action.at > this.gameTime + 1e-9);
+    for (const action of due) action.run();
   }
 
   /**

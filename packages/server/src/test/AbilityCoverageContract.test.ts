@@ -104,9 +104,6 @@ const GENERIC_SUPPORT: Record<keyof AbilityDefinition, FieldRule> = {
   appliesEffects: (d) => {
     if (d.targetType === 'self' && d.statTransform) return 'self abilities with statTransform skip appliesEffects';
     if (d.trap) return 'traps ignore appliesEffects';
-    if (d.targetType === 'no_target') {
-      return 'no_target abilities apply every effect to the caster, allies and enemies alike';
-    }
     return true;
   },
   effectDuration: always,
@@ -131,7 +128,9 @@ const GENERIC_SUPPORT: Record<keyof AbilityDefinition, FieldRule> = {
   aoeRadius: (d) =>
     d.targetType === 'no_target' || d.targetType === 'ground_target' || d.dash !== undefined ||
     'aoeRadius is only used by no_target/ground_target areas and dash hitboxes',
-  aoeDelay: never('aoeDelay is not implemented: delayed areas apply instantly'),
+  aoeDelay: (d) =>
+    d.targetType === 'no_target' || isCircleArea(d) ||
+    'aoeDelay is only scheduled for no_target and circular ground_target areas',
   aoeDuration: never('aoeDuration is not read by the executor (zones use zoneDuration)'),
   aoeTickRate: never('aoeTickRate is not read by the executor (zones use zoneTickRate)'),
   // Quoted because the lint id-denylist reserves the identifier
@@ -204,21 +203,7 @@ function findGenericGaps(definition: AbilityDefinition): Record<string, string> 
  * so it stays visible. Fixing it (a handler or generic support) makes the
  * entry stale, which fails the contract until the entry is removed.
  */
-const KNOWN_GAPS: Record<string, Partial<Record<keyof AbilityDefinition, string>>> = {
-  gorath_slam: {
-    appliesEffects: 'slow_40 also slows Gorath and nearby allies',
-  },
-  gorath_taunt: {
-    appliesEffects: 'taunt also taunts Gorath and nearby allies',
-  },
-  gorath_earthquake: {
-    aoeDelay: 'damage and knockup land instantly instead of after 0.5s',
-    appliesEffects: 'knockup also knocks up Gorath and nearby allies',
-  },
-  elara_speed: {
-    appliesEffects: 'speed_30 also speeds up nearby enemies',
-  },
-};
+const KNOWN_GAPS: Record<string, Partial<Record<keyof AbilityDefinition, string>>> = {};
 
 // =============================================================================
 // Contract

@@ -34,6 +34,7 @@ import { ServerProjectile } from "./ServerProjectile";
 import { ServerZone, ZoneEffectType } from "./ServerZone";
 import { ServerTrap, getPlayerTraps } from "./ServerTrap";
 import { Logger } from "../utils/Logger";
+import { getServerEffectById } from "../data/effects";
 
 export interface AbilityCastParams {
   /** The champion casting the ability */
@@ -179,13 +180,20 @@ export class ServerAbilityExecutor {
     // All checks passed - execute the ability
     const executionResult = this.executeAbility(params, definition, damageMultiplier);
 
+    // A handler that refused or failed the cast: nothing is spent
+    if (executionResult && !executionResult.success) {
+      return { success: false, failReason: "invalid_target" };
+    }
+
     // Consume whatever granted the damage amp (e.g., Arcane Surge stacks)
     if (damageMultiplier > 1.0) {
       hooks?.consumeAbilityDamageMultiplier?.(champion);
     }
 
     // Deduct mana
-    champion.resource -= manaCost;
+    if (!executionResult?.skipManaCost) {
+      champion.resource -= manaCost;
+    }
 
     // Start cooldown with Ability Haste reduction
     const baseCooldown = definition.cooldown?.[rank - 1] ?? 0;
@@ -203,11 +211,14 @@ export class ServerAbilityExecutor {
       effectiveCooldown = hooks.modifyAbilityCooldown(champion, slot, effectiveCooldown);
     }
 
-    state.cooldownRemaining = effectiveCooldown;
-    state.cooldownTotal = effectiveCooldown;
-
-    // Note: Champion-specific cooldown resets (like Vex's dash) are handled
-    // by ability handlers via cooldownOverride in AbilityExecutionResult
+    // Handlers can replace the cooldown (e.g., Vex's dash resets) or skip it
+    if (executionResult?.cooldownOverride !== undefined) {
+      effectiveCooldown = executionResult.cooldownOverride;
+    }
+    if (!executionResult?.skipCooldown) {
+      state.cooldownRemaining = effectiveCooldown;
+      state.cooldownTotal = effectiveCooldown;
+    }
 
     // Enter combat
     champion.enterCombat();
@@ -457,7 +468,7 @@ export class ServerAbilityExecutor {
         const validation = handler.validate(handlerParams);
         if (!validation.valid) {
           Logger.debug("Ability", `${definition.id} handler validation failed: ${validation.reason}`);
-          return;
+          return { success: false };
         }
       }
 
@@ -465,13 +476,10 @@ export class ServerAbilityExecutor {
       const result = handler.execute(handlerParams);
       if (!result.success) {
         Logger.debug("Ability", `${definition.id} handler execution failed`);
-        return;
+        return result;
       }
 
-      // Handle cooldown override from handler (e.g., Vex dash reset)
-      if (result.cooldownOverride !== undefined) {
-        champion.abilityStates[slot].cooldownRemaining = result.cooldownOverride;
-      }
+      // Cooldown overrides and skips are applied by castAbility, after the standard cooldown
 
       // Handle dash if defined and handler didn't set up forced movement
       if (definition.dash && !champion.forcedMovement) {
@@ -734,9 +742,6 @@ export class ServerAbilityExecutor {
 
     const radius = definition.aoeRadius ?? 300;
 
-    // Get entities in range
-    const entities = context.getEntitiesInRadius(champion.position, radius);
-
     // Calculate damage if applicable (with passive multiplier)
     let damageAmount = 0;
     if (definition.damage) {
@@ -759,17 +764,53 @@ export class ServerAbilityExecutor {
       });
     }
 
-    // Apply ally effects to self (caster) first
-    if (definition.appliesEffects) {
-      // Check if this is a buff (apply to self) or debuff (don't apply to self)
-      // For no_target ally buffs, apply to caster
-      this.applyEffectsToEntity(
-        champion,
-        definition.appliesEffects,
-        definition.effectDuration ?? 0,
-        champion.id
-      );
+    // Buffs go to the caster and allies, debuffs (slows, taunts, knockups) to enemies
+    const { buffs, debuffs } = this.splitEffects(definition.appliesEffects ?? []);
+    const effectDuration = definition.effectDuration ?? 0;
+
+    if (buffs.length > 0) {
+      this.applyEffectsToEntity(champion, buffs, effectDuration, champion.id);
     }
+
+    // The area is where the caster stood when casting; with aoeDelay it lands later
+    const center = champion.position.clone();
+    const applyArea = () => this.applyNoTargetArea(params, definition, center, radius, damageAmount, healAmount, buffs, debuffs);
+    if (definition.aoeDelay && definition.aoeDelay > 0) {
+      context.schedule(definition.aoeDelay, applyArea);
+    } else {
+      applyArea();
+    }
+  }
+
+  /**
+   * Split effect IDs into buffs and the rest (debuffs and crowd control).
+   */
+  private splitEffects(effectIds: string[]): { buffs: string[]; debuffs: string[] } {
+    const buffs: string[] = [];
+    const debuffs: string[] = [];
+    for (const effectId of effectIds) {
+      if (getServerEffectById(effectId)?.category === 'buff') buffs.push(effectId);
+      else debuffs.push(effectId);
+    }
+    return { buffs, debuffs };
+  }
+
+  /**
+   * Damage, debuff, heal and buff everything around a point for a no_target ability.
+   */
+  private applyNoTargetArea(
+    params: AbilityCastParams,
+    definition: AbilityDefinition,
+    center: Vector,
+    radius: number,
+    damageAmount: number,
+    healAmount: number,
+    buffs: string[],
+    debuffs: string[]
+  ): void {
+    const { champion, context } = params;
+    const effectDuration = definition.effectDuration ?? 0;
+    const entities = context.getEntitiesInRadius(center, radius);
 
     for (const entity of entities) {
       if (entity.id === champion.id) continue;
@@ -787,15 +828,9 @@ export class ServerAbilityExecutor {
         entity.takeDamage(damageAmount, definition.damage.type, champion.id, context);
       }
 
-      // Apply effects to enemies (debuffs like stun, slow, taunt)
-      // Applied regardless of whether ability does damage
-      if (isEnemy && definition.appliesEffects) {
-        this.applyEffectsToEntity(
-          entity,
-          definition.appliesEffects,
-          definition.effectDuration ?? 0,
-          champion.id
-        );
+      // Apply debuffs to enemies (stun, slow, taunt), whether or not the ability does damage
+      if (isEnemy && debuffs.length > 0) {
+        this.applyEffectsToEntity(entity, debuffs, effectDuration, champion.id);
       }
 
       // Apply healing to allies
@@ -805,14 +840,9 @@ export class ServerAbilityExecutor {
         }
       }
 
-      // Apply ally effects (like speed buff from Elara's E)
-      if (isAlly && definition.appliesEffects) {
-        this.applyEffectsToEntity(
-          entity,
-          definition.appliesEffects,
-          definition.effectDuration ?? 0,
-          champion.id
-        );
+      // Apply buffs to allies (like the speed buff from Elara's E)
+      if (isAlly && buffs.length > 0) {
+        this.applyEffectsToEntity(entity, buffs, effectDuration, champion.id);
       }
     }
   }
@@ -1071,11 +1101,12 @@ export class ServerAbilityExecutor {
       return;
     }
 
-    // Handle delayed AoE (like meteor)
+    // Delayed AoE (like meteor): lands at the target point after aoeDelay
     if (definition.aoeDelay && definition.aoeDelay > 0) {
-      // TODO: Implement delayed AoE with scheduled execution
-      // For now, execute immediately
-      this.executeCircleAoE(params, definition, rank, damageMultiplier);
+      const landing = { ...params, targetPosition: targetPosition.clone() };
+      context.schedule(definition.aoeDelay, () => {
+        this.executeCircleAoE(landing, definition, rank, damageMultiplier);
+      });
       return;
     }
 

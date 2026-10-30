@@ -323,18 +323,21 @@ export function createTestArena(options: TestArenaOptions = {}): TestArena {
     red,
 
     tick: (dt = 1 / 60) => {
+      context.advanceTime(dt);
       blue.update(dt, context);
       red.update(dt, context);
     },
 
     tickFrames: (frames, dt = 1 / 60) => {
       for (let i = 0; i < frames; i++) {
+        context.advanceTime(dt);
         blue.update(dt, context);
         red.update(dt, context);
       }
     },
 
     tickAll: (dt = 1 / 60) => {
+      context.advanceTime(dt);
       // Update champions
       blue.update(dt, context);
       red.update(dt, context);
@@ -348,6 +351,7 @@ export function createTestArena(options: TestArenaOptions = {}): TestArena {
 
     tickAllFrames: (frames, dt = 1 / 60) => {
       for (let i = 0; i < frames; i++) {
+        context.advanceTime(dt);
         blue.update(dt, context);
         red.update(dt, context);
         for (const entity of context.getAllEntities()) {

@@ -188,6 +188,11 @@ function calculateAbilityValue(
 1. **Ability handler**: if a handler is registered for the ability ID, it runs instead of the generic path. Handlers live in `packages/server/src/abilities/handlers/<championId>/` and implement `IAbilityHandler`, usually by extending `BaseAbilityHandler`. A handler that implements `canRecast`/`executeRecast` owns the ability's recast; if it declines, the recast fails with `invalid_target`.
 2. **Generic path**: otherwise the executor runs the path for the ability's `targetType` (`self`, `no_target`, `target_enemy`, `target_ally`, `skillshot`, `ground_target`), driven by definition fields such as `damage`, `heal`, `shield`, `appliesEffects`, projectile fields, cones, zones, traps, `statTransform`, `dash` and `teleport`.
 
+Generic path details:
+- **`no_target` areas:** effects are split by category. Buffs (`category: 'buff'`) go to the caster and allies in the area. Debuffs and crowd control go to enemies. Gorath's slam no longer slows Gorath, and Elara's speed boost no longer speeds up enemies.
+- **`aoeDelay`:** `no_target` areas and circular `ground_target` areas land after the delay. The executor uses `ServerGameContext.schedule()`, which runs on game time; tests that update entities directly call `context.advanceTime()`. A `no_target` area is centered where the caster stood when casting.
+- **Handler results:** if a handler's `validate` or `execute` fails, the cast fails and costs nothing (no mana, no cooldown). `cooldownOverride`, `skipCooldown` and `skipManaCost` are applied after the standard cooldown; this is how Vex's Shadow Step resets on a marked enemy.
+
 ### Champion Hooks
 
 Rules that belong to a champion rather than to one ability implement `IChampionHooks` and are registered with `championHooksRegistry` from the champion's `handlers/<championId>/index.ts`:
