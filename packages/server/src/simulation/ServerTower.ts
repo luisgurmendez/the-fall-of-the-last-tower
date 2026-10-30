@@ -196,10 +196,15 @@ export class ServerTower extends ServerEntity {
       }
     }
 
-    // Always re-evaluate target to find highest priority
-    // This allows switching to champions with aggro immediately
+    // Re-evaluate every tick, but keep the current target unless something of
+    // higher priority shows up (a champion that hit an ally under the tower);
+    // switching to whichever minion is closest spread the damage around
     const bestTarget = this.findTarget(context);
-    if (bestTarget !== this.attackTarget) {
+    const current = this.attackTarget ? context.getEntity(this.attackTarget) : undefined;
+    const best = bestTarget ? context.getEntity(bestTarget) : undefined;
+    const keepCurrent = !!current && !!best &&
+      this.getTargetPriority(best) <= this.getTargetPriority(current);
+    if (!keepCurrent && bestTarget !== this.attackTarget) {
       this.attackTarget = bestTarget;
       if (this.attackTarget !== this.warmupTarget) {
         this.resetWarmup();
@@ -250,20 +255,7 @@ export class ServerTower extends ServerEntity {
       const distance = this.position.distanceTo(entity.position);
       if (distance > this.stats.attackRange) continue;
 
-      // Calculate priority
-      let priority = TowerTargetPriority.NONE;
-
-      if (entity.entityType === EntityType.CHAMPION) {
-        // Check if this champion has tower aggro (damaged an allied champion)
-        if (this.hasAggro(entity.id)) {
-          priority = TowerTargetPriority.CHAMPION_WITH_AGGRO;
-        } else {
-          // Champions without aggro have lowest priority (only target if no minions)
-          priority = TowerTargetPriority.CHAMPION;
-        }
-      } else if (entity.entityType === EntityType.MINION) {
-        priority = TowerTargetPriority.MINION;
-      }
+      const priority = this.getTargetPriority(entity);
 
       // Prefer higher priority, then closer distance
       if (
@@ -277,6 +269,22 @@ export class ServerTower extends ServerEntity {
     }
 
     return bestTarget?.id ?? null;
+  }
+
+  /**
+   * How much the tower wants to shoot an entity: champions that hit an
+   * allied champion under it, then minions, then other champions.
+   */
+  private getTargetPriority(entity: ServerEntity): TowerTargetPriority {
+    if (entity.entityType === EntityType.CHAMPION) {
+      // Champions with aggro (damaged an allied champion) come first; others
+      // only when there are no minions
+      return this.hasAggro(entity.id)
+        ? TowerTargetPriority.CHAMPION_WITH_AGGRO
+        : TowerTargetPriority.CHAMPION;
+    }
+    if (entity.entityType === EntityType.MINION) return TowerTargetPriority.MINION;
+    return TowerTargetPriority.NONE;
   }
 
   /** Tower projectile speed */

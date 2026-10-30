@@ -217,6 +217,42 @@ describe('ServerTower', () => {
       expect(snapshot.targetEntityId).toBe('minion-1');
     });
 
+    it('should keep shooting its minion when another walks closer', () => {
+      const tower = new ServerTower({
+        id: 'tower-1',
+        position: new Vector(0, 0),
+        side: 0,
+        lane: 'mid',
+        tier: 1,
+      });
+      const first = new ServerMinion({
+        id: 'minion-1',
+        position: new Vector(300, 0),
+        side: 1,
+        minionType: 'melee',
+        lane: 'mid',
+        waypoints: [],
+      });
+      context.addEntity(tower);
+      context.addEntity(first);
+      tower.update(0.1, context);
+      expect(tower.toSnapshot().targetEntityId).toBe('minion-1');
+
+      // A second minion now stands closer than the first
+      const second = new ServerMinion({
+        id: 'minion-2',
+        position: new Vector(100, 0),
+        side: 1,
+        minionType: 'melee',
+        lane: 'mid',
+        waypoints: [],
+      });
+      context.addEntity(second);
+      tower.update(0.1, context);
+
+      expect(tower.toSnapshot().targetEntityId).toBe('minion-1');
+    });
+
     it('should target champion if no minions in range', () => {
       const tower = new ServerTower({
         id: 'tower-1',
