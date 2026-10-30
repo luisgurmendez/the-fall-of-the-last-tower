@@ -73,6 +73,10 @@ export class ServerJungleCreature extends ServerEntity {
   private static readonly KITE_RESET_TIME = 5;
   /** Health regained per second while walking home, as a fraction of max health */
   private static readonly RETURN_REGEN = 0.3;
+  override getMovementTarget(): Vector | null {
+    return this.moveTarget;
+  }
+
   /** Creatures that attack with projectiles, and how their projectiles look */
   private static readonly RANGED: Partial<Record<string, { projectileType: string; damageType: DamageType; speed: number }>> = {
     gromp: { projectileType: 'jungle_spit', damageType: 'magic', speed: 600 },

@@ -20,6 +20,8 @@ Each minion has a `LanePath`: its spawn point followed by the lane's waypoints (
 - after chasing something off the lane, it rejoins the lane further along instead of walking back to an old waypoint;
 - at the end of the path (the enemy base) it stops and fights whatever is there.
 
+Lanes run straight through their towers. When one of the minion's own towers or its nexus is in the way, `steerAroundStructures` (`navigation/StructureAvoidance.ts`) aims it at a point beside the structure, on the side it is already on. The wave walks around instead of piling up behind it. Enemy structures are not avoided, because the minion walks up to them and attacks.
+
 ## Targeting
 
 A minion notices enemies within `max(sightRange, attackRange + 100)`. Targets in priority order (ties go to the closest):
@@ -41,4 +43,4 @@ Casters and siege minions fire targeted projectiles (`minion_caster`, `minion_si
 
 ## Scenarios
 
-`packages/server/scenarios/minion-*.ts` show and check this behavior. For example, run `bun run sim minion-chase-and-return`; see [simulation.md](simulation.md).
+`packages/server/scenarios/minion-*.ts` and `minions-pass-own-towers.ts` show and check this behavior. For example, run `bun run sim minion-chase-and-return`; see [simulation.md](simulation.md).

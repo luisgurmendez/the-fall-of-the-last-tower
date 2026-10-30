@@ -129,6 +129,8 @@ class SpatialGrid {
 | Naive | O(n²) | 4,950 checks | 499,500 checks |
 | Spatial Grid | O(n) | ~100-200 checks | ~1,000-2,000 checks |
 
+The query radius for each unit is its own radius plus the largest radius of any collidable unit. That largest radius is computed once per tick.
+
 ## Configuration
 
 ```typescript
@@ -184,9 +186,14 @@ When one unit has infinite mass (like a tower), only the other unit moves:
 ```typescript
 if (!isFinite(massA)) {
   b.position.add(separation);  // B moves fully
+  this.slideAround(b, a, separation);
   return;
 }
 ```
+
+A unit walking head-on into an immovable obstacle would be pushed straight back every tick and never get past. If its destination (`getMovementTarget()`) is beyond the obstacle, `slideAround` turns the push sideways, toward the side that leads to the destination. When the destination is straight ahead, it slides toward the side of the obstacle the unit is already on. Deciding that case from the destination flipped sides every tick, and the unit shook in place.
+
+Units don't rely on this alone. Minions on their lane steer around their own towers before reaching them (`navigation/StructureAvoidance.ts`, see [minions.md](minions.md)). In a crowded wave, sliding alone left minions jammed behind the tower.
 
 ## Key Files
 

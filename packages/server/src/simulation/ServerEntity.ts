@@ -259,6 +259,14 @@ export abstract class ServerEntity {
   }
 
   /**
+   * Where this unit is currently walking to, if anywhere. Collisions use it to
+   * slide a blocked unit around an obstacle toward its destination.
+   */
+  getMovementTarget(): Vector | null {
+    return this.targetPosition;
+  }
+
+  /**
    * Get collision mass. Heavier units push lighter units more.
    * Override in subclasses.
    */

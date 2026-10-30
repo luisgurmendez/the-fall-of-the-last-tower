@@ -34,6 +34,7 @@ import {
   type ServerOverTimeEffectDef,
   type ServerStatEffectDef,
 } from '../data/effects';
+import { steerAroundStructures } from '../navigation/StructureAvoidance';
 
 /**
  * Simplified CC status for minions.
@@ -312,6 +313,10 @@ export class ServerMinion extends ServerEntity {
   // Collision Interface
   // =====================
 
+  override getMovementTarget(): Vector | null {
+    return this.moveTarget;
+  }
+
   /**
    * Minions participate in collision.
    */
@@ -559,7 +564,10 @@ export class ServerMinion extends ServerEntity {
         return;
       }
     } else {
-      this.moveTarget = this.getLaneSteeringPoint();
+      const lanePoint = this.getLaneSteeringPoint();
+      this.moveTarget = lanePoint && steerAroundStructures(
+        this.position, this.getRadius(), lanePoint, context.getStructures(), this.side
+      );
     }
 
     if (!this.moveTarget) return;

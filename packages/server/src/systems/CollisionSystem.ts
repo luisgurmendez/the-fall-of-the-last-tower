@@ -202,10 +202,13 @@ export class CollisionSystem {
     } else if (!isFinite(massA)) {
       // A is immovable, B moves fully
       b.position.add(separation);
+      this.slideAround(b, a, separation);
       return;
     } else if (!isFinite(massB)) {
       // B is immovable, A moves fully (negative direction)
-      a.position.add(separation.scaled(-1));
+      const push = separation.scaled(-1);
+      a.position.add(push);
+      this.slideAround(a, b, push);
       return;
     }
 
@@ -217,6 +220,44 @@ export class CollisionSystem {
     a.position.add(separation.scaled(-ratioA));
     // B moves in positive direction (away from A)
     b.position.add(separation.scaled(ratioB));
+  }
+
+  /**
+   * A unit walking into an immovable obstacle (a tower, the nexus) is pushed
+   * straight back; head-on it would stay stuck there forever. Turn the
+   * blocked motion sideways, toward the side that leads to its destination,
+   * so it walks around the obstacle. When the destination is straight ahead,
+   * go around on the side of the obstacle the unit is already on; deciding
+   * from the destination there flips sides every tick and the unit shakes in
+   * place.
+   */
+  private slideAround(mover: ServerEntity, obstacle: ServerEntity, push: Vector): void {
+    const target = mover.getMovementTarget();
+    const length = push.length();
+    if (!target || length === 0) return;
+
+    const nx = push.x / length;
+    const ny = push.y / length;
+    const toTargetX = target.x - mover.position.x;
+    const toTargetY = target.y - mover.position.y;
+    const toTargetLength = Math.hypot(toTargetX, toTargetY);
+
+    // Only when the destination is on the obstacle's side (the unit is pressing into it)
+    if (toTargetLength === 0 || toTargetX * nx + toTargetY * ny >= 0) return;
+
+    let tx = -ny;
+    let ty = nx;
+    const sideOfTarget = (tx * toTargetX + ty * toTargetY) / toTargetLength;
+    const side =
+      Math.abs(sideOfTarget) > 0.2
+        ? sideOfTarget
+        : tx * (mover.position.x - obstacle.position.x) + ty * (mover.position.y - obstacle.position.y);
+    if (side < 0) {
+      tx = -tx;
+      ty = -ty;
+    }
+    mover.position.x += tx * length;
+    mover.position.y += ty * length;
   }
 
   /**

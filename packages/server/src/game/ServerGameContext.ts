@@ -84,6 +84,7 @@ export class ServerGameContext {
 
   // Ward management
   private wards: Map<string, ServerWard> = new Map();
+  private structures: ServerEntity[] = [];
   private readonly MAX_WARDS_PER_PLAYER = 3; // Max wards a player can have active
 
   constructor(config: GameContextConfig) {
@@ -136,6 +137,9 @@ export class ServerGameContext {
    */
   addEntity(entity: ServerEntity): void {
     this.entities.set(entity.id, entity);
+    if (entity.entityType === EntityType.TOWER || entity.entityType === EntityType.NEXUS) {
+      this.structures.push(entity);
+    }
   }
 
   /**
@@ -145,6 +149,15 @@ export class ServerGameContext {
     this.entities.delete(entityId);
     this.champions.delete(entityId);
     this.wards.delete(entityId);
+    this.structures = this.structures.filter(structure => structure.id !== entityId);
+  }
+
+  /**
+   * Towers and nexuses, including destroyed ones (check isDead). Units steer
+   * around them.
+   */
+  getStructures(): readonly ServerEntity[] {
+    return this.structures;
   }
 
   /**
