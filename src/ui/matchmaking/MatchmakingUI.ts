@@ -13,7 +13,6 @@
 
 import { NetworkClient } from "../../../packages/client/src/network/NetworkClient";
 import {
-  CHAMPION_DEFINITIONS,
   getAbilityDefinition,
   ABILITY_DEFINITIONS,
 } from "@siege/shared";
@@ -23,11 +22,8 @@ import type {
   MatchData,
   MatchmakingUICallbacks,
 } from "./types";
-import {
-  ChampionSelect,
-  CHAMPION_ICONS,
-  ENABLED_CHAMPIONS,
-} from "./championSelect";
+import { ChampionSelect, ENABLED_CHAMPIONS } from "./championSelect";
+import { MatchFoundScreen } from "./matchFound";
 import { QueueScreen } from "./queueScreen";
 import { startTipRotation, showRandomTip } from "./tips";
 // Re-export for external use
@@ -61,10 +57,8 @@ export class MatchmakingUI {
   // Queue screen
   private queue: QueueScreen;
 
-  // Match found elements
-  private blueChampion: HTMLElement;
-  private redChampion: HTMLElement;
-  private loadingBar: HTMLElement;
+  // Match found screen
+  private matchFound: MatchFoundScreen;
 
   // Error elements
   private errorMessage: HTMLElement;
@@ -79,7 +73,6 @@ export class MatchmakingUI {
 
   // State
   private currentScreen: ScreenId = "menu";
-  private loadingProgress: number = 0;
   private matchData: MatchData | null = null;
   private bufferedFullState: any = null;
   private bufferedStateUpdates: any[] = [];
@@ -120,9 +113,7 @@ export class MatchmakingUI {
     this.queue = new QueueScreen(getEl);
 
     // Get match found elements
-    this.blueChampion = getEl("blue-champion");
-    this.redChampion = getEl("red-champion");
-    this.loadingBar = getEl("loading-bar");
+    this.matchFound = new MatchFoundScreen(getEl);
 
     // Get error elements
     this.errorMessage = getEl("error-message");
@@ -432,65 +423,13 @@ export class MatchmakingUI {
     this.matchData = data;
 
     // Update team displays
-    const bluePlayer = data.players?.find((p: any) => p.side === 0);
-    const redPlayer = data.players?.find((p: any) => p.side === 1);
-
-    if (this.blueChampion) {
-      const championName = this.formatChampionName(
-        bluePlayer?.championId || "warrior",
-      );
-      const icon = CHAMPION_ICONS[bluePlayer?.championId || "warrior"] || "⚔️";
-      this.blueChampion.textContent = `${icon} ${championName}`;
-    }
-    if (this.redChampion) {
-      const championName = this.formatChampionName(
-        redPlayer?.championId || "warrior",
-      );
-      const icon = CHAMPION_ICONS[redPlayer?.championId || "warrior"] || "⚔️";
-      this.redChampion.textContent = `${icon} ${championName}`;
-    }
+    this.matchFound.showTeams(data);
 
     // Show match found screen
     this.showScreen("match-found");
 
     // Start loading animation
-    this.startLoadingAnimation();
-  }
-
-  /**
-   * Format champion name for display.
-   */
-  private formatChampionName(id: string): string {
-    const champion = CHAMPION_DEFINITIONS[id];
-    return champion?.name || id.charAt(0).toUpperCase() + id.slice(1);
-  }
-
-  /**
-   * Start loading animation.
-   */
-  private startLoadingAnimation(): void {
-    this.loadingProgress = 0;
-    if (this.loadingBar) {
-      this.loadingBar.style.width = "0%";
-    }
-
-    const loadingInterval = setInterval(() => {
-      this.loadingProgress += Math.random() * 15 + 5;
-
-      if (this.loadingProgress >= 100) {
-        this.loadingProgress = 100;
-        if (this.loadingBar) this.loadingBar.style.width = "100%";
-        clearInterval(loadingInterval);
-
-        // Transition to game
-        setTimeout(() => {
-          this.startGame();
-        }, 500);
-      } else {
-        if (this.loadingBar)
-          this.loadingBar.style.width = `${this.loadingProgress}%`;
-      }
-    }, 200);
+    this.matchFound.startLoadingAnimation(() => this.startGame());
   }
 
   /**
@@ -594,7 +533,7 @@ export class MatchmakingUI {
     this.networkClient?.disconnect();
     this.networkClient = null;
     this.matchData = null;
-    this.loadingProgress = 0;
+    this.matchFound.resetProgress();
     this.bufferedFullState = null;
     this.bufferedStateUpdates = [];
     this.updateConnectionStatus("offline");
