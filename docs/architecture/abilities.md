@@ -181,6 +181,38 @@ function calculateAbilityValue(
 5. Start cooldown
 6. Broadcast state update
 
+## Server Execution
+
+`ServerAbilityExecutor` is champion-agnostic. It validates the cast (rank, crowd control, cooldown, mana, target), applies cost and cooldown, then executes the ability one of two ways:
+
+1. **Ability handler**: if a handler is registered for the ability ID, it runs instead of the generic path. Handlers live in `packages/server/src/abilities/handlers/<championId>/` and implement `IAbilityHandler`, usually by extending `BaseAbilityHandler`. A handler that implements `canRecast`/`executeRecast` owns the ability's recast; if it declines, the recast fails with `invalid_target`.
+2. **Generic path**: otherwise the executor runs the path for the ability's `targetType` (`self`, `no_target`, `target_enemy`, `target_ally`, `skillshot`, `ground_target`), driven by definition fields such as `damage`, `heal`, `shield`, `appliesEffects`, projectile fields, cones, zones, traps, `statTransform`, `dash` and `teleport`.
+
+### Champion Hooks
+
+Rules that belong to a champion rather than to one ability implement `IChampionHooks` and are registered with `championHooksRegistry` from the champion's `handlers/<championId>/index.ts`:
+
+| Hook | Called by | Example |
+|------|-----------|---------|
+| `getAbilityDamageMultiplier`, `consumeAbilityDamageMultiplier` | Executor, every cast | Magnus: Arcane Surge +30% damage |
+| `breaksStealthOnCast` | Executor, every cast | Vex: Shadow Shroud keeps stealth |
+| `modifyAbilityCooldown` | Executor, after ability haste | Vex: Ninja Mode halves Q/E cooldowns |
+| `updatePassiveState` | `ServerChampion`, every tick | Lume: passive follows the Light Orb |
+| `onMeleeAttackHit` | `ServerChampion`, melee hits | Vex: empowered attack after Shadow Step |
+
+`initializeAbilityHandlers()` (called at server startup) registers both handlers and hooks.
+
+### Coverage Contract
+
+`packages/server/src/test/AbilityCoverageContract.test.ts` checks every champion in `CHAMPION_DEFINITIONS`: each Q/W/E/R ability must have a registered handler, or use only definition fields the generic path executes for its target type. Its `GENERIC_SUPPORT` table mirrors the executor and is typed over every `AbilityDefinition` field, so a new field fails the typecheck until it is classified. Known generic-path bugs are listed in `KNOWN_GAPS`.
+
+### Adding a Champion (Server)
+
+1. Define the champion and its abilities in `packages/shared/src/champions/definitions/`
+2. Create `packages/server/src/abilities/handlers/<championId>/index.ts` with a `register<Champion>Handlers()` function, called from `initializeAbilityHandlers()`
+3. Add handlers for abilities the generic path cannot run, and hooks for champion-wide rules
+4. Run `bun test AbilityCoverageContract` in `packages/server`
+
 ## Example: Warrior Champion
 
 ```typescript
@@ -237,8 +269,10 @@ abilities: {
 | File | Purpose |
 |------|---------|
 | `packages/shared/src/types/abilities.ts` | Type definitions |
-| `packages/server/src/simulation/ServerChampion.ts` | Server-side ability logic |
-| `packages/server/src/server.ts` | Champion ability definitions |
+| `packages/shared/src/champions/definitions/` | Champion ability definitions |
+| `packages/server/src/simulation/ServerAbilityExecutor.ts` | Cast validation, costs, cooldowns, generic execution |
+| `packages/server/src/abilities/` | Ability handlers, champion hooks and their registries |
+| `packages/server/src/simulation/ServerChampion.ts` | Ability state (ranks, cooldowns, recasts) |
 | `src/core/input/OnlineInputHandler.ts` | Client ability input |
 
 ## Cooldown Reduction
