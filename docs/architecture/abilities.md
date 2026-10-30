@@ -186,12 +186,31 @@ function calculateAbilityValue(
 `ServerAbilityExecutor` is champion-agnostic. It validates the cast (rank, crowd control, cooldown, mana, target), applies cost and cooldown, then executes the ability one of two ways:
 
 1. **Ability handler**: if a handler is registered for the ability ID, it runs instead of the generic path. Handlers live in `packages/server/src/abilities/handlers/<championId>/` and implement `IAbilityHandler`, usually by extending `BaseAbilityHandler`. A handler that implements `canRecast`/`executeRecast` owns the ability's recast. If `canRecast` declines (for example, Lume's orb is already back), the leftover recast window is dropped and the key press is a normal cast. If `executeRecast` fails after `canRecast` accepted, the recast fails with `invalid_target`.
-2. **Generic path**: otherwise the executor runs the path for the ability's `targetType` (`self`, `no_target`, `target_enemy`, `target_ally`, `skillshot`, `ground_target`), driven by definition fields such as `damage`, `heal`, `shield`, `appliesEffects`, projectile fields, cones, zones, traps, `statTransform`, `dash` and `teleport`.
+2. **Generic path**: otherwise the executor runs the path for the ability's `targetType` (`self`, `no_target`, `target_enemy`, `target_ally`, `skillshot`, `ground_target`), driven by definition fields such as `damage`, `heal`, `shield`, `appliesEffects`, projectile fields, cones, zones, traps, `statTransform`, `dash` and `teleport`. The paths live in `packages/server/src/abilities/generic/` (see [Generic Paths](#generic-paths)).
 
 Generic path details:
 - **`no_target` areas:** effects are split by category. Buffs (`category: 'buff'`) go to the caster and allies in the area. Debuffs and crowd control go to enemies. Gorath's slam no longer slows Gorath, and Elara's speed boost no longer speeds up enemies.
-- **`aoeDelay`:** `no_target` areas and circular `ground_target` areas land after the delay. The executor uses `ServerGameContext.schedule()`, which runs on game time; tests that update entities directly call `context.advanceTime()`. A `no_target` area is centered where the caster stood when casting.
+- **`aoeDelay`:** `no_target` areas and circular `ground_target` areas land after the delay. The generic paths use `ServerGameContext.schedule()`, which runs on game time; tests that update entities directly call `context.advanceTime()`. A `no_target` area is centered where the caster stood when casting.
 - **Handler results:** if a handler's `validate` or `execute` fails, the cast fails and costs nothing (no mana, no cooldown). `cooldownOverride`, `skipCooldown` and `skipManaCost` are applied after the standard cooldown; this is how Vex's Shadow Step resets on a marked enemy.
+
+### Generic Paths
+
+`ServerAbilityExecutor` keeps the cast flow: validation, recasts, mana, cooldowns, the `ABILITY_CAST` event and the `on_ability_cast` trigger. It dispatches to plain functions in `packages/server/src/abilities/generic/`, one module per target type or path family. Each takes the cast params, the definition and the rank, plus the damage multiplier where the path deals damage:
+
+| Module | Path |
+|--------|------|
+| `SelfAbility.ts` | `self`: shield and effects on the caster, or a stat transform |
+| `StatTransform.ts` | `statTransform`: timed stat modifiers, attack range override, soul stacks, trap explosions, transform aura |
+| `NoTargetArea.ts` | `no_target` areas around the caster: buff/debuff split, `aoeDelay` scheduling |
+| `TargetedAbility.ts` | `target_enemy` (damage, effects) and `target_ally` (heal, shield, effects) |
+| `Skillshot.ts` | `skillshot` projectiles: animation keyframe delay, charge range bonus |
+| `GroundTarget.ts` | `ground_target`: picks trap, cone or circle; circles, delayed circles and `zoneDuration` zones |
+| `Cone.ts` | Cones (`ground_target` with `shape: 'cone'` and `coneAngle`) |
+| `Trap.ts` | Trap placement (`ground_target` with `trap`) |
+| `Movement.ts` | `dash` and `teleport`, run after the path or handler, and the generic recast dash |
+| `AbilityHelpers.ts` | Scaling stats and effect application shared by the paths |
+
+When a generic path learns a definition field, update its rule in the coverage contract's `GENERIC_SUPPORT`.
 
 ### Champion Hooks
 
@@ -209,7 +228,7 @@ Rules that belong to a champion rather than to one ability implement `IChampionH
 
 ### Coverage Contract
 
-`packages/server/src/test/AbilityCoverageContract.test.ts` checks every champion in `CHAMPION_DEFINITIONS`: each Q/W/E/R ability must have a registered handler, or use only definition fields the generic path executes for its target type. Its `GENERIC_SUPPORT` table mirrors the executor and is typed over every `AbilityDefinition` field, so a new field fails the typecheck until it is classified. Known generic-path bugs are listed in `KNOWN_GAPS`.
+`packages/server/src/test/AbilityCoverageContract.test.ts` checks every champion in `CHAMPION_DEFINITIONS`: each Q/W/E/R ability must have a registered handler, or use only definition fields the generic path executes for its target type. Its `GENERIC_SUPPORT` table mirrors the executor and the generic path modules and is typed over every `AbilityDefinition` field, so a new field fails the typecheck until it is classified. Known generic-path bugs are listed in `KNOWN_GAPS`.
 
 ### Adding a Champion (Server)
 
@@ -275,7 +294,8 @@ abilities: {
 |------|---------|
 | `packages/shared/src/types/abilities.ts` | Type definitions |
 | `packages/shared/src/champions/definitions/` | Champion ability definitions |
-| `packages/server/src/simulation/ServerAbilityExecutor.ts` | Cast validation, costs, cooldowns, generic execution |
+| `packages/server/src/simulation/ServerAbilityExecutor.ts` | Cast validation, recasts, costs, cooldowns, dispatch to a handler or generic path |
+| `packages/server/src/abilities/generic/` | Generic execution paths, one module per target type or path family |
 | `packages/server/src/abilities/` | Ability handlers, champion hooks and their registries |
 | `packages/server/src/simulation/ServerChampion.ts` | Ability state (ranks, cooldowns, recasts) |
 | `src/core/input/OnlineInputHandler.ts` | Client ability input |

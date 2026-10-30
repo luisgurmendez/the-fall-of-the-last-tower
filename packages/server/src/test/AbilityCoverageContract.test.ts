@@ -2,14 +2,16 @@
  * Ability coverage contract.
  *
  * Every ability in every champion's kit must either have a registered ability
- * handler, or use only definition fields that the generic ServerAbilityExecutor
- * paths execute for its target type. A new champion whose kit needs something
- * the generic paths don't do fails here instead of silently doing nothing.
+ * handler, or use only definition fields that the generic paths execute for
+ * its target type. A new champion whose kit needs something the generic paths
+ * don't do fails here instead of silently doing nothing.
  *
- * GENERIC_SUPPORT mirrors ServerAbilityExecutor. It is typed over every
- * AbilityDefinition field, so adding a field fails the typecheck until it is
- * classified. When a generic path learns a field, update its rule; when an
- * ability needs a field no generic path executes, give the ability a handler.
+ * GENERIC_SUPPORT mirrors ServerAbilityExecutor (cast flow, target validation
+ * and dispatch) and the generic paths it dispatches to in abilities/generic/.
+ * It is typed over every AbilityDefinition field, so adding a field fails the
+ * typecheck until it is classified. When a generic path learns a field,
+ * update its rule; when an ability needs a field no generic path executes,
+ * give the ability a handler.
  */
 
 import { describe, test, expect } from 'bun:test';
@@ -34,7 +36,7 @@ const SLOTS: AbilitySlot[] = ['Q', 'W', 'E', 'R'];
 type Support = true | string;
 type FieldRule = (definition: AbilityDefinition) => Support;
 
-/** Target types with a generic execution path in executeAbility */
+/** Target types ServerAbilityExecutor.executeAbility dispatches to a generic path */
 const GENERIC_TARGET_TYPES: AbilityTargetType[] = [
   'self', 'no_target', 'target_enemy', 'target_ally', 'skillshot', 'ground_target',
 ];
@@ -44,7 +46,7 @@ const DESTINATION_TARGET_TYPES: AbilityTargetType[] = [
   'skillshot', 'ground_target', 'target_enemy', 'target_ally', 'target_unit',
 ];
 
-/** Charge fields read by the generic skillshot path */
+/** Charge fields read by the generic skillshot path (generic/Skillshot) */
 const GENERIC_CHARGE_FIELDS = ['minChargeTime', 'maxChargeTime', 'maxChargeRangeBonus'];
 
 const always: FieldRule = () => true;
@@ -72,7 +74,7 @@ const entityFilter: FieldRule = (d) =>
   !d.dash || 'dash collisions ignore entity-type filters';
 
 const GENERIC_SUPPORT: Record<keyof AbilityDefinition, FieldRule> = {
-  // Identity, cost and dispatch (castAbility, validateTarget)
+  // Identity, cost and dispatch (ServerAbilityExecutor: castAbility, validateTarget)
   id: always,
   name: always,
   description: always,
@@ -85,7 +87,7 @@ const GENERIC_SUPPORT: Record<keyof AbilityDefinition, FieldRule> = {
     GENERIC_TARGET_TYPES.includes(d.targetType) || `targetType '${d.targetType}' has no generic execution path`,
   castTime: (d) => !d.castTime || 'castTime is not implemented: casts resolve instantly',
 
-  // Damage, healing, shields and effects
+  // Damage, healing, shields and effects (the generic/ path modules)
   damage: (d) => {
     if (d.targetType === 'self' || d.targetType === 'target_ally') {
       return `damage is not applied by ${d.targetType} abilities`;
@@ -113,13 +115,13 @@ const GENERIC_SUPPORT: Record<keyof AbilityDefinition, FieldRule> = {
   affectsJungleCamps: entityFilter,
   affectsWards: entityFilter,
 
-  // Projectiles
+  // Projectiles (generic/Skillshot)
   projectileSpeed: projectileField('projectileSpeed'),
   projectileRadius: projectileField('projectileRadius'),
   piercing: projectileField('piercing'),
   stopsOnWall: never('stopsOnWall is not read by the server'),
 
-  // Areas and zones
+  // Areas and zones (generic/NoTargetArea, GroundTarget, Cone, Trap; aura: StatTransform)
   shape: (d) =>
     d.shape !== 'cone' || (d.targetType === 'ground_target' && d.coneAngle !== undefined) ||
     'cone shape is only executed for ground_target abilities with coneAngle',
@@ -141,13 +143,14 @@ const GENERIC_SUPPORT: Record<keyof AbilityDefinition, FieldRule> = {
   aura: (d) =>
     (d.targetType === 'self' && d.statTransform !== undefined) || 'aura is only started by self statTransform abilities',
 
-  // Movement
+  // Movement (generic/Movement)
   dash: (d) =>
     DESTINATION_TARGET_TYPES.includes(d.targetType) || `dash needs a destination, which ${d.targetType} abilities lack`,
   teleport: (d) =>
     DESTINATION_TARGET_TYPES.includes(d.targetType) || `teleport needs a destination, which ${d.targetType} abilities lack`,
 
-  // Composable behaviors
+  // Composable behaviors (recast: ServerAbilityExecutor.handleRecast and generic/Movement;
+  // charge: generic/Skillshot; statTransform: generic/StatTransform)
   recast: (d) => {
     if (!isProjectileSkillshot(d)) return 'generic recast is enabled by projectile hits, so it needs a projectile skillshot';
     if (typeof d.recast !== 'number') return 'generic recast dashes to the hit position; a different recast ability needs a handler';
