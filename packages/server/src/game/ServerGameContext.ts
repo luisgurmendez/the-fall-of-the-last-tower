@@ -396,7 +396,8 @@ export class ServerGameContext {
    */
   moveChampion(champion: ServerChampion, destination: Vector): void {
     const path = this.terrain.findPath(champion.position, destination) ?? [destination];
-    this.pathFollower.follow(champion, path);
+    // Already as close as it gets to a point inside a wall: stop here
+    this.pathFollower.follow(champion, path.length > 0 ? path : [champion.position.clone()]);
   }
 
   /**

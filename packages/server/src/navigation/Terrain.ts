@@ -135,7 +135,8 @@ export class Terrain {
 
   /**
    * Waypoints from `from` to `to` around walls (not including `from`).
-   * Returns [to] when the straight line is clear, null when unreachable.
+   * Returns [to] when the straight line is clear, null when unreachable, and
+   * [] when `to` is in a wall and `from` is already as close as it gets.
    */
   findPath(from: Vector, to: Vector): Vector[] | null {
     if (this.navGrid.hasLineOfSight(from, to)) return [to.clone()];
@@ -151,7 +152,8 @@ export class Terrain {
       if (waypoints.length === 0) return [to.clone()];
       waypoints[waypoints.length - 1] = to.clone();
     }
-    return waypoints.length > 0 ? waypoints : [to.clone()];
+    if (waypoints.length > 0) return waypoints;
+    return destinationWalkable ? [to.clone()] : [];
   }
 
   /**

@@ -3,7 +3,7 @@
  */
 import './ServerTestUtils';
 import { describe, test, expect } from 'bun:test';
-import { MOBAConfig, Vector } from '@siege/shared';
+import { InputType, MOBAConfig, Vector } from '@siege/shared';
 import { Terrain } from '../navigation/Terrain';
 import { Simulation } from '../sim';
 
@@ -78,5 +78,45 @@ describe('Terrain', () => {
     } finally {
       sim.dispose();
     }
+  });
+
+  describe('a point inside a wall', () => {
+    const wall = MOBAConfig.WALLS[3];
+    const inWall = { x: wall.position.x + wall.width / 2, y: wall.position.y + wall.height / 2 };
+
+    function walkToWall(order: InputType.MOVE | InputType.ATTACK_MOVE) {
+      const sim = new Simulation({ seed: 1, minionWaves: false, jungle: false, structures: false });
+      const champion = sim.addChampion({ playerId: 'p1', championId: 'vex', side: 'blue', at: { x: inWall.x - 250, y: inWall.y } });
+      sim.input('p1', { type: order, targetX: inWall.x, targetY: inWall.y });
+      sim.runUntil(s => s.champion('p1').targetPosition === null, 20);
+      return { sim, champion };
+    }
+
+    test('is in a wall', () => {
+      expect(terrain.isBlocked(inWall.x, inWall.y)).toBe(true);
+    });
+
+    test('ordering a move there again from next to it leaves the champion standing', () => {
+      const { sim, champion } = walkToWall(InputType.MOVE);
+      try {
+        expect(terrain.findPath(champion.position, new Vector(inWall.x, inWall.y))).toEqual([]);
+        sim.input('p1', { type: InputType.MOVE, targetX: inWall.x, targetY: inWall.y });
+        sim.run(1);
+        expect(champion.targetPosition).toBeNull();
+      } finally {
+        sim.dispose();
+      }
+    });
+
+    test('an attack-move there ends when it can get no closer', () => {
+      const { sim, champion } = walkToWall(InputType.ATTACK_MOVE);
+      try {
+        sim.run(1);
+        expect(champion.attackMoveTarget).toBeNull();
+        expect(champion.targetPosition).toBeNull();
+      } finally {
+        sim.dispose();
+      }
+    });
   });
 });

@@ -104,7 +104,9 @@ export class ServerChampion extends ServerEntity {
   // Combat state
   inCombat = false;
   /** Attack-move destination (attack enemies in range on the way), or null */
-  attackMoveTarget: Vector | null = null;
+  private attackMoveDestination: Vector | null = null;
+  /** Where the attack-move last walked on from, to notice it can't get closer */
+  private attackMoveResumedFrom: Vector | null = null;
   timeSinceCombat = 0;
   respawnTimer = 0;
   isRecalling = false;
@@ -335,23 +337,51 @@ export class ServerChampion extends ServerEntity {
   }
 
   /**
+   * Start an attack-move to `destination` (the walk there is ordered separately).
+   */
+  startAttackMove(destination: Vector): void {
+    this.attackMoveDestination = destination.clone();
+    this.attackMoveResumedFrom = null;
+  }
+
+  /**
+   * End the attack-move, if any (another order replaces it, or it's done).
+   */
+  endAttackMove(): void {
+    this.attackMoveDestination = null;
+    this.attackMoveResumedFrom = null;
+  }
+
+  /**
+   * The attack-move destination, or null when not attack-moving.
+   */
+  get attackMoveTarget(): Vector | null {
+    return this.attackMoveDestination;
+  }
+
+  /**
    * Attack-move: attack an enemy that comes within reach, and once there's
    * nothing to fight, walk on to the destination.
    */
   private updateAttackMove(context: ServerGameContext): void {
-    const destination = this.attackMoveTarget;
+    const destination = this.attackMoveDestination;
     if (!destination || this.targetEntityId) return;
 
     const target = this.findAttackMoveTarget(context);
     if (target) {
       this.setAttackTarget(target.id);
+      this.attackMoveResumedFrom = null;
       return;
     }
 
     if (!this.targetPosition && !context.pathFollower.isFollowing(this.id)) {
-      if (this.position.distanceTo(destination) < 10) {
-        this.attackMoveTarget = null;
+      // Arrived, or stuck where the last walk toward it started (a point in a wall)
+      const stuck = this.attackMoveResumedFrom !== null &&
+        this.position.distanceTo(this.attackMoveResumedFrom) < 10;
+      if (this.position.distanceTo(destination) < 10 || stuck) {
+        this.endAttackMove();
       } else {
+        this.attackMoveResumedFrom = this.position.clone();
         context.moveChampion(this, destination);
       }
     }

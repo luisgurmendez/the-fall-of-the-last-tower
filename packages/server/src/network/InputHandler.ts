@@ -209,7 +209,7 @@ export class InputHandler {
     // Any other order ends an attack-move
     if (input.type === InputType.MOVE || input.type === InputType.TARGET_UNIT ||
         input.type === InputType.STOP || input.type === InputType.RECALL) {
-      champion.attackMoveTarget = null;
+      champion.endAttackMove();
     }
 
     switch (input.type) {
@@ -277,7 +277,7 @@ export class InputHandler {
 
     // Attack-move: the champion attacks enemies that come in range on the way
     if (input.type === InputType.ATTACK_MOVE) {
-      champion.attackMoveTarget = targetPos;
+      champion.startAttackMove(targetPos);
     }
   }
 
