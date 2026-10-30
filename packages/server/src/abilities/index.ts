@@ -7,17 +7,21 @@
  * - IAbilityHandler: Interface for ability handlers
  * - BaseAbilityHandler: Base class with utility methods
  * - AbilityHandlerRegistry: Central registry for handler lookup
- * - handlers/: Champion-specific ability handlers
+ * - IChampionHooks: Interface for per-champion cast rules
+ * - ChampionHooksRegistry: Central registry for champion hook lookup
+ * - handlers/: Champion-specific ability handlers and champion hooks
  */
 
 // Core interfaces and types
 export * from './IAbilityHandler';
+export * from './IChampionHooks';
 
 // Base class
 export { BaseAbilityHandler } from './BaseAbilityHandler';
 
-// Registry
+// Registries
 export { abilityHandlerRegistry } from './AbilityHandlerRegistry';
+export { championHooksRegistry } from './ChampionHooksRegistry';
 
 // Champion handlers - import and register
 import { registerLumeHandlers } from './handlers/lume';
@@ -29,7 +33,7 @@ import { registerGorathHandlers } from './handlers/gorath';
 import { registerVileHandlers } from './handlers/vile';
 
 /**
- * Initialize all ability handlers.
+ * Initialize all ability handlers and champion hooks.
  * Call this once during server startup.
  */
 export function initializeAbilityHandlers(): void {

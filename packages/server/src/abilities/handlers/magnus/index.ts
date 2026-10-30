@@ -10,13 +10,19 @@
  * - E (Quagmire): Ground target zone with slow
  * - R (Inferno Zone): Ground target zone with damage + slow
  *
- * No custom handlers needed.
+ * Champion hooks (MagnusHooks):
+ * - Passive (Arcane Surge): 30% bonus damage on the next ability
  */
 
+import { championHooksRegistry } from '../../ChampionHooksRegistry';
+import { magnusHooks } from './MagnusHooks';
+
+export { magnusHooks } from './MagnusHooks';
+
 /**
- * Register Magnus ability handlers.
- * Currently empty - all abilities use generic execution.
+ * Register Magnus ability handlers and champion hooks.
+ * No ability handlers - all abilities use generic execution.
  */
 export function registerMagnusHandlers(): void {
-  // All abilities use generic execution - no custom handlers needed
+  championHooksRegistry.register(magnusHooks);
 }

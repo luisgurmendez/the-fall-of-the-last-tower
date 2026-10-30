@@ -15,7 +15,6 @@ import {
   AbilityDefinition,
   calculateAbilityValue,
   getAbilityDefinition,
-  getPassiveDefinition,
   canAbilityAffectEntityType,
   hasRecastBehavior,
   hasChargeBehavior,
@@ -26,6 +25,7 @@ import {
 } from "@siege/shared";
 import { passiveTriggerSystem } from "../systems/PassiveTriggerSystem";
 import { abilityHandlerRegistry } from "../abilities/AbilityHandlerRegistry";
+import { championHooksRegistry } from "../abilities/ChampionHooksRegistry";
 import type { AbilityHandlerParams, AbilityExecutionResult } from "../abilities/IAbilityHandler";
 import type { ServerChampion } from "./ServerChampion";
 import type { ServerEntity } from "./ServerEntity";
@@ -69,56 +69,6 @@ export interface AbilityCastResult {
  * Handles all ability execution logic.
  */
 export class ServerAbilityExecutor {
-  /**
-   * Get the ability damage multiplier from champion's active passive.
-   * Returns > 1.0 if the champion has an active damage-amp passive (like Arcane Surge).
-   */
-  private getPassiveDamageMultiplier(champion: ServerChampion): number {
-    // Check if passive is active
-    if (!champion.passiveState.isActive) {
-      return 1.0;
-    }
-
-    // Get the passive definition
-    const passiveId = champion.definition.passive;
-    if (!passiveId) return 1.0;
-
-    const passiveDef = getPassiveDefinition(passiveId);
-    if (!passiveDef) return 1.0;
-
-    // Check if this is a stack-based damage amp passive (like Arcane Surge)
-    // These passives have: usesStacks, consumeStacksOnActivation, but no direct damage
-    if (
-      passiveDef.usesStacks &&
-      passiveDef.consumeStacksOnActivation &&
-      !passiveDef.damage
-    ) {
-      // Arcane Surge: 30% bonus damage
-      return 1.3;
-    }
-
-    return 1.0;
-  }
-
-  /**
-   * Consume the champion's passive stacks after using the empowered ability.
-   */
-  private consumePassiveStacks(champion: ServerChampion): void {
-    const passiveId = champion.definition.passive;
-    if (!passiveId) return;
-
-    const passiveDef = getPassiveDefinition(passiveId);
-    if (!passiveDef) return;
-
-    // Only consume for stack-based damage amp passives
-    if (passiveDef.usesStacks && passiveDef.consumeStacksOnActivation) {
-      champion.passiveState.stacks = 0;
-      champion.passiveState.stackTimeRemaining = 0;
-      champion.passiveState.isActive = false;
-      Logger.champion.debug(`${champion.playerId} ${passiveDef.name} consumed - bonus damage applied`);
-    }
-  }
-
   /**
    * Attempt to cast an ability.
    * Returns result indicating success or failure with reason.
@@ -215,8 +165,11 @@ export class ServerAbilityExecutor {
       return { success: false, failReason: targetValidation.reason };
     }
 
-    // Check for passive damage amplification (e.g., Magnus's Arcane Surge)
-    const damageMultiplier = this.getPassiveDamageMultiplier(champion);
+    // Champion-specific cast rules (see IChampionHooks)
+    const hooks = championHooksRegistry.get(champion.definition.id);
+
+    // Check for damage amplification (e.g., Magnus's Arcane Surge)
+    const damageMultiplier = hooks?.getAbilityDamageMultiplier?.(champion) ?? 1.0;
 
     // Break stealth when casting abilities (except stealth ability itself)
     if (abilityId !== 'vex_shroud' && 'breakStealth' in champion) {
@@ -226,9 +179,9 @@ export class ServerAbilityExecutor {
     // All checks passed - execute the ability
     const executionResult = this.executeAbility(params, definition, damageMultiplier);
 
-    // Consume passive stacks if damage amp was used
+    // Consume whatever granted the damage amp (e.g., Arcane Surge stacks)
     if (damageMultiplier > 1.0) {
-      this.consumePassiveStacks(champion);
+      hooks?.consumeAbilityDamageMultiplier?.(champion);
     }
 
     // Deduct mana
@@ -465,7 +418,7 @@ export class ServerAbilityExecutor {
 
   /**
    * Execute the ability effect.
-   * @param damageMultiplier - Multiplier from passive abilities (e.g., 1.3 for Arcane Surge)
+   * @param damageMultiplier - Multiplier from champion hooks (e.g., 1.3 for Arcane Surge)
    * @returns The execution result from the handler, if any
    */
   private executeAbility(
