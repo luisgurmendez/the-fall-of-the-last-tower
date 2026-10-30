@@ -426,6 +426,16 @@ function calculateRespawnTime(level: number): number {
 | `packages/server/src/simulation/ServerChampion.ts` | Server champion: state, tick order, public API |
 | `packages/server/src/simulation/champion/` | Champion collaborators (one concern per file, see below) |
 | `packages/server/src/server.ts` | Champion definitions |
+| `src/render/champions/<championId>.ts` | How the client draws a champion: body, projectiles, status marks |
+
+### Champion art
+
+Vex and Lume have hand-made sprite sheets. Vile's are generated with PixelLab by
+`scripts/generate-sprites.ts` (a hooded archer with a bone bow): idle, walk, attack and his
+Q, E and R, in `public/assets/champs/vile/`. `src/render/champions/stripBody.ts` draws such
+strips for any champion: an ability's strip over its cast animation, the attack once per
+basic attack, walk while moving, idle otherwise. A champion's `visualHeight` places its
+health bar above its art. Champions without art are drawn as a team-colored circle.
 
 ## Server Champion
 

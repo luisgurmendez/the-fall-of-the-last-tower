@@ -364,6 +364,8 @@ export const VileDefinition: ChampionDefinition = {
   },
   passive: "vile_passive",
   collision: VILE_COLLISION,
+  /** Height of his sprite as drawn (src/render/champions/vile.ts), for the health bar */
+  visualHeight: 56,
   animations: VILE_ANIMATIONS,
   attackAnimationSpeedScale: true,
   // Dark soul projectile for ranged auto attacks

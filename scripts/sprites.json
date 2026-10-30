@@ -15,7 +15,7 @@
     },
     "characterId": "75785991-d91e-4419-b856-e417aa11232c"
   },
-  "gromp": {
+  "thornspitter": {
     "animations": {
       "run": "eb8a973f-9bad-4f43-ba97-56197d6f1300",
       "idle": "9363c74c-1ddb-408f-8d14-164a6c029ec3",
@@ -46,5 +46,16 @@
       "idle": "202bc9b0-aef7-4bff-bed4-a936794e3ecc"
     },
     "characterId": "91ff0e7c-37ba-472d-a61e-b0f59c767a1c"
+  },
+  "vile": {
+    "animations": {
+      "attack": "0a8f3415-6374-42b6-ad07-5aab7f8efa6c",
+      "q": "56f43564-2fa0-443c-8be6-659176f63af7",
+      "e": "c89cbb27-3b65-4738-b4cf-d99d283e242a",
+      "r": "0d595c47-0d97-4d75-8be0-f665070d95e7",
+      "idle": "1211acf0-6b0c-42cc-b36e-ba4a93baf6fd",
+      "walk": "3a6696be-2a43-40c6-9506-b0681b5db439"
+    },
+    "characterId": "d8241ee4-3ba7-4cfb-94c6-a8f53f95f7c0"
   }
 }

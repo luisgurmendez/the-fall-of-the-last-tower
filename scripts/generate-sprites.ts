@@ -1,23 +1,23 @@
 /**
- * Generates the jungle monsters' animated sprites with PixelLab
- * (https://api.pixellab.ai/v2).
+ * Generates animated sprites with PixelLab (https://api.pixellab.ai/v2): the
+ * jungle monsters and the champions without hand-made art.
  *
- * For each monster: a PixelLab character (its look), then idle, run and attack
- * animations facing east; the game mirrors them to face west. Each
- * animation's frames go side by side in
- * public/assets/sprites/monsters/<creatureType>/<animation>.png, on a square
- * canvas shared by the monster's animations with the feet on the same row,
- * so switching animations doesn't make the monster jump.
+ * For each sprite set: a PixelLab character (its look), then its animations
+ * facing east; the game mirrors them to face west. Each animation's frames go
+ * side by side in <outputDir>/<animation>.png, on a square canvas shared by
+ * the set's animations with the feet on the idle's row, so switching
+ * animations doesn't make the character jump. The renderer reads the frame
+ * size from the strip's height and the frame count from its width.
  *
- * scripts/monster-sprites.json keeps each monster's character and animation
- * ids: a later run reuses them and only generates what's missing.
+ * scripts/sprites.json keeps each set's character and animation ids: a later
+ * run reuses them and only generates what's missing.
  *
  * Usage (from the repo root; Bun loads PIXELLAB_API_KEY from .env.local):
- *   bun scripts/generate-monster-sprites.ts                  # every monster
- *   bun scripts/generate-monster-sprites.ts --only spider    # some monsters
- *   bun scripts/generate-monster-sprites.ts --only spider --redo attack --seed 8
+ *   bun scripts/generate-sprites.ts                  # every set
+ *   bun scripts/generate-sprites.ts --only spider    # some sets
+ *   bun scripts/generate-sprites.ts --only spider --redo attack --seed 8
  *     # generate those animations again (another seed gives another take)
- *   bun scripts/generate-monster-sprites.ts --only spider --new-character
+ *   bun scripts/generate-sprites.ts --only spider --new-character
  *
  * A character takes about 3 minutes, an animation 1-5 minutes.
  */
@@ -27,10 +27,8 @@ import { join } from 'node:path';
 import { blit, bottomRow, createImage, decodePng, encodePng, type RgbaImage } from './lib/png';
 
 const API = 'https://api.pixellab.ai/v2';
-const MANIFEST_PATH = 'scripts/monster-sprites.json';
-const OUTPUT_DIR = 'public/assets/sprites/monsters';
-const ANIMATIONS = ['idle', 'run', 'attack'] as const;
-type AnimationName = typeof ANIMATIONS[number];
+const MANIFEST_PATH = 'scripts/sprites.json';
+const MONSTERS_DIR = 'public/assets/sprites/monsters';
 
 type AnimationSpec =
   /** Drawn frame by frame from a description (4-16 frames) */
@@ -40,21 +38,28 @@ type AnimationSpec =
   /** A PixelLab skeleton animation (needs a matching character template) */
   | { mode: 'template'; template: string };
 
-interface MonsterSpec {
-  /** Creature type it draws (MOBAConfig.JUNGLE.CREATURE_STATS key) */
-  creatureType: string;
+interface SpriteSetSpec {
+  /** Its key in scripts/sprites.json and for --only (a creature type or champion id) */
+  key: string;
+  /** Where its strips go */
+  outputDir: string;
   name: string;
   description: string;
   /** Character canvas in pixels */
   size: number;
   /** PixelLab skeleton the character is fitted to: mannequin, dog, bear, cat, horse, lion */
   template: string;
-  animations: Record<AnimationName, AnimationSpec>;
+  /** Animations by name; every set has an idle (the others' feet line up with it) */
+  animations: { idle: AnimationSpec } & Record<string, AnimationSpec>;
 }
 
-export const MONSTERS: MonsterSpec[] = [
-  {
-    creatureType: 'wolf',
+/** A jungle monster: idle, run and attack, in public/assets/sprites/monsters/<creatureType> */
+function monster(creatureType: string, spec: Omit<SpriteSetSpec, 'key' | 'outputDir'>): SpriteSetSpec {
+  return { key: creatureType, outputDir: `${MONSTERS_DIR}/${creatureType}`, ...spec };
+}
+
+export const SPRITE_SETS: SpriteSetSpec[] = [
+  monster('wolf', {
     name: 'Cinder Hound',
     description: 'a lean dark grey hound beast with glowing ember eyes and smoldering orange cracks along its back, four legs',
     size: 64,
@@ -64,9 +69,8 @@ export const MONSTERS: MonsterSpec[] = [
       run: { mode: 'template', template: 'running-6-frames' },
       attack: { mode: 'pixminimax', action: 'crouches, then pounces forward with jaws wide open and snaps shut, then steps back', frames: 8 },
     },
-  },
-  {
-    creatureType: 'spider',
+  }),
+  monster('spider', {
     name: 'Gloom Crawler',
     description: 'a small dark purple cave spider with eight spiky legs and glowing green eyes',
     size: 48,
@@ -76,9 +80,8 @@ export const MONSTERS: MonsterSpec[] = [
       run: { mode: 'pixminimax', action: 'scuttles forward, its eight legs moving quickly in a looping walk cycle', frames: 8 },
       attack: { mode: 'pixminimax', action: 'rears up its front legs and bites forward with its fangs', frames: 8 },
     },
-  },
-  {
-    creatureType: 'gromp',
+  }),
+  monster('thornspitter', {
     name: 'Thornspitter',
     description: 'a squat carnivorous plant monster on short root legs, a big green bulb head with a wide toothy mouth and thorny leaves',
     size: 64,
@@ -88,9 +91,8 @@ export const MONSTERS: MonsterSpec[] = [
       run: { mode: 'pixminimax', action: 'waddles forward on its root legs in a looping walk cycle', frames: 8 },
       attack: { mode: 'pixminimax', action: 'leans back then spits a glob of green goo forward from its mouth', frames: 8 },
     },
-  },
-  {
-    creatureType: 'blue_buff',
+  }),
+  monster('blue_buff', {
     name: 'Azure Warden',
     description: 'a huge ancient tortoise with a glowing blue crystal shell and grey stone skin',
     size: 96,
@@ -100,9 +102,8 @@ export const MONSTERS: MonsterSpec[] = [
       run: { mode: 'pixminimax', action: 'walks forward slowly and heavily in a looping walk cycle', frames: 8 },
       attack: { mode: 'pixminimax', action: 'rears up on its hind legs and stomps the ground hard with its front legs', frames: 8 },
     },
-  },
-  {
-    creatureType: 'red_buff',
+  }),
+  monster('red_buff', {
     name: 'Ember Brute',
     description: 'a hulking hunched brute made of black molten rock with glowing lava cracks and huge fists',
     size: 96,
@@ -112,9 +113,8 @@ export const MONSTERS: MonsterSpec[] = [
       run: { mode: 'template', template: 'walking-6-frames' },
       attack: { mode: 'pixminimax', action: 'raises both fists overhead and slams them into the ground', frames: 8 },
     },
-  },
-  {
-    creatureType: 'dragon',
+  }),
+  monster('dragon', {
     name: 'Dragon',
     description: 'a large four-legged dragon with dark purple scales, folded bat wings, horns and a glowing orange belly',
     size: 128,
@@ -124,18 +124,37 @@ export const MONSTERS: MonsterSpec[] = [
       run: { mode: 'pixminimax', action: 'walks forward on four legs in a looping walk cycle, wings folded', frames: 8 },
       attack: { mode: 'pixminimax', action: 'rears its head back then breathes a burst of fire forward', frames: 8 },
     },
+  }),
+  {
+    key: 'vile',
+    outputDir: 'public/assets/champs/vile',
+    name: 'Vile',
+    description: 'a gaunt hooded dark archer in tattered black robes holding a curved bone bow, glowing purple eyes, faint purple soul wisps around him',
+    size: 96,
+    template: 'mannequin',
+    animations: {
+      idle: { mode: 'v3', action: 'standing ready with the bow lowered, breathing, purple wisps drifting', frames: 4 },
+      walk: { mode: 'template', template: 'walking-6-frames' },
+      attack: { mode: 'pixminimax', action: 'draws the bone bow and shoots a dark purple arrow forward', frames: 8 },
+      // Black Arrows of Vilix: a charged shot
+      q: { mode: 'pixminimax', action: 'slowly draws the bow far back as dark purple energy gathers on the arrow, then releases a powerful shot', frames: 8 },
+      // Roots of Vilix: sets a trap
+      e: { mode: 'pixminimax', action: 'crouches and presses a glowing purple rune trap into the ground, then stands up', frames: 8 },
+      // Restoration of Vilix: transforms
+      r: { mode: 'pixminimax', action: 'throws his arms wide and roars as dark purple energy erupts around him', frames: 8 },
+    },
   },
 ];
 
 interface ManifestEntry {
   characterId?: string;
-  animations: Partial<Record<AnimationName, string>>;
+  animations: Record<string, string>;
 }
 type Manifest = Record<string, ManifestEntry>;
 
 interface Options {
   only: string[] | null;
-  redo: AnimationName[];
+  redo: string[];
   newCharacter: boolean;
   seed: number;
 }
@@ -144,7 +163,7 @@ function parseArgs(argv: string[]): Options {
   const options: Options = { only: null, redo: [], newCharacter: false, seed: 7 };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--only') options.only = argv[++i].split(',');
-    else if (argv[i] === '--redo') options.redo = argv[++i].split(',') as AnimationName[];
+    else if (argv[i] === '--redo') options.redo = argv[++i].split(',');
     else if (argv[i] === '--new-character') options.newCharacter = true;
     else if (argv[i] === '--seed') options.seed = Number(argv[++i]);
   }
@@ -183,7 +202,7 @@ async function waitForJob(jobId: string, label: string): Promise<void> {
   }
 }
 
-async function createCharacter(spec: MonsterSpec, seed: number): Promise<string> {
+async function createCharacter(spec: SpriteSetSpec, seed: number): Promise<string> {
   log(`${spec.name}: creating the character`);
   const created = await api<{ character_id: string; background_job_id: string }>('/create-character-v3', {
     description: spec.description,
@@ -196,7 +215,7 @@ async function createCharacter(spec: MonsterSpec, seed: number): Promise<string>
   return created.character_id;
 }
 
-async function createAnimation(characterId: string, spec: MonsterSpec, name: AnimationName, seed: number): Promise<string> {
+async function createAnimation(characterId: string, spec: SpriteSetSpec, name: string, seed: number): Promise<string> {
   const animation = spec.animations[name];
   const body: Record<string, unknown> = {
     character_id: characterId,
@@ -237,7 +256,7 @@ async function downloadFrames(characterId: string, groupId: string): Promise<Rgb
  * Lay out each animation's frames side by side on a square canvas shared by
  * all of them, centered, with every animation's feet on the idle's row.
  */
-function buildStrips(animations: Record<AnimationName, RgbaImage[]>): Record<AnimationName, RgbaImage> {
+function buildStrips(animations: Record<string, RgbaImage[]>): Record<string, RgbaImage> {
   const canvas = Math.max(...Object.values(animations).flat().map(frame => Math.max(frame.width, frame.height)));
   const centered = (frame: RgbaImage, dy = 0) => {
     const out = createImage(canvas, canvas);
@@ -247,8 +266,8 @@ function buildStrips(animations: Record<AnimationName, RgbaImage[]>): Record<Ani
   const feetRow = (frames: RgbaImage[]) => Math.max(...frames.map(frame => bottomRow(centered(frame))));
   const idleFeet = feetRow(animations.idle);
 
-  const strips = {} as Record<AnimationName, RgbaImage>;
-  for (const name of ANIMATIONS) {
+  const strips: Record<string, RgbaImage> = {};
+  for (const name of Object.keys(animations)) {
     const frames = animations[name];
     const dy = idleFeet - feetRow(frames);
     const strip = createImage(canvas * frames.length, canvas);
@@ -258,8 +277,9 @@ function buildStrips(animations: Record<AnimationName, RgbaImage[]>): Record<Ani
   return strips;
 }
 
-async function generateMonster(spec: MonsterSpec, manifest: Manifest, options: Options): Promise<void> {
-  const entry = (manifest[spec.creatureType] ??= { animations: {} });
+async function generateSpriteSet(spec: SpriteSetSpec, manifest: Manifest, options: Options): Promise<void> {
+  const entry = (manifest[spec.key] ??= { animations: {} });
+  const names = Object.keys(spec.animations);
   if (!entry.characterId || options.newCharacter) {
     entry.characterId = await createCharacter(spec, options.seed);
     entry.animations = {};
@@ -268,23 +288,22 @@ async function generateMonster(spec: MonsterSpec, manifest: Manifest, options: O
   const characterId = entry.characterId;
 
   // Missing animations, at the same time
-  await Promise.all(ANIMATIONS.map(async name => {
+  await Promise.all(names.map(async name => {
     if (entry.animations[name] && !options.redo.includes(name)) return;
     entry.animations[name] = await createAnimation(characterId, spec, name, options.seed);
     saveManifest(manifest);
   }));
 
-  const frames = {} as Record<AnimationName, RgbaImage[]>;
-  for (const name of ANIMATIONS) {
-    frames[name] = await downloadFrames(characterId, entry.animations[name]!);
+  const frames: Record<string, RgbaImage[]> = {};
+  for (const name of names) {
+    frames[name] = await downloadFrames(characterId, entry.animations[name]);
   }
   const strips = buildStrips(frames);
-  const dir = join(OUTPUT_DIR, spec.creatureType);
-  mkdirSync(dir, { recursive: true });
-  for (const name of ANIMATIONS) {
-    writeFileSync(join(dir, `${name}.png`), encodePng(strips[name]));
+  mkdirSync(spec.outputDir, { recursive: true });
+  for (const name of names) {
+    writeFileSync(join(spec.outputDir, `${name}.png`), encodePng(strips[name]));
   }
-  log(`${spec.name}: wrote ${dir} (${ANIMATIONS.map(name => `${name} ${frames[name].length}`).join(', ')} frames, ${strips.idle.height}px)`);
+  log(`${spec.name}: wrote ${spec.outputDir} (${names.map(name => `${name} ${frames[name].length}`).join(', ')} frames, ${strips.idle.height}px)`);
 }
 
 function loadManifest(): Manifest {
@@ -307,12 +326,12 @@ async function main(): Promise<void> {
   if (!apiKey) throw new Error('Set PIXELLAB_API_KEY (for example in .env.local)');
   const options = parseArgs(process.argv.slice(2));
   const manifest = loadManifest();
-  const monsters = MONSTERS.filter(spec => !options.only || options.only.includes(spec.creatureType));
+  const sets = SPRITE_SETS.filter(spec => !options.only || options.only.includes(spec.key));
 
-  // Monsters one at a time: their animations already run three jobs at once
-  for (const spec of monsters) {
+  // Sets one at a time: their animations already run several jobs at once
+  for (const spec of sets) {
     try {
-      await generateMonster(spec, manifest, options);
+      await generateSpriteSet(spec, manifest, options);
     } catch (error) {
       log(`${spec.name} failed: ${(error as Error).message}`);
     }

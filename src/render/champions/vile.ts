@@ -1,10 +1,27 @@
 /**
- * Vile: default circle body and the dark soul auto-attack projectile.
+ * Vile: a hooded archer drawn from generated sprite strips (idle, walk,
+ * attack, and Q/E/R animations; scripts/generate-sprites.ts), and the dark
+ * soul auto-attack projectile. Without the strips he's the default circle.
  * Vile's traps are synced as wards (src/render/entities/ward.ts).
  */
 
 import type { EntityRenderContext } from "@/render/entities/types";
 import type { ChampionRendererEntry } from "./types";
+import { createStripBodyRenderer, stripImages, type ChampionStrips } from "./stripBody";
+
+const VILE_STRIPS: ChampionStrips = {
+  idle: "/assets/champs/vile/idle.png",
+  walk: "/assets/champs/vile/walk.png",
+  attack: "/assets/champs/vile/attack.png",
+  abilities: {
+    vile_black_arrows: "/assets/champs/vile/q.png",
+    vile_roots_of_vilix: "/assets/champs/vile/e.png",
+    vile_restoration_of_vilix: "/assets/champs/vile/r.png",
+  },
+};
+
+/** World units per sprite pixel: about 55 tall, like Vex */
+const VILE_SCALE = 0.6;
 
 /**
  * Vile's dark soul auto-attack - eerie purple/black orb.
@@ -70,8 +87,8 @@ function renderVileAutoProjectile(
  * Vile renderer entry.
  */
 export const vileRenderer: ChampionRendererEntry = {
-  images: [],
-  createBodyRenderer: null,
+  images: stripImages(VILE_STRIPS),
+  createBodyRenderer: (rc) => createStripBodyRenderer(VILE_STRIPS, VILE_SCALE, rc),
   projectiles: {
     vile_auto: renderVileAutoProjectile,
   },
