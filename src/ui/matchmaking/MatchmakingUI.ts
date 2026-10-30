@@ -29,6 +29,7 @@ import type {
   MatchData,
   MatchmakingUICallbacks,
 } from "./types";
+import { startTipRotation, showRandomTip } from "./tips";
 // Re-export for external use
 export type {
   ScreenId,
@@ -42,19 +43,6 @@ console.log("[MatchmakingUI] Module loaded");
 console.log("[MatchmakingUI] getAbilityDefinition:", typeof getAbilityDefinition);
 console.log("[MatchmakingUI] ABILITY_DEFINITIONS:", ABILITY_DEFINITIONS);
 console.log("[MatchmakingUI] Test lookup warrior_slash:", getAbilityDefinition("warrior_slash"));
-
-/**
- * Tips to display randomly.
- */
-const TIPS = [
-  "Tip: Use QWER for abilities, right-click to move",
-  "Tip: Press P to open the shop",
-  "Tip: Last hitting minions gives bonus gold",
-  "Tip: Stay behind your minions to avoid tower damage",
-  "Tip: Press TAB to see the scoreboard",
-  "Tip: Wards reveal invisible enemies",
-  "Tip: Killing dragon gives team-wide buffs",
-];
 
 /**
  * Champion icons (emoji placeholders).
@@ -204,10 +192,10 @@ export class MatchmakingUI {
     this.setupEventListeners();
 
     // Start tip rotation
-    this.startTipRotation();
+    startTipRotation(this.tipText);
 
     // Show random tip
-    this.showRandomTip();
+    showRandomTip(this.tipText);
   }
 
   /**
@@ -1186,24 +1174,6 @@ export class MatchmakingUI {
     }
     this.showScreen("error");
     this.stopQueueTimer();
-  }
-
-  /**
-   * Start tip rotation.
-   */
-  private startTipRotation(): void {
-    setInterval(() => {
-      this.showRandomTip();
-    }, 10000);
-  }
-
-  /**
-   * Show a random tip.
-   */
-  private showRandomTip(): void {
-    if (!this.tipText) return;
-    const tip = TIPS[Math.floor(Math.random() * TIPS.length)];
-    this.tipText.textContent = tip;
   }
 
   /**
