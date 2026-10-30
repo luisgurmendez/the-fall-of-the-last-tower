@@ -42,6 +42,7 @@ export type StatModificationType =
   | 'movement_speed'
   | 'health_regen'
   | 'mana_regen'
+  | 'ability_haste'
   | 'crit_chance'
   | 'crit_damage'
   | 'lifesteal'

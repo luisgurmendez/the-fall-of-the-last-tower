@@ -82,6 +82,30 @@ export interface GoldNumber {
 }
 
 /**
+ * A cleared jungle camp and when it comes back.
+ */
+export interface CampTimer {
+  campId: string;
+  creatureType: string;
+  x: number;
+  y: number;
+  /** Game time (seconds) when the camp respawns */
+  respawnAt: number;
+}
+
+/**
+ * A message shown in the middle of the screen for a few seconds.
+ */
+export interface Announcement {
+  text: string;
+  detail?: string;
+  color: string;
+  startTime: number;
+  /** ms */
+  duration: number;
+}
+
+/**
  * Floating XP number for visual feedback.
  */
 export interface XpNumber {
@@ -175,9 +199,16 @@ export class OnlineStateManager {
   private xpNumbers: XpNumber[] = [];
   private static readonly XP_NUMBER_DURATION = 1200; // ms
 
+  // Cleared jungle camps waiting to respawn (campId -> timer)
+  private campTimers: Map<string, CampTimer> = new Map();
+
+  // Big moments to announce on screen (dragon slain, ...)
+  private announcements: Announcement[] = [];
+
   // Ability visual effects
   private abilityEffects: AbilityEffect[] = [];
   private static readonly ABILITY_EFFECT_DURATION = 300; // ms (quick flash)
+  private static readonly ANNOUNCEMENT_DURATION = 4000; // ms
 
   constructor(matchData: MatchData) {
     this.matchData = matchData;
@@ -316,6 +347,27 @@ export class OnlineStateManager {
             duration: OnlineStateManager.GOLD_NUMBER_DURATION,
           });
         }
+        break;
+      }
+      case GameEventType.CAMP_CLEARED: {
+        this.campTimers.set(event.data.campId as string, {
+          campId: event.data.campId as string,
+          creatureType: event.data.creatureType as string,
+          x: event.data.x as number,
+          y: event.data.y as number,
+          respawnAt: event.data.respawnAt as number,
+        });
+        break;
+      }
+      case GameEventType.DRAGON_KILLED: {
+        const allied = event.data.side === this.localSide;
+        this.announcements.push({
+          text: allied ? 'Your team slew the Dragon!' : 'The enemy team slew the Dragon!',
+          detail: "Dragon's Might: +8% attack damage and ability power",
+          color: allied ? '#5dade2' : '#ec7063',
+          startTime: now,
+          duration: OnlineStateManager.ANNOUNCEMENT_DURATION,
+        });
         break;
       }
       case GameEventType.XP_EARNED: {
@@ -491,6 +543,24 @@ export class OnlineStateManager {
    */
   getGameTime(): number {
     return this.gameTime;
+  }
+
+  /**
+   * Jungle camps waiting to respawn (expired timers are dropped).
+   */
+  getCampTimers(): CampTimer[] {
+    for (const [campId, timer] of this.campTimers) {
+      if (timer.respawnAt <= this.gameTime) this.campTimers.delete(campId);
+    }
+    return Array.from(this.campTimers.values());
+  }
+
+  /**
+   * Announcements still on screen (expired ones are dropped).
+   */
+  getAnnouncements(now = Date.now()): Announcement[] {
+    this.announcements = this.announcements.filter(a => now - a.startTime < a.duration);
+    return this.announcements;
   }
 
   /**

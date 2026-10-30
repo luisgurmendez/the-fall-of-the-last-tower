@@ -46,6 +46,71 @@ const SPRITES = {
 };
 
 /**
+ * How each creature type looks: which sprite, its size, a color filter, and
+ * for epic monsters a glowing aura and a name plate.
+ */
+interface CreatureLook {
+  sprite: "SPIDER" | "BEAR";
+  scale: number;
+  filter?: string;
+  aura?: string;
+  name?: string;
+}
+
+const CREATURE_LOOKS: Record<string, CreatureLook> = {
+  spider: { sprite: "SPIDER", scale: 0.4 },
+  wolf: { sprite: "BEAR", scale: 0.3, filter: "grayscale(0.7) brightness(0.85)" },
+  gromp: { sprite: "BEAR", scale: 0.38, filter: "hue-rotate(70deg) saturate(1.3)" },
+  blue_buff: {
+    sprite: "BEAR",
+    scale: 0.55,
+    filter: "hue-rotate(185deg) saturate(1.5)",
+    aura: "74, 163, 255",
+    name: "Azure Warden",
+  },
+  red_buff: {
+    sprite: "BEAR",
+    scale: 0.55,
+    filter: "hue-rotate(-25deg) saturate(2) brightness(0.95)",
+    aura: "255, 85, 51",
+    name: "Ember Brute",
+  },
+  dragon: {
+    sprite: "BEAR",
+    scale: 0.85,
+    filter: "hue-rotate(250deg) saturate(1.7)",
+    aura: "255, 140, 26",
+    name: "Dragon",
+  },
+};
+
+const DEFAULT_LOOK: CreatureLook = { sprite: "BEAR", scale: 0.4 };
+
+/**
+ * Pulsing glow under epic monsters.
+ */
+function renderAura(ctx: CanvasRenderingContext2D, rgb: string, radius: number, time: number): void {
+  const pulse = 0.75 + Math.sin(time * 3) * 0.25;
+  const glow = ctx.createRadialGradient(0, 8, radius * 0.2, 0, 8, radius);
+  glow.addColorStop(0, `rgba(${rgb}, ${0.45 * pulse})`);
+  glow.addColorStop(1, `rgba(${rgb}, 0)`);
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.ellipse(0, 8, radius, radius * 0.55, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Motes drifting up around the monster
+  for (let i = 0; i < 5; i++) {
+    const phase = (time * 0.6 + i / 5) % 1;
+    const angle = (i / 5) * Math.PI * 2 + time * 0.5;
+    ctx.fillStyle = `rgba(${rgb}, ${0.8 * (1 - phase)})`;
+    ctx.beginPath();
+    ctx.arc(Math.cos(angle) * radius * 0.6, 8 - phase * radius * 0.9, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+/**
  * Jungle creature sprite sheets to preload.
  */
 export const JUNGLE_CREATURE_IMAGES = [
@@ -68,10 +133,14 @@ export function renderJungleCamp(
   rc: EntityRenderContext,
 ): void {
   const creatureType = (snapshot as any).creatureType || "gromp";
+  const look = CREATURE_LOOKS[creatureType] ?? DEFAULT_LOOK;
+  const spriteConfig = SPRITES[look.sprite];
+  // Bars and markers sit above the sprite, which grows with its scale
+  const sizeFactor = look.scale / spriteConfig.SCALE;
 
-  // Use spider sprite for small creatures, bear for larger ones
-  const isSpider = creatureType === "spider";
-  const spriteConfig = isSpider ? SPRITES.SPIDER : SPRITES.BEAR;
+  if (look.aura) {
+    renderAura(ctx, look.aura, 45 * sizeFactor, rc.animationTime);
+  }
 
   // Determine animation state
   const isAttacking = state.isAttacking;
@@ -84,13 +153,13 @@ export function renderJungleCamp(
   let frameCount: number;
 
   if (isAttacking) {
-    spriteSrc = isSpider ? SPRITES.SPIDER.ATTACK : SPRITES.BEAR.ATTACK;
+    spriteSrc = spriteConfig.ATTACK;
     frameCount = spriteConfig.ATTACK_FRAMES;
   } else if (isMoving) {
-    spriteSrc = isSpider ? SPRITES.SPIDER.RUN : SPRITES.BEAR.RUN;
+    spriteSrc = spriteConfig.RUN;
     frameCount = spriteConfig.RUN_FRAMES;
   } else {
-    spriteSrc = isSpider ? SPRITES.SPIDER.IDLE : SPRITES.BEAR.IDLE;
+    spriteSrc = spriteConfig.IDLE;
     frameCount = spriteConfig.IDLE_FRAMES;
   }
 
@@ -111,6 +180,9 @@ export function renderJungleCamp(
     if (!state.facingRight) {
       ctx.scale(-1, 1);
     }
+    if (look.filter) {
+      ctx.filter = look.filter;
+    }
 
     drawSpriteFrame(
       ctx,
@@ -118,7 +190,7 @@ export function renderJungleCamp(
       srcX,
       spriteConfig.FRAME_WIDTH,
       spriteConfig.FRAME_HEIGHT,
-      spriteConfig.SCALE,
+      look.scale,
       outlineColor,
     );
 
@@ -140,14 +212,23 @@ export function renderJungleCamp(
       ctx,
       snapshot.health,
       snapshot.maxHealth,
-      40,
-      -30,
+      look.name ? 56 : 40,
+      -30 * sizeFactor,
       HEALTH_BAR_COLORS.ENEMY,
     );
   }
 
+  if (look.name) {
+    ctx.font = "bold 10px monospace";
+    ctx.textAlign = "center";
+    ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+    ctx.fillText(look.name, 1, -36 * sizeFactor + 1);
+    ctx.fillStyle = `rgb(${look.aura})`;
+    ctx.fillText(look.name, 0, -36 * sizeFactor);
+  }
+
   // Draw aggro indicator (red "!") when creature has a target
   if (snapshot.targetEntityId) {
-    renderAggroIndicator(ctx, -45, rc.animationTime);
+    renderAggroIndicator(ctx, (look.name ? -50 : -45) * sizeFactor, rc.animationTime);
   }
 }

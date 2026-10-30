@@ -1,11 +1,15 @@
 /**
  * ServerJungleCreature - Server-side jungle creature entity.
  *
- * Handles:
- * - Aggro behavior when champions enter sight range
- * - Leash behavior (returning home if pulled too far)
- * - Combat with attacking champions
- * - Gold/XP rewards on death
+ * Behavior (neutral monsters):
+ * - Passive until attacked; hitting one creature aggros its whole camp
+ * - Sticks to whoever attacked first; when that target dies or leaves,
+ *   switches to the closest other recent attacker
+ * - Resets when pulled past its leash or kited (no damage taken for a few
+ *   seconds while its target is out of reach): walks home invulnerable,
+ *   regenerating quickly, then heals to full
+ * - Ranged creatures (gromp, dragon) attack with projectiles
+ * - Gold/XP rewards on death; buff camps and the dragon grant buffs
  */
 
 import {
@@ -19,6 +23,8 @@ import {
 import { ServerEntity, type ServerEntityConfig } from './ServerEntity';
 import type { ServerGameContext } from '../game/ServerGameContext';
 import { RewardSystem } from '../systems/RewardSystem';
+import { grantJungleBuffs } from '../systems/JungleBuffs';
+import { ServerTargetedProjectile } from './ServerTargetedProjectile';
 
 type JungleCreatureType = keyof typeof MOBAConfig.JUNGLE.CREATURE_STATS;
 
@@ -58,6 +64,20 @@ export class ServerJungleCreature extends ServerEntity {
   private attackTarget: string | null = null;
   private attackCooldownTimer: number = 0;
   private moveTarget: Vector | null = null;
+  private returnPath: Vector[] = [];
+  /** Champions that damaged this creature, with the game time they last did */
+  private aggressors: Map<string, number> = new Map();
+  private lastDamagedAt = 0;
+
+  /** Reset if not damaged for this long while the target is out of reach (seconds) */
+  private static readonly KITE_RESET_TIME = 5;
+  /** Health regained per second while walking home, as a fraction of max health */
+  private static readonly RETURN_REGEN = 0.3;
+  /** Creatures that attack with projectiles, and how their projectiles look */
+  private static readonly RANGED: Partial<Record<string, { projectileType: string; damageType: DamageType; speed: number }>> = {
+    gromp: { projectileType: 'jungle_spit', damageType: 'magic', speed: 600 },
+    dragon: { projectileType: 'dragon_fire', damageType: 'magic', speed: 700 },
+  };
 
   constructor(config: ServerJungleCreatureConfig) {
     // Jungle creatures are neutral - hostile to all players
@@ -127,16 +147,13 @@ export class ServerJungleCreature extends ServerEntity {
       this.attackCooldownTimer -= dt;
     }
 
-    // State machine
+    // State machine (idle creatures wait to be attacked)
     switch (this.aiState) {
-      case 'idle':
-        this.updateIdle(dt, context);
-        break;
       case 'aggro':
-        this.updateAggro(dt, context);
+        this.updateAggro(context);
         break;
       case 'returning':
-        this.updateReturning(dt, context);
+        this.updateReturning(dt);
         break;
     }
 
@@ -145,122 +162,147 @@ export class ServerJungleCreature extends ServerEntity {
   }
 
   /**
-   * Idle state - look for champions to aggro.
+   * Whether this creature is walking home after a reset (it can't be damaged).
    */
-  private updateIdle(dt: number, context: ServerGameContext): void {
-    // Look for nearby champions
-    const nearbyChampions = context.getAllChampions().filter(champ => {
-      if (champ.isDead) return false;
-      const distance = this.position.distanceTo(champ.position);
-      return distance <= this.sightRange;
-    });
+  isReturning(): boolean {
+    return this.aiState === 'returning';
+  }
 
-    if (nearbyChampions.length > 0) {
-      // Aggro on closest champion
-      let closest = nearbyChampions[0];
-      let closestDist = this.position.distanceTo(closest.position);
-      for (const champ of nearbyChampions) {
-        const dist = this.position.distanceTo(champ.position);
-        if (dist < closestDist) {
-          closest = champ;
-          closestDist = dist;
-        }
-      }
-      this.attackTarget = closest.id;
+  /**
+   * Start fighting a champion (called for every creature in the camp when one is hit).
+   */
+  aggroOn(attackerId: string, context: ServerGameContext): void {
+    if (this.isDead || this.aiState === 'returning') return;
+    this.aggressors.set(attackerId, context.getGameTime());
+    if (this.aiState === 'idle') {
       this.aiState = 'aggro';
+      this.attackTarget = attackerId;
+      this.lastDamagedAt = context.getGameTime();
     }
   }
 
   /**
-   * Aggro state - chase and attack target.
+   * Aggro state - chase and attack the target; reset when leashed or kited.
    */
-  private updateAggro(dt: number, context: ServerGameContext): void {
-    // Check leash distance
-    const distanceFromHome = this.position.distanceTo(this.homePosition);
-    if (distanceFromHome > this.leashRange) {
-      this.aiState = 'returning';
-      this.attackTarget = null;
-      this.moveTarget = this.homePosition.clone();
+  private updateAggro(context: ServerGameContext): void {
+    if (this.position.distanceTo(this.homePosition) > this.leashRange) {
+      this.startReturning(context);
       return;
     }
 
-    // Validate target
-    if (this.attackTarget) {
-      const target = context.getEntity(this.attackTarget);
-      if (!target || target.isDead) {
-        this.attackTarget = null;
-      }
-    }
-
-    // Find new target if needed
-    if (!this.attackTarget) {
-      const nearbyChampions = context.getAllChampions().filter(champ => {
-        if (champ.isDead) return false;
-        const distance = this.position.distanceTo(champ.position);
-        return distance <= this.sightRange;
-      });
-
-      if (nearbyChampions.length === 0) {
-        // No targets, return home
-        this.aiState = 'returning';
-        this.moveTarget = this.homePosition.clone();
+    let target = this.attackTarget ? context.getEntity(this.attackTarget) : undefined;
+    if (!target || target.isDead || !this.isWithinLeash(target)) {
+      target = this.findNextTarget(context);
+      if (!target) {
+        this.startReturning(context);
         return;
       }
-
-      // Target closest
-      let closest = nearbyChampions[0];
-      let closestDist = this.position.distanceTo(closest.position);
-      for (const champ of nearbyChampions) {
-        const dist = this.position.distanceTo(champ.position);
-        if (dist < closestDist) {
-          closest = champ;
-          closestDist = dist;
-        }
-      }
-      this.attackTarget = closest.id;
+      this.attackTarget = target.id;
     }
 
-    // Attack or chase
-    const target = context.getEntity(this.attackTarget!);
-    if (target) {
-      const distance = this.position.distanceTo(target.position);
-      if (distance <= this.attackRange + this.getRadius()) {
-        // In range - attack
-        this.moveTarget = null;
-        if (this.attackCooldownTimer <= 0) {
-          target.takeDamage(this.damage, 'physical', this.id, context);
+    const inRange = this.position.distanceTo(target.position) <= this.attackRange + this.getRadius() + target.getRadius();
 
-          // Emit attack event for client-side animation
-          context.addEvent(GameEventType.BASIC_ATTACK, {
-            entityId: this.id,
-            targetId: target.id,
-            animationDuration: 0.4,
-          });
+    // Kited: nobody has hit us for a while and we can't hit back
+    if (!inRange && context.getGameTime() - this.lastDamagedAt > ServerJungleCreature.KITE_RESET_TIME) {
+      this.startReturning(context);
+      return;
+    }
 
-          this.attackCooldownTimer = this.attackCooldown;
-        }
-      } else {
-        // Chase
-        this.moveTarget = target.position.clone();
+    if (inRange) {
+      this.moveTarget = null;
+      if (this.attackCooldownTimer <= 0) {
+        this.attack(target, context);
+        this.attackCooldownTimer = this.attackCooldown;
       }
+    } else {
+      this.moveTarget = target.position.clone();
     }
   }
 
   /**
-   * Returning state - go back home and heal.
+   * Whether a target is still close enough to the camp to fight.
    */
-  private updateReturning(dt: number, context: ServerGameContext): void {
-    const distanceToHome = this.position.distanceTo(this.homePosition);
+  private isWithinLeash(target: ServerEntity): boolean {
+    return target.position.distanceTo(this.homePosition) <= this.leashRange + this.attackRange;
+  }
 
-    if (distanceToHome < 10) {
-      // Reached home
-      this.position.setFrom(this.homePosition);
-      this.moveTarget = null;
-      this.aiState = 'idle';
-      // Heal to full
-      this.health = this.maxHealth;
+  /**
+   * The closest champion that recently damaged this creature and is still within the leash.
+   */
+  private findNextTarget(context: ServerGameContext): ServerEntity | undefined {
+    const now = context.getGameTime();
+    let best: ServerEntity | undefined;
+    let bestDistance = Infinity;
+    for (const [attackerId, time] of this.aggressors) {
+      const attacker = context.getEntity(attackerId);
+      if (!attacker || attacker.isDead || now - time > ServerJungleCreature.KITE_RESET_TIME) {
+        this.aggressors.delete(attackerId);
+        continue;
+      }
+      if (!this.isWithinLeash(attacker)) continue;
+      const distance = this.position.distanceTo(attacker.position);
+      if (distance < bestDistance) {
+        best = attacker;
+        bestDistance = distance;
+      }
+    }
+    return best;
+  }
+
+  private attack(target: ServerEntity, context: ServerGameContext): void {
+    context.addEvent(GameEventType.BASIC_ATTACK, {
+      entityId: this.id,
+      targetId: target.id,
+      animationDuration: 0.4,
+    });
+
+    const ranged = ServerJungleCreature.RANGED[this.creatureType];
+    if (ranged) {
+      context.addEntity(new ServerTargetedProjectile({
+        id: context.generateEntityId(),
+        position: this.position.clone(),
+        side: this.side,
+        targetId: target.id,
+        speed: ranged.speed,
+        radius: 8,
+        sourceId: this.id,
+        projectileType: ranged.projectileType,
+        damage: this.damage,
+        damageType: ranged.damageType,
+      }));
     } else {
-      this.moveTarget = this.homePosition.clone();
+      target.takeDamage(this.damage, 'physical', this.id, context);
+    }
+  }
+
+  /**
+   * Give up the fight and walk home around walls.
+   */
+  private startReturning(context: ServerGameContext): void {
+    this.aiState = 'returning';
+    this.attackTarget = null;
+    this.aggressors.clear();
+    this.returnPath = context.terrain.findPath(this.position, this.homePosition) ?? [this.homePosition.clone()];
+    this.moveTarget = this.returnPath.shift() ?? null;
+  }
+
+  /**
+   * Returning state - walk home regenerating; full health on arrival.
+   */
+  private updateReturning(dt: number): void {
+    this.health = Math.min(this.maxHealth, this.health + this.maxHealth * ServerJungleCreature.RETURN_REGEN * dt);
+
+    if (!this.moveTarget) {
+      if (this.returnPath.length > 0) {
+        this.moveTarget = this.returnPath.shift()!;
+      } else if (this.position.distanceTo(this.homePosition) < 10) {
+        this.position.setFrom(this.homePosition);
+        this.aiState = 'idle';
+        this.health = this.maxHealth;
+      } else {
+        // Pushed off the path (by units or walls): head straight home
+        this.moveTarget = this.homePosition.clone();
+      }
     }
   }
 
@@ -283,18 +325,35 @@ export class ServerJungleCreature extends ServerEntity {
   }
 
   /**
-   * Override takeDamage to handle aggro.
+   * Override takeDamage: creatures walking home can't be hurt, and getting
+   * hit aggros the whole camp.
    */
   override takeDamage(amount: number, type: DamageType, sourceId?: string, context?: ServerGameContext): number {
+    if (this.aiState === 'returning') return 0;
+
     const actualDamage = super.takeDamage(amount, type, sourceId, context);
 
-    // Aggro on attacker if idle
-    if (actualDamage > 0 && sourceId && this.aiState === 'idle') {
-      this.attackTarget = sourceId;
-      this.aiState = 'aggro';
+    if (actualDamage > 0 && sourceId && context && !this.isDead) {
+      this.lastDamagedAt = context.getGameTime();
+      if (this.aiState === 'idle') {
+        this.alertCamp(sourceId, context);
+      } else {
+        this.aggressors.set(sourceId, context.getGameTime());
+      }
     }
 
     return actualDamage;
+  }
+
+  /**
+   * Every creature in this camp starts fighting the attacker.
+   */
+  private alertCamp(attackerId: string, context: ServerGameContext): void {
+    for (const entity of context.getAllEntities()) {
+      if (entity.entityType !== EntityType.JUNGLE_CAMP || entity.isDead) continue;
+      const creature = entity as ServerJungleCreature;
+      if (creature.campId === this.campId) creature.aggroOn(attackerId, context);
+    }
   }
 
   /**
@@ -303,9 +362,10 @@ export class ServerJungleCreature extends ServerEntity {
   protected onDeath(killerId?: string, context?: ServerGameContext): void {
     super.onDeath(killerId, context);
 
-    // Award XP/gold to killer and nearby allies
+    // Award XP/gold to killer and nearby allies, and buffs for buff camps and the dragon
     if (context) {
       RewardSystem.awardKillRewards(this, killerId, context);
+      grantJungleBuffs(this, killerId, context);
     }
 
     this.attackTarget = null;

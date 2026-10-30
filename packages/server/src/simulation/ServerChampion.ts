@@ -647,6 +647,8 @@ export class ServerChampion extends ServerEntity {
 
     // Create callback to handle on-hit effects when projectile lands
     const onHitCallback = (hitTarget: ServerEntity, hitDamage: number, hitContext: ServerGameContext) => {
+      this.applyOnHitBuffs(hitTarget);
+
       // Dispatch on_hit trigger for passives
       passiveTriggerSystem.dispatchTrigger('on_hit', this, hitContext, {
         target: hitTarget,
@@ -695,6 +697,8 @@ export class ServerChampion extends ServerEntity {
       { attackDamage, abilityPower },
       context
     );
+
+    this.applyOnHitBuffs(target);
 
     // Dispatch on_hit trigger AFTER attack lands
     passiveTriggerSystem.dispatchTrigger('on_hit', this, context, {
@@ -1558,6 +1562,7 @@ export class ServerChampion extends ServerEntity {
       'movement_speed': 'movementSpeed',
       'health_regen': 'healthRegen',
       'mana_regen': 'resourceRegen',
+      'ability_haste': 'abilityHaste',
       'crit_chance': 'critChance',
       'crit_damage': 'critDamage',
     };
@@ -1688,6 +1693,19 @@ export class ServerChampion extends ServerEntity {
    */
   hasEffect(effectId: string): boolean {
     return this.activeEffects.some(e => e.definitionId === effectId);
+  }
+
+  /**
+   * On-hit effects from jungle buffs: with red buff, basic attacks burn and
+   * slow champions and minions.
+   */
+  private applyOnHitBuffs(target: ServerEntity): void {
+    if (!this.getEffect('crest_of_cinders') || target.isDead) return;
+    if (target.entityType !== EntityType.CHAMPION && target.entityType !== EntityType.MINION) return;
+
+    const affected = target as ServerEntity & { applyEffect(effectId: string, duration: number, sourceId?: string): void };
+    affected.applyEffect('cinders_burn', 3, this.id);
+    affected.applyEffect('slow_10', 1.5, this.id);
   }
 
   /**

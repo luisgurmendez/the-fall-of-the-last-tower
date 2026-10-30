@@ -209,7 +209,7 @@ export const MOBAConfig = {
       gromp: {
         health: 500,
         damage: 30,
-        attackRange: 80,
+        attackRange: 250, // Spits from range
         attackCooldown: 1.5,
         movementSpeed: 40,
         sightRange: 180,
@@ -305,7 +305,7 @@ export const MOBAConfig = {
       dragon: {
         health: 2500,
         damage: 100,
-        attackRange: 150,
+        attackRange: 300, // Breathes fire from range
         attackCooldown: 2.0,
         movementSpeed: 50,
         sightRange: 250,

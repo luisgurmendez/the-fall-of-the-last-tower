@@ -25,6 +25,77 @@ const SPRITES = {
 export const PROJECTILE_IMAGES = [SPRITES.ARROW.BLUE, SPRITES.ARROW.RED];
 
 /**
+ * Projectiles of siege minions and jungle creatures, drawn as shapes.
+ */
+const SPECIAL_PROJECTILES: Record<
+  string,
+  (ctx: CanvasRenderingContext2D, angle: number, time: number) => void
+> = {
+  // Siege minion cannonball with a smoke puff behind it
+  minion_siege: (ctx, angle) => {
+    ctx.save();
+    ctx.rotate(angle);
+    ctx.fillStyle = "rgba(180, 180, 180, 0.35)";
+    ctx.beginPath();
+    ctx.arc(-8, 0, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#2b2b2b";
+    ctx.beginPath();
+    ctx.arc(0, 0, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#6b6b6b";
+    ctx.beginPath();
+    ctx.arc(-2, -2, 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  },
+  // Gromp spit: a wobbling green glob
+  jungle_spit: (ctx, angle, time) => {
+    const wobble = 1 + Math.sin(time * 20) * 0.15;
+    ctx.save();
+    ctx.rotate(angle);
+    ctx.fillStyle = "rgba(120, 200, 60, 0.4)";
+    ctx.beginPath();
+    ctx.ellipse(-6, 0, 6, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#7ac943";
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 6 * wobble, 4 / wobble, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#d4f5a8";
+    ctx.beginPath();
+    ctx.arc(1, -1, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  },
+  // Dragon fire: a flickering fireball with a flame tail
+  dragon_fire: (ctx, angle, time) => {
+    const flicker = 1 + Math.sin(time * 30) * 0.1;
+    ctx.save();
+    ctx.rotate(angle);
+    const tail = ctx.createLinearGradient(-24, 0, 0, 0);
+    tail.addColorStop(0, "rgba(255, 80, 0, 0)");
+    tail.addColorStop(1, "rgba(255, 140, 0, 0.7)");
+    ctx.fillStyle = tail;
+    ctx.beginPath();
+    ctx.moveTo(-24, 0);
+    ctx.lineTo(0, -6);
+    ctx.lineTo(0, 6);
+    ctx.closePath();
+    ctx.fill();
+    const core = ctx.createRadialGradient(0, 0, 1, 0, 0, 9 * flicker);
+    core.addColorStop(0, "#fff6c2");
+    core.addColorStop(0.4, "#ffb23e");
+    core.addColorStop(1, "rgba(255, 70, 0, 0)");
+    ctx.fillStyle = core;
+    ctx.beginPath();
+    ctx.arc(0, 0, 9 * flicker, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  },
+};
+
+/**
  * Render a projectile.
  */
 export function renderProjectile(
@@ -81,6 +152,8 @@ export function renderProjectile(
       ctx.fill();
       ctx.restore();
     }
+  } else if (SPECIAL_PROJECTILES[projectileType]) {
+    SPECIAL_PROJECTILES[projectileType](ctx, angle, rc.animationTime);
   } else if (renderChampionProjectile) {
     renderChampionProjectile(ctx, snapshot, angle, rc);
   } else {

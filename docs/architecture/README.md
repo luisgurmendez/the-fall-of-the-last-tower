@@ -23,6 +23,7 @@ This directory contains detailed documentation for the Siege MOBA architecture.
 | [effects-and-buffs.md](effects-and-buffs.md) | Buffs, debuffs, crowd control, stat modifiers |
 | [collision.md](collision.md) | Unit collision detection, separation, spatial grid |
 | [map.md](map.md) | Map layout, walls, river, pathfinding and terrain collision |
+| [jungle.md](jungle.md) | Camps, neutral monster AI, buffs, dragon and camp timers |
 | [minions.md](minions.md) | Minion waves, lane following, targeting and call for help |
 
 ### Tooling

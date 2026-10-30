@@ -219,6 +219,52 @@ const EFFECT_DISPLAY_INFO: Record<string, EffectDisplayInfo> = {
   // ===================
   // Over-Time Effects
   // ===================
+  // ===================
+  // Jungle Buffs
+  // ===================
+  crest_of_insight: {
+    name: 'Crest of Insight',
+    description: 'Blue buff: +15 ability haste.',
+    category: 'buff',
+    icon: 'B',
+    color: '#3498db',
+  },
+  crest_of_insight_regen: {
+    name: 'Crest of Insight',
+    description: 'Blue buff: +4 mana/energy per second.',
+    category: 'buff',
+    icon: '+',
+    color: '#3498db',
+  },
+  crest_of_cinders: {
+    name: 'Crest of Cinders',
+    description: 'Red buff: basic attacks burn and slow. +4 health per second.',
+    category: 'buff',
+    icon: 'R',
+    color: '#e74c3c',
+  },
+  cinders_burn: {
+    name: 'Cinders',
+    description: 'Burning from a red buff attack.',
+    category: 'debuff',
+    icon: '*',
+    color: '#e67e22',
+  },
+  dragons_might: {
+    name: "Dragon's Might",
+    description: 'Dragon slain: +8% attack damage.',
+    category: 'buff',
+    icon: 'D',
+    color: '#e67e22',
+  },
+  dragons_might_power: {
+    name: "Dragon's Might",
+    description: 'Dragon slain: +8% ability power.',
+    category: 'buff',
+    icon: 'D',
+    color: '#9b59b6',
+  },
+
   burn: {
     name: 'Burning',
     description: 'Taking magic damage over time.',

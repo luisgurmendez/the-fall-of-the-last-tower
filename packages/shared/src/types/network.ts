@@ -576,6 +576,8 @@ export enum GameEventType {
   GOLD_EARNED = 15,
   /** XP earned by a champion */
   XP_EARNED = 16,
+  /** A jungle camp was cleared ({ campId, x, y, respawnAt }) */
+  CAMP_CLEARED = 17,
 }
 
 /**

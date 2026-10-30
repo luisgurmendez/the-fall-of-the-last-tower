@@ -64,6 +64,7 @@ For detailed documentation on the multiplayer MOBA systems, see the following fi
 | **Collision** | [docs/architecture/collision.md](docs/architecture/collision.md) | Unit collision detection, separation, spatial grid |
 | **VFX** | [docs/architecture/vfx.md](docs/architecture/vfx.md) | Visual effects system, particles, ability VFX |
 | **Map & Terrain** | [docs/architecture/map.md](docs/architecture/map.md) | Layout, walls, river, pathfinding, wall collision |
+| **Jungle** | [docs/architecture/jungle.md](docs/architecture/jungle.md) | Camps, neutral monster AI, buffs, dragon, camp timers |
 | **Lanes & Minions** | [docs/architecture/minions.md](docs/architecture/minions.md) | Waves, lane following, minion targeting and call for help |
 | **Simulation** | [docs/architecture/simulation.md](docs/architecture/simulation.md) | Headless scenarios, bots, PNG frames, HTTP sandbox for agents |
 
@@ -99,6 +100,7 @@ For detailed documentation on the multiplayer MOBA systems, see the following fi
 | Collision detection, unit separation, spatial grid | `collision.md` |
 | Visual effects, particles, ability VFX | `vfx.md` |
 | Map layout, walls, pathfinding, terrain collision | `map.md` |
+| Jungle camps, creature AI, jungle buffs | `jungle.md` |
 | Minion waves, lane following, minion targeting | `minions.md` |
 | Simulation framework, scenarios, bots | `simulation.md` |
 

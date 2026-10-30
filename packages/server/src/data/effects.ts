@@ -635,7 +635,92 @@ export const LumeGuidingGlowAmpEffect: ServerEffectDefinition & { damageAmpMagic
 // Effect Registry
 // ===================
 
+// ===================
+// Jungle Buffs (granted for killing buff camps and the dragon)
+// ===================
+
+/** Blue buff: cooldowns */
+export const CrestOfInsightEffect: ServerStatEffectDef = {
+  id: 'crest_of_insight',
+  name: 'Crest of Insight',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+  stat: 'ability_haste',
+  flatValue: 15,
+};
+
+/** Blue buff: mana/energy regeneration */
+export const CrestOfInsightRegenEffect: ServerStatEffectDef = {
+  id: 'crest_of_insight_regen',
+  name: 'Crest of Insight',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+  stat: 'mana_regen',
+  flatValue: 4,
+};
+
+/** Red buff: health regeneration; basic attacks burn and slow (see ServerChampion.applyOnHitBuffs) */
+export const CrestOfCindersEffect: ServerStatEffectDef = {
+  id: 'crest_of_cinders',
+  name: 'Crest of Cinders',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+  stat: 'health_regen',
+  flatValue: 4,
+};
+
+/** Red buff on-hit burn */
+export const CindersBurnEffect: ServerOverTimeEffectDef = {
+  id: 'cinders_burn',
+  name: 'Cinders',
+  category: 'debuff',
+  stackBehavior: 'refresh',
+  cleansable: true,
+  persistsThroughDeath: false,
+  otType: 'damage',
+  valuePerTick: 6,
+  tickInterval: 0.5,
+  damageType: 'true',
+};
+
+/** Dragon: team-wide attack damage */
+export const DragonsMightEffect: ServerStatEffectDef = {
+  id: 'dragons_might',
+  name: "Dragon's Might",
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: true,
+  stat: 'attack_damage',
+  percentValue: 0.08,
+};
+
+/** Dragon: team-wide ability power */
+export const DragonsMightPowerEffect: ServerStatEffectDef = {
+  id: 'dragons_might_power',
+  name: "Dragon's Might",
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: true,
+  stat: 'ability_power',
+  percentValue: 0.08,
+};
+
 export const ALL_SERVER_EFFECTS: AnyServerEffectDef[] = [
+  // Jungle buffs
+  CrestOfInsightEffect,
+  CrestOfInsightRegenEffect,
+  CrestOfCindersEffect,
+  CindersBurnEffect,
+  DragonsMightEffect,
+  DragonsMightPowerEffect,
   // CC
   StunEffect,
   SilenceEffect,

@@ -7,7 +7,7 @@
  * - Respawning after camp is cleared
  */
 
-import { Vector, MOBAConfig } from '@siege/shared';
+import { Vector, MOBAConfig, GameEventType } from '@siege/shared';
 import { ServerJungleCreature } from './ServerJungleCreature';
 import type { ServerGameContext } from '../game/ServerGameContext';
 import { Logger } from '../utils/Logger';
@@ -107,6 +107,15 @@ export class ServerJungleCamp {
         this.respawnTimer = this.respawnTime;
         this.creatureIds.clear();
         Logger.game.debug(`[ServerJungleCamp] Camp ${this.id} cleared, respawning in ${this.respawnTime}s`);
+
+        // Lets clients show a respawn timer for the camp
+        context.addEvent(GameEventType.CAMP_CLEARED, {
+          campId: this.id,
+          creatureType: this.creatureType,
+          x: this.position.x,
+          y: this.position.y,
+          respawnAt: context.getGameTime() + this.respawnTime,
+        });
       }
     }
 
