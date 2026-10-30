@@ -41,6 +41,7 @@ import { drawStatsPanel } from '@/ui/hud/statsPanel';
 import { drawPortraitPanel } from '@/ui/hud/portrait';
 import { drawPassivePanel, drawAbilitiesPanel } from '@/ui/hud/abilityBar';
 import { drawItemsPanel, drawWardPanel, getItemIcon, getItemCategoryColor } from '@/ui/hud/items';
+import { drawActiveEffects, drawBuffs } from '@/ui/hud/effectIcons';
 // Re-export for external use
 export type { ItemSlot, AbilitySlot };
 export type {
@@ -306,11 +307,11 @@ export class ChampionHUD extends ScreenEntity {
       drawWardPanel(ctx, wardX, wardY, this.champion);
 
       // 7. Draw active effects on top of HUD (from the right)
-      this.drawActiveEffects(ctx, startX + hudWidth - PANEL.padding, startY - PANEL.effectSize - 8);
+      drawActiveEffects(ctx, startX + hudWidth - PANEL.padding, startY - PANEL.effectSize - 8, this.champion, this.hud);
 
       // 8. Draw legacy buffs (stat modifiers, if any)
       // These are separate from active effects and displayed in a second row if needed
-      this.drawBuffs(ctx, startX + hudWidth - PANEL.padding, startY - PANEL.effectSize - PANEL.buffSize - 14);
+      drawBuffs(ctx, startX + hudWidth - PANEL.padding, startY - PANEL.effectSize - PANEL.buffSize - 14, this.champion, this.hud);
 
       // 9. Draw ability tooltip if hovering
       if (this.hud.hoverState.ability) {
@@ -390,171 +391,6 @@ export class ChampionHUD extends ScreenEntity {
       case 'E': return 4;
       case 'R': return 70;
       default: return 10;
-    }
-  }
-
-  /** Draw active buffs/effects on top of HUD (from right to left) */
-  private drawBuffs(ctx: CanvasRenderingContext2D, rightX: number, y: number): void {
-    if (!this.champion) return;
-    const buffs = this.champion.getBuffs();
-
-    // Clear old buff boxes
-    this.hud.buffBoxes.clear();
-
-    if (buffs.length === 0) return;
-
-    const size = PANEL.buffSize;
-    const spacing = PANEL.buffSpacing;
-
-    // Draw buffs from right to left
-    buffs.forEach((buff, index) => {
-      const x = rightX - (index + 1) * (size + spacing) + spacing;
-      // Cache position for hit testing
-      this.hud.buffBoxes.set(index, { x, y, size });
-      const isHovered = this.hud.hoverState.buff === index;
-      this.drawBuffIcon(ctx, x, y, size, buff.source, isHovered);
-    });
-  }
-
-  /** Draw a single buff icon */
-  private drawBuffIcon(
-    ctx: CanvasRenderingContext2D,
-    x: number,
-    y: number,
-    size: number,
-    source: string,
-    isHovered: boolean = false
-  ): void {
-    // Background (brighter when hovered)
-    ctx.fillStyle = isHovered ? HUD_COLORS.borderHighlight : HUD_COLORS.backgroundLight;
-    ctx.fillRect(x, y, size, size);
-
-    // Border (highlight when hovered)
-    if (isHovered) {
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 3;
-    } else {
-      ctx.strokeStyle = this.hud.config.accentColor;
-      ctx.lineWidth = 2;
-    }
-    ctx.strokeRect(x, y, size, size);
-
-    // Buff indicator (first letter of source or icon)
-    const label = source.charAt(0).toUpperCase();
-    RenderUtils.renderBitmapText(
-      ctx,
-      label,
-      x + size / 2,
-      y + size / 2 - 12,
-      { color: HUD_COLORS.text, size: 22, centered: true, shadow: false }
-    );
-  }
-
-  /** Draw active effects on top of HUD (from right to left) */
-  private drawActiveEffects(ctx: CanvasRenderingContext2D, rightX: number, y: number): void {
-    if (!this.champion) return;
-    const effects = this.champion.getActiveEffects();
-
-    // Clear old effect boxes
-    this.hud.effectBoxes.clear();
-
-    if (effects.length === 0) return;
-
-    const size = PANEL.effectSize;
-    const spacing = PANEL.effectSpacing;
-
-    // Draw effects from right to left
-    effects.forEach((effect, index) => {
-      const x = rightX - (index + 1) * (size + spacing) + spacing;
-      // Cache position for hit testing
-      this.hud.effectBoxes.set(index, { x, y, size });
-      const isHovered = this.hud.hoverState.effect === index;
-      this.drawEffectIcon(ctx, x, y, size, effect, isHovered);
-    });
-  }
-
-  /** Draw a single effect icon with radial cooldown-style timer */
-  private drawEffectIcon(
-    ctx: CanvasRenderingContext2D,
-    x: number,
-    y: number,
-    size: number,
-    effect: HUDActiveEffect,
-    isHovered: boolean = false
-  ): void {
-    const displayInfo = getEffectDisplayInfo(effect.definitionId);
-    const centerX = x + size / 2;
-    const centerY = y + size / 2;
-    const radius = size / 2 - 2;
-
-    // Background based on category
-    const bgColor = isHovered
-      ? HUD_COLORS.borderHighlight
-      : (displayInfo.category === 'buff' ? 'rgba(46, 204, 113, 0.3)' :
-         displayInfo.category === 'debuff' ? 'rgba(231, 76, 60, 0.3)' :
-         'rgba(155, 89, 182, 0.3)');
-    ctx.fillStyle = bgColor;
-    ctx.fillRect(x, y, size, size);
-
-    // Draw radial cooldown sweep (drains clockwise from top as time expires)
-    if (effect.timeRemaining > 0 && effect.totalDuration && effect.totalDuration > 0) {
-      const progress = effect.timeRemaining / effect.totalDuration; // 1 = full, 0 = expired
-
-      // Draw the "remaining time" arc as a semi-transparent overlay
-      ctx.save();
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-      ctx.beginPath();
-      ctx.moveTo(centerX, centerY);
-      // Arc from top (-π/2) clockwise by the expired portion
-      const expiredAngle = (1 - progress) * Math.PI * 2;
-      ctx.arc(centerX, centerY, radius + 2, -Math.PI / 2, -Math.PI / 2 + expiredAngle, false);
-      ctx.lineTo(centerX, centerY);
-      ctx.fill();
-      ctx.restore();
-    }
-
-    // Border with effect color (highlight when hovered)
-    if (isHovered) {
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 3;
-    } else {
-      ctx.strokeStyle = displayInfo.color;
-      ctx.lineWidth = 2;
-    }
-    ctx.strokeRect(x, y, size, size);
-
-    // Effect icon
-    RenderUtils.renderBitmapText(
-      ctx,
-      displayInfo.icon,
-      centerX,
-      centerY - 14,
-      { color: displayInfo.color, size: 26, centered: true, shadow: true }
-    );
-
-    // Duration timer at bottom (only show text for longer durations)
-    if (effect.timeRemaining > 0) {
-      const timerText = effect.timeRemaining >= 10
-        ? Math.floor(effect.timeRemaining).toString()
-        : effect.timeRemaining.toFixed(1);
-      RenderUtils.renderBitmapText(
-        ctx,
-        timerText,
-        centerX,
-        y + size - 16,
-        { color: HUD_COLORS.text, size: 16, centered: true, shadow: false }
-      );
-    }
-
-    // Stack count at top right if > 1
-    if (effect.stacks > 1) {
-      RenderUtils.renderBitmapText(
-        ctx,
-        `x${effect.stacks}`,
-        x + size - 4,
-        y + 2,
-        { color: '#FFD700', size: 14, rightAlign: true, shadow: true }
-      );
     }
   }
 
