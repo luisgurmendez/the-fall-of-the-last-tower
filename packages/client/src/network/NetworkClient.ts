@@ -38,6 +38,8 @@ export interface NetworkClientConfig {
   serverUrl: string;
   playerId: string;
   gameId: string;
+  /** Session token from an earlier connection, to resume the same player */
+  sessionToken?: string;
   reconnectAttempts?: number;
   reconnectDelay?: number;
   heartbeatInterval?: number;
@@ -75,6 +77,9 @@ export class NetworkClient {
   private handlers: NetworkEventHandlers = {};
   private state: ConnectionState = ConnectionState.DISCONNECTED;
 
+  // Issued by the server on first READY; required to resume this playerId
+  private sessionToken: string | null;
+
   // Input sequence tracking
   private inputSeq = 0;
   private pendingInputs: Map<number, ClientInput> = new Map();
@@ -106,6 +111,14 @@ export class NetworkClient {
       heartbeatInterval: 5000,
       ...config,
     };
+    this.sessionToken = config.sessionToken ?? null;
+  }
+
+  /**
+   * Get the session token issued by the server (null until the first READY).
+   */
+  getSessionToken(): string | null {
+    return this.sessionToken;
   }
 
   /**
@@ -346,6 +359,7 @@ export class NetworkClient {
       data: {
         playerId: this.config.playerId,
         championId,
+        sessionToken: this.sessionToken ?? undefined,
       },
     });
   }
@@ -412,10 +426,15 @@ export class NetworkClient {
           this.handlePong(message.data as { clientTimestamp: number; serverTimestamp: number });
           break;
 
-        case ServerMessageType.EVENT:
-          // Custom events (queue_joined, etc.)
-          (this.onEvent || this.handlers.onEvent)?.(message.data as { event: string });
+        case ServerMessageType.EVENT: {
+          // Custom events (session, queue_joined, etc.)
+          const event = message.data as { event: string; [key: string]: any };
+          if (event.event === 'session' && typeof event.sessionToken === 'string') {
+            this.sessionToken = event.sessionToken;
+          }
+          (this.onEvent || this.handlers.onEvent)?.(event);
           break;
+        }
       }
     } catch (error) {
       console.error('[NetworkClient] Failed to parse message:', error);

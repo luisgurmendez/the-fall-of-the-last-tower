@@ -7,7 +7,7 @@
 
 import { describe, it, expect, beforeEach } from 'bun:test';
 import { InputHandler, type InputValidationResult } from '../network/InputHandler';
-import { InputType, type ClientInput } from '@siege/shared';
+import { InputType, type ClientInput, type AbilitySlot } from '@siege/shared';
 
 // Helper to create mock inputs
 function createMoveInput(seq: number, x: number, y: number): ClientInput {
@@ -20,7 +20,7 @@ function createMoveInput(seq: number, x: number, y: number): ClientInput {
   } as ClientInput;
 }
 
-function createAbilityInput(seq: number, slot: number): ClientInput {
+function createAbilityInput(seq: number, slot: AbilitySlot): ClientInput {
   return {
     seq,
     type: InputType.ABILITY,
@@ -102,13 +102,50 @@ describe('InputHandler', () => {
       });
 
       it('should accept valid ABILITY inputs', () => {
-        const result = handler.queueInput(playerId, createAbilityInput(1, 0));
+        const result = handler.queueInput(playerId, createAbilityInput(1, 'Q'));
         expect(result.valid).toBe(true);
       });
 
       it('should accept valid STOP inputs', () => {
         const result = handler.queueInput(playerId, createStopInput(1));
         expect(result.valid).toBe(true);
+      });
+    });
+
+    describe('payload validation', () => {
+      const malformed: Array<[string, Record<string, unknown>]> = [
+        ['MOVE with string coordinate', { type: InputType.MOVE, targetX: 'abc', targetY: 0 }],
+        ['MOVE with missing coordinate', { type: InputType.MOVE, targetX: 10 }],
+        ['MOVE with null coordinate', { type: InputType.ATTACK_MOVE, targetX: null, targetY: 0 }],
+        ['TARGET_UNIT without entity id', { type: InputType.TARGET_UNIT }],
+        ['ABILITY with numeric slot', { type: InputType.ABILITY, slot: 0, targetType: 'none' }],
+        ['ABILITY with unknown slot', { type: InputType.ABILITY, slot: 'D', targetType: 'none' }],
+        ['ABILITY with string target', { type: InputType.ABILITY, slot: 'Q', targetType: 'position', targetX: '1', targetY: 0 }],
+        ['LEVEL_UP with unknown slot', { type: InputType.LEVEL_UP, slot: 'X' }],
+        ['BUY_ITEM with object id', { type: InputType.BUY_ITEM, itemId: { id: 'x' } }],
+        ['SELL_ITEM with fractional slot', { type: InputType.SELL_ITEM, slot: 1.5 }],
+        ['PLACE_WARD with unknown type', { type: InputType.PLACE_WARD, wardType: 'pink', x: 0, y: 0 }],
+        ['type given as enum name', { type: 'MOVE', targetX: 0, targetY: 0 }],
+      ];
+
+      for (const [name, fields] of malformed) {
+        it(`should reject ${name}`, () => {
+          const input = { seq: 1, clientTime: Date.now(), ...fields } as unknown as ClientInput;
+          expect(handler.queueInput(playerId, input).valid).toBe(false);
+        });
+      }
+
+      it('should reject a non-numeric sequence', () => {
+        const input = { seq: 'abc', type: InputType.STOP, clientTime: Date.now() } as unknown as ClientInput;
+        expect(handler.queueInput(playerId, input).reason).toBe('invalid_payload');
+      });
+
+      it('should accept ABILITY with a position target', () => {
+        const input = {
+          seq: 1, clientTime: Date.now(), type: InputType.ABILITY,
+          slot: 'E', targetType: 'position', targetX: 10, targetY: 20,
+        } as ClientInput;
+        expect(handler.queueInput(playerId, input).valid).toBe(true);
       });
     });
   });
@@ -141,7 +178,7 @@ describe('InputHandler', () => {
       }
 
       // Should still be able to send ability inputs (8/sec limit)
-      const result = handler.queueInput(playerId, createAbilityInput(21, 0));
+      const result = handler.queueInput(playerId, createAbilityInput(21, 'Q'));
       expect(result.valid).toBe(true);
     });
 
@@ -159,11 +196,11 @@ describe('InputHandler', () => {
     it('should apply stricter limit for abilities', () => {
       // Ability rate limit is 8/sec
       for (let i = 1; i <= 8; i++) {
-        expect(handler.queueInput(playerId, createAbilityInput(i, 0)).valid).toBe(true);
+        expect(handler.queueInput(playerId, createAbilityInput(i, 'Q')).valid).toBe(true);
       }
 
       // 9th ability should be rejected
-      const result = handler.queueInput(playerId, createAbilityInput(9, 0));
+      const result = handler.queueInput(playerId, createAbilityInput(9, 'Q'));
       expect(result.valid).toBe(false);
     });
 
@@ -260,7 +297,7 @@ describe('Input Handler Security', () => {
       // Try to send many different input types
       for (let i = 1; i <= 30; i++) {
         if (handler.queueInput(playerId, createMoveInput(i, 0, 0)).valid) totalAccepted++;
-        if (handler.queueInput(playerId, createAbilityInput(i + 100, 0)).valid) totalAccepted++;
+        if (handler.queueInput(playerId, createAbilityInput(i + 100, 'Q')).valid) totalAccepted++;
         if (handler.queueInput(playerId, createStopInput(i + 200)).valid) totalAccepted++;
       }
 

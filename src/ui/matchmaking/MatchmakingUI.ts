@@ -941,6 +941,7 @@ export class MatchmakingUI {
       serverUrl: this.serverUrl,
       playerId: this.playerId,
       gameId: "", // Will be assigned by server
+      sessionToken: sessionStorage.getItem("siege-session-token") ?? undefined,
     });
 
     // Setup event handlers
@@ -1000,13 +1001,13 @@ export class MatchmakingUI {
       // This will be passed to the game once it starts
     };
 
-    // Handle custom events (queue joined, etc.)
-    const originalOnMessage = (this.networkClient as any).handleMessage?.bind(
-      this.networkClient,
-    );
-    (this.networkClient as any).handleServerMessage = (message: any) => {
-      if (message.type === 2 && message.data?.event === "queue_joined") {
-        this.updateQueueInfo(message.data.position, message.data.queueSize);
+    // Handle custom events (session, queue joined, etc.)
+    this.networkClient.onEvent = (event) => {
+      if (event.event === "session") {
+        // Persist so the player can rejoin their game after a page reload
+        sessionStorage.setItem("siege-session-token", event.sessionToken);
+      } else if (event.event === "queue_joined") {
+        this.updateQueueInfo(event.position, event.queueSize);
       }
     };
 

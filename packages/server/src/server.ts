@@ -60,6 +60,11 @@ let matchmaker: Matchmaker;
 const connectionToPlayer: Map<string, string> = new Map();
 const playerToConnection: Map<string, WebSocketConnection> = new Map();
 
+// Session token issued to each player on their first READY. Player IDs are
+// visible to everyone in a match, so resuming a player ID (reconnect) requires
+// the token that was issued to its owner.
+const playerSessions: Map<string, string> = new Map();
+
 // ============================================================================
 // Message Handlers
 // ============================================================================
@@ -103,8 +108,41 @@ function handlePingMessage(connection: WebSocketConnection, data: { timestamp: n
   });
 }
 
-function handleReadyMessage(connection: WebSocketConnection, data: { playerId: string; championId?: string }): void {
-  const { playerId, championId = 'warrior' } = data;
+function handleReadyMessage(
+  connection: WebSocketConnection,
+  data: { playerId: string; championId?: string; sessionToken?: string }
+): void {
+  const { playerId, championId = 'warrior', sessionToken } = data ?? {};
+  if (typeof playerId !== 'string' || playerId.length === 0) {
+    Logger.server.warn(`READY without a valid playerId from ${connection.id}`);
+    return;
+  }
+
+  const existingToken = playerSessions.get(playerId);
+  if (existingToken !== undefined && sessionToken !== existingToken) {
+    Logger.server.warn(`Rejected READY for ${playerId} from ${connection.id}: invalid session token`);
+    wsServer.sendToConnection(connection.id, {
+      type: ServerMessageType.ERROR,
+      data: { error: 'invalid_session' },
+    });
+    return;
+  }
+
+  if (existingToken === undefined) {
+    const token = crypto.randomUUID();
+    playerSessions.set(playerId, token);
+    wsServer.sendToConnection(connection.id, {
+      type: ServerMessageType.EVENT,
+      data: { event: 'session', sessionToken: token },
+    });
+  }
+
+  // Drop the mapping for a previous connection of this player so it can no
+  // longer send inputs, and so its later close doesn't disconnect the player
+  const previousConnection = playerToConnection.get(playerId);
+  if (previousConnection && previousConnection.id !== connection.id) {
+    connectionToPlayer.delete(previousConnection.id);
+  }
 
   // Register player
   connectionToPlayer.set(connection.id, playerId);
@@ -165,6 +203,11 @@ function handleDisconnect(connection: WebSocketConnection, code: number, reason:
     // Clean up mappings
     connectionToPlayer.delete(connection.id);
     playerToConnection.delete(playerId);
+
+    // Keep the session only while there's a game to reconnect to
+    if (!roomManager.isPlayerInGame(playerId)) {
+      playerSessions.delete(playerId);
+    }
   }
 
   Logger.server.info(`Player disconnected: ${playerId || 'unknown'} (code: ${code})`);

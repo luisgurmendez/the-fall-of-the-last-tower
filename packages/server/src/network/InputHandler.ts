@@ -56,6 +56,64 @@ const RATE_LIMITS: Record<InputType, number> = {
   [InputType.PLACE_WARD]: 3,      // 3 per second
 };
 
+const ABILITY_SLOTS: ReadonlySet<unknown> = new Set<AbilitySlot>(['Q', 'W', 'E', 'R']);
+const WARD_TYPES: ReadonlySet<unknown> = new Set(['stealth', 'control', 'farsight']);
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+function isOptionalFiniteNumber(value: unknown): boolean {
+  return value === undefined || isFiniteNumber(value);
+}
+
+function isOptionalString(value: unknown): boolean {
+  return value === undefined || typeof value === 'string';
+}
+
+/**
+ * Check that an input carries well-typed fields for its type.
+ * Inputs arrive as untrusted JSON, so e.g. a string coordinate would
+ * otherwise turn the champion's position into NaN.
+ */
+function hasValidPayload(input: ClientInput): boolean {
+  const data = input as unknown as Record<string, unknown>;
+
+  switch (input.type) {
+    case InputType.MOVE:
+    case InputType.ATTACK_MOVE:
+      return isFiniteNumber(data.targetX) && isFiniteNumber(data.targetY);
+
+    case InputType.TARGET_UNIT:
+      return typeof data.targetEntityId === 'string';
+
+    case InputType.ABILITY:
+      return ABILITY_SLOTS.has(data.slot) &&
+        isOptionalFiniteNumber(data.targetX) &&
+        isOptionalFiniteNumber(data.targetY) &&
+        isOptionalString(data.targetEntityId) &&
+        isOptionalFiniteNumber(data.chargeTime);
+
+    case InputType.LEVEL_UP:
+      return ABILITY_SLOTS.has(data.slot);
+
+    case InputType.BUY_ITEM:
+      return typeof data.itemId === 'string';
+
+    case InputType.SELL_ITEM:
+      return Number.isInteger(data.slot);
+
+    case InputType.PLACE_WARD:
+      return WARD_TYPES.has(data.wardType) && isFiniteNumber(data.x) && isFiniteNumber(data.y);
+
+    case InputType.PING:
+      return isFiniteNumber(data.x) && isFiniteNumber(data.y);
+
+    default:
+      return true;
+  }
+}
+
 export class InputHandler {
   // Input queue per player
   private inputQueues: Map<string, PendingInput[]> = new Map();
@@ -335,15 +393,23 @@ export class InputHandler {
    * Basic input validation.
    */
   private validateInput(playerId: string, input: ClientInput): InputValidationResult {
+    if (typeof input !== 'object' || input === null || !isFiniteNumber(input.seq)) {
+      return { valid: false, reason: 'invalid_payload' };
+    }
+
     // Check sequence number
     const lastSeq = this.lastAckedSeq.get(playerId) ?? -1;
     if (input.seq <= lastSeq) {
       return { valid: false, reason: 'old_sequence' };
     }
 
-    // Validate input type
-    if (!(input.type in InputType)) {
+    // Validate input type (numeric enum value, not a reverse-mapped name)
+    if (typeof input.type !== 'number' || InputType[input.type] === undefined) {
       return { valid: false, reason: 'invalid_type' };
+    }
+
+    if (!hasValidPayload(input)) {
+      return { valid: false, reason: 'invalid_payload' };
     }
 
     return { valid: true };
