@@ -71,7 +71,7 @@ For detailed documentation on the multiplayer MOBA systems, see the following fi
 ### Quick Reference
 
 **Server packages:**
-- `packages/server/` - Authoritative game server (Bun runtime)
+- `packages/server/` - Authoritative game server (Bun runtime); `src/bots/` practice bots, `src/sim/` headless simulation, `src/navigation/` terrain and pathfinding, `scenarios/` simulation scenarios
 - `packages/shared/` - Shared types and configuration
 - `packages/client/` - Client networking layer
 
@@ -136,20 +136,28 @@ src/
 │   └── OnlineChampionAdapter.ts  # Server state → HUD interface
 ├── physics/             # Physics utilities (Vector)
 ├── render/              # Rendering utilities
-│   └── EntityRenderer.ts  # Renders server entities
+│   ├── EntityRenderer.ts  # Coordinator: interpolation, sorting, dispatch by entity type
+│   ├── entities/        # One renderer per entity type (minion, tower, jungle creature, ...)
+│   ├── champions/       # Per-champion drawing (sprites, projectiles, marks) + registry
+│   └── overlays/        # Health bars, status icons, floating numbers, ability effects
 ├── sprites/             # Sprite system
 ├── types/               # Common type definitions
 ├── ui/                  # UI components
 │   ├── ChampionHUD.ts   # HUD display (coordinator: state, hover, layout)
 │   ├── hud/             # HUD panels, tooltips, layout constants and types
+│   ├── AnnouncementBanner.ts  # Kills, towers, dragon, match result
+│   ├── DeathOverlay.ts  # Respawn countdown
+│   ├── LowHealthVignette.ts   # Red screen edges at low health
 │   ├── matchmaking/     # Matchmaking UI
 │   └── shop/            # Shop UI
 ├── utils/               # Utility functions
 ├── vfx/                 # Visual effects system
 │   ├── effects/         # VFX primitives (drawing functions)
+│   ├── champions/       # Per-champion ability VFX definitions
+│   ├── world.ts         # World VFX (hits, level up, deaths, recall, towers)
 │   ├── VFXManager.ts    # Central VFX manager
 │   ├── VFXParticlePool.ts  # Particle object pooling
-│   └── VFXRegistry.ts   # Ability VFX definitions
+│   └── VFXRegistry.ts   # Ability VFX registry (loads champions/ and world.ts)
 └── vision/              # Bush visibility (client-side rendering)
 ```
 
