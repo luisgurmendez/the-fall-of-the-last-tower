@@ -2,6 +2,7 @@ import GameContext from "@/core/gameContext";
 import { isRenderable } from "@/behaviors/renderable";
 import RenderElement from "@/render/renderElement";
 import Vector from "@/physics/vector";
+import { getShakeOffset } from "@/core/screenShake";
 import RenderUtils from "@/render/utils";
 import Color from "@/utils/color";
 import { Dimensions } from "@/core/canvas";
@@ -126,7 +127,8 @@ class RenderController {
     this.safetlyRender(canvasRenderingContext, () => {
       canvasRenderingContext.translate(Dimensions.w / 2, Dimensions.h / 2);
       canvasRenderingContext.scale(camera.zoom, camera.zoom);
-      canvasRenderingContext.translate(-camera.position.x, -camera.position.y);
+      const shake = getShakeOffset();
+      canvasRenderingContext.translate(-camera.position.x + shake.x, -camera.position.y + shake.y);
 
       if (background && isRenderable(background)) {
         profiler.begin('Render: Background', { threshold: 2 });

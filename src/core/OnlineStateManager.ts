@@ -23,6 +23,7 @@ import {
 } from '@siege/shared';
 import { getVFXManager } from '@/vfx';
 import { WORLD_VFX } from '@/vfx/world';
+import { shakeScreen } from '@/core/screenShake';
 
 /**
  * Animation state for an entity.
@@ -322,6 +323,11 @@ export class OnlineStateManager {
         const damageType = event.data.damageType as 'physical' | 'magic' | 'true' | 'pure';
         const entity = this.entities.get(entityId);
 
+        // A heavy hit on the local champion (over 15% of its health) shakes the screen
+        if (entity && entityId === this.localEntityId && amount > ((entity.snapshot as any).maxHealth ?? Infinity) * 0.15) {
+          shakeScreen(4, 0.25);
+        }
+
         if (entity && amount > 0) {
           const spark = damageType === 'magic' ? WORLD_VFX.HIT_MAGIC
             : damageType === 'physical' ? WORLD_VFX.HIT_PHYSICAL
@@ -520,6 +526,7 @@ export class OnlineStateManager {
       case EntityType.TOWER:
       case EntityType.NEXUS:
         this.spawnWorldVFX(WORLD_VFX.TOWER_DESTROYED, x, y);
+        shakeScreen(entity.snapshot.entityType === EntityType.NEXUS ? 14 : 8, 0.5);
         break;
     }
   }
