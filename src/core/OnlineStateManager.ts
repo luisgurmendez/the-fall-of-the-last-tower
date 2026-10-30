@@ -23,6 +23,7 @@ import {
   getAbilityAnimationProgress,
   getAbilityCastState,
   getAttackAnimationProgress,
+  getHitFlash,
   interpolatePosition,
   isAttackAnimationPlaying,
   type InterpolatedEntity,
@@ -296,6 +297,13 @@ export class OnlineStateManager {
    */
   getAttackAnimationProgress(entityId: string): number {
     return getAttackAnimationProgress(this.entities.get(entityId));
+  }
+
+  /**
+   * How strongly an entity flashes from its last hit (1 just hit, 0 not flashing).
+   */
+  getHitFlash(entityId: string): number {
+    return getHitFlash(this.entities.get(entityId));
   }
 
   /**

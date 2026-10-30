@@ -388,6 +388,11 @@ export class EntityRenderer implements GameObject {
     if (this.hidesLocalChampion(snapshot.entityType, pos)) {
       ctx.globalAlpha = EntityRenderer.SEE_THROUGH_ALPHA;
     }
+    // Units flash bright for a moment when hit (jungle creatures add it to their own filters)
+    const hitFlash = this.stateManager.getHitFlash(snapshot.entityId);
+    if (hitFlash > 0 && (snapshot.entityType === EntityType.CHAMPION || snapshot.entityType === EntityType.MINION)) {
+      ctx.filter = `brightness(${1 + hitFlash * 1.2})`;
+    }
 
     // Draw entity based on type
     switch (snapshot.entityType) {

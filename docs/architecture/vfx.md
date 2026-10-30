@@ -351,6 +351,10 @@ class EntityRenderer {
 }
 ```
 
+Champions, minions and jungle creatures flash bright for 0.12 s when they take damage: the
+`DAMAGE` event stamps `animation.hitTime` (`src/core/state/gameEvents.ts`) and the renderers
+add a fading `brightness` filter (`stateManager.getHitFlash`).
+
 Entities are drawn back to front by Y, buildings included (zones first, under
 everything), so a unit behind a tower is hidden by it. A tower or nexus standing
 in front of the local champion is drawn at half opacity.

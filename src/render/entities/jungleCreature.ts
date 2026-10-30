@@ -263,7 +263,12 @@ export function renderJungleCamp(
     if (!state.facingRight) {
       ctx.scale(-1, 1);
     }
-    const filters = [look.filter, windup > 0 ? `brightness(${1 + windup * 0.7})` : undefined].filter(Boolean);
+    const hitFlash = rc.stateManager.getHitFlash(snapshot.entityId);
+    const filters = [
+      look.filter,
+      windup > 0 ? `brightness(${1 + windup * 0.7})` : undefined,
+      hitFlash > 0 ? `brightness(${1 + hitFlash * 1.2})` : undefined,
+    ].filter(Boolean);
     if (filters.length > 0) {
       ctx.filter = filters.join(" ");
     }

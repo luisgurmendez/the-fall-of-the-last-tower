@@ -94,6 +94,7 @@ export function processGameEvent(event: GameEvent, ctx: GameEventContext): void 
       }
 
       if (entity && amount > 0) {
+        entity.animation.hitTime = performance.now();
         const spark = damageType === 'magic' ? WORLD_VFX.HIT_MAGIC
           : damageType === 'physical' ? WORLD_VFX.HIT_PHYSICAL
           : WORLD_VFX.HIT_TRUE;

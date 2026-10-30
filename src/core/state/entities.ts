@@ -25,6 +25,8 @@ export interface EntityAnimationState {
   abilityStartTime: number;
   /** Duration of ability animation (ms) */
   abilityDuration: number;
+  /** When the entity last took damage (ms, performance.now), for the hit flash */
+  hitTime: number;
 }
 
 /**
@@ -51,7 +53,20 @@ export function createDefaultAnimationState(): EntityAnimationState {
     abilityId: undefined,
     abilityStartTime: 0,
     abilityDuration: 0,
+    hitTime: -Infinity,
   };
+}
+
+/** How long a unit flashes after taking damage (ms) */
+const HIT_FLASH_MS = 120;
+
+/**
+ * How strongly an entity is flashing from a hit: 1 right after it, fading to 0.
+ */
+export function getHitFlash(entity: InterpolatedEntity | undefined): number {
+  if (!entity) return 0;
+  const elapsed = performance.now() - entity.animation.hitTime;
+  return elapsed >= HIT_FLASH_MS ? 0 : 1 - elapsed / HIT_FLASH_MS;
 }
 
 /**
