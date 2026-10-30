@@ -434,7 +434,8 @@ A move (right-click) walks the champion along a path around walls (`PathFollower
 a unit chases it until it's in attack range. Attack-move (A + left-click, `ATTACK_MOVE`)
 walks to the point but attacks the closest visible enemy champion, minion or structure that
 comes within attack range (+60) on the way, then walks on (`ServerChampion.updateAttackMove`;
-jungle monsters are left alone). Any other move, attack, stop or recall order ends it.
+jungle monsters are left alone). Any other move, attack, stop or recall order ends it. On the client, holding A shows the
+attack cursor and the click leaves a red move marker; it also works on the minimap.
 
 ### Champion art
 

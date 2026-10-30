@@ -64,6 +64,8 @@ function loadMoveMarkerSprite(): void {
 interface MoveMarker {
   position: Vector;
   startTime: number;
+  /** Attack-move markers are tinted red */
+  attackMove?: boolean;
 }
 
 /** Hovered entity info for rendering */
@@ -298,16 +300,14 @@ export class OnlineInputHandler implements GameObject {
       this.handleEntitySelection(camera);
     }
 
-    // Handle attack-move (A + left-click)
+    // Handle attack-move (A + left-click, on the map or the minimap)
     if (
       this.inputManager.isKeyDown("a") &&
       this.inputManager.isMouseButtonJustPressed(MouseButton.LEFT)
     ) {
-      const worldPos = this.screenToWorld(
-        this.inputManager.getMousePosition(),
-        camera,
-      );
+      const worldPos = minimapTarget ?? this.screenToWorld(mousePosition, camera);
       this.networkClient.sendAttackMoveInput(worldPos.x, worldPos.y);
+      this.spawnMoveMarker(worldPos, true);
     }
 
     // Handle stop (S key)
@@ -493,12 +493,14 @@ export class OnlineInputHandler implements GameObject {
         isAlly: true,
         collisionRadius: getEntityCollisionRadius(closestAlly),
       };
-      cursorManager.setCursor("default"); // No special cursor for allies
+      // No special cursor for allies, unless A arms an attack-move
+      cursorManager.setCursor(this.inputManager.isKeyDown("a") ? "attack" : "default");
     } else {
       this.hoveredEnemyId = null;
       this.hoveredAllyId = null;
       this.hoveredEntityInfo = null;
-      cursorManager.setCursor("default");
+      // Holding A arms an attack-move
+      cursorManager.setCursor(this.inputManager.isKeyDown("a") ? "attack" : "default");
     }
 
     // Notify EntityRenderer of hover state change for sprite outlines
@@ -511,12 +513,13 @@ export class OnlineInputHandler implements GameObject {
   /**
    * Spawn a move marker at the given world position.
    */
-  private spawnMoveMarker(position: Vector): void {
+  private spawnMoveMarker(position: Vector, attackMove = false): void {
     // Remove any existing markers (only show one at a time)
     this.moveMarkers = [];
     this.moveMarkers.push({
       position: new Vector(position.x, position.y),
       startTime: performance.now() / 1000,
+      attackMove,
     });
   }
 
@@ -713,6 +716,9 @@ export class OnlineInputHandler implements GameObject {
 
     ctx.save();
     ctx.globalAlpha = alpha;
+    if (marker.attackMove) {
+      ctx.filter = "sepia(1) saturate(6) hue-rotate(-50deg)";
+    }
     ctx.drawImage(
       moveMarkerSprite,
       frameIndex * FRAME_WIDTH,
