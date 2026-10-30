@@ -25,6 +25,7 @@ export class QueueScreen {
    * Start the queue timer.
    */
   startTimer(): void {
+    this.stopTimer();
     this.queueStartTime = Date.now();
     this.queueTimerInterval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - this.queueStartTime) / 1000);

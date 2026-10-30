@@ -17,6 +17,8 @@ export class MatchFoundScreen {
 
   // State
   private loadingProgress: number = 0;
+  private loadingInterval: ReturnType<typeof setInterval> | null = null;
+  private loadedTimeout: ReturnType<typeof setTimeout> | null = null;
 
   constructor(getEl: (id: string) => HTMLElement) {
     this.blueChampion = getEl("blue-champion");
@@ -59,21 +61,23 @@ export class MatchFoundScreen {
    * Start loading animation. Calls onLoaded half a second after the bar fills.
    */
   startLoadingAnimation(onLoaded: () => void): void {
+    this.stopLoadingAnimation();
     this.loadingProgress = 0;
     if (this.loadingBar) {
       this.loadingBar.style.width = "0%";
     }
 
-    const loadingInterval = setInterval(() => {
+    this.loadingInterval = setInterval(() => {
       this.loadingProgress += Math.random() * 15 + 5;
 
       if (this.loadingProgress >= 100) {
         this.loadingProgress = 100;
         if (this.loadingBar) this.loadingBar.style.width = "100%";
-        clearInterval(loadingInterval);
+        this.stopLoadingAnimation();
 
         // Transition to game
-        setTimeout(() => {
+        this.loadedTimeout = setTimeout(() => {
+          this.loadedTimeout = null;
           onLoaded();
         }, 500);
       } else {
@@ -84,9 +88,24 @@ export class MatchFoundScreen {
   }
 
   /**
-   * Reset the loading progress.
+   * Stop the loading animation without starting the game.
+   */
+  private stopLoadingAnimation(): void {
+    if (this.loadingInterval) {
+      clearInterval(this.loadingInterval);
+      this.loadingInterval = null;
+    }
+    if (this.loadedTimeout) {
+      clearTimeout(this.loadedTimeout);
+      this.loadedTimeout = null;
+    }
+  }
+
+  /**
+   * Stop the loading animation (the game won't start from it) and reset the progress.
    */
   resetProgress(): void {
+    this.stopLoadingAnimation();
     this.loadingProgress = 0;
   }
 }
