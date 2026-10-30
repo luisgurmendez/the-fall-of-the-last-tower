@@ -90,9 +90,12 @@ describe('Magnus - Arcane Surge', () => {
     });
     const slamDamage = () => {
       gorathArena.blue.resetCooldowns();
+      gorathArena.blue.setResource(gorathArena.blue.maxResource);
       gorathArena.red.setHealth(gorathArena.red.maxHealth);
+      // Measure the change: maxHealth can be refreshed by the cast's stat update
+      const before = gorathArena.red.health;
       gorathArena.castAbility(gorathArena.blue, 'Q');
-      return gorathArena.red.maxHealth - gorathArena.red.health;
+      return before - gorathArena.red.health;
     };
 
     const baseDamage = slamDamage();
