@@ -20,12 +20,13 @@ Health:    http://localhost:8080/health
 ```
 1. Client opens WebSocket connection
 2. Server assigns connection ID
-3. Client sends READY message with player info
-4. Server adds player to queue or reconnects to game
-5. On match: Server sends GAME_START
-6. Game loop: Client INPUT → Server STATE_UPDATE
-7. On end: Server sends GAME_END
-8. Client disconnects
+3. Client sends READY message with player info (and session token, if it has one)
+4. On a player's first READY, server sends EVENT `{ event: 'session', sessionToken }`
+5. Server adds player to queue or reconnects to game
+6. On match: Server sends GAME_START
+7. Game loop: Client INPUT → Server STATE_UPDATE
+8. On end: Server sends GAME_END
+9. Client disconnects
 ```
 
 ## Message Types
@@ -109,11 +110,14 @@ interface ClientInput {
 
 Server validates all inputs:
 
-1. **Rate Limiting**: Max inputs per second per type
-2. **Range Checks**: Target within ability range
-3. **Resource Checks**: Sufficient mana
-4. **Cooldown Checks**: Ability ready
-5. **State Checks**: Not stunned/silenced
+1. **Payload Shape**: Fields are checked per input type (finite numbers for coordinates,
+   `Q/W/E/R` slots, known ward types, string IDs). Malformed inputs are rejected with
+   `invalid_payload` before they reach the simulation
+2. **Rate Limiting**: Max inputs per second per type
+3. **Range Checks**: Target within ability range
+4. **Resource Checks**: Sufficient mana
+5. **Cooldown Checks**: Ability ready
+6. **State Checks**: Not stunned/silenced
 
 ```typescript
 // Rate limits per input type
@@ -416,7 +420,13 @@ Ping sent every 5 seconds to maintain connection and measure latency.
 
 1. Client detects disconnect
 2. Attempt reconnect (up to 5 times, 2s delay)
-3. Send READY message
-4. Server checks for active game
-5. If in game: Send FULL_STATE snapshot
-6. Resume game with current state
+3. Send READY message with the session token
+4. Server checks the token (player IDs are public, so the token proves ownership).
+   A wrong or missing token gets ERROR `invalid_session`
+5. Server checks for active game
+6. If in game: Send FULL_STATE snapshot
+7. Resume game with current state
+
+The client keeps the token in `NetworkClient` and `MatchmakingUI` persists it in
+`sessionStorage`, so rejoining after a page reload works too. The server forgets a
+player's token when they disconnect while not in a game.

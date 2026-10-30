@@ -8,35 +8,6 @@ Siege is a **multiplayer MOBA** (Multiplayer Online Battle Arena) game. The game
 
 ---
 
-## CRITICAL: Stale .js Files in packages/shared/src/
-
-> **⚠️ IMPORTANT FOR AI ASSISTANTS AND DEVELOPERS ⚠️**
->
-> The `packages/shared/src/` directory contains **both** `.ts` (TypeScript) and `.js` (JavaScript) files.
-> Vite resolves to the `.js` files at runtime, NOT the `.ts` files.
->
-> **When adding new exports to `packages/shared/src/index.ts`:**
-> 1. You MUST also update `packages/shared/src/index.js` with the same exports
-> 2. If adding a new module/folder (e.g., `champions/`), you MUST create corresponding `.js` files
-> 3. Failure to do this will cause runtime errors like: `does not provide an export named 'X'`
->
-> **Example of the bug pattern:**
-> - Adding `export * from './champions';` to `index.ts` ✓
-> - Forgetting to add it to `index.js` ✗ → Runtime error!
->
-> **Affected directories with .js files:**
-> - `packages/shared/src/` (index.js)
-> - `packages/shared/src/math/` (Vector.js, shapes.js)
-> - `packages/shared/src/types/` (various .js files)
-> - `packages/shared/src/config/` (various .js files)
-> - `packages/shared/src/utils/` (various .js files)
-> - `packages/shared/src/champions/` (index.js, ChampionRegistry.js)
-> - `packages/shared/src/abilities/` (index.js, AbilityRegistry.js)
->
-> **TODO:** These stale .js files should ideally be deleted and Vite configured to resolve .ts directly.
-
----
-
 ## IMPORTANT: Use `null` for Clearable Values (Not `undefined`)
 
 > **Pattern for Delta Updates**
@@ -268,6 +239,9 @@ npm run serve
 ### Testing
 
 ```bash
+# Run every workspace's tests (server, client networking, shared, protocol)
+npm run test:packages
+
 # Run server tests
 cd packages/server
 bun test
@@ -275,6 +249,20 @@ bun test
 # Run specific test file
 bun test FogOfWarComprehensive
 ```
+
+### Type checking
+
+```bash
+npx tsc --noEmit -p .                    # client (src/) + packages/client
+cd packages/shared && npx tsc -p .       # shared (emits dist/, needed by the server check)
+cd packages/server && npx tsc --noEmit -p .
+```
+
+### Debug starting level
+
+Champions start at level 1. To test ultimates locally, start the server with
+`SIEGE_STARTING_LEVEL=6 bun run src/server.ts` (see `GameConfig.DEBUG` in
+`packages/shared/src/config/GameConfig.ts`).
 
 ---
 
