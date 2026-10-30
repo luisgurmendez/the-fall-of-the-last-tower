@@ -65,7 +65,7 @@ describe('Surrender', () => {
   }
 
   test('a player who surrenders loses the match', () => {
-    let winner: number | null = null;
+    let winner = null as number | null;
     const room = practiceRoom(side => { winner = side; });
     room.start();
     try {
@@ -78,7 +78,7 @@ describe('Surrender', () => {
   });
 
   test('a bot can\'t surrender', () => {
-    let winner: number | null = null;
+    let winner = null as number | null;
     const room = practiceRoom(side => { winner = side; });
     room.start();
     try {
