@@ -2134,7 +2134,7 @@ export class ChampionHUD extends ScreenEntity {
     // Replace {damage} placeholder
     if (definition.damage?.scaling) {
       const value = calculateAbilityValue(definition.damage.scaling, rank, statValues);
-      const formatted = this.formatScalingValue(value, definition.damage.scaling, statValues, definition.damage.type);
+      const formatted = this.formatScalingValue(value, definition.damage.scaling, statValues);
       result = result.replace('{damage}', formatted);
     }
 
@@ -2169,8 +2169,7 @@ export class ChampionHUD extends ScreenEntity {
       maxHealth?: number;
       armor?: number;
       magicResist?: number;
-    },
-    damageType?: DamageType
+    }
   ): string {
     const rounded = Math.round(totalValue);
     const scalingParts: string[] = [];
