@@ -13,5 +13,41 @@ body {
 }
 
 canvas {
+    display: block;
     image-rendering: pixelated;
+}
+
+/* Fullscreen toggle, under the top-right stats panel (src/ui/FullscreenButton.ts) */
+.fullscreen-button {
+    position: fixed;
+    top: 66px;
+    right: 10px;
+    width: 32px;
+    height: 32px;
+    z-index: 2100;
+    border: 1px solid #4a5568;
+    cursor: pointer;
+    opacity: 0.7;
+    /* Four corner brackets */
+    --bracket: #c8aa6e;
+    background:
+        linear-gradient(var(--bracket), var(--bracket)) 7px 7px / 7px 2px,
+        linear-gradient(var(--bracket), var(--bracket)) 7px 7px / 2px 7px,
+        linear-gradient(var(--bracket), var(--bracket)) right 7px top 7px / 7px 2px,
+        linear-gradient(var(--bracket), var(--bracket)) right 7px top 7px / 2px 7px,
+        linear-gradient(var(--bracket), var(--bracket)) left 7px bottom 7px / 7px 2px,
+        linear-gradient(var(--bracket), var(--bracket)) left 7px bottom 7px / 2px 7px,
+        linear-gradient(var(--bracket), var(--bracket)) right 7px bottom 7px / 7px 2px,
+        linear-gradient(var(--bracket), var(--bracket)) right 7px bottom 7px / 2px 7px,
+        rgba(10, 14, 23, 0.75);
+    background-repeat: no-repeat;
+}
+
+.fullscreen-button:hover {
+    opacity: 1;
+    border-color: var(--bracket);
+}
+
+.fullscreen-button.is-fullscreen {
+    --bracket: #8a9bb0;
 }

@@ -1,9 +1,6 @@
 import { Rectangle } from "@/objects/shapes";
 
-export const Dimensions = new Rectangle(
-  document.body.scrollWidth,
-  document.body.scrollHeight
-);
+export const Dimensions = new Rectangle(window.innerWidth, window.innerHeight);
 
 export interface CanvasResult {
   canvas: HTMLCanvasElement;
@@ -18,8 +15,11 @@ class CanvasGenerator {
     const containerEl = document.getElementById("c");
     if (containerEl) {
       const onContainerResize = () => {
-        canvas.width = document.body.scrollWidth;
-        canvas.height = document.body.scrollHeight;
+        // The viewport, not the page: the page's scroll size includes the
+        // canvas itself, so it grew a little on every resize and pushed the
+        // bottom of the HUD off screen
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
         canvasRenderingContext.imageSmoothingEnabled = false;
         canvasRenderingContext.translate(0.5, 0.5);
         Dimensions.w = canvas.width;

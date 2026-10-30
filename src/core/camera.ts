@@ -36,10 +36,7 @@ class Camera implements GameObject, Stepable, Disposable, Initializable {
   constructor() {
     // this.position = new Vector(document.body.scrollWidth / 2, document.body.scrollHeight / 2);
     this._position = new Vector(0, 0);
-    this.viewport = new Rectangle(
-      document.body.scrollWidth,
-      document.body.scrollHeight
-    );
+    this.viewport = new Rectangle(window.innerWidth, window.innerHeight);
     this._zoom = 1;
     this.following = null;
   }

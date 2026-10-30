@@ -1,6 +1,7 @@
 import OnlineGame from "./core/OnlineGame";
 import { BitmapFont } from "./render/BitmapFont";
 import { MatchmakingUI, type MatchData } from "./ui/matchmaking/MatchmakingUI";
+import { setupFullscreenButton } from "./ui/FullscreenButton";
 
 // Get server URL from environment or default
 function getServerUrl(): string {
@@ -117,6 +118,7 @@ async function main() {
 
   // Show the matchmaking UI
   matchmakingUI.show();
+  setupFullscreenButton();
 
   // Expose for debugging
   (window as any).matchmakingUI = matchmakingUI;
