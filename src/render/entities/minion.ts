@@ -1,5 +1,5 @@
 /**
- * Lane minion renderer (melee warriors and caster archers).
+ * Lane minion renderer (melee warriors, caster archers and siege cannons).
  */
 
 import type {
@@ -82,7 +82,14 @@ export function renderMinion(
 ): void {
   const minionType = snapshot.minionType || "melee";
   const isWarrior = minionType === "melee";
+  const isSiege = minionType === "siege";
   const spriteConfig = isWarrior ? SPRITES.WARRIOR : SPRITES.ARCHER;
+  // Siege minions are archers manning a cannon: bigger, with a cart under them
+  const spriteScale = isSiege ? spriteConfig.SCALE * 1.35 : spriteConfig.SCALE;
+
+  if (isSiege) {
+    renderSiegeCart(ctx, side, state.facingRight);
+  }
 
   // Determine animation state: attacking, moving, or idle
   const isAttacking = state.isAttacking;
@@ -163,7 +170,7 @@ export function renderMinion(
       srcX,
       spriteConfig.FRAME_WIDTH,
       spriteConfig.FRAME_HEIGHT,
-      spriteConfig.SCALE,
+      spriteScale,
       outlineColor,
     );
 
@@ -190,9 +197,39 @@ export function renderMinion(
       ctx,
       snapshot.health,
       snapshot.maxHealth,
-      30,
-      -25,
+      isSiege ? 40 : 30,
+      isSiege ? -32 : -25,
       healthBarColor,
     );
   }
+}
+
+/**
+ * A small wooden cart with a cannon, drawn under a siege minion.
+ */
+function renderSiegeCart(ctx: CanvasRenderingContext2D, side: number, facingRight: boolean): void {
+  ctx.save();
+  ctx.translate(0, 10);
+  if (!facingRight) ctx.scale(-1, 1);
+
+  // Barrel
+  ctx.fillStyle = "#2f2f2f";
+  ctx.fillRect(2, -9, 16, 6);
+  ctx.fillStyle = "#4a4a4a";
+  ctx.fillRect(16, -10, 4, 8);
+
+  // Cart body in team color trim
+  ctx.fillStyle = "#6d4c2f";
+  ctx.fillRect(-14, -4, 26, 8);
+  ctx.fillStyle = side === 0 ? TEAM_COLORS.BLUE : TEAM_COLORS.RED;
+  ctx.fillRect(-14, -4, 26, 2);
+
+  // Wheels
+  ctx.fillStyle = "#3e2a17";
+  for (const wx of [-8, 7]) {
+    ctx.beginPath();
+    ctx.arc(wx, 5, 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
 }
