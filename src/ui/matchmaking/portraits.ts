@@ -1,0 +1,99 @@
+/**
+ * Champion portraits for champion select: the first frame of the champion's
+ * idle sprite, cropped to the figure. A champion without art (or while it
+ * loads) shows its emoji icon.
+ */
+
+/**
+ * Champion icons (emoji placeholders), for champions without art.
+ */
+export const CHAMPION_ICONS: Record<string, string> = {
+  warrior: "⚔️",
+  magnus: "🔮",
+  elara: "✨",
+  vex: "🗡️",
+  gorath: "🛡️",
+  vile: "💀",
+  lume: "☀️",
+};
+
+/** Idle sprite strips: square frames side by side, the first one is used */
+const IDLE_SPRITES: Record<string, string> = {
+  vex: "/assets/champs/vex/Vex-Idle.png",
+  lume: "/assets/champs/lume/Lume-IDLE.png",
+  vile: "/assets/champs/vile/idle.png",
+};
+
+/** Cropped portraits, by sprite, drawn once */
+const portraits = new Map<string, Promise<HTMLCanvasElement | null>>();
+
+/**
+ * Show a champion's portrait in `el`, replacing what it held.
+ */
+export function showPortrait(el: HTMLElement, championId: string): void {
+  el.textContent = CHAMPION_ICONS[championId] || "❓";
+  el.dataset.portraitFor = championId;
+  const src = IDLE_SPRITES[championId];
+  if (!src) return;
+
+  let portrait = portraits.get(src);
+  if (!portrait) {
+    portrait = loadPortrait(src);
+    portraits.set(src, portrait);
+  }
+  void portrait.then((canvas) => {
+    // Another champion may have been picked while it loaded
+    if (!canvas || el.dataset.portraitFor !== championId) return;
+    const copy = document.createElement("canvas");
+    copy.width = canvas.width;
+    copy.height = canvas.height;
+    copy.getContext("2d")?.drawImage(canvas, 0, 0);
+    copy.className = "champion-portrait-art";
+    el.textContent = "";
+    el.appendChild(copy);
+  });
+}
+
+function loadPortrait(src: string): Promise<HTMLCanvasElement | null> {
+  return new Promise((resolve) => {
+    const image = new Image();
+    image.onload = () => resolve(cropFirstFrame(image));
+    image.onerror = () => resolve(null);
+    image.src = src;
+  });
+}
+
+/**
+ * The first frame, cropped to a square around the figure.
+ */
+function cropFirstFrame(image: HTMLImageElement): HTMLCanvasElement | null {
+  const size = image.naturalHeight;
+  const frame = document.createElement("canvas");
+  frame.width = size;
+  frame.height = size;
+  const context = frame.getContext("2d");
+  if (!context) return null;
+  context.drawImage(image, 0, 0, size, size, 0, 0, size, size);
+
+  const alpha = context.getImageData(0, 0, size, size).data;
+  let left = size, top = size, right = -1, bottom = -1;
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      if (alpha[(y * size + x) * 4 + 3] === 0) continue;
+      left = Math.min(left, x);
+      right = Math.max(right, x);
+      top = Math.min(top, y);
+      bottom = Math.max(bottom, y);
+    }
+  }
+  if (right < 0) return null;
+
+  const side = Math.max(right - left, bottom - top) + 1;
+  const cropped = document.createElement("canvas");
+  cropped.width = side;
+  cropped.height = side;
+  const centerX = (left + right + 1) / 2;
+  const centerY = (top + bottom + 1) / 2;
+  cropped.getContext("2d")?.drawImage(frame, Math.round(side / 2 - centerX), Math.round(side / 2 - centerY));
+  return cropped;
+}

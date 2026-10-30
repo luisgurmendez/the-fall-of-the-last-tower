@@ -4,7 +4,7 @@
  */
 
 import { CHAMPION_DEFINITIONS } from "@siege/shared";
-import { CHAMPION_ICONS } from "./championSelect";
+import { CHAMPION_ICONS } from "./portraits";
 
 /**
  * Match found elements and the loading progress.

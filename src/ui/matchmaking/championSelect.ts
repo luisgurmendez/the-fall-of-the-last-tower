@@ -11,19 +11,7 @@ import {
   type ChampionDefinition,
 } from "@siege/shared";
 import { createAbilityCard, createPassiveCard } from "./abilityCards";
-
-/**
- * Champion icons (emoji placeholders).
- */
-export const CHAMPION_ICONS: Record<string, string> = {
-  warrior: "⚔️",
-  magnus: "🔮",
-  elara: "✨",
-  vex: "🗡️",
-  gorath: "🛡️",
-  vile: "💀",
-  lume: "☀️",
-};
+import { showPortrait } from "./portraits";
 
 /**
  * Champions available for selection.
@@ -118,7 +106,7 @@ export class ChampionSelect {
 
     const portrait = document.createElement("div");
     portrait.className = "champion-portrait";
-    portrait.textContent = CHAMPION_ICONS[champion.id] || "❓";
+    showPortrait(portrait, champion.id);
 
     const name = document.createElement("div");
     name.className = "champion-card-name";
@@ -178,7 +166,7 @@ export class ChampionSelect {
 
     // Update portrait
     if (this.detailPortrait) {
-      this.detailPortrait.textContent = CHAMPION_ICONS[championId] || "❓";
+      showPortrait(this.detailPortrait, championId);
     }
 
     // Update name
