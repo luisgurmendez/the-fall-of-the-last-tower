@@ -17,8 +17,6 @@ import {
   getAbilityDefinition,
   canAbilityAffectEntityType,
   hasRecastBehavior,
-  hasChargeBehavior,
-  DamageType,
   GameEventType,
   calculateEffectiveCooldown,
   GameConfig,
@@ -29,7 +27,6 @@ import { championHooksRegistry } from "../abilities/ChampionHooksRegistry";
 import type { AbilityHandlerParams, AbilityExecutionResult } from "../abilities/IAbilityHandler";
 import type { ServerChampion } from "./ServerChampion";
 import type { ServerGameContext } from "../game/ServerGameContext";
-import { ServerProjectile } from "./ServerProjectile";
 import { ServerZone, ZoneEffectType } from "./ServerZone";
 import { ServerTrap } from "./ServerTrap";
 import { Logger } from "../utils/Logger";
@@ -38,6 +35,7 @@ import { dashToDestination, teleportToDestination, executeRecastDash } from "../
 import { executeSelfAbility } from "../abilities/generic/SelfAbility";
 import { executeNoTargetAbility } from "../abilities/generic/NoTargetArea";
 import { executeTargetEnemyAbility, executeTargetAllyAbility } from "../abilities/generic/TargetedAbility";
+import { executeSkillshot } from "../abilities/generic/Skillshot";
 
 export interface AbilityCastParams {
   /** The champion casting the ability */
@@ -492,7 +490,7 @@ export class ServerAbilityExecutor {
         break;
 
       case "skillshot":
-        this.executeSkillshot(params, definition, rank, damageMultiplier);
+        executeSkillshot(params, definition, rank, damageMultiplier);
         break;
 
       case "ground_target":
@@ -507,120 +505,6 @@ export class ServerAbilityExecutor {
     }
     if (definition.teleport) {
       teleportToDestination(params, definition);
-    }
-  }
-
-  /**
-   * Execute a skillshot ability.
-   */
-  private executeSkillshot(
-    params: AbilityCastParams,
-    definition: AbilityDefinition,
-    rank: number,
-    damageMultiplier: number = 1.0
-  ): void {
-    const { champion, targetPosition, context } = params;
-
-    if (!targetPosition) return;
-
-    // If this ability has a dash, skip projectile - the dash handles damage
-    // The dash is executed separately in executeAbilityByType()
-    if (definition.dash) {
-      return;
-    }
-
-    const stats = champion.getStats();
-
-    // Calculate direction
-    const direction = targetPosition.subtracted(champion.position);
-    if (direction.length() < 0.1) {
-      // If target is too close, use champion's facing direction
-      direction.x = champion.direction.x;
-      direction.y = champion.direction.y;
-    }
-
-    // Calculate damage (with passive multiplier)
-    let damageAmount = 0;
-    let damageType: DamageType = "physical";
-    if (definition.damage) {
-      damageAmount = calculateAbilityValue(definition.damage.scaling, rank, getScalingStats(champion, stats)) * damageMultiplier;
-      damageType = definition.damage.type;
-    }
-
-    // Check if ability has animation with projectile keyframe
-    const abilityAnimation = champion.definition.animations?.abilities?.[definition.id];
-    let projectileDelay = 0;
-
-    if (abilityAnimation) {
-      // Find the projectile keyframe
-      const projectileKeyframe = abilityAnimation.keyframes.find(
-        k => k.trigger.type === 'projectile'
-      );
-      if (projectileKeyframe) {
-        // Calculate delay based on animation timing
-        projectileDelay = projectileKeyframe.frame * abilityAnimation.baseFrameDuration;
-      }
-    }
-
-    // Calculate effective range (with charge bonus if applicable)
-    let effectiveRange = definition.range ?? 800;
-
-    if (hasChargeBehavior(definition) && params.chargeTime !== undefined) {
-      const charge = definition.charge!;
-      const minCharge = charge.minChargeTime;
-      const maxCharge = charge.maxChargeTime;
-
-      // Calculate charge progress (0 to 1)
-      const chargeProgress = Math.max(0, Math.min(1,
-        (params.chargeTime - minCharge) / (maxCharge - minCharge)
-      ));
-
-      // Apply range bonus based on charge progress
-      if (charge.maxChargeRangeBonus) {
-        effectiveRange += charge.maxChargeRangeBonus * chargeProgress;
-        Logger.champion.debug(
-          `${champion.playerId} charged ${definition.id} for ${params.chargeTime.toFixed(2)}s ` +
-          `(${(chargeProgress * 100).toFixed(0)}%), range: ${effectiveRange.toFixed(0)}`
-        );
-      }
-    }
-
-    // Prepare projectile config
-    const projectileConfig = {
-      direction: direction.normalized(),
-      speed: definition.projectileSpeed ?? 1000,
-      radius: definition.projectileRadius ?? 30,
-      maxDistance: effectiveRange,
-      damage: damageAmount,
-      damageType,
-      piercing: definition.piercing ?? false,
-      appliesEffects: definition.appliesEffects,
-      effectDuration: definition.effectDuration,
-    };
-
-    if (projectileDelay > 0) {
-      // Schedule projectile spawn at keyframe time
-      champion.scheduleAbilityProjectile(definition.id, projectileDelay, projectileConfig);
-    } else {
-      // No animation delay - spawn immediately (fallback for abilities without animations)
-      const projectile = new ServerProjectile({
-        id: context.generateEntityId(),
-        position: champion.position.clone(),
-        side: champion.side,
-        direction: projectileConfig.direction,
-        speed: projectileConfig.speed,
-        radius: projectileConfig.radius,
-        maxDistance: projectileConfig.maxDistance,
-        sourceId: champion.id,
-        abilityId: definition.id,
-        damage: projectileConfig.damage,
-        damageType: projectileConfig.damageType,
-        piercing: projectileConfig.piercing,
-        appliesEffects: projectileConfig.appliesEffects,
-        effectDuration: projectileConfig.effectDuration,
-      });
-
-      context.addEntity(projectile);
     }
   }
 
