@@ -38,6 +38,7 @@ export type {
 } from './champions';
 export {
   LEVEL_EXPERIENCE,
+  getExperienceToNextLevel,
   calculateStat,
   calculateAttackSpeed,
   calculateStatsAtLevel,

@@ -236,6 +236,8 @@ const LEVEL_EXPERIENCE = [
 ];
 ```
 
+These are totals. A champion's `experience` is what it has earned within its current level, and `experienceToNextLevel` is the difference between two totals: 280 at level 1, 380 at level 2, 480 at level 3, and so on (`getExperienceToNextLevel`). A champion that has earned 2400 in total is level 6. In a 1v1 mid bot match that takes about 5-6 minutes. `src/test/ChampionLeveling.test.ts` checks the thresholds.
+
 ### Experience Sources
 
 | Source | Experience |

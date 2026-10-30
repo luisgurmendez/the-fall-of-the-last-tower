@@ -204,7 +204,9 @@ export interface ChampionState {
 }
 
 /**
- * Experience thresholds for each level.
+ * Total experience needed to reach each level (cumulative: 280 to reach
+ * level 2, 660 to reach level 3, ...). Champions keep the experience earned
+ * in their current level, so use getExperienceToNextLevel() for a level-up.
  */
 export const LEVEL_EXPERIENCE: number[] = [
   0,      // Level 1
@@ -226,6 +228,15 @@ export const LEVEL_EXPERIENCE: number[] = [
   16480,  // Level 17
   18360,  // Level 18
 ];
+
+/**
+ * Experience needed to go from `level` to the next level (280 at level 1,
+ * 380 at level 2, ...).
+ */
+export function getExperienceToNextLevel(level: number): number {
+  const index = Math.max(1, Math.min(level, LEVEL_EXPERIENCE.length - 1));
+  return LEVEL_EXPERIENCE[index] - LEVEL_EXPERIENCE[index - 1];
+}
 
 /**
  * Calculate stat at a given level.

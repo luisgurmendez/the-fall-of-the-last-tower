@@ -37,7 +37,7 @@ import {
   CrowdControlStatus,
   EquippedItemState,
   PassiveState,
-  LEVEL_EXPERIENCE,
+  getExperienceToNextLevel,
   defaultCCStatus,
   calculatePhysicalDamage,
   calculateMagicDamage,
@@ -86,7 +86,7 @@ export class ServerChampion extends ServerEntity {
   maxResource = 0;
   level = 1;
   experience = 0;
-  experienceToNextLevel = LEVEL_EXPERIENCE[1];
+  experienceToNextLevel = getExperienceToNextLevel(1);
   skillPoints = 1;
 
   // Combat state
@@ -698,7 +698,7 @@ export class ServerChampion extends ServerEntity {
   private levelUp(): void {
     this.level++;
     this.skillPoints++;
-    this.experienceToNextLevel = LEVEL_EXPERIENCE[this.level] ?? LEVEL_EXPERIENCE[17];
+    this.experienceToNextLevel = getExperienceToNextLevel(this.level);
 
     // Heal percentage of new max health
     const stats = this.getStats();
