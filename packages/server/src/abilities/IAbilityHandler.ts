@@ -134,7 +134,9 @@ export interface IAbilityHandler {
 
   /**
    * Check if recast is available.
-   * Return true to allow recast, false to proceed with normal cast.
+   * Called while the recast window is open. Return true to run executeRecast,
+   * false to reject the recast (the cast fails with invalid_target; it does
+   * not fall back to a normal cast).
    */
   canRecast?(params: AbilityHandlerParams): boolean;
 
