@@ -155,7 +155,8 @@ src/
 │   ├── effects/         # VFX primitives (drawing functions)
 │   ├── champions/       # Per-champion ability VFX definitions
 │   ├── world.ts         # World VFX (hits, level up, deaths, recall, towers)
-│   ├── VFXManager.ts    # Central VFX manager
+│   ├── VFXManager.ts    # Central VFX manager (coordinator: scheduling, active lists, draw order)
+│   ├── active/          # Spawn, update and draw per effect family (particles, shapes, trails, ...)
 │   ├── VFXParticlePool.ts  # Particle object pooling
 │   └── VFXRegistry.ts   # Ability VFX registry (loads champions/ and world.ts)
 └── vision/              # Bush visibility (client-side rendering)

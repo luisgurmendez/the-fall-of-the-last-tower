@@ -6,6 +6,18 @@
  * - Updating all active effects each frame
  * - Rendering effects to canvas
  * - Managing particle pools and performance
+ *
+ * VFXManager is the coordinator: it schedules each phase's effects, owns the
+ * particle pool and the active effect lists between frames, and fixes the
+ * update and draw order. Each effect family is spawned, updated and drawn
+ * by a module in ./active/:
+ * - particles.ts: particle bursts, rising, falling and death particles
+ * - shapes.ts: ground circles, expanding rings, cone slashes, shockwaves
+ *   and beams, drawn from the scheduled effect list
+ * - trails.ts: entity trails and dash afterimages
+ * - auras.ts: shield bubbles and orbiting particles
+ * - screenFlash.ts: full-screen flash
+ * - types.ts: the active effect instance types
  */
 
 import type { OnlineStateManager } from '@/core/OnlineStateManager';

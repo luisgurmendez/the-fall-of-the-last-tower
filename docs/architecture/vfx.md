@@ -11,7 +11,14 @@ The VFX system provides particle-based visual effects for all champion abilities
 ```
 src/vfx/
   index.ts              # Module exports
-  VFXManager.ts         # Central manager - spawn, update, render
+  VFXManager.ts         # Central manager - schedules effects, owns the active lists, update and draw order
+  active/               # One module per effect family: spawn, update, draw
+    types.ts            # Active effect instance types (ActiveEffect, ActiveTrail, ...)
+    particles.ts        # Particle bursts, rising, falling and death particles (pooled)
+    shapes.ts           # Ground circles, expanding rings, cone slashes, shockwaves, beams
+    trails.ts           # Entity trails and dash afterimages
+    auras.ts            # Shield bubbles and orbiting particles
+    screenFlash.ts      # Full-screen flash
   VFXParticlePool.ts    # Object pooling for particles
   VFXRegistry.ts        # Public registry API; importing it loads every champion's VFX
   VFXRegistryStore.ts   # Registry storage (register / get)
@@ -50,6 +57,17 @@ vfxManager.spawnAbilityVFX(
 vfxManager.update(dt);
 vfxManager.render(ctx, cameraX, cameraY);
 ```
+
+`VFXManager` keeps the state between frames: the particle pool, the
+scheduled effect list (every effect of every phase, with its progress), and
+the lists of effects attached to an entity (trails, shields, orbiting
+particles, dash afterimages) plus the screen flash. Particles, trails,
+shields, orbits, afterimages and the flash are created when their effect is
+scheduled. The modules in `src/vfx/active/` spawn, update and draw each
+family; `VFXManager` calls them in a fixed order. `render()` draws ground
+circles, trails, dash afterimages, particles, then rings, cone slashes,
+shockwaves and beams, shields and orbiting particles, and last the screen
+flash in screen space.
 
 ### VFXParticlePool
 
@@ -421,6 +439,8 @@ vfxManager.clear();
 | File | Purpose |
 |------|---------|
 | `src/vfx/VFXManager.ts` | Central manager |
+| `src/vfx/active/<family>.ts` | Spawn, update and draw one effect family (particles, shapes, trails, auras, screen flash) |
+| `src/vfx/active/types.ts` | Active effect instance types |
 | `src/vfx/VFXParticlePool.ts` | Particle pooling |
 | `src/vfx/VFXRegistry.ts` | Registry API; loads all champion VFX |
 | `src/vfx/VFXRegistryStore.ts` | Registry storage |
