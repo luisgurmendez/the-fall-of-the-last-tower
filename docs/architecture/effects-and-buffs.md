@@ -250,6 +250,8 @@ function computeCCStatus(activeEffects: ActiveEffectState[]): CCStatus {
 }
 ```
 
+`ServerAbilityExecutor.castAbility` refuses abilities with a `dash` or `teleport` while `canUseMobilityAbilities` is false (fail reason `rooted`), so rooted and grounded champions can't dash out.
+
 ## Effect Processing
 
 ### Applying Effects

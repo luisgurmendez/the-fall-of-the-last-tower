@@ -789,7 +789,7 @@ export interface AbilityCastResult {
   success: boolean;
 
   /** Reason for failure (if any) */
-  failReason?: 'on_cooldown' | 'not_enough_mana' | 'invalid_target' | 'out_of_range' | 'silenced' | 'stunned';
+  failReason?: 'on_cooldown' | 'not_enough_mana' | 'invalid_target' | 'out_of_range' | 'silenced' | 'stunned' | 'rooted';
 
   /** Mana consumed */
   manaCost?: number;

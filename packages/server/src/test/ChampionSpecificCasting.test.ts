@@ -313,3 +313,37 @@ describe('Handler results', () => {
     expect(arena.blue.abilityStates.W.cooldownRemaining).toBe(0);
   });
 });
+
+describe('Mobility abilities under crowd control', () => {
+  let arena: TestArena;
+
+  beforeEach(() => {
+    arena = createTestArena({
+      blueChampion: 'vex',
+      redChampion: 'warrior',
+      bluePosition: new Vector(0, 0),
+      redPosition: new Vector(400, 0),
+    });
+    arena.blue.abilityStates.E.rank = 1;
+    arena.blue.setResource(arena.blue.maxResource);
+  });
+
+  test('a rooted champion cannot dash', () => {
+    arena.blue.applyEffect('root', 2);
+    const start = arena.blue.position.clone();
+    const result = arena.castAbility(arena.blue, 'E', { targetPosition: new Vector(250, 0) });
+    expect(result).toEqual({ success: false, failReason: 'rooted' });
+    expect(arena.blue.position.distanceTo(start)).toBe(0);
+  });
+
+  test('a grounded champion cannot dash', () => {
+    arena.blue.applyEffect('grounded', 2);
+    const result = arena.castAbility(arena.blue, 'E', { targetPosition: new Vector(250, 0) });
+    expect(result.failReason).toBe('rooted');
+  });
+
+  test('a champion free to move can dash', () => {
+    const result = arena.castAbility(arena.blue, 'E', { targetPosition: new Vector(250, 0) });
+    expect(result.success).toBe(true);
+  });
+});

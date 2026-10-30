@@ -59,7 +59,8 @@ export interface AbilityCastResult {
     | "invalid_target"
     | "out_of_range"
     | "silenced"
-    | "stunned";
+    | "stunned"
+    | "rooted";
   manaCost?: number;
   cooldown?: number;
 }
@@ -99,6 +100,11 @@ export class ServerAbilityExecutor {
       if (champion.ccStatus.isSilenced) {
         return { success: false, failReason: "silenced" };
       }
+    }
+
+    // Rooted or grounded champions can't dash or teleport
+    if ((definition.dash || definition.teleport) && !champion.ccStatus.canUseMobilityAbilities) {
+      return { success: false, failReason: "rooted" };
     }
 
     // Check for recast - if available, handle recast flow instead of normal cast
