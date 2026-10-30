@@ -115,7 +115,7 @@ export class ServerChampion extends ServerEntity {
 
   // Items
   items: (EquippedItemState | null)[] = [null, null, null, null, null, null];
-  gold = GameConfig.ECONOMY.STARTING_GOLD;
+  gold: number = GameConfig.ECONOMY.STARTING_GOLD;
   totalGoldSpent = 0;
 
   // Combat tracking

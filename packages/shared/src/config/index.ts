@@ -17,3 +17,5 @@ export { WallGrid } from './WallGrid';
 
 export { ITEM_CATALOG, getItemCatalogEntry } from './items';
 export type { ItemCatalogEntry, ItemPassiveData } from './items';
+export { planItemPurchase, getItemTree, getItemCombineCost, getItemBuildsInto, isItemPartOf } from './itemTrees';
+export type { ItemTreeNode, PurchasePlan } from './itemTrees';

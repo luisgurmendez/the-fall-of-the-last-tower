@@ -16,6 +16,44 @@ same catalog:
 
 To add an item, add it to `ITEM_CATALOG` and give it an icon (below).
 
+### Build trees
+
+An item can list the items it is built from (`buildsFrom`; a part can appear twice).
+Its `cost` is the full price. Buying it uses up the parts already in the inventory and
+takes their cost off the price, so the player pays for the missing parts plus the
+combine cost. A part that isn't owned is looked for inside its own parts, all the way
+down. Used-up parts free their slots, so a full inventory can still build an item from
+a part it holds.
+
+`packages/shared/src/config/itemTrees.ts` does this for both sides:
+
+- `planItemPurchase(itemId, inventory)`: the price, the slots used up and the tree with
+  the owned parts marked. The server charges with it (`ChampionInventory.buy`); the shop
+  shows the same price.
+- `getItemTree`, `getItemBuildsInto`, `getItemCombineCost`, `isItemPartOf`.
+
+Current trees:
+
+| Item | Built from | Combine cost |
+|------|------------|--------------|
+| B.F. Sword | Long Sword, Long Sword | 600 |
+| Bloodthirster | B.F. Sword, Long Sword | 1750 |
+| Needlessly Large Rod | Amplifying Tome, Amplifying Tome | 380 |
+| Rabadon's Deathcap | Needlessly Large Rod, Amplifying Tome | 1915 |
+| Recurve Bow | Dagger, Dagger | 400 |
+| Chain Vest | Cloth Armor | 500 |
+| Thornmail | Chain Vest, Giant's Belt | 1000 |
+| Negatron Cloak | Null-Magic Mantle | 450 |
+| Giant's Belt | Ruby Crystal | 500 |
+| Sterak's Gage | Giant's Belt, B.F. Sword | 900 |
+
+Long Sword, Amplifying Tome, Dagger, Cloth Armor, Null-Magic Mantle, Ruby Crystal, Sheen
+and Boots of Speed are basic items. `packages/shared/src/test/itemTrees.test.ts` checks
+that every part exists, no item is in its own tree, and no item costs less than its parts.
+
+The practice bot buys its build list in order, skipping items it owns or has already
+built into an owned item, at the tree price.
+
 ### Passives
 
 Each passive has a name and a `description` for the shop and tooltips, and an
@@ -26,8 +64,11 @@ give their stats.
 ## Shop UI
 
 `src/ui/shop/ShopUI.ts` drives the shop overlay in `index.html` (styles in `shop.css`):
-category tabs, the item grid, the details panel (stats and passives) and the six
-inventory slots. Buying keeps the shop open; gold, inventory, affordability and the
+category tabs, the item grid (each item at its price for the current inventory, in
+green when parts lower it), the details panel and the six inventory slots. The details
+panel shows the item's build tree with owned parts outlined in green, its stats and
+passives, and what it builds into (`src/ui/shop/itemTree.ts`); clicking an item there
+selects it. Buying keeps the shop open; gold, inventory, affordability and the
 buttons refresh from each server state update (`updateOnlineState`). Buying and selling
 only work at the fountain.
 

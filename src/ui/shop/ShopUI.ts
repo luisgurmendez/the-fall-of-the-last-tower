@@ -8,6 +8,8 @@ import type { ItemDefinition, ItemSlot, ItemCategory } from "@siege/shared";
 import type { NetworkClient } from "@siege/client";
 import { createItemIconElement } from "@/ui/itemIcons";
 import { SHOP_ITEMS, getItemDefinition, getItemPassive } from "@/data/items";
+import { renderItemTree, renderBuildsInto } from "@/ui/shop/itemTree";
+import { planItemPurchase } from "@siege/shared";
 
 type ShopCategory = ItemCategory | "all";
 
@@ -173,23 +175,17 @@ export class ShopUI {
     div.className = "shop-item";
     div.dataset.itemId = item.id;
 
-    // Check if can afford
-    const gold = this.gameContext?.money ?? 0;
-    if (gold < item.cost) {
-      div.classList.add("cannot-afford");
-    }
-
     // Icon
     const iconDiv = document.createElement("div");
     iconDiv.className = `shop-item-icon item-icon-${item.category}`;
     iconDiv.appendChild(createItemIconElement(item));
     div.appendChild(iconDiv);
 
-    // Cost
+    // Price for this inventory (set by updateItemPrice)
     const costDiv = document.createElement("div");
     costDiv.className = "shop-item-cost";
-    costDiv.textContent = item.cost.toString();
     div.appendChild(costDiv);
+    this.updateItemPrice(div, item);
 
     // Click handler
     div.addEventListener("click", () => this.selectItem(item));
@@ -291,15 +287,18 @@ export class ShopUI {
 
     const statsHtml = this.formatItemStats(item);
     const passivesHtml = this.formatItemPassives(item);
+    const plan = planItemPurchase(item.id, this.getInventoryIds());
+    const price = plan?.price ?? item.cost;
+    const costText = isOwned
+      ? `Sell: ${item.sellValue}g`
+      : price < item.cost ? `Cost: ${price}g <s>${item.cost}g</s>` : `Cost: ${item.cost}g`;
 
     this.detailsPanel.innerHTML = `
       <div class="item-detail-header">
         <div class="item-detail-icon item-icon-${item.category}"></div>
         <div class="item-detail-title">
           <div class="item-detail-name">${item.name}</div>
-          <div class="item-detail-cost">${
-            isOwned ? `Sell: ${item.sellValue}g` : `Cost: ${item.cost}g`
-          }</div>
+          <div class="item-detail-cost">${costText}</div>
         </div>
       </div>
       ${item.description ? `<div class="item-detail-description">${item.description}</div>` : ""}
@@ -311,6 +310,55 @@ export class ShopUI {
       }
     `;
     this.detailsPanel.querySelector(".item-detail-icon")?.appendChild(createItemIconElement(item));
+
+    // Build tree right under the header, what it builds into at the end
+    const select = (next: ItemDefinition) => this.selectItem(next);
+    if (plan && plan.tree.parts.length > 0) {
+      const tree = renderItemTree(isOwned ? { ...plan.tree, owned: true } : plan.tree, select);
+      this.detailsPanel.querySelector(".item-detail-header")?.after(this.labeled("Built from", tree));
+    }
+    const buildsInto = renderBuildsInto(item.id, select);
+    if (buildsInto) {
+      this.detailsPanel.appendChild(this.labeled("Builds into", buildsInto));
+    }
+  }
+
+  /**
+   * A details section: a small title over its content.
+   */
+  private labeled(title: string, content: HTMLElement): HTMLElement {
+    const section = document.createElement("div");
+    section.className = "item-detail-section";
+    const label = document.createElement("div");
+    label.className = "item-detail-section-title";
+    label.textContent = title;
+    section.append(label, content);
+    return section;
+  }
+
+  /**
+   * Item ids in the inventory, by slot.
+   */
+  private getInventoryIds(): (string | null)[] {
+    return this.onlineItems.map(item => item?.definitionId ?? null);
+  }
+
+  /**
+   * What an item costs now: its parts in the inventory are taken off.
+   */
+  private getPrice(item: ItemDefinition): number {
+    return planItemPurchase(item.id, this.getInventoryIds())?.price ?? item.cost;
+  }
+
+  /**
+   * Show an item cell's price for this inventory, and whether gold covers it.
+   */
+  private updateItemPrice(cell: Element, item: ItemDefinition): void {
+    const price = this.getPrice(item);
+    const costEl = cell.querySelector(".shop-item-cost");
+    if (costEl) costEl.textContent = price.toString();
+    cell.classList.toggle("discounted", price < item.cost);
+    cell.classList.toggle("cannot-afford", this.onlineGold < price);
   }
 
   /**
@@ -403,7 +451,7 @@ export class ShopUI {
       const canBuy = this.atShop &&
                      item !== null &&
                      this.state.selectedInventorySlot === null &&
-                     gold >= item.cost;
+                     gold >= this.getPrice(item);
       this.buyButton.disabled = !canBuy;
       this.buyButton.textContent = this.atShop ? "BUY" : "AT BASE ONLY";
     }
@@ -556,6 +604,8 @@ export class ShopUI {
    * Convenience method that sets both gold and items.
    */
   updateOnlineState(gold: number, items: Array<{ definitionId: string } | null>, atShop = true): void {
+    const inventoryChanged = JSON.stringify(this.getInventoryIds()) !==
+      JSON.stringify(items.map(item => item?.definitionId ?? null));
     this.onlineGold = gold;
     this.onlineItems = items;
     this.atShop = atShop;
@@ -565,6 +615,10 @@ export class ShopUI {
       this.updateInventorySlots();
       this.updateItemAffordability();
       this.updateButtons();
+      // Owned parts changed: the selected item's price and tree did too
+      if (inventoryChanged && this.state.selectedItem && this.state.selectedInventorySlot === null) {
+        this.showItemDetails(this.state.selectedItem);
+      }
     }
   }
 
@@ -628,20 +682,19 @@ export class ShopUI {
   }
 
   /**
-   * Update item affordability CSS classes without recreating elements.
+   * Update item prices and affordability without recreating elements.
    * This preserves event listeners and allows clicks to work properly.
    */
   private updateItemAffordability(): void {
     if (!this.itemsGrid) return;
 
-    const gold = this.onlineGold;
     const itemEls = this.itemsGrid.querySelectorAll(".shop-item");
 
     itemEls.forEach((el) => {
       const itemId = (el as HTMLElement).dataset.itemId;
       const item = itemId ? getItemDefinition(itemId) : undefined;
       if (item) {
-        el.classList.toggle("cannot-afford", gold < item.cost);
+        this.updateItemPrice(el, item);
       }
     });
   }

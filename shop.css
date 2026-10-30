@@ -618,3 +618,117 @@
     width: 100%;
   }
 }
+
+/* Item prices: lowered by parts in the inventory (item trees) */
+.shop-item.discounted .shop-item-cost {
+  color: var(--shop-health);
+}
+
+.item-detail-cost s {
+  color: var(--shop-text-dim);
+  margin-left: 6px;
+}
+
+/* Details sections: build tree and builds-into */
+.item-detail-section {
+  margin-bottom: 14px;
+}
+
+.item-detail-section-title {
+  font-size: 16px;
+  color: var(--shop-text-dim);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+/* Build tree: each item over its parts, joined by lines */
+.item-tree {
+  display: flex;
+  justify-content: center;
+}
+
+.tree-branch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.tree-parts {
+  display: flex;
+  margin-top: 8px;
+  position: relative;
+}
+
+/* Line down from the item to the row of its parts */
+.tree-parts::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: calc(50% - 1px);
+  height: 8px;
+  border-left: 2px solid var(--shop-border-highlight);
+}
+
+.tree-parts > .tree-branch {
+  padding: 8px 3px 0;
+}
+
+/* Each part draws its piece of the line across the row: from the first part's
+   center to the last part's */
+.tree-parts > .tree-branch::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  border-top: 2px solid var(--shop-border-highlight);
+}
+
+.tree-parts > .tree-branch:first-child::before {
+  left: 50%;
+}
+
+.tree-parts > .tree-branch:last-child::before {
+  right: 50%;
+}
+
+.tree-parts > .tree-branch:only-child::before {
+  display: none;
+}
+
+/* And the line down to itself */
+.tree-parts > .tree-branch::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: calc(50% - 1px);
+  height: 8px;
+  border-left: 2px solid var(--shop-border-highlight);
+}
+
+.tree-item,
+.item-builds-into .tree-item {
+  width: 40px;
+  height: 40px;
+  padding: 2px;
+  background: var(--shop-border);
+  border: 2px solid var(--shop-border-highlight);
+  cursor: pointer;
+}
+
+.tree-item:hover {
+  border-color: var(--shop-accent);
+}
+
+/* A part the inventory already covers */
+.tree-item.owned {
+  border-color: #2ecc71;
+  box-shadow: 0 0 6px rgba(46, 204, 113, 0.6);
+}
+
+.item-builds-into {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}

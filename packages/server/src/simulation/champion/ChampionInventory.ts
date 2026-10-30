@@ -1,12 +1,14 @@
 /**
  * ChampionInventory - Buying and selling items.
  *
- * A champion has six item slots (champion.items). Buying needs enough gold,
- * a free slot and, for unique items, not owning one already. Selling
+ * A champion has six item slots (champion.items). Buying uses up the item's
+ * parts in the inventory and charges the rest of its cost (planItemPurchase,
+ * shared with the shop). It needs that much gold, a free slot (the used-up
+ * parts free theirs) and, for unique items, not owning one already. Selling
  * refunds the item's sell value. Item stats are applied by ChampionStats.
  */
 
-import type { ItemSlot } from '@siege/shared';
+import { planItemPurchase, type ItemSlot } from '@siege/shared';
 import { getServerItemById } from '../../data/items';
 import { Logger } from '../../utils/Logger';
 import type { ServerChampion } from '../ServerChampion';
@@ -28,8 +30,9 @@ export class ChampionInventory {
       return false;
     }
 
-    // Check gold
-    if (champion.gold < itemDef.cost) {
+    // Owned parts are used up and taken off the price
+    const plan = planItemPurchase(itemId, champion.items.map(item => item?.definitionId));
+    if (!plan || champion.gold < plan.price) {
       return false;
     }
 
@@ -38,15 +41,18 @@ export class ChampionInventory {
       return false;
     }
 
-    // Find empty slot
-    const emptySlot = this.findEmptySlot();
+    // Find a slot: an empty one, or one a used-up part frees
+    const emptySlot = this.findEmptySlot(plan.consumedSlots);
     if (emptySlot === null) {
       return false;
     }
 
-    // Deduct gold and add item
-    champion.gold -= itemDef.cost;
-    champion.totalGoldSpent += itemDef.cost;
+    // Use up the parts, deduct gold and add the item
+    for (const slot of plan.consumedSlots) {
+      champion.items[slot] = null;
+    }
+    champion.gold -= plan.price;
+    champion.totalGoldSpent += plan.price;
     champion.items[emptySlot] = {
       definitionId: itemId,
       slot: emptySlot as ItemSlot,
@@ -57,7 +63,7 @@ export class ChampionInventory {
     // Invalidate cached stats
     champion.invalidateStats();
 
-    Logger.champion.info(`${champion.playerId} bought ${itemDef.name} for ${itemDef.cost}g`);
+    Logger.champion.info(`${champion.playerId} bought ${itemDef.name} for ${plan.price}g`);
     return true;
   }
 
@@ -101,11 +107,11 @@ export class ChampionInventory {
   }
 
   /**
-   * Find first empty inventory slot.
+   * First inventory slot that is empty or about to be freed.
    */
-  private findEmptySlot(): ItemSlot | null {
+  private findEmptySlot(freedSlots: readonly number[] = []): ItemSlot | null {
     for (let i = 0; i < INVENTORY_SIZE; i++) {
-      if (!this.champion.items[i]) {
+      if (!this.champion.items[i] || freedSlots.includes(i)) {
         return i as ItemSlot;
       }
     }

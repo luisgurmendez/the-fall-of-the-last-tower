@@ -23,6 +23,8 @@ import {
   EntityType,
   InputType,
   getAbilityDefinition,
+  planItemPurchase,
+  isItemPartOf,
   type AbilitySlot,
   type AbilityDefinition,
   type LaneId,
@@ -34,7 +36,6 @@ import type { ServerEntity } from '../simulation/ServerEntity';
 import type { ServerTower } from '../simulation/ServerTower';
 import type { ServerGameContext } from '../game/ServerGameContext';
 import { LanePath } from '../navigation/LanePath';
-import { getServerItemById } from '../data/items';
 
 export interface LaneBotConfig {
   playerId: string;
@@ -261,13 +262,20 @@ export class LaneBot implements BotController {
   }
 
   /**
-   * Buy the next item of the build that the bot can afford.
+   * Buy the next item of the build that the bot can afford. An item it owns,
+   * or already built into one it owns, is done.
    */
   private chooseItemToBuy(champion: ServerChampion): BotInput | null {
-    if (champion.items.every(item => item !== null)) return null;
+    const inventory = champion.items.map(item => item?.definitionId);
     const build = champion.definition.class === 'mage' ? BUILDS.ability : BUILDS.attack;
-    const owned = new Set(champion.items.filter(item => item !== null).map(item => item!.definitionId));
-    const itemId = build.find(id => !owned.has(id) && (getServerItemById(id)?.cost ?? Infinity) <= champion.gold);
+    const done = (id: string) => inventory.some(owned => owned && (owned === id || isItemPartOf(id, owned)));
+    const itemId = build.find(id => {
+      if (done(id)) return false;
+      const plan = planItemPurchase(id, inventory);
+      // Needs a free slot, unless it uses up a part
+      const fits = inventory.some(owned => !owned) || (plan?.consumedSlots.length ?? 0) > 0;
+      return plan !== null && fits && plan.price <= champion.gold;
+    });
     if (!itemId) return null;
     this.lastDecision = `buy ${itemId}`;
     return { type: InputType.BUY_ITEM, itemId };

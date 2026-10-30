@@ -29,6 +29,11 @@ export interface ItemCatalogEntry {
   stats: Partial<ChampionBaseStats>;
   passives: ItemPassiveData[];
   isUnique: boolean;
+  /**
+   * Items this one is built from (see itemTrees.ts). A part can appear more
+   * than once. `cost` is the full price; owned parts are taken off it.
+   */
+  buildsFrom?: string[];
 }
 
 // ===================
@@ -52,6 +57,7 @@ const BFSword: ItemCatalogEntry = {
   category: 'attack_damage',
   cost: 1300,
   sellValue: 910,
+  buildsFrom: ['long_sword', 'long_sword'],
   stats: { attackDamage: 40 },
   passives: [],
   isUnique: false,
@@ -63,6 +69,7 @@ const Bloodthirster: ItemCatalogEntry = {
   category: 'attack_damage',
   cost: 3400,
   sellValue: 2380,
+  buildsFrom: ['bf_sword', 'long_sword'],
   stats: { attackDamage: 55, critChance: 0.20 },
   passives: [
     {
@@ -100,6 +107,7 @@ const NeedlesslyLargeRod: ItemCatalogEntry = {
   category: 'ability_power',
   cost: 1250,
   sellValue: 875,
+  buildsFrom: ['amplifying_tome', 'amplifying_tome'],
   stats: { abilityPower: 60 },
   passives: [],
   isUnique: false,
@@ -111,6 +119,7 @@ const RabadonsDeathcap: ItemCatalogEntry = {
   category: 'ability_power',
   cost: 3600,
   sellValue: 2520,
+  buildsFrom: ['needlessly_large_rod', 'amplifying_tome'],
   stats: { abilityPower: 120 },
   passives: [],
   isUnique: true,
@@ -137,6 +146,7 @@ const RecurveBow: ItemCatalogEntry = {
   category: 'attack_speed',
   cost: 1000,
   sellValue: 700,
+  buildsFrom: ['dagger', 'dagger'],
   stats: { attackSpeed: 0.25 },
   passives: [
     {
@@ -174,6 +184,7 @@ const ChainVest: ItemCatalogEntry = {
   category: 'armor',
   cost: 800,
   sellValue: 560,
+  buildsFrom: ['cloth_armor'],
   stats: { armor: 40 },
   passives: [],
   isUnique: false,
@@ -185,6 +196,7 @@ const Thornmail: ItemCatalogEntry = {
   category: 'armor',
   cost: 2700,
   sellValue: 1890,
+  buildsFrom: ['chain_vest', 'giants_belt'],
   stats: { armor: 70, health: 350 },
   passives: [
     {
@@ -222,6 +234,7 @@ const NegatronCloak: ItemCatalogEntry = {
   category: 'magic_resist',
   cost: 900,
   sellValue: 630,
+  buildsFrom: ['null_magic_mantle'],
   stats: { magicResist: 50 },
   passives: [],
   isUnique: false,
@@ -248,6 +261,7 @@ const GiantsBelt: ItemCatalogEntry = {
   category: 'health',
   cost: 900,
   sellValue: 630,
+  buildsFrom: ['rubys_crystal'],
   stats: { health: 350 },
   passives: [],
   isUnique: false,
@@ -259,6 +273,7 @@ const SteraksGage: ItemCatalogEntry = {
   category: 'health',
   cost: 3100,
   sellValue: 2170,
+  buildsFrom: ['giants_belt', 'bf_sword'],
   stats: { health: 400, attackDamage: 50 },
   passives: [
     {
