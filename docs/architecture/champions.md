@@ -407,25 +407,84 @@ function calculateRespawnTime(level: number): number {
 | File | Purpose |
 |------|---------|
 | `packages/shared/src/types/champions.ts` | Type definitions |
-| `packages/server/src/simulation/ServerChampion.ts` | Server champion logic |
+| `packages/server/src/simulation/ServerChampion.ts` | Server champion: state, tick order, public API |
+| `packages/server/src/simulation/champion/` | Champion collaborators (one concern per file, see below) |
 | `packages/server/src/server.ts` | Champion definitions |
 
 ## Server Champion
 
-The `ServerChampion` class (`packages/server/src/simulation/ServerChampion.ts`) extends `ServerEntity` and handles:
+`ServerChampion` (`packages/server/src/simulation/ServerChampion.ts`) extends `ServerEntity`. It is a coordinator:
 
-- Stat calculations with modifiers
-- Ability casting and validation
-- Effect management
-- Combat state tracking
-- Death and respawn
-- Movement and pathfinding
-- Shield processing
+- It holds the authoritative champion state as public fields
+- It runs the per-tick update in a fixed order
+- It handles movement, combat state, damage, death/respawn, regeneration, passives, progression (XP, levels, gold) and collision
+- It delegates every other concern to a collaborator in `simulation/champion/`
+
+### Collaborators
+
+| File | Concern | Owns private state | Champion methods that delegate to it |
+|------|---------|--------------------|--------------------------------------|
+| `ChampionStats.ts` | Effective stats: base + growth, then stat modifiers, items, stat effects (pure function `calculateChampionStats`) | none | `getStats` (after the cache check) |
+| `ChampionEffects.ts` | Applying, stacking, removing and cleansing effects, over-time ticks, CC status (`calculateCCStatus`), stealth, invulnerability, duration extension, shield decay and absorption | none | `applyEffect`, `removeEffect`, `removeEffectsByCategory`, `cleanse`, `hasEffect`, `getEffect`, `breakStealth`, `isInvulnerable`, `extendEffectDuration` |
+| `ChampionBasicAttacks.ts` | Attack timer, attack start (`on_attack`, `BASIC_ATTACK` event), damage at the animation keyframe, ranged projectiles, melee hits, on-hit jungle buffs (`applyOnHitBuffs`), `onMeleeAttackHit` hooks, `on_hit` passives | attack cooldown, attack animation scheduler | (internal, from `updateCombat`) |
+| `ChampionAbilities.ts` | Ability leveling (R at 6/11/16), cooldown/cast/recast-window ticking, recasts, ability projectiles scheduled at an animation keyframe | recast hit positions, ability animation scheduler | `levelUpAbility`, `scheduleAbilityProjectile`, `enableRecast`, `hasRecastAvailable`, `getRecastHitPosition`, `consumeRecast` |
+| `ChampionTransform.ts` | Timed transforms (Vile's R): attack range override and damage aura | transform clock, range override, aura | `setTransformAttackRange`, `startTransformAura`, `getAttackRange`, `isTransformed`, `updateTransformAura` |
+| `ChampionForcedMovement.ts` | Dashes and knockbacks, dash hit detection (function `updateForcedMovement`) | none | (internal, from `update`) |
+| `ChampionRecall.ts` | Recall channel and teleport to base | none | `startRecall`, `cancelRecall` |
+| `ChampionTrinket.ts` | Ward charges, cooldown and recharge | none | `canPlaceWard`, `consumeTrinketCharge`, `getTrinketRechargeProgress` |
+| `ChampionInventory.ts` | Buying and selling items | none | `buyItem`, `sellItem`, `hasItem` |
+| `ChampionSnapshot.ts` | Network snapshot (function `buildChampionSnapshot`) | none | `toSnapshot` |
+
+Rules the structure follows:
+
+- **State that other code reads or writes stays on the champion.** Ability handlers, passives, the ability executor, systems such as fog of war, bots, the sim and tests use `activeEffects`, `ccStatus`, `shields`, `abilityRanks`, `abilityStates`, `forcedMovement`, `dashAbilityId`, `isRecalling`, the trinket fields, `items` and `gold` directly. Collaborators act on these fields through the champion.
+- **State only one concern uses lives in that collaborator** (attack cooldown, animation schedulers, recast hit positions, transform timers).
+- **Collaborators call back through the champion's public methods** (`getStats`, `takeDamage`, `breakStealth`, `getEffect`, ...) so overrides and test spies see the same calls as before the split.
+- Classes are owned by the champion (`private readonly effects = new ChampionEffects(this)`) and keep a reference to it. Single calculations (stats, snapshot, forced movement step) are plain functions that take the champion.
+- `ActiveShield` and `ForcedMovement` are defined next to their concern and re-exported from `ServerChampion.ts`.
+
+### Stats cache
+
+`getStats()` caches its result. It recalculates when the cache is empty and then copies `maxHealth`, `maxResource` and `movementSpeed` onto the champion. The cache is cleared:
+
+- at the end of every tick, and after effects update during the tick
+- by `addModifier` / `removeModifier`
+- by `applyEffect`, `removeEffect`, `removeEffectsByCategory` and `cleanse` (not `breakStealth`)
+- by `buyItem` / `sellItem` and level-ups
+
+Collaborators clear it with `invalidateStats()`. Code that changes `items`, `level` or `activeEffects` directly must call `invalidateStats()` (or wait for the next tick) to see the new stats.
+
+### Tick order
+
+`ServerChampion.update(dt, context)` runs, in order:
+
+1. Advance the transform clock (also while dead)
+2. If dead: count down the respawn timer, respawn when it ends, and stop here
+3. Forced movement if one is active, otherwise normal movement if CC allows
+4. Combat: attack cooldown, combat timeout, target visibility check, start an auto-attack if ready
+5. Scheduled basic attack damage (cancelled if the champion can't attack)
+6. Scheduled ability projectiles (cancelled if the champion can't cast)
+7. Ability cooldowns, cast times and recast windows
+8. Effects: over-time ticks, durations, CC status
+9. Transform aura damage
+10. Shield decay
+11. Recall progress (if recalling)
+12. Health and resource regeneration
+13. Trinket recharge
+14. Passive state (trigger system, low-health trigger, champion hooks)
+15. Passive gold income
+16. Clear the stats cache
+
+### Where to add code
+
+- A new rule for an existing concern goes in its collaborator.
+- A new concern with its own state gets a new collaborator in `simulation/champion/`, owned by `ServerChampion`, called from `update()` at a fixed point. Add it to the table above.
+- Champion-specific rules usually belong in ability handlers or champion hooks (`packages/server/src/abilities/`) rather than in `ServerChampion`.
 
 ## Adding New Champions
 
 1. Create champion definition in `packages/server/src/server.ts`
 2. Add ability definitions for Q, W, E, R
-3. Implement ability logic in `ServerChampion` or create ability classes
+3. Implement ability logic in an ability handler, or champion-specific rules in champion hooks (`packages/server/src/abilities/`)
 4. Add champion assets (sprites, sounds) on client
 5. Register in champion selection UI
