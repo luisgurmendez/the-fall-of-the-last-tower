@@ -339,7 +339,7 @@ describe('Gorath', () => {
         redChampion: 'vex',
       });
       arena2.blue.items[0] = {
-        definitionId: 'giants_belt', // +350 health
+        definitionId: 'bulwark_belt', // +350 health
         slot: 0,
         passiveCooldowns: {},
         nextIntervalTick: {},

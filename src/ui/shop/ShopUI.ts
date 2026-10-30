@@ -401,6 +401,11 @@ export class ShopUI {
         class: "crit",
         format: (v) => `+${Math.round(v * 100)}%`,
       },
+      abilityHaste: {
+        name: "Ability Haste",
+        class: "ap",
+        format: (v) => `+${v}`,
+      },
     };
 
     const lines: string[] = [];

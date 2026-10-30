@@ -189,8 +189,9 @@ export class ChampionBasicAttacks {
     const projectileType = `${champion.definition.id}_auto`;
 
     // Create callback to handle on-hit effects when projectile lands
-    const onHitCallback = (hitTarget: ServerEntity, hitDamage: number, hitContext: ServerGameContext) => {
+    const onHitCallback = (hitTarget: ServerEntity, hitDamage: number, hitContext: ServerGameContext, dealt: number) => {
       this.applyOnHitBuffs(hitTarget);
+      champion.itemPassives.onBasicAttackHit(hitTarget, dealt, hitContext);
 
       // Dispatch on_hit trigger for passives
       passiveTriggerSystem.dispatchTrigger('on_hit', champion, hitContext, {
@@ -233,7 +234,8 @@ export class ChampionBasicAttacks {
   ): void {
     const champion = this.champion;
 
-    target.takeDamage(damage, 'physical', champion.id, context);
+    const dealt = target.takeDamage(damage, 'physical', champion.id, context);
+    target.onBasicAttackTaken(champion, context);
 
     // Champion-specific on-attack rules (e.g., Vex's empowered attack)
     championHooksRegistry.get(champion.definition.id)?.onMeleeAttackHit?.(
@@ -244,6 +246,7 @@ export class ChampionBasicAttacks {
     );
 
     this.applyOnHitBuffs(target);
+    champion.itemPassives.onBasicAttackHit(target, dealt, context);
 
     // Dispatch on_hit trigger AFTER attack lands
     passiveTriggerSystem.dispatchTrigger('on_hit', champion, context, {

@@ -37,12 +37,12 @@ export interface ItemCatalogEntry {
 }
 
 // ===================
-// Attack Damage Items
+// Basic items: no parts
 // ===================
 
-const LongSword: ItemCatalogEntry = {
-  id: 'long_sword',
-  name: 'Long Sword',
+const NotchedBlade: ItemCatalogEntry = {
+  id: 'notched_blade',
+  name: "Notched Blade",
   category: 'attack_damage',
   cost: 350,
   sellValue: 245,
@@ -51,30 +51,186 @@ const LongSword: ItemCatalogEntry = {
   isUnique: false,
 };
 
-const BFSword: ItemCatalogEntry = {
-  id: 'bf_sword',
-  name: 'B.F. Sword',
-  category: 'attack_damage',
-  cost: 1300,
-  sellValue: 910,
-  buildsFrom: ['long_sword', 'long_sword'],
-  stats: { attackDamage: 40 },
+const EmberShard: ItemCatalogEntry = {
+  id: 'ember_shard',
+  name: "Ember Shard",
+  category: 'ability_power',
+  cost: 435,
+  sellValue: 304,
+  stats: { abilityPower: 20 },
   passives: [],
   isUnique: false,
 };
 
-const Bloodthirster: ItemCatalogEntry = {
-  id: 'bloodthirster',
-  name: 'Bloodthirster',
+const QuickdrawGloves: ItemCatalogEntry = {
+  id: 'quickdraw_gloves',
+  name: "Quickdraw Gloves",
+  category: 'attack_speed',
+  cost: 300,
+  sellValue: 210,
+  stats: { attackSpeed: 0.12 },
+  passives: [],
+  isUnique: false,
+};
+
+const PaddedVest: ItemCatalogEntry = {
+  id: 'padded_vest',
+  name: "Padded Vest",
+  category: 'armor',
+  cost: 300,
+  sellValue: 210,
+  stats: { armor: 15 },
+  passives: [],
+  isUnique: false,
+};
+
+const WardingCharm: ItemCatalogEntry = {
+  id: 'warding_charm',
+  name: "Warding Charm",
+  category: 'magic_resist',
+  cost: 450,
+  sellValue: 315,
+  stats: { magicResist: 25 },
+  passives: [],
+  isUnique: false,
+};
+
+const Heartstone: ItemCatalogEntry = {
+  id: 'heartstone',
+  name: "Heartstone",
+  category: 'health',
+  cost: 400,
+  sellValue: 280,
+  stats: { health: 150 },
+  passives: [],
+  isUnique: false,
+};
+
+const FocusRune: ItemCatalogEntry = {
+  id: 'focus_rune',
+  name: "Focus Rune",
+  category: 'utility',
+  cost: 400,
+  sellValue: 280,
+  stats: { abilityHaste: 10 },
+  passives: [],
+  isUnique: false,
+};
+
+const WanderersBoots: ItemCatalogEntry = {
+  id: 'wanderers_boots',
+  name: "Wanderer's Boots",
+  category: 'movement',
+  cost: 300,
+  sellValue: 210,
+  stats: { movementSpeed: 6 },
+  passives: [],
+  isUnique: true,
+};
+
+// ===================
+// Middle items
+// ===================
+
+const SiegeCleaver: ItemCatalogEntry = {
+  id: 'siege_cleaver',
+  name: "Siege Cleaver",
   category: 'attack_damage',
-  cost: 3400,
-  sellValue: 2380,
-  buildsFrom: ['bf_sword', 'long_sword'],
-  stats: { attackDamage: 55, critChance: 0.20 },
+  cost: 1200,
+  sellValue: 840,
+  buildsFrom: ['notched_blade', 'notched_blade'],
+  stats: { attackDamage: 35 },
+  passives: [],
+  isUnique: false,
+};
+
+const CinderRod: ItemCatalogEntry = {
+  id: 'cinder_rod',
+  name: "Cinder Rod",
+  category: 'ability_power',
+  cost: 1100,
+  sellValue: 770,
+  buildsFrom: ['ember_shard', 'ember_shard'],
+  stats: { abilityPower: 50 },
+  passives: [],
+  isUnique: false,
+};
+
+const RepeaterCrossbow: ItemCatalogEntry = {
+  id: 'repeater_crossbow',
+  name: "Repeater Crossbow",
+  category: 'attack_speed',
+  cost: 1000,
+  sellValue: 700,
+  buildsFrom: ['quickdraw_gloves', 'quickdraw_gloves'],
+  stats: { attackSpeed: 0.25 },
   passives: [
     {
-      id: 'bloodthirster_lifesteal',
-      name: 'Bloodlust',
+      id: 'barbed_bolts',
+      name: 'Barbed Bolts',
+      description: 'Basic attacks deal 12 bonus physical damage.',
+      trigger: 'on_hit',
+      cooldown: 0,
+      isUnique: true,
+      effectType: 'on_hit_damage',
+      effectData: { damage: 12, damageType: 'physical' },
+    },
+  ],
+  isUnique: false,
+};
+
+const IronPlate: ItemCatalogEntry = {
+  id: 'iron_plate',
+  name: "Iron Plate",
+  category: 'armor',
+  cost: 800,
+  sellValue: 560,
+  buildsFrom: ['padded_vest'],
+  stats: { armor: 40 },
+  passives: [],
+  isUnique: false,
+};
+
+const SpellwardCloak: ItemCatalogEntry = {
+  id: 'spellward_cloak',
+  name: "Spellward Cloak",
+  category: 'magic_resist',
+  cost: 900,
+  sellValue: 630,
+  buildsFrom: ['warding_charm'],
+  stats: { magicResist: 50 },
+  passives: [],
+  isUnique: false,
+};
+
+const BulwarkBelt: ItemCatalogEntry = {
+  id: 'bulwark_belt',
+  name: "Bulwark Belt",
+  category: 'health',
+  cost: 900,
+  sellValue: 630,
+  buildsFrom: ['heartstone'],
+  stats: { health: 350 },
+  passives: [],
+  isUnique: false,
+};
+
+// ===================
+// Finished items
+// ===================
+
+const CrimsonFang: ItemCatalogEntry = {
+  id: 'crimson_fang',
+  name: "Crimson Fang",
+  category: 'attack_damage',
+  cost: 3000,
+  sellValue: 2100,
+  buildsFrom: ['siege_cleaver', 'notched_blade'],
+  stats: { attackDamage: 55 },
+  passives: [
+    {
+      id: 'feast',
+      name: 'Feast',
       description: 'Basic attacks heal you for 15% of the damage they deal.',
       trigger: 'on_hit',
       cooldown: 0,
@@ -86,200 +242,65 @@ const Bloodthirster: ItemCatalogEntry = {
   isUnique: false,
 };
 
-// ===================
-// Ability Power Items
-// ===================
-
-const AmplifyingTome: ItemCatalogEntry = {
-  id: 'amplifying_tome',
-  name: 'Amplifying Tome',
+const StarfallDiadem: ItemCatalogEntry = {
+  id: 'starfall_diadem',
+  name: "Starfall Diadem",
   category: 'ability_power',
-  cost: 435,
-  sellValue: 305,
-  stats: { abilityPower: 20 },
-  passives: [],
-  isUnique: false,
-};
-
-const NeedlesslyLargeRod: ItemCatalogEntry = {
-  id: 'needlessly_large_rod',
-  name: 'Needlessly Large Rod',
-  category: 'ability_power',
-  cost: 1250,
-  sellValue: 875,
-  buildsFrom: ['amplifying_tome', 'amplifying_tome'],
-  stats: { abilityPower: 60 },
-  passives: [],
-  isUnique: false,
-};
-
-const RabadonsDeathcap: ItemCatalogEntry = {
-  id: 'rabadons_deathcap',
-  name: "Rabadon's Deathcap",
-  category: 'ability_power',
-  cost: 3600,
-  sellValue: 2520,
-  buildsFrom: ['needlessly_large_rod', 'amplifying_tome'],
-  stats: { abilityPower: 120 },
-  passives: [],
+  cost: 3000,
+  sellValue: 2100,
+  buildsFrom: ['cinder_rod', 'focus_rune'],
+  stats: { abilityPower: 90, abilityHaste: 10 },
+  passives: [
+    {
+      id: 'starfall',
+      name: 'Starfall',
+      description: 'After you cast an ability, your next basic attack within 10 seconds deals bonus magic damage equal to 75% of your ability power (1.5s cooldown).',
+      trigger: 'on_ability_cast',
+      cooldown: 1.5,
+      isUnique: true,
+      effectType: 'spellblade',
+      effectData: { apRatio: 0.75, damageType: 'magic', window: 10 },
+    },
+  ],
   isUnique: true,
 };
 
-// ===================
-// Attack Speed Items
-// ===================
-
-const Dagger: ItemCatalogEntry = {
-  id: 'dagger',
-  name: 'Dagger',
-  category: 'attack_speed',
-  cost: 300,
-  sellValue: 210,
-  stats: { attackSpeed: 0.12 },
-  passives: [],
-  isUnique: false,
-};
-
-const RecurveBow: ItemCatalogEntry = {
-  id: 'recurve_bow',
-  name: 'Recurve Bow',
-  category: 'attack_speed',
-  cost: 1000,
-  sellValue: 700,
-  buildsFrom: ['dagger', 'dagger'],
-  stats: { attackSpeed: 0.25 },
+const SpikedBastion: ItemCatalogEntry = {
+  id: 'spiked_bastion',
+  name: "Spiked Bastion",
+  category: 'armor',
+  cost: 2600,
+  sellValue: 1820,
+  buildsFrom: ['iron_plate', 'bulwark_belt'],
+  stats: { armor: 60, health: 300 },
   passives: [
     {
-      id: 'recurve_bow_onhit',
-      name: 'Sharp',
-      description: 'Basic attacks deal 15 bonus physical damage.',
-      trigger: 'on_hit',
-      cooldown: 0,
-      isUnique: false,
-      effectType: 'on_hit_damage',
-      effectData: { damage: 15, type: 'physical' },
-    },
-  ],
-  isUnique: false,
-};
-
-// ===================
-// Defense Items - Armor
-// ===================
-
-const ClothArmor: ItemCatalogEntry = {
-  id: 'cloth_armor',
-  name: 'Cloth Armor',
-  category: 'armor',
-  cost: 300,
-  sellValue: 210,
-  stats: { armor: 15 },
-  passives: [],
-  isUnique: false,
-};
-
-const ChainVest: ItemCatalogEntry = {
-  id: 'chain_vest',
-  name: 'Chain Vest',
-  category: 'armor',
-  cost: 800,
-  sellValue: 560,
-  buildsFrom: ['cloth_armor'],
-  stats: { armor: 40 },
-  passives: [],
-  isUnique: false,
-};
-
-const Thornmail: ItemCatalogEntry = {
-  id: 'thornmail',
-  name: 'Thornmail',
-  category: 'armor',
-  cost: 2700,
-  sellValue: 1890,
-  buildsFrom: ['chain_vest', 'giants_belt'],
-  stats: { armor: 70, health: 350 },
-  passives: [
-    {
-      id: 'thornmail_thorns',
-      name: 'Thorns',
-      description: 'Taking damage deals 25 magic damage back to the attacker.',
+      id: 'barbs',
+      name: 'Barbs',
+      description: 'Enemies that hit you with a basic attack take 30 magic damage.',
       trigger: 'on_take_damage',
       cooldown: 0,
       isUnique: true,
       effectType: 'thorns',
-      effectData: { damage: 25, type: 'magic' },
+      effectData: { damage: 30, damageType: 'magic' },
     },
   ],
-  isUnique: false,
+  isUnique: true,
 };
 
-// ===================
-// Defense Items - Magic Resist
-// ===================
-
-const NullMagicMantle: ItemCatalogEntry = {
-  id: 'null_magic_mantle',
-  name: 'Null-Magic Mantle',
-  category: 'magic_resist',
-  cost: 450,
-  sellValue: 315,
-  stats: { magicResist: 25 },
-  passives: [],
-  isUnique: false,
-};
-
-const NegatronCloak: ItemCatalogEntry = {
-  id: 'negatron_cloak',
-  name: 'Negatron Cloak',
-  category: 'magic_resist',
-  cost: 900,
-  sellValue: 630,
-  buildsFrom: ['null_magic_mantle'],
-  stats: { magicResist: 50 },
-  passives: [],
-  isUnique: false,
-};
-
-// ===================
-// Health Items
-// ===================
-
-const RubysCrystal: ItemCatalogEntry = {
-  id: 'rubys_crystal',
-  name: "Ruby Crystal",
-  category: 'health',
-  cost: 400,
-  sellValue: 280,
-  stats: { health: 150 },
-  passives: [],
-  isUnique: false,
-};
-
-const GiantsBelt: ItemCatalogEntry = {
-  id: 'giants_belt',
-  name: "Giant's Belt",
-  category: 'health',
-  cost: 900,
-  sellValue: 630,
-  buildsFrom: ['rubys_crystal'],
-  stats: { health: 350 },
-  passives: [],
-  isUnique: false,
-};
-
-const SteraksGage: ItemCatalogEntry = {
-  id: 'steraks_gage',
-  name: "Sterak's Gage",
+const IronheartTalisman: ItemCatalogEntry = {
+  id: 'ironheart_talisman',
+  name: "Ironheart Talisman",
   category: 'health',
   cost: 3100,
   sellValue: 2170,
-  buildsFrom: ['giants_belt', 'bf_sword'],
-  stats: { health: 400, attackDamage: 50 },
+  buildsFrom: ['siege_cleaver', 'bulwark_belt'],
+  stats: { attackDamage: 40, health: 400 },
   passives: [
     {
-      id: 'steraks_lifeline',
-      name: 'Lifeline',
-      description: 'Dropping below 30% health grants a shield worth 30% of your max health for 5 seconds.',
+      id: 'hold_the_line',
+      name: 'Hold the Line',
+      description: 'Dropping below 30% health grants a shield worth 30% of your max health for 5 seconds (60s cooldown).',
       trigger: 'on_low_health',
       cooldown: 60,
       isUnique: true,
@@ -292,72 +313,31 @@ const SteraksGage: ItemCatalogEntry = {
 };
 
 // ===================
-// Utility Items
-// ===================
-
-const Sheen: ItemCatalogEntry = {
-  id: 'sheen',
-  name: 'Sheen',
-  category: 'utility',
-  cost: 700,
-  sellValue: 490,
-  stats: {},
-  passives: [
-    {
-      id: 'sheen_spellblade',
-      name: 'Spellblade',
-      description: 'After you cast an ability, your next basic attack deals bonus damage equal to your base attack damage.',
-      trigger: 'on_ability_cast',
-      cooldown: 1.5,
-      isUnique: true,
-      effectType: 'spellblade',
-      effectData: { baseDamagePercent: 1.0 },
-    },
-  ],
-  isUnique: false,
-};
-
-const BootsOfSpeed: ItemCatalogEntry = {
-  id: 'boots_of_speed',
-  name: 'Boots of Speed',
-  category: 'movement',
-  cost: 300,
-  sellValue: 210,
-  stats: { movementSpeed: 25 },
-  passives: [],
-  isUnique: true,
-};
-
-// ===================
 // Item Registry
 // ===================
 
 export const ITEM_CATALOG: ItemCatalogEntry[] = [
-  // AD
-  LongSword,
-  BFSword,
-  Bloodthirster,
-  // AP
-  AmplifyingTome,
-  NeedlesslyLargeRod,
-  RabadonsDeathcap,
-  // AS
-  Dagger,
-  RecurveBow,
-  // Armor
-  ClothArmor,
-  ChainVest,
-  Thornmail,
-  // MR
-  NullMagicMantle,
-  NegatronCloak,
-  // Health
-  RubysCrystal,
-  GiantsBelt,
-  SteraksGage,
-  // Utility
-  Sheen,
-  BootsOfSpeed,
+  // Basic
+  NotchedBlade,
+  EmberShard,
+  QuickdrawGloves,
+  PaddedVest,
+  WardingCharm,
+  Heartstone,
+  FocusRune,
+  WanderersBoots,
+  // Middle
+  SiegeCleaver,
+  CinderRod,
+  RepeaterCrossbow,
+  IronPlate,
+  SpellwardCloak,
+  BulwarkBelt,
+  // Finished
+  CrimsonFang,
+  StarfallDiadem,
+  SpikedBastion,
+  IronheartTalisman,
 ];
 
 const ITEM_BY_ID = new Map<string, ItemCatalogEntry>(

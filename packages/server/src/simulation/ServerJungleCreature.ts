@@ -312,6 +312,7 @@ export class ServerJungleCreature extends ServerEntity {
       }));
     } else {
       target.takeDamage(this.damage, 'physical', this.id, context);
+      target.onBasicAttackTaken(this, context);
     }
   }
 

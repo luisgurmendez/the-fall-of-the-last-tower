@@ -68,6 +68,7 @@ import { updateForcedMovement, type ForcedMovement } from './champion/ChampionFo
 import { ChampionRecall } from './champion/ChampionRecall';
 import { ChampionTrinket } from './champion/ChampionTrinket';
 import { ChampionInventory } from './champion/ChampionInventory';
+import { ChampionItemPassives } from './champion/ChampionItemPassives';
 import { buildChampionSnapshot } from './champion/ChampionSnapshot';
 
 export interface ServerChampionConfig extends Omit<ServerEntityConfig, 'entityType'> {
@@ -153,6 +154,8 @@ export class ServerChampion extends ServerEntity {
   private readonly recall = new ChampionRecall(this);
   private readonly trinket = new ChampionTrinket(this);
   private readonly inventory = new ChampionInventory(this);
+  /** Item passives (lifesteal, thorns, ...); attacks and abilities report to it */
+  readonly itemPassives = new ChampionItemPassives(this);
 
   constructor(config: ServerChampionConfig) {
     super({
@@ -368,6 +371,7 @@ export class ServerChampion extends ServerEntity {
   private updateCombat(dt: number, context: ServerGameContext): void {
     // Update attack cooldown
     this.basicAttacks.updateCooldown(dt);
+    this.itemPassives.update(dt);
 
     // Update combat timer
     if (this.inCombat) {
@@ -528,6 +532,8 @@ export class ServerChampion extends ServerEntity {
 
     if (this.health <= 0) {
       this.onDeath(sourceId, context);
+    } else if (damage > 0) {
+      this.itemPassives.onDamaged();
     }
 
     // Tower aggro: if damaged by enemy champion, trigger aggro on allied towers
@@ -536,6 +542,13 @@ export class ServerChampion extends ServerEntity {
     }
 
     return damage;
+  }
+
+  /**
+   * An enemy's basic attack hit this champion: item thorns hit back.
+   */
+  override onBasicAttackTaken(attacker: ServerEntity, context: ServerGameContext): void {
+    this.itemPassives.onHitByBasicAttack(attacker, context);
   }
 
   /**

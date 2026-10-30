@@ -38,40 +38,40 @@ describe('item catalog trees', () => {
 
 describe('planItemPurchase', () => {
   it('charges the full cost with no parts owned', () => {
-    const plan = planItemPurchase('bloodthirster', [null, null, null, null, null, null])!;
-    expect(plan.price).toBe(cost('bloodthirster'));
+    const plan = planItemPurchase('crimson_fang', [null, null, null, null, null, null])!;
+    expect(plan.price).toBe(cost('crimson_fang'));
     expect(plan.consumedSlots).toEqual([]);
   });
 
   it('uses up an owned part and takes its cost off', () => {
-    const plan = planItemPurchase('chain_vest', ['boots_of_speed', 'cloth_armor', null, null, null, null])!;
-    expect(plan.price).toBe(cost('chain_vest') - cost('cloth_armor'));
+    const plan = planItemPurchase('iron_plate', ['wanderers_boots', 'padded_vest', null, null, null, null])!;
+    expect(plan.price).toBe(cost('iron_plate') - cost('padded_vest'));
     expect(plan.consumedSlots).toEqual([1]);
-    expect(plan.tree.parts[0]).toMatchObject({ itemId: 'cloth_armor', owned: true });
+    expect(plan.tree.parts[0]).toMatchObject({ itemId: 'padded_vest', owned: true });
   });
 
   it('uses each owned copy of a part once', () => {
-    // B.F. Sword builds from two Long Swords; three are owned
-    const plan = planItemPurchase('bf_sword', ['long_sword', 'long_sword', 'long_sword'])!;
+    // Siege Cleaver builds from two Notched Blades; three are owned
+    const plan = planItemPurchase('siege_cleaver', ['notched_blade', 'notched_blade', 'notched_blade'])!;
     expect(plan.consumedSlots).toEqual([0, 1]);
-    expect(plan.price).toBe(cost('bf_sword') - 2 * cost('long_sword'));
+    expect(plan.price).toBe(cost('siege_cleaver') - 2 * cost('notched_blade'));
   });
 
   it('finds parts of parts that are owned', () => {
-    // Bloodthirster = B.F. Sword (= 2 Long Swords) + Long Sword; three Long Swords owned
-    const plan = planItemPurchase('bloodthirster', ['long_sword', 'long_sword', 'long_sword'])!;
+    // Crimson Fang = Siege Cleaver (= 2 Notched Blades) + Notched Blade; three Notched Blades owned
+    const plan = planItemPurchase('crimson_fang', ['notched_blade', 'notched_blade', 'notched_blade'])!;
     expect(plan.consumedSlots.sort()).toEqual([0, 1, 2]);
-    expect(plan.price).toBe(cost('bloodthirster') - 3 * cost('long_sword'));
-    const bfSword = plan.tree.parts[0];
-    expect(bfSword).toMatchObject({ itemId: 'bf_sword', owned: false });
-    expect(bfSword.parts.every(part => part.owned)).toBe(true);
+    expect(plan.price).toBe(cost('crimson_fang') - 3 * cost('notched_blade'));
+    const cleaver = plan.tree.parts[0];
+    expect(cleaver).toMatchObject({ itemId: 'siege_cleaver', owned: false });
+    expect(cleaver.parts.every(part => part.owned)).toBe(true);
   });
 
   it('prefers a whole owned part over its pieces', () => {
-    const plan = planItemPurchase('bloodthirster', ['long_sword', 'bf_sword'])!;
-    // B.F. Sword covers the first part, the Long Sword the second
+    const plan = planItemPurchase('crimson_fang', ['notched_blade', 'siege_cleaver'])!;
+    // Siege Cleaver covers the first part, the Notched Blade the second
     expect(plan.consumedSlots.sort()).toEqual([0, 1]);
-    expect(plan.price).toBe(cost('bloodthirster') - cost('bf_sword') - cost('long_sword'));
+    expect(plan.price).toBe(cost('crimson_fang') - cost('siege_cleaver') - cost('notched_blade'));
   });
 
   it('returns null for an unknown item', () => {
@@ -81,7 +81,7 @@ describe('planItemPurchase', () => {
 
 describe('getItemBuildsInto', () => {
   it('lists the items a part goes into', () => {
-    expect(getItemBuildsInto('long_sword')).toEqual(['bf_sword', 'bloodthirster']);
-    expect(getItemBuildsInto('bloodthirster')).toEqual([]);
+    expect(getItemBuildsInto('notched_blade')).toEqual(['siege_cleaver', 'crimson_fang']);
+    expect(getItemBuildsInto('crimson_fang')).toEqual([]);
   });
 });

@@ -27,7 +27,9 @@ import type { ServerGameContext } from '../game/ServerGameContext';
 export type ProjectileOnHitCallback = (
   target: ServerEntity,
   damage: number,
-  context: ServerGameContext
+  context: ServerGameContext,
+  /** Damage actually dealt, after the target's resistances */
+  dealt: number
 ) => void;
 
 export interface ServerTargetedProjectileConfig extends Omit<ServerEntityConfig, 'entityType'> {
@@ -132,7 +134,11 @@ export class ServerTargetedProjectile extends ServerEntity {
    */
   private onHitTarget(target: ServerEntity, context: ServerGameContext): void {
     // Deal damage (pass context for death handling/rewards)
-    target.takeDamage(this.damage, this.damageType, this.sourceId, context);
+    const dealt = target.takeDamage(this.damage, this.damageType, this.sourceId, context);
+
+    // Targeted projectiles are basic attacks (champions, minions, towers, monsters)
+    const source = context.getEntity(this.sourceId);
+    if (source) target.onBasicAttackTaken(source, context);
 
     // Apply effects
     if (this.appliesEffects.length > 0 && 'applyEffect' in target) {
@@ -144,7 +150,7 @@ export class ServerTargetedProjectile extends ServerEntity {
 
     // Call on-hit callback (for champion basic attack on-hit effects)
     if (this.onHitCallback) {
-      this.onHitCallback(target, this.damage, context);
+      this.onHitCallback(target, this.damage, context, dealt);
     }
   }
 

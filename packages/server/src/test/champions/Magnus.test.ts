@@ -123,7 +123,7 @@ describe('Magnus', () => {
     test('shield should scale with AP', () => {
       // Add AP item
       arena.blue.items[0] = {
-        definitionId: 'amplifying_tome', // +20 AP
+        definitionId: 'ember_shard', // +20 AP
         slot: 0,
         passiveCooldowns: {},
         nextIntervalTick: {},

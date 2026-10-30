@@ -32,24 +32,34 @@ a part it holds.
   shows the same price.
 - `getItemTree`, `getItemBuildsInto`, `getItemCombineCost`, `isItemPartOf`.
 
-Current trees:
+Our own items, three tiers (costs in gold; combine cost in parentheses):
 
-| Item | Built from | Combine cost |
-|------|------------|--------------|
-| B.F. Sword | Long Sword, Long Sword | 600 |
-| Bloodthirster | B.F. Sword, Long Sword | 1750 |
-| Needlessly Large Rod | Amplifying Tome, Amplifying Tome | 380 |
-| Rabadon's Deathcap | Needlessly Large Rod, Amplifying Tome | 1915 |
-| Recurve Bow | Dagger, Dagger | 400 |
-| Chain Vest | Cloth Armor | 500 |
-| Thornmail | Chain Vest, Giant's Belt | 1000 |
-| Negatron Cloak | Null-Magic Mantle | 450 |
-| Giant's Belt | Ruby Crystal | 500 |
-| Sterak's Gage | Giant's Belt, B.F. Sword | 900 |
+| Item | Stats | Built from | Cost |
+|------|-------|------------|------|
+| Notched Blade | +10 attack damage | | 350 |
+| Ember Shard | +20 ability power | | 435 |
+| Quickdraw Gloves | +12% attack speed | | 300 |
+| Padded Vest | +15 armor | | 300 |
+| Warding Charm | +25 magic resist | | 450 |
+| Heartstone | +150 health | | 400 |
+| Focus Rune | +10 ability haste | | 400 |
+| Wanderer's Boots | +6 movement speed (about 10%) | | 300 |
+| Siege Cleaver | +35 attack damage | 2 Notched Blades | 1200 (500) |
+| Cinder Rod | +50 ability power | 2 Ember Shards | 1100 (230) |
+| Repeater Crossbow | +25% attack speed, Barbed Bolts | 2 Quickdraw Gloves | 1000 (400) |
+| Iron Plate | +40 armor | Padded Vest | 800 (500) |
+| Spellward Cloak | +50 magic resist | Warding Charm | 900 (450) |
+| Bulwark Belt | +350 health | Heartstone | 900 (500) |
+| Crimson Fang | +55 attack damage, Feast | Siege Cleaver, Notched Blade | 3000 (1450) |
+| Starfall Diadem | +90 ability power, +10 ability haste, Starfall | Cinder Rod, Focus Rune | 3000 (1500) |
+| Spiked Bastion | +60 armor, +300 health, Barbs | Iron Plate, Bulwark Belt | 2600 (900) |
+| Ironheart Talisman | +40 attack damage, +400 health, Hold the Line | Siege Cleaver, Bulwark Belt | 3100 (1000) |
 
-Long Sword, Amplifying Tome, Dagger, Cloth Armor, Null-Magic Mantle, Ruby Crystal, Sheen
-and Boots of Speed are basic items. `packages/shared/src/test/itemTrees.test.ts` checks
-that every part exists, no item is in its own tree, and no item costs less than its parts.
+Champions move at about 60 units/s, so movement speed items are small. Crit chance
+exists as a stat but no attack uses it, so no item gives it.
+
+`packages/shared/src/test/itemTrees.test.ts` checks that every part exists, no item is
+in its own tree, and no item costs less than its parts.
 
 The practice bot buys its build list in order, skipping items it owns or has already
 built into an owned item, at the tree price.
@@ -57,9 +67,23 @@ built into an owned item, at the tree price.
 ### Passives
 
 Each passive has a name and a `description` for the shop and tooltips, and an
-`effectType` with `effectData` for the server. **The server does not apply item passives
-yet** (lifesteal, on-hit damage, thorns, the low-health shield, spellblade): items only
-give their stats.
+`effectType` with `effectData` that `ChampionItemPassives`
+(`packages/server/src/simulation/champion/`) applies:
+
+| effectType | Item (passive) | What it does |
+|------------|----------------|--------------|
+| `on_hit_damage` | Repeater Crossbow (Barbed Bolts) | Basic attacks deal 12 bonus physical damage |
+| `lifesteal` | Crimson Fang (Feast) | Basic attacks heal for 15% of the damage they deal |
+| `spellblade` | Starfall Diadem (Starfall) | Casting an ability charges the next basic attack within 10s: +75% AP magic damage; 1.5s cooldown from the hit |
+| `thorns` | Spiked Bastion (Barbs) | An enemy (not a tower) that lands a basic attack takes 30 magic damage |
+| `shield` | Ironheart Talisman (Hold the Line) | Taking damage below 30% health grants a shield of 30% max health for 5s; 60s cooldown |
+
+A passive applies once however many items carry it. The hooks: champion basic attacks
+(melee hits and their projectiles) call `onBasicAttackHit`; every basic attack that lands
+(`ServerTargetedProjectile`, minion and monster melee hits) calls the target's
+`onBasicAttackTaken`, which champions pass to `onHitByBasicAttack`; ability casts call
+`onAbilityCast`; `ServerChampion.takeDamage` calls `onDamaged`. Tests:
+`packages/server/src/test/ItemPassives.test.ts`.
 
 ## Shop UI
 

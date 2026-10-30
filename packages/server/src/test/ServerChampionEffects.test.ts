@@ -77,7 +77,7 @@ describe('ServerChampion Item Stats', () => {
   test('single item applies stats', () => {
     // Equip Long Sword (+10 AD)
     champion.items[0] = {
-      definitionId: 'long_sword',
+      definitionId: 'notched_blade',
       slot: 0,
       passiveCooldowns: {},
       nextIntervalTick: {},
@@ -90,13 +90,13 @@ describe('ServerChampion Item Stats', () => {
   test('multiple items stack stats', () => {
     // Equip two Long Swords
     champion.items[0] = {
-      definitionId: 'long_sword',
+      definitionId: 'notched_blade',
       slot: 0,
       passiveCooldowns: {},
       nextIntervalTick: {},
     };
     champion.items[1] = {
-      definitionId: 'long_sword',
+      definitionId: 'notched_blade',
       slot: 1,
       passiveCooldowns: {},
       nextIntervalTick: {},
@@ -109,7 +109,7 @@ describe('ServerChampion Item Stats', () => {
   test('health items increase max health', () => {
     // Equip Giant's Belt (+350 health)
     champion.items[0] = {
-      definitionId: 'giants_belt',
+      definitionId: 'bulwark_belt',
       slot: 0,
       passiveCooldowns: {},
       nextIntervalTick: {},
@@ -122,7 +122,7 @@ describe('ServerChampion Item Stats', () => {
   test('armor items increase armor', () => {
     // Equip Chain Vest (+40 armor)
     champion.items[0] = {
-      definitionId: 'chain_vest',
+      definitionId: 'iron_plate',
       slot: 0,
       passiveCooldowns: {},
       nextIntervalTick: {},
@@ -135,34 +135,34 @@ describe('ServerChampion Item Stats', () => {
   test('movement speed items work', () => {
     // Equip Boots of Speed (+25 MS)
     champion.items[0] = {
-      definitionId: 'boots_of_speed',
+      definitionId: 'wanderers_boots',
       slot: 0,
       passiveCooldowns: {},
       nextIntervalTick: {},
     };
 
     const stats = champion.getStats();
-    expect(stats.movementSpeed).toBe(365); // 340 + 25
+    expect(stats.movementSpeed).toBe(346); // 340 + 6
   });
 
   test('mixed stat items work correctly', () => {
     // Equip Thornmail (+70 armor, +350 health)
     champion.items[0] = {
-      definitionId: 'thornmail',
+      definitionId: 'spiked_bastion',
       slot: 0,
       passiveCooldowns: {},
       nextIntervalTick: {},
     };
 
     const stats = champion.getStats();
-    expect(stats.armor).toBe(100); // 30 + 70
-    expect(stats.maxHealth).toBe(950); // 600 + 350
+    expect(stats.armor).toBe(90); // 30 + 60
+    expect(stats.maxHealth).toBe(900); // 600 + 300
   });
 
   test('attack speed items apply multiplicatively', () => {
     // Equip Dagger (+12% attack speed)
     champion.items[0] = {
-      definitionId: 'dagger',
+      definitionId: 'quickdraw_gloves',
       slot: 0,
       passiveCooldowns: {},
       nextIntervalTick: {},
@@ -503,7 +503,7 @@ describe('ServerChampion Combined Item and Effect Stats', () => {
     // Chain Vest: +40
     // Armor Buff: +10
     champion.items[0] = {
-      definitionId: 'chain_vest',
+      definitionId: 'iron_plate',
       slot: 0,
       passiveCooldowns: {},
       nextIntervalTick: {},
@@ -519,7 +519,7 @@ describe('ServerChampion Combined Item and Effect Stats', () => {
     // Chain Vest: +40
     // Armor Reduction: -10
     champion.items[0] = {
-      definitionId: 'chain_vest',
+      definitionId: 'iron_plate',
       slot: 0,
       passiveCooldowns: {},
       nextIntervalTick: {},

@@ -126,7 +126,7 @@ describe('Elara', () => {
     test('should scale with AP', () => {
       // Add AP item
       arena.blue.items[0] = {
-        definitionId: 'amplifying_tome',
+        definitionId: 'ember_shard',
         slot: 0,
         passiveCooldowns: {},
         nextIntervalTick: {},

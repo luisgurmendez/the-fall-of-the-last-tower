@@ -122,6 +122,12 @@ export abstract class ServerEntity {
   }
 
   /**
+   * A basic attack from `attacker` just hit this entity (after its damage).
+   * Champions hit back with thorns items.
+   */
+  onBasicAttackTaken(_attacker: ServerEntity, _context: ServerGameContext): void {}
+
+  /**
    * Heal the entity.
    */
   heal(amount: number): number {

@@ -65,8 +65,8 @@ const ABILITY_ROLES: Partial<Record<string, 'offense' | 'defense' | 'engage'>> =
 
 /** What bots buy, in order, by build */
 const BUILDS = {
-  attack: ['long_sword', 'boots_of_speed', 'bf_sword', 'rubys_crystal', 'bloodthirster', 'giants_belt'],
-  ability: ['amplifying_tome', 'boots_of_speed', 'needlessly_large_rod', 'rubys_crystal', 'rabadons_deathcap', 'giants_belt'],
+  attack: ['notched_blade', 'wanderers_boots', 'siege_cleaver', 'heartstone', 'crimson_fang', 'bulwark_belt', 'ironheart_talisman'],
+  ability: ['ember_shard', 'wanderers_boots', 'cinder_rod', 'heartstone', 'starfall_diadem', 'bulwark_belt', 'spiked_bastion'],
 };
 const R_REQUIRED_LEVELS = [6, 11, 16];
 

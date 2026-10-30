@@ -56,10 +56,10 @@ describe('Item Definitions', () => {
 
 describe('getServerItemById', () => {
   test('returns item by ID', () => {
-    const longSword = getServerItemById('long_sword');
-    expect(longSword).toBeDefined();
-    expect(longSword?.name).toBe('Long Sword');
-    expect(longSword?.stats.attackDamage).toBe(10);
+    const blade = getServerItemById('notched_blade');
+    expect(blade).toBeDefined();
+    expect(blade?.name).toBe('Notched Blade');
+    expect(blade?.stats.attackDamage).toBe(10);
   });
 
   test('returns undefined for unknown ID', () => {
@@ -82,39 +82,39 @@ describe('calculateItemStats', () => {
   });
 
   test('calculates single item stats', () => {
-    const stats = calculateItemStats([{ definitionId: 'long_sword' }]);
+    const stats = calculateItemStats([{ definitionId: 'notched_blade' }]);
     expect(stats.attackDamage).toBe(10);
   });
 
   test('sums stats from multiple items', () => {
     const stats = calculateItemStats([
-      { definitionId: 'long_sword' },
-      { definitionId: 'bf_sword' },
+      { definitionId: 'notched_blade' },
+      { definitionId: 'siege_cleaver' },
     ]);
-    expect(stats.attackDamage).toBe(50); // 10 + 40
+    expect(stats.attackDamage).toBe(45); // 10 + 35
   });
 
   test('handles multiple stat types', () => {
     const stats = calculateItemStats([
-      { definitionId: 'thornmail' }, // 70 armor, 350 health
+      { definitionId: 'spiked_bastion' }, // 60 armor, 300 health
     ]);
-    expect(stats.armor).toBe(70);
-    expect(stats.health).toBe(350);
+    expect(stats.armor).toBe(60);
+    expect(stats.health).toBe(300);
   });
 
   test('ignores null items', () => {
     const items = [
-      { definitionId: 'long_sword' },
+      { definitionId: 'notched_blade' },
       null as any,
-      { definitionId: 'bf_sword' },
+      { definitionId: 'siege_cleaver' },
     ];
     const stats = calculateItemStats(items.filter(Boolean));
-    expect(stats.attackDamage).toBe(50);
+    expect(stats.attackDamage).toBe(45);
   });
 
   test('ignores unknown item IDs', () => {
     const stats = calculateItemStats([
-      { definitionId: 'long_sword' },
+      { definitionId: 'notched_blade' },
       { definitionId: 'unknown_item' },
     ]);
     expect(stats.attackDamage).toBe(10);
@@ -122,15 +122,15 @@ describe('calculateItemStats', () => {
 
   test('combines all stat types correctly', () => {
     const stats = calculateItemStats([
-      { definitionId: 'bloodthirster' },  // 55 AD, 0.20 crit
-      { definitionId: 'thornmail' },       // 70 armor, 350 health
-      { definitionId: 'boots_of_speed' },  // 25 movementSpeed
+      { definitionId: 'starfall_diadem' },  // 90 AP, 10 ability haste
+      { definitionId: 'spiked_bastion' },   // 60 armor, 300 health
+      { definitionId: 'wanderers_boots' },  // 6 movementSpeed
     ]);
-    expect(stats.attackDamage).toBe(55);
-    expect(stats.critChance).toBe(0.20);
-    expect(stats.armor).toBe(70);
-    expect(stats.health).toBe(350);
-    expect(stats.movementSpeed).toBe(25);
+    expect(stats.abilityPower).toBe(90);
+    expect(stats.abilityHaste).toBe(10);
+    expect(stats.armor).toBe(60);
+    expect(stats.health).toBe(300);
+    expect(stats.movementSpeed).toBe(6);
   });
 });
 
@@ -165,35 +165,5 @@ describe('Item Categories', () => {
     for (const item of healthItems) {
       expect(item.stats.health).toBeGreaterThan(0);
     }
-  });
-});
-
-describe('Item Passives', () => {
-  test('bloodthirster has lifesteal passive', () => {
-    const bt = getServerItemById('bloodthirster');
-    expect(bt?.passives.length).toBe(1);
-    expect(bt?.passives[0].effectType).toBe('lifesteal');
-    expect(bt?.passives[0].effectData.percent).toBe(0.15);
-  });
-
-  test('thornmail has thorns passive', () => {
-    const thornmail = getServerItemById('thornmail');
-    expect(thornmail?.passives.length).toBe(1);
-    expect(thornmail?.passives[0].effectType).toBe('thorns');
-    expect(thornmail?.passives[0].effectData.damage).toBe(25);
-  });
-
-  test('sheen has spellblade passive', () => {
-    const sheen = getServerItemById('sheen');
-    expect(sheen?.passives.length).toBe(1);
-    expect(sheen?.passives[0].effectType).toBe('spellblade');
-    expect(sheen?.passives[0].cooldown).toBe(1.5);
-  });
-
-  test('steraks gage has shield passive', () => {
-    const steraks = getServerItemById('steraks_gage');
-    expect(steraks?.passives.length).toBe(1);
-    expect(steraks?.passives[0].effectType).toBe('shield');
-    expect(steraks?.passives[0].healthThreshold).toBe(0.3);
   });
 });

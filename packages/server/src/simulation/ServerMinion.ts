@@ -527,6 +527,7 @@ export class ServerMinion extends ServerEntity {
     } else {
       // Melee - deal damage instantly
       target.takeDamage(this.stats.attackDamage, 'physical', this.id, context);
+      target.onBasicAttackTaken(this, context);
     }
   }
 

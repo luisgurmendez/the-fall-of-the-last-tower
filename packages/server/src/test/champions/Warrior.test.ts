@@ -307,13 +307,13 @@ describe('Warrior (Kael)', () => {
 
       // Give blue champion more AD via items
       arena.blue.items[0] = {
-        definitionId: 'long_sword', // +10 AD
+        definitionId: 'notched_blade', // +10 AD
         slot: 0,
         passiveCooldowns: {},
         nextIntervalTick: {},
       };
       arena.blue.items[1] = {
-        definitionId: 'long_sword',
+        definitionId: 'notched_blade',
         slot: 1,
         passiveCooldowns: {},
         nextIntervalTick: {},

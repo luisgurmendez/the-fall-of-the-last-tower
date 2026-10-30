@@ -124,14 +124,14 @@ describe('Shop', () => {
     try {
       const champion = sim.addChampion({ playerId: 'p1', championId: 'vex', side: 'blue', at: { x: 0, y: 0 } });
       (champion as { gold: number }).gold = 1000;
-      sim.buy('p1', 'long_sword');
+      sim.buy('p1', 'notched_blade');
       sim.run(0.1);
-      expect(champion.items.some(item => item?.definitionId === 'long_sword')).toBe(false);
+      expect(champion.items.some(item => item?.definitionId === 'notched_blade')).toBe(false);
 
       champion.position = sim.context.mapConfig.CHAMPION_SPAWN.BLUE.clone();
-      sim.buy('p1', 'long_sword');
+      sim.buy('p1', 'notched_blade');
       sim.run(0.1);
-      expect(champion.items.some(item => item?.definitionId === 'long_sword')).toBe(true);
+      expect(champion.items.some(item => item?.definitionId === 'notched_blade')).toBe(true);
     } finally {
       sim.dispose();
     }
