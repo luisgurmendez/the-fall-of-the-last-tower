@@ -116,12 +116,13 @@ Command actions: `move`, `attack` (`targetId`), `stop`, `cast` (`slot`, plus `x,
 `LaneBot` follows these rules, in priority order:
 1. Spend skill points.
 2. Shop at base. The build depends on the champion's class and follows item trees.
-3. Retreat and recall when low, using defensive abilities if the enemy is close.
+3. Retreat and recall when low, using defensive abilities if the enemy is close. It walks off until it's out of combat first, since damage cancels a recall.
    Also recall to shop with 1100+ gold and an affordable next item, when no enemy champion is within 900 and it's out of combat.
-4. Fight the enemy champion when it is weak, when the bot has a clear health lead, or to hit back when attacked (including from range).
-5. Last-hit minions, starting the attack a little early.
-6. Poke the enemy champion only from ahead.
-7. Otherwise keep hitting the same minion.
-8. Stand behind the allied wave and stay out of enemy tower range unless minions are tanking it.
+4. Leave enemy tower range when fewer than two allied minions are under the tower.
+5. Fight the enemy champion when it is weak, when the bot has a clear health lead, or to hit back when attacked (including from range).
+6. Last-hit minions. For each minion it predicts the health left when its hit would land: allied minions and towers keep hitting it during the cooldown, walk, windup and projectile flight. It hits when that kills the minion, and holds its attack when a last hit is due before another attack would be ready.
+7. Poke the enemy champion only from ahead.
+8. Otherwise push: a minion nothing allied is hitting, else the healthiest one, since hitting a weak one gives it to allied minions. It keeps hitting the same minion.
+9. Stand behind the allied wave. Minions it would have to hit from inside enemy tower range are off limits unless two allied minions are tanking the tower.
 
-Champion abilities are bespoke. `ABILITY_ROLES` in `LaneBot.ts` says how to use the ones the generic rules would misuse: offense (self buffs, transforms), defense (stealth, invulnerability) or engage (dashes). `lastDecision` shows what the bot is doing. Scenarios `bot-vs-bot-mid`, `bot-fights-back` and `bot-goes-shopping` cover the bot.
+Champion abilities are bespoke. `ABILITY_ROLES` in `LaneBot.ts` says how to use the ones the generic rules would misuse: offense (self buffs, transforms), defense (stealth, invulnerability) or engage (dashes). `lastDecision` shows what the bot is doing. Scenarios `bot-vs-bot-mid`, `bot-fights-back`, `bot-goes-shopping` and `bot-farms-alone` cover the bot.

@@ -38,6 +38,33 @@ export class ChampionBasicAttacks {
   }
 
   /**
+   * Seconds until the next attack can start (0 when it's ready).
+   */
+  get cooldownRemaining(): number {
+    return Math.max(0, this.attackCooldown);
+  }
+
+  /**
+   * Seconds from starting an attack to its damage: the animation's damage
+   * keyframe (ranged attacks then fire a projectile).
+   */
+  getDamageDelay(): number {
+    const champion = this.champion;
+    const stats = champion.getStats();
+    const attackAnim = champion.definition.animations?.attack;
+    const damageKeyframe = attackAnim?.keyframes.find(k => k.trigger.type === 'damage');
+    if (attackAnim && damageKeyframe) {
+      // Animation speed scales with attack speed if enabled
+      const animSpeed = champion.definition.attackAnimationSpeedScale ? stats.attackSpeed : 1.0;
+      const delay = (damageKeyframe.frame * attackAnim.baseFrameDuration) / animSpeed;
+      if (delay > 0) return delay;
+    }
+    // No animation or keyframe: 50% of the attack animation
+    const animationDuration = Math.max(0.15, 0.4 / stats.attackSpeed);
+    return animationDuration * 0.5;
+  }
+
+  /**
    * Attack the champion's target if it is in range and an attack is ready.
    */
   attackTargetIfReady(context: ServerGameContext): void {
@@ -68,25 +95,8 @@ export class ChampionBasicAttacks {
     // Set attack cooldown immediately (can't attack again until cooldown expires)
     this.attackCooldown = 1 / stats.attackSpeed;
 
-    // Get attack animation and schedule damage at keyframe
-    const attackAnim = champion.definition.animations?.attack;
-    let damageDelay = 0;
-
-    if (attackAnim) {
-      // Find the damage keyframe
-      const damageKeyframe = attackAnim.keyframes.find(k => k.trigger.type === 'damage');
-      if (damageKeyframe) {
-        // Calculate animation speed (scales with attack speed if enabled)
-        const animSpeed = champion.definition.attackAnimationSpeedScale ? stats.attackSpeed : 1.0;
-        damageDelay = (damageKeyframe.frame * attackAnim.baseFrameDuration) / animSpeed;
-      }
-    }
-
-    // If no animation or keyframe, use a default delay (50% of attack animation)
-    if (damageDelay === 0) {
-      const animationDuration = Math.max(0.15, 0.4 / stats.attackSpeed);
-      damageDelay = animationDuration * 0.5;
-    }
+    // Schedule damage at the animation's damage keyframe
+    const damageDelay = this.getDamageDelay();
 
     // Schedule the damage action
     this.animationScheduler.schedule({

@@ -292,6 +292,13 @@ export class ServerMinion extends ServerEntity {
   /**
    * Get movement speed after applying slow effects.
    */
+  /**
+   * The unit this minion is attacking, or null.
+   */
+  getAttackTargetId(): string | null {
+    return this.attackTarget;
+  }
+
   getEffectiveMovementSpeed(): number {
     const baseSpeed = this.stats.movementSpeed;
     const slowReduction = 1 - this.ccStatus.slowPercent;

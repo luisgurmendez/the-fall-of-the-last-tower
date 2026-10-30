@@ -161,7 +161,7 @@ export class ServerChampion extends ServerEntity {
 
   // Collaborators (see ./champion/)
   private readonly effects = new ChampionEffects(this);
-  private readonly basicAttacks = new ChampionBasicAttacks(this);
+  readonly basicAttacks = new ChampionBasicAttacks(this);
   private readonly abilities = new ChampionAbilities(this);
   private readonly transform = new ChampionTransform(this);
   private readonly recall = new ChampionRecall(this);

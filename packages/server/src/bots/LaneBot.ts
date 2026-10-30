@@ -4,11 +4,16 @@
  * Plays one lane with a handful of rules, in priority order:
  * 1. Spend skill points (R when allowed, then Q/W/E, learning each once first)
  * 2. Retreat and recall when low on health (using defensive abilities if
- *    the enemy is close); shop at base. Also recall to shop when it has
+ *    the enemy is close; walking off until out of combat, since damage
+ *    cancels a recall); shop at base. Also recall to shop when it has
  *    enough gold for its next item and no enemy champion is near
  * 3. Fight the enemy champion when it is close and the trade looks even or better
- * 4. Last-hit minions; harass the enemy champion in range when no minion is
- *    about to die; otherwise push the lowest-health minion
+ * 4. Last-hit minions: predict each minion's health when our hit would land
+ *    (allied minions and towers keep hitting it), hit when that kills it,
+ *    and hold the attack when one is about to be ready. Otherwise harass
+ *    the enemy champion in range, or push: a minion nothing else is
+ *    hitting, else the healthiest one (hitting a weak one hands it to
+ *    allied minions)
  * 5. Walk to just behind the allied wave front, staying out of enemy tower
  *    range unless allied minions are already tanking it
  *
@@ -90,10 +95,32 @@ const FRONT_OFFSET = 120;
 const TOWER_MARGIN = 80;
 /** Collision radius assumed for the unit at a position (the largest champion's) */
 const UNIT_RADIUS = 25;
-/** Attack a minion when its health is under this many of our hits (minions hit it during our windup) */
-const LAST_HIT_LEAD = 1.3;
+/** Allied minions under an enemy tower before the bot follows them in */
+const MIN_TOWER_TANKS = 2;
+/** How far the bot looks for allied units hitting a minion */
+const MINION_DAMAGE_RADIUS = 700;
 /** Same command is re-sent after this long in case it was dropped */
 const RESEND_INTERVAL = 1.0;
+
+/** A minion's outlook if we attack it (see LaneBot.predictMinions) */
+interface MinionForecast {
+  minion: ServerEntity;
+  /** Our basic attack's damage to it, after armor */
+  hitDamage: number;
+  /** Damage per second allied units are dealing it, after armor */
+  incomingDps: number;
+  /** Its health when our attack would land */
+  healthAtHit: number;
+}
+
+function armorOf(entity: ServerEntity): number {
+  return (entity as ServerEntity & { stats?: { armor?: number } }).stats?.armor ?? 0;
+}
+
+/** Higher is a better minion to push with (see LaneBot.findFarmTarget) */
+function farmPriority(forecast: MinionForecast): number {
+  return forecast.incomingDps === 0 ? 1e6 - forecast.minion.health : forecast.minion.health;
+}
 
 export class LaneBot implements BotController {
   readonly playerId: string;
@@ -166,7 +193,8 @@ export class LaneBot implements BotController {
         this.lastDecision = 'heal at base';
         return null; // Home - wait for health to come back
       }
-      if (!threatened) {
+      // Damage cancels a recall: walk off until out of combat first
+      if (!threatened && !champion.inCombat) {
         this.lastDecision = 'recall';
         if (champion.isRecalling) return null;
         return this.command(`recall`, [{ type: InputType.RECALL }]);
@@ -187,6 +215,14 @@ export class LaneBot implements BotController {
       return this.command(`recall`, [{ type: InputType.RECALL }]);
     }
 
+    // Under an enemy tower with no allied minions for it to shoot: get out
+    const enemySide = 1 - champion.side as Side;
+    if (this.findTowerCovering(champion.position, enemySide, context) &&
+        !this.alliesTankingTowerAt(champion.position, champion.side, context)) {
+      this.lastDecision = 'leave tower range';
+      return this.moveTo(this.findLanePosition(champion, context));
+    }
+
     if (enemyChampion && this.shouldFight(champion, enemyChampion, context)) {
       this.lastDecision = 'fight';
       const cast = this.chooseAbility(champion, enemyChampion, 'offense');
@@ -194,10 +230,18 @@ export class LaneBot implements BotController {
       return this.attack(enemyChampion);
     }
 
-    const lastHit = this.findLastHit(champion, context);
+    const minions = this.predictMinions(champion, context);
+    const lastHit = this.findLastHit(minions);
     if (lastHit) {
       this.lastDecision = 'last hit';
-      return this.attack(lastHit);
+      return this.attack(lastHit.minion);
+    }
+
+    // A last hit is coming up: keep the attack ready for it
+    const upcoming = this.findUpcomingLastHit(champion, minions);
+    if (upcoming) {
+      this.lastDecision = 'wait for last hit';
+      return this.holdFor(champion, upcoming.minion);
     }
 
     // Nothing about to die: poke the enemy champion if it's already in range
@@ -206,7 +250,7 @@ export class LaneBot implements BotController {
       return this.attack(enemyChampion);
     }
 
-    const minion = this.findFarmTarget(champion, context);
+    const minion = this.findFarmTarget(minions);
     if (minion) {
       this.lastDecision = 'farm';
       return this.attack(minion);
@@ -380,18 +424,95 @@ export class LaneBot implements BotController {
   }
 
   /**
-   * An enemy minion one basic attack would kill (the lowest such), if any.
+   * For each reachable minion: our hit's damage, the damage per second
+   * allied minions and towers are dealing it, and its health when a basic
+   * attack started now (or as soon as one is ready) would land.
    */
-  private findLastHit(champion: ServerChampion, context: ServerGameContext): ServerEntity | null {
-    const damage = champion.getStats().attackDamage;
-    let best: ServerEntity | null = null;
-    for (const entity of this.reachableMinions(champion, context)) {
-      const armor = (entity as ServerEntity & { stats?: { armor?: number } }).stats?.armor ?? 0;
-      const hitDamage = damage * 100 / (100 + armor);
-      // Start a little early: minions keep hitting it during the attack windup
-      if (entity.health <= hitDamage * LAST_HIT_LEAD && (!best || entity.health < best.health)) best = entity;
+  private predictMinions(champion: ServerChampion, context: ServerGameContext): MinionForecast[] {
+    const stats = champion.getStats();
+    const ranged = champion.definition.attackType === 'ranged';
+    const projectileSpeed = champion.definition.basicAttackProjectileSpeed ?? 800;
+    const damageDelay = champion.basicAttacks.getDamageDelay();
+    const cooldown = champion.basicAttacks.cooldownRemaining;
+
+    return this.reachableMinions(champion, context).map(minion => {
+      const armorFactor = 100 / (100 + armorOf(minion));
+      const incomingDps = this.alliedDamagePerSecond(minion, context) * armorFactor;
+
+      const gap = Math.max(0, champion.position.distanceTo(minion.position) - champion.getRadius() - minion.getRadius());
+      const walkTime = Math.max(0, gap - stats.attackRange) / Math.max(1, stats.movementSpeed);
+      const travelTime = ranged ? Math.min(gap, stats.attackRange) / projectileSpeed : 0;
+      const timeToHit = Math.max(cooldown, walkTime) + damageDelay + travelTime;
+
+      return {
+        minion,
+        hitDamage: stats.attackDamage * armorFactor,
+        incomingDps,
+        healthAtHit: minion.health - incomingDps * timeToHit,
+      };
+    });
+  }
+
+  /**
+   * Damage per second (before armor) allied minions and towers are dealing a unit.
+   */
+  private alliedDamagePerSecond(target: ServerEntity, context: ServerGameContext): number {
+    let dps = 0;
+    for (const ally of context.getEnemiesInRadius(target.position, MINION_DAMAGE_RADIUS, target.side)) {
+      if (ally.isDead) continue;
+      if (ally.entityType !== EntityType.MINION && ally.entityType !== EntityType.TOWER) continue;
+      const attacker = ally as ServerEntity & {
+        getAttackTargetId(): string | null;
+        stats: { attackDamage: number; attackCooldown: number };
+      };
+      if (attacker.getAttackTargetId() !== target.id) continue;
+      dps += attacker.stats.attackDamage / Math.max(0.1, attacker.stats.attackCooldown);
+    }
+    return dps;
+  }
+
+  /**
+   * A minion our hit would kill when it lands (and allies wouldn't first):
+   * the one closest to dying.
+   */
+  private findLastHit(minions: MinionForecast[]): MinionForecast | null {
+    let best: MinionForecast | null = null;
+    for (const forecast of minions) {
+      if (forecast.healthAtHit <= 0 || forecast.healthAtHit > forecast.hitDamage) continue;
+      if (!best || forecast.healthAtHit < best.healthAtHit) best = forecast;
     }
     return best;
+  }
+
+  /**
+   * A minion that will be last-hittable before another attack of ours
+   * would be ready again: attacking something else now would miss it.
+   */
+  private findUpcomingLastHit(champion: ServerChampion, minions: MinionForecast[]): MinionForecast | null {
+    const attackCycle = 1 / champion.getStats().attackSpeed;
+    let best: MinionForecast | null = null;
+    let soonest = Infinity;
+    for (const forecast of minions) {
+      if (forecast.incomingDps <= 0 || forecast.healthAtHit <= forecast.hitDamage) continue;
+      const timeUntilReady = (forecast.healthAtHit - forecast.hitDamage) / forecast.incomingDps;
+      if (timeUntilReady < attackCycle && timeUntilReady < soonest) {
+        best = forecast;
+        soonest = timeUntilReady;
+      }
+    }
+    return best;
+  }
+
+  /**
+   * Stop attacking and stand in range of a minion until it's time to hit it.
+   */
+  private holdFor(champion: ServerChampion, minion: ServerEntity): BotInput[] | null {
+    if (champion.isInAttackRange(minion, champion.getStats().attackRange)) {
+      return champion.targetEntityId ? this.command('stop', [{ type: InputType.STOP }]) : null;
+    }
+    const away = champion.position.subtracted(minion.position).normalized();
+    const standOff = champion.getStats().attackRange * 0.8 + champion.getRadius() + minion.getRadius();
+    return this.moveTo(minion.position.added(away.scaled(standOff)));
   }
 
   /**
@@ -405,33 +526,57 @@ export class LaneBot implements BotController {
     return !this.findTowerCovering(champion.position, enemy.side, context);
   }
 
-  private findFarmTarget(champion: ServerChampion, context: ServerGameContext): ServerEntity | null {
-    const reachable = this.reachableMinions(champion, context);
-
+  /**
+   * A minion to push with: one nothing allied is hitting (the weakest, so
+   * its last hit comes soon), else the healthiest (a weak one being hit
+   * would die to allied minions).
+   */
+  private findFarmTarget(minions: MinionForecast[]): ServerEntity | null {
     // Keep hitting the same minion: switching restarts the attack windup
-    const current = reachable.find(entity => entity.id === this.farmTargetId);
-    if (current) return current;
+    const current = minions.find(forecast => forecast.minion.id === this.farmTargetId);
+    if (current) return current.minion;
 
-    let best: ServerEntity | null = null;
-    for (const entity of reachable) {
-      if (!best || entity.health < best.health) best = entity;
+    let best: MinionForecast | null = null;
+    for (const forecast of minions) {
+      if (!best || farmPriority(forecast) > farmPriority(best)) best = forecast;
     }
-    this.farmTargetId = best?.id ?? null;
-    return best;
+    this.farmTargetId = best?.minion.id ?? null;
+    return best?.minion ?? null;
   }
 
   /**
-   * Visible enemy minions near enough to attack and not under an enemy tower
-   * (unless allied minions are already tanking it).
+   * Visible enemy minions near enough to attack, and that can be hit from
+   * outside their tower's range (or allied minions are already tanking it).
    */
   private reachableMinions(champion: ServerChampion, context: ServerGameContext): ServerEntity[] {
-    const reach = champion.getAttackRange() + 250;
+    const reach = champion.getAttackRange() + 450;
     return context.getEnemiesInRadius(champion.position, reach, champion.side).filter(entity =>
       entity.entityType === EntityType.MINION &&
       !entity.isDead &&
       context.isVisibleTo(entity, champion.side) &&
-      (!this.findTowerCovering(entity.position, entity.side, context) || this.alliesTankingTowerAt(entity.position, champion.side, context))
+      this.safeToHit(champion, entity, context)
     );
+  }
+
+  /**
+   * Whether hitting a minion keeps the champion out of its tower's range:
+   * the spot it would hit from is outside it, or allied minions are tanking it.
+   */
+  private safeToHit(champion: ServerChampion, minion: ServerEntity, context: ServerGameContext): boolean {
+    return !this.findTowerCovering(this.attackSpot(champion, minion), minion.side, context) ||
+      this.alliesTankingTowerAt(minion.position, champion.side, context);
+  }
+
+  /**
+   * Where the champion would hit a unit from: where it stands if it's in
+   * range, else the edge of its range on the way there.
+   */
+  private attackSpot(champion: ServerChampion, target: ServerEntity): Vector {
+    const reach = champion.getAttackRange() + champion.getRadius() + target.getRadius();
+    const offset = champion.position.subtracted(target.position);
+    const distance = offset.length();
+    if (distance <= reach) return champion.position;
+    return target.position.added(offset.scaled(reach / distance));
   }
 
   /**
@@ -485,17 +630,20 @@ export class LaneBot implements BotController {
   }
 
   /**
-   * Whether allied minions are inside the range of the enemy tower covering `position`.
+   * Whether allied minions are inside the range of the enemy tower covering
+   * `position`: enough of them that the tower won't run out of minions to
+   * shoot (and turn on the champion) in the next few seconds.
    */
   private alliesTankingTowerAt(position: Vector, side: Side, context: ServerGameContext): boolean {
     const tower = this.findTowerCovering(position, 1 - side as Side, context, TOWER_MARGIN);
     if (!tower) return true;
-    return context.getAllEntities().some(entity =>
+    const tanks = context.getAllEntities().filter(entity =>
       entity.entityType === EntityType.MINION &&
       !entity.isDead &&
       entity.side === side &&
       tower.isInAttackRange(entity, (tower as ServerTower).attackRange)
     );
+    return tanks.length >= MIN_TOWER_TANKS;
   }
 
   /**

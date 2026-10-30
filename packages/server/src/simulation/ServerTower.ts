@@ -296,6 +296,13 @@ export class ServerTower extends ServerEntity {
   private static readonly PROJECTILE_RADIUS = 12;
 
   /**
+   * The unit this tower is shooting, or null.
+   */
+  getAttackTargetId(): string | null {
+    return this.attackTarget;
+  }
+
+  /**
    * Attack a target by firing a projectile.
    */
   private attack(target: ServerEntity, context: ServerGameContext): void {
