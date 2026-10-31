@@ -394,7 +394,7 @@ describe('Magnus Abilities - Entity Targeting', () => {
       });
 
       // Tick for projectile travel
-      arena.tickAllFrames(30);
+      arena.tickAllFrames(60);
 
       expect(minion.health).toBeLessThan(initialHealth);
     });
@@ -407,7 +407,7 @@ describe('Magnus Abilities - Entity Targeting', () => {
         targetPosition: new Vector(600, 0),
       });
 
-      arena.tickAllFrames(30);
+      arena.tickAllFrames(60);
 
       expect(creature.health).toBeLessThan(initialHealth);
     });
@@ -547,7 +547,7 @@ describe('Vex Abilities - Entity Targeting', () => {
         targetPosition: new Vector(600, 0),
       });
 
-      arena.tickAllFrames(30);
+      arena.tickAllFrames(60);
 
       expect(minion.health).toBeLessThan(initialHealth);
     });
@@ -560,7 +560,7 @@ describe('Vex Abilities - Entity Targeting', () => {
         targetPosition: new Vector(600, 0),
       });
 
-      arena.tickAllFrames(30);
+      arena.tickAllFrames(60);
 
       expect(creature.health).toBeLessThan(initialHealth);
     });
@@ -1028,7 +1028,7 @@ describe('Jungle Creature - Ability Interactions', () => {
       targetPosition: new Vector(600, 0),
     });
 
-    arena.tickAllFrames(30);
+    arena.tickAllFrames(60);
 
     expect(creature.health).toBeLessThan(initialHealth);
   });

@@ -349,7 +349,11 @@ export interface AbilityDefinition {
   /** Cone angle in radians (for cone-shaped abilities) */
   coneAngle?: number;
 
-  /** Delay before AoE applies damage (for abilities like Meteor) */
+  /**
+   * Seconds from the cast until the area lands (no_target and ground_target
+   * areas, cones, Lume's R). Clients draw a warning meanwhile, so it can be
+   * dodged; VFX read it to time their impact (see src/vfx/recipes.ts).
+   */
   aoeDelay?: number;
 
   /** Duration for persistent AoEs (0 or undefined = instant) */

@@ -87,7 +87,7 @@ export const VileBlackArrows: AbilityDefinition = {
   manaCost: [50, 55, 60, 65, 70],
   cooldown: [12, 11, 10, 9, 8],
   range: 800, // Base range, increases with charge up to +600
-  projectileSpeed: 1800,
+  projectileSpeed: 1000,
   projectileRadius: 25,
   shape: "line",
   damage: {

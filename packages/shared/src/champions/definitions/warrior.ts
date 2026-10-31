@@ -82,6 +82,7 @@ export const WarriorSlash: AbilityDefinition = {
   cooldown: [6, 5.5, 5, 4.5, 4],
   range: 300,
   aoeRadius: 200,
+  aoeDelay: 0.2, // The swing
   coneAngle: Math.PI / 2, // 90 degrees
   shape: "cone",
   damage: {

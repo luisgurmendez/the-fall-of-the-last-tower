@@ -131,8 +131,8 @@ const GENERIC_SUPPORT: Record<keyof AbilityDefinition, FieldRule> = {
     d.targetType === 'no_target' || d.targetType === 'ground_target' || d.dash !== undefined ||
     'aoeRadius is only used by no_target/ground_target areas and dash hitboxes',
   aoeDelay: (d) =>
-    d.targetType === 'no_target' || isCircleArea(d) ||
-    'aoeDelay is only scheduled for no_target and circular ground_target areas',
+    d.targetType === 'no_target' || d.targetType === 'ground_target' ||
+    'aoeDelay is only scheduled for no_target and ground_target areas (circles and cones)',
   aoeDuration: never('aoeDuration is not read by the executor (zones use zoneDuration)'),
   aoeTickRate: never('aoeTickRate is not read by the executor (zones use zoneTickRate)'),
   // Quoted because the lint id-denylist reserves the identifier

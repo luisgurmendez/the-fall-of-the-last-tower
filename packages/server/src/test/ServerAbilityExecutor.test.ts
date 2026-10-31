@@ -250,6 +250,9 @@ describe('ServerAbilityExecutor', () => {
         targetPosition: new Vector(100, 0), // Aim at minion
         context,
       });
+      // The swing lands after its windup
+      expect(redMinion.health).toBe(initialHealth);
+      context.advanceTime(getAbilityDefinition('warrior_slash')!.aoeDelay!);
 
       // Minion should have taken damage
       expect(redMinion.health).toBeLessThan(initialHealth);
@@ -318,7 +321,7 @@ describe('ServerAbilityExecutor', () => {
 
   describe('Effect Application', () => {
     test('Gorath slam applies slow effect', () => {
-      // Use Gorath instead since his Q (Ground Slam) applies slow_40 immediately
+      // Use Gorath instead since his Q (Ground Slam) applies slow_40 when it lands
       const gorathDef = CHAMPION_DEFINITIONS['gorath'];
       const gorath = new ServerChampion({
         id: 'blue_gorath',
@@ -341,6 +344,7 @@ describe('ServerAbilityExecutor', () => {
         slot: 'Q',
         context,
       });
+      context.advanceTime(getAbilityDefinition('gorath_slam')!.aoeDelay!);
 
       // Minion should have taken damage (no target AoE)
       expect(redMinion.health).toBeLessThan(initialHealth);

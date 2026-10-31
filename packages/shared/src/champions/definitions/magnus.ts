@@ -82,7 +82,7 @@ export const MagnusFireball: AbilityDefinition = {
   manaCost: [60, 65, 70, 75, 80],
   cooldown: [8, 7.5, 7, 6.5, 6],
   range: 900,
-  projectileSpeed: 1200,
+  projectileSpeed: 700, // Dodgeable from about 650 range
   projectileRadius: 30,
   shape: "line",
   damage: {
@@ -119,6 +119,7 @@ export const MagnusMudGround: AbilityDefinition = {
   cooldown: [14, 13, 12, 11, 10],
   range: 600,
   aoeRadius: 200,
+  aoeDelay: 0.25,
   shape: "circle",
   appliesEffects: ["slow_20"],
   effectDuration: 2,
@@ -137,6 +138,7 @@ export const MagnusMeteor: AbilityDefinition = {
   cooldown: [120, 100, 80],
   range: 800,
   aoeRadius: 250,
+  aoeDelay: 0.7, // The meteor's fall
   shape: "circle",
   damage: {
     type: "magic",

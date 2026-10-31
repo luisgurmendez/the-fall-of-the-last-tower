@@ -5,7 +5,7 @@
  * - A cone hits enemies in front of the caster (Cone.ts)
  * - Otherwise a circle at the target position: damage and effects on enemies,
  *   or a persistent ServerZone when the ability has a zoneDuration
- * - With aoeDelay the circle (or zone) lands later (scheduled on game time)
+ * - With aoeDelay the circle, zone or cone lands later (scheduled on game time)
  */
 
 import {

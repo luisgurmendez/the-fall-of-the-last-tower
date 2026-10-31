@@ -10,9 +10,8 @@
  * - E (Defiant Roar): AoE taunt
  * - R (Earthquake): AoE damage + knockup with delay
  *
- * No custom handlers yet. The generic no_target path ignores aoeDelay and
- * applies Q/E/R effects to Gorath and his allies as well; see KNOWN_GAPS in
- * test/AbilityCoverageContract.test.ts.
+ * No custom handlers: the generic no_target path lands each area after its
+ * aoeDelay (the windup the clients draw).
  */
 
 /**

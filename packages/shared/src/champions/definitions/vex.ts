@@ -82,7 +82,7 @@ export const VexShuriken: AbilityDefinition = {
   manaCost: [30, 30, 30, 30, 30], // Energy-based, low cost
   cooldown: [6, 5.5, 5, 4.5, 4],
   range: 700,
-  projectileSpeed: 1500,
+  projectileSpeed: 800,
   projectileRadius: 20,
   shape: "line",
   damage: {
@@ -236,8 +236,8 @@ const VEX_ANIMATIONS: ChampionAnimations = {
       loop: false,
       keyframes: [
         { frame: 0, trigger: { type: "sound", soundId: "shuriken_throw" } },
-        { frame: 2, trigger: { type: "projectile" } },
-        { frame: 2, trigger: { type: "vfx", vfxId: "shadow_shuriken" } },
+        { frame: 4, trigger: { type: "projectile" } },
+        { frame: 4, trigger: { type: "vfx", vfxId: "shadow_shuriken" } },
       ],
     },
     vex_shroud: {

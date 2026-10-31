@@ -304,6 +304,7 @@ export const LumeR: AbilityDefinition = {
   appliesEffects: ["slow_40"],
   effectDuration: 2.0,
   aoeRadius: LUME_ORB_CONFIG.rExplosionRadius,
+  aoeDelay: 0.5, // The beam's fall
 };
 
 // =============================================================================

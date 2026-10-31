@@ -226,13 +226,17 @@ export interface TestArena {
   /** Tick all entities for multiple frames */
   tickAllFrames: (frames: number, dt?: number) => void;
 
-  /** Cast ability from one champion */
+  /**
+   * Cast ability from one champion. An area with a windup (aoeDelay) has
+   * landed when this returns, unless `windup` is true: then it's still pending.
+   */
   castAbility: (
     caster: TestChampion,
     slot: AbilitySlot,
     options?: {
       targetPosition?: Vector;
       targetId?: string;
+      windup?: boolean;
     }
   ) => ReturnType<typeof abilityExecutor.castAbility>;
 
@@ -362,14 +366,18 @@ export function createTestArena(options: TestArenaOptions = {}): TestArena {
     },
 
     castAbility: (caster, slot, castOptions = {}) => {
-      const { targetPosition, targetId } = castOptions;
-      return abilityExecutor.castAbility({
+      const { targetPosition, targetId, windup = false } = castOptions;
+      const result = abilityExecutor.castAbility({
         champion: caster,
         slot,
         targetPosition: targetPosition ?? red.position.clone(),
         targetEntityId: targetId,
         context,
       });
+      // Let the windup pass (game time only, so effects and cooldowns don't tick)
+      const aoeDelay = getAbilityDefinition(caster.definition.abilities[slot])?.aoeDelay ?? 0;
+      if (result.success && aoeDelay > 0 && !windup) context.advanceTime(aoeDelay + 1e-6);
+      return result;
     },
 
     addMinion: (side, position, minionType = 'melee') => {

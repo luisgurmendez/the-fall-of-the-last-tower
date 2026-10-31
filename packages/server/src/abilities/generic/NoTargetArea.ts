@@ -4,7 +4,7 @@
  * - Damage and debuffs (anything not in the 'buff' category) hit enemies
  * - Heals and buffs go to allies; buffs also go to the caster right away
  * - The area is centered where the caster stood when casting, and with
- *   aoeDelay it lands later (scheduled on game time)
+ *   aoeDelay it lands later (scheduled on game time) unless the caster died
  */
 
 import {
@@ -53,7 +53,9 @@ export function executeNoTargetAbility(
 
   // The area is where the caster stood when casting; with aoeDelay it lands later
   const center = champion.position.clone();
-  const applyArea = () => applyNoTargetArea(params, definition, center, radius, damageAmount, healAmount, buffs, debuffs);
+  const applyArea = () => {
+    if (!champion.isDead) applyNoTargetArea(params, definition, center, radius, damageAmount, healAmount, buffs, debuffs);
+  };
   if (definition.aoeDelay && definition.aoeDelay > 0) {
     context.schedule(definition.aoeDelay, applyArea);
   } else {

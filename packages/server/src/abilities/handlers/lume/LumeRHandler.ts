@@ -6,7 +6,8 @@
  * EXPLOSION:
  * - Large area magic damage
  * - 40% slow for 2 seconds
- * - Centered on orb's current position
+ * - Centered on orb's position at the cast, landing aoeDelay later (a beam
+ *   of light falls on it; clients draw the warning)
  *
  * CONSEQUENCE:
  * - The orb is destroyed
@@ -61,23 +62,29 @@ export class LumeRHandler extends BaseAbilityHandler {
       ? definition.effectDuration[rank - 1]
       : definition.effectDuration ?? 2.0;
 
-    // Get enemies in explosion radius
-    const enemies = this.getAffectedEnemies(
-      explosionPosition,
-      explosionRadius,
-      champion,
-      definition,
-      context
-    );
+    const explode = () => {
+      const enemies = this.getAffectedEnemies(
+        explosionPosition,
+        explosionRadius,
+        champion,
+        definition,
+        context
+      );
 
-    for (const entity of enemies) {
-      // Deal damage
-      this.dealDamage(entity, damageAmount, damageType, champion.id, context);
+      for (const entity of enemies) {
+        // Deal damage
+        this.dealDamage(entity, damageAmount, damageType, champion.id, context);
 
-      // Apply slow
-      if (definition.appliesEffects) {
-        this.applyEffects(entity, definition.appliesEffects, slowDuration, champion.id);
+        // Apply slow
+        if (definition.appliesEffects) {
+          this.applyEffects(entity, definition.appliesEffects, slowDuration, champion.id);
+        }
       }
+    };
+    if (definition.aoeDelay && definition.aoeDelay > 0) {
+      context.schedule(definition.aoeDelay, explode);
+    } else {
+      explode();
     }
 
     // Destroy the orb
@@ -96,7 +103,7 @@ export class LumeRHandler extends BaseAbilityHandler {
     Logger.champion.info(`[LumeR] Abilities disabled: Q=${champion.abilityStates.Q.isDisabled}, W=${champion.abilityStates.W.isDisabled}, E=${champion.abilityStates.E.isDisabled}`);
 
     Logger.champion.info(
-      `${champion.playerId} cast Beaconfall - dealt ${damageAmount.toFixed(0)} damage, orb destroyed`
+      `${champion.playerId} cast Beaconfall - ${damageAmount.toFixed(0)} damage incoming, orb destroyed`
     );
 
     // Return orb position for VFX to spawn at the explosion location

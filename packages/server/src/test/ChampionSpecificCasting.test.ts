@@ -276,7 +276,7 @@ describe('no_target abilities: buffs for allies, debuffs for enemies', () => {
       maxLevel: true,
     });
     arena.blue.setResource(arena.blue.maxResource);
-    expect(arena.castAbility(arena.blue, 'R').success).toBe(true);
+    expect(arena.castAbility(arena.blue, 'R', { windup: true }).success).toBe(true);
 
     expect(arena.red.hasEffect('knockup')).toBe(false);
     arena.tickAllFrames(40);
