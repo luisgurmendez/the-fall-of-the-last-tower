@@ -55,9 +55,9 @@ export function buildChampionSnapshot(champion: ServerChampion): ChampionSnapsho
 
     // Dash state for ability animations
     isDashing: fm?.type === 'dash' && champion.dashAbilityId != null,
-    dashTargetX: fm ? champion.position.x + fm.direction.x * remainingForcedMovementDistance(fm) : undefined,
-    dashTargetY: fm ? champion.position.y + fm.direction.y * remainingForcedMovementDistance(fm) : undefined,
-    dashAbilityId: champion.dashAbilityId ?? undefined,
+    dashTargetX: fm ? champion.position.x + fm.direction.x * remainingForcedMovementDistance(fm) : null,
+    dashTargetY: fm ? champion.position.y + fm.direction.y * remainingForcedMovementDistance(fm) : null,
+    dashAbilityId: champion.dashAbilityId ?? null,
 
     abilities: {
       Q: { ...champion.abilityStates.Q },

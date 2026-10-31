@@ -305,6 +305,18 @@ export class StateSerializer {
       if (prevChamp.gold !== currChamp.gold) {
         mask |= EntityChangeMask.GOLD;
       }
+
+      // Kills, deaths, assists and creep score
+      if (prevChamp.kills !== currChamp.kills || prevChamp.deaths !== currChamp.deaths ||
+          prevChamp.assists !== currChamp.assists || prevChamp.cs !== currChamp.cs) {
+        mask |= EntityChangeMask.SCORE;
+      }
+
+      // Dash state
+      if (prevChamp.isDashing !== currChamp.isDashing || prevChamp.dashAbilityId !== currChamp.dashAbilityId ||
+          prevChamp.dashTargetX !== currChamp.dashTargetX || prevChamp.dashTargetY !== currChamp.dashTargetY) {
+        mask |= EntityChangeMask.DASH;
+      }
     }
 
     // For minions/towers
@@ -443,6 +455,20 @@ export class StateSerializer {
 
       if (mask & EntityChangeMask.GOLD) {
         (result as any).gold = currChamp.gold;
+      }
+
+      if (mask & EntityChangeMask.SCORE) {
+        (result as any).kills = currChamp.kills;
+        (result as any).deaths = currChamp.deaths;
+        (result as any).assists = currChamp.assists;
+        (result as any).cs = currChamp.cs;
+      }
+
+      if (mask & EntityChangeMask.DASH) {
+        (result as any).isDashing = currChamp.isDashing;
+        (result as any).dashAbilityId = currChamp.dashAbilityId;
+        (result as any).dashTargetX = currChamp.dashTargetX;
+        (result as any).dashTargetY = currChamp.dashTargetY;
       }
     }
 

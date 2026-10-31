@@ -249,6 +249,10 @@ export enum EntityChangeMask {
   PASSIVE = 1 << 12,
   /** Champion combat stats: attack damage, ability power, armor, magic resist, attack and movement speed */
   STATS = 1 << 13,
+  /** Kills, deaths, assists and creep score */
+  SCORE = 1 << 14,
+  /** Dash state: isDashing, its ability and where it ends (the client draws dashes from it) */
+  DASH = 1 << 15,
 }
 
 /**

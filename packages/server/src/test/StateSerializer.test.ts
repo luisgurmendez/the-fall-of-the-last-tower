@@ -221,6 +221,34 @@ describe('StateSerializer', () => {
       expect((delta.data as ChampionSnapshot).attackDamage).toBe(60);
     });
 
+    it('should send kills, deaths, assists and creep score when they change', () => {
+      const playerId = 'player-1';
+      serializer.createDeltaUpdates([createMockChampion('champ-1')] as any, playerId, 1);
+
+      // A last hit, then a kill
+      let [delta] = serializer.createDeltaUpdates([createMockChampion('champ-1', { cs: 1 })] as any, playerId, 2);
+      expect(delta.changeMask & EntityChangeMask.SCORE).toBeTruthy();
+      expect((delta.data as ChampionSnapshot).cs).toBe(1);
+
+      [delta] = serializer.createDeltaUpdates([createMockChampion('champ-1', { cs: 1, kills: 1 })] as any, playerId, 3);
+      expect((delta.data as ChampionSnapshot).kills).toBe(1);
+      expect((delta.data as ChampionSnapshot).cs).toBe(1);
+    });
+
+    it('should send the dash state when a dash starts and ends', () => {
+      const playerId = 'player-1';
+      serializer.createDeltaUpdates([createMockChampion('champ-1', { isDashing: false, dashAbilityId: null })] as any, playerId, 1);
+
+      let [delta] = serializer.createDeltaUpdates([createMockChampion('champ-1', { isDashing: true, dashAbilityId: 'vex_dash', dashTargetX: 100, dashTargetY: 0 })] as any, playerId, 2);
+      expect(delta.changeMask & EntityChangeMask.DASH).toBeTruthy();
+      expect((delta.data as ChampionSnapshot).isDashing).toBe(true);
+      expect((delta.data as ChampionSnapshot).dashAbilityId).toBe('vex_dash');
+
+      [delta] = serializer.createDeltaUpdates([createMockChampion('champ-1', { isDashing: false, dashAbilityId: null, dashTargetX: null, dashTargetY: null })] as any, playerId, 3);
+      expect((delta.data as ChampionSnapshot).isDashing).toBe(false);
+      expect((delta.data as ChampionSnapshot).dashTargetX).toBeNull();
+    });
+
     it('should detect level changes', () => {
       const playerId = 'player-1';
 
