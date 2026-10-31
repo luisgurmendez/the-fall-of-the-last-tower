@@ -165,8 +165,8 @@ export const GameConfig = {
     CASTER_DAMAGE: 23,
     SIEGE_DAMAGE: 40,
     SUPER_DAMAGE: 30,
-    /** Minion movement speed */
-    MOVEMENT_SPEED: 125,
+    /** Minion movement speed (the stats in types/minions.ts are what's used) */
+    MOVEMENT_SPEED: 115,
   },
 
   /**

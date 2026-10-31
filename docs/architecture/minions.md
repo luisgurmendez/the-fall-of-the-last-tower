@@ -33,7 +33,7 @@ A minion attacks a target within `attackRange` of its body, edge to edge (see [c
 | 30 | Enemy champions |
 | 10 | Towers, inhibitors, nexus |
 
-Every wave minion moves at the same speed (125, a little under a champion's) so the formation holds. Attack timings (melee 1.0s, casters 22 damage every 1.6s) are tuned so a wave deals more damage per second than the next wave brings in health; otherwise waves pile up. Over a 9-minute simulation without champions, each side holds a steady 45-50 minions across the three lanes.
+Every wave minion moves at the same speed (115, a little under a champion's 128-138, so lanes read calmly) so the formation holds. Attack timings (melee every 1.1s, casters 22 damage every 1.75s, siege every 2.2s) are tuned so a wave deals more damage per second than the next wave brings in health; otherwise waves pile up. Slowing them further also leaves a farming champion alone ahead of its wave more often (the `bot-farms-alone` scenario's last hits halve at 110 speed and 1.2s/1.85s attacks). Over a 9-minute simulation without champions, each side holds between about 20 and 40 minions across the three lanes, without piling up.
 
 Minions never attack jungle creatures, wards, zones or projectiles, and never target units their side can't see.
 

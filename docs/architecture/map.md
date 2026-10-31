@@ -6,7 +6,7 @@ Server: `packages/server/src/navigation/` (`Terrain`, `PathFollower`, `ServerNav
 
 ## Scale
 
-Everything is sized like the classic MOBA map and its units at 0.4 of their size: 1 Siege unit = 2.5 of those. The champions' art fixes that scale (a champion is 25 units in radius), and the rest follows: champions walk about 130 units a second and minions 125, melee champions hit from 55-60 and ranged ones from 180-220, towers shoot 300, champions see 560, experience is shared within 560, ability ranges are 170-440 and their areas 60-220 in radius. Walking from base to the far nexus takes about 50 seconds, like the classic map. Keep new distances, ranges and speeds on this scale.
+Everything is sized like the classic MOBA map and its units at 0.4 of their size: 1 Siege unit = 2.5 of those. The champions' art fixes that scale (a champion is 25 units in radius), and the rest follows: champions walk about 130 units a second and minions 115, melee champions hit from 55-60 and ranged ones from 180-220, towers shoot 300, champions see 560, experience is shared within 560, ability ranges are 170-440 and their areas 60-220 in radius. Walking from base to the far nexus takes about 50 seconds, like the classic map. Keep new distances, ranges and speeds on this scale.
 
 ## Layout
 

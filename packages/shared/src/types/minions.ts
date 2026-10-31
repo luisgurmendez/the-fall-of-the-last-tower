@@ -66,7 +66,9 @@ export interface MinionConfig {
 }
 
 /**
- * Default minion stats.
+ * Default minion stats. Minions walk a little slower than champions
+ * (115 against 128-138) and swing at an unhurried pace, so a lane reads
+ * calmly at this camera's scale.
  */
 export const DEFAULT_MINION_STATS: Record<MinionType, MinionStats> = {
   melee: {
@@ -76,8 +78,8 @@ export const DEFAULT_MINION_STATS: Record<MinionType, MinionStats> = {
     magicResist: 10,
     attackDamage: 23,
     attackRange: 44,
-    attackCooldown: 1.0,
-    movementSpeed: 125,
+    attackCooldown: 1.1,
+    movementSpeed: 115,
     sightRange: 400,
     goldReward: 21,
     experienceReward: 60,
@@ -94,8 +96,8 @@ export const DEFAULT_MINION_STATS: Record<MinionType, MinionStats> = {
     magicResist: 5,
     attackDamage: 22,
     attackRange: 220,
-    attackCooldown: 1.6,
-    movementSpeed: 125,
+    attackCooldown: 1.75,
+    movementSpeed: 115,
     sightRange: 400,
     goldReward: 14,
     experienceReward: 32,
@@ -112,8 +114,8 @@ export const DEFAULT_MINION_STATS: Record<MinionType, MinionStats> = {
     magicResist: 0,
     attackDamage: 50,
     attackRange: 140,
-    attackCooldown: 2.0,
-    movementSpeed: 125,
+    attackCooldown: 2.2,
+    movementSpeed: 115,
     sightRange: 400,
     goldReward: 60,
     experienceReward: 93,
@@ -130,8 +132,8 @@ export const DEFAULT_MINION_STATS: Record<MinionType, MinionStats> = {
     magicResist: 0,
     attackDamage: 180,
     attackRange: 70, // Melee super minion
-    attackCooldown: 0.85,
-    movementSpeed: 135, // Faster than regular minions
+    attackCooldown: 0.95,
+    movementSpeed: 125, // Faster than regular minions
     sightRange: 400,
     goldReward: 60,
     experienceReward: 97,
