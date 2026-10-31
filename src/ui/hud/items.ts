@@ -130,6 +130,10 @@ export function getItemCategoryColor(category: string): string {
   return colors[category] || '#ffffff';
 }
 
+/** The stealth ward's sprite (scripts/generate-props.ts), shown in the trinket box */
+const wardIcon = new Image();
+wardIcon.src = '/assets/props/ward_stealth.png';
+
 /** Draw ward count panel */
 export function drawWardPanel(
   ctx: CanvasRenderingContext2D,
@@ -151,15 +155,15 @@ export function drawWardPanel(
   ctx.lineWidth = charges > 0 ? 2 : 1;
   ctx.strokeRect(x, y, size, size);
 
-  // Ward icon (simple eye symbol)
-  ctx.fillStyle = charges > 0 ? '#44FF44' : HUD_COLORS.textDim;
-  ctx.beginPath();
-  ctx.arc(x + size / 2, y + size / 2 - 4, 8, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = HUD_COLORS.background;
-  ctx.beginPath();
-  ctx.arc(x + size / 2, y + size / 2 - 4, 4, 0, Math.PI * 2);
-  ctx.fill();
+  // The ward itself, dimmed while there's no charge
+  if (wardIcon.complete && wardIcon.naturalWidth > 0) {
+    const smoothing = ctx.imageSmoothingEnabled;
+    ctx.imageSmoothingEnabled = false;
+    ctx.globalAlpha = charges > 0 ? 1 : 0.4;
+    ctx.drawImage(wardIcon, x + 4, y - 2, size - 8, size - 8);
+    ctx.globalAlpha = 1;
+    ctx.imageSmoothingEnabled = smoothing;
+  }
 
   // Charge count
   RenderUtils.renderBitmapText(

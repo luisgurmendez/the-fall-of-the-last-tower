@@ -17,7 +17,7 @@
  */
 
 import { describe, it, expect } from 'bun:test';
-import { CHAMPION_DEFINITIONS, MOBAConfig } from '@siege/shared';
+import { CHAMPION_DEFINITIONS, MOBAConfig, SUMMONER_SPELL_IDS } from '@siege/shared';
 import { CHAMPION_RENDERERS, getChampionRenderer } from '@/render/champions';
 import { getAbilityVFX, getAllRegisteredVFX } from '@/vfx/VFXRegistry';
 import { WORLD_VFX } from '@/vfx/world';
@@ -107,6 +107,8 @@ describe('Champion client contract', () => {
       ...ALL_ABILITY_IDS.map((abilityId) => `${abilityId}_impact`),
       // Spawned by OnlineStateManager for hits, deaths, level ups, ...
       ...Object.values(WORLD_VFX),
+      // Spawned on SUMMONER_CAST events (state/gameEvents.ts)
+      ...SUMMONER_SPELL_IDS.map((spellId) => `summoner_${spellId}`),
       ...Object.values(ABILITIES_WITHOUT_VFX).flatMap((gap) =>
         gap.registeredAs ? [gap.registeredAs] : []
       ),

@@ -16,6 +16,8 @@ import {
   FullStateSnapshot,
   GameEvent,
   ChampionDefinition,
+  DEFAULT_SUMMONER_SPELLS,
+  type SummonerSpellId,
 } from '@siege/shared';
 import { ServerGame } from './ServerGame';
 import { ServerGameContext } from './ServerGameContext';
@@ -35,6 +37,8 @@ export interface PlayerInfo {
   connected: boolean;
   /** Played by a server-side bot instead of a connection */
   isBot?: boolean;
+  /** Summoner spells (D, F); the defaults when absent */
+  summonerSpells?: SummonerSpellId[];
 }
 
 export interface GameRoomConfig {
@@ -151,7 +155,8 @@ export class GameRoom {
         Logger.game.error(`Unknown champion: ${playerInfo.championId} for player ${playerId}`);
         continue;
       }
-      spawnChampion(this.context, { playerId, side: playerInfo.side, definition });
+      const champion = spawnChampion(this.context, { playerId, side: playerInfo.side, definition });
+      champion.summoners.set(playerInfo.summonerSpells ?? DEFAULT_SUMMONER_SPELLS);
     }
   }
 
@@ -418,6 +423,8 @@ export class GameRoom {
     championId: string;
     side: number;
     entityId: string;
+    isBot: boolean;
+    summonerSpells: SummonerSpellId[];
   }> {
     const result = [];
     for (const [playerId, playerInfo] of this.players) {
@@ -427,6 +434,8 @@ export class GameRoom {
         championId: playerInfo.championId,
         side: playerInfo.side,
         entityId: champion?.id || '',
+        isBot: playerInfo.isBot === true,
+        summonerSpells: playerInfo.summonerSpells ?? [...DEFAULT_SUMMONER_SPELLS],
       });
     }
     return result;

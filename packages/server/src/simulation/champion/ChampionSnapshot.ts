@@ -85,6 +85,7 @@ export function buildChampionSnapshot(champion: ServerChampion): ChampionSnapsho
     deaths: champion.deaths,
     assists: champion.assists,
     cs: champion.cs,
+    summoners: champion.summoners.getState(),
 
     trinketCharges: champion.trinketCharges,
     trinketMaxCharges: champion.trinketMaxCharges,

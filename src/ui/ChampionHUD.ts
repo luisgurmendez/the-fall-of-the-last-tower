@@ -53,6 +53,7 @@ import { drawPassivePanel, drawAbilitiesPanel, canCastAbility } from '@/ui/hud/a
 /** Ability slots, whose keys are the slot letters */
 const ABILITY_KEYS: AbilitySlot[] = ['Q', 'W', 'E', 'R'];
 import { drawItemsPanel, drawWardPanel } from '@/ui/hud/items';
+import { drawSummonersPanel, drawSummonerTooltip } from '@/ui/hud/summoners';
 import { drawActiveEffects, drawBuffs } from '@/ui/hud/effectIcons';
 import {
   drawAbilityTooltip,
@@ -108,9 +109,10 @@ export class ChampionHUD extends ScreenEntity {
     this.hud = {
       config: resolvedConfig,
       iconLoader,
-      hoverState: { ability: null, item: null, buff: null, effect: null, passive: false },
+      hoverState: { ability: null, item: null, buff: null, effect: null, passive: false, summoner: null },
       passiveBox: null,
       abilityBoxes: new Map(),
+      summonerBoxes: new Map(),
       itemBoxes: new Map(),
       buffBoxes: new Map(),
       effectBoxes: new Map(),
@@ -224,6 +226,16 @@ export class ChampionHUD extends ScreenEntity {
       }
     }
 
+    // Check summoner spell hover
+    let newHoveredSummoner: number | null = null;
+    for (const [slot, box] of this.hud.summonerBoxes) {
+      if (isPointInBox(mousePos.x, mousePos.y, box)) {
+        newHoveredSummoner = slot;
+        break;
+      }
+    }
+    this.hud.hoverState.summoner = newHoveredSummoner;
+
     // Check passive hover
     let newHoveredPassive = false;
     if (this.hud.passiveBox && isPointInBox(mousePos.x, mousePos.y, this.hud.passiveBox)) {
@@ -329,6 +341,12 @@ export class ChampionHUD extends ScreenEntity {
       drawAbilitiesPanel(ctx, currentX, contentTop, this.champion, this.hud);
       currentX += PANEL.abilitiesWidth + PANEL.margin;
 
+      // 4b. Summoner spells (D over F), level with the ability boxes
+      const summonersHeight = PANEL.summonerBoxSize * 2 + PANEL.summonerSpacing;
+      const abilitiesTop = contentTop + (this.champion.getSkillPoints() > 0 ? PANEL.levelUpButtonHeight + PANEL.levelUpButtonGap : 0);
+      drawSummonersPanel(ctx, currentX, abilitiesTop + (PANEL.abilitiesHeight - summonersHeight) / 2, this.champion, this.hud);
+      currentX += PANEL.summonerBoxSize + PANEL.margin;
+
       // 5. Items Panel + Gold + Ward (centered vertically)
       const itemsContainerHeight = getItemsContainerHeight();
       const goldHeight = 20;
@@ -356,6 +374,13 @@ export class ChampionHUD extends ScreenEntity {
         if (abilityBox) {
           drawAbilityTooltip(ctx, abilityBox.x, abilityBox.y, this.hud.hoverState.ability, this.champion, this.hud.config.accentColor);
         }
+      }
+
+      // 9b. Summoner spell tooltip if hovering
+      if (this.hud.hoverState.summoner !== null) {
+        const box = this.hud.summonerBoxes.get(this.hud.hoverState.summoner);
+        const spell = this.champion.getSummoners()[this.hud.hoverState.summoner];
+        if (box && spell) drawSummonerTooltip(ctx, box.x, box.y, this.hud.hoverState.summoner, spell.id);
       }
 
       // 10. Draw passive tooltip if hovering

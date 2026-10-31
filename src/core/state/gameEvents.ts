@@ -179,6 +179,24 @@ export function processGameEvent(event: GameEvent, ctx: GameEventContext): void 
       }
       break;
     }
+    case GameEventType.SUMMONER_CAST: {
+      const x = event.data.x as number;
+      const y = event.data.y as number;
+      try {
+        getVFXManager().spawnAbilityVFX(
+          `summoner_${event.data.spellId as string}`,
+          x,
+          y,
+          (event.data.toX as number | undefined) ?? x,
+          (event.data.toY as number | undefined) ?? y,
+          event.data.entityId as string,
+          event.data.targetId as string | undefined
+        );
+      } catch {
+        // VFXManager not initialized yet, skip
+      }
+      break;
+    }
     case GameEventType.CAMP_CLEARED: {
       ctx.campTimers.set({
         campId: event.data.campId as string,

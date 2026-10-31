@@ -22,6 +22,8 @@ import {
   type LaneId,
   type MinionType,
   type Side,
+  DEFAULT_SUMMONER_SPELLS,
+  type SummonerSpellId,
 } from '@siege/shared';
 import { ServerGameContext } from '../game/ServerGameContext';
 import { spawnStructures, spawnChampion } from '../game/MatchSetup';
@@ -67,6 +69,8 @@ export interface AddChampionOptions {
   ranks?: Partial<Record<AbilitySlot, number>>;
   /** Let a bot play this champion: 'lane' for a LaneBot in mid, or any controller */
   bot?: 'lane' | BotController;
+  /** Summoner spells (D, F); default Blink and Haste */
+  summoners?: SummonerSpellId[];
 }
 
 export class Simulation {
@@ -129,6 +133,7 @@ export class Simulation {
       definition,
       position: options.at ? new Vector(options.at.x, options.at.y) : undefined,
     });
+    champion.summoners.set(options.summoners ?? DEFAULT_SUMMONER_SPELLS);
 
     const level = options.level ?? 1;
     while (champion.level < level) {

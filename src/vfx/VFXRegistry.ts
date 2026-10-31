@@ -15,6 +15,7 @@
 // Side effect: registers every champion's ability VFX, and the world VFX (hits, deaths, ...)
 import './champions';
 import './world';
+import './summoners';
 
 export {
   registerAbilityVFX,

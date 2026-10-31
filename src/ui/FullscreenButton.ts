@@ -1,8 +1,9 @@
 /**
  * FullscreenButton - The fullscreen toggle under the top-right stats panel.
  *
- * It shows on every screen (menu, champion select and the game). The F key
- * toggles fullscreen too (InputManager).
+ * It shows on every screen (menu, champion select and the game). There's
+ * no key for it: F casts a summoner spell in the game (the browser's own
+ * F11 still works).
  */
 
 import { InputManager } from "@/core/input/InputManager";
@@ -23,7 +24,7 @@ export function setupFullscreenButton(): void {
   const showState = () => {
     const isFullscreen = document.fullscreenElement !== null;
     button.classList.toggle("is-fullscreen", isFullscreen);
-    button.title = isFullscreen ? "Exit fullscreen (F)" : "Fullscreen (F)";
+    button.title = isFullscreen ? "Exit fullscreen" : "Fullscreen";
   };
   document.addEventListener("fullscreenchange", showState);
   showState();

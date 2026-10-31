@@ -284,8 +284,9 @@ export class StateSerializer {
         mask |= EntityChangeMask.STATS;
       }
 
-      // Check abilities (simplified - in production use deep comparison)
-      if (JSON.stringify(prevChamp.abilities) !== JSON.stringify(currChamp.abilities)) {
+      // Check abilities and summoner spells (simplified - in production use deep comparison)
+      if (JSON.stringify(prevChamp.abilities) !== JSON.stringify(currChamp.abilities) ||
+          JSON.stringify(prevChamp.summoners) !== JSON.stringify(currChamp.summoners)) {
         mask |= EntityChangeMask.ABILITIES;
       }
 
@@ -446,6 +447,7 @@ export class StateSerializer {
 
       if (mask & EntityChangeMask.ABILITIES) {
         (result as any).abilities = currChamp.abilities;
+        (result as any).summoners = currChamp.summoners;
       }
 
       if (mask & EntityChangeMask.EFFECTS) {

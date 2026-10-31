@@ -17,6 +17,8 @@ import {
   type StateUpdate,
   type FullStateSnapshot,
   CHAMPION_DEFINITIONS as CHAMPION_REGISTRY,
+  parseSummonerSpells,
+  type SummonerSpellId,
 } from '@siege/shared';
 
 import { BunWebSocketServer } from './network/BunWebSocketServer';
@@ -119,10 +121,13 @@ interface ReadyMessageData {
   mode?: 'queue' | 'practice';
   /** Champion for the practice bot (defaults to the player's champion) */
   botChampionId?: string;
+  /** Summoner spells picked in champion select (D, F) */
+  summonerSpells?: unknown;
 }
 
 function handleReadyMessage(connection: WebSocketConnection, data: ReadyMessageData): void {
   const { playerId, championId = 'warrior', sessionToken, mode = 'queue', botChampionId } = data ?? {};
+  const summonerSpells = parseSummonerSpells(data?.summonerSpells);
   if (typeof playerId !== 'string' || playerId.length === 0) {
     Logger.server.warn(`READY without a valid playerId from ${connection.id}`);
     return;
@@ -204,12 +209,12 @@ function handleReadyMessage(connection: WebSocketConnection, data: ReadyMessageD
   }
 
   if (mode === 'practice') {
-    startPracticeMatch(playerId, championId, botChampionId);
+    startPracticeMatch(playerId, championId, summonerSpells, botChampionId);
     return;
   }
 
   // Add to matchmaking queue
-  matchmaker.addToQueue(playerId, championId);
+  matchmaker.addToQueue(playerId, championId, summonerSpells);
 
   // Send queue position
   wsServer.sendToConnection(connection.id, {
@@ -264,7 +269,7 @@ function handleMatchFound(match: MatchResult): void {
 /**
  * Start a practice match: the player on blue against a LaneBot on red.
  */
-function startPracticeMatch(playerId: string, championId: string, botChampionId?: string): void {
+function startPracticeMatch(playerId: string, championId: string, summonerSpells: SummonerSpellId[], botChampionId?: string): void {
   const botChampion = typeof botChampionId === 'string' && CHAMPION_DEFINITIONS.has(botChampionId)
     ? botChampionId
     : championId;
@@ -273,8 +278,8 @@ function startPracticeMatch(playerId: string, championId: string, botChampionId?
   Logger.server.info(`Practice match: ${playerId} (${championId}) vs bot (${botChampion})`);
   startMatch(
     [
-      { playerId, side: 0, championId, connected: true },
-      { playerId: botPlayerId, side: 1, championId: botChampion, connected: true, isBot: true },
+      { playerId, side: 0, championId, connected: true, summonerSpells },
+      { playerId: botPlayerId, side: 1, championId: botChampion, connected: true, isBot: true, summonerSpells: ['blink', 'mend'] },
     ],
     [new LaneBot({ playerId: botPlayerId, lane: 'mid' })]
   );

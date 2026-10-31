@@ -67,6 +67,7 @@ import { ChampionTransform, type TransformAuraConfig } from './champion/Champion
 import { updateForcedMovement, type ForcedMovement } from './champion/ChampionForcedMovement';
 import { ChampionRecall } from './champion/ChampionRecall';
 import { ChampionTrinket } from './champion/ChampionTrinket';
+import { ChampionSummoners } from './champion/ChampionSummoners';
 import { ChampionInventory } from './champion/ChampionInventory';
 import { ChampionItemPassives } from './champion/ChampionItemPassives';
 import { buildChampionSnapshot } from './champion/ChampionSnapshot';
@@ -168,6 +169,8 @@ export class ServerChampion extends ServerEntity {
   private readonly transform = new ChampionTransform(this);
   private readonly recall = new ChampionRecall(this);
   private readonly trinket = new ChampionTrinket(this);
+  /** Summoner spells (D, F) */
+  readonly summoners = new ChampionSummoners(this);
   private readonly inventory = new ChampionInventory(this);
   /** Item passives (lifesteal, thorns, ...); attacks and abilities report to it */
   readonly itemPassives = new ChampionItemPassives(this);
@@ -290,6 +293,7 @@ export class ServerChampion extends ServerEntity {
 
     // Update trinket (ward) charges
     this.trinket.update(dt);
+    this.summoners.update(dt);
 
     // Update passive state
     this.updatePassiveState(dt, context);
@@ -891,6 +895,13 @@ export class ServerChampion extends ServerEntity {
    */
   removeEffectsByCategory(category: 'buff' | 'debuff' | 'neutral'): number {
     return this.effects.removeByCategory(category);
+  }
+
+  /**
+   * Heal, cut by 40% while Scorched (summoner spell).
+   */
+  override heal(amount: number, context?: ServerGameContext, sourceId?: string): number {
+    return super.heal(this.hasEffect('summoner_scorch') ? amount * 0.6 : amount, context, sourceId);
   }
 
   /**

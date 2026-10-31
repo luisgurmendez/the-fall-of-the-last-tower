@@ -68,6 +68,7 @@ For detailed documentation on the multiplayer MOBA systems, see the following fi
 | **Lanes & Minions** | [docs/architecture/minions.md](docs/architecture/minions.md) | Waves, lane following, minion targeting and call for help |
 | **Items & Shop** | [docs/architecture/items.md](docs/architecture/items.md) | Item catalog, shop UI, item icons (PixelLab) |
 | **Simulation** | [docs/architecture/simulation.md](docs/architecture/simulation.md) | Headless scenarios, bots, PNG frames, HTTP sandbox for agents |
+| **Summoner Spells** | [docs/architecture/summoner-spells.md](docs/architecture/summoner-spells.md) | The D/F spells: picks, casting, HUD, icons and VFX |
 
 ### Quick Reference
 
@@ -105,6 +106,7 @@ For detailed documentation on the multiplayer MOBA systems, see the following fi
 | Minion waves, lane following, minion targeting | `minions.md` |
 | Items, the shop, item icons | `items.md` |
 | Simulation framework, scenarios, bots | `simulation.md` |
+| Summoner spells | `summoner-spells.md` |
 
 **When adding new systems**, create a new doc file in `docs/architecture/` and add a reference here.
 
@@ -200,6 +202,7 @@ Captures player input and sends to server:
 - Q/W/E/R → Ability cast (Ctrl + key levels it)
 - S → Stop
 - B → Recall
+- D / F → Summoner spells
 - 4 / 5 → Hold to aim a ward / control ward, release to place it
 
 Escape opens the in-match menu (`src/ui/GameMenu.ts`: resume, surrender).

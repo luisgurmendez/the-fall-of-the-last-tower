@@ -759,3 +759,79 @@
   height: 100%;
   image-rendering: pixelated;
 }
+
+/* ============================================ */
+/* Summoner spell picker                        */
+/* ============================================ */
+
+.summoner-picker {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 12px;
+}
+
+.summoner-picker-title {
+  font-family: var(--pixel-font);
+  font-size: 18px;
+  color: var(--pixel-gold);
+  text-shadow: 2px 2px 0 #000;
+  letter-spacing: 3px;
+}
+
+.summoner-picker-slots,
+.summoner-picker-options {
+  display: flex;
+  gap: 8px;
+}
+
+.summoner-picker-options {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  z-index: 10;
+  width: max-content;
+  max-width: 560px;
+  flex-wrap: wrap;
+  padding: 8px;
+  background: var(--pixel-bg-darker);
+  border: 3px solid var(--pixel-border);
+  box-shadow: 4px 4px 0 #000;
+}
+
+.summoner-picker-options[hidden] {
+  display: none;
+}
+
+.summoner-spell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  background: var(--pixel-bg-light);
+  border: 3px solid var(--pixel-border);
+  cursor: pointer;
+  font-family: var(--pixel-font);
+}
+
+.summoner-spell img {
+  width: 44px;
+  height: 44px;
+  image-rendering: pixelated;
+}
+
+.summoner-spell:hover,
+.summoner-spell.choosing {
+  border-color: var(--pixel-gold);
+}
+
+.summoner-spell.picked {
+  opacity: 0.55;
+}
+
+.summoner-spell-label {
+  font-size: 14px;
+  color: var(--pixel-text);
+}

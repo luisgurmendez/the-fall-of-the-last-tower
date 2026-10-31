@@ -79,6 +79,8 @@ export enum InputType {
   PLACE_WARD = 11,
   /** Concede the match */
   SURRENDER = 12,
+  /** Cast a summoner spell (D or F) */
+  SUMMONER_SPELL = 13,
 }
 
 /**
@@ -191,6 +193,19 @@ export interface PlaceWardInput extends InputMessage {
 }
 
 /**
+ * Cast one of the champion's two summoner spells. Aimed spells carry the
+ * cursor's position and, for ones cast on a unit, the unit under it.
+ */
+export interface SummonerSpellInput extends InputMessage {
+  type: InputType.SUMMONER_SPELL;
+  /** 0 = D, 1 = F */
+  slot: 0 | 1;
+  targetX?: number;
+  targetY?: number;
+  targetEntityId?: string;
+}
+
+/**
  * Union type for all input messages.
  */
 /**
@@ -212,6 +227,7 @@ export type ClientInput =
   | RecallInput
   | PingInput
   | PlaceWardInput
+  | SummonerSpellInput
   | SurrenderInput;
 
 /**
@@ -253,6 +269,17 @@ export enum EntityChangeMask {
   SCORE = 1 << 14,
   /** Dash state: isDashing, its ability and where it ends (the client draws dashes from it) */
   DASH = 1 << 15,
+}
+
+/**
+ * A champion's summoner spell, as clients see it.
+ */
+export interface SummonerSpellState {
+  id: string;
+  /** Seconds until it can be cast again (0 when ready) */
+  cooldownRemaining: number;
+  /** Its full cooldown, for the HUD's sweep */
+  cooldown: number;
 }
 
 /**
@@ -308,6 +335,9 @@ export interface ChampionSnapshot {
 
   // Abilities
   abilities: Record<AbilitySlot, AbilityState>;
+
+  /** The two summoner spells (D, F) and their cooldowns */
+  summoners?: SummonerSpellState[];
 
   // Passive
   passive: PassiveStateSnapshot;
@@ -609,6 +639,8 @@ export enum GameEventType {
   CAMP_CLEARED = 17,
   /** An entity was healed ({ entityId, amount, sourceId }) */
   HEAL = 18,
+  /** A summoner spell was cast ({ entityId, spellId, x, y, toX?, toY?, targetId? }; Blink's to is where it landed) */
+  SUMMONER_CAST = 19,
 }
 
 /**

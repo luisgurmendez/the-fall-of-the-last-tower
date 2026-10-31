@@ -362,9 +362,27 @@ export class NetworkClient {
   }
 
   /**
+   * Cast a summoner spell (slot 0 = D, 1 = F) at the cursor, on the unit under it if any.
+   */
+  sendSummonerSpellInput(slot: 0 | 1, targetX: number, targetY: number, targetEntityId?: string): void {
+    this.sendInput({
+      seq: ++this.inputSeq,
+      clientTime: Date.now(),
+      type: InputType.SUMMONER_SPELL,
+      slot,
+      targetX,
+      targetY,
+      targetEntityId,
+    });
+  }
+
+  /**
    * Send ready message to server (joins queue).
    */
-  sendReady(championId: string = 'warrior', options: { mode?: 'queue' | 'practice'; botChampionId?: string } = {}): void {
+  sendReady(
+    championId: string = 'warrior',
+    options: { mode?: 'queue' | 'practice'; botChampionId?: string; summonerSpells?: string[] } = {}
+  ): void {
     console.log(`[NetworkClient] sendReady: playerId="${this.config.playerId}", championId="${championId}"`);
     this.sendMessage({
       type: ClientMessageType.READY,
@@ -374,6 +392,7 @@ export class NetworkClient {
         sessionToken: this.sessionToken ?? undefined,
         mode: options.mode,
         botChampionId: options.botChampionId,
+        summonerSpells: options.summonerSpells,
       },
     });
   }

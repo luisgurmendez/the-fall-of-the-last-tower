@@ -36,6 +36,7 @@ import { ChampionSelect, ENABLED_CHAMPIONS } from "./championSelect";
 import { MatchConnection } from "./matchConnection";
 import { MatchFoundScreen } from "./matchFound";
 import { QueueScreen } from "./queueScreen";
+import { SummonerPicker } from "./summonerPicker";
 import { startTipRotation, showRandomTip } from "./tips";
 // Re-export for external use
 export type {
@@ -70,6 +71,7 @@ export class MatchmakingUI {
 
   // Champion select screen
   private championSelect: ChampionSelect;
+  private summonerPicker: SummonerPicker;
 
   // Network client and the state buffered for OnlineGame
   private connection: MatchConnection;
@@ -119,6 +121,7 @@ export class MatchmakingUI {
 
     // Get champion select elements
     this.championSelect = new ChampionSelect(getEl);
+    this.summonerPicker = new SummonerPicker(getEl("summoner-picker"));
 
     // Warn if critical elements missing
     if (!this.overlay) {
@@ -297,6 +300,7 @@ export class MatchmakingUI {
 
     this.connection.connect(mode, botChampionId, {
       getChampionId: () => this.championSelect.getSelectedChampionId(),
+      getSummonerSpells: () => this.summonerPicker.getSpells(),
       onStatusChange: (status) => this.updateConnectionStatus(status),
       onQueueEntered: () => {
         this.showScreen("queue");

@@ -15,6 +15,8 @@ import type { ConnectionStatus } from "./types";
 export interface MatchConnectionEvents {
   /** Champion to send with the ready message, read once the socket is open */
   getChampionId(): string;
+  /** Summoner spells (D, F) to send with it */
+  getSummonerSpells(): string[];
   /** Update the connection status display */
   onStatusChange(status: ConnectionStatus): void;
   /** The ready message was sent in queue mode */
@@ -90,6 +92,7 @@ export class MatchConnection {
       this.networkClient?.sendReady(events.getChampionId(), {
         mode,
         botChampionId,
+        summonerSpells: events.getSummonerSpells(),
       });
       if (mode === "queue") {
         events.onQueueEntered();

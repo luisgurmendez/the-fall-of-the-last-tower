@@ -49,6 +49,8 @@ export const PANEL = {
   effectSize: 30,
   effectSpacing: 3,
   wardBoxSize: 40,
+  summonerBoxSize: 30,
+  summonerSpacing: 4,
   tooltipWidth: 320,
   tooltipPadding: 8,
   xpBarHeight: 6,
@@ -93,6 +95,8 @@ export function getTotalWidth(): number {
     PANEL.passiveBoxSize +
     PANEL.margin +
     PANEL.abilitiesWidth +
+    PANEL.margin +
+    PANEL.summonerBoxSize +
     PANEL.margin +
     getItemsContainerWidth() +
     PANEL.margin +

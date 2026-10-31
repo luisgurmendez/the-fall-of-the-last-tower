@@ -123,6 +123,8 @@ export type {
   RecallInput,
   PingInput,
   PlaceWardInput,
+  SummonerSpellInput,
+  SummonerSpellState,
   SurrenderInput,
   WardType,
   ClientInput,

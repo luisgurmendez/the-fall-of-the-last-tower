@@ -3,7 +3,7 @@
  * public ones, so other code keeps importing them from '@/ui/ChampionHUD'.
  */
 
-import type { StatModifier, ChampionStats, ItemSlot, ItemDefinition, AbilitySlot, AbilityScaling, DamageType } from '@siege/shared';
+import type { StatModifier, ChampionStats, ItemSlot, ItemDefinition, AbilitySlot, AbilityScaling, DamageType, SummonerSpellState } from '@siege/shared';
 import type Vector from '@/physics/vector';
 import type AbilityIconLoader from '@/ui/AbilityIconLoader';
 
@@ -129,6 +129,8 @@ export interface HUDChampionData {
   getActiveEffects(): HUDActiveEffect[];
   getInventory(): ChampionInventory;
   getTrinket(): HUDTrinket | null;
+  /** The two summoner spells (D, F) and their cooldowns */
+  getSummoners(): SummonerSpellState[];
   getPosition(): Vector;
   getLevel(): number;
   getExperience(): number;
@@ -165,6 +167,8 @@ export interface HUDHoverState {
   effect: number | null;
   /** Currently hovered passive, or null if none */
   passive: boolean;
+  /** Currently hovered summoner spell slot (0 = D, 1 = F), or null if none */
+  summoner: number | null;
 }
 
 /** HUD configuration options */
@@ -228,6 +232,9 @@ export interface HUDContext {
 
   /** Cached ability box positions for hit testing (updated each frame) */
   readonly abilityBoxes: Map<AbilitySlot, HitBox>;
+
+  /** Cached summoner spell box positions by slot, for hit testing */
+  readonly summonerBoxes: Map<number, HitBox>;
 
   /** Cached item box positions for hit testing */
   readonly itemBoxes: Map<ItemSlot, HitBox>;

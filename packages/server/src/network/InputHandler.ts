@@ -20,6 +20,7 @@ import {
   SellItemInput,
   RecallInput,
   PlaceWardInput,
+  SummonerSpellInput,
   AbilitySlot,
   GameConfig,
 } from '@siege/shared';
@@ -55,6 +56,7 @@ const RATE_LIMITS: Record<InputType, number> = {
   [InputType.PING]: 5,
   [InputType.CHAT]: 3,
   [InputType.PLACE_WARD]: 3,      // 3 per second
+  [InputType.SUMMONER_SPELL]: 4,
   [InputType.SURRENDER]: 1,       // Handled by GameRoom before queueing
 };
 
@@ -107,6 +109,12 @@ function hasValidPayload(input: ClientInput): boolean {
 
     case InputType.PLACE_WARD:
       return WARD_TYPES.has(data.wardType) && isFiniteNumber(data.x) && isFiniteNumber(data.y);
+
+    case InputType.SUMMONER_SPELL:
+      return (data.slot === 0 || data.slot === 1) &&
+        isOptionalFiniteNumber(data.targetX) &&
+        isOptionalFiniteNumber(data.targetY) &&
+        isOptionalString(data.targetEntityId);
 
     case InputType.PING:
       return isFiniteNumber(data.x) && isFiniteNumber(data.y);
@@ -250,6 +258,12 @@ export class InputHandler {
       case InputType.PLACE_WARD:
         this.handlePlaceWardInput(champion, input as PlaceWardInput, context);
         break;
+
+      case InputType.SUMMONER_SPELL: {
+        const { slot, targetX, targetY, targetEntityId } = input as SummonerSpellInput;
+        champion.summoners.cast(slot, { x: targetX, y: targetY, entityId: targetEntityId }, context);
+        break;
+      }
     }
   }
 

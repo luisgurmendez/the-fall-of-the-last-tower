@@ -14,6 +14,7 @@
  */
 
 import type { Side } from '@siege/shared';
+import type { SummonerSpellId } from '@siege/shared';
 import type { PlayerInfo } from '../game/GameRoom';
 import { Logger } from '../utils/Logger';
 
@@ -23,6 +24,7 @@ import { Logger } from '../utils/Logger';
 export interface QueuedPlayer {
   playerId: string;
   championId: string;
+  summonerSpells?: SummonerSpellId[];
   joinedAt: number;
 }
 
@@ -67,7 +69,7 @@ export class Matchmaker {
   /**
    * Add a player to the matchmaking queue.
    */
-  addToQueue(playerId: string, championId: string): boolean {
+  addToQueue(playerId: string, championId: string, summonerSpells?: SummonerSpellId[]): boolean {
     // Check if already in queue
     if (this.queuedPlayerIds.has(playerId)) {
       return false;
@@ -76,6 +78,7 @@ export class Matchmaker {
     const queuedPlayer: QueuedPlayer = {
       playerId,
       championId,
+      summonerSpells,
       joinedAt: Date.now(),
     };
 
@@ -150,6 +153,7 @@ export class Matchmaker {
     const players: PlayerInfo[] = matchedPlayers.map((qp, index) => ({
       playerId: qp.playerId,
       championId: qp.championId,
+      summonerSpells: qp.summonerSpells,
       side: (index < this.playersPerTeam ? 0 : 1) as Side,
       connected: true,
     }));

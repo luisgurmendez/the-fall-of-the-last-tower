@@ -26,6 +26,9 @@ import { pickScore } from "@/core/input/picking";
 import RenderElement from "@/render/renderElement";
 import { renderWardPreview } from "@/render/entities/ward";
 
+/** Summoner spell keys and their slots */
+const SUMMONER_KEYS: [string, 0 | 1][] = [["d", 0], ["f", 1]];
+
 /** Ward keys: 4 places a stealth ward (the trinket), 5 a control ward */
 const WARD_KEYS: [string, WardType][] = [["4", "stealth"], ["5", "control"]];
 
@@ -336,6 +339,13 @@ export class OnlineInputHandler implements GameObject {
     // Handle recall (B key)
     if (this.inputManager.isKeyJustPressed("b")) {
       this.networkClient.sendRecallInput();
+    }
+
+    // Summoner spells: D and F, cast at the cursor (on the unit under it, if any)
+    for (const [key, slot] of SUMMONER_KEYS) {
+      if (!this.inputManager.isKeyJustPressed(key)) continue;
+      const at = this.screenToWorld(this.inputManager.getMousePosition(), camera);
+      this.networkClient.sendSummonerSpellInput(slot, at.x, at.y, this.hoveredEnemyId ?? undefined);
     }
 
     // Wards: hold 4 (5 for a control ward) to see where it goes and what it

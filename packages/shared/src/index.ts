@@ -25,3 +25,6 @@ export * from './champions';
 
 // Ability registry
 export * from './abilities';
+
+// Summoner spells
+export * from './summoners';

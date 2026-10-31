@@ -748,7 +748,87 @@ export const VileTransformedEffect: ServerEffectDefinition = {
   persistsThroughDeath: false,
 };
 
+// ===================
+// Summoner Spells (see @siege/shared summoners.ts and ChampionSummoners)
+// ===================
+
+export const SummonerHasteEffect: ServerStatEffectDef = {
+  id: 'summoner_haste',
+  name: 'Haste',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+  stat: 'movement_speed',
+  percentValue: 0.35,
+};
+
+export const SummonerMendSpeedEffect: ServerStatEffectDef = {
+  id: 'summoner_mend_speed',
+  name: 'Mended',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+  stat: 'movement_speed',
+  percentValue: 0.3,
+};
+
+/** True damage over time: 1 per tick per stack (Scorch sets the stacks from the caster's level); also cuts healing (ServerChampion.heal) */
+export const SummonerScorchEffect: ServerOverTimeEffectDef = {
+  id: 'summoner_scorch',
+  name: 'Scorched',
+  category: 'debuff',
+  stackBehavior: 'refresh',
+  cleansable: true,
+  persistsThroughDeath: false,
+  otType: 'damage',
+  valuePerTick: 1,
+  tickInterval: 0.5,
+  damageType: 'true',
+};
+
+export const SummonerHinderSlowEffect: ServerStatEffectDef = {
+  id: 'summoner_hinder_slow',
+  name: 'Hindered',
+  category: 'debuff',
+  stackBehavior: 'refresh',
+  cleansable: true,
+  persistsThroughDeath: false,
+  stat: 'movement_speed',
+  percentValue: -0.3,
+};
+
+export const SummonerHinderAttackEffect: ServerStatEffectDef = {
+  id: 'summoner_hinder_attack',
+  name: 'Hindered',
+  category: 'debuff',
+  stackBehavior: 'refresh',
+  cleansable: true,
+  persistsThroughDeath: false,
+  stat: 'attack_damage',
+  percentValue: -0.35,
+};
+
+export const SummonerHinderPowerEffect: ServerStatEffectDef = {
+  id: 'summoner_hinder_power',
+  name: 'Hindered',
+  category: 'debuff',
+  stackBehavior: 'refresh',
+  cleansable: true,
+  persistsThroughDeath: false,
+  stat: 'ability_power',
+  percentValue: -0.35,
+};
+
 export const ALL_SERVER_EFFECTS: AnyServerEffectDef[] = [
+  // Summoner spells
+  SummonerHasteEffect,
+  SummonerMendSpeedEffect,
+  SummonerScorchEffect,
+  SummonerHinderSlowEffect,
+  SummonerHinderAttackEffect,
+  SummonerHinderPowerEffect,
   // Champion markers
   VileTransformedEffect,
   // Item passives

@@ -9,7 +9,8 @@
  * MAX_LOADING_MS even if some art never answered.
  */
 
-import { CHAMPION_DEFINITIONS } from "@siege/shared";
+import { CHAMPION_DEFINITIONS, SUMMONER_SPELLS, type SummonerSpellId } from "@siege/shared";
+import { summonerIconUrl } from "@/ui/summonerIcons";
 import { preloadMatchAssets } from "./matchAssets";
 import { showPortrait } from "./portraits";
 import { showRandomTip } from "./tips";
@@ -185,13 +186,17 @@ export class MatchFoundScreen {
     frame.appendChild(art);
     if (champion) frame.appendChild(createDiv("loading-card-class", champion.class));
 
-    // Summoner spells, once the server sends them: a box per spell with its
-    // first letter, for the icons to replace
+    // Summoner spells: a box per spell with its icon
     const spells = createDiv("loading-card-spells");
     const spellIds = Array.isArray(player.summonerSpells) ? player.summonerSpells.slice(0, 2) : [];
     for (const spellId of spellIds) {
-      const spell = createDiv("loading-card-spell", String(spellId).charAt(0).toUpperCase());
+      const spell = createDiv("loading-card-spell");
       spell.dataset.spell = String(spellId);
+      const icon = document.createElement("img");
+      icon.src = summonerIconUrl(String(spellId));
+      icon.alt = SUMMONER_SPELLS[spellId as SummonerSpellId]?.name ?? String(spellId);
+      icon.title = icon.alt;
+      spell.appendChild(icon);
       spells.appendChild(spell);
     }
     const playerName = player.name || (bot ? "Bot" : isLocal ? "You" : "Player");

@@ -1,13 +1,15 @@
 /**
- * Generates map props with PixelLab (create-image-pixen): the wards. Each
- * prop gets a few takes (one per seed), saved to --out with a contact sheet
- * per prop (takes numbered from 0, left to right); PROPS keeps the pick, and
- * --install copies the picks to public/assets/props/<key>.png, where
- * src/render/entities/ward.ts reads them.
+ * Generates single images with PixelLab (create-image-pixen): map props (the
+ * wards) and the summoner spell icons. Each gets a few takes (one per
+ * seed), saved to --out with a contact sheet per image (takes numbered from
+ * 0, left to right); PROPS keeps the pick, and --install copies the picks to
+ * where the game reads them: public/assets/props/<key>.png for props
+ * (src/render/entities/ward.ts), public/assets/summoners/<id>.png for icons
+ * (src/ui/summonerIcons.ts).
  *
  * Usage (from the repo root; Bun loads PIXELLAB_API_KEY from .env.local):
  *   bun scripts/generate-props.ts --out /tmp/props                  # every prop
- *   bun scripts/generate-props.ts --out /tmp/props --only ward_control
+ *   bun scripts/generate-props.ts --out /tmp/props --only ward_control,summoner_blink
  *   bun scripts/generate-props.ts --install /tmp/props              # copy the picks in
  */
 
@@ -16,33 +18,57 @@ import { join } from 'node:path';
 import { blit, createImage, decodePng, encodePng } from './lib/png';
 import { generatePixenImage, runPool } from './lib/pixellab';
 
-const SIZE = 48;
-const TAKES = 6;
-const STYLE = 'pixel art game prop seen from a three-quarter top-down view, small and readable, muted fantasy palette';
+const TAKES = 4;
+const KINDS = {
+  prop: {
+    size: 48,
+    style: 'pixel art game prop seen from a three-quarter top-down view, small and readable, muted fantasy palette',
+    dir: 'public/assets/props',
+  },
+  icon: {
+    size: 64,
+    style: 'dark fantasy pixel art ability icon, a single centered glowing symbol',
+    dir: 'public/assets/summoners',
+  },
+};
 
 interface Prop {
+  kind: keyof typeof KINDS;
   description: string;
   /** Index of the take kept, from the contact sheet */
   pick: number;
+  /** File name when installed (default: the key) */
+  file?: string;
 }
 
 export const PROPS: Record<string, Prop> = {
   ward_stealth: {
+    kind: 'prop',
     pick: 0,
     description: 'a small wooden ward totem: a short carved post on a mossy stone, topped by a lantern with a glowing yellow-green eye',
   },
   ward_control: {
+    kind: 'prop',
     pick: 0,
     description: 'a small dark stone ward obelisk with carved runes, topped by a glowing crimson crystal eye',
   },
+  summoner_blink: { kind: 'icon', file: 'blink', pick: 0, description: 'a burst of violet and white light, a teleport flash with sparkles' },
+  summoner_haste: { kind: 'icon', file: 'haste', pick: 1, description: 'a winged boot with cyan speed streaks' },
+  summoner_mend: { kind: 'icon', file: 'mend', pick: 2, description: 'a glowing green heart wrapped in soft healing light' },
+  summoner_aegis: { kind: 'icon', file: 'aegis', pick: 2, description: 'a round golden shield radiating light' },
+  summoner_scorch: { kind: 'icon', file: 'scorch', pick: 0, description: 'a fierce orange flame burning an ember' },
+  summoner_hinder: { kind: 'icon', file: 'hinder', pick: 0, description: 'heavy purple chains wrapped around an iron weight' },
+  summoner_purge: { kind: 'icon', file: 'purge', pick: 1, description: 'white light shattering a chain into pieces' },
+  summoner_reap: { kind: 'icon', file: 'reap', pick: 2, description: 'a golden lightning bolt striking down' },
 };
 
 async function generate(apiKey: string, key: string, outDir: string): Promise<number> {
   const prop = PROPS[key];
+  const { size: SIZE, style } = KINDS[prop.kind];
   let usd = 0;
   const takes = [];
   for (let seed = 0; seed < TAKES; seed++) {
-    const image = await generatePixenImage(apiKey, { description: `${STYLE}: ${prop.description}`, size: SIZE, seed: seed + 1 });
+    const image = await generatePixenImage(apiKey, { description: `${style}: ${prop.description}`, size: SIZE, seed: seed + 1 });
     writeFileSync(join(outDir, `${key}.${seed}.png`), image.png);
     takes.push(decodePng(image.png));
     usd += image.usd;
@@ -75,12 +101,14 @@ async function main(): Promise<void> {
 
   const installFrom = option('--install');
   if (installFrom) {
-    mkdirSync('public/assets/props', { recursive: true });
     for (const key of only) {
-      const from = join(installFrom, `${key}.${PROPS[key].pick}.png`);
+      const prop = PROPS[key];
+      const from = join(installFrom, `${key}.${prop.pick}.png`);
       if (!existsSync(from)) throw new Error(`missing ${from}`);
-      copyFileSync(from, join('public/assets/props', `${key}.png`));
-      console.log(`installed ${key} (take ${PROPS[key].pick})`);
+      const dir = KINDS[prop.kind].dir;
+      mkdirSync(dir, { recursive: true });
+      copyFileSync(from, join(dir, `${prop.file ?? key}.png`));
+      console.log(`installed ${key} (take ${prop.pick})`);
     }
     return;
   }

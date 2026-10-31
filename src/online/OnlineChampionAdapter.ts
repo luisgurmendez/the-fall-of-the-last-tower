@@ -21,6 +21,7 @@ import {
   getAbilityDefinition as getSharedAbilityDefinition,
   getChampionDefinition,
   getPassiveDefinition,
+  type SummonerSpellState,
 } from '@siege/shared';
 import type { HUDTrinket, HUDActiveEffect, HUDPassive, HUDPassiveDefinition } from '@/ui/ChampionHUD';
 import { getItemDefinition } from '@/data/items';
@@ -642,6 +643,10 @@ export class OnlineChampionAdapter {
    * Get trinket state from server snapshot.
    * Returns an adapter that provides the same interface as the local Trinket class.
    */
+  getSummoners(): SummonerSpellState[] {
+    return this.getSnapshot()?.summoners ?? [];
+  }
+
   getTrinket(): HUDTrinket | null {
     const snapshot = this.getSnapshot();
     if (!snapshot) {
