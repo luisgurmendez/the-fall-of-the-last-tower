@@ -38,6 +38,7 @@ src/gpu/fx/
   FXPass.ts             # Draws a batch: half-float target, bloom, tone mapping
   projectiles.ts        # Each projectile type's look, with trails
   zones.ts              # Zones: burning ground, mud, healing and buff circles
+  championAuras.ts      # The recall circle and jungle buff rings at a champion's feet
 ```
 
 ## GPU rendering
@@ -47,9 +48,9 @@ src/gpu/fx/
 - **Ground** (`groundFx`), drawn after the ground and before any unit: magic circles, warnings, light pools, scorch marks and zones.
 - **Top** (`topFx`), drawn after the units: particles, rings, slashes, beams, trails, shields, projectiles and everything else.
 
-`EntityRenderer` updates the VFX manager, has it add the ground parts (`VFXManager.emitGround`) plus the zones (`emitZone`), draws the ground layer, draws the units (projectiles add themselves to the top layer as they're drawn, `emitProjectile`), then has the manager add the rest (`emitTop`) and draws the top layer. The screen flash stays 2D. The legacy ability shapes (`overlays/abilityEffects.ts`) are only drawn without the GPU.
+`EntityRenderer` updates the VFX manager, has it add the ground parts (`VFXManager.emitGround`) plus the zones (`emitZone`) and each champion's recall circle and buff rings (`emitChampionAuras`), draws the ground layer, draws the units (projectiles add themselves to the top layer as they're drawn, `emitProjectile`), then has the manager add the rest (`emitTop`) and draws the top layer. The screen flash stays 2D. The legacy ability shapes (`overlays/abilityEffects.ts`) are only drawn without the GPU.
 
-Each quad is one primitive (`FXKind`), drawn by the effects shader from the quad's local coordinates: a glow, a spark (a streak along its velocity), a ring broken by noise with a wake of light inside, a slash (a crescent swept across an arc), a beam, a sigil (rings, runes and a star that draw themselves in), a shield (fresnel rim and hex pattern), a flame (fire that burns away into smoke), a flare (four-pointed twinkle), a decal (scorch or cracks with embers), a swirl, lightning, an orb, a ribbon segment, dust and a telegraph (a warning filling up). Fragments are snapped to the ground's 1.5-unit art pixels, so effects read as pixel art.
+Each quad is one primitive (`FXKind`), drawn by the effects shader from the quad's local coordinates: a glow, a spark (a streak along its velocity), a ring broken by noise with a wake of light inside, a slash (a crescent swept across an arc), a beam, a sigil (rings, runes and a star that draw themselves in), a shield (fresnel rim and hex pattern), a flame (fire that burns away into smoke, as a round puff or a tongue licking up), a flare (four-pointed twinkle), a decal (scorch or cracks with embers), a swirl, lightning, an orb, a ribbon segment, dust and a telegraph (a warning filling up). Fragments are snapped to the ground's 1.5-unit art pixels, so effects read as pixel art.
 
 Light adds up in a half-float target; the bloom keeps the parts over a threshold, halves them four times and blurs them back up (dual Kawase), and the composite tone-maps the light (bright cores go white instead of clipping). The output is premultiplied: light has no alpha, so it adds to what's under it, while smoke, dust and scorch marks have alpha and cover it.
 
@@ -75,7 +76,7 @@ How config types look on the GPU:
 
 ### VFX lab
 
-With the client dev server running, `/vfx-lab.html` plays every registered VFX on a loop in a grid over the real ground (`src/debug/vfxLab.ts`), plus every projectile type in flight. Options: `?only=magnus`, `?kind=projectile`, `?zoom=1.4`, `?period=2.5`, `?speed=0.25` (slow motion). Use it to tune effects without a match.
+With the client dev server running, `/vfx-lab.html` plays every registered VFX on a loop in a grid over the real ground (`src/debug/vfxLab.ts`), plus every projectile type in flight, the zones and the champion auras (recall, jungle buffs). Options: `?only=magnus`, `?kind=projectile` (or `ability`, `zone`, `aura`), `?zoom=1.4`, `?period=2.5`, `?speed=0.25` (slow motion). Use it to tune effects without a match.
 
 ### VFXManager
 
@@ -514,8 +515,8 @@ Defined in `src/vfx/world.ts` (keys in `WORLD_VFX`). They use the same phase-bas
 | `vile_trap_trigger` / `vile_trap_explosion` | An `ABILITY_CAST` from one of Vile's traps snapping on someone, or blown up by his ultimate |
 
 Drawn directly by renderers rather than as VFX definitions:
-- **Recall channel** (`ChampionRenderer.renderRecallChannel`): a ground ring that fills over the recall, with rising motes.
-- **Jungle buff auras** (`ChampionRenderer.renderJungleBuffAuras`): a ring at the feet of any champion holding a buff, so everyone can see who has it. Crest of Insight is a blue ring with orbiting sparks; Crest of Cinders is a red-orange ring with sparks and rising embers. A champion with both shows the red ring outside the blue one.
+- **Recall channel** (`src/gpu/fx/championAuras.ts`; 2D fallback `ChampionRenderer.renderRecallChannel`): a magic circle at the feet that draws itself in over the recall, a column of light growing with it and motes rising.
+- **Jungle buff auras** (same files, `renderJungleBuffAuras` in 2D): a ring at the feet of any champion holding a buff, so everyone can see who has it. Crest of Insight is a blue ring with orbiting motes; Crest of Cinders is a red-orange ring with motes and rising embers. A champion with both shows the red ring outside the blue one.
 - **Tower lock-on** (`renderTower`): a pulsing dashed line and reticle while an enemy tower shoots the local champion.
 - **Health bars** (`overlays/healthBars.ts`): a hit leaves the health it took as a light trail that holds for 0.35 s, then drains (`overlays/damageTrail.ts`). Champion bars have a tick every 100 health and a full-height one every 1000. The small ticks are left out when they would be under 3 px apart.
 - **Tower range** (`overlays/towerRange.ts`): a dashed ring on the ground around an enemy tower, fading in as the local champion comes within 250 of its reach (attack range plus both radii). It turns red while the tower aims at the champion.

@@ -27,6 +27,7 @@ import {
 import { getTrailHealth } from "@/render/overlays/damageTrail";
 import { getCrowdControl, renderCrowdControl } from "@/render/overlays/crowdControl";
 import { renderMarkIndicators } from "@/render/overlays/statusIndicators";
+import { getGPURenderer } from "@/gpu/GPURenderer";
 import {
   createChampionBodyRenderers,
   type ChampionBodyRenderer,
@@ -248,10 +249,13 @@ export class ChampionRenderer {
       }
     }
 
-    if (snapshot.isRecalling) {
-      this.renderRecallChannel(ctx, snapshot.recallProgress ?? 0);
+    // On the GPU these are drawn with the ground effects (src/gpu/fx/championAuras.ts)
+    if (!getGPURenderer()) {
+      if (snapshot.isRecalling) {
+        this.renderRecallChannel(ctx, snapshot.recallProgress ?? 0);
+      }
+      this.renderJungleBuffAuras(ctx, snapshot.activeEffects);
     }
-    this.renderJungleBuffAuras(ctx, snapshot.activeEffects);
 
     // Check if this champion has sprite support
     let renderedWithSprite = false;

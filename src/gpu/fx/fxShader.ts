@@ -221,14 +221,24 @@ Shade shield(vec2 uv, float r, vec3 color, float seed) {
   return Shade(color * light + heat(color, 0.3) * rim * 0.3, color * 0.5, (0.04 + fresnel * 0.1) * vExtra.x);
 }
 
-// Fire that burns away into smoke: params smokiness, churn speed
+// Fire that burns away into smoke: params smokiness, churn speed, tongue
+// (0 a round puff, 1 a tongue of flame licking up to a point)
 Shade flame(vec2 uv, float r, vec3 color, float seed, float age) {
-  float n = fbm(uv * 2.2 + vec2(seed * 7.0, -uTime * vParams.y));
+  vec2 q = uv;
+  if (vParams.z > 0.0) {
+    q.y = (uv.y + 0.4) * 0.75;
+    q.x = uv.x * (1.0 + max(0.0, -q.y) * 1.8 * vParams.z);
+    r = length(q);
+  }
+  float n = fbm(q * 2.2 + vec2(seed * 7.0, uTime * vParams.y));
   float shape = 1.0 - r + (n - 0.5) * 0.9;
   float threshold = age * 0.95;
   float mask = smoothstep(threshold, threshold + 0.12, shape);
   float hot = clamp((shape - threshold) * 2.2, 0.0, 1.0) * (1.0 - age);
-  vec3 fire = mix(color * 0.55, heat(color, 0.45), hot) * hot * 1.4;
+  // Deep red where it's cooling, the flame's color, yellow at the hottest
+  vec3 deep = color * vec3(0.75, 0.3, 0.12);
+  vec3 bright = mix(color, vec3(1.0, 0.92, 0.6) * max(max(color.r, color.g), color.b), 0.55);
+  vec3 fire = (hot < 0.5 ? mix(deep, color, hot * 2.0) : mix(color, bright, hot * 2.0 - 1.0)) * (0.35 + hot) * 1.1;
   float smoke = vParams.x * mask * smoothstep(0.15, 0.6, age) * (1.0 - age);
   return Shade(fire * mask, vec3(0.13, 0.12, 0.14), smoke * 0.75);
 }

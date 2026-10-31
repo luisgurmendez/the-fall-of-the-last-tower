@@ -49,13 +49,14 @@ export function emitZone(ground: FXBatch, top: FXBatch, zone: ZoneSnapshot, x: n
     case "damage": {
       ground.decal(x, y, radius * 0.95, FIRE, 0.35, 0.85 * fade, 0.9, seed);
       ground.glow(x, y, radius * 1.15, FIRE, 0.55 * fade, 0, 0, 0.5, seed);
-      ground.ring(x, y, radius * 0.95, 5, FIRE, 1.1 * fade, 0.9, 0.3, seed);
-      const flames = Math.max(8, Math.min(26, Math.round(radius / 9)));
+      ground.ring(x, y, radius * 0.95, 4, FIRE, 0.7 * fade, 0.9, 0.3, seed);
+      const flames = Math.max(10, Math.min(30, Math.round(radius / 7)));
       for (let i = 0; i < flames; i++) {
-        const p = spot(i, flames, radius * 0.9);
-        const age = fract(time * (0.9 + (i % 5) * 0.12) + i * 0.618 + seed);
-        const size = 9 + ((i * 7) % 9);
-        top.flame(x + p.x, y + p.y - age * 14, size, i % 3 === 0 ? FIRE_HOT : FIRE, 1.3 * fade, age, 0.45, 3, seed + i * 0.07);
+        const p = spot(i, flames, radius * 0.92);
+        // Each flame flares up and burns out on its own cycle, rising as it goes
+        const age = 0.15 + 0.85 * fract(time * (0.8 + (i % 5) * 0.12) + i * 0.618 + seed);
+        const size = 13 + ((i * 7) % 11);
+        top.flame(x + p.x, y + p.y - size * 0.5 - age * 10, size, i % 3 === 0 ? FIRE_HOT : FIRE, 1.3 * fade, age, 0.4, 3, seed + i * 0.07, 1);
       }
       for (let i = 0; i < 10; i++) {
         const p = spot(i * 3 + 1, 30, radius);

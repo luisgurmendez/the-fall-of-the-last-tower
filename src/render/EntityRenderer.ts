@@ -26,6 +26,7 @@ import { EntityType } from "@siege/shared";
 import { VFXManager, getVFXManager } from "@/vfx";
 import { getGPURenderer } from "@/gpu/GPURenderer";
 import { emitZone, type ZoneSnapshot } from "@/gpu/fx/zones";
+import { emitChampionAuras, type ChampionAuraSnapshot } from "@/gpu/fx/championAuras";
 import { OUTLINE_COLORS } from "@/render/OutlinedSpriteCache";
 import type {
   EntityRenderContext,
@@ -278,8 +279,13 @@ export class EntityRenderer implements GameObject {
       if (gpu) {
         this.vfxManager.emitGround(gpu.groundFx);
         for (const entity of entities) {
-          if (entity.snapshot.entityType !== EntityType.ZONE) continue;
-          emitZone(gpu.groundFx, gpu.topFx, entity.snapshot as ZoneSnapshot, entity.position.x, entity.position.y, this.renderContext.animationTime);
+          const { x, y } = entity.position;
+          const time = this.renderContext.animationTime;
+          if (entity.snapshot.entityType === EntityType.ZONE) {
+            emitZone(gpu.groundFx, gpu.topFx, entity.snapshot as ZoneSnapshot, x, y, time);
+          } else if (entity.snapshot.entityType === EntityType.CHAMPION && !(entity.snapshot as { isDead?: boolean }).isDead) {
+            emitChampionAuras(gpu.groundFx, gpu.topFx, entity.snapshot as ChampionAuraSnapshot, x, y, time);
+          }
         }
         gpu.drawFX(canvasRenderingContext, "ground");
       }

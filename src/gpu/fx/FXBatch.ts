@@ -117,9 +117,12 @@ export class FXBatch {
     this.push(FXKind.SHIELD, x, y, radius, radius, 0, seed, 0, color, intensity, 0, 0, 0, 0, opacity);
   }
 
-  /** A burst of fire that burns away over its life, leaving smoke (`smoke` 0-1) */
-  flame(x: number, y: number, radius: number, color: RGB, intensity: number, age: number, smoke = 0.5, churn = 2, seed = 0): void {
-    this.push(FXKind.FLAME, x, y, radius, radius, 0, seed, age, color, intensity, smoke, churn, 0, 0);
+  /**
+   * A burst of fire that burns away over its life, leaving smoke (`smoke`
+   * 0-1); `tongue` 1 makes it a tongue of flame licking upward.
+   */
+  flame(x: number, y: number, radius: number, color: RGB, intensity: number, age: number, smoke = 0.5, churn = 2, seed = 0, tongue = 0): void {
+    this.push(FXKind.FLAME, x, y, radius, radius, 0, seed, age, color, intensity, smoke, churn, tongue, 0);
   }
 
   /** A four-pointed twinkle */

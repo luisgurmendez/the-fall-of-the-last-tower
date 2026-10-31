@@ -2,12 +2,13 @@
  * VFX lab (dev only): with the client dev server running, open
  * /vfx-lab.html. Every registered ability VFX plays on a loop in a grid over
  * the real GPU ground, its name under it, so effects can be tuned and
- * compared without a match.
+ * compared without a match. After them come every projectile in flight,
+ * the zones and the champion auras (recall, jungle buffs).
  *
  * Query options: ?only=magnus (ids containing the text), ?zoom=1.4 (screen
  * pixels per world unit), ?period=2.5 (seconds between casts),
  * ?x=0&y=-700 (where on the map the grid sits), ?speed=0.25 (slow motion),
- * ?kind=projectile (only projectiles, or only abilities).
+ * ?kind=projectile (or ability, zone, aura).
  */
 
 import { getAllRegisteredVFX } from "@/vfx/VFXRegistry";
@@ -15,6 +16,9 @@ import { VFXManager } from "@/vfx/VFXManager";
 import type { OnlineStateManager } from "@/core/OnlineStateManager";
 import { getGPURenderer } from "@/gpu/GPURenderer";
 import { emitProjectile, PROJECTILE_STYLES } from "@/gpu/fx/projectiles";
+import { emitZone } from "@/gpu/fx/zones";
+import { emitChampionAuras } from "@/gpu/fx/championAuras";
+import { GameConfig } from "@siege/shared";
 
 const params = new URLSearchParams(window.location.search);
 const only = params.get("only");
@@ -38,7 +42,7 @@ const REACH = 170;
 
 interface Cell {
   id: string;
-  kind: "ability" | "projectile";
+  kind: "ability" | "projectile" | "zone" | "aura";
   casterX: number;
   casterY: number;
   targetX: number;
@@ -47,9 +51,13 @@ interface Cell {
 
 const abilityIds = getAllRegisteredVFX().filter((id) => !only || id.includes(only)).sort();
 const projectileIds = Object.keys(PROJECTILE_STYLES).filter((id) => !only || id.includes(only)).sort();
+const ZONES = ["damage", "slow", "heal", "buff"];
+const AURAS = ["recall", "crest_of_insight", "crest_of_cinders", "both_crests"];
 const ids: Array<{ id: string; kind: Cell["kind"] }> = [
   ...abilityIds.map((id) => ({ id, kind: "ability" as const })),
   ...projectileIds.map((id) => ({ id, kind: "projectile" as const })),
+  ...ZONES.filter((id) => !only || id.includes(only)).map((id) => ({ id, kind: "zone" as const })),
+  ...AURAS.filter((id) => !only || id.includes(only)).map((id) => ({ id, kind: "aura" as const })),
 ].filter((entry) => !onlyKind || entry.kind === onlyKind);
 
 const canvas = document.getElementById("lab") as HTMLCanvasElement;
@@ -112,6 +120,22 @@ function frame(): void {
 
   vfx.update(dt);
   vfx.emitGround(gpu.groundFx);
+  // Zones run for 5 seconds; auras cycle a recall from start to end
+  const seconds = now / 1000;
+  for (const cell of cells) {
+    const x = cell.casterX + REACH / 2;
+    if (cell.kind === "zone") {
+      emitZone(gpu.groundFx, gpu.topFx, { entityId: cell.id, radius: 110, zoneType: cell.id, totalDuration: 5, remainingDuration: 5 - (seconds % 5) }, x, cell.casterY, seconds);
+    } else if (cell.kind === "aura") {
+      const recall = GameConfig.TIMING.RECALL_DURATION;
+      const crests = cell.id === "both_crests" ? ["crest_of_insight", "crest_of_cinders"] : [cell.id];
+      emitChampionAuras(gpu.groundFx, gpu.topFx, {
+        isRecalling: cell.id === "recall",
+        recallProgress: seconds % recall,
+        activeEffects: crests.map((definitionId) => ({ definitionId })),
+      }, x, cell.casterY, seconds);
+    }
+  }
   gpu.drawFX(ctx, "ground");
 
   // Casters and targets

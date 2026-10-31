@@ -14,7 +14,6 @@ import {
   embers,
   flames,
   light,
-  motes,
   phase,
   pillar,
   ring,
@@ -47,8 +46,8 @@ function registerHitSpark(abilityId: string, color: string, colorSecondary: stri
     abilityId,
     phases: [
       phase('spark', 0, 'caster', [
-        sparks(color, 5, [90, 200], Math.PI * 2, { colorSecondary, lifetime: { min: 0.1, max: 0.2 } }),
-        motes(colorSecondary, 1, [0, 0], { size: { min: 4, max: 5 }, lifetime: { min: 0.1, max: 0.14 } }),
+        sparks(color, 7, [110, 240], Math.PI * 2, { colorSecondary, size: { min: 2.5, max: 4 }, lifetime: { min: 0.1, max: 0.22 } }),
+        twinkles(colorSecondary, 1, [0, 0], { size: { min: 5, max: 6 }, lifetime: { min: 0.1, max: 0.15 } }),
       ], 0.2),
     ],
   });
