@@ -22,7 +22,7 @@ import type {
   InterpolatedEntity,
 } from "@/core/OnlineStateManager";
 
-import { EntityType } from "@siege/shared";
+import { EntityType, type InhibitorSnapshot } from "@siege/shared";
 import { VFXManager, getVFXManager } from "@/vfx";
 import { getGPURenderer } from "@/gpu/GPURenderer";
 import { emitZone, type ZoneSnapshot } from "@/gpu/fx/zones";
@@ -38,6 +38,7 @@ import { ChampionRenderer } from "@/render/entities/champion";
 import { renderMinion, MINION_IMAGES } from "@/render/entities/minion";
 import { renderTower, TOWER_IMAGES } from "@/render/entities/tower";
 import { renderNexus, NEXUS_IMAGES } from "@/render/entities/nexus";
+import { renderInhibitor, INHIBITOR_IMAGES } from "@/render/entities/inhibitor";
 import {
   renderJungleCamp,
   JUNGLE_CREATURE_IMAGES,
@@ -102,6 +103,7 @@ export class EntityRenderer implements GameObject {
   private static readonly BUILDING_SPRITE_AREAS: Partial<Record<EntityType, { halfWidth: number; height: number }>> = {
     [EntityType.TOWER]: { halfWidth: 55, height: 195 },
     [EntityType.NEXUS]: { halfWidth: 90, height: 230 },
+    [EntityType.INHIBITOR]: { halfWidth: 40, height: 90 },
   };
   private static readonly SEE_THROUGH_ALPHA = 0.5;
   /** How see-through our champions are in a bush */
@@ -122,6 +124,7 @@ export class EntityRenderer implements GameObject {
     loadImages([
       ...TOWER_IMAGES,
       ...NEXUS_IMAGES,
+      ...INHIBITOR_IMAGES,
       ...MINION_IMAGES,
       ...JUNGLE_CREATURE_IMAGES,
       ...PROJECTILE_IMAGES,
@@ -295,9 +298,11 @@ export class EntityRenderer implements GameObject {
       }
 
       for (const entity of sortedEntities) {
-        // Skip dead entities (except light orbs which show a ghost when destroyed)
+        // Skip dead entities (except light orbs, which show a ghost when
+        // destroyed, and inhibitors, whose rubble shows until they rebuild)
         const snapshot = entity.snapshot as any;
-        if ((snapshot.isDead || snapshot.isDestroyed) && snapshot.entityType !== EntityType.LIGHT_ORB) {
+        const showsDestroyed = snapshot.entityType === EntityType.LIGHT_ORB || snapshot.entityType === EntityType.INHIBITOR;
+        if ((snapshot.isDead || snapshot.isDestroyed) && !showsDestroyed) {
           continue;
         }
 
@@ -446,6 +451,9 @@ export class EntityRenderer implements GameObject {
         break;
       case EntityType.NEXUS:
         renderNexus(ctx, snapshot, side, this.renderContext);
+        break;
+      case EntityType.INHIBITOR:
+        renderInhibitor(ctx, snapshot as InhibitorSnapshot, side, this.renderContext);
         break;
       case EntityType.PROJECTILE:
         renderProjectile(ctx, snapshot, this.renderContext);

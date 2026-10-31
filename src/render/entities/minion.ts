@@ -79,6 +79,8 @@ const MINION_STRIPS: Record<string, MinionStrips> = {
   melee: minionStrips("melee", 0.69),
   caster: minionStrips("caster", 0.69),
   siege: minionStrips("siege", 0.78),
+  // While an inhibitor is down: the melee minion's art, much bigger
+  super: minionStrips("melee", 0.97),
 };
 
 /** Walk cycle speed, matched to their pace (88 units a second) so their feet don't slide */
@@ -125,7 +127,8 @@ export function renderMinion(
   rc: EntityRenderContext,
 ): void {
   const minionType = snapshot.minionType || "melee";
-  const isSiege = minionType === "siege";
+  // Siege and super minions are bigger: a wider bar, a bit higher
+  const isSiege = minionType === "siege" || minionType === "super";
 
   // Generated art when it's there, else the original sprites
   const strips = MINION_STRIPS[minionType];

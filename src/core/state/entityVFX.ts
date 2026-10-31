@@ -69,6 +69,7 @@ export class EntityVFX {
         break;
       }
       case EntityType.TOWER:
+      case EntityType.INHIBITOR:
       case EntityType.NEXUS:
         spawnWorldVFX(WORLD_VFX.TOWER_DESTROYED, x, y);
         shakeScreen(entity.snapshot.entityType === EntityType.NEXUS ? 14 : 8, 0.5);

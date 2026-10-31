@@ -148,8 +148,9 @@ export class EntityPrioritizer {
       return UpdatePriority.CRITICAL;
     }
 
-    // Structures (towers and nexus) are critical - must appear immediately
-    if (entity.entityType === EntityType.TOWER || entity.entityType === EntityType.NEXUS) {
+    // Structures (towers, inhibitors and nexus) are critical - must appear immediately
+    if (entity.entityType === EntityType.TOWER || entity.entityType === EntityType.INHIBITOR ||
+        entity.entityType === EntityType.NEXUS) {
       return UpdatePriority.CRITICAL;
     }
 

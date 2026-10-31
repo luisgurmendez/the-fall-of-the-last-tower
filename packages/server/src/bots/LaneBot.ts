@@ -575,16 +575,17 @@ export class LaneBot implements BotController {
   }
 
   /**
-   * An enemy tower or nexus near enough to attack that can take damage
-   * (StructureRules), with allied minions tanking it if it's a tower.
+   * An enemy tower, inhibitor or nexus near enough to attack that can take
+   * damage (StructureRules), with allied minions tanking it if it's a tower.
    */
   private findSiegeTarget(champion: ServerChampion, context: ServerGameContext): ServerEntity | null {
     const reach = champion.getAttackRange() + SIEGE_REACH;
     for (const entity of context.getEnemiesInRadius(champion.position, reach, champion.side)) {
       if (entity.isDead) continue;
-      if (entity.entityType !== EntityType.TOWER && entity.entityType !== EntityType.NEXUS) continue;
+      if (entity.entityType !== EntityType.TOWER && entity.entityType !== EntityType.INHIBITOR &&
+          entity.entityType !== EntityType.NEXUS) continue;
       if (!isStructureVulnerable(entity, context)) continue;
-      // Towers shoot back once they run out of minions; the nexus doesn't
+      // Towers shoot back once they run out of minions; inhibitors and the nexus don't
       if (entity.entityType === EntityType.TOWER && !this.alliesTankingTowerAt(this.attackSpot(champion, entity), champion, context)) continue;
       return entity;
     }

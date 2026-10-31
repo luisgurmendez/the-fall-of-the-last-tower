@@ -52,9 +52,10 @@ const CHAMPION_STATS = [
 
 /**
  * Entity types with change tracking of their own (below). The rest
- * (projectiles, zones, wards, Lume's orb) are small and few: any of their
- * fields that changed is sent, under STATE, so states like a destroyed orb
- * or a zone's remaining time reach clients.
+ * (projectiles, zones, wards, Lume's orb, inhibitors) are small and few: any
+ * of their fields that changed is sent, under STATE, so states like a
+ * destroyed orb, a zone's remaining time or an inhibitor's rebuild time
+ * (respawnAt, null once it stands again) reach clients.
  */
 const TRACKED_TYPES = new Set<EntityType>([
   EntityType.CHAMPION,

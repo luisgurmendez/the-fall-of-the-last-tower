@@ -1,6 +1,6 @@
 # Map, Terrain and Pathfinding
 
-Config: `packages/shared/src/config/MOBAConfig.ts` (lanes, river, towers, camps, bushes, decorations, walls).
+Config: `packages/shared/src/config/MOBAConfig.ts` (lanes, river, towers, inhibitors, camps, bushes, decorations, walls).
 Wall layout: `packages/shared/src/config/siegeMap.ts`, built with the helpers in `mapLayout.ts`.
 Server: `packages/server/src/navigation/` (`Terrain`, `PathFollower`, `ServerNavGrid`, `LanePath`).
 
@@ -19,7 +19,8 @@ Coordinates run from -2880 to 2880 on both axes, with +y pointing down. A 192-un
 - **Fountain:** within `FOUNTAIN.RADIUS` (360) of its spawn point, an allied champion regains 12% of its max health and resource per second (`ServerGameContext.applyFountainRegen`). It's also the only place to buy and sell items when `GameConfig.ECONOMY.SHOP_ONLY_AT_BASE` is on, which is the default. The server checks this in `canShop` in `InputHandler`; away from base the client shop greys out its buttons and shows "AT BASE ONLY".
 - **Towers:** two per lane per side. The outer tower is listed first and is tier 1. Towers shoot 300 from their edge (attack range is edge to edge, see [champions.md](champions.md#attack-range)) and see 440. Positions are chosen so the outer towers' ranges don't reach the point where waves meet, in every lane.
 - **Tower targeting** (`ServerTower`): a champion that damaged an allied champion under the tower comes first, then minions, then other champions, closest first within a priority. A tower keeps its target until it dies or leaves range, and only switches early to something of higher priority. It doesn't jump to whichever minion is closest.
-- **Structure order** (`systems/StructureRules.ts`): an inner tower takes no damage while its lane's outer tower stands, and the nexus takes no damage until one of its lanes has lost both towers. This stops champions from walking through the jungle to the nexus.
+- **Inhibitors** (`MOBAConfig.INHIBITORS`, server: `simulation/ServerInhibitor.ts`): one per lane per side, on the lane at the base's entrance, between the inner tower and the nexus. Blue's stand at top (-2390, 1600), mid (-1700, 1700) and bot (-1600, 2390), about 630-710 from the nexus; red's are blue's with x and y swapped (lane names stay), so red's top is (1600, -2390). 3500 health, 20 armor and magic resist, a circle of radius 40 that units collide with (immovable, like towers; not in the navigation grid, so units slide and steer around it). They don't attack and have no sight of their own (like the nexus), and both teams always see them. A destroyed inhibitor isn't removed: it stays in the game, dead and not solid, gives its killer 50 gold (no experience), and rebuilds at full health `respawnTime` (240) seconds later. While it's down, the enemy's waves in its lane bring super minions (see [minions.md](minions.md#waves)). Events: `INHIBITOR_DESTROYED` `{ inhibitorId, side, lane, respawnAt }` (from `RewardSystem.announceDeath`; `respawnAt` is the game time it rebuilds at) and `INHIBITOR_RESPAWNED` `{ inhibitorId, side, lane }`.
+- **Structure order** (`systems/StructureRules.ts`): an inner tower takes no damage while its lane's outer tower stands, an inhibitor takes none while a tower of its lane stands, and the nexus takes none while all three of its side's inhibitors stand. This stops champions from walking through the jungle to the nexus. Inhibitors rebuild, so a nexus can become protected again; towers don't. Each structure's `isProtected` (in its snapshot) is refreshed every tick.
 
 ## Walls
 

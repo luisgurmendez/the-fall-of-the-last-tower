@@ -223,7 +223,7 @@ export class FrameRenderer {
       const [x, y] = this.toPx(entity.x, entity.y);
       const r = Math.max(1.5, entity.radius * this.scale);
 
-      if (entity.dead && entity.kind !== 'champion' && entity.kind !== 'tower' && entity.kind !== 'nexus') continue;
+      if (entity.dead && entity.kind !== 'champion' && entity.kind !== 'tower' && entity.kind !== 'inhibitor' && entity.kind !== 'nexus') continue;
       if (entity.dead) {
         const s = Math.max(3, r);
         raster.line(x - s, y - s, x + s, y + s, COLORS.dead, 2);

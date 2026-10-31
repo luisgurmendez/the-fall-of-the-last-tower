@@ -39,6 +39,8 @@ function pickArea(snapshot: { entityType: number; minionType?: string; creatureT
       return { radius: 92, lift: 92 };
     case EntityType.NEXUS:
       return { radius: 105, lift: 100 };
+    case EntityType.INHIBITOR:
+      return { radius: 48, lift: 30 };
     default:
       return { radius: 30, lift: 0 };
   }

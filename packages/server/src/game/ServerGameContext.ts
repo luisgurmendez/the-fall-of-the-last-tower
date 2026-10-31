@@ -137,7 +137,8 @@ export class ServerGameContext {
    */
   addEntity(entity: ServerEntity): void {
     this.entities.set(entity.id, entity);
-    if (entity.entityType === EntityType.TOWER || entity.entityType === EntityType.NEXUS) {
+    if (entity.entityType === EntityType.TOWER || entity.entityType === EntityType.INHIBITOR ||
+        entity.entityType === EntityType.NEXUS) {
       this.structures.push(entity);
     }
   }
@@ -153,8 +154,8 @@ export class ServerGameContext {
   }
 
   /**
-   * Towers and nexuses, including destroyed ones (check isDead). Units steer
-   * around them.
+   * Towers, inhibitors and nexuses, including destroyed ones (check isDead;
+   * an inhibitor comes back to life when it rebuilds). Units steer around them.
    */
   getStructures(): readonly ServerEntity[] {
     return this.structures;
@@ -437,9 +438,25 @@ export class ServerGameContext {
   }
 
   /**
+   * How many super minions a side's wave in a lane brings: none while the
+   * enemy's inhibitor in that lane stands, else one, or two once all of the
+   * enemy's inhibitors are down.
+   */
+  getSuperMinionCount(side: Side, lane: LaneId): number {
+    const enemyInhibitors = this.structures.filter(structure =>
+      structure.entityType === EntityType.INHIBITOR && structure.side !== side
+    ) as (ServerEntity & { lane: LaneId })[];
+    const inLane = enemyInhibitors.find(inhibitor => inhibitor.lane === lane);
+    if (!inLane || !inLane.isDead) return 0;
+    return enemyInhibitors.every(inhibitor => inhibitor.isDead) ? 2 : 1;
+  }
+
+  /**
    * Spawn minions for a specific side and lane.
-   * The wave marches in rows (melee in front, then siege, then casters), up
-   * to three side by side, each minion keeping its own offset from the lane center.
+   * The wave marches in rows (super minions in front, then melee, then siege,
+   * then casters), up to three side by side, each minion keeping its own
+   * offset from the lane center. With the enemy's inhibitor in the lane down,
+   * super minions come and replace the siege minion (getSuperMinionCount).
    */
   private spawnLaneMinions(
     side: Side,
@@ -464,11 +481,14 @@ export class ServerGameContext {
     const NEXUS_SPAWN_OFFSET = 150;
     const ROW_SPACING = 45; // Distance between rows along the lane
     const LANE_SPREAD = 22; // Distance between minions side by side
+    const SUPER_LANE_SPREAD = 48; // Super minions are twice as wide
     const PER_ROW = 3;
 
+    const superCount = this.getSuperMinionCount(side, lane);
     const order: MinionType[] = [
+      ...Array<MinionType>(superCount).fill('super'),
       ...Array<MinionType>(waveConfig.swordsmen).fill('melee'),
-      ...(withSiege ? ['siege' as MinionType] : []),
+      ...(withSiege && superCount === 0 ? ['siege' as MinionType] : []),
       ...Array<MinionType>(waveConfig.archers).fill('caster'),
     ];
     const rows: MinionType[][] = [];
@@ -486,8 +506,9 @@ export class ServerGameContext {
     rows.forEach((row, rowIndex) => {
       // Front row is furthest along the lane
       const forwardOffset = NEXUS_SPAWN_OFFSET + (rows.length - 1 - rowIndex) * ROW_SPACING;
+      const spread = row[0] === 'super' ? SUPER_LANE_SPREAD : LANE_SPREAD;
       row.forEach((minionType, i) => {
-        const laneOffset = (i - (row.length - 1) / 2) * LANE_SPREAD;
+        const laneOffset = (i - (row.length - 1) / 2) * spread;
         const spawnPos = nexusPoint.clone()
           .add(laneDirection.scaled(forwardOffset))
           .add(perpDirection.scaled(laneOffset));

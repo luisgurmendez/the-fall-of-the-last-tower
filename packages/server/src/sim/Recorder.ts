@@ -267,6 +267,8 @@ export class Recorder {
       }
     } else if (!wasAlive && !entity.isDead && entity.entityType === EntityType.CHAMPION) {
       this.log.push({ time, kind: 'respawn', entityId: id, text: `${this.describe(id)} respawned` });
+    } else if (!wasAlive && !entity.isDead && entity.entityType === EntityType.INHIBITOR) {
+      this.log.push({ time, kind: 'respawn', entityId: id, text: `${this.describe(id)} rebuilt` });
     }
     this.alive.set(id, !entity.isDead);
 
@@ -328,6 +330,8 @@ export class Recorder {
         return `${sim.label} ${entity.id}`;
       case 'tower':
         return `${side} tower ${entity.id} at (${sim.x}, ${sim.y})`;
+      case 'inhibitor':
+        return `${side} ${(entity as ServerEntity & { lane: string }).lane} inhibitor ${entity.id}`;
       default:
         return `${side} ${sim.label} ${entity.id}`;
     }

@@ -136,6 +136,7 @@ export type {
   TowerSnapshot,
   ProjectileSnapshot,
   NexusSnapshot,
+  InhibitorSnapshot,
   JungleCreatureSnapshot,
   WardSnapshot,
   TrapSnapshot,

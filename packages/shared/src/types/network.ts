@@ -439,6 +439,29 @@ export interface ProjectileSnapshot {
 /**
  * Snapshot of a nexus for network sync.
  */
+/**
+ * Snapshot of an inhibitor: one per lane at the base's entrance. While
+ * destroyed, the enemy's waves in its lane bring super minions; it rebuilds
+ * at respawnAt (game time, seconds).
+ */
+export interface InhibitorSnapshot {
+  entityId: string;
+  entityType: EntityType.INHIBITOR;
+  side: Side;
+  lane: 'top' | 'mid' | 'bot';
+
+  x: number;
+  y: number;
+
+  health: number;
+  maxHealth: number;
+  isDestroyed: boolean;
+  /** Game time (seconds) it rebuilds at while destroyed, else null */
+  respawnAt: number | null;
+  /** Can't be damaged yet (its lane still has a tower standing) */
+  isProtected?: boolean;
+}
+
 export interface NexusSnapshot {
   entityId: string;
   entityType: EntityType.NEXUS;
@@ -595,6 +618,7 @@ export type EntitySnapshot =
   | TowerSnapshot
   | ProjectileSnapshot
   | NexusSnapshot
+  | InhibitorSnapshot
   | JungleCreatureSnapshot
   | WardSnapshot
   | TrapSnapshot

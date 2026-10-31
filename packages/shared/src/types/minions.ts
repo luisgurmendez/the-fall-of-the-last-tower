@@ -133,7 +133,7 @@ export const DEFAULT_MINION_STATS: Record<MinionType, MinionStats> = {
     attackDamage: 180,
     attackRange: 70, // Melee super minion
     attackCooldown: 0.95,
-    movementSpeed: 96, // Faster than regular minions
+    movementSpeed: 88, // The wave's pace, so it stays in front of its wave
     sightRange: 400,
     goldReward: 60,
     experienceReward: 97,

@@ -20,15 +20,15 @@ Each run writes to `packages/server/sim-output/<scenario>/` (gitignored):
 
 | File | What it is |
 |------|------------|
-| `report.md` | Champions table, units alive, deaths grouped by who killed whom, damage by source, full log, check results |
-| `log.txt` | Timestamped log: spawns, deaths (with killer), ability casts, level ups, recalls, scenario notes |
+| `report.md` | Champions table, towers and inhibitors standing, units alive, deaths grouped by who killed whom, damage by source, full log, check results |
+| `log.txt` | Timestamped log: spawns, deaths (with killer), ability casts, level ups, recalls, champion respawns and inhibitor rebuilds, scenario notes |
 | `sheet.png` | Contact sheet: N frames over the run with movement trails |
 | `final.png` | Final frame, larger |
 | `timeline.json` | One compact frame per second (`SimEntity[]`: id, kind, side, x, y, hp, label, target) |
 
 Agents: open `sheet.png` / `final.png` with an image-capable file reader to look at the run.
 
-**Reading the images:** blue/red are the two sides and amber is jungle. Squares are towers and nexuses, with faint rings for tower range. Small dots are minions (darker for melee, lighter for caster). Ringed circles are champions, labeled with champion and level. A yellow ring means the champion is recalling. Thin lines show who is attacking whom. Dotted tails show movement over the last 4 seconds. Gray X marks are dead units.
+**Reading the images:** blue/red are the two sides and amber is jungle. Squares are towers, inhibitors and nexuses (the big one), with faint rings for tower range. Small dots are minions (darker for melee, lighter for caster). Ringed circles are champions, labeled with champion and level. A yellow ring means the champion is recalling. Thin lines show who is attacking whom. Dotted tails show movement over the last 4 seconds. Gray X marks are dead units, and destroyed towers and inhibitors (an inhibitor's X turns back into a square when it rebuilds).
 
 Flags: `--duration s`, `--seed n`, `--frames n`, `--center x,y`, `--size worldUnits`, `--px cellPixels`, `--out dir`. The command exits with code 1 when the scenario's checks fail.
 
@@ -122,8 +122,12 @@ Command actions: `move`, `attack` (`targetId`), `stop`, `cast` (`slot`, plus `x,
 5. Fight the enemy champion when it is weak, when the bot has a clear health lead, or to hit back when attacked (including from range).
 6. Last-hit minions. For each minion it predicts the health left when its hit would land: allied minions and towers keep hitting it during the cooldown, walk, windup and projectile flight. It hits when that kills the minion, and holds its attack when a last hit is due before another attack would be ready.
 7. Poke the enemy champion only from ahead.
-8. Siege: hit an enemy tower its minions are tanking, or the nexus, once the structure order lets it take damage (`isStructureVulnerable`).
+8. Siege: hit an enemy tower its minions are tanking, or an inhibitor or the nexus, once the structure order lets it take damage (`isStructureVulnerable`).
 9. Otherwise push: a minion nothing allied is hitting, else the healthiest one, since hitting a weak one gives it to allied minions. It keeps hitting the same minion.
 10. Stand behind the allied wave. Minions it would have to hit from inside enemy tower range are off limits unless allied minions are tanking the tower.
 
 Champion abilities are bespoke. `ABILITY_ROLES` in `LaneBot.ts` says how to use the ones the generic rules would misuse: offense (self buffs, transforms), defense (stealth, invulnerability) or engage (dashes). `lastDecision` shows what the bot is doing. Scenarios `bot-vs-bot-mid`, `bot-fights-back`, `bot-goes-shopping`, `bot-farms-alone` and `bot-sieges-tower` cover the bot.
+
+## Structures
+
+Scenarios start with every tower, inhibitor and nexus (`structures: false` leaves them out). To get at a structure, destroy the ones before it with true damage, in lane order (`takeDamage(health + 1, 'true', killerId, sim.context)`; StructureRules ignores damage to a protected one). Waves spawned by hand (`spawnWave`, `context.spawnLaneWave`) bring super minions like timed ones while an enemy inhibitor is down. `inhibitor-super-minions` shows the whole cycle: blue's mid inhibitor protected by its towers, destroyed by a red champion, red's next mid wave led by a super minion, and the inhibitor rebuilding 240 seconds later; `map-overview` checks every structure spawns.

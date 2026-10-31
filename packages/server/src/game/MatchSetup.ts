@@ -11,11 +11,12 @@ import type { ServerEntity } from '../simulation/ServerEntity';
 import { ServerChampion } from '../simulation/ServerChampion';
 import { ServerTower } from '../simulation/ServerTower';
 import { ServerNexus } from '../simulation/ServerNexus';
+import { ServerInhibitor } from '../simulation/ServerInhibitor';
 import { ServerLightOrb, LUME_ORB_CONFIG } from '../simulation/ServerLightOrb';
 import { Logger } from '../utils/Logger';
 
 /**
- * Spawn both nexuses and every tower from the map config.
+ * Spawn both nexuses and every tower and inhibitor from the map config.
  */
 export function spawnStructures(context: ServerGameContext): void {
   const map = context.mapConfig;
@@ -46,7 +47,16 @@ export function spawnStructures(context: ServerGameContext): void {
       tier: (count + 1) as 1 | 2 | 3,
     }));
   }
-  Logger.game.debug(`Spawned ${map.TOWERS.POSITIONS.length} towers and 2 nexuses`);
+
+  for (const inhibitorConfig of map.INHIBITORS.POSITIONS) {
+    context.addEntity(new ServerInhibitor({
+      id: context.generateEntityId(),
+      position: new Vector(inhibitorConfig.position.x, inhibitorConfig.position.y),
+      side: inhibitorConfig.side as Side,
+      lane: inhibitorConfig.lane,
+    }));
+  }
+  Logger.game.debug(`Spawned ${map.TOWERS.POSITIONS.length} towers, ${map.INHIBITORS.POSITIONS.length} inhibitors and 2 nexuses`);
 }
 
 export interface ChampionSpawn {

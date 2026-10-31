@@ -152,5 +152,6 @@ function damageTypeOf(passive: ItemPassiveData): DamageType {
 }
 
 function isStructure(entity: ServerEntity): boolean {
-  return entity.entityType === EntityType.TOWER || entity.entityType === EntityType.NEXUS;
+  return entity.entityType === EntityType.TOWER || entity.entityType === EntityType.INHIBITOR ||
+    entity.entityType === EntityType.NEXUS;
 }

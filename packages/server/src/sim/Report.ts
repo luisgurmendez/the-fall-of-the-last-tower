@@ -26,6 +26,8 @@ export interface SimReport {
   champions: ChampionSummary[];
   units: Record<string, number>;
   towers: { blue: number; red: number };
+  /** Inhibitors standing (destroyed ones rebuild) */
+  inhibitors: { blue: number; red: number };
   deaths: SimLogEntry[];
   log: SimLogEntry[];
   /** Everything above as markdown */
@@ -58,6 +60,7 @@ export function buildReport(sim: Simulation): SimReport {
 
   const units: Record<string, number> = {};
   const towers = { blue: 0, red: 0 };
+  const inhibitors = { blue: 0, red: 0 };
   for (const entity of context.getAllEntities()) {
     if (entity.isDead) continue;
     if (entity.entityType === EntityType.MINION) {
@@ -68,6 +71,9 @@ export function buildReport(sim: Simulation): SimReport {
     } else if (entity.entityType === EntityType.TOWER) {
       if (entity.side === 0) towers.blue++;
       else towers.red++;
+    } else if (entity.entityType === EntityType.INHIBITOR) {
+      if (entity.side === 0) inhibitors.blue++;
+      else inhibitors.red++;
     }
   }
 
@@ -86,6 +92,7 @@ export function buildReport(sim: Simulation): SimReport {
 
   lines.push('## World', '');
   lines.push(`- Towers standing: blue ${towers.blue}, red ${towers.red}`);
+  lines.push(`- Inhibitors standing: blue ${inhibitors.blue}, red ${inhibitors.red}`);
   for (const [key, count] of Object.entries(units)) lines.push(`- ${key}: ${count}`);
   lines.push('');
 
@@ -134,6 +141,7 @@ export function buildReport(sim: Simulation): SimReport {
     champions,
     units,
     towers,
+    inhibitors,
     deaths,
     log: recorder.log,
     markdown: lines.join('\n'),

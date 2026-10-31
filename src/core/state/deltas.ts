@@ -7,7 +7,7 @@
  */
 
 import Vector from '@/physics/vector';
-import type { EntityDelta, EntitySnapshot } from '@siege/shared';
+import { EntityType, type EntityDelta, type EntitySnapshot } from '@siege/shared';
 import { createDefaultAnimationState, type InterpolatedEntity } from './entities';
 
 /**
@@ -17,7 +17,8 @@ import { createDefaultAnimationState, type InterpolatedEntity } from './entities
 export interface EntityLifecycleHooks {
   /**
    * A delta marks the entity dead or destroyed; it's removed from the map
-   * right after. `existing` is undefined if the client never had it.
+   * right after (an inhibitor stays). `existing` is undefined if the client
+   * never had it.
    */
   onRemoved(entityId: string, existing: InterpolatedEntity | undefined, data: any): void;
   /** A delta is about to be merged into a living entity. */
@@ -44,12 +45,15 @@ export function applyEntityDelta(
     return;
   }
 
-  // Check if entity is being marked as dead/destroyed - remove it
+  // Check if entity is being marked as dead/destroyed - remove it, except
+  // an inhibitor: it stays as rubble until it rebuilds
   if (data && (data.isDead === true || data.isDestroyed === true)) {
     hooks.onRemoved(delta.entityId, existing, data);
-    // Remove dead/destroyed entities from client state
-    entities.delete(delta.entityId);
-    return;
+    if (existing?.snapshot.entityType !== EntityType.INHIBITOR) {
+      // Remove dead/destroyed entities from client state
+      entities.delete(delta.entityId);
+      return;
+    }
   }
 
   if (existing) {

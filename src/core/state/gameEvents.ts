@@ -221,6 +221,27 @@ export function processGameEvent(event: GameEvent, ctx: GameEventContext): void 
       });
       break;
     }
+    case GameEventType.INHIBITOR_DESTROYED: {
+      const ours = event.data.side === ctx.localSide;
+      ctx.announcements.add({
+        text: ours ? 'Your inhibitor has been destroyed' : 'Your team destroyed an inhibitor!',
+        detail: ours ? 'Enemy super minions are coming down that lane' : 'Your super minions march down that lane',
+        color: ours ? '#ec7063' : '#5dade2',
+        startTime: now,
+        duration: ANNOUNCEMENT_DURATION,
+      });
+      break;
+    }
+    case GameEventType.INHIBITOR_RESPAWNED: {
+      const ours = event.data.side === ctx.localSide;
+      ctx.announcements.add({
+        text: ours ? 'Your inhibitor has respawned' : 'The enemy inhibitor has respawned',
+        color: ours ? '#5dade2' : '#ec7063',
+        startTime: now,
+        duration: ANNOUNCEMENT_DURATION,
+      });
+      break;
+    }
     case GameEventType.DRAGON_KILLED: {
       const allied = event.data.side === ctx.localSide;
       ctx.announcements.add({

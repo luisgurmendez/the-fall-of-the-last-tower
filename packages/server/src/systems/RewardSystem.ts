@@ -11,12 +11,14 @@
  * - Jungle: Varies by creature type
  * - Champions: 140 base + 20 per level difference
  * - Towers: 100 XP
+ * - Inhibitors: gold only (no XP)
  */
 
 import { GameConfig, EntityType, GameEventType } from '@siege/shared';
 import type { ServerGameContext } from '../game/ServerGameContext';
 import type { ServerEntity } from '../simulation/ServerEntity';
 import type { ServerChampion } from '../simulation/ServerChampion';
+import type { ServerInhibitor } from '../simulation/ServerInhibitor';
 import { passiveTriggerSystem } from './PassiveTriggerSystem';
 import { Logger } from '../utils/Logger';
 
@@ -32,7 +34,7 @@ export class RewardSystem {
    */
   /**
    * Events for deaths players should hear about: champion kills (with first
-   * blood) and towers falling.
+   * blood), towers falling and inhibitors falling (with when they rebuild).
    */
   static announceDeath(killedEntity: ServerEntity, killerId: string | undefined, context: ServerGameContext): void {
     const killer = killerId ? context.getEntity(killerId) : undefined;
@@ -51,6 +53,14 @@ export class RewardSystem {
         towerId: killedEntity.id,
         side: killedEntity.side,
         lane: (killedEntity as ServerEntity & { lane?: string }).lane ?? null,
+      });
+    } else if (killedEntity.entityType === EntityType.INHIBITOR) {
+      const inhibitor = killedEntity as ServerInhibitor;
+      context.addEvent(GameEventType.INHIBITOR_DESTROYED, {
+        inhibitorId: inhibitor.id,
+        side: inhibitor.side,
+        lane: inhibitor.lane,
+        respawnAt: inhibitor.respawnAt,
       });
     }
   }
@@ -156,6 +166,10 @@ export class RewardSystem {
           gold: tower.reward?.killer ?? GameConfig.ECONOMY.TOWER_GOLD.killer,
         };
       }
+
+      case EntityType.INHIBITOR:
+        // Gold for the last hit, no experience
+        return { xp: 0, gold: (entity as ServerInhibitor).goldReward };
 
       default:
         return { xp: 0, gold: 0 };

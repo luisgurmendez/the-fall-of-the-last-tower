@@ -112,15 +112,16 @@ export interface InhibitorStats {
 }
 
 /**
- * Default inhibitor stats.
+ * Default inhibitor stats (the same as MOBAConfig.INHIBITORS.STATS, which the
+ * server uses).
  */
 export const DEFAULT_INHIBITOR_STATS: InhibitorStats = {
-  health: 4000,
-  maxHealth: 4000,
+  health: 3500,
+  maxHealth: 3500,
   armor: 20,
   magicResist: 20,
-  respawnTime: 300, // 5 minutes
-  collision: { type: "circle", radius: 45, offset: { x: 0, y: 0 } },
+  respawnTime: 240, // 4 minutes
+  collision: { type: "circle", radius: 40, offset: { x: 0, y: 0 } },
 };
 
 /**

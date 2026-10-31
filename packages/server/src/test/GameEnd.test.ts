@@ -27,12 +27,17 @@ describe('Game end', () => {
       const context = (room as unknown as { context: ServerGameContext }).context;
       const redNexus = context.getAllEntities().find(e => e.entityType === EntityType.NEXUS && e.side === 1)!;
 
-      // The nexus is protected until a lane is open
+      // The nexus is protected until an inhibitor is down, and that takes its lane's towers first
       expect(redNexus.takeDamage(1000, 'true', undefined, context)).toBe(0);
       const redMidTowers = context.getAllEntities()
         .filter(e => e.entityType === EntityType.TOWER && e.side === 1 && (e as unknown as { lane: string }).lane === 'mid')
         .sort((a, b) => (a as unknown as { tier: number }).tier - (b as unknown as { tier: number }).tier);
       for (const tower of redMidTowers) tower.takeDamage(tower.health + 1, 'true', undefined, context);
+      expect(redNexus.takeDamage(1000, 'true', undefined, context)).toBe(0);
+
+      const redMidInhibitor = context.getAllEntities()
+        .find(e => e.entityType === EntityType.INHIBITOR && e.side === 1 && (e as unknown as { lane: string }).lane === 'mid')!;
+      redMidInhibitor.takeDamage(redMidInhibitor.health + 1, 'true', undefined, context);
 
       redNexus.takeDamage(redNexus.health + 1, 'true', undefined, context);
 

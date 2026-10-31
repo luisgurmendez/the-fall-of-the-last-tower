@@ -9,7 +9,8 @@ Config: `MOBAConfig.LANES`, `MOBAConfig.MINION_WAVES`, stats in
 
 - A wave spawns per side in each lane every `SPAWN_INTERVAL` seconds (first after `FIRST_WAVE_DELAY`).
 - Composition: `WAVE_COMPOSITION` melee (`swordsmen`) and casters (`archers`). Every `SIEGE_EVERY`th wave adds a siege minion between them.
-- The wave marches in rows: melee in front, then siege, then casters. Up to three minions walk side by side. Each minion keeps its own `laneOffset` from the lane center, so the wave doesn't walk single file.
+- **Super minions:** while the enemy's inhibitor in a lane is destroyed, every wave in that lane brings a super minion and no siege minion; once all three of the enemy's inhibitors are down, two (`ServerGameContext.getSuperMinionCount`). This applies to waves spawned by hand too (`spawnLaneWave`, the simulation's `spawnWave`). Super minions are melee: 1500 health, 180 damage every 0.95s, radius 22, and they walk a little faster than the wave (96). It stops when the inhibitor rebuilds.
+- The wave marches in rows: super minions in front, then melee, then siege, then casters. Up to three minions walk side by side (super minions 48 apart, the rest 22). Each minion keeps its own `laneOffset` from the lane center, so the wave doesn't walk single file.
 - Stats grow with game time: +`SCALING_PER_MINUTE.health` health and +`SCALING_PER_MINUTE.damage` damage per minute. The bonus is fixed when the minion spawns and stops growing after `MAX_SCALING_MINUTES`.
 
 ## Movement
@@ -20,7 +21,7 @@ Each minion has a `LanePath`: its spawn point followed by the lane's waypoints (
 - after chasing something off the lane, it rejoins the lane further along instead of walking back to an old waypoint;
 - at the end of the path (the enemy base) it stops and fights whatever is there.
 
-Lanes run straight through their towers. When one of the minion's own towers or its nexus is in the way, `steerAroundStructures` (`navigation/StructureAvoidance.ts`) aims it at a point beside the structure, on the side it is already on. The wave walks around instead of piling up behind it. Enemy structures are not avoided, because the minion walks up to them and attacks.
+Lanes run straight through their towers and inhibitors. When one of the minion's own towers, its inhibitor or its nexus is in the way (a destroyed one isn't), `steerAroundStructures` (`navigation/StructureAvoidance.ts`) aims it at a point beside the structure, on the side it is already on. The wave walks around instead of piling up behind it. Enemy structures are not avoided, because the minion walks up to them and attacks.
 
 ## Targeting
 
@@ -39,7 +40,9 @@ Minions never attack jungle creatures, wards, zones or projectiles, and never ta
 
 A minion keeps its target while it's alive, visible, in reach and the minion is within `LANE_LEASH` (350) of its lane. Every 0.5s it checks for a better target. It switches to a higher-priority one, so a call for help interrupts a minion fight. It also switches to an enemy of the same priority that is clearly closer when its current target is out of range (for example walled off by other units). Champion-on-champion damage is recorded by `ServerGameContext` from `DAMAGE` events (`getRecentChampionVictim()`).
 
-Casters and siege minions fire targeted projectiles (`minion_caster`, `minion_siege`). Melee minions hit instantly.
+Casters and siege minions fire targeted projectiles (`minion_caster`, `minion_siege`). Melee and super minions hit instantly.
+
+Structures fall in lane order (see [map.md](map.md)): a wave that has taken a lane's towers walks on to that lane's inhibitor and hits it, then, with it destroyed, walks past it to the nexus.
 
 ## Art
 
@@ -47,4 +50,4 @@ The minions are generated with PixelLab (`scripts/generate-sprites.ts`, keys `mi
 
 ## Scenarios
 
-`packages/server/scenarios/minion-*.ts` and `minions-pass-own-towers.ts` show and check this behavior. For example, run `bun run sim minion-chase-and-return`; see [simulation.md](simulation.md).
+`packages/server/scenarios/minion-*.ts`, `minions-pass-own-towers.ts` (which also walks past blue's bot inhibitor) and `inhibitor-super-minions.ts` show and check this behavior. For example, run `bun run sim minion-chase-and-return`; see [simulation.md](simulation.md).

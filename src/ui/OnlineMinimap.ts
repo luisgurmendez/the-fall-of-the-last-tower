@@ -345,7 +345,7 @@ export class OnlineMinimap extends ScreenEntity {
 
     // Sort by entity type for consistent layering (structures first, then minions, then champions)
     const sortedEntities = [...entities].sort((a, b) => {
-      const order = [EntityType.NEXUS, EntityType.TOWER, EntityType.WARD, EntityType.MINION, EntityType.JUNGLE_CAMP, EntityType.CHAMPION];
+      const order = [EntityType.NEXUS, EntityType.TOWER, EntityType.INHIBITOR, EntityType.WARD, EntityType.MINION, EntityType.JUNGLE_CAMP, EntityType.CHAMPION];
       return order.indexOf(a.snapshot.entityType) - order.indexOf(b.snapshot.entityType);
     });
 
@@ -353,9 +353,10 @@ export class OnlineMinimap extends ScreenEntity {
       const snapshot = entity.snapshot;
       const isPlayerTeam = 'side' in snapshot && (snapshot as any).side === this.localSide;
 
-      // Skip dead entities
-      if ('isDead' in snapshot && (snapshot as any).isDead) continue;
-      if ('isDestroyed' in snapshot && (snapshot as any).isDestroyed) continue;
+      // Skip dead entities (a destroyed inhibitor still shows, greyed)
+      const isInhibitor = snapshot.entityType === EntityType.INHIBITOR;
+      if ('isDead' in snapshot && (snapshot as any).isDead && !isInhibitor) continue;
+      if ('isDestroyed' in snapshot && (snapshot as any).isDestroyed && !isInhibitor) continue;
 
       const pos = this.worldToMinimap(entity.position.x, entity.position.y);
 
@@ -368,6 +369,9 @@ export class OnlineMinimap extends ScreenEntity {
           break;
         case EntityType.TOWER:
           this.renderTower(ctx, pos, isPlayerTeam);
+          break;
+        case EntityType.INHIBITOR:
+          this.renderInhibitor(ctx, pos, isPlayerTeam, (snapshot as { isDestroyed?: boolean }).isDestroyed === true);
           break;
         case EntityType.NEXUS:
           // Nexus already rendered in terrain
@@ -474,6 +478,20 @@ export class OnlineMinimap extends ScreenEntity {
   /**
    * Render a tower on the minimap.
    */
+  /** An inhibitor: a ring in its team's color, grey while destroyed */
+  private renderInhibitor(
+    ctx: CanvasRenderingContext2D,
+    pos: { x: number; y: number },
+    isPlayerTeam: boolean,
+    destroyed: boolean
+  ): void {
+    ctx.strokeStyle = destroyed ? '#5a5a66' : isPlayerTeam ? '#4488ff' : '#ff4444';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, 3, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
   private renderTower(
     ctx: CanvasRenderingContext2D,
     pos: { x: number; y: number },

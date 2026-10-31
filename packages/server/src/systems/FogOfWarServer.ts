@@ -165,9 +165,10 @@ export class FogOfWarServer {
       return { isVisible: true };
     }
 
-    // Structures (towers, nexus) are always visible to all players
+    // Structures (towers, inhibitors, nexus) are always visible to all players
     // This matches typical MOBA behavior - you can always see enemy structures on the map
-    if (entity.entityType === EntityType.TOWER || entity.entityType === EntityType.NEXUS) {
+    if (entity.entityType === EntityType.TOWER || entity.entityType === EntityType.INHIBITOR ||
+        entity.entityType === EntityType.NEXUS) {
       return { isVisible: true };
     }
 

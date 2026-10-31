@@ -4,7 +4,9 @@
  * Structures fall in lane order, so they can't be skipped by walking through
  * the jungle ("backdooring"):
  * - an inner (tier 2) tower can't be damaged while its lane's outer tower stands
- * - a nexus can't be damaged until one of its lanes has lost every tower
+ * - an inhibitor can't be damaged while a tower of its lane stands
+ * - a nexus can't be damaged while all of its inhibitors stand (they rebuild,
+ *   so it can be protected again)
  */
 
 import { EntityType } from '@siege/shared';
@@ -17,13 +19,14 @@ interface LaneTower {
 }
 
 function livingTowers(context: ServerGameContext, side: number): (ServerEntity & LaneTower)[] {
-  return context.getAllEntities().filter(entity =>
+  return context.getStructures().filter(entity =>
     entity.entityType === EntityType.TOWER && entity.side === side && !entity.isDead
   ) as (ServerEntity & LaneTower)[];
 }
 
 /**
- * Whether a tower or nexus can take damage now. Other entities always can.
+ * Whether a tower, inhibitor or nexus can take damage now. Other entities
+ * always can.
  */
 export function isStructureVulnerable(structure: ServerEntity, context: ServerGameContext): boolean {
   if (structure.entityType === EntityType.TOWER) {
@@ -31,10 +34,15 @@ export function isStructureVulnerable(structure: ServerEntity, context: ServerGa
     return !livingTowers(context, structure.side).some(tower => tower.lane === lane && tower.tier < tier);
   }
 
+  if (structure.entityType === EntityType.INHIBITOR) {
+    const { lane } = structure as ServerEntity & { lane: string };
+    return !livingTowers(context, structure.side).some(tower => tower.lane === lane);
+  }
+
   if (structure.entityType === EntityType.NEXUS) {
-    const lanes = new Set(context.mapConfig.TOWERS.POSITIONS.filter(t => t.side === structure.side).map(t => t.lane));
-    const standing = new Set(livingTowers(context, structure.side).map(tower => tower.lane));
-    return [...lanes].some(lane => !standing.has(lane));
+    return context.getStructures().some(entity =>
+      entity.entityType === EntityType.INHIBITOR && entity.side === structure.side && entity.isDead
+    );
   }
 
   return true;

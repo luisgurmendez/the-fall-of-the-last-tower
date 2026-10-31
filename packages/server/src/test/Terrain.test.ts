@@ -6,6 +6,7 @@ import { describe, test, expect } from 'bun:test';
 import { InputType, MOBAConfig, Vector } from '@siege/shared';
 import { WALL_GRID_HALF, WALL_TILE_SIZE } from '../../../shared/src/config/mapLayout';
 import { Terrain } from '../navigation/Terrain';
+import { LanePath } from '../navigation/LanePath';
 import { Simulation } from '../sim';
 
 const terrain = new Terrain(MOBAConfig);
@@ -15,11 +16,12 @@ describe('Terrain', () => {
     expect(MOBAConfig.WALLS.length).toBeGreaterThan(20);
   });
 
-  test('every camp, tower and lane waypoint is reachable from both spawns', () => {
+  test('every camp, tower, inhibitor and lane waypoint is reachable from both spawns', () => {
     const spawns = [MOBAConfig.CHAMPION_SPAWN.BLUE, MOBAConfig.CHAMPION_SPAWN.RED];
     const destinations: { name: string; position: Vector }[] = [
       ...MOBAConfig.JUNGLE.CAMPS.map(camp => ({ name: camp.id, position: camp.position })),
       ...MOBAConfig.TOWERS.POSITIONS.map((tower, i) => ({ name: `tower ${i}`, position: tower.position })),
+      ...MOBAConfig.INHIBITORS.POSITIONS.map((inhibitor, i) => ({ name: `inhibitor ${i}`, position: inhibitor.position })),
       ...Object.values(MOBAConfig.LANES).flatMap(lane =>
         lane.waypoints.slice(1, -1).map((point, i) => ({ name: `${lane.id} waypoint ${i + 1}`, position: point }))),
     ];
@@ -90,15 +92,32 @@ describe('Terrain', () => {
     expect(cracks).toEqual([]);
   });
 
-  test('camps, towers, spawns and lane waypoints are not inside walls', () => {
+  test('camps, towers, inhibitors, spawns and lane waypoints are not inside walls', () => {
     const points = [
       MOBAConfig.CHAMPION_SPAWN.BLUE, MOBAConfig.CHAMPION_SPAWN.RED,
       ...MOBAConfig.JUNGLE.CAMPS.map(camp => camp.position),
       ...MOBAConfig.TOWERS.POSITIONS.map(tower => tower.position),
+      ...MOBAConfig.INHIBITORS.POSITIONS.map(inhibitor => inhibitor.position),
       ...Object.values(MOBAConfig.LANES).flatMap(lane => lane.waypoints),
     ];
     const blocked = points.filter(p => terrain.isBlocked(p.x, p.y)).map(p => `(${p.x}, ${p.y})`);
     expect(blocked).toEqual([]);
+  });
+
+  test('inhibitors stand on their lane, with room for units to walk around them', () => {
+    // Waves walk around their own inhibitor, on either side
+    const { radius } = MOBAConfig.INHIBITORS.STATS.collision;
+    const clearance = radius + 60;
+    for (const { lane, position } of MOBAConfig.INHIBITORS.POSITIONS) {
+      const path = new LanePath(MOBAConfig.LANES[lane.toUpperCase() as 'TOP' | 'MID' | 'BOT'].waypoints.map(w => w.clone()));
+      expect(path.project(position).offset).toBeLessThan(10);
+      for (let angle = 0; angle < 360; angle += 15) {
+        const radians = (angle * Math.PI) / 180;
+        const x = position.x + Math.cos(radians) * clearance;
+        const y = position.y + Math.sin(radians) * clearance;
+        expect(terrain.isBlocked(x, y)).toBe(false);
+      }
+    }
   });
 
   test('pushes a unit out of a wall', () => {

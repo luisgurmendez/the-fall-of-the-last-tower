@@ -84,6 +84,7 @@ const ATTACK_MOVE_TARGETS = new Set<EntityType>([
   EntityType.CHAMPION,
   EntityType.MINION,
   EntityType.TOWER,
+  EntityType.INHIBITOR,
   EntityType.NEXUS,
 ]);
 

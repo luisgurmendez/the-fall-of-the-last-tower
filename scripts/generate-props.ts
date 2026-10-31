@@ -1,10 +1,11 @@
 /**
  * Generates single images with PixelLab (create-image-pixen): map props (the
- * wards) and the summoner spell icons. Each gets a few takes (one per
+ * wards), structures (the inhibitor) and the summoner
+ * spell icons. Each gets a few takes (one per
  * seed), saved to --out with a contact sheet per image (takes numbered from
  * 0, left to right); PROPS keeps the pick, and --install copies the picks to
- * where the game reads them: public/assets/props/<key>.png for props
- * (src/render/entities/ward.ts), public/assets/summoners/<id>.png for icons
+ * where the game reads them: public/assets/props/<key>.png for props and
+ * structures (src/render/entities/ward.ts, inhibitor.ts), public/assets/summoners/<id>.png for icons
  * (src/ui/summonerIcons.ts).
  *
  * Usage (from the repo root; Bun loads PIXELLAB_API_KEY from .env.local):
@@ -23,6 +24,11 @@ const KINDS = {
   prop: {
     size: 48,
     style: 'pixel art game prop seen from a three-quarter top-down view, small and readable, muted fantasy palette',
+    dir: 'public/assets/props',
+  },
+  structure: {
+    size: 64,
+    style: 'pixel art building seen from a three-quarter top-down view, readable, muted fantasy palette',
     dir: 'public/assets/props',
   },
   // Drawn at 32 in the HUD: made at that size, so its detail fits it
@@ -52,6 +58,12 @@ export const PROPS: Record<string, Prop> = {
     kind: 'prop',
     pick: 0,
     description: 'a small dark stone ward obelisk with carved runes, topped by a glowing crimson crystal eye',
+  },
+  // Drawn in blue and recolored for red; destroyed, only its pedestal is drawn
+  inhibitor: {
+    kind: 'structure',
+    pick: 1,
+    description: 'a large glowing blue crystal ring floating above a round carved stone pedestal with blue runes',
   },
   summoner_blink: { kind: 'icon', file: 'blink', pick: 0, description: 'a burst of violet and white light, a teleport flash with sparkles' },
   summoner_haste: { kind: 'icon', file: 'haste', pick: 3, description: 'a winged boot with cyan speed streaks' },

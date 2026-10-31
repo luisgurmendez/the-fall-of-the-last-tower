@@ -1,7 +1,7 @@
 /**
- * StructureAvoidance - Steer around towers and nexuses.
+ * StructureAvoidance - Steer around towers, inhibitors and nexuses.
  *
- * Lanes run straight through their towers, so a unit walking down the lane
+ * Lanes run straight through their towers and inhibitors, so a unit walking down the lane
  * would press into the tower until the collision system pushed it aside.
  * In a crowded wave that jams. Instead, when a structure is in the way, the
  * unit aims for a point beside it and walks around.

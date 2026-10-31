@@ -577,6 +577,44 @@ export const MOBAConfig = {
   },
 
   /**
+   * Inhibitors: one per lane per side, on the lane at the base's entrance.
+   * They don't attack. One can only be damaged once its lane's towers are
+   * down, and the nexus once one of its side's inhibitors is (see the
+   * server's StructureRules). A destroyed inhibitor rebuilds at full health
+   * `respawnTime` seconds later; while it's down, the enemy's waves in its
+   * lane bring super minions.
+   */
+  INHIBITORS: {
+    STATS: {
+      health: 3500,
+      armor: 20,
+      magicResist: 20,
+      /** Seconds until a destroyed inhibitor rebuilds */
+      respawnTime: 240,
+      /** Gold for the champion that destroys it (no experience) */
+      goldReward: 50,
+      collision: {
+        type: "circle" as const,
+        radius: 40,
+        offset: { x: 0, y: 0 },
+      },
+    },
+
+    /** Inhibitor positions by side and lane (red's mirror blue's with x and y swapped; lane names stay) */
+    POSITIONS: [
+      // ========== BLUE SIDE (0) ==========
+      { side: 0 as const, lane: "top" as const, position: new Vector(-2390, 1600) },
+      { side: 0 as const, lane: "mid" as const, position: new Vector(-1700, 1700) },
+      { side: 0 as const, lane: "bot" as const, position: new Vector(-1600, 2390) },
+
+      // ========== RED SIDE (1) ==========
+      { side: 1 as const, lane: "top" as const, position: new Vector(1600, -2390) },
+      { side: 1 as const, lane: "mid" as const, position: new Vector(1700, -1700) },
+      { side: 1 as const, lane: "bot" as const, position: new Vector(2390, -1600) },
+    ],
+  },
+
+  /**
    * Map decorations - non-interactive visual elements.
    */
   DECORATIONS: [

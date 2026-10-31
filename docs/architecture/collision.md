@@ -47,6 +47,7 @@ function checkCollision(a: ServerEntity, b: ServerEntity): boolean {
 | Melee Minion | 20 | |
 | Caster Minion | 20 | |
 | Tower | 50 | Immovable (infinite mass) |
+| Inhibitor | 40 | Immovable (infinite mass); not solid while destroyed, solid again when it rebuilds |
 | Nexus | 160 × 100 rectangle (the building's footprint, offset 46 up) | Immovable (infinite mass) |
 
 ## Collision Resolution
@@ -194,7 +195,7 @@ if (!isFinite(massA)) {
 
 A unit walking head-on into an immovable obstacle would be pushed straight back every tick and never get past. If its destination (`getMovementTarget()`) is beyond the obstacle, `slideAround` turns the push sideways, toward the side that leads to the destination. When the destination is straight ahead, it slides toward the side of the obstacle the unit is already on. Deciding that case from the destination flipped sides every tick, and the unit shook in place.
 
-Units don't rely on this alone. Minions on their lane steer around their own towers before reaching them (`navigation/StructureAvoidance.ts`, see [minions.md](minions.md)). In a crowded wave, sliding alone left minions jammed behind the tower.
+Units don't rely on this alone. Minions on their lane steer around their own towers and inhibitors before reaching them (`navigation/StructureAvoidance.ts`, see [minions.md](minions.md)). In a crowded wave, sliding alone left minions jammed behind the tower.
 
 ## Key Files
 
