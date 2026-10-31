@@ -55,6 +55,8 @@ export interface HealthBarOptions {
   trailHealth?: number;
   /** Draw a tick every this much health, and a full-height one every ten */
   tickEvery?: number;
+  /** Bar height, world units (default 6; minions' are thinner) */
+  height?: number;
 }
 
 /**
@@ -78,7 +80,7 @@ export function renderHealthBar(
   ctx.filter = "none";
 
   const barWidth = width;
-  const barHeight = 6;
+  const barHeight = options.height ?? 6;
 
   // Calculate total shield amount
   const totalShield = shields?.reduce((sum, s) => sum + s.amount, 0) ?? 0;
@@ -188,9 +190,9 @@ export function renderHealthBar(
     renderHealthTicks(ctx, barWidth, barHeight, yOffset, healthPerBar, options.tickEvery);
   }
 
-  // Border around bar (always fixed width)
+  // Border around bar (always fixed width; finer on thin bars)
   ctx.strokeStyle = "#000000";
-  ctx.lineWidth = 1;
+  ctx.lineWidth = Math.min(1, barHeight / 5);
   ctx.strokeRect(-barWidth / 2, yOffset, barWidth, barHeight);
   ctx.restore();
 }

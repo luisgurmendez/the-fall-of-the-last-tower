@@ -81,6 +81,15 @@ const MINION_STRIPS: Record<string, MinionStrips> = {
   siege: minionStrips("siege", 0.78),
 };
 
+/** Minions' health bars: a thin line just over the head, much slimmer than a champion's */
+const MINION_BAR = {
+  width: 24,
+  siegeWidth: 30,
+  height: 3,
+  y: -24,
+  siegeY: -28,
+};
+
 /**
  * Minion sprite sheets to preload.
  */
@@ -131,11 +140,11 @@ export function renderMinion(
       ctx,
       snapshot.health,
       snapshot.maxHealth,
-      isSiege ? 34 : 28,
-      isSiege ? -29 : -25,
+      isSiege ? MINION_BAR.siegeWidth : MINION_BAR.width,
+      isSiege ? MINION_BAR.siegeY : MINION_BAR.y,
       healthBarColor,
       undefined,
-      { trailHealth: getTrailHealth(snapshot.entityId, snapshot.health) },
+      { trailHealth: getTrailHealth(snapshot.entityId, snapshot.health), height: MINION_BAR.height },
     );
   }
 }
