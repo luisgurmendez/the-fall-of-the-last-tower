@@ -90,6 +90,13 @@ export class InputManager {
         e.preventDefault();
       }
 
+      // Tab holds the scoreboard up. Left to the browser it would move focus
+      // to the fullscreen button and then out of the page, into the address
+      // bar, and the game would stop getting keys
+      if (e.key === 'Tab') {
+        e.preventDefault();
+      }
+
       if (!this.keysDown.has(e.key)) {
         this.keysJustPressed.add(e.key);
       }
@@ -97,6 +104,7 @@ export class InputManager {
     };
 
     const onKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'Tab') e.preventDefault();
       this.keysDown.delete(e.key);
       this.keysJustReleased.add(e.key);
     };
