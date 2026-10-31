@@ -249,6 +249,25 @@ describe('StateSerializer', () => {
       expect((delta.data as ChampionSnapshot).dashTargetX).toBeNull();
     });
 
+    it("should send any changed field of a projectile, zone, ward or Lume's orb", () => {
+      const playerId = 'player-1';
+      const orb = (overrides: Record<string, unknown>) =>
+        createMockEntity('orb-1', EntityType.LIGHT_ORB, { state: 'orbiting', isDead: false, targetX: 50, ...overrides } as any);
+      serializer.createDeltaUpdates([orb({})] as any, playerId, 1);
+
+      // Lume's R destroys the orb: it stays in the game, dead, until it comes back
+      const [delta] = serializer.createDeltaUpdates([orb({ state: 'destroyed', isDead: true, targetX: undefined })] as any, playerId, 2);
+      expect(delta.changeMask & EntityChangeMask.STATE).toBeTruthy();
+      expect((delta.data as any).state).toBe('destroyed');
+      expect((delta.data as any).isDead).toBe(true);
+      expect((delta.data as any).targetX).toBeNull();
+
+      const zone = (remainingDuration: number) => createMockEntity('zone-1', EntityType.ZONE, { remainingDuration } as any);
+      serializer.createDeltaUpdates([zone(3)] as any, playerId, 3);
+      const [zoneDelta] = serializer.createDeltaUpdates([zone(2.9)] as any, playerId, 4);
+      expect((zoneDelta.data as any).remainingDuration).toBe(2.9);
+    });
+
     it('should detect level changes', () => {
       const playerId = 'player-1';
 

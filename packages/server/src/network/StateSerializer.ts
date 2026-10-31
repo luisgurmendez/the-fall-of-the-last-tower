@@ -51,6 +51,34 @@ const CHAMPION_STATS = [
 ] as const satisfies readonly (keyof ChampionSnapshot)[];
 
 /**
+ * Entity types with change tracking of their own (below). The rest
+ * (projectiles, zones, wards, Lume's orb) are small and few: any of their
+ * fields that changed is sent, under STATE, so states like a destroyed orb
+ * or a zone's remaining time reach clients.
+ */
+const TRACKED_TYPES = new Set<EntityType>([
+  EntityType.CHAMPION,
+  EntityType.MINION,
+  EntityType.TOWER,
+  EntityType.NEXUS,
+  EntityType.JUNGLE_CAMP,
+]);
+
+/** Fields of an untracked entity's snapshot that changed (besides its position) */
+function changedFields(previous: EntitySnapshot, current: EntitySnapshot): string[] {
+  const before = previous as unknown as Record<string, unknown>;
+  const after = current as unknown as Record<string, unknown>;
+  const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
+  return [...keys].filter(key => {
+    if (key === 'x' || key === 'y') return false;
+    const a = before[key];
+    const b = after[key];
+    if (a === b) return false;
+    return typeof a !== 'object' || typeof b !== 'object' || JSON.stringify(a) !== JSON.stringify(b);
+  });
+}
+
+/**
  * Serializes game state for network transmission with delta compression.
  */
 export class StateSerializer {
@@ -346,6 +374,10 @@ export class StateSerializer {
       }
     }
 
+    if (!TRACKED_TYPES.has(current.entityType) && changedFields(previous, current).length > 0) {
+      mask |= EntityChangeMask.STATE;
+    }
+
     // For jungle creatures
     if (current.entityType === EntityType.JUNGLE_CAMP) {
       const prev = previous as JungleCreatureSnapshot;
@@ -519,6 +551,14 @@ export class StateSerializer {
 
       if (mask & EntityChangeMask.STATE) {
         (result as any).isDead = currCreature.isDead;
+      }
+    }
+
+    // Untracked types: every field that changed (a cleared one as null)
+    if (!TRACKED_TYPES.has(current.entityType) && (mask & EntityChangeMask.STATE)) {
+      const after = current as unknown as Record<string, unknown>;
+      for (const key of changedFields(previous, current)) {
+        (result as any)[key] = after[key] ?? null;
       }
     }
 
