@@ -16,6 +16,7 @@ import ImageSpriteSheet from '@/sprites/ImageSpriteSheet';
 import { TeamId, TEAM } from '@/core/Team';
 import type { IGameUnit } from './index';
 import type { BushGroup } from './BushGroup';
+import { getGPURenderer } from '@/gpu/GPURenderer';
 
 // Sprite paths
 const SPRITE_BUSH_1 = '/assets/sprites/Bushes/Bushe1.png';
@@ -275,6 +276,8 @@ export class Bush extends WorldEntity {
 
   override render(): RenderElement {
     return new RenderElement((gctx) => {
+      // The GPU ground draws the brush itself (src/gpu/ground/groundShader.ts)
+      if (getGPURenderer()) return;
       const ctx = gctx.canvasRenderingContext;
 
       ctx.save();

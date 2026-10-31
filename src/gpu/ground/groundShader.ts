@@ -13,11 +13,17 @@
  *   walls and mossy boulders on the others, a rock face on their south
  *   side, and their shadow and ambient occlusion on the ground
  * - round stone plazas in the bases with a ring of runes in the team's color
+ * - brush: packed leafy clumps over exactly the bushes' hitboxes, swaying,
+ *   with a shadow under them
  * - cloud shadows drifting over everything
  * Animated parts step at 8 frames per second, like sprite animation.
  */
 
+import { MOBAConfig } from "@siege/shared";
 import { GLSL_NOISE } from "../gl";
+
+/** Water closer to the center than this on both axes is river; past it, the sea around the map */
+const RIVER_REACH = (MOBAConfig.MAP_SIZE.width / 2 - MOBAConfig.WATER_BORDER_SIZE - 80).toFixed(1);
 
 export const GROUND_UNIFORMS = [
   "uField",
@@ -60,9 +66,9 @@ const float FACE = 26.0;
 // Tree crown spacing on forest walls
 const float TREE = 24.0;
 // Walls within this distance of a nexus or a river pit are stone, the rest forest
-const float BASE_STONE_RADIUS = 740.0;
-const float PIT_STONE_RADIUS = 380.0;
-const float PLAZA_RADIUS = 330.0;
+const float BASE_STONE_RADIUS = 1120.0;
+const float PIT_STONE_RADIUS = 340.0;
+const float PLAZA_RADIUS = 460.0;
 
 const vec3 GRASS[5] = vec3[5](vec3(0.106, 0.271, 0.231), vec3(0.161, 0.392, 0.251), vec3(0.251, 0.514, 0.255), vec3(0.373, 0.624, 0.282), vec3(0.545, 0.733, 0.322));
 const vec3 DIRT[5] = vec3[5](vec3(0.302, 0.208, 0.165), vec3(0.420, 0.290, 0.204), vec3(0.537, 0.392, 0.267), vec3(0.643, 0.502, 0.337), vec3(0.749, 0.616, 0.427));
@@ -73,6 +79,7 @@ const vec3 CANOPY_TEAL[5] = vec3[5](vec3(0.047, 0.141, 0.165), vec3(0.071, 0.231
 const vec3 CANOPY_GOLD[5] = vec3[5](vec3(0.137, 0.165, 0.098), vec3(0.231, 0.267, 0.122), vec3(0.353, 0.380, 0.149), vec3(0.494, 0.494, 0.192), vec3(0.663, 0.627, 0.259));
 const vec3 ROCK[5] = vec3[5](vec3(0.141, 0.133, 0.176), vec3(0.212, 0.196, 0.247), vec3(0.302, 0.278, 0.329), vec3(0.416, 0.384, 0.427), vec3(0.549, 0.518, 0.541));
 const vec3 STONE[5] = vec3[5](vec3(0.259, 0.259, 0.302), vec3(0.353, 0.353, 0.392), vec3(0.447, 0.443, 0.475), vec3(0.549, 0.541, 0.557), vec3(0.659, 0.647, 0.635));
+const vec3 BRUSH[5] = vec3[5](vec3(0.071, 0.212, 0.200), vec3(0.137, 0.337, 0.243), vec3(0.282, 0.502, 0.243), vec3(0.478, 0.647, 0.243), vec3(0.706, 0.788, 0.341));
 const vec3 MOSS[3] = vec3[3](vec3(0.169, 0.290, 0.188), vec3(0.247, 0.400, 0.208), vec3(0.365, 0.525, 0.247));
 const vec3 FOAM = vec3(0.871, 0.949, 0.945);
 const vec3 TEAM_BLUE = vec3(0.278, 0.612, 1.0);
@@ -80,6 +87,10 @@ const vec3 TEAM_RED = vec3(1.0, 0.322, 0.278);
 
 vec3 field(vec2 p) {
   return (texture(uField, (p - uFieldOrigin) / uFieldSize).rgb * 255.0 - 128.0) * 2.0;
+}
+
+float brushField(vec2 p) {
+  return (texture(uField, (p - uFieldOrigin) / uFieldSize).a * 255.0 - 128.0) * 2.0;
 }
 
 int level(float v, float dither, int top) {
@@ -275,6 +286,48 @@ vec4 wallTop(vec2 p, vec2 ip, float dither, bool stone) {
   return vec4(color, 1.0);
 }
 
+// ---------------------------------------------------------------- brush
+
+// Tall brush: small leafy clumps packed tight inside a bush, the lowest in
+// front, each nodding a pixel in the wind; alpha 0 where none covers the point
+vec4 brush(vec2 p, vec2 ip, float dither, float stepTime) {
+  const float SPACING = 11.0;
+  vec2 cell = floor(p / SPACING);
+  float bestY = -1e9;
+  vec2 bestRel = vec2(0.0);
+  float bestRadius = 1.0;
+  vec2 bestCell = vec2(0.0);
+  for (int j = -1; j <= 1; j++) {
+    for (int i = -1; i <= 1; i++) {
+      vec2 c = cell + vec2(float(i), float(j));
+      vec2 center = (c + 0.15 + hash22(c + 41.0) * 0.7) * SPACING;
+      if (brushField(center) > -2.0) continue;
+      float sway = sin(stepTime * 1.4 + c.x * 0.5 + c.y * 0.3);
+      center.x += sway > 0.6 ? PX : (sway < -0.6 ? -PX : 0.0);
+      float radius = SPACING * (0.72 + hash12(c + 9.0) * 0.35);
+      vec2 rel = p - center;
+      if (dot(rel, rel) > radius * radius || center.y < bestY) continue;
+      bestY = center.y;
+      bestRel = rel;
+      bestRadius = radius;
+      bestCell = c;
+    }
+  }
+  if (bestY < -1e8) return vec4(0.0);
+
+  vec2 uv = bestRel / bestRadius;
+  float k = length(uv);
+  vec3 normal = normalize(vec3(uv, sqrt(max(0.0, 1.0 - k * k)) * 1.2));
+  float light = dot(normal, normalize(vec3(-0.45, -0.65, 0.6)));
+  float leaves = vnoise(p * 0.55 + bestCell * 3.1);
+  float v = 0.36 + light * 0.45 + (leaves - 0.5) * 0.4 + (hash12(bestCell + 4.0) - 0.5) * 0.12;
+  if (k > 0.86) v -= 0.25;
+  vec3 color = ramp5(BRUSH, v, dither);
+  // Bright leaf tips on the lit side
+  if (light > 0.5 && hash12(ip + bestCell * 7.0) > 0.86) color = BRUSH[4];
+  return vec4(color, 1.0);
+}
+
 // ---------------------------------------------------------------- bases
 
 vec3 plaza(vec2 p, vec2 ip, float dither, vec2 nexus, vec3 team, float fromNexus, float edge, vec3 ground) {
@@ -346,7 +399,7 @@ void main() {
 
   if (!wall) {
     float shore = dWater + (vnoise(p * 0.05 + stepTime * 0.3) - 0.5) * 5.0;
-    bool river = abs(p.x) < 1550.0 && abs(p.y) < 1550.0;
+    bool river = abs(p.x) < ${RIVER_REACH} && abs(p.y) < ${RIVER_REACH};
     if (shore < 0.0) {
       color = water(p, ip, dither, -shore, dPath, stepTime, river);
     } else {
@@ -362,9 +415,22 @@ void main() {
       if (shore < bank) color = ramp3(SAND, shore / bank - 0.15, dither);
     }
 
-    // The walls' shadow (cast down and to the right) and ambient occlusion
+    // Brush over the ground, and its shadow just under it
+    float dBrush = brushField(p);
+    bool inBrush = false;
+    if (dBrush < 12.0 && shore > 0.0) {
+      vec4 clumps = brush(p, ip, dither, stepTime);
+      if (clumps.a > 0.0) {
+        color = clumps.rgb;
+        inBrush = true;
+      }
+    }
+
+    // The walls' shadow (cast down and to the right) and ambient occlusion,
+    // and the brush's
     float occluder = field(p - vec2(15.0, 20.0)).b + (vnoise(p * 0.06) - 0.5) * 14.0;
     float shadow = smoothstep(4.0, -8.0, occluder) * 0.4 + smoothstep(16.0, 0.0, dRock) * 0.25;
+    if (!inBrush) shadow += smoothstep(2.0, -6.0, brushField(p - vec2(4.0, 7.0))) * 0.35;
     color = mix(color, color * vec3(0.48, 0.55, 0.78), min(shadow, 0.55));
   }
 

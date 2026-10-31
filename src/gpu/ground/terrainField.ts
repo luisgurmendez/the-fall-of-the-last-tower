@@ -6,11 +6,13 @@
  * - G: the lanes' paths
  * - B: rock (the walls), from the wall rectangles; smoothed, so the 64-unit
  *   steps of diagonal walls round off into curves
+ * - A: brush (the bushes' hitboxes, the same the server hides units in),
+ *   smoothed a little so the rectangles' corners round off
  * Distances are stored as 128 + d / 2, so ±256 units fit in a byte, and
  * read with linear filtering, so edges stay smooth at any zoom.
  */
 
-import { MOBAConfig } from "@siege/shared";
+import { MOBAConfig, calculateIndividualBushPositions } from "@siege/shared";
 
 /** World units per texel */
 export const FIELD_CELL = 8;
@@ -170,6 +172,22 @@ export function buildTerrainField(): TerrainField {
   const rockDistance = signedDistance(rock, width, height, cell);
   blur(rockDistance, width, height, 2, 2);
 
+  // Brush: every bush of every group
+  const brush = new Uint8Array(width * height);
+  for (let group = 0; group < MOBAConfig.BUSH_GROUPS.length; group++) {
+    for (const bush of calculateIndividualBushPositions(group)) {
+      const x0 = Math.round((bush.x - bush.width / 2 - originX) / cell);
+      const x1 = Math.round((bush.x + bush.width / 2 - originX) / cell);
+      const y0 = Math.round((bush.y - bush.height / 2 - originY) / cell);
+      const y1 = Math.round((bush.y + bush.height / 2 - originY) / cell);
+      for (let y = Math.max(0, y0); y < Math.min(height, y1); y++) {
+        for (let x = Math.max(0, x0); x < Math.min(width, x1); x++) brush[y * width + x] = 1;
+      }
+    }
+  }
+  const brushDistance = signedDistance(brush, width, height, cell);
+  blur(brushDistance, width, height, 1, 2);
+
   const data = new Uint8Array(width * height * 4);
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
@@ -183,7 +201,7 @@ export function buildTerrainField(): TerrainField {
       data[i] = encode(water);
       data[i + 1] = encode(path);
       data[i + 2] = encode(rockDistance[y * width + x]);
-      data[i + 3] = 255;
+      data[i + 3] = encode(brushDistance[y * width + x]);
     }
   }
   return { width, height, originX, originY, cell, data };
@@ -191,9 +209,9 @@ export function buildTerrainField(): TerrainField {
 
 /**
  * A channel's distance at a world point (nearest texel), as the shader
- * reads it: 0 = water, 1 = path, 2 = rock.
+ * reads it: 0 = water, 1 = path, 2 = rock, 3 = brush.
  */
-export function fieldDistanceAt(field: TerrainField, channel: 0 | 1 | 2, worldX: number, worldY: number): number {
+export function fieldDistanceAt(field: TerrainField, channel: 0 | 1 | 2 | 3, worldX: number, worldY: number): number {
   const x = Math.max(0, Math.min(field.width - 1, Math.floor((worldX - field.originX) / field.cell)));
   const y = Math.max(0, Math.min(field.height - 1, Math.floor((worldY - field.originY) / field.cell)));
   return (field.data[(y * field.width + x) * 4 + channel] - 128) * 2;

@@ -14,7 +14,7 @@ import Vector from '@/physics/vector';
 import type GameContext from '@/core/gameContext';
 import { LogicEntity } from '@/core/GameObject';
 import { Initializable } from '@/behaviors/initializable';
-import { MOBAConfig, MapSide } from '@siege/shared';
+import { MOBAConfig, MapSide, calculateIndividualBushPositions } from '@siege/shared';
 import NavigationGrid from '@/navigation/NavigationGrid';
 import { BushManager, Bush } from '@/vision';
 import { MapDecoration } from './MapDecoration';
@@ -150,88 +150,25 @@ export class MOBAMap extends LogicEntity implements Initializable {
   }
 
   /**
-   * Create bushes from configuration.
+   * Create bushes from configuration, where the server has them (the same
+   * deterministic positions and hitboxes, calculateIndividualBushPositions).
    */
   private createBushes(): void {
-    const spacing = MOBAConfig.BUSH_SETTINGS.SPACING;
-    const variance = MOBAConfig.BUSH_SETTINGS.OFFSET_VARIANCE;
-
     for (let groupIndex = 0; groupIndex < MOBAConfig.BUSH_GROUPS.length; groupIndex++) {
       const groupConfig = MOBAConfig.BUSH_GROUPS[groupIndex];
-
-      // Create the bush group
-      const group = this.bushManager.createGroup(
-        `bush_group_${groupIndex}`,
-        groupConfig.center
-      );
-
-      // Calculate positions for bushes in this group
-      const positions = this.calculateBushPositions(
-        groupConfig.center,
-        groupConfig.bushCount,
-        groupConfig.spread,
-        spacing,
-        variance
-      );
-
-      // Add bushes to the group
-      for (let i = 0; i < positions.length; i++) {
-        const type = i % 3 === 0 ? 'small' : 'large';
+      const group = this.bushManager.createGroup(`bush_group_${groupIndex}`, groupConfig.center);
+      const { SMALL_BUSH_WIDTH } = MOBAConfig.BUSH_SETTINGS;
+      for (const bush of calculateIndividualBushPositions(groupIndex)) {
+        const type = bush.width === SMALL_BUSH_WIDTH ? 'small' : 'large';
         this.bushManager.addBushToGroup({
-          position: positions[i],
+          position: new Vector(bush.x, bush.y),
           type,
+          width: bush.width,
+          height: bush.height,
           scale: type === 'large' ? 0.9 : 0.7,
         }, group);
       }
     }
-  }
-
-  /**
-   * Calculate positions for bushes in a group based on spread type.
-   */
-  private calculateBushPositions(
-    center: Vector,
-    count: number,
-    spread: 'horizontal' | 'vertical' | 'diagonal' | 'cluster',
-    spacing: number,
-    variance: number
-  ): Vector[] {
-    const positions: Vector[] = [];
-    const halfCount = (count - 1) / 2;
-
-    for (let i = 0; i < count; i++) {
-      const offset = (i - halfCount) * spacing;
-      const randX = (Math.random() - 0.5) * variance * 2;
-      const randY = (Math.random() - 0.5) * variance * 2;
-
-      let x = center.x;
-      let y = center.y;
-
-      switch (spread) {
-        case 'horizontal':
-          x += offset + randX;
-          y += randY;
-          break;
-        case 'vertical':
-          x += randX;
-          y += offset + randY;
-          break;
-        case 'diagonal':
-          x += offset * 0.7 + randX;
-          y += offset * 0.7 + randY;
-          break;
-        case 'cluster':
-          const angle = (i / count) * Math.PI * 2 + Math.random() * 0.5;
-          const radius = spacing * 0.8 + Math.random() * spacing * 0.4;
-          x += Math.cos(angle) * radius + randX;
-          y += Math.sin(angle) * radius + randY;
-          break;
-      }
-
-      positions.push(new Vector(x, y));
-    }
-
-    return positions;
   }
 
   /**
