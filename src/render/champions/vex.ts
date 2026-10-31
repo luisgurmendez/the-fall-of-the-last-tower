@@ -8,7 +8,7 @@ import type {
   EntityRenderContext,
   EntityRenderState,
 } from "@/render/entities/types";
-import { drawSpriteFrame, imageCache } from "@/render/entities/shared";
+import { drawSpriteFrame, getSpriteFeet, imageCache } from "@/render/entities/shared";
 import type { ChampionBodyRenderer, ChampionRendererEntry } from "./types";
 
 /**
@@ -39,6 +39,10 @@ const SPRITES = {
  * Draws Vex from sprite sheets. Keeps dash afterimages between frames.
  */
 class VexBodyRenderer implements ChampionBodyRenderer {
+  getFeet(): { y: number; halfWidth: number } | null {
+    return getSpriteFeet(SPRITES.VEX.IDLE, SPRITES.VEX.SCALE);
+  }
+
   private rc: EntityRenderContext;
 
   // Dash afterimages for sprite-based afterimage effects

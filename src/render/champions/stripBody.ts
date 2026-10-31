@@ -13,7 +13,7 @@ import type {
   EntityRenderContext,
   EntityRenderState,
 } from "@/render/entities/types";
-import { drawSpriteFrame, imageCache } from "@/render/entities/shared";
+import { drawSpriteFrame, getSpriteFeet, imageCache } from "@/render/entities/shared";
 import type { ChampionBodyRenderer } from "./types";
 
 /** A champion's strips */
@@ -60,6 +60,7 @@ export function createStripBodyRenderer(
   rc: EntityRenderContext,
 ): ChampionBodyRenderer {
   return {
+    getFeet: () => getSpriteFeet(strips.idle, scale),
     render(ctx: CanvasRenderingContext2D, snapshot: any, state: EntityRenderState): boolean {
       const entityId = snapshot.entityId;
       const cast = rc.stateManager.isEntityCastingAbility(entityId);

@@ -26,6 +26,7 @@ const TRANSFORMED_SCALE = 1.3;
 function createVileBody(rc: EntityRenderContext): ChampionBodyRenderer {
   const strips = createStripBodyRenderer(VILE_STRIPS, VILE_SCALE, rc);
   return {
+    getFeet: () => strips.getFeet?.() ?? null,
     render(ctx, snapshot, state) {
       const transformed = (snapshot.activeEffects as Array<{ definitionId: string }> | undefined)
         ?.some((effect) => effect.definitionId === "vile_transformed");

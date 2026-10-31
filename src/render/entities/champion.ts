@@ -14,7 +14,11 @@ import type {
   EntityRenderContext,
   EntityRenderState,
 } from "@/render/entities/types";
-import { TEAM_COLORS, lightenColor } from "@/render/entities/shared";
+import {
+  TEAM_COLORS,
+  lightenColor,
+  drawGroundShadow,
+} from "@/render/entities/shared";
 import {
   HEALTH_BAR_COLORS,
   renderHealthBar,
@@ -252,6 +256,9 @@ export class ChampionRenderer {
     let renderedWithSprite = false;
 
     const body = this.bodies.get(championId);
+    const feet = body?.getFeet?.();
+    if (feet) drawGroundShadow(ctx, feet.y, feet.halfWidth);
+
     if (body) {
       renderedWithSprite = body.render(ctx, snapshot, state);
     }
@@ -280,6 +287,7 @@ export class ChampionRenderer {
     }
 
     this.renderItemPassiveAuras(ctx, snapshot.activeEffects);
+
 
     // Draw health bar with shields (positioned based on collision shape)
     const healthBarY = healthBarYOffset;

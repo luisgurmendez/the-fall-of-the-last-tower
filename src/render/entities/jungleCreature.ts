@@ -15,6 +15,7 @@ import {
   TEAM_COLORS,
   drawSpriteFrame,
   imageCache,
+  getSpriteBounds,
 } from "@/render/entities/shared";
 import {
   HEALTH_BAR_COLORS,
@@ -115,48 +116,6 @@ export const JUNGLE_CREATURE_IMAGES = [
       .flatMap(look => [look.sprites.idle, look.sprites.run, look.sprites.attack]),
   ),
 ];
-
-/** Where a creature's art is in its idle frame, in sprite pixels from the frame's center */
-interface SpriteBounds {
-  top: number;
-  halfWidth: number;
-}
-
-const boundsCache = new Map<string, SpriteBounds>();
-
-/**
- * The visible part of a strip's first frame, measured once per image, so
- * bars and name plates sit just above each creature's art.
- */
-function getSpriteBounds(image: HTMLImageElement): SpriteBounds {
-  const cached = boundsCache.get(image.src);
-  if (cached) return cached;
-
-  const size = image.naturalHeight;
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-  const context = canvas.getContext("2d");
-  let bounds: SpriteBounds = { top: -size / 2, halfWidth: size / 2 };
-  if (context) {
-    context.drawImage(image, 0, 0, size, size, 0, 0, size, size);
-    const alpha = context.getImageData(0, 0, size, size).data;
-    let top = size, left = size, right = -1;
-    for (let y = 0; y < size; y++) {
-      for (let x = 0; x < size; x++) {
-        if (alpha[(y * size + x) * 4 + 3] === 0) continue;
-        top = Math.min(top, y);
-        left = Math.min(left, x);
-        right = Math.max(right, x);
-      }
-    }
-    if (right >= 0) {
-      bounds = { top: top - size / 2, halfWidth: Math.max(size / 2 - left, right + 1 - size / 2) };
-    }
-  }
-  boundsCache.set(image.src, bounds);
-  return bounds;
-}
 
 function isLoaded(image: HTMLImageElement | undefined): image is HTMLImageElement {
   return !!image && image.complete && image.naturalWidth > 0;

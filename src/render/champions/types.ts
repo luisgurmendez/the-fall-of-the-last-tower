@@ -22,6 +22,12 @@ export interface ChampionBodyRenderer {
     snapshot: any,
     state: EntityRenderState,
   ): boolean;
+
+  /**
+   * Where the champion's feet are (below its center) and how wide it is,
+   * for its shadow; null until its art has loaded.
+   */
+  getFeet?(): { y: number; halfWidth: number } | null;
 }
 
 /**

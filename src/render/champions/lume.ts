@@ -8,7 +8,7 @@ import type {
   EntityRenderContext,
   EntityRenderState,
 } from "@/render/entities/types";
-import { drawSpriteFrame, imageCache } from "@/render/entities/shared";
+import { drawSpriteFrame, getSpriteFeet, imageCache } from "@/render/entities/shared";
 import type { ChampionBodyRenderer, ChampionRendererEntry } from "./types";
 
 /**
@@ -38,6 +38,10 @@ const SPRITES = {
  * Draws Lume from sprite sheets.
  */
 class LumeBodyRenderer implements ChampionBodyRenderer {
+  getFeet(): { y: number; halfWidth: number } | null {
+    return getSpriteFeet(SPRITES.LUME.IDLE, SPRITES.LUME.SCALE);
+  }
+
   private rc: EntityRenderContext;
 
   constructor(rc: EntityRenderContext) {

@@ -218,3 +218,77 @@ export function renderProtectionDome(
   ctx.stroke();
   ctx.restore();
 }
+
+/** Where a sprite's art is in its first frame, in sprite pixels from the frame's center */
+export interface SpriteBounds {
+  top: number;
+  /** The lowest opaque row: where the feet are */
+  bottom: number;
+  halfWidth: number;
+}
+
+const boundsCache = new Map<string, SpriteBounds>();
+
+/**
+ * The visible part of a strip's first frame (square frames), measured once
+ * per image: bars and name plates go above it, shadows under it.
+ */
+export function getSpriteBounds(image: HTMLImageElement): SpriteBounds {
+  const cached = boundsCache.get(image.src);
+  if (cached) return cached;
+
+  const size = image.naturalHeight;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const context = canvas.getContext("2d");
+  let bounds: SpriteBounds = { top: -size / 2, bottom: size / 2, halfWidth: size / 2 };
+  if (context) {
+    context.drawImage(image, 0, 0, size, size, 0, 0, size, size);
+    const alpha = context.getImageData(0, 0, size, size).data;
+    let top = size, bottom = -1, left = size, right = -1;
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        if (alpha[(y * size + x) * 4 + 3] === 0) continue;
+        top = Math.min(top, y);
+        bottom = Math.max(bottom, y);
+        left = Math.min(left, x);
+        right = Math.max(right, x);
+      }
+    }
+    if (right >= 0) {
+      bounds = {
+        top: top - size / 2,
+        bottom: bottom + 1 - size / 2,
+        halfWidth: Math.max(size / 2 - left, right + 1 - size / 2),
+      };
+    }
+  }
+  boundsCache.set(image.src, bounds);
+  return bounds;
+}
+
+/**
+ * Where a character drawn from `src` at `scale` stands: its feet's offset
+ * below its center and its half width, in world units. Null until loaded.
+ */
+export function getSpriteFeet(src: string, scale: number): { y: number; halfWidth: number } | null {
+  const image = imageCache.get(src);
+  if (!image || !image.complete || image.naturalWidth === 0) return null;
+  const bounds = getSpriteBounds(image);
+  return { y: bounds.bottom * scale, halfWidth: bounds.halfWidth * scale };
+}
+
+/**
+ * A soft shadow on the ground under a unit's feet.
+ */
+export function drawGroundShadow(ctx: CanvasRenderingContext2D, feetY: number, halfWidth: number): void {
+  const radiusX = Math.max(8, halfWidth * 0.7);
+  ctx.save();
+  ctx.fillStyle = "rgba(0, 0, 0, 0.28)";
+  ctx.beginPath();
+  ctx.ellipse(0, feetY - 1, radiusX, radiusX * 0.32, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
