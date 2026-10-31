@@ -143,16 +143,10 @@ export class ShopUI {
       );
     });
 
-    // Close on backdrop click
+    // Close on backdrop click (Escape closes it in OnlineGame, which opens the
+    // menu instead when the shop is closed)
     const backdrop = document.querySelector(".shop-backdrop");
     backdrop?.addEventListener("click", () => this.close());
-
-    // Keyboard shortcuts
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && this.state.isOpen) {
-        this.close();
-      }
-    });
   }
 
   /**
