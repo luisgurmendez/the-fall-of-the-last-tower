@@ -19,7 +19,7 @@ export const CHAMPION_ICONS: Record<string, string> = {
 
 /** Idle sprite strips: square frames side by side, the first one is used */
 const IDLE_SPRITES: Record<string, string> = {
-  vex: "/assets/champs/vex/Vex-Idle.png",
+  vex: "/assets/champs/vex/idle.png",
   lume: "/assets/champs/lume/Lume-IDLE.png",
   vile: "/assets/champs/vile/idle.png",
   warrior: "/assets/champs/warrior/idle.png",

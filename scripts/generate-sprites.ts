@@ -206,6 +206,15 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
     e: 'spins gracefully as light swirls around her feet',
     r: 'lifts both arms skyward as a column of radiant light descends',
   }),
+  champion('vex', {
+    name: 'Vex',
+    description: 'a lithe masked ninja assassin in dark violet and black garb with a hood and a long trailing scarf, glowing violet eyes, a short curved blade in one hand',
+    attack: 'slashes quickly with the short curved blade',
+    q: 'throws a spinning shuriken forward with a flick of the wrist',
+    w: 'crouches low and vanishes into a swirl of dark violet smoke',
+    e: 'dashes forward in a low blur, scarf streaming behind',
+    r: 'draws a second blade and takes a fierce ninja stance as violet energy flares around the body',
+  }),
   champion('gorath', {
     name: 'Gorath',
     description: 'a stout stone guardian in heavy stone-plated armor with a braided beard and glowing amber runes, carrying a huge stone hammer',

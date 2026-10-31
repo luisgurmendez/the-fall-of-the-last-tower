@@ -105,5 +105,17 @@
       "walk": "7e01402f-d47c-4c61-9f59-9f0b9154ceac"
     },
     "characterId": "872ea5b0-5fe0-4b9e-a447-fbecfe4e5a19"
+  },
+  "vex": {
+    "animations": {
+      "e": "d17861db-2ec6-4633-a0ed-bd7c4569b5f6",
+      "r": "a5e503fb-1a9c-48dd-a917-88e18243f66b",
+      "w": "f4031699-8f95-4ded-a66a-14ec03828166",
+      "attack": "752e48d9-2ab9-45a6-bd28-6ff8447109b1",
+      "q": "fb8d66a7-a13b-4ea6-8554-7245dfb32899",
+      "idle": "5dfbed78-a23d-442e-bc8a-85c926b6356a",
+      "walk": "cfd11b20-83f5-4a62-a63b-a53ba4279516"
+    },
+    "characterId": "2fa8f9b8-1873-4e52-a2ce-7079430aefa4"
   }
 }

@@ -1,345 +1,114 @@
 /**
- * Vex: sprite-sheet body with ability animations, dash afterimages, the
- * Ninja Mode aura and stealth transparency; the shuriken projectile; and
- * the icons for Vex's marks.
+ * Vex: a ninja drawn from generated sprite strips (idle, walk, attack and an
+ * animation per ability; scripts/generate-sprites.ts), see-through while
+ * stealthed, with violet sparks in Ninja Mode and afterimages along a
+ * Shadow Step; the shuriken projectile; and the icons for Vex's marks.
  */
 
-import type {
-  EntityRenderContext,
-  EntityRenderState,
-} from "@/render/entities/types";
-import { drawSpriteFrame, getSpriteFeet, imageCache } from "@/render/entities/shared";
+import type { EntityRenderContext } from "@/render/entities/types";
 import type { ChampionBodyRenderer, ChampionRendererEntry } from "./types";
+import { createStripBodyRenderer, generatedStrips, stripImages } from "./stripBody";
+
+const VEX_STRIPS = generatedStrips(
+  "vex",
+  { q: "vex_shuriken", w: "vex_shroud", e: "vex_dash", r: "vex_ninja_mode" },
+  // The Shadow Step strip's blur is near its end
+  { vex_dash: 0.8 },
+);
+
+/** World units per sprite pixel: about 55 tall, like the others */
+const VEX_SCALE = 0.6;
+/** How see-through Vex is while stealthed (only allies see Vex then) */
+const STEALTH_ALPHA = 0.45;
+/** A Shadow Step leaves an afterimage this often (ms), fading by this much per frame */
+const AFTERIMAGE_INTERVAL = 50;
+const AFTERIMAGE_FADE = 0.04;
+
+interface Afterimage {
+  x: number;
+  y: number;
+  alpha: number;
+}
 
 /**
- * Sprite configuration.
+ * Vex's body: the strips, plus stealth, Ninja Mode and Shadow Step effects.
  */
-const SPRITES = {
-  VEX: {
-    IDLE: "/assets/champs/vex/Vex-Idle.png",
-    WALK: "/assets/champs/vex/Vex-Walk-Sheet.png",
-    ATTACK: "/assets/champs/vex/Vex-BasicAttack-Sheet.png",
-    DASH: "/assets/champs/vex/Vex-Dash-Sheet.png",
-    SHURIKEN: "/assets/champs/vex/Vex-Shuriken-Sheet.png",
-    DISAPPEAR: "/assets/champs/vex/Vex-Disappear-Sheet.png",
-    IDLE_FRAMES: 1,
-    WALK_FRAMES: 5,
-    ATTACK_FRAMES: 7,
-    ATTACK_TRIGGER_FRAME: 3, // Frame 4 (0-indexed)
-    DASH_FRAMES: 13,
-    DASH_HOLD_FRAME: 4, // Frame 5 (0-indexed) - hold during dash
-    SHURIKEN_FRAMES: 6,
-    SHURIKEN_TRIGGER_FRAME: 3, // Frame 4 (0-indexed)
-    DISAPPEAR_FRAMES: 15,
-    SCALE: 0.8,
-  },
-};
+function createVexBody(rc: EntityRenderContext): ChampionBodyRenderer {
+  const strips = createStripBodyRenderer(VEX_STRIPS, VEX_SCALE, rc);
+  const afterimages = new Map<string, Afterimage[]>();
+  const lastAfterimageAt = new Map<string, number>();
 
-/**
- * Draws Vex from sprite sheets. Keeps dash afterimages between frames.
- */
-class VexBodyRenderer implements ChampionBodyRenderer {
-  getFeet(): { y: number; halfWidth: number } | null {
-    return getSpriteFeet(SPRITES.VEX.IDLE, SPRITES.VEX.SCALE);
-  }
+  return {
+    getFeet: () => strips.getFeet?.() ?? null,
+    render(ctx, snapshot, state) {
+      const entityId = snapshot.entityId;
+      const effects = (snapshot.activeEffects ?? []) as Array<{ definitionId: string }>;
+      const stealthed = effects.some((effect) => effect.definitionId === "vex_stealth");
+      const ninjaMode = effects.some((effect) => effect.definitionId === "vex_ninja_mode");
 
-  private rc: EntityRenderContext;
-
-  // Dash afterimages for sprite-based afterimage effects
-  private dashAfterimages: Map<
-    string,
-    Array<{ x: number; y: number; alpha: number; facingRight: boolean }>
-  > = new Map();
-  private lastAfterimageTime: Map<string, number> = new Map();
-
-  constructor(rc: EntityRenderContext) {
-    this.rc = rc;
-  }
-
-  /**
-   * Render Vex champion using sprite sheets.
-   * Returns true if sprite was rendered, false if fallback needed.
-   */
-  render(
-    ctx: CanvasRenderingContext2D,
-    snapshot: any,
-    state: EntityRenderState,
-  ): boolean {
-    const entityId = snapshot.entityId;
-
-    // Check if dashing with Vex E (special case: hold frame 5 during dash)
-    const isDashingWithE =
-      snapshot.isDashing && snapshot.dashAbilityId === "vex_dash";
-
-    // Check if casting an ability
-    const castingState = this.rc.stateManager.isEntityCastingAbility(entityId);
-    const abilityProgress = castingState.casting
-      ? this.rc.stateManager.getAbilityAnimationProgress(entityId)
-      : 0;
-
-    // Check if Vex has ninja mode active (for violet particle aura)
-    const activeEffects = snapshot.activeEffects as
-      | Array<{ definitionId: string }>
-      | undefined;
-    const hasNinjaMode = activeEffects?.some(
-      (e) => e.definitionId === "vex_ninja_mode"
-    );
-
-    // Check if Vex is stealthed (for semi-transparent rendering to local player)
-    const isStealthed = activeEffects?.some(
-      (e) => e.definitionId === "vex_stealth"
-    );
-
-    // Select sprite based on animation state (priority: E dash > ability > walk > idle)
-    let spriteSrc: string;
-    let frameCount: number;
-    let useAbilityProgress = false;
-    let fixedFrameIndex: number | null = null;
-
-    if (isDashingWithE) {
-      // Vex E dash: use DASH sprite, hold on frame 5 (index 4)
-      spriteSrc = SPRITES.VEX.DASH;
-      frameCount = SPRITES.VEX.DASH_FRAMES;
-      fixedFrameIndex = SPRITES.VEX.DASH_HOLD_FRAME;
-
-      // Override facing direction to look toward dash target
-      if (snapshot.dashTargetX != null) {
-        const dx = snapshot.dashTargetX - snapshot.x;
-        state.facingRight = dx >= 0;
-      }
-
-      // Create afterimages during dash
-      const now = performance.now();
-      const lastTime = this.lastAfterimageTime.get(entityId) || 0;
-      if (now - lastTime > 50) {
-        // Create afterimage every 50ms
-        let afterimages = this.dashAfterimages.get(entityId);
-        if (!afterimages) {
-          afterimages = [];
-          this.dashAfterimages.set(entityId, afterimages);
-        }
-        afterimages.push({
-          x: snapshot.x,
-          y: snapshot.y,
-          alpha: 0.7,
-          facingRight: state.facingRight,
-        });
-        this.lastAfterimageTime.set(entityId, now);
-      }
-    } else if (castingState.casting && castingState.abilityId) {
-      // Ability animation - check which ability
-      const abilityId = castingState.abilityId;
-      if (abilityId === "vex_shuriken") {
-        // Q - Shuriken throw, trigger at frame 4 (index 3)
-        spriteSrc = SPRITES.VEX.SHURIKEN;
-        frameCount = SPRITES.VEX.SHURIKEN_FRAMES;
-        useAbilityProgress = true;
-      } else if (abilityId === "vex_shroud") {
-        // W - Disappear, effect on last frame
-        spriteSrc = SPRITES.VEX.DISAPPEAR;
-        frameCount = SPRITES.VEX.DISAPPEAR_FRAMES;
-        useAbilityProgress = true;
-      } else if (abilityId === "vex_dash") {
-        // E - Dash animation after dash completes
-        spriteSrc = SPRITES.VEX.DASH;
-        frameCount = SPRITES.VEX.DASH_FRAMES;
-        // Play ending frames after the dash hold frame
-        const endingFrameCount = frameCount - SPRITES.VEX.DASH_HOLD_FRAME - 1;
-        const endingFrameIndex = Math.min(
-          Math.floor(abilityProgress * endingFrameCount),
-          endingFrameCount - 1
-        );
-        fixedFrameIndex = SPRITES.VEX.DASH_HOLD_FRAME + 1 + endingFrameIndex;
-      } else if (abilityId === "vex_ninja_mode") {
-        // R - Ninja Mode activation, use walk as base (VFX handles the particles)
-        spriteSrc = SPRITES.VEX.WALK;
-        frameCount = SPRITES.VEX.WALK_FRAMES;
-      } else {
-        // Unknown ability, fall back to walk idle
-        spriteSrc = SPRITES.VEX.WALK;
-        frameCount = SPRITES.VEX.WALK_FRAMES;
-        fixedFrameIndex = 0; // Idle frame
-      }
-    } else if (state.isAttacking) {
-      // Basic attack animation - trigger at frame 4 (index 3)
-      spriteSrc = SPRITES.VEX.ATTACK;
-      frameCount = SPRITES.VEX.ATTACK_FRAMES;
-      // Use attack animation time for frame selection
-      const animSpeed = 14; // Fast melee attack animation
-      fixedFrameIndex =
-        Math.floor(state.attackAnimTime * animSpeed) % frameCount;
-    } else if (state.isWalking) {
-      // Walk animation
-      spriteSrc = SPRITES.VEX.WALK;
-      frameCount = SPRITES.VEX.WALK_FRAMES;
-    } else {
-      // Idle animation
-      spriteSrc = SPRITES.VEX.IDLE;
-      frameCount = SPRITES.VEX.IDLE_FRAMES;
-      fixedFrameIndex = 0;
-    }
-
-    const image = imageCache.get(spriteSrc);
-
-    if (image && image.complete && image.naturalWidth > 0) {
-      // Calculate frame dimensions from actual image
-      const frameWidth = image.naturalWidth / frameCount;
-      const frameHeight = image.naturalHeight;
-
-      // Calculate animation frame
-      let frameIndex: number;
-      if (fixedFrameIndex !== null) {
-        // Fixed frame (e.g., Vex E dash holds on frame 5)
-        frameIndex = Math.min(fixedFrameIndex, frameCount - 1);
-      } else if (useAbilityProgress) {
-        // Use ability progress (0-1) to determine frame
-        frameIndex = Math.min(
-          Math.floor(abilityProgress * frameCount),
-          frameCount - 1
-        );
-      } else {
-        // Use continuous animation time for walk
-        const animSpeed = 10;
-        frameIndex = Math.floor(this.rc.animationTime * animSpeed) % frameCount;
-      }
-      const srcX = frameIndex * frameWidth;
-
-      const scaledWidth = frameWidth * SPRITES.VEX.SCALE;
-      const scaledHeight = frameHeight * SPRITES.VEX.SCALE;
-
-      // Render and update dash afterimages
-      const afterimages = this.dashAfterimages.get(entityId);
-      if (afterimages && afterimages.length > 0) {
-        const dashImage = imageCache.get(SPRITES.VEX.DASH);
-        if (dashImage && dashImage.complete && dashImage.naturalWidth > 0) {
-          const dashFrameWidth = dashImage.naturalWidth / SPRITES.VEX.DASH_FRAMES;
-          const dashFrameHeight = dashImage.naturalHeight;
-          const dashSrcX = SPRITES.VEX.DASH_HOLD_FRAME * dashFrameWidth;
-          const dashScaledWidth = dashFrameWidth * SPRITES.VEX.SCALE;
-          const dashScaledHeight = dashFrameHeight * SPRITES.VEX.SCALE;
-
-          // Draw afterimages (oldest first, so newest is on top)
-          for (const ai of afterimages) {
-            ctx.save();
-            // Translate to afterimage position relative to current entity position
-            const relX = ai.x - snapshot.x;
-            const relY = ai.y - snapshot.y;
-            ctx.translate(relX, relY);
-            ctx.globalAlpha = ai.alpha;
-
-            // Apply horizontal flip based on afterimage facing
-            if (!ai.facingRight) {
-              ctx.scale(-1, 1);
-            }
-
-            // Add violet tint to afterimages
-            ctx.drawImage(
-              dashImage,
-              dashSrcX,
-              0,
-              dashFrameWidth,
-              dashFrameHeight,
-              -dashScaledWidth / 2,
-              -dashScaledHeight / 2,
-              dashScaledWidth,
-              dashScaledHeight
-            );
-            ctx.restore();
-
-            // Fade afterimage
-            ai.alpha -= 0.03;
-          }
-
-          // Remove faded afterimages
-          this.dashAfterimages.set(
-            entityId,
-            afterimages.filter((ai) => ai.alpha > 0)
-          );
+      // Shadow Step: leave afterimages along the way, drawn behind Vex
+      const trail = afterimages.get(entityId) ?? [];
+      if (snapshot.isDashing && snapshot.dashAbilityId === "vex_dash") {
+        const now = performance.now();
+        if (now - (lastAfterimageAt.get(entityId) ?? 0) > AFTERIMAGE_INTERVAL) {
+          trail.push({ x: snapshot.x, y: snapshot.y, alpha: 0.6 });
+          lastAfterimageAt.set(entityId, now);
         }
       }
+      for (const afterimage of trail) {
+        ctx.save();
+        ctx.translate(afterimage.x - snapshot.x, afterimage.y - snapshot.y);
+        ctx.globalAlpha *= afterimage.alpha;
+        ctx.filter = "brightness(0.7) sepia(1) hue-rotate(220deg) saturate(2.5)";
+        strips.render(ctx, snapshot, state);
+        ctx.restore();
+        afterimage.alpha -= AFTERIMAGE_FADE;
+      }
+      afterimages.set(entityId, trail.filter((afterimage) => afterimage.alpha > 0));
 
-      // Check if entity is hovered for outline highlighting
-      const outlineColor = this.rc.getOutlineColor(snapshot.entityId);
+      if (ninjaMode) drawNinjaModeAura(ctx, rc.animationTime);
 
-      // Apply horizontal flip if facing left
       ctx.save();
-      if (!state.facingRight) {
-        ctx.scale(-1, 1);
-      }
-
-      // Apply stealth opacity (local player sees semi-transparent, others don't see at all)
-      // Only apply after the disappear animation has finished
-      const isCastingShroud = castingState.casting && castingState.abilityId === "vex_shroud";
-      if (isStealthed && !isCastingShroud) {
-        ctx.globalAlpha = 0.4;
-      }
-
-      // Draw violet aura particles when Ninja Mode is active
-      if (hasNinjaMode) {
-        this.drawNinjaModeAura(ctx, scaledWidth, scaledHeight);
-      }
-
-      drawSpriteFrame(
-        ctx,
-        image,
-        srcX,
-        frameWidth,
-        frameHeight,
-        SPRITES.VEX.SCALE,
-        outlineColor,
-      );
-
+      if (stealthed) ctx.globalAlpha *= STEALTH_ALPHA;
+      const drawn = strips.render(ctx, snapshot, state);
       ctx.restore();
-      return true;
-    }
+      return drawn;
+    },
+  };
+}
 
-    return false;
-  }
+/**
+ * Violet sparks orbiting Vex in Ninja Mode, over a faint glow.
+ */
+function drawNinjaModeAura(ctx: CanvasRenderingContext2D, time: number): void {
+  const particleCount = 6;
+  const orbitRadius = 26;
 
-  /**
-   * Draw violet particle aura for Vex's Ninja Mode.
-   */
-  private drawNinjaModeAura(
-    ctx: CanvasRenderingContext2D,
-    width: number,
-    height: number
-  ): void {
-    const time = this.rc.animationTime;
-    const particleCount = 6;
-    const orbitRadius = Math.max(width, height) * 0.5;
+  ctx.save();
+  for (let i = 0; i < particleCount; i++) {
+    const angle = (i / particleCount) * Math.PI * 2 + time * 3;
+    const x = Math.cos(angle) * orbitRadius;
+    const y = Math.sin(angle) * orbitRadius * 0.5; // Elliptical orbit
 
-    ctx.save();
-
-    for (let i = 0; i < particleCount; i++) {
-      const angle = (i / particleCount) * Math.PI * 2 + time * 3;
-      const x = Math.cos(angle) * orbitRadius;
-      const y = Math.sin(angle) * orbitRadius * 0.5; // Elliptical orbit
-
-      // Violet gradient particle
-      const gradient = ctx.createRadialGradient(x, y, 0, x, y, 4);
-      gradient.addColorStop(0, "rgba(153, 51, 255, 0.9)"); // Bright violet center
-      gradient.addColorStop(0.5, "rgba(136, 68, 204, 0.6)"); // Purple
-      gradient.addColorStop(1, "rgba(68, 34, 102, 0)"); // Fade out
-
-      ctx.fillStyle = gradient;
-      ctx.beginPath();
-      ctx.arc(x, y, 6, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // Add subtle glow around character
-    const glowGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, orbitRadius);
-    glowGradient.addColorStop(0, "rgba(153, 51, 255, 0.15)");
-    glowGradient.addColorStop(0.7, "rgba(136, 68, 204, 0.05)");
-    glowGradient.addColorStop(1, "rgba(68, 34, 102, 0)");
-
-    ctx.fillStyle = glowGradient;
+    const gradient = ctx.createRadialGradient(x, y, 0, x, y, 4);
+    gradient.addColorStop(0, "rgba(153, 51, 255, 0.9)");
+    gradient.addColorStop(0.5, "rgba(136, 68, 204, 0.6)");
+    gradient.addColorStop(1, "rgba(68, 34, 102, 0)");
+    ctx.fillStyle = gradient;
     ctx.beginPath();
-    ctx.arc(0, 0, orbitRadius, 0, Math.PI * 2);
+    ctx.arc(x, y, 6, 0, Math.PI * 2);
     ctx.fill();
-
-    ctx.restore();
   }
+
+  const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, orbitRadius);
+  glow.addColorStop(0, "rgba(153, 51, 255, 0.15)");
+  glow.addColorStop(0.7, "rgba(136, 68, 204, 0.05)");
+  glow.addColorStop(1, "rgba(68, 34, 102, 0)");
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(0, 0, orbitRadius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
 }
 
 /**
@@ -388,15 +157,8 @@ function renderShurikenProjectile(
  * Vex renderer entry.
  */
 export const vexRenderer: ChampionRendererEntry = {
-  images: [
-    SPRITES.VEX.IDLE,
-    SPRITES.VEX.WALK,
-    SPRITES.VEX.ATTACK,
-    SPRITES.VEX.DASH,
-    SPRITES.VEX.SHURIKEN,
-    SPRITES.VEX.DISAPPEAR,
-  ],
-  createBodyRenderer: (rc) => new VexBodyRenderer(rc),
+  images: stripImages(VEX_STRIPS),
+  createBodyRenderer: createVexBody,
   projectiles: {
     vex_shuriken: renderShurikenProjectile,
   },

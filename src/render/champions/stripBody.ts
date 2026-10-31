@@ -27,6 +27,8 @@ export interface ChampionStrips {
   attack: string;
   /** Strips for abilities with their own animation, by ability id */
   abilities: Record<string, string>;
+  /** Where in a dash ability's strip to hold while dashing, by ability id (default DASH_HOLD_PROGRESS) */
+  dashHold?: Record<string, number>;
 }
 
 /**
@@ -37,6 +39,7 @@ export interface ChampionStrips {
 export function generatedStrips(
   championId: string,
   abilities: Partial<Record<"q" | "w" | "e" | "r", string>>,
+  dashHold?: Record<string, number>,
 ): ChampionStrips {
   const dir = `/assets/champs/${championId}`;
   return {
@@ -46,6 +49,7 @@ export function generatedStrips(
     abilities: Object.fromEntries(
       Object.entries(abilities).map(([slot, abilityId]) => [abilityId, `${dir}/${slot}.png`]),
     ),
+    dashHold,
   };
 }
 
@@ -77,7 +81,7 @@ export function createStripBodyRenderer(
       if (dashStrip) {
         // Mid-dash: hold the ability's frame of motion
         src = dashStrip;
-        progress = DASH_HOLD_PROGRESS;
+        progress = strips.dashHold?.[snapshot.dashAbilityId] ?? DASH_HOLD_PROGRESS;
       } else if (abilityStrip) {
         src = abilityStrip;
         progress = rc.stateManager.getAbilityAnimationProgress(entityId);

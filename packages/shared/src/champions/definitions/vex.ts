@@ -297,6 +297,8 @@ export const VexDefinition: ChampionDefinition = {
   },
   passive: "vex_passive",
   collision: VEX_COLLISION,
+  /** Height of the sprite as drawn (src/render/champions/vex.ts), for the health bar */
+  visualHeight: 56,
   animations: VEX_ANIMATIONS,
   attackAnimationSpeedScale: true,
 };
