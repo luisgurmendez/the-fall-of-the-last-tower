@@ -104,7 +104,7 @@ export const MOBAConfig = {
       },
       {
         id: "blue_thornspitter",
-        position: new Vector(-2000, -480),
+        position: new Vector(-1960, -420),
         creatureType: "thornspitter" as const,
         count: 1,
         respawnTime: 60,
@@ -133,7 +133,7 @@ export const MOBAConfig = {
       },
       {
         id: "blue_thornspitter_2",
-        position: new Vector(480, 2000),
+        position: new Vector(420, 1960),
         creatureType: "thornspitter" as const,
         count: 1,
         respawnTime: 60,
@@ -149,7 +149,7 @@ export const MOBAConfig = {
       },
       {
         id: "red_thornspitter",
-        position: new Vector(2000, 480),
+        position: new Vector(1960, 420),
         creatureType: "thornspitter" as const,
         count: 1,
         respawnTime: 60,
@@ -177,7 +177,7 @@ export const MOBAConfig = {
       },
       {
         id: "red_thornspitter_2",
-        position: new Vector(-480, -2000),
+        position: new Vector(-420, -1960),
         creatureType: "thornspitter" as const,
         count: 1,
         respawnTime: 60,
@@ -397,62 +397,68 @@ export const MOBAConfig = {
     // Top lane, outer side
     { center: new Vector(-2590, -900), bushCount: 3, spread: "vertical" as const },
     // Top lane, at the entrance to the thornspitter
-    { center: new Vector(-2240, -480), bushCount: 3, spread: "vertical" as const },
-    // Top lane, at the corner entrance by the river
-    { center: new Vector(-2110, -1245), bushCount: 3, spread: "cluster" as const },
-    // Top-side jungle, at the corner crossroads
-    { center: new Vector(-1750, -950), bushCount: 3, spread: "cluster" as const },
-    // Top-side jungle, between the blue buff and the river crossroads
-    { center: new Vector(-1145, -125), bushCount: 3, spread: "cluster" as const },
-    // Top-side jungle, at the crossroads by the base
-    { center: new Vector(-1800, 650), bushCount: 3, spread: "cluster" as const },
-    // Top river, at the corner entrance
-    { center: new Vector(-1235, -1065), bushCount: 3, spread: "cluster" as const },
-    // Top river, near mid
-    { center: new Vector(-570, -430), bushCount: 3, spread: "cluster" as const },
-    // Mid lane, at the top-side entrance by the river
-    { center: new Vector(-450, 316), bushCount: 3, spread: "cluster" as const },
+    { center: new Vector(-2250, -1060), bushCount: 3, spread: "vertical" as const },
+    // Top lane, at the river corner
+    { center: new Vector(-2150, -1650), bushCount: 3, spread: "cluster" as const },
+    // Top lane, at the entrance by the base
+    { center: new Vector(-2250, 430), bushCount: 3, spread: "vertical" as const },
+    // Top-side jungle, between the thornspitter and the blue buff
+    { center: new Vector(-1720, -380), bushCount: 3, spread: "cluster" as const },
+    // Top-side jungle, on the way from the wolves to the base
+    { center: new Vector(-1600, 800), bushCount: 3, spread: "cluster" as const },
     // Mid lane, at the entrance to the wolves
-    { center: new Vector(-1048, 832), bushCount: 3, spread: "cluster" as const },
-    // Mid lane, at the bot-side entrance by the river
-    { center: new Vector(-316, 450), bushCount: 3, spread: "cluster" as const },
-    // Mid lane, at the entrance to the spiders
-    { center: new Vector(-832, 1048), bushCount: 3, spread: "cluster" as const },
-    // Bot river, near mid
-    { center: new Vector(430, 570), bushCount: 3, spread: "cluster" as const },
+    { center: new Vector(-930, 520), bushCount: 3, spread: "cluster" as const },
+    // Mid lane, at the river crossroads, top side
+    { center: new Vector(-520, 180), bushCount: 3, spread: "cluster" as const },
+    // Top river, at the entrance to the blue buff
+    { center: new Vector(-1250, -1010), bushCount: 3, spread: "cluster" as const },
+    // Top river, at the crossroads by mid
+    { center: new Vector(-560, -250), bushCount: 3, spread: "cluster" as const },
+    // Bot river, at the crossroads by mid
+    { center: new Vector(250, 560), bushCount: 3, spread: "cluster" as const },
     // Bot river, by the dragon pit
     { center: new Vector(1000, 1130), bushCount: 3, spread: "cluster" as const },
     // Behind the dragon pit
     { center: new Vector(1380, 1710), bushCount: 3, spread: "cluster" as const },
-    // Bot-side jungle, between the red buff and the river crossroads
-    { center: new Vector(125, 1145), bushCount: 3, spread: "cluster" as const },
-    // Bot-side jungle, at the crossroads by the base
-    { center: new Vector(-650, 1800), bushCount: 3, spread: "cluster" as const },
-    // Bot lane, at the entrance to the thornspitter
-    { center: new Vector(480, 2240), bushCount: 3, spread: "horizontal" as const },
     // Bot lane, outer side
     { center: new Vector(900, 2590), bushCount: 3, spread: "horizontal" as const },
+    // Bot lane, at the entrance to the thornspitter
+    { center: new Vector(1060, 2250), bushCount: 3, spread: "horizontal" as const },
+    // Bot lane, at the river corner
+    { center: new Vector(1650, 2150), bushCount: 3, spread: "cluster" as const },
+    // Bot lane, at the entrance by the base
+    { center: new Vector(-430, 2250), bushCount: 3, spread: "horizontal" as const },
+    // Bot-side jungle, between the thornspitter and the red buff
+    { center: new Vector(380, 1720), bushCount: 3, spread: "cluster" as const },
+    // Bot-side jungle, on the way from the spiders to the base
+    { center: new Vector(-800, 1600), bushCount: 3, spread: "cluster" as const },
+    // Mid lane, at the entrance to the spiders
+    { center: new Vector(-520, 930), bushCount: 3, spread: "cluster" as const },
+    // Mid lane, at the river crossroads, bot side
+    { center: new Vector(-180, 520), bushCount: 3, spread: "cluster" as const },
 
     // ========== RED HALF (mirror of blue) ==========
     { center: new Vector(2590, 900), bushCount: 3, spread: "vertical" as const },
-    { center: new Vector(2240, 480), bushCount: 3, spread: "vertical" as const },
-    { center: new Vector(2110, 1245), bushCount: 3, spread: "cluster" as const },
-    { center: new Vector(1750, 950), bushCount: 3, spread: "cluster" as const },
-    { center: new Vector(1145, 125), bushCount: 3, spread: "cluster" as const },
-    { center: new Vector(1800, -650), bushCount: 3, spread: "cluster" as const },
-    { center: new Vector(1235, 1065), bushCount: 3, spread: "cluster" as const },
-    { center: new Vector(570, 430), bushCount: 3, spread: "cluster" as const },
-    { center: new Vector(450, -316), bushCount: 3, spread: "cluster" as const },
-    { center: new Vector(1048, -832), bushCount: 3, spread: "cluster" as const },
-    { center: new Vector(316, -450), bushCount: 3, spread: "cluster" as const },
-    { center: new Vector(832, -1048), bushCount: 3, spread: "cluster" as const },
-    { center: new Vector(-430, -570), bushCount: 3, spread: "cluster" as const },
+    { center: new Vector(2250, 1060), bushCount: 3, spread: "vertical" as const },
+    { center: new Vector(2150, 1650), bushCount: 3, spread: "cluster" as const },
+    { center: new Vector(2250, -430), bushCount: 3, spread: "vertical" as const },
+    { center: new Vector(1720, 380), bushCount: 3, spread: "cluster" as const },
+    { center: new Vector(1600, -800), bushCount: 3, spread: "cluster" as const },
+    { center: new Vector(930, -520), bushCount: 3, spread: "cluster" as const },
+    { center: new Vector(520, -180), bushCount: 3, spread: "cluster" as const },
+    { center: new Vector(1250, 1010), bushCount: 3, spread: "cluster" as const },
+    { center: new Vector(560, 250), bushCount: 3, spread: "cluster" as const },
+    { center: new Vector(-250, -560), bushCount: 3, spread: "cluster" as const },
     { center: new Vector(-1000, -1130), bushCount: 3, spread: "cluster" as const },
     { center: new Vector(-1380, -1710), bushCount: 3, spread: "cluster" as const },
-    { center: new Vector(-125, -1145), bushCount: 3, spread: "cluster" as const },
-    { center: new Vector(650, -1800), bushCount: 3, spread: "cluster" as const },
-    { center: new Vector(-480, -2240), bushCount: 3, spread: "horizontal" as const },
     { center: new Vector(-900, -2590), bushCount: 3, spread: "horizontal" as const },
+    { center: new Vector(-1060, -2250), bushCount: 3, spread: "horizontal" as const },
+    { center: new Vector(-1650, -2150), bushCount: 3, spread: "cluster" as const },
+    { center: new Vector(430, -2250), bushCount: 3, spread: "horizontal" as const },
+    { center: new Vector(-380, -1720), bushCount: 3, spread: "cluster" as const },
+    { center: new Vector(800, -1600), bushCount: 3, spread: "cluster" as const },
+    { center: new Vector(520, -930), bushCount: 3, spread: "cluster" as const },
+    { center: new Vector(180, -520), bushCount: 3, spread: "cluster" as const },
   ],
 
   /**

@@ -4,13 +4,27 @@
  * If monster stats or the slams get stronger, this fails; if they get much
  * weaker, so does the check that the fight costs real health.
  */
+import { MOBAConfig } from '@siege/shared';
 import { defineScenario } from '../src/sim';
 import type { Simulation } from '../src/sim';
 import type { ServerJungleCreature } from '../src/simulation/ServerJungleCreature';
 
+/** Somewhere open 250 from a camp, out of its aggro range, so the champion walks up and starts the fight */
+function nearCamp(campId: string): { x: number; y: number } {
+  const camp = MOBAConfig.JUNGLE.CAMPS.find(c => c.id === campId)!.position;
+  const inWall = (x: number, y: number) =>
+    MOBAConfig.WALLS.some(w => Math.abs(x - w.position.x) < w.width / 2 + 30 && Math.abs(y - w.position.y) < w.height / 2 + 30);
+  for (let i = 0; i < 16; i++) {
+    const angle = (i / 16) * Math.PI * 2;
+    const at = { x: camp.x + Math.cos(angle) * 250, y: camp.y + Math.sin(angle) * 250 };
+    if (!inWall(at.x, at.y)) return at;
+  }
+  throw new Error(`no open ground near ${campId}`);
+}
+
 const FIGHTS = [
-  { playerId: 'blue', campId: 'blue_bluebuff', at: { x: -820, y: 30 } },
-  { playerId: 'red', campId: 'blue_redbuff', at: { x: 330, y: 820 } },
+  { playerId: 'blue', campId: 'blue_bluebuff', at: nearCamp('blue_bluebuff') },
+  { playerId: 'red', campId: 'blue_redbuff', at: nearCamp('blue_redbuff') },
 ];
 
 /** Lowest health fraction each champion reached */

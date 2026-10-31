@@ -6,21 +6,21 @@
  * river 360 wide crossing it, and a jungle quadrant on each side of mid per
  * team. The jungle's shapes are our own.
  *
- * The jungle is carved, not built: each quadrant between the lanes, the
- * river and the base is solid forest, and clearings (the camps, a few
- * crossroads) and corridors about 170 wide are cut out of it, so paths run
- * between thick walls the way they do in the classic map. Blue's top-side
- * jungle (between top lane and mid) is designed here, reflected across mid
- * for blue's bot-side jungle, and mirrored through the map center for red.
- * The bot-side jungle differs near the river: the dragon's pit is cut into
- * blue's bank of the bot river (open toward it, so walking along the river
- * is never blocked), which mirrors into an empty pit on red's bank of the
- * top river. Tiles are 64 units, so the client draws them as cliffs.
+ * The jungle is islands of forest about 300-600 across, with paths about
+ * 180-250 wide between them and the camps in the pockets they leave, about
+ * half of it walkable, like the classic map. Blue's top-side jungle
+ * (between top lane and mid) is designed here, reflected across mid for
+ * blue's bot-side jungle, and mirrored through the map center for red. The
+ * bot-side jungle differs at the river: the dragon's pit is cut into blue's
+ * bank of the bot river (open toward it, so walking along the river is
+ * never blocked), which mirrors into an empty pit on red's bank of the top
+ * river. Islands are clipped to stay clear of the lanes, the river and the
+ * base. Tiles are 64 units, so the client draws them as cliffs.
  *
  * Preview the result with `bun run sim map-overview` (packages/server).
  */
 
-import { buildWalls, distanceToPolyline, distanceToSegment, type WallRect } from './mapLayout';
+import { arc, buildWalls, distanceToPolyline, pointInPolygon, reflectAcrossMid, type Polygon, type WallRect } from './mapLayout';
 
 type Point = { readonly x: number; readonly y: number };
 const point = (x: number, y: number): Point => ({ x, y });
@@ -42,113 +42,93 @@ export const RIVER_WIDTH = 360;
 
 /**
  * The dragon's pit, on blue's bank of the bot river (blue's side is
- * y > x). Its center is 330 off the river's centerline, so the clearing cut
- * for it opens into the river.
+ * y > x). Its center is 330 off the river's centerline, and its walls only
+ * go round the side away from the river.
  */
-export const DRAGON_PIT = { x: 867, y: 1333, radius: 220 } as const;
+export const DRAGON_PIT = { x: 867, y: 1333, radius: 250 } as const;
 
-/** Width of the jungle's corridors */
-const CORRIDOR = 170;
-
-/** The forest stops this far from a lane's centerline, the river's, and blue's nexus */
+/** Islands stay this far from a lane's centerline, the river's, and blue's nexus */
 const LANE_CLEARANCE = 200;
 const RIVER_CLEARANCE = 240;
 const BASE_CLEARANCE = 950;
 
-interface Clearing { x: number; y: number; radius: number }
-interface Corridor { ax: number; ay: number; bx: number; by: number; width: number }
-
-const clearing = (x: number, y: number, radius: number): Clearing => ({ x, y, radius });
-const corridor = (a: Point, b: Point, width = CORRIDOR): Corridor => ({ ax: a.x, ay: a.y, bx: b.x, by: b.y, width });
-
-// Blue's top-side jungle: its camps, crossroads and where corridors come out
-const BLUE_BUFF = point(-1440, -200);
-const THORNSPITTER = point(-2000, -480);
-const WOLVES = point(-1440, 360);
-const CORNER_CROSSROADS = point(-1750, -950);
-const RIVER_CROSSROADS = point(-850, -50);
-const BASE_CROSSROADS = point(-1800, 650);
-
-const TOP_SIDE_CLEARINGS: Clearing[] = [
-  clearing(BLUE_BUFF.x, BLUE_BUFF.y, 210),
-  clearing(THORNSPITTER.x, THORNSPITTER.y, 170),
-  clearing(WOLVES.x, WOLVES.y, 190),
-  clearing(CORNER_CROSSROADS.x, CORNER_CROSSROADS.y, 150),
-  clearing(RIVER_CROSSROADS.x, RIVER_CROSSROADS.y, 150),
-  clearing(BASE_CROSSROADS.x, BASE_CROSSROADS.y, 140),
+/**
+ * Blue's top-side jungle (camps: blue buff (-1440, -200), thornspitter
+ * (-1960, -420), wolves (-1440, 360)). Paths left between the islands:
+ * from top lane by the river corner, to the thornspitter, and near the
+ * base; thornspitter to blue buff; blue buff to the river and to the
+ * wolves; wolves to mid and to the base; and a crossroads where the river
+ * meets mid.
+ */
+const TOP_SIDE_ISLANDS: Polygon[] = [
+  // Along top lane, between the river corner and the thornspitter's entrance
+  [[-2220, -1420], [-2090, -1470], [-2000, -1400], [-2020, -1260], [-2110, -1170], [-2220, -1160]],
+  // Along top lane, behind the thornspitter
+  [[-2220, -760], [-2130, -760], [-2150, -420], [-2100, -160], [-2080, 60], [-2220, 160]],
+  // Between the thornspitter and the river corner
+  [[-1850, -960], [-1700, -870], [-1640, -660], [-1720, -540], [-1860, -600], [-1920, -790]],
+  // Between the blue buff and the thornspitter's way to the base
+  [[-1910, -170], [-1680, -120], [-1620, 60], [-1780, 180], [-1980, 120], [-2010, -40]],
+  // Between the blue buff, the wolves and the river crossroads
+  [[-1260, -60], [-1030, -130], [-870, -30], [-880, 170], [-1050, 300], [-1230, 200]],
+  // Between the wolves and mid, south of their mid entrance
+  [[-1320, 760], [-1130, 690], [-990, 760], [-1060, 910], [-1250, 970], [-1390, 880]],
+  // Along top lane, near the base
+  [[-2220, 640], [-2000, 600], [-1850, 720], [-1880, 920], [-2050, 1050], [-2220, 1060]],
+  // Between the wolves' way to the base and mid
+  [[-1620, 1000], [-1460, 930], [-1370, 1040], [-1450, 1180], [-1620, 1190], [-1700, 1100]],
 ];
 
-const TOP_SIDE_CORRIDORS: Corridor[] = [
-  // From top lane: by the river corner, to the thornspitter, and near the base
-  corridor(point(-2300, -1400), CORNER_CROSSROADS),
-  corridor(point(-2300, -480), THORNSPITTER),
-  corridor(point(-2300, 700), BASE_CROSSROADS),
-  // Around the camps
-  corridor(CORNER_CROSSROADS, THORNSPITTER),
-  corridor(THORNSPITTER, BLUE_BUFF),
-  corridor(BLUE_BUFF, WOLVES),
-  corridor(BLUE_BUFF, RIVER_CROSSROADS),
-  corridor(WOLVES, BASE_CROSSROADS),
-  // Out to the base
-  corridor(BASE_CROSSROADS, point(-1750, 1250)),
-  // To mid: into the wolves, and from the river crossroads near the river
-  corridor(WOLVES, point(-950, 950)),
-  corridor(RIVER_CROSSROADS, point(-380, 380)),
+/** Blue's bank of the top river: between the corner and the blue buff's river entrance, and toward mid */
+const TOP_RIVER_ISLANDS: Polygon[] = [
+  [[-1780, -1300], [-1600, -1210], [-1450, -1050], [-1520, -920], [-1700, -950], [-1830, -1120]],
+  [[-1090, -650], [-900, -560], [-760, -420], [-820, -290], [-1000, -330], [-1160, -450]],
 ];
 
-/** Where blue's top-side jungle opens onto the top river: by the corner and by mid */
-const TOP_RIVER_ENTRANCES: Corridor[] = [
-  corridor(CORNER_CROSSROADS, point(-1220, -1080)),
-  corridor(RIVER_CROSSROADS, point(-480, -420)),
+/** Blue's bank of the bot river: toward mid (the top bank's reflection), then the dragon's pit */
+const BOT_RIVER_ISLANDS: Polygon[] = [
+  reflectAcrossMid(TOP_RIVER_ISLANDS[1]),
+  ...arc(DRAGON_PIT.x, DRAGON_PIT.y, DRAGON_PIT.radius, 24, 246, 110),
 ];
 
-/** Reflect across the mid lane (the line y = -x): blue's top-side jungle onto its bot-side jungle */
-const reflectPoint = (p: Point): Point => point(-p.y, -p.x);
-const reflectClearing = (c: Clearing): Clearing => ({ ...c, x: -c.y, y: -c.x });
-const reflectCorridor = (c: Corridor): Corridor => ({ ...c, ax: -c.ay, ay: -c.ax, bx: -c.by, by: -c.bx });
+/** An island grown by `factor` around its center (designs are drawn small, then grown to close the paths down) */
+function grow(island: Polygon, factor: number): Polygon {
+  const cx = island.reduce((sum, [x]) => sum + x, 0) / island.length;
+  const cy = island.reduce((sum, [, y]) => sum + y, 0) / island.length;
+  return island.map(([x, y]) => [cx + (x - cx) * factor, cy + (y - cy) * factor] as const);
+}
 
 /**
- * Where blue's bot-side jungle opens onto the bot river: by mid (the
- * reflection of the top side's), and past the dragon pit instead of into it
+ * How much each island is grown, so paths about 180-250 wide are left
+ * between them: less by the river corner, where three meet
  */
-const BOT_RIVER_ENTRANCES: Corridor[] = [
-  reflectCorridor(TOP_RIVER_ENTRANCES[1]),
-  corridor(reflectPoint(CORNER_CROSSROADS), point(1480, 1700)),
+const TOP_SIDE_GROWTH = [1.15, 1.5, 1.2, 1.5, 1.5, 1.5, 1.5, 1.5];
+const TOP_RIVER_GROWTH = [1.1, 1.5];
+
+const TOP_SIDE: Polygon[] = TOP_SIDE_ISLANDS.map((island, i) => grow(island, TOP_SIDE_GROWTH[i]));
+
+const ISLANDS: Polygon[] = [
+  ...TOP_SIDE,
+  ...TOP_SIDE.map(reflectAcrossMid),
+  ...TOP_RIVER_ISLANDS.map((island, i) => grow(island, TOP_RIVER_GROWTH[i])),
+  grow(BOT_RIVER_ISLANDS[0], TOP_RIVER_GROWTH[1]),
+  ...BOT_RIVER_ISLANDS.slice(1),
 ];
 
-const CLEARINGS: Clearing[] = [
-  ...TOP_SIDE_CLEARINGS,
-  ...TOP_SIDE_CLEARINGS.map(reflectClearing),
-  clearing(DRAGON_PIT.x, DRAGON_PIT.y, DRAGON_PIT.radius),
-];
-
-const CORRIDORS: Corridor[] = [
-  ...TOP_SIDE_CORRIDORS,
-  ...TOP_SIDE_CORRIDORS.map(reflectCorridor),
-  ...TOP_RIVER_ENTRANCES,
-  ...BOT_RIVER_ENTRANCES,
-];
-
-/**
- * Whether a point on blue's half (y > x) is forest: inside the lane ring,
- * clear of the lanes, the river and the base, and not in a clearing or a
- * corridor. Red's half is the mirror image (buildWalls).
- */
-function isJungleWall(x: number, y: number): boolean {
+/** Whether a point on blue's half (y > x) is clear of the lanes, the river and the base */
+function inJungle(x: number, y: number): boolean {
   if (y <= x) return false;
-  if (Math.abs(x) > 2420 || Math.abs(y) > 2420) return false;
   if (Math.hypot(x - BLUE_NEXUS.x, y - BLUE_NEXUS.y) < BASE_CLEARANCE) return false;
   if (distanceToPolyline(x, y, RIVER_PATH) < RIVER_CLEARANCE) return false;
   for (const lane of Object.values(LANE_PATHS)) {
     if (distanceToPolyline(x, y, lane) < LANE_CLEARANCE) return false;
   }
-  for (const c of CLEARINGS) {
-    if (Math.hypot(x - c.x, y - c.y) < c.radius) return false;
-  }
-  for (const c of CORRIDORS) {
-    if (distanceToSegment(x, y, c.ax, c.ay, c.bx, c.by) < c.width / 2) return false;
-  }
   return true;
+}
+
+/** Whether a point on blue's half is forest: in an island, clipped to the jungle. Red's half is the mirror image (buildWalls). */
+function isJungleWall(x: number, y: number): boolean {
+  return inJungle(x, y) && ISLANDS.some(island => pointInPolygon(x, y, island));
 }
 
 export const SIEGE_MAP_WALLS: WallRect[] = buildWalls([], isJungleWall);
