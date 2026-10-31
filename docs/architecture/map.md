@@ -18,6 +18,8 @@ Coordinates run from -1800 to 1800 on both axes, with +y pointing down. A 192-un
 
 ## Walls
 
+(With the generated tilesets, walls are drawn as rock plateaus by `src/map/terrainTiles.ts`; see Ground art. What follows is the fallback tilemap.)
+
 Walls are designed as polygons for blue's top-side jungle (`stroke`, `blob`, `arc`). They are reflected across mid for blue's bot-side jungle (`reflectAcrossMid`), and `buildWalls()` then mirrors everything through the map center for red. Finally `buildWalls()` rasterizes them to 64-unit tiles and merges the tiles into rectangles. Every column of wall is made at least two tiles tall, so it can show a plateau above a cliff face. The result is `MOBAConfig.WALLS`: rectangles centered on `position`.
 
 The client draws walls per 64-unit cell from the union of all rectangles (`MOBABackground.drawInteriorWalls`), so neighboring rectangles form one mass. In each column, the lowest wall cell is the rock cliff face. The cells above it are grass plateau, and each plateau tile is picked from its neighbors: edges where the plateau ends, interior elsewhere, plus one-wide and one-tall variants. Diagonal walls therefore render as stepped cliffs rather than stacked slabs. The minimap draws the rectangles.
@@ -26,6 +28,10 @@ To change the layout:
 1. Edit the polygons in `siegeMap.ts`.
 2. Run `bun run sim map-overview --px 900` in `packages/server` and look at `sim-output/map-overview/final.png`.
 3. Run `bun test Terrain`. It checks that every camp, tower and lane waypoint is reachable from both spawns and that none of them is inside a wall.
+
+## Ground art
+
+The ground is drawn once into the background canvas (`MOBABackground`) from three generated Wang tilesets (`scripts/generate-tilesets.ts`, ids in `scripts/tilesets.json`, art in `public/assets/tiles/`): grass and path, grass and water, grass and raised rock. `src/map/terrainTiles.ts` classifies every vertex of a 16-unit grid as water (the border and the river), rock (inside a wall), path (along a lane) or grass. Each cell takes, from each tileset, the tile whose four corners match its vertices; layers go grass, paths, water, rock. Plain tiles are mirrored at random per cell to break up repetition. The second and third tilesets get the first one's grass tile as a reference, so all the grass matches. PixelLab sometimes swaps a set's two terrains; the generator spots it by which plain tile is greener and relabels the corners. Without the tilesets, the older tilemap ground below is drawn.
 
 ## Terrain on the server
 

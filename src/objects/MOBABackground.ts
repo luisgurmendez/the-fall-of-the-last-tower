@@ -16,6 +16,7 @@ import BaseObject from "./baseObject";
 import { Rectangle } from "./shapes";
 import { MOBAConfig, MOBAMap } from "@/map";
 import NavigationGrid from "@/navigation/NavigationGrid";
+import { drawTerrain, loadTerrainTilesets, type TerrainTilesets } from "@/map/terrainTiles";
 
 // Use shared constant from config
 const WATER_BORDER_SIZE = MOBAConfig.WATER_BORDER_SIZE;
@@ -187,6 +188,8 @@ class MOBABackground extends BaseObject {
   private waterBackground: HTMLImageElement | null = null;
   private waterFoam: HTMLImageElement | null = null;
   private assetsLoaded: boolean = false;
+  /** Generated ground tilesets; when present they replace the tilemap ground */
+  private terrainTilesets: TerrainTilesets | null = null;
 
   // Pre-rendered tiles for performance
   private seamlessGrassTile: HTMLCanvasElement | null = null;
@@ -221,11 +224,13 @@ class MOBABackground extends BaseObject {
   private async loadAssets(): Promise<void> {
     try {
       // Load all assets in parallel
-      const [tilemap, waterBg, waterFoam] = await Promise.all([
+      const [tilemap, waterBg, waterFoam, terrainTilesets] = await Promise.all([
         this.loadImage(ASSETS.TILEMAP),
         this.loadImage(ASSETS.WATER_BACKGROUND),
         this.loadImage(ASSETS.WATER_FOAM),
+        loadTerrainTilesets(),
       ]);
+      this.terrainTilesets = terrainTilesets;
 
       this.tilemap = tilemap;
       this.waterBackground = waterBg;
@@ -357,6 +362,15 @@ class MOBABackground extends BaseObject {
     const { width, height } = MOBAConfig.MAP_SIZE;
     const halfWidth = width / 2;
     const halfHeight = height / 2;
+
+    // Generated tilesets: they draw all the ground (water, grass, paths, river, cliffs)
+    if (this.terrainTilesets) {
+      ctx.save();
+      ctx.translate(dimensions.w / 2, dimensions.h / 2);
+      drawTerrain(ctx, this.terrainTilesets, Math.max(dimensions.w, dimensions.h) / 2);
+      ctx.restore();
+      return;
+    }
 
     // 1. Fill entire canvas with water
     this.drawWaterArea(ctx, 0, 0, dimensions.w, dimensions.h);

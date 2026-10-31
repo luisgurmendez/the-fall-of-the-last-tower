@@ -1,0 +1,14 @@
+{
+  "grass_path": {
+    "tilesetId": "6e7b2668-674b-4a2b-b0ba-04308246ea2d",
+    "seed": 5
+  },
+  "grass_water": {
+    "tilesetId": "3b72e87e-1cd2-4a5d-8ee2-e9ea184d8efa",
+    "seed": 1
+  },
+  "grass_rock": {
+    "tilesetId": "8f7ec8d8-f559-49ee-8a2c-58eb5d4754ff",
+    "seed": 1
+  }
+}
