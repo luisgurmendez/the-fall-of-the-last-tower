@@ -16,7 +16,7 @@ const CINDERS = fxColor("#ff7043");
 const EMBER = fxColor("#ffab40");
 
 /** Feet are a little below a champion's position */
-const FEET = 14;
+const FEET = 18;
 
 export interface ChampionAuraSnapshot {
   isRecalling?: boolean;
@@ -33,8 +33,8 @@ export function emitChampionAuras(ground: FXBatch, top: FXBatch, champion: Champ
 
   if (champion.isRecalling) {
     const progress = Math.min(1, (champion.recallProgress ?? 0) / GameConfig.TIMING.RECALL_DURATION);
-    ground.sigil(x, feetY, 40, RECALL, 1.1, progress, 0.8, 18, 1, 1, 0.3);
-    ground.glow(x, feetY, 60, RECALL, 0.25 + progress * 0.35, 0, 0);
+    ground.sigil(x, feetY, 50, RECALL, 1.1, progress, 0.8, 18, 1, 1, 0.3);
+    ground.glow(x, feetY, 75, RECALL, 0.25 + progress * 0.35, 0, 0);
     top.beam(x, feetY - 40 - progress * 120, x, feetY, 6 + progress * 10, RECALL_LIGHT, 0.3 + progress * 0.6, 0.2, 6, 0.06, 0.4);
     const motes = 6 + Math.floor(progress * 10);
     for (let i = 0; i < motes; i++) {
@@ -49,8 +49,8 @@ export function emitChampionAuras(ground: FXBatch, top: FXBatch, champion: Champ
   const hasInsight = effects.some((effect) => effect.definitionId === "crest_of_insight");
   const hasCinders = effects.some((effect) => effect.definitionId === "crest_of_cinders");
   const rings: Array<{ color: typeof INSIGHT; radius: number; speed: number }> = [];
-  if (hasInsight) rings.push({ color: INSIGHT, radius: 32, speed: 1.6 });
-  if (hasCinders) rings.push({ color: CINDERS, radius: hasInsight ? 40 : 32, speed: -2.2 });
+  if (hasInsight) rings.push({ color: INSIGHT, radius: 40, speed: 1.6 });
+  if (hasCinders) rings.push({ color: CINDERS, radius: hasInsight ? 50 : 40, speed: -2.2 });
 
   for (const ring of rings) {
     const pulse = 0.5 + 0.5 * Math.sin(time * 3 + ring.radius);

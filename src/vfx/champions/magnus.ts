@@ -75,7 +75,7 @@ registerAbilityVFX({
   abilityId: 'magnus_shield',
   phases: [
     phase('raise', 0, 'caster', [
-      { type: 'shield_bubble', color: WARD, radius: 36, duration: 4.0, pulseSpeed: 2, style: 'hex' },
+      { type: 'shield_bubble', color: WARD, radius: 45, duration: 4.0, pulseSpeed: 2, style: 'hex' },
       sigil(WARD, 48, 0.9),
       ring(WARD, 20, 64, 0.35, 4),
       embers(HOT, 14, 50),

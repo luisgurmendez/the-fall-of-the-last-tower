@@ -78,7 +78,7 @@ registerAbilityVFX({
       light(CRIMSON, 110, 0.8, 0.6),
     ], 0.9),
     phase('aura', 0.3, 'caster', [
-      { type: 'orbiting_particles', color: CRIMSON, count: 3, size: 6, orbitRadius: 36, orbitSpeed: 4, duration: 15.0, style: 'blade' },
+      { type: 'orbiting_particles', color: CRIMSON, count: 3, size: 7, orbitRadius: 46, orbitSpeed: 4, duration: 15.0, style: 'blade' },
     ], 15.0),
   ],
 });

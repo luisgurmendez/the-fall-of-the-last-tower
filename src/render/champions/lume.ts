@@ -30,7 +30,7 @@ const SPRITES = {
     Q_FRAMES: 8,
     E_FRAMES: 11,
     R_FRAMES: 12,
-    SCALE: 0.8,
+    SCALE: 1.0,
   },
 };
 

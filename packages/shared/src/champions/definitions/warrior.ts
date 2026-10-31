@@ -291,7 +291,7 @@ export const WarriorDefinition: ChampionDefinition = {
   passive: "warrior_passive",
   collision: WARRIOR_COLLISION,
   /** Height of the sprite as drawn (src/render/champions/warrior.ts), for the health bar */
-  visualHeight: 56,
+  visualHeight: 70,
   animations: WARRIOR_ANIMATIONS,
   attackAnimationSpeedScale: true,
 };

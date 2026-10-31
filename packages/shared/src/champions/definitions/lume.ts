@@ -319,7 +319,7 @@ const LUME_COLLISION: RectangleCollision = {
 };
 
 // Visual height for UI positioning (matches collision since sprite fits collision bounds)
-const LUME_VISUAL_HEIGHT = 62;
+const LUME_VISUAL_HEIGHT = 78;
 
 const LUME_ANIMATIONS: ChampionAnimations = {
   idle: {

@@ -46,8 +46,8 @@ registerAbilityVFX({
   abilityId: 'gorath_fortify',
   phases: [
     phase('harden', 0, 'caster', [
-      { type: 'shield_bubble', color: STONE, radius: 40, duration: 4.0, pulseSpeed: 0.8, style: 'stone', glowColor: MOLTEN },
-      { type: 'orbiting_particles', color: STONE, count: 3, size: 13, orbitRadius: 52, orbitSpeed: 2.2, duration: 4.0, style: 'rock' },
+      { type: 'shield_bubble', color: STONE, radius: 50, duration: 4.0, pulseSpeed: 0.8, style: 'stone', glowColor: MOLTEN },
+      { type: 'orbiting_particles', color: STONE, count: 3, size: 15, orbitRadius: 64, orbitSpeed: 2.2, duration: 4.0, style: 'rock' },
       smoke(DUST, 8, [10, 16], [30, 80]),
       rocks(STONE, 6, [60, 130]),
     ], 4.0),

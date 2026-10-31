@@ -16,7 +16,7 @@ const VILE_STRIPS = generatedStrips("vile", {
 });
 
 /** World units per sprite pixel: about 55 tall, like Vex */
-const VILE_SCALE = 0.6;
+const VILE_SCALE = 0.75;
 /** During his R (the vile_transformed marker) he's drawn this much bigger, glowing violet */
 const TRANSFORMED_SCALE = 1.3;
 

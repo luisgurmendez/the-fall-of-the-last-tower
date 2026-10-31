@@ -112,7 +112,7 @@ registerAbilityVFX({
     ], 1.0),
     phase('aura', 0.4, 'caster', [
       sigil(VIOLET, AURA_RADIUS * 0.6, 10.0),
-      { type: 'orbiting_particles', color: SOUL, count: 4, size: 6, orbitRadius: 50, orbitSpeed: 2.2, duration: 10.0, style: 'wisp' },
+      { type: 'orbiting_particles', color: SOUL, count: 4, size: 7, orbitRadius: 62, orbitSpeed: 2.2, duration: 10.0, style: 'wisp' },
     ], 10.0),
   ],
 });

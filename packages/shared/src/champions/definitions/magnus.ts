@@ -284,7 +284,7 @@ export const MagnusDefinition: ChampionDefinition = {
   passive: "magnus_passive",
   collision: MAGNUS_COLLISION,
   /** Height of the sprite as drawn (src/render/champions/magnus.ts), for the health bar */
-  visualHeight: 56,
+  visualHeight: 70,
   animations: MAGNUS_ANIMATIONS,
   attackAnimationSpeedScale: true,
 };

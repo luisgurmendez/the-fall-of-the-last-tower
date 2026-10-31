@@ -52,7 +52,7 @@ registerAbilityVFX({
   abilityId: 'warrior_shield',
   phases: [
     phase('raise', 0, 'caster', [
-      { type: 'shield_bubble', color: STEEL, radius: 36, duration: 3.0, pulseSpeed: 1.5, style: 'plates' },
+      { type: 'shield_bubble', color: STEEL, radius: 45, duration: 3.0, pulseSpeed: 1.5, style: 'plates' },
       ring(AZURE, 18, 62, 0.35, 4),
       twinkles(WHITE, 6, [40, 120]),
       light(AZURE, 80, 0.6, 0.5),

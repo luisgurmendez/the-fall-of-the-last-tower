@@ -72,13 +72,13 @@ function minionStrips(minionType: string, scale: number): MinionStrips {
 
 /**
  * Minions stand a little over half a champion's height (champions are
- * drawn about 55 tall), so they read as small units next to them, like the
+ * drawn about 68 tall), so they read as small units next to them, like the
  * classic MOBA's. The siege minion and its cart are a bit bigger.
  */
 const MINION_STRIPS: Record<string, MinionStrips> = {
-  melee: minionStrips("melee", 0.55),
-  caster: minionStrips("caster", 0.55),
-  siege: minionStrips("siege", 0.62),
+  melee: minionStrips("melee", 0.69),
+  caster: minionStrips("caster", 0.69),
+  siege: minionStrips("siege", 0.78),
 };
 
 /**
@@ -131,8 +131,8 @@ export function renderMinion(
       ctx,
       snapshot.health,
       snapshot.maxHealth,
-      isSiege ? 30 : 24,
-      isSiege ? -23 : -20,
+      isSiege ? 34 : 28,
+      isSiege ? -29 : -25,
       healthBarColor,
       undefined,
       { trailHealth: getTrailHealth(snapshot.entityId, snapshot.health) },

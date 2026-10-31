@@ -38,7 +38,7 @@ registerAbilityVFX({
   phases: [
     phase('cast', 0, 'caster', [ring(WHITE, 20, 46, 0.25, 3), twinkles(SKY, 4)], 0.25),
     phase('shield', 0.15, 'target', [
-      { type: 'shield_bubble', color: SKY, radius: 32, duration: 2.5, pulseSpeed: 1.2, style: 'holy' },
+      { type: 'shield_bubble', color: SKY, radius: 40, duration: 2.5, pulseSpeed: 1.2, style: 'holy' },
       ring(SKY, 60, 24, 0.3, 3),
       petals(SKY, 8, [20, 60]),
       light(SKY, 70, 0.6, 0.5),

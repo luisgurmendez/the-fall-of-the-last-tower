@@ -285,7 +285,7 @@ export const GorathDefinition: ChampionDefinition = {
   passive: "gorath_passive",
   collision: GORATH_COLLISION,
   /** Height of the sprite as drawn (src/render/champions/gorath.ts), for the health bar */
-  visualHeight: 60,
+  visualHeight: 75,
   animations: GORATH_ANIMATIONS,
   attackAnimationSpeedScale: true,
 };

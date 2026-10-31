@@ -17,7 +17,7 @@ const VEX_STRIPS = generatedStrips(
 );
 
 /** World units per sprite pixel: about 55 tall, like the others */
-const VEX_SCALE = 0.6;
+const VEX_SCALE = 0.75;
 /** How see-through Vex is while stealthed (only allies see Vex then) */
 const STEALTH_ALPHA = 0.45;
 /** A Shadow Step leaves an afterimage this often (ms), fading by this much per frame */

@@ -22,6 +22,7 @@ import type {
   InterpolatedEntity,
 } from "@/core/OnlineStateManager";
 import { getCursorManager } from "@/core/CursorManager";
+import { pickScore } from "@/core/input/picking";
 import RenderElement from "@/render/renderElement";
 
 /** Entity types that can be attacked (for cursor hover) */
@@ -363,9 +364,8 @@ export class OnlineInputHandler implements GameObject {
       camera,
     );
 
-    const hitRadius = 40; // How close click needs to be to select
     let closestEntity: InterpolatedEntity | null = null;
-    let closestDistance = hitRadius;
+    let bestScore = Infinity;
 
     // Check all entities from state manager
     const entities = this.stateManager.getEntities();
@@ -379,10 +379,10 @@ export class OnlineInputHandler implements GameObject {
       if ("isDead" in snapshot && (snapshot as any).isDead) continue;
       if ("isDestroyed" in snapshot && (snapshot as any).isDestroyed) continue;
 
-      const distance = mouseWorldPos.distanceTo(entity.position);
-      if (distance < closestDistance) {
+      const score = pickScore(mouseWorldPos, entity.position, snapshot as any);
+      if (score !== null && score < bestScore) {
         closestEntity = entity;
-        closestDistance = distance;
+        bestScore = score;
       }
     }
 
@@ -415,11 +415,11 @@ export class OnlineInputHandler implements GameObject {
       camera,
     );
 
-    const hitRadius = 30; // How close mouse needs to be to target
+    // Each unit can be pointed at anywhere on its drawn body (see picking.ts)
     let closestEnemy: InterpolatedEntity | null = null;
     let closestAlly: InterpolatedEntity | null = null;
-    let closestEnemyDistance = hitRadius;
-    let closestAllyDistance = hitRadius;
+    let closestEnemyScore = Infinity;
+    let closestAllyScore = Infinity;
 
     // Check all entities from state manager
     const entities = this.stateManager.getEntities();
@@ -437,23 +437,24 @@ export class OnlineInputHandler implements GameObject {
       const entitySide = (snapshot as any).side;
       const isNeutral = entitySide === 2;
       const isAlly = !isNeutral && entitySide === this.localSide;
-      const distance = mouseWorldPos.distanceTo(entity.position);
+      const score = pickScore(mouseWorldPos, entity.position, snapshot as any);
+      if (score === null) continue;
 
       if (isAlly) {
         // Check ally targetable types (including self for self-cast abilities like Elara heal)
         if (!ALLY_TARGETABLE_ENTITY_TYPES.has(snapshot.entityType)) continue;
 
-        if (distance < closestAllyDistance) {
+        if (score < closestAllyScore) {
           closestAlly = entity;
-          closestAllyDistance = distance;
+          closestAllyScore = score;
         }
       } else {
         // Check attackable enemy types
         if (!ATTACKABLE_ENTITY_TYPES.has(snapshot.entityType)) continue;
 
-        if (distance < closestEnemyDistance) {
+        if (score < closestEnemyScore) {
           closestEnemy = entity;
-          closestEnemyDistance = distance;
+          closestEnemyScore = score;
         }
       }
     }

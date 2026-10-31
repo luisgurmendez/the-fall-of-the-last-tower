@@ -78,27 +78,27 @@ const OLD_LOOKS: Record<string, CreatureLook> = {
 
 const CREATURE_LOOKS: Record<string, CreatureLook> = {
   // Cinder Hound
-  wolf: { sprites: monsterSprites("wolf"), scale: 0.7, fallback: OLD_LOOKS.wolf },
+  wolf: { sprites: monsterSprites("wolf"), scale: 0.88, fallback: OLD_LOOKS.wolf },
   // Gloom Crawler
-  spider: { sprites: monsterSprites("spider"), scale: 0.85, fallback: OLD_LOOKS.spider },
-  thornspitter: { sprites: monsterSprites("thornspitter"), scale: 1, fallback: OLD_LOOKS.thornspitter },
+  spider: { sprites: monsterSprites("spider"), scale: 1.06, fallback: OLD_LOOKS.spider },
+  thornspitter: { sprites: monsterSprites("thornspitter"), scale: 1.25, fallback: OLD_LOOKS.thornspitter },
   blue_buff: {
     sprites: monsterSprites("blue_buff"),
-    scale: 0.95,
+    scale: 1.19,
     aura: "74, 163, 255",
     name: "Azure Warden",
     fallback: OLD_LOOKS.blue_buff,
   },
   red_buff: {
     sprites: monsterSprites("red_buff"),
-    scale: 0.85,
+    scale: 1.06,
     aura: "255, 85, 51",
     name: "Ember Brute",
     fallback: OLD_LOOKS.red_buff,
   },
   dragon: {
     sprites: monsterSprites("dragon"),
-    scale: 0.93,
+    scale: 1.16,
     aura: "255, 140, 26",
     name: "Dragon",
     fallback: OLD_LOOKS.dragon,

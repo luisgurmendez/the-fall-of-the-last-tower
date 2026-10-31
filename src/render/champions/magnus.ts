@@ -15,7 +15,7 @@ const MAGNUS_STRIPS = generatedStrips("magnus", {
 });
 
 /** World units per sprite pixel */
-const MAGNUS_SCALE = 0.6;
+const MAGNUS_SCALE = 0.75;
 
 /**
  * Magnus Fireball - larger orange/red fireball.

@@ -270,7 +270,7 @@ export const ElaraDefinition: ChampionDefinition = {
   passive: "elara_passive",
   collision: ELARA_COLLISION,
   /** Height of the sprite as drawn (src/render/champions/elara.ts), for the health bar */
-  visualHeight: 56,
+  visualHeight: 70,
   animations: ELARA_ANIMATIONS,
   attackAnimationSpeedScale: true,
 };
