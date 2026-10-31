@@ -470,6 +470,10 @@ export interface WardSnapshot {
 
   // Remaining time (0 for permanent wards like control)
   remainingDuration: number;
+  /** How long it lasts in all (0 for permanent wards) */
+  duration?: number;
+  /** Seconds since it was placed */
+  age?: number;
 
   // Timestamp when placed (for expiration tracking)
   placedAt: number;

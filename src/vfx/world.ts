@@ -6,7 +6,7 @@
  * by OnlineStateManager when it sees the matching event or state change.
  */
 
-import { MOBAConfig } from '@siege/shared';
+import { GameConfig, MOBAConfig } from '@siege/shared';
 import { registerAbilityVFX } from './VFXRegistryStore';
 import {
   coneWarning,
@@ -40,7 +40,25 @@ export const WORLD_VFX = {
   TOWER_DESTROYED: 'fx_tower_destroyed',
   CREATURE_DEATH: 'fx_creature_death',
   DRAGON_DEATH: 'fx_dragon_death',
+  WARD_PLACED: 'fx_ward_placed',
+  CONTROL_WARD_PLACED: 'fx_control_ward_placed',
 } as const;
+
+// A ward is placed: a glint where its eye opens, and a ring of its light
+// spreading over what it will see
+function registerWardPlaced(abilityId: string, color: string, colorSecondary: string): void {
+  registerAbilityVFX({
+    abilityId,
+    phases: [
+      phase('place', 0, 'caster', [
+        ring(color, 6, 46, 0.35, 2),
+        ring(colorSecondary, 20, GameConfig.VISION.WARD_SIGHT_RANGE, 0.7, 1.5),
+        twinkles(colorSecondary, 4, [6, 22]),
+        light(color, 40, 0.7, 0.5),
+      ], 0.8),
+    ],
+  });
+}
 
 // A hit: a few short streaks and a pinprick of light, colored by damage type
 function registerHitSpark(abilityId: string, color: string, colorSecondary: string): void {
@@ -58,6 +76,9 @@ function registerHitSpark(abilityId: string, color: string, colorSecondary: stri
 registerHitSpark(WORLD_VFX.HIT_PHYSICAL, '#ffffff', '#ffb347');
 registerHitSpark(WORLD_VFX.HIT_MAGIC, '#c8b4ff', '#7c6cff');
 registerHitSpark(WORLD_VFX.HIT_TRUE, '#ffffff', '#fff59d');
+
+registerWardPlaced(WORLD_VFX.WARD_PLACED, '#d4ff7a', '#f1e9a0');
+registerWardPlaced(WORLD_VFX.CONTROL_WARD_PLACED, '#ff5fa2', '#ffc1dc');
 
 // Level up: a golden pillar, a ring and sparkles rising
 registerAbilityVFX({

@@ -8,6 +8,7 @@
 import {
   Vector,
   MOBAConfig,
+  GameConfig,
   Side,
   EntityType,
   EntitySnapshot,
@@ -85,7 +86,6 @@ export class ServerGameContext {
   // Ward management
   private wards: Map<string, ServerWard> = new Map();
   private structures: ServerEntity[] = [];
-  private readonly MAX_WARDS_PER_PLAYER = 3; // Max wards a player can have active
 
   constructor(config: GameContextConfig) {
     this.gameId = config.gameId;
@@ -226,12 +226,12 @@ export class ServerGameContext {
       return null;
     }
 
-    // Count player's existing wards
-    const playerWards = this.getWardsByOwner(playerId);
-    if (playerWards.length >= this.MAX_WARDS_PER_PLAYER) {
-      // Remove oldest ward
-      const oldestWard = playerWards[0];
-      this.removeWard(oldestWard.id);
+    // Past the limit (control wards are counted apart), the oldest goes
+    const isControl = wardType === 'control';
+    const sameKind = this.getWardsByOwner(playerId).filter(ward => (ward.wardType === 'control') === isControl);
+    const limit = isControl ? GameConfig.VISION.MAX_CONTROL_WARDS : GameConfig.VISION.MAX_WARDS;
+    if (sameKind.length >= limit) {
+      this.removeWard(sameKind[0].id);
     }
 
     // Create and add the ward

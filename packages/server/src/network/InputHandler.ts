@@ -399,26 +399,19 @@ export class InputHandler {
       return;
     }
 
-    const targetPos = new Vector(input.x, input.y);
-
-    // Validate position is within map bounds
-    const mapSize = context.mapConfig.MAP_SIZE;
-    const halfWidth = mapSize.width / 2;
-    const halfHeight = mapSize.height / 2;
-
-    if (Math.abs(targetPos.x) > halfWidth || Math.abs(targetPos.y) > halfHeight) {
-      return;
+    // A click past the placement range places the ward at the edge of the
+    // range toward it, and one in a wall at the wall's edge toward the champion
+    const target = new Vector(input.x, input.y);
+    const range = input.wardType === 'farsight' ? GameConfig.VISION.FARSIGHT_PLACE_RANGE : GameConfig.VISION.WARD_PLACE_RANGE;
+    const offset = target.subtracted(champion.position);
+    const distance = offset.length();
+    const reach = Math.min(distance, range);
+    const direction = distance > 0 ? offset.scaled(1 / distance) : new Vector(0, 0);
+    let along = reach;
+    while (along > 0 && context.terrain.isBlocked(champion.position.x + direction.x * along, champion.position.y + direction.y * along)) {
+      along -= 8;
     }
-
-    // Check if position is within placement range (depends on ward type)
-    // Stealth wards need to be placed near champion
-    // Farsight wards can be placed from far away
-    const maxPlacementRange = input.wardType === 'farsight' ? 4000 : 600;
-    const distance = champion.position.distanceTo(targetPos);
-
-    if (distance > maxPlacementRange) {
-      return;
-    }
+    const targetPos = champion.position.added(direction.scaled(Math.max(0, along)));
 
     // Consume trinket charge
     if (!champion.consumeTrinketCharge()) {

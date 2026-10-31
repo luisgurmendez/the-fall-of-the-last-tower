@@ -46,7 +46,7 @@ import {
   renderProjectile,
   PROJECTILE_IMAGES,
 } from "@/render/entities/projectile";
-import { renderWard } from "@/render/entities/ward";
+import { renderWard, WARD_IMAGES } from "@/render/entities/ward";
 import { renderZone } from "@/render/entities/zone";
 import { LightOrbRenderer } from "@/render/entities/lightOrb";
 import { renderGeneric } from "@/render/entities/generic";
@@ -125,6 +125,7 @@ export class EntityRenderer implements GameObject {
       ...MINION_IMAGES,
       ...JUNGLE_CREATURE_IMAGES,
       ...PROJECTILE_IMAGES,
+      ...WARD_IMAGES,
       ...getChampionImages(),
     ]);
   }

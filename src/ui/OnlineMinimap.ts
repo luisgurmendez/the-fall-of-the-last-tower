@@ -343,7 +343,7 @@ export class OnlineMinimap extends ScreenEntity {
 
     // Sort by entity type for consistent layering (structures first, then minions, then champions)
     const sortedEntities = [...entities].sort((a, b) => {
-      const order = [EntityType.NEXUS, EntityType.TOWER, EntityType.MINION, EntityType.JUNGLE_CAMP, EntityType.CHAMPION];
+      const order = [EntityType.NEXUS, EntityType.TOWER, EntityType.WARD, EntityType.MINION, EntityType.JUNGLE_CAMP, EntityType.CHAMPION];
       return order.indexOf(a.snapshot.entityType) - order.indexOf(b.snapshot.entityType);
     });
 
@@ -373,8 +373,37 @@ export class OnlineMinimap extends ScreenEntity {
         case EntityType.JUNGLE_CAMP:
           this.renderJungleCreature(ctx, pos);
           break;
+        case EntityType.WARD:
+          this.renderWard(ctx, pos, isPlayerTeam, (snapshot as { wardType?: string }).wardType);
+          break;
       }
     }
+  }
+
+  /**
+   * A ward on the minimap: a small diamond, yellow (pink for a control ward),
+   * red outlined when it's an enemy's. Vile's traps (synced as wards, with no
+   * wardType) aren't shown.
+   */
+  private renderWard(
+    ctx: CanvasRenderingContext2D,
+    pos: { x: number; y: number },
+    isPlayerTeam: boolean,
+    wardType: string | undefined
+  ): void {
+    if (!wardType) return;
+    const size = 3;
+    ctx.fillStyle = wardType === 'control' ? '#ff5fa2' : '#f1c40f';
+    ctx.strokeStyle = isPlayerTeam ? '#1a1a2e' : '#e74c3c';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y - size);
+    ctx.lineTo(pos.x + size, pos.y);
+    ctx.lineTo(pos.x, pos.y + size);
+    ctx.lineTo(pos.x - size, pos.y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
   }
 
   /**

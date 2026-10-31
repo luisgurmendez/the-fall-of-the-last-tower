@@ -16,7 +16,7 @@ import { InputManager, MouseButton } from "@/core/input/InputManager";
 import Vector from "@/physics/vector";
 import type { NetworkClient } from "@siege/client";
 import type { AbilitySlot } from "@siege/shared";
-import { getAbilityDefinition, getChampionDefinition, hasChargeBehavior } from "@siege/shared";
+import { GameConfig, getAbilityDefinition, getChampionDefinition, hasChargeBehavior, type WardType } from "@siege/shared";
 import type {
   OnlineStateManager,
   InterpolatedEntity,
@@ -24,6 +24,10 @@ import type {
 import { getCursorManager } from "@/core/CursorManager";
 import { pickScore } from "@/core/input/picking";
 import RenderElement from "@/render/renderElement";
+import { renderWardPreview } from "@/render/entities/ward";
+
+/** Ward keys: 4 places a stealth ward (the trinket), 5 a control ward */
+const WARD_KEYS: [string, WardType][] = [["4", "stealth"], ["5", "control"]];
 
 /** Entity types that can be attacked (for cursor hover) */
 const ATTACKABLE_ENTITY_TYPES: Set<number> = new Set([
@@ -334,23 +338,12 @@ export class OnlineInputHandler implements GameObject {
       this.networkClient.sendRecallInput();
     }
 
-    // Handle ward placement (4 key - like League of Legends trinket)
-    if (this.inputManager.isKeyJustPressed("4")) {
-      const worldPos = this.screenToWorld(
-        this.inputManager.getMousePosition(),
-        camera,
-      );
-      // Default to stealth ward for now (yellow trinket equivalent)
-      this.networkClient.sendPlaceWardInput("stealth", worldPos.x, worldPos.y);
-    }
-
-    // Handle control ward placement (5 key)
-    if (this.inputManager.isKeyJustPressed("5")) {
-      const worldPos = this.screenToWorld(
-        this.inputManager.getMousePosition(),
-        camera,
-      );
-      this.networkClient.sendPlaceWardInput("control", worldPos.x, worldPos.y);
+    // Wards: hold 4 (5 for a control ward) to see where it goes and what it
+    // will see (render), release to place it there
+    for (const [key, wardType] of WARD_KEYS) {
+      if (!this.inputManager.isKeyJustReleased(key)) continue;
+      const at = this.wardPlacement(camera);
+      if (at) this.networkClient.sendPlaceWardInput(wardType, at.x, at.y);
     }
   }
 
@@ -663,6 +656,9 @@ export class OnlineInputHandler implements GameObject {
       if (this.inputManager.isKeyDown("a")) {
         this.renderAttackRange(canvasRenderingContext);
       }
+      for (const [key, wardType] of WARD_KEYS) {
+        if (this.inputManager.isKeyDown(key)) this.renderWardPlacement(canvasRenderingContext, wardType, ctx.camera);
+      }
 
       // Render move markers
       for (const marker of this.moveMarkers) {
@@ -673,6 +669,46 @@ export class OnlineInputHandler implements GameObject {
     element.positionType = "normal";
     element.zIndex = -100; // Render behind entities
     return element;
+  }
+
+  /**
+   * Where a ward placed now would go: at the cursor, or as far as the
+   * placement range reaches toward it (the server does the same, and also
+   * keeps it out of walls). Null while the local champion is dead.
+   */
+  private wardPlacement(camera: any): Vector | null {
+    const local = this.stateManager.getLocalPlayerEntity();
+    if (!local || (local.snapshot as { isDead?: boolean }).isDead) return null;
+    const cursor = this.screenToWorld(this.inputManager.getMousePosition(), camera);
+    const offset = cursor.clone().sub(local.position);
+    const distance = offset.length();
+    const range = GameConfig.VISION.WARD_PLACE_RANGE;
+    if (distance <= range) return cursor;
+    return local.position.clone().add(offset.scalar(range / distance));
+  }
+
+  /**
+   * While a ward key is held: the placement range around the local
+   * champion, and the ward and what it will see where it would go (dimmed
+   * when no ward charge is left).
+   */
+  private renderWardPlacement(ctx: CanvasRenderingContext2D, wardType: WardType, camera: any): void {
+    const local = this.stateManager.getLocalPlayerEntity();
+    const at = this.wardPlacement(camera);
+    if (!local || !at) return;
+    const charges = (local.snapshot as { trinketCharges?: number }).trinketCharges ?? 1;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(local.position.x, local.position.y, GameConfig.VISION.WARD_PLACE_RANGE, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(241, 196, 15, 0.05)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(241, 196, 15, 0.55)";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.restore();
+
+    renderWardPreview(ctx, wardType, at.x, at.y, GameConfig.VISION.WARD_SIGHT_RANGE, charges > 0);
   }
 
   /**

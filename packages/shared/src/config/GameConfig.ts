@@ -133,8 +133,14 @@ export const GameConfig = {
     WARD_SIGHT_RANGE: 360,
     /** Ward duration (seconds) */
     WARD_DURATION: 180,
-    /** Max wards per player */
+    /** Max wards per player (stealth and farsight); placing another removes the oldest */
     MAX_WARDS: 3,
+    /** Max control wards per player, counted apart from the rest */
+    MAX_CONTROL_WARDS: 1,
+    /** How far from its champion a ward can be placed (farther clicks place it at this distance) */
+    WARD_PLACE_RANGE: 240,
+    /** The same for a farsight ward */
+    FARSIGHT_PLACE_RANGE: 1600,
     /** Bush stealth reveal range */
     BUSH_REVEAL_RANGE: 100,
   },

@@ -1,10 +1,33 @@
 /**
- * Ward renderer (EntityType.WARD). Vile's traps are synced as wards too
- * (with a triggerRadius and no wardType); they get their own look.
+ * Ward renderer (EntityType.WARD): the ward's pixel-art totem
+ * (scripts/generate-props.ts) on its shadow, its eye glowing in the ward's
+ * color, a bar of the time it has left for its team and pips for the hits
+ * it can take once damaged or seen by enemies. Vile's traps are synced as
+ * wards too (with a triggerRadius and no wardType); they get their own look.
  */
 
 import type { EntityRenderContext } from "@/render/entities/types";
-import { lightenColor } from "@/render/entities/shared";
+import { imageCache } from "@/render/entities/shared";
+
+/** Each ward type's sprite */
+const WARD_SPRITES: Record<string, string> = {
+  stealth: "/assets/props/ward_stealth.png",
+  control: "/assets/props/ward_control.png",
+  farsight: "/assets/props/ward_stealth.png",
+};
+
+/** Ward sprites to preload */
+export const WARD_IMAGES = [...new Set(Object.values(WARD_SPRITES))];
+
+/** World units per sprite pixel (a 48-pixel sprite stands about 34 tall, knee-high to a champion) */
+const WARD_SCALE = 0.7;
+
+/** Each ward type's eye glow, and how far down the sprite the eye is (0 top, 1 bottom) */
+const WARD_GLOW: Record<string, { color: string; eye: number }> = {
+  stealth: { color: "212, 255, 122", eye: 0.32 },
+  control: { color: "255, 95, 162", eye: 0.22 },
+  farsight: { color: "122, 200, 255", eye: 0.32 },
+};
 
 /**
  * Render a ward.
@@ -20,115 +43,108 @@ export function renderWard(
     return;
   }
 
-  const wardType = snapshot.wardType || "stealth";
+  const wardType: string = snapshot.wardType || "stealth";
   const isOwn = side === rc.localSide;
-  const isStealthed = snapshot.isStealthed && !isOwn;
+  const glow = WARD_GLOW[wardType] ?? WARD_GLOW.stealth;
+  const image = imageCache.get(WARD_SPRITES[wardType] ?? WARD_SPRITES.stealth);
+  const width = (image?.naturalWidth || 48) * WARD_SCALE;
+  const height = (image?.naturalHeight || 48) * WARD_SCALE;
+  const top = 4 - height;
 
-  // Ward colors by type
-  const wardColors: Record<string, string> = {
-    stealth: "#44FF44", // Green
-    control: "#FF44FF", // Pink/Magenta
-    farsight: "#4444FF", // Blue
-  };
-
-  const baseColor = wardColors[wardType] || "#44FF44";
-  const size = 12;
-
-  // Make enemy stealth wards semi-transparent (should be invisible but shown for debugging)
-  // In production, enemy stealth wards shouldn't be rendered at all unless revealed
-  const alpha = isStealthed ? 0.3 : 1.0;
-  ctx.globalAlpha = alpha;
-
-  // Draw ward body (diamond shape)
   ctx.save();
-  ctx.rotate(Math.PI / 4); // 45-degree rotation for diamond
 
-  // Outer glow effect
-  const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, size * 1.5);
-  gradient.addColorStop(0, baseColor);
-  gradient.addColorStop(0.5, lightenColor(baseColor, -30));
-  gradient.addColorStop(1, "transparent");
-  ctx.fillStyle = gradient;
-  ctx.fillRect(-size * 1.5, -size * 1.5, size * 3, size * 3);
+  // Shadow, and for an enemy ward a red ring at its feet
+  ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
+  ctx.beginPath();
+  ctx.ellipse(0, 2, width * 0.32, width * 0.12, 0, 0, Math.PI * 2);
+  ctx.fill();
+  if (!isOwn) {
+    ctx.strokeStyle = "rgba(231, 76, 60, 0.8)";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.ellipse(0, 2, width * 0.42, width * 0.16, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
 
-  // Main body (square that looks like diamond after rotation)
-  ctx.fillStyle = baseColor;
-  ctx.fillRect(-size / 2, -size / 2, size, size);
+  if (image?.complete && image.naturalWidth > 0) {
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(image, -width / 2, top, width, height);
+  }
 
-  // Inner highlight
-  ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
-  ctx.fillRect(-size / 4, -size / 2, size / 2, size / 4);
+  // The eye glows, pulsing slowly
+  const pulse = 0.75 + Math.sin(rc.animationTime * 3 + (snapshot.placedAt ?? 0)) * 0.25;
+  const eyeY = top + height * glow.eye;
+  const light = ctx.createRadialGradient(0, eyeY, 0, 0, eyeY, 16);
+  light.addColorStop(0, `rgba(${glow.color}, ${0.55 * pulse})`);
+  light.addColorStop(1, `rgba(${glow.color}, 0)`);
+  ctx.globalCompositeOperation = "lighter";
+  ctx.fillStyle = light;
+  ctx.fillRect(-16, eyeY - 16, 32, 32);
+  ctx.globalCompositeOperation = "source-over";
 
-  // Border
-  ctx.strokeStyle = lightenColor(baseColor, -40);
-  ctx.lineWidth = 1;
-  ctx.strokeRect(-size / 2, -size / 2, size, size);
+  // Time left, for its team
+  const barWidth = 20;
+  let barY = 6;
+  if (isOwn && snapshot.duration > 0 && snapshot.remainingDuration > 0) {
+    const left = Math.min(1, snapshot.remainingDuration / snapshot.duration);
+    ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+    ctx.fillRect(-barWidth / 2 - 0.5, barY - 0.5, barWidth + 1, 3);
+    ctx.fillStyle = `rgb(${glow.color})`;
+    ctx.fillRect(-barWidth / 2, barY, barWidth * left, 2);
+    barY += 4;
+  }
+
+  // Hits it can take: once damaged, or always for enemies
+  const maxHealth: number = snapshot.maxHealth ?? 0;
+  if (maxHealth > 0 && (!isOwn || snapshot.health < maxHealth)) {
+    const pip = 4;
+    const gap = 1.5;
+    const total = maxHealth * pip + (maxHealth - 1) * gap;
+    for (let i = 0; i < maxHealth; i++) {
+      ctx.fillStyle = i < snapshot.health ? (isOwn ? "#5dade2" : "#e74c3c") : "rgba(0, 0, 0, 0.6)";
+      ctx.fillRect(-total / 2 + i * (pip + gap), barY, pip, 2);
+    }
+  }
 
   ctx.restore();
+}
 
-  // Reset alpha
-  ctx.globalAlpha = 1.0;
+/**
+ * Where a ward about to be placed would go (world coordinates): the area it
+ * will see, dashed, and the ward dimmed; all of it grey when there's no ward
+ * charge to place it with.
+ */
+export function renderWardPreview(
+  ctx: CanvasRenderingContext2D,
+  wardType: string,
+  x: number,
+  y: number,
+  sightRange: number,
+  canPlace: boolean,
+): void {
+  const color = canPlace ? (WARD_GLOW[wardType] ?? WARD_GLOW.stealth).color : "160, 160, 160";
+  ctx.save();
+  ctx.translate(x, y);
 
-  // Draw remaining duration indicator (pie chart style)
-  if (snapshot.remainingDuration > 0 && isOwn) {
-    const maxDuration =
-      wardType === "stealth" ? 90 : wardType === "farsight" ? 60 : 0;
-    if (maxDuration > 0) {
-      const progress = snapshot.remainingDuration / maxDuration;
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.arc(
-        0,
-        0,
-        size * 0.8,
-        -Math.PI / 2,
-        -Math.PI / 2 + (1 - progress) * Math.PI * 2,
-        false,
-      );
-      ctx.closePath();
-      ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
-      ctx.fill();
-    }
+  ctx.beginPath();
+  ctx.arc(0, 0, sightRange, 0, Math.PI * 2);
+  ctx.fillStyle = `rgba(${color}, 0.06)`;
+  ctx.fill();
+  ctx.setLineDash([6, 6]);
+  ctx.strokeStyle = `rgba(${color}, 0.5)`;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  const image = imageCache.get(WARD_SPRITES[wardType] ?? WARD_SPRITES.stealth);
+  if (image?.complete && image.naturalWidth > 0) {
+    const width = image.naturalWidth * WARD_SCALE;
+    const height = image.naturalHeight * WARD_SCALE;
+    ctx.globalAlpha = canPlace ? 0.6 : 0.3;
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(image, -width / 2, 4 - height, width, height);
   }
-
-  // Draw ward type indicator icon
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 8px Arial";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-
-  if (wardType === "control") {
-    // Control ward: eye icon (simplified as "👁" or "C")
-    ctx.fillText("C", 0, 0);
-  } else if (wardType === "farsight") {
-    // Farsight ward: targeting icon (simplified as "F")
-    ctx.fillText("F", 0, 0);
-  }
-  // Stealth ward has no icon (most common, keep clean)
-
-  // Draw health pips for control wards (visible, destroyable)
-  if (
-    !snapshot.isStealthed &&
-    snapshot.health !== undefined &&
-    snapshot.maxHealth !== undefined
-  ) {
-    const pipCount = snapshot.maxHealth;
-    const pipWidth = 4;
-    const pipSpacing = 2;
-    const totalWidth = pipCount * pipWidth + (pipCount - 1) * pipSpacing;
-    const startX = -totalWidth / 2;
-
-    for (let i = 0; i < pipCount; i++) {
-      const isFilled = i < snapshot.health;
-      ctx.fillStyle = isFilled ? baseColor : "#333333";
-      ctx.fillRect(
-        startX + i * (pipWidth + pipSpacing),
-        size + 4,
-        pipWidth,
-        3,
-      );
-    }
-  }
+  ctx.restore();
 }
 
 /**

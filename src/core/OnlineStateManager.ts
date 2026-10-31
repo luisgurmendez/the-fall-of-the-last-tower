@@ -19,6 +19,8 @@
 import type Vector from '@/physics/vector';
 import type { MatchData } from '@/ui/matchmaking/MatchmakingUI';
 import type { StateUpdate, FullStateSnapshot, FinalPlayerStats } from '@siege/shared';
+import { EntityType } from '@siege/shared';
+import { WORLD_VFX } from '@/vfx/world';
 import {
   getAbilityAnimationProgress,
   getAbilityCastState,
@@ -38,7 +40,7 @@ import {
 import { CampTimers, type CampTimer } from './state/campTimers';
 import { DamageTaken, type DeathRecap } from './state/damageTaken';
 import { Announcements, type Announcement } from './state/announcements';
-import { EntityVFX } from './state/entityVFX';
+import { EntityVFX, spawnWorldVFX } from './state/entityVFX';
 import { addOrUpdateEntity, applyEntityDelta, type EntityLifecycleHooks } from './state/deltas';
 import { processGameEvent, type GameEventContext } from './state/gameEvents';
 
@@ -113,6 +115,11 @@ export class OnlineStateManager {
     onAdded: (snapshot, position) => {
       // A champion we saw die is back: respawn effect
       this.entityVFX.spawnRespawnVFX(snapshot.entityId, position);
+      // A ward just placed (not one coming into sight)
+      const ward = snapshot as { entityType: EntityType; wardType?: string; age?: number };
+      if (ward.entityType === EntityType.WARD && ward.wardType && (ward.age ?? Infinity) < 0.6) {
+        spawnWorldVFX(ward.wardType === 'control' ? WORLD_VFX.CONTROL_WARD_PLACED : WORLD_VFX.WARD_PLACED, position.x, position.y);
+      }
       if (snapshot.entityId === this.localEntityId) {
         this.localRespawnAt = null;
       }

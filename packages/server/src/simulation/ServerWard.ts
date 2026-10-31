@@ -74,6 +74,8 @@ export class ServerWard extends ServerEntity {
 
   // State
   private placedAt: number = 0;
+  /** Seconds since it was placed (clients play the placing effect only for a new ward, not one coming into sight) */
+  private age = 0;
   private remainingDuration: number = 0;
   private isRevealed: boolean = false; // Set to true when revealed by enemy control ward
 
@@ -118,6 +120,7 @@ export class ServerWard extends ServerEntity {
    */
   update(dt: number, context: ServerGameContext): void {
     if (this.isDead) return;
+    this.age += dt;
 
     // Update duration for non-permanent wards
     if (this.duration > 0) {
@@ -210,6 +213,8 @@ export class ServerWard extends ServerEntity {
       revealsWards: this.revealsWards,
       sightRange: this.sightRange,
       remainingDuration: this.remainingDuration,
+      duration: WARD_DEFINITIONS[this.wardType].duration,
+      age: this.age,
       placedAt: this.placedAt,
     };
   }

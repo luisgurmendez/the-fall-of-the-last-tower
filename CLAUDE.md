@@ -200,6 +200,7 @@ Captures player input and sends to server:
 - Q/W/E/R → Ability cast (Ctrl + key levels it)
 - S → Stop
 - B → Recall
+- 4 / 5 → Hold to aim a ward / control ward, release to place it
 
 Escape opens the in-match menu (`src/ui/GameMenu.ts`: resume, surrender).
 
