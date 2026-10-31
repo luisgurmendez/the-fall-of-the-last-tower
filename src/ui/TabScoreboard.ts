@@ -29,6 +29,7 @@ import { getItemDefinition } from '@/data/items';
 import { drawItemIcon } from '@/ui/itemIcons';
 import { getPortraitCanvas } from '@/ui/matchmaking/portraits';
 import { drawPixelArt } from '@/render/pixelArt';
+import { Dimensions } from '@/core/canvas';
 
 /** One champion's line */
 interface ScoreboardRow {
@@ -172,8 +173,8 @@ export class TabScoreboard extends ScreenEntity {
       if (!this.inputManager.isKeyDown('Tab') && !result) return;
 
       const { canvasRenderingContext: c } = ctx;
-      const canvasWidth = c.canvas.width;
-      const canvasHeight = c.canvas.height;
+      const canvasWidth = Dimensions.w;
+      const canvasHeight = Dimensions.h;
 
       // Split by team
       const rows = this.getRows(result);

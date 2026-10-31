@@ -7,6 +7,7 @@ import type GameContext from "./gameContext";
 import Initializable from "@/behaviors/initializable";
 import { Rectangle } from "@/objects/shapes";
 import { GameConfig } from "@/config";
+import { Dimensions } from "@/core/canvas";
 
 const { CAMERA: CAMERA_CONFIG } = GameConfig;
 export const CAMERA_ID = "camera";
@@ -46,16 +47,16 @@ class Camera implements GameObject, Stepable, Disposable, Initializable {
     const canvas = canvasRenderingContext.canvas;
     this.worldDimensions = gameContext.worldDimensions;
 
-    this.viewport.w = canvas.width;
-    this.viewport.h = canvas.height;
+    this.viewport.w = Dimensions.w;
+    this.viewport.h = Dimensions.h;
     this._zoom = this.getMinZoom();
 
     const handleCanvasWheel = (event: WheelEvent) => {
       event.preventDefault();
       const mousex =
-        (event.clientX - (canvas.offsetLeft + canvas.width / 2)) * -1;
+        (event.clientX - (canvas.offsetLeft + Dimensions.w / 2)) * -1;
       const mousey =
-        (event.clientY - (canvas.offsetTop + canvas.height / 2)) * -1;
+        (event.clientY - (canvas.offsetTop + Dimensions.h / 2)) * -1;
       const wheel = event.deltaY < 0 ? 1 : -1;
 
       const deltaZoom = Math.exp(wheel * 0.05);
@@ -210,9 +211,8 @@ class Camera implements GameObject, Stepable, Disposable, Initializable {
   }
 
   step(context: GameContext) {
-    const { canvasRenderingContext: { canvas } } = context;
-    this.viewport.w = canvas.width;
-    this.viewport.h = canvas.height;
+    this.viewport.w = Dimensions.w;
+    this.viewport.h = Dimensions.h;
     // The limits depend on the window's size
     this._zoom = this.clampZoom(this._zoom);
     this.updatePosition(context.dt);

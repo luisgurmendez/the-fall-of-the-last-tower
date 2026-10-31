@@ -217,6 +217,8 @@ Renders all entities based on server state:
 
 ### 5. Rendering System (`src/controllers/RenderController.ts`)
 
+The canvas is backed at the screen's resolution (2 canvas pixels per CSS pixel on a retina screen) with a base transform, so everything is laid out and drawn in CSS pixels: use `Dimensions` for the screen size, not `canvas.width` (`src/core/canvas.ts`). The GPU layer and the fog are drawn at lower resolution and stretched.
+
 1. Clear canvas
 2. Apply camera transforms (translate, scale, zoom)
 3. Render background

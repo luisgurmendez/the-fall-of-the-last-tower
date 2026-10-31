@@ -4,6 +4,7 @@
  */
 
 import Vector from "@/physics/vector";
+import { Dimensions } from "@/core/canvas";
 
 /**
  * Mouse button constants.
@@ -294,8 +295,8 @@ export class InputManager {
       return screenPos.clone();
     }
 
-    const canvasWidth = this.canvas.width;
-    const canvasHeight = this.canvas.height;
+    const canvasWidth = Dimensions.w;
+    const canvasHeight = Dimensions.h;
 
     const worldX = (screenPos.x - canvasWidth / 2) / zoom + cameraPos.x;
     const worldY = (screenPos.y - canvasHeight / 2) / zoom + cameraPos.y;

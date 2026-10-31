@@ -23,6 +23,7 @@ import { EntityType } from '@siege/shared';
 import type { OnlineStateManager, InterpolatedEntity } from '@/core/OnlineStateManager';
 import { getPortraitCanvas } from '@/ui/matchmaking/portraits';
 import { drawPixelArt } from '@/render/pixelArt';
+import { Dimensions } from '@/core/canvas';
 
 /** Radius of a champion's portrait on the minimap */
 const CHAMPION_ICON_RADIUS = 9;
@@ -161,7 +162,7 @@ export class OnlineMinimap extends ScreenEntity {
     const canvas = canvasRenderingContext.canvas;
 
     // Update position
-    this.updateMinimapPosition(canvas.width, canvas.height);
+    this.updateMinimapPosition(Dimensions.w, Dimensions.h);
 
     // Get mouse position in screen space
     const mousePos = this.inputManager.getMousePosition();
@@ -572,8 +573,8 @@ export class OnlineMinimap extends ScreenEntity {
     const canvas = canvasRenderingContext.canvas;
 
     // Calculate viewport in world space
-    const viewWidth = canvas.width / camera.zoom;
-    const viewHeight = canvas.height / camera.zoom;
+    const viewWidth = Dimensions.w / camera.zoom;
+    const viewHeight = Dimensions.h / camera.zoom;
 
     const topLeft = this.worldToMinimap(
       camera.position.x - viewWidth / 2,

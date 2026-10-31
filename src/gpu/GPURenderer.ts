@@ -20,6 +20,17 @@ import { GroundPass } from "./ground/GroundPass";
 import { FXBatch } from "./fx/FXBatch";
 import { FXPass } from "./fx/FXPass";
 import { viewFromContext, type GPUView } from "./view";
+import { Resolution } from "@/core/canvas";
+
+/**
+ * The GPU layer's pixels per canvas pixel: one per CSS pixel. The ground's
+ * pixels are bigger than that and the effects are soft glows, so a retina
+ * screen's extra pixels would cost 4x for nothing. (Both passes share the
+ * WebGL canvas: they must use the same size, or it's reallocated twice a frame.)
+ */
+function gpuResolution(): number {
+  return 1 / Resolution.pixelRatio;
+}
 
 export class GPURenderer {
   readonly canvas: HTMLCanvasElement;
@@ -67,23 +78,30 @@ export class GPURenderer {
     return !this.lost && !this.gl.isContextLost();
   }
 
-  private prepare(ctx: CanvasRenderingContext2D): GPUView {
-    const view = viewFromContext(ctx, performance.now());
-    if (this.canvas.width !== view.width || this.canvas.height !== view.height) {
-      this.canvas.width = view.width;
-      this.canvas.height = view.height;
+  /**
+   * Size the WebGL canvas for a pass at `resolution` (1 = one pixel per
+   * canvas pixel, 1 / pixelRatio = one per CSS pixel) and give its view.
+   */
+  private prepare(ctx: CanvasRenderingContext2D, resolution: number): GPUView {
+    const full = viewFromContext(ctx, performance.now());
+    const width = Math.max(1, Math.round(full.width * resolution));
+    const height = Math.max(1, Math.round(full.height * resolution));
+    const view = { ...full, width, height, worldPerPixel: (full.worldPerPixel * full.width) / width };
+    if (this.canvas.width !== width || this.canvas.height !== height) {
+      this.canvas.width = width;
+      this.canvas.height = height;
     }
     this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
-    this.gl.viewport(0, 0, view.width, view.height);
+    this.gl.viewport(0, 0, width, height);
     return view;
   }
 
-  /** Copy the WebGL canvas onto the 2D one, pixel for pixel */
-  private composite(ctx: CanvasRenderingContext2D): void {
+  /** Stretch the WebGL canvas over the whole 2D one */
+  private composite(ctx: CanvasRenderingContext2D, smooth: boolean): void {
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(this.canvas, 0, 0);
+    ctx.imageSmoothingEnabled = smooth;
+    ctx.drawImage(this.canvas, 0, 0, ctx.canvas.width, ctx.canvas.height);
     ctx.restore();
   }
 
@@ -93,9 +111,9 @@ export class GPURenderer {
    */
   drawGround(ctx: CanvasRenderingContext2D): boolean {
     if (!this.available || !this.ground) return false;
-    const view = this.prepare(ctx);
+    const view = this.prepare(ctx, gpuResolution());
     this.ground.draw(view);
-    this.composite(ctx);
+    this.composite(ctx, false);
     return true;
   }
 
@@ -106,9 +124,9 @@ export class GPURenderer {
   drawFX(ctx: CanvasRenderingContext2D, layer: "ground" | "top"): void {
     const batch = layer === "ground" ? this.groundFx : this.topFx;
     if (batch.count > 0 && this.available && this.fx) {
-      const view = this.prepare(ctx);
+      const view = this.prepare(ctx, gpuResolution());
       this.fx.draw(batch, view);
-      this.composite(ctx);
+      this.composite(ctx, false);
     }
     batch.clear();
   }

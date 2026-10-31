@@ -212,10 +212,7 @@ class RenderController {
   }
 
   public renderPause(canvasRenderingContext: CanvasRenderingContext2D) {
-    const canvasDimensions = {
-      w: canvasRenderingContext.canvas.width,
-      h: canvasRenderingContext.canvas.height,
-    };
+    const canvasDimensions = { w: Dimensions.w, h: Dimensions.h };
     canvasRenderingContext.rect(0, 0, canvasDimensions.w, canvasDimensions.h);
     canvasRenderingContext.fillStyle = new Color(0, 0, 0, 0.5).rgba();
     canvasRenderingContext.fill();

@@ -18,7 +18,10 @@ export function drawPixelArt(
   const naturalWidth = image instanceof HTMLImageElement ? image.naturalWidth : image.width;
   const smoothing = ctx.imageSmoothingEnabled;
   const quality = ctx.imageSmoothingQuality;
-  ctx.imageSmoothingEnabled = width < naturalWidth;
+  // In canvas pixels (on a retina screen, twice the CSS pixels)
+  const transform = ctx.getTransform();
+  const drawnWidth = width * Math.hypot(transform.a, transform.b);
+  ctx.imageSmoothingEnabled = drawnWidth < naturalWidth;
   ctx.imageSmoothingQuality = "high";
   ctx.drawImage(image, x, y, width, height);
   ctx.imageSmoothingEnabled = smoothing;

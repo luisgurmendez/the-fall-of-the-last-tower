@@ -14,6 +14,7 @@ import { FogOfWar } from "@/core/FogOfWar";
 import { TeamId } from "@/core/Team";
 import Vector from "@/physics/vector";
 import { ProfileCritical } from "@/debug/PerformanceProfiler";
+import { Resolution } from "@/core/canvas";
 
 /**
  * Configuration for fog rendering.
@@ -45,6 +46,13 @@ export const DEFAULT_FOG_RENDER_CONFIG: FogRenderConfig = {
   desaturateExplored: true,
 };
 
+/**
+ * Fog pixels per CSS pixel on screen: it's soft, so it's blurred at half
+ * the screen's resolution and stretched over it (blurring at a retina
+ * screen's full resolution would cost several times more)
+ */
+const FOG_SCREEN_RESOLUTION = 0.5;
+
 /** Seconds for fog to clear from a cell coming into sight */
 const FOG_REVEAL_SECONDS = 0.12;
 /** Seconds for fog to cover a cell going out of sight */
@@ -74,6 +82,10 @@ export class FogOfWarRenderer {
   private fogCanvas: HTMLCanvasElement | null = null;
   private fogCtx: CanvasRenderingContext2D | null = null;
   private imageData: ImageData | null = null;
+
+  // Screen-space canvas the fog is blurred into before covering the screen
+  private screenCanvas: HTMLCanvasElement | null = null;
+  private screenCtx: CanvasRenderingContext2D | null = null;
 
   // Cached color values
   private unexploredRgb: { r: number; g: number; b: number };
@@ -185,18 +197,24 @@ export class FogOfWarRenderer {
     // Put ImageData to offscreen canvas
     this.fogCtx.putImageData(this.imageData, 0, 0);
 
-    // Draw fog canvas scaled to world space
-    // The fog canvas is 1 pixel per cell, so we need to scale by cellSize
-    ctx.save();
+    // Draw the fog into the screen-space canvas, with ctx's world transform
+    // scaled down to its resolution
+    const screen = this.getScreenContext(ctx);
+    const scale = screen.canvas.width / ctx.canvas.width;
+    const m = ctx.getTransform();
+    screen.setTransform(1, 0, 0, 1, 0, 0);
+    screen.clearRect(0, 0, screen.canvas.width, screen.canvas.height);
+    screen.setTransform(m.a * scale, m.b * scale, m.c * scale, m.d * scale, m.e * scale, m.f * scale);
 
     // Enable image smoothing for soft fog edges when scaled up
-    ctx.imageSmoothingEnabled = this.config.smoothEdges;
-    ctx.imageSmoothingQuality = "high";
+    screen.imageSmoothingEnabled = this.config.smoothEdges;
+    screen.imageSmoothingQuality = "high";
 
-    // Apply blur filter for smoother fog edges (blur amount scales with cell size)
+    // Apply blur filter for smoother fog edges (blur amount scales with cell
+    // size; it's in CSS pixels, and the filter counts this canvas's pixels)
     if (this.config.smoothEdges) {
       const blurAmount = Math.max(dims.cellSize / 3, 2);
-      ctx.filter = `blur(${blurAmount}px)`;
+      screen.filter = `blur(${blurAmount * FOG_SCREEN_RESOLUTION}px)`;
     }
 
     // Draw the fog texture, scaling from grid coords to world coords
@@ -204,15 +222,37 @@ export class FogOfWarRenderer {
     // - fogCanvas pixel (0,0) = world position (-offset.x, -offset.y)
     // - fogCanvas size = (dims.width, dims.height)
     // - world size = (dims.width * cellSize, dims.height * cellSize)
-    ctx.drawImage(
+    screen.drawImage(
       this.fogCanvas,
       -offset.x,
       -offset.y,
       dims.width * dims.cellSize,
       dims.height * dims.cellSize
     );
+    screen.filter = "none";
 
+    // Stretch it over the screen
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(screen.canvas, 0, 0, ctx.canvas.width, ctx.canvas.height);
     ctx.restore();
+  }
+
+  /** The screen-space fog canvas, sized for ctx's canvas at FOG_SCREEN_RESOLUTION */
+  private getScreenContext(ctx: CanvasRenderingContext2D): CanvasRenderingContext2D {
+    const scale = FOG_SCREEN_RESOLUTION / Resolution.pixelRatio;
+    const width = Math.max(1, Math.round(ctx.canvas.width * scale));
+    const height = Math.max(1, Math.round(ctx.canvas.height * scale));
+    if (!this.screenCanvas || !this.screenCtx) {
+      this.screenCanvas = document.createElement("canvas");
+      this.screenCtx = this.screenCanvas.getContext("2d")!;
+    }
+    if (this.screenCanvas.width !== width || this.screenCanvas.height !== height) {
+      this.screenCanvas.width = width;
+      this.screenCanvas.height = height;
+    }
+    return this.screenCtx;
   }
 
   /**

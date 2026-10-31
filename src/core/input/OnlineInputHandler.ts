@@ -25,6 +25,7 @@ import { getCursorManager } from "@/core/CursorManager";
 import { pickScore } from "@/core/input/picking";
 import RenderElement from "@/render/renderElement";
 import { renderWardPreview } from "@/render/entities/ward";
+import { Dimensions } from "@/core/canvas";
 
 /** Summoner spell keys and their slots */
 const SUMMONER_KEYS: [string, 0 | 1][] = [["d", 0], ["f", 1]];
@@ -645,8 +646,8 @@ export class OnlineInputHandler implements GameObject {
     const canvas = document.querySelector("canvas");
     if (!canvas) return screenPos;
 
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
+    const centerX = Dimensions.w / 2;
+    const centerY = Dimensions.h / 2;
 
     // Convert from screen to world coordinates
     const worldX = (screenPos.x - centerX) / camera.zoom + camera.position.x;
