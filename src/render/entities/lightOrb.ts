@@ -1,9 +1,12 @@
 /**
- * Light Orb renderer (EntityType.LIGHT_ORB): Lume's pixelated orb, its light
+ * Light Orb renderer (EntityType.LIGHT_ORB): on the GPU, light with bloom
+ * (src/gpu/fx/lightOrb.ts); without it, Lume's pixelated orb, its light
  * rays and comet-tail particles, and the ghost shown while it respawns.
  */
 
 import PixelArtDrawUtils from "@/utils/pixelartDrawUtils";
+import { getGPURenderer } from "@/gpu/GPURenderer";
+import { emitLightOrb } from "@/gpu/fx/lightOrb";
 import type { EntityRenderContext } from "@/render/entities/types";
 
 /**
@@ -79,6 +82,14 @@ export class LightOrbRenderer {
       | "stationed"
       | "destroyed";
     const orbId = snapshot.entityId;
+
+    // On the GPU the orb is light with bloom (src/gpu/fx/lightOrb.ts)
+    const gpu = getGPURenderer();
+    const position = this.rc.stateManager.getEntity(orbId)?.position;
+    if (gpu && position) {
+      emitLightOrb(gpu.topFx, orbId, state, position.x, position.y, this.rc.animationTime, side);
+      return;
+    }
 
     // Don't render if destroyed (except for a faint ghost)
     if (state === "destroyed") {

@@ -8,7 +8,7 @@
  * Query options: ?only=magnus (ids containing the text), ?zoom=1.4 (screen
  * pixels per world unit), ?period=2.5 (seconds between casts),
  * ?x=0&y=-700 (where on the map the grid sits), ?speed=0.25 (slow motion),
- * ?kind=projectile (or ability, zone, aura), ?pause=0.6 (freeze 0.6 seconds
+ * ?kind=projectile (or ability, zone, aura, orb), ?pause=0.6 (freeze 0.6 seconds
  * after the first cast, for a screenshot of that moment).
  */
 
@@ -19,6 +19,7 @@ import { getGPURenderer } from "@/gpu/GPURenderer";
 import { emitProjectile, PROJECTILE_STYLES } from "@/gpu/fx/projectiles";
 import { emitZone } from "@/gpu/fx/zones";
 import { emitChampionAuras } from "@/gpu/fx/championAuras";
+import { emitLightOrb, type LightOrbState } from "@/gpu/fx/lightOrb";
 import { GameConfig } from "@siege/shared";
 
 const params = new URLSearchParams(window.location.search);
@@ -45,7 +46,7 @@ const REACH = 170;
 
 interface Cell {
   id: string;
-  kind: "ability" | "projectile" | "zone" | "aura";
+  kind: "ability" | "projectile" | "zone" | "aura" | "orb";
   casterX: number;
   casterY: number;
   targetX: number;
@@ -56,11 +57,13 @@ const abilityIds = getAllRegisteredVFX().filter((id) => !only || id.includes(onl
 const projectileIds = Object.keys(PROJECTILE_STYLES).filter((id) => !only || id.includes(only)).sort();
 const ZONES = ["damage", "slow", "heal", "buff"];
 const AURAS = ["recall", "crest_of_insight", "crest_of_cinders", "both_crests"];
+const ORBS: LightOrbState[] = ["orbiting", "traveling", "stationed", "destroyed"];
 const ids: Array<{ id: string; kind: Cell["kind"] }> = [
   ...abilityIds.map((id) => ({ id, kind: "ability" as const })),
   ...projectileIds.map((id) => ({ id, kind: "projectile" as const })),
   ...ZONES.filter((id) => !only || id.includes(only)).map((id) => ({ id, kind: "zone" as const })),
   ...AURAS.filter((id) => !only || id.includes(only)).map((id) => ({ id, kind: "aura" as const })),
+  ...ORBS.map((state) => `orb_${state}`).filter((id) => !only || id.includes(only)).map((id) => ({ id, kind: "orb" as const })),
 ].filter((entry) => !onlyKind || entry.kind === onlyKind);
 
 const canvas = document.getElementById("lab") as HTMLCanvasElement;
@@ -130,7 +133,13 @@ function frame(): void {
   const seconds = now / 1000;
   for (const cell of cells) {
     const x = cell.casterX + REACH / 2;
-    if (cell.kind === "zone") {
+    if (cell.kind === "orb") {
+      // Orbiting circles the caster, traveling goes back and forth, the rest stay put
+      const state = cell.id.slice(4) as LightOrbState;
+      const ox = state === "orbiting" ? cell.casterX + Math.cos(seconds * 2) * 60 : state === "traveling" ? cell.casterX + (Math.sin(seconds * 2) * 0.5 + 0.5) * REACH : x;
+      const oy = state === "orbiting" ? cell.casterY + Math.sin(seconds * 2) * 60 : cell.casterY;
+      emitLightOrb(gpu.topFx, cell.id, state, ox, oy, seconds, 0);
+    } else if (cell.kind === "zone") {
       emitZone(gpu.groundFx, gpu.topFx, { entityId: cell.id, radius: 110, zoneType: cell.id, totalDuration: 5, remainingDuration: 5 - (seconds % 5) }, x, cell.casterY, seconds);
     } else if (cell.kind === "aura") {
       const recall = GameConfig.TIMING.RECALL_DURATION;

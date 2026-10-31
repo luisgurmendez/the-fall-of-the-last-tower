@@ -227,10 +227,12 @@ export class ServerLightOrb extends ServerEntity {
     const dy = target.y - this.position.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
 
-    // Check if arrived
+    // Arrived when this tick's step would reach it (a smaller threshold made
+    // the orb overshoot and bounce around its target)
+    const moveDistance = LUME_ORB_CONFIG.travelSpeed * dt;
     const arrivalThreshold = this.isReturningToOwner ? LUME_ORB_CONFIG.orbitRadius : 5;
 
-    if (distance <= arrivalThreshold) {
+    if (distance <= Math.max(arrivalThreshold, moveDistance)) {
       if (this.isReturningToOwner) {
         // Returned to owner - start orbiting
         this._state = 'orbiting';
@@ -255,7 +257,6 @@ export class ServerLightOrb extends ServerEntity {
     }
 
     // Move toward target
-    const moveDistance = LUME_ORB_CONFIG.travelSpeed * dt;
     const normalizedDx = dx / distance;
     const normalizedDy = dy / distance;
 

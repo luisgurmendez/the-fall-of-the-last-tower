@@ -18,7 +18,7 @@ const trails = new Map<string, Trail>();
 let lastPrune = 0;
 
 /** A projectile's recent positions (oldest first), with (x, y) added */
-function trailOf(id: string, x: number, y: number, now: number, length: number): ReadonlyArray<{ x: number; y: number }> {
+export function trailOf(id: string, x: number, y: number, now: number, length: number): ReadonlyArray<{ x: number; y: number }> {
   let trail = trails.get(id);
   if (!trail) {
     trail = { points: [], lastSeen: now };
@@ -38,7 +38,7 @@ function trailOf(id: string, x: number, y: number, now: number, length: number):
 }
 
 /** A number 0-1 that stays the same for a projectile */
-function seedOf(id: string): number {
+export function seedOf(id: string): number {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
   return ((h >>> 0) % 1000) / 1000;

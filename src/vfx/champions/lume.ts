@@ -2,7 +2,7 @@
  * Lume ability VFX: warm white light split into prism colors; rays,
  * crystals and the one pillar of light. Registered when this module is
  * imported (see ./index.ts). The Light Orb is drawn by
- * src/render/entities/lightOrb.ts.
+ * src/gpu/fx/lightOrb.ts.
  */
 
 import { getAbilityDefinition, LUME_ORB_CONFIG } from '@siege/shared';
