@@ -5,10 +5,13 @@
  * paints it from small color ramps with ordered dithering, like pixel art:
  * - grass, darker in the jungle, with tufts that sway, flower patches and
  *   a sheen the wind blows across
- * - dirt lanes with pebbles and a shaded lip where the grass ends
+ * - lanes paved with worn flagstones down the middle, thinning out to bare
+ *   earth and moss toward a shaded lip where the grass ends
  * - water: deep in the middle of the river, shallow at its banks and at
- *   the lane fords, with flowing ripples, foam lapping at the shore,
- *   glints and a wet sand bank around it
+ *   the lane fords (the paving runs on under the water there), with
+ *   flowing ripples, foam lapping at the shore, glints and a muddy bank
+ * The palette is muted, closer to the classic MOBA's than to bright
+ * cartoon colors, so the units and effects stand out over it.
  * - walls: a forest canopy (one shaded crown per tree) over the jungle
  *   walls and mossy boulders on the others, a rock face on their south
  *   side, and their shadow and ambient occlusion on the ground
@@ -70,16 +73,17 @@ const float BASE_STONE_RADIUS = 1120.0;
 const float PIT_STONE_RADIUS = 340.0;
 const float PLAZA_RADIUS = 460.0;
 
-const vec3 GRASS[5] = vec3[5](vec3(0.106, 0.271, 0.231), vec3(0.161, 0.392, 0.251), vec3(0.251, 0.514, 0.255), vec3(0.373, 0.624, 0.282), vec3(0.545, 0.733, 0.322));
-const vec3 DIRT[5] = vec3[5](vec3(0.302, 0.208, 0.165), vec3(0.420, 0.290, 0.204), vec3(0.537, 0.392, 0.267), vec3(0.643, 0.502, 0.337), vec3(0.749, 0.616, 0.427));
-const vec3 WATER[5] = vec3[5](vec3(0.086, 0.243, 0.420), vec3(0.114, 0.345, 0.553), vec3(0.165, 0.490, 0.663), vec3(0.275, 0.639, 0.749), vec3(0.471, 0.796, 0.812));
-const vec3 SAND[3] = vec3[3](vec3(0.471, 0.408, 0.290), vec3(0.612, 0.533, 0.376), vec3(0.741, 0.667, 0.482));
+const vec3 GRASS[5] = vec3[5](vec3(0.106, 0.231, 0.180), vec3(0.165, 0.318, 0.192), vec3(0.239, 0.420, 0.212), vec3(0.341, 0.522, 0.243), vec3(0.486, 0.627, 0.298));
+const vec3 DIRT[5] = vec3[5](vec3(0.255, 0.204, 0.173), vec3(0.353, 0.290, 0.235), vec3(0.451, 0.380, 0.306), vec3(0.549, 0.475, 0.384), vec3(0.643, 0.573, 0.471));
+const vec3 PAVE[5] = vec3[5](vec3(0.247, 0.243, 0.243), vec3(0.349, 0.341, 0.329), vec3(0.447, 0.435, 0.412), vec3(0.541, 0.525, 0.490), vec3(0.639, 0.620, 0.576));
+const vec3 WATER[5] = vec3[5](vec3(0.071, 0.192, 0.278), vec3(0.098, 0.271, 0.357), vec3(0.153, 0.369, 0.435), vec3(0.251, 0.478, 0.506), vec3(0.412, 0.616, 0.596));
+const vec3 SAND[3] = vec3[3](vec3(0.400, 0.357, 0.271), vec3(0.502, 0.451, 0.341), vec3(0.604, 0.553, 0.427));
 const vec3 CANOPY[5] = vec3[5](vec3(0.055, 0.149, 0.133), vec3(0.090, 0.247, 0.180), vec3(0.149, 0.357, 0.208), vec3(0.251, 0.478, 0.235), vec3(0.408, 0.616, 0.282));
 const vec3 CANOPY_TEAL[5] = vec3[5](vec3(0.047, 0.141, 0.165), vec3(0.071, 0.231, 0.231), vec3(0.106, 0.333, 0.282), vec3(0.176, 0.447, 0.329), vec3(0.302, 0.580, 0.384));
 const vec3 CANOPY_GOLD[5] = vec3[5](vec3(0.137, 0.165, 0.098), vec3(0.231, 0.267, 0.122), vec3(0.353, 0.380, 0.149), vec3(0.494, 0.494, 0.192), vec3(0.663, 0.627, 0.259));
 const vec3 ROCK[5] = vec3[5](vec3(0.141, 0.133, 0.176), vec3(0.212, 0.196, 0.247), vec3(0.302, 0.278, 0.329), vec3(0.416, 0.384, 0.427), vec3(0.549, 0.518, 0.541));
 const vec3 STONE[5] = vec3[5](vec3(0.259, 0.259, 0.302), vec3(0.353, 0.353, 0.392), vec3(0.447, 0.443, 0.475), vec3(0.549, 0.541, 0.557), vec3(0.659, 0.647, 0.635));
-const vec3 BRUSH[5] = vec3[5](vec3(0.071, 0.212, 0.200), vec3(0.137, 0.337, 0.243), vec3(0.282, 0.502, 0.243), vec3(0.478, 0.647, 0.243), vec3(0.706, 0.788, 0.341));
+const vec3 BRUSH[5] = vec3[5](vec3(0.067, 0.180, 0.165), vec3(0.122, 0.282, 0.212), vec3(0.231, 0.408, 0.224), vec3(0.365, 0.525, 0.251), vec3(0.553, 0.651, 0.318));
 const vec3 MOSS[3] = vec3[3](vec3(0.169, 0.290, 0.188), vec3(0.247, 0.400, 0.208), vec3(0.365, 0.525, 0.247));
 const vec3 FOAM = vec3(0.871, 0.949, 0.945);
 const vec3 TEAM_BLUE = vec3(0.278, 0.612, 1.0);
@@ -147,6 +151,43 @@ vec3 grass(vec2 p, vec2 ip, float dither, float jungle, float stepTime) {
   return color;
 }
 
+// ---------------------------------------------------------------- paving
+
+// Worn flagstones: the cells of a jittered grid, with joints between them;
+// keep is the share of slabs still there. Returns the slab's color with
+// alpha 1, a joint between slabs with alpha 0.5, or alpha 0 where there's
+// no slab.
+vec4 paving(vec2 p, float dither, float keep) {
+  const float SLAB = 24.0;
+  vec2 cell = floor(p / SLAB);
+  float d1 = 1e9;
+  float d2 = 1e9;
+  vec2 site = vec2(0.0);
+  vec2 other = vec2(0.0);
+  vec2 id = vec2(0.0);
+  for (int j = -1; j <= 1; j++) {
+    for (int i = -1; i <= 1; i++) {
+      vec2 c = cell + vec2(float(i), float(j));
+      vec2 s = (c + 0.2 + hash22(c + 17.0) * 0.6) * SLAB;
+      float d = length(p - s);
+      if (d < d1) { d2 = d1; other = site; d1 = d; site = s; id = c; }
+      else if (d < d2) { d2 = d; other = s; }
+    }
+  }
+  if (hash12(id + 3.0) > keep) return vec4(0.0);
+  // Distance to the edge shared with the nearest other slab
+  float border = (d2 * d2 - d1 * d1) / (2.0 * max(length(other - site), 1.0));
+  if (border < 1.6) return vec4(0.0, 0.0, 0.0, 0.5);
+  float v = 0.5 + (hash12(id) - 0.5) * 0.4 + (vnoise(p * 0.16 + id * 1.7) - 0.5) * 0.3;
+  int base = level(v, dither, 4);
+  vec3 color = PAVE[base];
+  // Bevel: the edge toward the light (top left) lit, the far one shaded
+  if (border < 3.4) color = shift5(PAVE, base, dot(p - site, vec2(-0.6, -0.8)) > 0.0 ? 1 : -1);
+  // Chips
+  if (hash12(floor(p / PX) + id * 3.0) > 0.975) color = shift5(PAVE, base, -2);
+  return vec4(color, 1.0);
+}
+
 // ---------------------------------------------------------------- dirt
 
 vec3 dirt(vec2 p, vec2 ip, float dither, float edge, float dPath) {
@@ -154,8 +195,15 @@ vec3 dirt(vec2 p, vec2 ip, float dither, float edge, float dPath) {
   int base = level(v, dither, 4);
   vec3 color = DIRT[base];
   // The lip where the grass ends casts a little shadow
-  if (edge > -3.0) color = shift5(DIRT, base, -2);
-  else if (edge > -4.5) color = shift5(DIRT, base, -1);
+  if (edge > -3.0) return shift5(DIRT, base, -2);
+  if (edge > -4.5) return shift5(DIRT, base, -1);
+
+  // Flagstones down the middle of the lane, fewer toward its edges, with
+  // earth between them there and moss in the joints
+  float keep = 0.12 + 0.78 * smoothstep(-12.0, -75.0, dPath);
+  vec4 slab = paving(p, dither, keep);
+  if (slab.a > 0.75) return slab.rgb;
+  if (slab.a > 0.25) return hash12(ip * 0.7) < smoothstep(-80.0, -20.0, dPath) * 0.7 ? MOSS[0] : DIRT[0];
 
   // Pebbles
   vec2 cell = floor(ip / 8.0);
@@ -173,7 +221,7 @@ vec3 dirt(vec2 p, vec2 ip, float dither, float edge, float dPath) {
 vec3 water(vec2 p, vec2 ip, float dither, float depth, float dPath, float stepTime, bool river) {
   // Fords: the lanes cross the river in the shallows
   float ford = smoothstep(10.0, -30.0, dPath);
-  depth = mix(depth, min(depth, 14.0), ford);
+  depth = mix(depth, min(depth, 22.0), ford);
   float shallow = 1.0 - smoothstep(4.0, 95.0, depth);
 
   vec2 flow = river ? uRiverDir * 16.0 : vec2(4.0, 2.0);
@@ -190,27 +238,17 @@ vec3 water(vec2 p, vec2 ip, float dither, float depth, float dPath, float stepTi
   float waveFoam = step(wave, 0.09) * step(depth, 28.0) * step(0.4, vnoise(p * 0.11 + stepTime * 0.6)) * step(ford, 0.2);
   if (edgeFoam + waveFoam > 0.0) color = mix(color, FOAM, 0.9);
 
-  // Stepping stones across the fords, the current parting around them
+  // The lane's paving runs on under the water at the fords, seen through it
   if (ford > 0.5) {
-    vec2 cell = floor(ip / 17.0);
-    if (hash12(cell + 41.0) < 0.6) {
-      vec2 r = ip - cell * 17.0 - 5.0 - floor(hash22(cell + 8.0) * 6.0);
-      vec2 size = vec2(4.0, 2.5) + floor(hash22(cell + 3.0) * 2.0);
-      float k = dot(r / size, r / size);
-      if (k <= 1.0) {
-        float light = -(r.x / size.x) * 0.4 - (r.y / size.y) * 0.7;
-        color = light > 0.35 ? STONE[4] : light > -0.2 ? STONE[3] : STONE[1];
-      } else if (k <= 1.8) {
-        bool behind = dot(r, uRiverDir) > 0.0;
-        color = behind && vnoise(p * 0.3 + stepTime * 2.0) > 0.45 ? FOAM : mix(color, FOAM, 0.35);
-      }
-    }
+    vec4 slab = paving(p, dither, 0.7);
+    if (slab.a > 0.75) color = mix(color, slab.rgb * vec3(0.6, 0.78, 0.84), 0.35);
+    else if (slab.a > 0.25) color *= 0.82;
   }
 
-  // Glints that come and go
+  // A few glints that come and go
   vec2 sc = floor(ip / 9.0);
   float slot = floor(uTime * 2.5 + hash12(sc) * 7.0);
-  if (hash12(sc + slot * 13.7) > 0.95) {
+  if (hash12(sc + slot * 13.7) > 0.988) {
     vec2 r = abs(ip - (sc * 9.0 + 2.0 + floor(hash22(sc + slot) * 5.0)));
     if (r.x + r.y < 0.5) color = vec3(1.0);
     else if (r.x + r.y < 1.5) color = mix(color, vec3(1.0), 0.6);
