@@ -16,8 +16,9 @@
  *   walls and mossy boulders on the others, a rock face on their south
  *   side, and their shadow and ambient occlusion on the ground
  * - round stone plazas in the bases with a ring of runes in the team's color
- * - brush: packed leafy clumps over exactly the bushes' hitboxes, swaying,
- *   with a shadow under them (on a muddy islet in the river)
+ * - brush: tall grass, blades swaying over exactly the bushes' hitboxes
+ *   (reaching up past their top edge), with a shadow under them (on a
+ *   muddy islet in the river)
  * - cloud shadows drifting over everything
  * Animated parts step at 8 frames per second, like sprite animation.
  */
@@ -65,7 +66,7 @@ ${GLSL_NOISE}
 // World units per art pixel
 const float PX = 1.5;
 // Height of a wall's rock face, world units
-const float FACE = 26.0;
+const float FACE = 20.0;
 // Tree crown spacing on forest walls
 const float TREE = 24.0;
 // Walls within this distance of a nexus or a river pit are stone, the rest forest
@@ -81,7 +82,7 @@ const vec3 SAND[3] = vec3[3](vec3(0.400, 0.357, 0.271), vec3(0.502, 0.451, 0.341
 const vec3 CANOPY[5] = vec3[5](vec3(0.055, 0.149, 0.133), vec3(0.090, 0.247, 0.180), vec3(0.149, 0.357, 0.208), vec3(0.251, 0.478, 0.235), vec3(0.408, 0.616, 0.282));
 const vec3 CANOPY_TEAL[5] = vec3[5](vec3(0.047, 0.141, 0.165), vec3(0.071, 0.231, 0.231), vec3(0.106, 0.333, 0.282), vec3(0.176, 0.447, 0.329), vec3(0.302, 0.580, 0.384));
 const vec3 CANOPY_GOLD[5] = vec3[5](vec3(0.137, 0.165, 0.098), vec3(0.231, 0.267, 0.122), vec3(0.353, 0.380, 0.149), vec3(0.494, 0.494, 0.192), vec3(0.663, 0.627, 0.259));
-const vec3 ROCK[5] = vec3[5](vec3(0.141, 0.133, 0.176), vec3(0.212, 0.196, 0.247), vec3(0.302, 0.278, 0.329), vec3(0.416, 0.384, 0.427), vec3(0.549, 0.518, 0.541));
+const vec3 ROCK[5] = vec3[5](vec3(0.180, 0.161, 0.149), vec3(0.267, 0.239, 0.212), vec3(0.361, 0.329, 0.290), vec3(0.459, 0.424, 0.373), vec3(0.565, 0.529, 0.471));
 const vec3 STONE[5] = vec3[5](vec3(0.259, 0.259, 0.302), vec3(0.353, 0.353, 0.392), vec3(0.447, 0.443, 0.475), vec3(0.549, 0.541, 0.557), vec3(0.659, 0.647, 0.635));
 const vec3 BRUSH[5] = vec3[5](vec3(0.067, 0.180, 0.165), vec3(0.122, 0.282, 0.212), vec3(0.231, 0.408, 0.224), vec3(0.365, 0.525, 0.251), vec3(0.553, 0.651, 0.318));
 const vec3 MOSS[3] = vec3[3](vec3(0.169, 0.290, 0.188), vec3(0.247, 0.400, 0.208), vec3(0.365, 0.525, 0.247));
@@ -266,7 +267,7 @@ bool inFaceBand(vec2 p) {
 vec3 rockFace(vec2 p, vec2 ip, float dither, float heightUp) {
   float strata = vnoise(vec2(p.x * 0.07, p.y * 0.45));
   float crack = step(0.86, vnoise(vec2(p.x * 0.33, p.y * 0.035)));
-  float v = 0.28 + heightUp * 0.42 + (strata - 0.5) * 0.3 - crack * 0.3;
+  float v = 0.34 + heightUp * 0.4 + (strata - 0.5) * 0.3 - crack * 0.3;
   vec3 color = ramp5(ROCK, v, dither);
   // Moss hanging from the lip
   float moss = vnoise(vec2(p.x * 0.18, 4.0));
@@ -292,8 +293,8 @@ vec4 wallTop(vec2 p, vec2 ip, float dither, bool stone) {
       float radius = spacing * (0.62 + hash12(c + 7.0) * 0.28);
       vec2 rel = p - center;
       if (dot(rel, rel) > radius * radius || center.y < bestY) continue;
-      // Trees grow on the wall's top, not on its face
-      if (field(center).b > -6.0 || inFaceBand(center + vec2(0.0, 4.0))) continue;
+      // Trees grow on the wall's top, not on its face (their crowns hang over it)
+      if (field(center).b > -6.0 || inFaceBand(center - vec2(0.0, 6.0))) continue;
       bestY = center.y;
       bestRel = rel;
       bestRadius = radius;
@@ -326,44 +327,40 @@ vec4 wallTop(vec2 p, vec2 ip, float dither, bool stone) {
 
 // ---------------------------------------------------------------- brush
 
-// Tall brush: small leafy clumps packed tight inside a bush, the lowest in
-// front, each nodding a pixel in the wind; alpha 0 where none covers the point
-vec4 brush(vec2 p, vec2 ip, float dither, float stepTime) {
-  const float SPACING = 11.0;
-  vec2 cell = floor(p / SPACING);
-  float bestY = -1e9;
-  vec2 bestRel = vec2(0.0);
-  float bestRadius = 1.0;
-  vec2 bestCell = vec2(0.0);
-  for (int j = -1; j <= 1; j++) {
-    for (int i = -1; i <= 1; i++) {
-      vec2 c = cell + vec2(float(i), float(j));
-      vec2 center = (c + 0.15 + hash22(c + 41.0) * 0.7) * SPACING;
-      if (brushField(center) > -2.0) continue;
-      float sway = sin(stepTime * 1.4 + c.x * 0.5 + c.y * 0.3);
-      center.x += sway > 0.6 ? PX : (sway < -0.6 ? -PX : 0.0);
-      float radius = SPACING * (0.72 + hash12(c + 9.0) * 0.35);
-      vec2 rel = p - center;
-      if (dot(rel, rel) > radius * radius || center.y < bestY) continue;
-      bestY = center.y;
-      bestRel = rel;
-      bestRadius = radius;
-      bestCell = c;
+// Tall grass: blades a pixel wide rooted on a staggered grid inside a bush
+// (art pixels apart across and between rows, up to BLADE_TALL tall), each
+// leaning a little and swaying, dark at the root and light at the tip; the
+// blade rooted lowest is in front, and the back row's blades reach up past
+// the bush's edge. Alpha 0 where none covers the point.
+const float BLADE_COL = 3.0;
+const float BLADE_ROW = 3.0;
+const float BLADE_TALL = 15.0;
+
+vec4 tallGrass(vec2 ip, float dither, float stepTime) {
+  float frontRoot = -1e9;
+  vec3 color = vec3(0.0);
+  float baseRow = floor(ip.y / BLADE_ROW);
+  for (int j = 0; j <= 5; j++) {
+    float row = baseRow + float(j);
+    float stagger = mod(row * 2.0, BLADE_COL);
+    float baseCol = floor((ip.x - stagger) / BLADE_COL);
+    for (int i = -2; i <= 2; i++) {
+      vec2 id = vec2(baseCol + float(i), row);
+      vec2 root = vec2(id.x * BLADE_COL + stagger + floor(hash12(id) * 2.0), row * BLADE_ROW + floor(hash12(id + 5.0) * 3.0));
+      float up = root.y - ip.y;
+      float tall = floor(BLADE_TALL * (0.5 + 0.5 * hash12(id + 9.0)));
+      if (up < 0.0 || up > tall || root.y <= frontRoot) continue;
+      float t = up / tall;
+      float sway = sin(stepTime * 1.4 + root.x * 0.21 + root.y * 0.13);
+      float bend = (hash12(id + 13.0) - 0.5) * 5.0 + (sway > 0.55 ? 1.5 : (sway < -0.55 ? -1.5 : 0.0));
+      if (ip.x != root.x + floor(bend * t * t + 0.5)) continue;
+      if (brushField((root + 0.5) * PX) > -1.0) continue;
+      frontRoot = root.y;
+      float v = 0.15 + t * 0.65 + (hash12(id + 21.0) - 0.5) * 0.25;
+      color = t > 0.88 ? BRUSH[4] : ramp5(BRUSH, v, dither);
     }
   }
-  if (bestY < -1e8) return vec4(0.0);
-
-  vec2 uv = bestRel / bestRadius;
-  float k = length(uv);
-  vec3 normal = normalize(vec3(uv, sqrt(max(0.0, 1.0 - k * k)) * 1.2));
-  float light = dot(normal, normalize(vec3(-0.45, -0.65, 0.6)));
-  float leaves = vnoise(p * 0.55 + bestCell * 3.1);
-  float v = 0.36 + light * 0.45 + (leaves - 0.5) * 0.4 + (hash12(bestCell + 4.0) - 0.5) * 0.12;
-  if (k > 0.86) v -= 0.25;
-  vec3 color = ramp5(BRUSH, v, dither);
-  // Bright leaf tips on the lit side
-  if (light > 0.5 && hash12(ip + bestCell * 7.0) > 0.86) color = BRUSH[4];
-  return vec4(color, 1.0);
+  return frontRoot > -1e8 ? vec4(color, 1.0) : vec4(0.0);
 }
 
 // ---------------------------------------------------------------- bases
@@ -431,7 +428,8 @@ void main() {
     } else if (dRock < 0.0) {
       wall = true;
       if (inFaceBand(p)) color = rockFace(p, ip, dither, clamp(-dRock / FACE, 0.0, 1.0));
-      else color = stone ? ROCK[0] : CANOPY[0] * 0.75;
+      // Between the crowns: undergrowth in their shade (or rock), never a black hole
+      else color = stone ? ramp5(ROCK, 0.12 + vnoise(p * 0.3) * 0.25, dither) : ramp5(CANOPY, 0.1 + vnoise(p * 0.35) * 0.3, dither);
     }
   }
 
@@ -453,17 +451,22 @@ void main() {
       if (shore < bank) color = ramp3(SAND, shore / bank - 0.15, dither);
     }
 
-    // Brush over the ground, and its shadow just under it
+    // Tall grass over the ground (its blades reach up past the bush), the
+    // ground between its stems in its shade, and its shadow just under it
     float dBrush = brushField(p);
     bool inBrush = false;
-    if (dBrush < 12.0) {
-      vec4 clumps = brush(p, ip, dither, stepTime);
-      if (clumps.a > 0.0) {
-        color = clumps.rgb;
+    if (dBrush < BLADE_TALL * PX + 2.0) {
+      vec4 blades = tallGrass(ip, dither, stepTime);
+      if (blades.a > 0.0) {
+        color = blades.rgb;
         inBrush = true;
       } else if (shore < 0.0 && dBrush < 5.0) {
-        // Brush in the river grows on a muddy islet
-        color = ramp3(SAND, 0.25 + vnoise(p * 0.2) * 0.3, dither);
+        // Grass in the river grows on a muddy islet
+        color = ramp3(SAND, 0.15 + vnoise(p * 0.2) * 0.3, dither);
+        if (dBrush < 0.0) color *= 0.7;
+      } else if (dBrush < 0.0) {
+        color = ramp5(BRUSH, 0.05 + vnoise(p * 0.4) * 0.2, dither);
+        inBrush = true;
       }
     }
 
