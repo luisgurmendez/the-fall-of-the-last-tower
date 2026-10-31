@@ -8,14 +8,18 @@
 
 import { EntityType, GameEventType, getChampionDefinition, type GameEvent } from "@siege/shared";
 import type { InterpolatedEntity } from "@/core/state/entities";
-import { getAudio, type SoundHandle } from "./AudioManager";
-import type { SoundKey } from "./soundCatalog";
+import { ABILITY_CUES, type AbilityCue } from "./abilitySounds";
+import { getAudio, type SoundHandle, type SoundPosition } from "./AudioManager";
+import { SOUNDS, type SoundKey } from "./soundCatalog";
 
 /** Champions with this attack range or less swing; the rest shoot */
 const MELEE_RANGE = 80;
 
-/** Hits between units that aren't champions (minions in lane) are quieter */
-const LANE_HIT_VOLUME = 0.45;
+/**
+ * The lane (minions, and towers and monsters fighting them) is in the
+ * background: what champions do is what the player follows
+ */
+const LANE_VOLUME = 0.3;
 
 /** Recalls in progress, by champion, to stop their sound when cancelled */
 const recalls = new Map<string, SoundHandle>();
@@ -29,6 +33,28 @@ export interface SoundContext {
 
 function at(entity: InterpolatedEntity | undefined) {
   return entity ? { x: entity.position.x, y: entity.position.y } : undefined;
+}
+
+function isChampion(entity: InterpolatedEntity | undefined): boolean {
+  return entity?.snapshot.entityType === EntityType.CHAMPION;
+}
+
+/**
+ * An ability's sounds. Played only if its caster is in sight, or (a trap
+ * springing) the unit it caught is.
+ */
+function playAbilitySound(data: Record<string, unknown>, ctx: SoundContext): void {
+  const abilityId = data.abilityId as string;
+  const cues: AbilityCue[] = ABILITY_CUES[abilityId] ?? (abilityId in SOUNDS ? [{ sound: abilityId as SoundKey }] : []);
+  if (cues.length === 0) return;
+  const caster = at(ctx.entities.get(data.entityId as string));
+  const unit = typeof data.targetEntityId === "string" ? at(ctx.entities.get(data.targetEntityId)) : undefined;
+  if (!caster && !unit) return;
+  const aimed = typeof data.targetX === "number" && typeof data.targetY === "number" ? { x: data.targetX, y: data.targetY } : undefined;
+  for (const cue of cues) {
+    const where: SoundPosition | undefined = cue.at === "target" ? aimed ?? unit ?? caster : caster ?? unit;
+    getAudio().play(cue.sound, where, 1, cue.delay ?? 0);
+  }
 }
 
 /** The sound a unit's basic attack makes as it starts, if any */
@@ -56,15 +82,18 @@ export function playEventSound(event: GameEvent, ctx: SoundContext): void {
     case GameEventType.BASIC_ATTACK: {
       const entity = ctx.entities.get(data.entityId as string);
       const sound = entity && attackSound(entity);
-      if (sound) audio.play(sound, at(entity), entity.snapshot.entityType === EntityType.MINION ? LANE_HIT_VOLUME : 1);
+      const target = ctx.entities.get(data.targetId as string);
+      if (sound) audio.play(sound, at(entity), isChampion(entity) || isChampion(target) ? 1 : LANE_VOLUME);
       break;
     }
+    case GameEventType.ABILITY_CAST:
+      playAbilitySound(data, ctx);
+      break;
     case GameEventType.DAMAGE: {
       const target = ctx.entities.get(data.entityId as string);
       if (!target || !((data.amount as number) > 0)) break;
       const source = typeof data.sourceId === "string" ? ctx.entities.get(data.sourceId) : undefined;
-      const champions = [target, source].some(unit => unit?.snapshot.entityType === EntityType.CHAMPION);
-      audio.play(data.damageType === "physical" ? "hit_physical" : "hit_magic", at(target), champions ? 1 : LANE_HIT_VOLUME);
+      audio.play(data.damageType === "physical" ? "hit_physical" : "hit_magic", at(target), isChampion(target) || isChampion(source) ? 1 : LANE_VOLUME);
       break;
     }
     case GameEventType.SUMMONER_CAST:
@@ -115,6 +144,12 @@ export function playDeathSound(entity: InterpolatedEntity): void {
     case EntityType.INHIBITOR:
       audio.play("inhibitor_destroyed", where);
       break;
+    case EntityType.PROJECTILE: {
+      // A projectile bursting where it hit or ran out
+      const impact = `${(entity.snapshot as { abilityId?: string }).abilityId}_impact`;
+      if (impact in SOUNDS) audio.play(impact as SoundKey, where);
+      break;
+    }
   }
 }
 
@@ -134,14 +169,17 @@ export function playChangeSound(entity: InterpolatedEntity, data: any, localEnti
   }
 
   if (data.isRecalling === true && !previous.isRecalling) {
+    // Builds up over the recall, ending as the champion leaves
     const handle = audio.play("recall_channel", at(entity));
     if (handle) recalls.set(previous.entityId, handle);
   } else if (data.isRecalling === false && previous.isRecalling) {
-    recalls.get(previous.entityId)?.stop();
+    const finished = typeof data.x === "number" && typeof data.y === "number" &&
+      Math.hypot(data.x - entity.position.x, data.y - entity.position.y) > 400;
+    recalls.get(previous.entityId)?.stop(finished ? 0.05 : 0.15);
     recalls.delete(previous.entityId);
-    // Finished: the champion jumped to its base
-    if (typeof data.x === "number" && typeof data.y === "number" &&
-        Math.hypot(data.x - entity.position.x, data.y - entity.position.y) > 400) {
+    // Finished: the champion beamed up from where it was and arrived in its base
+    if (finished) {
+      audio.play("recall_depart", at(entity));
       audio.play("recall_arrive", { x: data.x, y: data.y });
     }
   }

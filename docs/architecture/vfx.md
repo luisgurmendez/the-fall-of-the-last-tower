@@ -520,6 +520,7 @@ Defined in `src/vfx/world.ts` (keys in `WORLD_VFX`). They use the same phase-bas
 | `fx_hit_physical` / `fx_hit_magic` / `fx_hit_true` | A `DAMAGE` event: a small spark on the target, colored by damage type |
 | `fx_level_up` | A champion's level goes up |
 | `fx_champion_death` / `fx_respawn` | A champion dies (removed from client state) / reappears |
+| `fx_recall_depart` | A recall ends: where the champion was, the light snaps in and a beam carries it up |
 | `fx_recall_arrive` | A recall ends with the champion jumping to base |
 | `fx_tower_destroyed` | A tower or nexus dies: flash, shockwave, rubble |
 | `fx_creature_death` | A jungle creature dies. Its special attack warning, if it was winding up, is cancelled (`VFXManager.cancelCasterEffects`) |

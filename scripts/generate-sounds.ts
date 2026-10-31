@@ -1,8 +1,9 @@
 /**
  * Generates the game's sounds with ElevenLabs' sound generation (text to
  * sound effect) from the prompts in src/audio/soundCatalog.ts, then cleans
- * them up with ffmpeg: one-shots lose their leading silence, peak at -1 dB,
- * fade out at the end and are saved as mono mp3; loops (asked for as
+ * them up with ffmpeg: one-shots lose their leading silence, peak at -1 dB
+ * (a quiet one with a loud spike, a boom, is lifted with a limiter), fade
+ * out at the end and are saved as mono mp3; loops (asked for as
  * seamless loops) are only leveled and saved as wav, which loops without the
  * gap an mp3's padding leaves. Each sound gets `variants` takes, installed
  * as public/assets/sounds/<key>.<n>.<mp3|wav> (the raw takes stay in --raw).
@@ -11,6 +12,7 @@
  *   bun scripts/generate-sounds.ts                       # every sound missing a file
  *   bun scripts/generate-sounds.ts --only gold,level_up  # these, even if present
  *   bun scripts/generate-sounds.ts --raw /tmp/sounds     # keep the raw takes there
+ *   bun scripts/generate-sounds.ts --reprocess --only gold  # clean the raw takes up again (no credits)
  *
  * Credits: the free plan has 10,000 a month; the script prints what's left.
  */
@@ -28,6 +30,10 @@ const PROMPT_INFLUENCE = 0.5;
 const PEAK_DB = -1;
 /** Loops sit lower, under everything else */
 const LOOP_PEAK_DB = -6;
+/** One-shots quieter than this (LUFS) once peaking are lifted toward it with a limiter... */
+const LOUDNESS_FLOOR = -17;
+/** ...by at most this many dB */
+const MAX_LIFT_DB = 8;
 
 async function credits(apiKey: string): Promise<string> {
   const response = await fetch(`${API}/user/subscription`, { headers: { 'xi-api-key': apiKey } });
@@ -64,6 +70,12 @@ function peakDb(file: string): number {
   return Number(/max_volume: (-?[\d.]+) dB/.exec(log)?.[1] ?? 0);
 }
 
+/** Integrated loudness, in LUFS */
+function loudness(file: string): number {
+  const log = ffmpeg(['-i', file, '-af', 'ebur128=framelog=quiet', '-f', 'null', '-']);
+  return Number(/I:\s+(-?[\d.]+) LUFS/.exec(log)?.[1] ?? 0);
+}
+
 /** Clean a raw take up into its game file */
 function processTake(raw: string, out: string, def: SoundDef): void {
   if (def.loop) {
@@ -75,9 +87,11 @@ function processTake(raw: string, out: string, def: SoundDef): void {
   const trimmed = join(tmpdir(), `siege-sound-${process.pid}.wav`);
   ffmpeg(['-i', raw, '-af', 'silenceremove=start_periods=1:start_threshold=-45dB', '-ac', '1', '-ar', '44100', trimmed]);
   const gain = PEAK_DB - peakDb(trimmed);
+  const lift = Math.min(MAX_LIFT_DB, Math.max(0, LOUDNESS_FLOOR - (loudness(trimmed) + gain)));
+  const limit = Math.pow(10, PEAK_DB / 20).toFixed(3);
   ffmpeg([
     '-i', trimmed,
-    '-af', `volume=${gain.toFixed(2)}dB,areverse,afade=t=in:d=0.06,areverse`,
+    '-af', `volume=${(gain + lift).toFixed(2)}dB,alimiter=limit=${limit}:attack=2:release=60:level=false,areverse,afade=t=in:d=0.06,areverse`,
     '-b:a', '96k', out,
   ]);
 }
@@ -91,6 +105,7 @@ async function main(): Promise<void> {
     return i >= 0 ? args[i + 1] : null;
   };
   const only = option('--only')?.split(',') as SoundKey[] | undefined;
+  const reprocess = args.includes('--reprocess');
   const rawDir = option('--raw') ?? join(tmpdir(), 'siege-sounds-raw');
   mkdirSync(OUT_DIR, { recursive: true });
   mkdirSync(rawDir, { recursive: true });
@@ -105,7 +120,7 @@ async function main(): Promise<void> {
     for (let n = 0; n < files.length; n++) {
       try {
         const raw = join(rawDir, `${key}.${n}.raw.mp3`);
-        writeFileSync(raw, await generate(apiKey, def));
+        if (!reprocess) writeFileSync(raw, await generate(apiKey, def));
         processTake(raw, join('public', files[n]), def);
         console.log(`ok   ${key} ${n + 1}/${files.length}`);
       } catch (error) {

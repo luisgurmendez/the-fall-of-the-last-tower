@@ -6,6 +6,7 @@
  * match; regenerate one with scripts/generate-sounds.ts --only <key>.
  */
 
+import { getChampionDefinition } from "@siege/shared";
 import { SOUNDS, soundFiles, type SoundDef, type SoundKey } from "@/audio/soundCatalog";
 import { getAudio } from "@/audio/AudioManager";
 
@@ -35,16 +36,22 @@ function playFile(file: string, volume: number): void {
   }).catch(() => console.warn(`[soundLab] can't play ${file}`));
 }
 
+/** A champion's abilities under its name (their keys start with its id), the rest by bus */
+function groupOf(key: SoundKey): string {
+  const champion = getChampionDefinition(key.split("_")[0]);
+  return champion ? `${champion.name}'s abilities` : (SOUNDS[key] as SoundDef).bus ?? "sfx";
+}
+
 function renderList(): void {
   const list = document.getElementById("sounds")!;
-  const byBus = new Map<string, SoundKey[]>();
+  const groups = new Map<string, SoundKey[]>();
   for (const key of Object.keys(SOUNDS) as SoundKey[]) {
-    const bus = (SOUNDS[key] as SoundDef).bus ?? "sfx";
-    byBus.set(bus, [...(byBus.get(bus) ?? []), key]);
+    const group = groupOf(key);
+    groups.set(group, [...(groups.get(group) ?? []), key]);
   }
-  for (const [bus, keys] of byBus) {
+  for (const [group, keys] of groups) {
     const heading = document.createElement("h2");
-    heading.textContent = bus;
+    heading.textContent = group;
     list.append(heading);
     for (const key of keys) {
       const def: SoundDef = SOUNDS[key];

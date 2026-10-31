@@ -1,6 +1,6 @@
 /**
  * World VFX (src/vfx/world.ts) for entity state changes seen in deltas:
- * deaths, respawns, level ups and recall arrivals, and projectile impacts
+ * deaths, respawns, level ups, recalls (leaving and arriving), and projectile impacts
  * (the VFX registered as `<projectile type>_impact`, where it was
  * destroyed). Also the helper that spawns a world VFX, used by the game
  * event handlers for hit sparks.
@@ -26,7 +26,7 @@ export function spawnWorldVFX(key: string, x: number, y: number): void {
 }
 
 /**
- * Spawns the death, respawn, level up and recall arrival effects.
+ * Spawns the death, respawn, level up and recall effects.
  */
 export class EntityVFX {
   // Champions removed from state when they died, to spot their respawn
@@ -88,7 +88,7 @@ export class EntityVFX {
   }
 
   /**
-   * Effects for state changes of a living entity (level ups, recall arrivals).
+   * Effects for state changes of a living entity (level ups, recalls finishing).
    */
   spawnChangeVFX(entity: InterpolatedEntity, data: any): void {
     if (!data || entity.snapshot.entityType !== EntityType.CHAMPION) return;
@@ -98,10 +98,13 @@ export class EntityVFX {
       spawnWorldVFX(WORLD_VFX.LEVEL_UP, entity.position.x, entity.position.y);
     }
 
-    // Recall finished: the champion jumped to base
+    // Recall finished: the champion beamed up and jumped to base
     if (previous.isRecalling && data.isRecalling === false && typeof data.x === 'number' && typeof data.y === 'number') {
       const jump = Math.hypot(data.x - entity.position.x, data.y - entity.position.y);
-      if (jump > 400) spawnWorldVFX(WORLD_VFX.RECALL_ARRIVE, data.x, data.y);
+      if (jump > 400) {
+        spawnWorldVFX(WORLD_VFX.RECALL_DEPART, entity.position.x, entity.position.y);
+        spawnWorldVFX(WORLD_VFX.RECALL_ARRIVE, data.x, data.y);
+      }
     }
   }
 }

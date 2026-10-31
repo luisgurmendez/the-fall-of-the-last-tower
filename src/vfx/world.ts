@@ -36,6 +36,7 @@ export const WORLD_VFX = {
   LEVEL_UP: 'fx_level_up',
   CHAMPION_DEATH: 'fx_champion_death',
   RESPAWN: 'fx_respawn',
+  RECALL_DEPART: 'fx_recall_depart',
   RECALL_ARRIVE: 'fx_recall_arrive',
   TOWER_DESTROYED: 'fx_tower_destroyed',
   CREATURE_DEATH: 'fx_creature_death',
@@ -117,6 +118,24 @@ registerAbilityVFX({
       pillar('#9fe8ff', 160, 10, 0.5, '#ffffff'),
       embers('#e0f7ff', 12, 30),
     ], 0.9),
+  ],
+});
+
+// Leaving on a recall: the circle's light snaps in onto the champion and a
+// beam carries it up, with sparks streaming after it
+registerAbilityVFX({
+  abilityId: WORLD_VFX.RECALL_DEPART,
+  phases: [
+    phase('gather', 0, 'caster', [
+      ring('#9fd8ff', 44, 4, 0.18, 3),
+      rays('#e0f7ff', 70, 0.25, 10, true),
+      light('#9fd8ff', 80, 1, 0.5),
+    ], 0.25),
+    phase('beam', 0.08, 'caster', [
+      pillar('#9fd8ff', 480, 26, 0.5, '#ffffff'),
+      embers('#e0f7ff', 22, 22, { speed: { min: 160, max: 340 }, lifetime: { min: 0.4, max: 0.8 } }),
+      twinkles('#e0f7ff', 6, [30, 90]),
+    ], 0.6),
   ],
 });
 

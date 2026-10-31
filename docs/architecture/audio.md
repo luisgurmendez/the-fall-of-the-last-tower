@@ -11,15 +11,18 @@ played with the Web Audio API, heard from the camera.
 | `scripts/generate-sounds.ts` | Generates the catalog's sounds with ElevenLabs (`ELEVENLABS_API_KEY` in `.env.local`) and cleans them up with ffmpeg into `public/assets/sounds/<key>.<n>.mp3` (`.wav` for loops) |
 | `src/audio/AudioManager.ts` | The engine: loading, buses, volumes, placing sounds in the world, voice limits |
 | `src/audio/gameSounds.ts` | Which moment plays which sound (game events, deaths, state changes, wards) |
+| `src/audio/abilitySounds.ts` | When and where each ability sounds: its cues, timed like its VFX |
 | `src/audio/ambience.ts` | River and jungle loops, faded by where the camera looks |
-| `src/debug/soundLab.ts` | `/sound-lab.html`: every sound with its variants and prompt, and a view to hear one placed around the camera |
+| `src/debug/soundLab.ts` | `/sound-lab.html`: every sound with its variants and prompt (each champion's abilities under its name), and a view to hear one placed around the camera |
 
 ## Hearing the world
 
 - **The listener is the camera** (`Camera.step` calls `setListener` with its middle and the width it shows). A sound placed in the world plays at full volume within 0.45 of the view's width from the middle and fades out by 0.95 (past the screen's edge), so it follows the zoom; it pans left or right with where it is (up to 0.6).
 - **The fog hides sounds too**: they're played from what the client has, and units out of sight aren't in its state.
-- **Voices**: each sound plays at most `maxVoices` at once (default 3), doesn't start again within 0.05 s, and at most 24 play in all, so a wave fighting is a few hits, not a roar. Hits between units that aren't champions are quieter.
-- **Variety**: a sound with several variants picks one at random, and every start nudges the pitch by up to 4%.
+- **Voices**: each sound plays at most `maxVoices` at once (default 3), doesn't start again within 0.05 s, and at most 24 play in all, so a wave fighting is a few hits, not a roar.
+- **The mix**: what champions do is in front (abilities, their attacks and hits, given and taken); the lane is in the background: attacks and hits between units that aren't champions play at 0.3 (`LANE_VOLUME` in `gameSounds.ts`), minion deaths and cannons are quiet in the catalog, and the river and jungle loops sit low under everything.
+- **Variety**: a sound with several variants picks one at random, and every start nudges the pitch by up to 4% (not a `steadyPitch` one, timed to something: the recall channel lasts exactly the recall).
+- **Timing**: `play` can start a sound a delay from now, so an ability's impact sounds when it lands. A `rise` sound starts at that share of its volume and swells to full by its end.
 - **Buses**: `sfx` (in the world), `ui` (not placed: level up, gold, the shop, announcements) and `ambience`, under a master volume. The in-match menu (Escape) has sliders for master, effects and ambience and a mute; `AudioManager` keeps them in localStorage (`siege-audio`).
 - Browsers keep audio suspended until a click or key press; the first one starts it and loads the sounds. Until a sound has loaded, playing it does nothing.
 
@@ -28,6 +31,8 @@ played with the Web Audio API, heard from the camera.
 | Moment | Sound | From |
 |---|---|---|
 | Basic attack starts | `attack_swing` (melee champions), `attack_bow` (ranged champions, caster minions), `tower_shot`, `cannon_shot` | `BASIC_ATTACK` |
+| An ability cast (and recast: `<abilityId>_recast`; Vile's traps springing and bursting) | its cues in `ABILITY_CUES`, or else the sound with its id, at the caster | `ABILITY_CAST` |
+| A projectile bursting (where it hit or ran out) | `<abilityId>_impact`, if there's one (Magnus' fireball) | the projectile removed from state |
 | Damage taken | `hit_physical` or `hit_magic` | `DAMAGE` |
 | Summoner spell | `summoner_<id>` | `SUMMONER_CAST` |
 | Gold (ours), level up and a learned ability (ours) | `gold`, `level_up`, `ability_level_up` | `GOLD_EARNED`, the champion's `level` and `skillPoints` |
@@ -36,8 +41,14 @@ played with the Web Audio API, heard from the camera.
 | Deaths | `minion_death`, `champion_death`, `monster_death`, `tower_destroyed` (towers and the nexus), `inhibitor_destroyed` | the unit removed from state |
 | Kills, structures, the dragon, inhibitors rebuilding | `stinger_good` / `stinger_bad` (for our side or against it) | the announcement events |
 | Ward placed | `ward_place` | a ward added with `age` under 0.6 s |
-| Recall | `recall_channel` (stopped if cancelled), `recall_arrive` | the champion's `isRecalling` |
+| Recall | `recall_channel` building up over the 8 s (stopped if cancelled), then `recall_depart` (the beam up, the "jiiiuuu") where it was and `recall_arrive` in the base | the champion's `isRecalling` |
 | Ambience | `amb_river` (full within 250 of the river's middle line, gone by 800), `amb_jungle` (in either jungle) | `updateAmbience` |
+
+## Ability sounds
+
+Each champion ability has a sound keyed by its id in the catalog (`warrior_slash`); one with parts adds `_<part>` (`warrior_ultimate_leap`, `warrior_ultimate_strike`). By default the sound with the ability's id plays at the caster as it's cast. `ABILITY_CUES` (`src/audio/abilitySounds.ts`) lists the rest: a delay (an area that lands after its `aoeDelay`, as on the server and in its VFX; a projectile leaving the hand) and where (the caster, or where it's aimed or the unit it's cast on). An ability is heard only if its caster is in sight (or, for a trap springing, the unit it caught). A test (`abilitySounds.test.ts`) checks that every champion ability has a sound.
+
+Ability sounds are leveled in the catalog to about -19 LUFS (ultimates and big impacts -16, secondary parts like a meteor's whistle -21.5), measured with ffmpeg's `ebur128`, so no champion's kit is louder than another's.
 
 ## Making sounds
 
@@ -46,6 +57,10 @@ bun scripts/generate-sounds.ts                        # every sound missing a fi
 bun scripts/generate-sounds.ts --only hit_magic,gold  # remake these
 ```
 
-Add a sound to `SOUNDS` with a prompt (short and concrete; one-shots end with "video game sound effect, dry, no music, no voice") and a length, generate it, then play it from `gameSounds.ts`. One-shots lose their leading silence, peak at -1 dB, fade out at the end and are saved as mono mp3; loops are asked for as seamless loops and saved as wav (an mp3's padding would leave a gap at the seam). Judge them in `/sound-lab.html` and tune `volume` in the catalog.
+```bash
+bun scripts/generate-sounds.ts --reprocess --only gold --raw <dir>  # clean up the raw takes kept in <dir> again (no credits)
+```
 
-The account is on ElevenLabs' free plan (10,000 credits a month; the script prints what's left). A short one-shot costs a few credits and the 8 s recall about 220.
+Add a sound to `SOUNDS` with a prompt (short and concrete; one-shots end with "video game sound effect, dry, no music, no voice"; a roar or a choir leaves out "no voice") and a length, generate it, then play it from `gameSounds.ts` (an ability's: `abilitySounds.ts`). One-shots lose their leading silence, peak at -1 dB (one still quieter than -17 LUFS, a boom with a short spike, is lifted toward it with a limiter, by up to 8 dB), fade out at the end and are saved as mono mp3; loops are asked for as seamless loops and saved as wav (an mp3's padding would leave a gap at the seam). Judge them in `/sound-lab.html` and tune `volume` in the catalog.
+
+The account is on ElevenLabs' free plan (10,000 credits a month; the script prints what's left, a little behind). A sound costs about 10 credits a second: the 38 ability sounds cost about 400.

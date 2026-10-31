@@ -101,10 +101,10 @@ export class AudioManager {
 
   /**
    * Play a sound, in the world at `at` (heard from the camera) or, without
-   * it, as is. Null if it didn't start (too far, too many playing, not
-   * loaded yet).
+   * it, as is, `delay` seconds from now. Null if it didn't start (too far,
+   * too many playing, not loaded yet).
    */
-  play(key: SoundKey, at?: SoundPosition, volume = 1): SoundHandle | null {
+  play(key: SoundKey, at?: SoundPosition, volume = 1, delay = 0): SoundHandle | null {
     const def: SoundDef = SOUNDS[key];
     const context = this.context;
     if (!context || context.state !== "running" || this.settings.muted) return null;
@@ -112,7 +112,7 @@ export class AudioManager {
     const placed = at && def.bus !== "ui" ? this.placement(at) : { gain: 1, pan: 0 };
     if (placed.gain <= 0.02) return null;
 
-    const now = context.currentTime;
+    const now = context.currentTime + delay;
     const voices = this.voices.get(key) ?? 0;
     if (voices >= (def.maxVoices ?? 3) || this.totalVoices >= MAX_VOICES) return null;
     if (now - (this.lastStart.get(key) ?? -Infinity) < MIN_GAP) return null;
@@ -127,9 +127,14 @@ export class AudioManager {
     const source = context.createBufferSource();
     source.buffer = buffer;
     source.loop = def.loop ?? false;
-    source.playbackRate.value = 1 + (Math.random() * 2 - 1) * PITCH_VARIATION;
+    if (!def.steadyPitch) source.playbackRate.value = 1 + (Math.random() * 2 - 1) * PITCH_VARIATION;
     const gain = context.createGain();
-    gain.gain.value = (def.volume ?? 1) * volume * placed.gain;
+    const level = (def.volume ?? 1) * volume * placed.gain;
+    gain.gain.value = level;
+    if (def.rise != null) {
+      gain.gain.setValueAtTime(level * def.rise, now);
+      gain.gain.linearRampToValueAtTime(level, now + buffer.duration);
+    }
     const panner = context.createStereoPanner();
     panner.pan.value = placed.pan;
     source.connect(gain).connect(panner).connect(this.bus(def.bus ?? "sfx"));
@@ -141,11 +146,15 @@ export class AudioManager {
       this.voices.set(key, (this.voices.get(key) ?? 1) - 1);
       this.totalVoices--;
     };
-    source.start();
+    source.start(now);
 
     return {
       stop: (fade = 0.15) => {
         const end = context.currentTime + fade;
+        // From where a rise has got to (Firefox has no cancelAndHoldAtTime)
+        const hold = (gain.gain as Partial<AudioParam>).cancelAndHoldAtTime;
+        if (hold) hold.call(gain.gain, context.currentTime);
+        else gain.gain.cancelScheduledValues(context.currentTime);
         gain.gain.setTargetAtTime(0, context.currentTime, fade / 3);
         try {
           source.stop(end);
