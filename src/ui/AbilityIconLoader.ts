@@ -5,7 +5,7 @@
  * Where slot is: passive, q, w, e, r
  */
 
-import { drawPixelArt } from '@/render/pixelArt';
+import { drawPixelArtInBox } from '@/render/pixelArt';
 
 export type AbilityIconSlot = 'passive' | 'q' | 'w' | 'e' | 'r';
 
@@ -126,7 +126,7 @@ class AbilityIconLoader {
       return false;
     }
 
-    drawPixelArt(ctx, icon, x, y, size, size);
+    drawPixelArtInBox(ctx, icon, x, y, size);
     return true;
   }
 

@@ -16,7 +16,7 @@ Use this template as a wrapper for all ability icon generation:
 ```
 
 **Technical specs:**
-- Size: 64x64 pixels
+- Size: 32x32 pixels (simple enough to read in the HUD, where they are drawn at 3 screen pixels per pixel on a retina screen; `scripts/generate-ability-icons.ts`)
 - Style: Dark fantasy pixel art
 - Background: Black (solid)
 - Palette: Limited colors with glowing accents

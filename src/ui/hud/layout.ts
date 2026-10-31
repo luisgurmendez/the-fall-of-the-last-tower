@@ -31,7 +31,8 @@ export const PANEL = {
   statsWidth: 120,
   statsHeight: 120,
   portraitSize: 90,
-  passiveBoxSize: 44,
+  /** 32px icons at 3 canvas pixels per pixel on a retina screen */
+  passiveBoxSize: 48,
   abilitiesWidth: 240,
   abilitiesHeight: 65,
   abilityBoxSize: 52,
