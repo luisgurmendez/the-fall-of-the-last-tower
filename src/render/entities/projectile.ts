@@ -1,12 +1,16 @@
 /**
- * Projectile renderer: minion and tower arrows and the default energy ball.
- * Champion ability and auto-attack projectiles are drawn by their champion
+ * Projectile renderer. With the GPU layer every projectile is drawn there
+ * (src/gpu/fx/projectiles.ts: glowing bolts, fireballs, trails); the siege
+ * cannonball also keeps its 2D ball. Without it: minion and tower arrows,
+ * the default energy ball, and champion projectiles drawn by their champion
  * (src/render/champions/).
  */
 
 import type { EntityRenderContext } from "@/render/entities/types";
 import { TEAM_COLORS, imageCache } from "@/render/entities/shared";
 import { getChampionProjectileRenderer } from "@/render/champions";
+import { getGPURenderer } from "@/gpu/GPURenderer";
+import { emitProjectile } from "@/gpu/fx/projectiles";
 
 /**
  * Sprite configuration.
@@ -111,6 +115,14 @@ export function renderProjectile(
   const dirX = snapshot.directionX || 1;
   const dirY = snapshot.directionY || 0;
   const angle = Math.atan2(dirY, dirX);
+
+  const gpu = getGPURenderer();
+  const position = rc.stateManager.getEntity(snapshot.entityId)?.position;
+  if (gpu && position) {
+    emitProjectile(gpu.topFx, snapshot.entityId, projectileType, position.x, position.y, angle, rc.animationTime, side);
+    if (projectileType === "minion_siege") SPECIAL_PROJECTILES.minion_siege(ctx, angle, rc.animationTime);
+    return;
+  }
 
   // Champion projectiles are drawn by their champion (src/render/champions/)
   const renderChampionProjectile = getChampionProjectileRenderer(projectileType);

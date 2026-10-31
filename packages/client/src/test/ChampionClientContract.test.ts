@@ -103,6 +103,8 @@ describe('Champion client contract', () => {
       ...ALL_ABILITY_IDS,
       ...ALL_ABILITY_IDS.map((abilityId) => `${abilityId}_recast`),
       ...OTHER_CAST_EVENT_IDS,
+      // Spawned where a skillshot's projectile is destroyed (state/entityVFX.ts)
+      ...ALL_ABILITY_IDS.map((abilityId) => `${abilityId}_impact`),
       // Spawned by OnlineStateManager for hits, deaths, level ups, ...
       ...Object.values(WORLD_VFX),
       ...Object.values(ABILITIES_WITHOUT_VFX).flatMap((gap) =>

@@ -4,6 +4,7 @@
  */
 
 import type { OnlineStateManager } from '@/core/OnlineStateManager';
+import { fxColor, type FXBatch } from '@/gpu/fx/FXBatch';
 import type { ShieldBubbleConfig, OrbitingParticlesConfig } from '../VFXTypes';
 import { drawExpandingRing, drawGlowCircle } from '../effects/VFXPrimitives';
 import type { ActiveShieldBubble, ActiveOrbitingParticles } from './types';
@@ -199,6 +200,47 @@ export function renderOrbitingParticles(
       ctx.arc(px, py, orbit.size / 2, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
+    }
+  }
+}
+
+/**
+ * Add shield bubbles to a GPU batch: a hex-patterned bubble with a bright
+ * rim around the entity, flaring as it comes up and fading at the end.
+ */
+export function emitShields(batch: FXBatch, shields: ActiveShieldBubble[], stateManager: OnlineStateManager, now: number): void {
+  for (const shield of shields) {
+    const entity = stateManager.getEntity(shield.entityId);
+    if (!entity) continue;
+    const elapsed = (now - shield.startTime) / 1000;
+    const progress = elapsed / (shield.duration / 1000);
+    const pulse = shield.pulseSpeed ? 1 + Math.sin(elapsed * shield.pulseSpeed * Math.PI * 2) * 0.04 : 1;
+    const rise = Math.min(1, elapsed / 0.15);
+    const fade = progress > 0.8 ? 1 - (progress - 0.8) / 0.2 : 1;
+    const flare = Math.max(0, 1 - elapsed / 0.3);
+    const color = fxColor(shield.color);
+    const radius = shield.radius * pulse * (0.7 + 0.3 * rise);
+    batch.shield(entity.position.x, entity.position.y - 6, radius, color, (1 + flare * 1.5) * fade, fade, (shield.startTime * 0.37) % 1);
+  }
+}
+
+/**
+ * Add orbiting particles to a GPU batch: motes of light with a short tail.
+ */
+export function emitOrbitingParticles(batch: FXBatch, orbits: ActiveOrbitingParticles[], stateManager: OnlineStateManager, now: number): void {
+  for (const orbit of orbits) {
+    const entity = stateManager.getEntity(orbit.entityId);
+    if (!entity) continue;
+    const progress = (now - orbit.startTime) / orbit.duration;
+    const fade = Math.min(1, progress / 0.1, (1 - progress) / 0.2);
+    const color = fxColor(orbit.color);
+    const { x, y } = entity.position;
+    const step = -Math.sign(orbit.orbitSpeed || 1) * 0.12;
+    for (const particle of orbit.particles) {
+      const at = (angle: number) => ({ x: x + Math.cos(angle) * orbit.orbitRadius, y: y - 6 + Math.sin(angle) * orbit.orbitRadius * 0.55 });
+      const head = at(particle.angle);
+      batch.ribbon([at(particle.angle + step * 3), at(particle.angle + step * 2), at(particle.angle + step), head], orbit.size * 0.7, color, 1.2 * fade);
+      batch.glow(head.x, head.y, orbit.size * 2.2, color, 1.4 * fade, 0.35, 0.7);
     }
   }
 }

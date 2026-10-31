@@ -5,6 +5,8 @@
  * Critical for maintaining 60 FPS with many particles.
  */
 
+import type { VFXParticleType } from './VFXTypes';
+
 /**
  * Base particle interface for pooling.
  */
@@ -46,7 +48,9 @@ export interface PooledParticle {
  */
 export interface VFXParticle extends PooledParticle {
   /** Effect type for rendering variations */
-  effectType?: 'circle' | 'square' | 'star' | 'trail' | 'spark' | 'ring';
+  effectType?: VFXParticleType | 'trail' | 'ring';
+  /** A random number per particle, 0-1, so GPU shapes differ */
+  seed?: number;
   /** Secondary color for gradients */
   colorSecondary?: string;
   /** Glow intensity (0 = none) */
@@ -70,9 +74,9 @@ export interface PoolConfig {
 }
 
 const DEFAULT_CONFIG: PoolConfig = {
-  initialSize: 200,
-  maxSize: 500,
-  growthSize: 50,
+  initialSize: 300,
+  maxSize: 1500,
+  growthSize: 100,
 };
 
 /**
@@ -123,6 +127,7 @@ export class VFXParticlePool {
     for (const particle of this.pool) {
       if (!particle.active) {
         particle.active = true;
+        particle.seed = Math.random();
         this.activeCount++;
         return particle;
       }
@@ -143,6 +148,7 @@ export class VFXParticlePool {
       const particle = this.pool[this.pool.length - growthCount];
       if (particle && !particle.active) {
         particle.active = true;
+        particle.seed = Math.random();
         this.activeCount++;
         return particle;
       }

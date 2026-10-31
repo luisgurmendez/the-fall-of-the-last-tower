@@ -8,17 +8,28 @@
  * a pixel with color and no alpha adds light to what's under it (glows),
  * one with alpha covers it (smoke).
  *
+ * Effects come in two layers, each an FXBatch filled during the frame and
+ * drawn with bloom (./fx/FXPass.ts): `groundFx` under the units (magic
+ * circles, scorch marks, zones) and `topFx` over them (everything else).
+ *
  * Without WebGL2 (or after the GPU context is lost) getGPURenderer() gives
  * null and the 2D fallbacks draw instead.
  */
 
 import { GroundPass } from "./ground/GroundPass";
+import { FXBatch } from "./fx/FXBatch";
+import { FXPass } from "./fx/FXPass";
 import { viewFromContext, type GPUView } from "./view";
 
 export class GPURenderer {
   readonly canvas: HTMLCanvasElement;
   readonly gl: WebGL2RenderingContext;
+  /** Effects under the units, drawn and emptied by drawFX(ctx, "ground") */
+  readonly groundFx = new FXBatch();
+  /** Effects over the units, drawn and emptied by drawFX(ctx, "top") */
+  readonly topFx = new FXBatch();
   private ground: GroundPass | null = null;
+  private fx: FXPass | null = null;
   private lost = false;
 
   private constructor(canvas: HTMLCanvasElement, gl: WebGL2RenderingContext) {
@@ -44,6 +55,7 @@ export class GPURenderer {
       if (!gl) return null;
       const renderer = new GPURenderer(canvas, gl);
       renderer.ground = new GroundPass(gl);
+      renderer.fx = new FXPass(gl, !!gl.getExtension("EXT_color_buffer_float"));
       return renderer;
     } catch (error) {
       console.warn("[GPU] WebGL2 layer unavailable, drawing in 2D:", error);
@@ -85,6 +97,20 @@ export class GPURenderer {
     this.ground.draw(view);
     this.composite(ctx);
     return true;
+  }
+
+  /**
+   * Draw a layer of effects over what the 2D canvas has so far, and empty
+   * it. `ctx` has the world transform applied.
+   */
+  drawFX(ctx: CanvasRenderingContext2D, layer: "ground" | "top"): void {
+    const batch = layer === "ground" ? this.groundFx : this.topFx;
+    if (batch.count > 0 && this.available && this.fx) {
+      const view = this.prepare(ctx);
+      this.fx.draw(batch, view);
+      this.composite(ctx);
+    }
+    batch.clear();
   }
 }
 

@@ -11,6 +11,7 @@ import type {
   FallingParticlesConfig,
 } from '../VFXTypes';
 import { drawParticle } from '../effects/VFXPrimitives';
+import { fxColor, mixColor, type FXBatch, type RGB } from '@/gpu/fx/FXBatch';
 
 /** Most particles a single effect spawns */
 const MAX_PARTICLES_PER_EFFECT = 100;
@@ -236,5 +237,50 @@ export function renderParticles(
       y: particle.y - cameraY,
     };
     drawParticle(ctx, screenParticle as VFXParticle);
+  });
+}
+
+/** Dark colors (blood, mud) cover instead of glowing */
+function isDark(color: RGB): boolean {
+  return color[0] * 0.3 + color[1] * 0.59 + color[2] * 0.11 < 0.3;
+}
+
+/**
+ * Add every active particle to a GPU effects batch: bright ones as light
+ * (glows, streaks, twinkles, flames, embers), dark ones and smoke as puffs
+ * that cover what's under them.
+ */
+export function emitParticles(batch: FXBatch, pool: VFXParticlePool): void {
+  pool.forEachActive((particle) => {
+    const remaining = Math.max(0, particle.life / particle.maxLife);
+    const age = 1 - remaining;
+    const base = fxColor(particle.color);
+    const color = particle.colorSecondary ? mixColor(base, fxColor(particle.colorSecondary), age) : base;
+    const seed = particle.seed ?? 0;
+    const { x, y, size } = particle;
+
+    switch (particle.effectType) {
+      case 'flame':
+        batch.flame(x, y, size, color, 1.7, age, 0.55, 2.5, seed);
+        break;
+      case 'smoke':
+        batch.dust(x, y, size * (0.7 + age * 0.8), color, 0.55 * remaining, seed);
+        break;
+      case 'spark': {
+        const speed = Math.hypot(particle.vx, particle.vy);
+        const length = Math.min(size * 9, Math.max(size * 2, speed * 0.06));
+        batch.spark(x, y, Math.atan2(particle.vy, particle.vx), length, size * 0.55, color, 0.3 + 1.8 * remaining);
+        break;
+      }
+      case 'star':
+        batch.flare(x, y, size * 2.6, color, 0.3 + 1.5 * remaining, particle.rotation ?? 0);
+        break;
+      case 'ember':
+        batch.glow(x, y, size * 2.2, color, 1.6 * remaining, 0.45, 0.5, 0.9, seed);
+        break;
+      default:
+        if (isDark(color)) batch.dust(x, y, size * 1.4, color, 0.85 * remaining, seed);
+        else batch.glow(x, y, size * 2.4, color, 0.15 + 1.3 * remaining, 0.35, 0.6, 0, seed);
+    }
   });
 }

@@ -18,9 +18,14 @@
  * - auras.ts: shield bubbles and orbiting particles
  * - screenFlash.ts: full-screen flash
  * - types.ts: the active effect instance types
+ *
+ * With the GPU layer (src/gpu/), emitGround() and emitTop() add the effects
+ * to its two batches (under and over the units) instead of render() drawing
+ * them in 2D; the screen flash stays 2D (renderScreenFlash()).
  */
 
 import type { OnlineStateManager } from '@/core/OnlineStateManager';
+import type { FXBatch } from '@/gpu/fx/FXBatch';
 import {
   getGlobalParticlePool,
   type VFXParticlePool,
@@ -52,6 +57,7 @@ import {
   spawnDeathParticles,
   updateParticle,
   renderParticles,
+  emitParticles,
 } from './active/particles';
 import {
   createTrail,
@@ -60,6 +66,8 @@ import {
   updateDashAfterimages,
   renderTrails,
   renderDashAfterimages,
+  emitTrails,
+  emitDashAfterimages,
 } from './active/trails';
 import {
   createShieldBubble,
@@ -68,13 +76,20 @@ import {
   updateOrbitingParticles,
   renderShields,
   renderOrbitingParticles,
+  emitShields,
+  emitOrbitingParticles,
 } from './active/auras';
 import {
   createScreenFlash,
   updateScreenFlash,
   renderScreenFlash,
 } from './active/screenFlash';
-import { renderGroundEffects, renderShapeEffects } from './active/shapes';
+import {
+  renderGroundEffects,
+  renderShapeEffects,
+  emitGroundEffects,
+  emitShapeEffects,
+} from './active/shapes';
 
 /**
  * Performance statistics.
@@ -117,7 +132,9 @@ export class VFXManager {
   }
 
   /**
-   * Spawn VFX for an ability cast.
+   * Spawn VFX for an ability cast. Effects that follow an entity (trails,
+   * shields, orbits) follow the caster, or in phases anchored on the target,
+   * the target entity when there is one (a shield cast on an ally).
    */
   spawnAbilityVFX(
     abilityId: string,
@@ -125,7 +142,8 @@ export class VFXManager {
     casterY: number,
     targetX?: number,
     targetY?: number,
-    casterId?: string
+    casterId?: string,
+    targetEntityId?: string
   ): void {
     const vfxDef = getAbilityVFX(abilityId);
     if (!vfxDef) {
@@ -151,6 +169,8 @@ export class VFXManager {
         }
       }
 
+      const followId = phase.anchor === 'target' && targetEntityId ? targetEntityId : casterId;
+
       // Schedule effects for this phase
       for (const effectConfig of phase.effects) {
         this.scheduleEffect(
@@ -162,7 +182,7 @@ export class VFXManager {
           targetY,
           now + phase.delay * 1000,
           phase.duration,
-          casterId
+          followId
         );
       }
     }
@@ -349,6 +369,34 @@ export class VFXManager {
 
     // Render screen flash (in screen space, not world space)
     renderScreenFlash(ctx, this.screenFlash, now);
+  }
+
+  /**
+   * Add the effects under the units to a GPU batch: magic circles, light
+   * pools, scorch marks.
+   */
+  emitGround(batch: FXBatch): void {
+    emitGroundEffects(batch, this.activeEffects, performance.now());
+  }
+
+  /**
+   * Add the effects over the units to a GPU batch.
+   */
+  emitTop(batch: FXBatch): void {
+    const now = performance.now();
+    emitTrails(batch, this.activeTrails, now);
+    emitDashAfterimages(batch, this.activeDashAfterimages);
+    emitParticles(batch, this.particlePool);
+    emitShapeEffects(batch, this.activeEffects, now);
+    emitShields(batch, this.activeShields, this.stateManager, now);
+    emitOrbitingParticles(batch, this.activeOrbits, this.stateManager, now);
+  }
+
+  /**
+   * Draw the screen flash (screen space), for when the GPU draws the rest.
+   */
+  renderScreenFlash(ctx: CanvasRenderingContext2D): void {
+    renderScreenFlash(ctx, this.screenFlash, performance.now());
   }
 
   /**

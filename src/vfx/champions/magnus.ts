@@ -1,189 +1,88 @@
 /**
- * Magnus ability VFX definitions. Registered when this module is imported
- * (see ./index.ts).
+ * Magnus ability VFX: fire, and arcane violet for his barrier. Registered
+ * when this module is imported (see ./index.ts). The fireball itself is
+ * drawn by src/gpu/fx/projectiles.ts and his zones by src/gpu/fx/zones.ts.
  */
 
-import { CHAMPION_COLORS } from '../VFXColors';
 import { registerAbilityVFX } from '../VFXRegistryStore';
+import { debris, flames, light, phase, pillar, ring, scorch, shockwave, smoke, sparks, swirl, twinkles, warning } from '../recipes';
 
+const FIRE = '#ff7a1a';
+const HOT = '#ffc04a';
+const SMOKE = '#3a3030';
+const ARCANE = '#b07cff';
+
+// Q: a flash of flame at his hands...
 registerAbilityVFX({
   abilityId: 'magnus_fireball',
   phases: [
-    {
-      name: 'travel',
-      delay: 0,
-      duration: 1.0,
-      anchor: 'caster', // Will follow projectile
-      effects: [
-        {
-          type: 'trail',
-          color: CHAMPION_COLORS.magnus.primary,
-          thickness: 8,
-          duration: 1.0,
-          fadeLength: 40,
-        },
-        {
-          type: 'particle_burst',
-          count: 3,
-          color: CHAMPION_COLORS.magnus.secondary,
-          size: { min: 2, max: 4 },
-          speed: { min: 20, max: 40 },
-          lifetime: { min: 0.2, max: 0.4 },
-          spread: Math.PI,
-          direction: Math.PI, // Behind projectile
-          particleType: 'circle',
-        },
-      ],
-    },
-    {
-      name: 'impact',
-      delay: 0,
-      duration: 0.3,
-      anchor: 'target',
-      effects: [
-        {
-          type: 'expanding_ring',
-          color: CHAMPION_COLORS.magnus.primary,
-          startRadius: 10,
-          endRadius: 50,
-          thickness: 6,
-          duration: 0.25,
-        },
-        {
-          type: 'particle_burst',
-          count: 15,
-          color: CHAMPION_COLORS.magnus.primary,
-          colorSecondary: CHAMPION_COLORS.magnus.accent,
-          size: { min: 3, max: 6 },
-          speed: { min: 80, max: 140 },
-          lifetime: { min: 0.3, max: 0.5 },
-          spread: Math.PI * 2,
-          particleType: 'spark',
-          gravity: 100,
-        },
-      ],
-    },
+    phase('cast', 0, 'caster', [
+      flames(HOT, 5, [7, 11], [60, 160], { spread: Math.PI / 3 }),
+      sparks(HOT, 6, [120, 260], Math.PI / 3),
+      light(FIRE, 70, 0.8, 0.25),
+    ], 0.3),
   ],
 });
 
+// ...and an explosion where the fireball hits
+registerAbilityVFX({
+  abilityId: 'magnus_fireball_impact',
+  phases: [
+    phase('explode', 0, 'caster', [
+      flames(FIRE, 10, [14, 24], [50, 150]),
+      flames(HOT, 5, [10, 16], [20, 70]),
+      ring(HOT, 8, 70, 0.28, 5),
+      sparks(HOT, 16, [160, 360]),
+      smoke(SMOKE, 5, [14, 22], [20, 60], { lifetime: { min: 0.7, max: 1.1 } }),
+      scorch('#2a1a10', 42, 1.6, 0.9),
+      light(FIRE, 130, 1.3, 0.5, 0.5),
+    ]),
+  ],
+});
+
+// W: a violet barrier with a swirl of runes as it forms
 registerAbilityVFX({
   abilityId: 'magnus_shield',
   phases: [
-    {
-      name: 'activate',
-      delay: 0,
-      duration: 0.2,
-      anchor: 'caster',
-      effects: [
-        {
-          type: 'shield_bubble',
-          color: '#9370DB', // Purple
-          radius: 35,
-          duration: 4.0,
-          pulseSpeed: 2,
-        },
-        {
-          type: 'particle_burst',
-          count: 16,
-          color: '#DDA0DD', // Plum
-          size: { min: 2, max: 4 },
-          speed: { min: 40, max: 70 },
-          lifetime: { min: 0.4, max: 0.6 },
-          spread: Math.PI * 2,
-          particleType: 'star',
-        },
-      ],
-    },
+    phase('raise', 0, 'caster', [
+      { type: 'shield_bubble', color: ARCANE, radius: 36, duration: 4.0, pulseSpeed: 2 },
+      ring(ARCANE, 20, 64, 0.3, 4),
+      swirl(ARCANE, 55, 0.6, 1.2, 4),
+      twinkles('#e0c8ff', 10),
+      light(ARCANE, 90, 0.7, 0.5),
+    ], 4.0),
   ],
 });
 
+// E: mud splashing out where the quagmire forms
 registerAbilityVFX({
   abilityId: 'magnus_mud',
   phases: [
-    {
-      name: 'appear',
-      delay: 0,
-      duration: 0.2,
-      anchor: 'ground_target',
-      effects: [
-        {
-          type: 'particle_burst',
-          count: 12,
-          color: '#8B4513', // Brown
-          size: { min: 4, max: 8 },
-          speed: { min: 60, max: 100 },
-          lifetime: { min: 0.3, max: 0.5 },
-          spread: Math.PI * 2,
-          direction: -Math.PI / 2, // Upward
-          gravity: 300,
-          particleType: 'circle',
-        },
-      ],
-    },
-    {
-      name: 'active',
-      delay: 0.15,
-      duration: 2.0,
-      anchor: 'ground_target',
-      effects: [
-        {
-          type: 'ground_circle',
-          color: '#5D4037', // Dark brown
-          fillColor: 'rgba(139, 69, 19, 0.4)',
-          radius: 150,
-          duration: 2.0,
-          pulseSpeed: 1,
-        },
-      ],
-    },
+    phase('splash', 0, 'ground_target', [
+      smoke('#5a4030', 14, [14, 24], [60, 160]),
+      debris('#3a2818', 12, [80, 180]),
+    ]),
   ],
 });
 
+// R: a meteor streaks down and blasts a crater; the burning zone follows
 registerAbilityVFX({
   abilityId: 'magnus_meteor',
   phases: [
-    {
-      name: 'summon',
-      delay: 0,
-      duration: 0.3,
-      anchor: 'ground_target',
-      effects: [
-        {
-          type: 'falling_particles',
-          count: 20,
-          color: CHAMPION_COLORS.magnus.primary,
-          size: { min: 4, max: 8 },
-          speed: { min: 100, max: 180 },
-          spread: 200,
-          lifetime: { min: 0.3, max: 0.5 },
-          particleType: 'spark',
-        },
-      ],
-    },
-    {
-      name: 'active',
-      delay: 0.2,
-      duration: 5.0,
-      anchor: 'ground_target',
-      effects: [
-        {
-          type: 'ground_circle',
-          color: CHAMPION_COLORS.magnus.secondary,
-          fillColor: 'rgba(255, 102, 0, 0.3)',
-          radius: 200,
-          duration: 5.0,
-        },
-        {
-          type: 'rising_particles',
-          count: 8,
-          color: CHAMPION_COLORS.magnus.primary,
-          size: { min: 3, max: 6 },
-          speed: { min: 40, max: 80 },
-          spread: 180,
-          lifetime: { min: 0.5, max: 1.0 },
-          particleType: 'spark',
-        },
-      ],
-    },
+    phase('fall', 0, 'ground_target', [
+      pillar(FIRE, 420, 14, 0.3, HOT),
+      warning(FIRE, 200, 0.3),
+    ], 0.3),
+    phase('impact', 0.3, 'ground_target', [
+      flames(FIRE, 18, [18, 30], [80, 220]),
+      flames(HOT, 8, [12, 20], [30, 90]),
+      shockwave(FIRE, 30, 230, 0.45, 14),
+      sparks(HOT, 30, [220, 480]),
+      debris('#3a2010', 14, [120, 260]),
+      smoke(SMOKE, 10, [20, 32], [40, 120], { lifetime: { min: 0.9, max: 1.5 } }),
+      scorch('#1e120a', 160, 5.0, 1.0),
+      light(FIRE, 280, 1.5, 0.8, 0.4),
+      { type: 'screen_flash', color: '#ffb060', duration: 0.12, maxAlpha: 0.15 },
+    ]),
   ],
 });

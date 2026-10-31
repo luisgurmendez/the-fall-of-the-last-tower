@@ -8,6 +8,7 @@ import type { OnlineStateManager } from '@/core/OnlineStateManager';
 import type { TrailConfig, DashAfterimageConfig } from '../VFXTypes';
 import { drawTrail } from '../effects/VFXPrimitives';
 import type { ActiveTrail, ActiveDashAfterimage } from './types';
+import { fxColor, type FXBatch } from '@/gpu/fx/FXBatch';
 
 /**
  * Create a trail effect attached to an entity.
@@ -171,6 +172,38 @@ export function renderDashAfterimages(
       ctx.arc(image.x - cameraX, image.y - cameraY, 15, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
+    }
+  }
+}
+
+/**
+ * Add trails to a GPU batch as ribbons of light, fading out at their end.
+ */
+export function emitTrails(batch: FXBatch, trails: ActiveTrail[], now: number): void {
+  for (const trail of trails) {
+    if (trail.points.length < 2) continue;
+    const progress = (now - trail.startTime) / trail.duration;
+    const fade = Math.min(1, (1 - progress) / 0.3);
+    const color = fxColor(trail.color);
+    // Points are newest first; ribbons go oldest first
+    batch.ribbon([...trail.points].reverse(), trail.thickness * 0.9, color, 1.5 * fade);
+    batch.glow(trail.points[0].x, trail.points[0].y, trail.thickness * 2.5, color, 0.8 * fade, 0.3, 0.6);
+  }
+}
+
+/**
+ * Add dash afterimages to a GPU batch: a fading glow where each image was
+ * left, joined by a streak.
+ */
+export function emitDashAfterimages(batch: FXBatch, afterimages: ActiveDashAfterimage[]): void {
+  for (const afterimage of afterimages) {
+    const color = fxColor(afterimage.color);
+    const images = afterimage.images;
+    for (let i = 0; i < images.length; i++) {
+      batch.glow(images[i].x, images[i].y, 26, color, images[i].alpha * 0.9, 0.25, 0.4);
+      if (i > 0) {
+        batch.segment(images[i].x, images[i].y, images[i - 1].x, images[i - 1].y, 10 * images[i].alpha, 10 * images[i - 1].alpha, color, images[i].alpha, images[i - 1].alpha);
+      }
     }
   }
 }

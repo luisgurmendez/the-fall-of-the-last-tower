@@ -33,7 +33,18 @@ export type VFXEffectType =
   | 'falling_particles'
   | 'orbiting_particles'
   | 'shield_bubble'
-  | 'dash_afterimage';
+  | 'dash_afterimage'
+  | 'ground_light'
+  | 'decal'
+  | 'lightning'
+  | 'swirl';
+
+/**
+ * How a particle looks. Flames burn away into smoke, smoke is a puff that
+ * covers instead of glowing, embers are small flickering lights. Dark
+ * colors (blood, mud) are drawn as puffs too, whatever the type.
+ */
+export type VFXParticleType = 'circle' | 'square' | 'star' | 'spark' | 'flame' | 'smoke' | 'ember';
 
 /**
  * Configuration for a particle burst effect.
@@ -50,7 +61,7 @@ export interface ParticleBurstConfig {
   direction?: number; // Base direction in radians (0 = right)
   gravity?: number;
   friction?: number;
-  particleType?: 'circle' | 'square' | 'star' | 'spark';
+  particleType?: VFXParticleType;
   glowIntensity?: number;
 }
 
@@ -80,6 +91,8 @@ export interface ConeSlashConfig {
   fadeOut?: boolean;
   sparkCount?: number;
   sparkColor?: string;
+  /** 'telegraph': a warning on the ground filling up over the effect's life */
+  style?: 'slash' | 'telegraph';
 }
 
 /**
@@ -95,6 +108,8 @@ export interface GroundCircleConfig {
   pulseSpeed?: number;
   fadeIn?: boolean;
   fadeOut?: boolean;
+  /** On the GPU: a magic circle (default) or a warning filling up over the effect's life */
+  style?: 'sigil' | 'telegraph';
 }
 
 /**
@@ -118,6 +133,8 @@ export interface BeamConfig {
   thickness: number;
   duration: number;
   glowRadius?: number;
+  /** A pillar falling from this high above the anchor instead of a beam to the target */
+  fromSky?: number;
 }
 
 /**
@@ -153,7 +170,7 @@ export interface RisingParticlesConfig {
   speed: { min: number; max: number };
   spread: number; // Horizontal spread
   lifetime: { min: number; max: number };
-  particleType?: 'circle' | 'square' | 'star' | 'spark';
+  particleType?: VFXParticleType;
 }
 
 /**
@@ -167,7 +184,7 @@ export interface FallingParticlesConfig {
   speed: { min: number; max: number };
   spread: number;
   lifetime: { min: number; max: number };
-  particleType?: 'circle' | 'square' | 'spark';
+  particleType?: VFXParticleType;
 }
 
 /**
@@ -207,6 +224,58 @@ export interface DashAfterimageConfig {
 }
 
 /**
+ * A pool of light on the ground, fading in and out (GPU only).
+ */
+export interface GroundLightConfig {
+  type: 'ground_light';
+  color: string;
+  radius: number;
+  intensity: number;
+  duration: number;
+  /** How much it wavers, 0-1 */
+  flicker?: number;
+}
+
+/**
+ * A scorch or crack mark left on the ground (GPU only).
+ */
+export interface DecalConfig {
+  type: 'decal';
+  color: string;
+  radius: number;
+  duration: number;
+  /** Glow in the cracks, 0-1 */
+  embers?: number;
+  opacity?: number;
+}
+
+/**
+ * Bolts of lightning from the anchor to the target (GPU only).
+ */
+export interface LightningConfig {
+  type: 'lightning';
+  color: string;
+  count: number;
+  /** How far the bolts wander off the line */
+  spread: number;
+  thickness: number;
+  duration: number;
+}
+
+/**
+ * A spinning vortex (GPU only).
+ */
+export interface SwirlConfig {
+  type: 'swirl';
+  color: string;
+  radius: number;
+  duration: number;
+  /** Turns per second-ish */
+  spin?: number;
+  arms?: number;
+}
+
+/**
  * Union type for all effect configs.
  */
 export type VFXEffectConfig =
@@ -222,7 +291,11 @@ export type VFXEffectConfig =
   | FallingParticlesConfig
   | OrbitingParticlesConfig
   | ShieldBubbleConfig
-  | DashAfterimageConfig;
+  | DashAfterimageConfig
+  | GroundLightConfig
+  | DecalConfig
+  | LightningConfig
+  | SwirlConfig;
 
 /**
  * Complete VFX definition for an ability.

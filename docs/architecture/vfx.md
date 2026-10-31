@@ -4,7 +4,7 @@ This document describes the visual effects (VFX) system for champion abilities.
 
 ## Overview
 
-The VFX system provides particle-based visual effects for all champion abilities. It uses Canvas 2D rendering with a retro pixel art aesthetic, optimized for performance with object pooling.
+The VFX system schedules each ability's effects in phases and keeps them between frames (particles, rings, slashes, trails, shields...). They are drawn on the GPU, with glow and bloom, by the WebGL2 layer in `src/gpu/` (see GPU rendering below); without WebGL2 the older Canvas 2D drawing in `src/vfx/active/` and `effects/VFXPrimitives.ts` is used instead.
 
 ## Architecture
 
@@ -12,13 +12,14 @@ The VFX system provides particle-based visual effects for all champion abilities
 src/vfx/
   index.ts              # Module exports
   VFXManager.ts         # Central manager - schedules effects, owns the active lists, update and draw order
-  active/               # One module per effect family: spawn, update, draw
+  active/               # One module per effect family: spawn, update, draw (2D) and emit (GPU)
     types.ts            # Active effect instance types (ActiveEffect, ActiveTrail, ...)
     particles.ts        # Particle bursts, rising, falling and death particles (pooled)
-    shapes.ts           # Ground circles, expanding rings, cone slashes, shockwaves, beams
+    shapes.ts           # Ground circles, rings, cone slashes, shockwaves, beams, lights, decals, lightning, swirls
     trails.ts           # Entity trails and dash afterimages
     auras.ts            # Shield bubbles and orbiting particles
     screenFlash.ts      # Full-screen flash
+  recipes.ts            # Shorthands the definitions layer: sparks(), flames(), smoke(), shockwave(), light(), pillar()...
   VFXParticlePool.ts    # Object pooling for particles
   VFXRegistry.ts        # Public registry API; importing it loads every champion's VFX
   VFXRegistryStore.ts   # Registry storage (register / get)
@@ -27,9 +28,54 @@ src/vfx/
   champions/
     index.ts            # Imports every champion file below
     <championId>.ts     # registerAbilityVFX() calls for one champion
+  world.ts              # Hits, level ups, deaths, towers, monster attacks
   effects/
-    VFXPrimitives.ts    # Reusable drawing functions
+    VFXPrimitives.ts    # 2D drawing functions (fallback)
+
+src/gpu/fx/
+  fxShader.ts           # The effects shader: one primitive kind per quad
+  FXBatch.ts            # A frame's quads for one layer, and the calls that add them (glow, spark, ring, slash...)
+  FXPass.ts             # Draws a batch: half-float target, bloom, tone mapping
+  projectiles.ts        # Each projectile type's look, with trails
+  zones.ts              # Zones: burning ground, mud, healing and buff circles
 ```
+
+## GPU rendering
+
+`GPURenderer` (`src/gpu/GPURenderer.ts`) has two effect layers, each an `FXBatch` filled during the frame and drawn into the 2D canvas where it belongs:
+
+- **Ground** (`groundFx`), drawn after the ground and before any unit: magic circles, warnings, light pools, scorch marks and zones.
+- **Top** (`topFx`), drawn after the units: particles, rings, slashes, beams, trails, shields, projectiles and everything else.
+
+`EntityRenderer` updates the VFX manager, has it add the ground parts (`VFXManager.emitGround`) plus the zones (`emitZone`), draws the ground layer, draws the units (projectiles add themselves to the top layer as they're drawn, `emitProjectile`), then has the manager add the rest (`emitTop`) and draws the top layer. The screen flash stays 2D. The legacy ability shapes (`overlays/abilityEffects.ts`) are only drawn without the GPU.
+
+Each quad is one primitive (`FXKind`), drawn by the effects shader from the quad's local coordinates: a glow, a spark (a streak along its velocity), a ring broken by noise with a wake of light inside, a slash (a crescent swept across an arc), a beam, a sigil (rings, runes and a star that draw themselves in), a shield (fresnel rim and hex pattern), a flame (fire that burns away into smoke), a flare (four-pointed twinkle), a decal (scorch or cracks with embers), a swirl, lightning, an orb, a ribbon segment, dust and a telegraph (a warning filling up). Fragments are snapped to the ground's 1.5-unit art pixels, so effects read as pixel art.
+
+Light adds up in a half-float target; the bloom keeps the parts over a threshold, halves them four times and blurs them back up (dual Kawase), and the composite tone-maps the light (bright cores go white instead of clipping). The output is premultiplied: light has no alpha, so it adds to what's under it, while smoke, dust and scorch marks have alpha and cover it.
+
+How config types look on the GPU:
+
+| Config | GPU |
+|--------|-----|
+| `particle_burst`, `rising_particles`, `falling_particles` | By `particleType`: `circle` glow, `spark` streak, `star` flare, `flame` fire puff, `smoke` dust that covers, `ember` flickering mote. Dark colors (blood, mud) are dust whatever the type. |
+| `expanding_ring` | A broken ring with a wake, and a light pool under it |
+| `shockwave` | A thicker ring with a wake, a light pool and a crack decal under it |
+| `cone_slash` | A crescent swept across the arc toward the target; `style: 'telegraph'` is a cone warning on the ground |
+| `ground_circle` | A magic circle; `style: 'telegraph'` is a warning filling up over the effect's life |
+| `beam` | Light flowing to the target; with `fromSky`, a pillar falling onto the anchor |
+| `trail` | A ribbon through the followed entity's recent positions |
+| `shield_bubble` | A bubble with a hex pattern and a bright rim |
+| `orbiting_particles` | Motes with short tails |
+| `dash_afterimage` | Glows joined by a streak |
+| `ground_light`, `decal`, `lightning`, `swirl` | GPU only (the 2D fallback skips them) |
+
+**Projectile impacts:** when a projectile is destroyed, `entityVFX.ts` spawns the VFX registered as `<projectile type>_impact` (e.g. `magnus_fireball_impact`) where it was, so explosions happen where the projectile actually hits.
+
+**Effects on an ally:** effects that follow an entity (shields, trails, orbits) follow the caster, or in a phase anchored on the target, the cast's `targetEntityId` (Elara's shield on an ally).
+
+### VFX lab
+
+With the client dev server running, `/vfx-lab.html` plays every registered VFX on a loop in a grid over the real ground (`src/debug/vfxLab.ts`), plus every projectile type in flight. Options: `?only=magnus`, `?kind=projectile`, `?zoom=1.4`, `?period=2.5`, `?speed=0.25` (slow motion). Use it to tune effects without a match.
 
 ### VFXManager
 
@@ -332,24 +378,7 @@ Every effect of a delayed phase starts when the phase does. That includes one-sh
 
 ### EntityRenderer
 
-```typescript
-// src/render/EntityRenderer.ts
-import { VFXManager, getVFXManager } from "@/vfx";
-
-class EntityRenderer {
-  private vfxManager: VFXManager;
-
-  constructor(stateManager, localSide) {
-    this.vfxManager = getVFXManager(stateManager);
-  }
-
-  render() {
-    // In render loop
-    this.vfxManager.update(clientDt);
-    this.vfxManager.render(ctx, 0, 0);
-  }
-}
-```
+`EntityRenderer.render` updates the VFX manager, then with the GPU layer draws the ground effects, the units and the top effects as described in GPU rendering; without it, `vfxManager.render(ctx, 0, 0)` draws everything in 2D after the units.
 
 Heals show as a green "+N" rising beside the entity. `ServerEntity.heal(amount, context,
 sourceId)` sends a `HEAL` event `{ entityId, amount, sourceId }` when given a context: ability
@@ -393,41 +422,34 @@ case GameEventType.ABILITY_CAST: {
 | Constraint | Limit |
 |------------|-------|
 | Max particles per effect | 100 |
-| Max total active particles | 500 |
+| Max total active particles | 1500 |
 | Initial pool size | 300 |
-| Pool growth increment | 50 |
+| Pool growth increment | 100 |
+| Max quads per GPU layer per frame | 16384 |
 
 ## Adding New VFX
 
-1. Define colors in `CHAMPION_COLORS` (`src/vfx/VFXColors.ts`) if needed
-2. Call `registerAbilityVFX()` with phases and effects in
+1. Call `registerAbilityVFX()` with phases and effects in
    `src/vfx/champions/<championId>.ts`, using the ability's ID from
    `CHAMPION_DEFINITIONS` as `abilityId`. For a new champion, create that file
    and import it from `src/vfx/champions/index.ts`.
-3. Test in-game to verify timing and visuals
+2. Build the effects from `src/vfx/recipes.ts` and layer them: a core (slash,
+   ring, pillar), secondary motion (sparks, flames, smoke, debris), and what it
+   leaves on the ground (light pool, scorch).
+3. A skillshot's explosion goes in `<abilityId>_impact`; its projectile's look
+   in `PROJECTILE_STYLES` (`src/gpu/fx/projectiles.ts`).
+4. Tune it in the VFX lab (`/vfx-lab.html?only=<abilityId>&speed=0.3`), then in a match.
 
 ```typescript
-// Example: Adding VFX for a new ability
 registerAbilityVFX({
   abilityId: 'new_champion_ability',
   phases: [
-    {
-      name: 'cast',
-      delay: 0,
-      duration: 0.3,
-      anchor: 'caster',
-      effects: [
-        {
-          type: 'particle_burst',
-          count: 12,
-          color: '#NEW_COLOR',
-          size: { min: 3, max: 5 },
-          speed: { min: 40, max: 80 },
-          lifetime: { min: 0.3, max: 0.5 },
-          spread: Math.PI * 2,
-        },
-      ],
-    },
+    phase('cast', 0, 'caster', [sparks('#7cc8ff', 10), light('#7cc8ff', 80, 0.8, 0.3)], 0.3),
+    phase('impact', 0.2, 'ground_target', [
+      shockwave('#7cc8ff', 10, 120, 0.35),
+      smoke('#8a7a66', 8),
+      scorch('#2a2018', 70, 1.5),
+    ]),
   ],
 });
 ```
@@ -470,7 +492,10 @@ vfxManager.clear();
 | `src/vfx/effects/VFXPrimitives.ts` | Drawing functions |
 | `src/vfx/index.ts` | Module exports |
 | `src/core/state/gameEvents.ts` | Spawns ability VFX and hit sparks from game events |
-| `src/core/state/entityVFX.ts` | Spawns death, respawn, level up and recall VFX from entity deltas |
+| `src/core/state/entityVFX.ts` | Spawns death, respawn, level up, recall and projectile impact VFX from entity deltas |
+| `src/vfx/recipes.ts` | Shorthands for effect configs |
+| `src/gpu/fx/` | GPU effects: shader, batch, bloom pass, projectiles, zones |
+| `src/debug/vfxLab.ts` | The VFX lab (`/vfx-lab.html`) |
 
 ## World VFX
 
@@ -485,7 +510,8 @@ Defined in `src/vfx/world.ts` (keys in `WORLD_VFX`). They use the same phase-bas
 | `fx_tower_destroyed` | A tower or nexus dies: flash, shockwave, rubble |
 | `fx_creature_death` | A jungle creature dies. Its special attack warning, if it was winding up, is cancelled (`VFXManager.cancelCasterEffects`) |
 | `fx_dragon_death` | The dragon dies: a large fiery shockwave, sparks and embers, and a light screen shake |
-| `jungle_slam_blue` / `jungle_slam_red` / `dragon_breath` | An `ABILITY_CAST` from a monster's special attack: the warning area for the wind-up, then the hit (sizes from `MOBAConfig.JUNGLE.SPECIAL_ATTACKS`, see [jungle.md](jungle.md)) |
+| `jungle_slam_blue` / `jungle_slam_red` / `dragon_breath` | An `ABILITY_CAST` from a monster's special attack: a warning filling up over the wind-up (a circle, or the dragon's cone), then the hit: cracks and dust for the slams, a jet of flame for the breath (sizes from `MOBAConfig.JUNGLE.SPECIAL_ATTACKS`, see [jungle.md](jungle.md)) |
+| `vile_trap_trigger` / `vile_trap_explosion` | An `ABILITY_CAST` from one of Vile's traps snapping on someone, or blown up by his ultimate |
 
 Drawn directly by renderers rather than as VFX definitions:
 - **Recall channel** (`ChampionRenderer.renderRecallChannel`): a ground ring that fills over the recall, with rising motes.

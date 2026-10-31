@@ -112,7 +112,8 @@ export function processGameEvent(event: GameEvent, ctx: GameEventContext): void 
             entity.position.y,
             targetX,
             targetY,
-            entityId
+            entityId,
+            (event.data.targetEntityId as string | undefined) ?? undefined
           );
         } catch {
           // VFXManager not initialized yet, skip

@@ -1,200 +1,78 @@
 /**
- * Vex ability VFX definitions. Registered when this module is imported
- * (see ./index.ts).
+ * Vex ability VFX: shadow violet and smoke. Registered when this module is
+ * imported (see ./index.ts). The shuriken itself is drawn by
+ * src/gpu/fx/projectiles.ts.
  */
 
-import { CHAMPION_COLORS } from '../VFXColors';
 import { registerAbilityVFX } from '../VFXRegistryStore';
+import { embers, light, phase, ring, shockwave, smoke, sparks, swirl, twinkles } from '../recipes';
 
+const SHADOW = '#a35cff';
+const EDGE = '#e8dcff';
+const SMOKE = '#2a2238';
+
+// Q: a flick of violet as the shuriken leaves...
 registerAbilityVFX({
   abilityId: 'vex_shuriken',
+  phases: [phase('throw', 0, 'caster', [sparks(SHADOW, 6, [200, 360], Math.PI / 4), light(SHADOW, 50, 0.5, 0.2)], 0.25)],
+});
+
+// ...and a cut of light where it lands
+registerAbilityVFX({
+  abilityId: 'vex_shuriken_impact',
   phases: [
-    {
-      name: 'travel',
-      delay: 0,
-      duration: 0.5,
-      anchor: 'caster',
-      effects: [
-        {
-          type: 'trail',
-          color: CHAMPION_COLORS.vex.primary,
-          thickness: 4,
-          duration: 0.5,
-          fadeLength: 30,
-        },
-      ],
-    },
-    {
-      name: 'hit',
-      delay: 0,
-      duration: 0.2,
-      anchor: 'target',
-      effects: [
-        {
-          type: 'particle_burst',
-          count: 8,
-          color: CHAMPION_COLORS.vex.primary,
-          size: { min: 2, max: 4 },
-          speed: { min: 40, max: 80 },
-          lifetime: { min: 0.2, max: 0.3 },
-          spread: Math.PI * 2,
-          particleType: 'spark',
-        },
-      ],
-    },
+    phase('hit', 0, 'caster', [
+      twinkles(EDGE, 4, [30, 80]),
+      sparks(SHADOW, 12, [160, 320]),
+      ring(SHADOW, 4, 40, 0.2, 3),
+      light(SHADOW, 60, 0.6, 0.25),
+    ], 0.3),
   ],
 });
 
+// W: she vanishes in a puff of smoke
 registerAbilityVFX({
   abilityId: 'vex_shroud',
   phases: [
-    {
-      name: 'activate',
-      delay: 0,
-      duration: 0.15,
-      anchor: 'caster',
-      effects: [
-        {
-          type: 'particle_burst',
-          count: 12,
-          color: CHAMPION_COLORS.vex.secondary,
-          size: { min: 4, max: 8 },
-          speed: { min: 60, max: 100 },
-          lifetime: { min: 0.3, max: 0.5 },
-          spread: Math.PI * 2,
-          particleType: 'circle',
-        },
-      ],
-    },
-    {
-      name: 'active',
-      delay: 0.1,
-      duration: 1.5,
-      anchor: 'caster',
-      effects: [
-        {
-          type: 'trail',
-          color: CHAMPION_COLORS.vex.accent,
-          thickness: 3,
-          duration: 1.5,
-          fadeLength: 20,
-        },
-      ],
-    },
+    phase('vanish', 0, 'caster', [
+      smoke(SMOKE, 18, [18, 30], [20, 90], { lifetime: { min: 0.8, max: 1.4 } }),
+      swirl(SHADOW, 60, 0.6, 1.5, 3),
+      ring(SHADOW, 10, 70, 0.3, 3),
+      sparks(SHADOW, 10, [100, 220]),
+    ]),
   ],
 });
 
+// E: a streak of shadow, smoke where she leaves and where she lands
 registerAbilityVFX({
   abilityId: 'vex_dash',
   phases: [
-    {
-      name: 'dash',
-      delay: 0,
-      duration: 0.3,
-      anchor: 'caster',
-      effects: [
-        // Sprite-based afterimages are drawn by src/render/champions/vex.ts
-        // Just use a subtle trail effect here
-        {
-          type: 'trail',
-          color: CHAMPION_COLORS.vex.primary,
-          thickness: 4,
-          duration: 0.3,
-          fadeLength: 40,
-        },
-      ],
-    },
-    {
-      name: 'arrive',
-      delay: 0.25,
-      duration: 0.2,
-      anchor: 'caster',
-      effects: [
-        {
-          type: 'particle_burst',
-          count: 10,
-          color: CHAMPION_COLORS.vex.primary,
-          size: { min: 3, max: 5 },
-          speed: { min: 50, max: 90 },
-          lifetime: { min: 0.2, max: 0.35 },
-          spread: Math.PI * 2,
-          particleType: 'spark',
-          glowIntensity: 1.2,
-        },
-      ],
-    },
+    phase('step', 0, 'caster', [
+      { type: 'dash_afterimage', color: SHADOW, imageCount: 5, fadeSpeed: 3.5, duration: 0.3 },
+      { type: 'trail', color: SHADOW, thickness: 9, duration: 0.4, fadeLength: 12 },
+      smoke(SMOKE, 6, [12, 18], [20, 60]),
+    ], 0.4),
+    phase('arrive', 0.25, 'caster', [
+      smoke(SMOKE, 8, [14, 22], [30, 90]),
+      sparks(EDGE, 10, [150, 300]),
+      ring(SHADOW, 8, 50, 0.2, 3),
+    ], 0.3),
   ],
 });
 
+// R: a burst of shadow, then blades of light circling her while it lasts
 registerAbilityVFX({
   abilityId: 'vex_ninja_mode',
   phases: [
-    // Activation burst
-    {
-      name: 'activate',
-      delay: 0,
-      duration: 0.4,
-      anchor: 'caster',
-      effects: [
-        {
-          type: 'shockwave',
-          color: '#9933FF', // Violet
-          startRadius: 10,
-          endRadius: 60,
-          thickness: 8,
-          duration: 0.35,
-        },
-        {
-          type: 'particle_burst',
-          count: 20,
-          color: '#BB66FF', // Bright violet
-          colorSecondary: CHAMPION_COLORS.vex.primary,
-          size: { min: 4, max: 7 },
-          speed: { min: 80, max: 140 },
-          lifetime: { min: 0.4, max: 0.6 },
-          spread: Math.PI * 2,
-          particleType: 'spark',
-          glowIntensity: 1.5,
-        },
-        {
-          type: 'rising_particles',
-          count: 12,
-          color: '#9933FF', // Violet
-          size: { min: 3, max: 5 },
-          speed: { min: 60, max: 100 },
-          spread: 40,
-          lifetime: { min: 0.5, max: 0.8 },
-          particleType: 'star',
-        },
-      ],
-    },
-    // Ongoing aura effect (violet particles emanating from Vex)
-    {
-      name: 'aura',
-      delay: 0.3,
-      duration: 15.0, // Full Ninja Mode duration
-      anchor: 'caster',
-      effects: [
-        {
-          type: 'orbiting_particles',
-          count: 6,
-          color: '#9933FF', // Violet
-          size: 4,
-          orbitRadius: 35,
-          orbitSpeed: 3,
-          duration: 15.0,
-        },
-        {
-          type: 'rising_particles',
-          count: 4,
-          color: '#BB66FF', // Bright violet
-          size: { min: 2, max: 4 },
-          speed: { min: 30, max: 50 },
-          spread: 25,
-          lifetime: { min: 0.6, max: 1.0 },
-          particleType: 'spark',
-        },
-      ],
-    },
+    phase('awaken', 0, 'caster', [
+      shockwave(SHADOW, 10, 90, 0.35, 8),
+      swirl(SHADOW, 75, 0.9, 2, 4),
+      twinkles(EDGE, 10),
+      embers(SHADOW, 16, 40),
+      light(SHADOW, 110, 1.0, 0.6),
+    ], 0.9),
+    phase('aura', 0.3, 'caster', [
+      { type: 'orbiting_particles', color: SHADOW, count: 3, size: 6, orbitRadius: 34, orbitSpeed: 4, duration: 15.0 },
+    ], 15.0),
   ],
 });

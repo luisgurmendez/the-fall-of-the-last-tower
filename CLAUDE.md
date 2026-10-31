@@ -131,7 +131,7 @@ src/
 │   ├── OnlineStateManager.ts  # Server state tracking (coordinator, owns the entity map)
 │   ├── gameContext.ts   # Per-frame game state
 │   └── level.ts         # Level management
-├── gpu/                 # WebGL2 layer drawn into the 2D canvas: GPURenderer, ground/ (terrain shader)
+├── gpu/                 # WebGL2 layer drawn into the 2D canvas: GPURenderer, ground/ (terrain shader), fx/ (effects with bloom)
 ├── levels/              # Level definitions
 │   └── onlineLevel.ts   # Online multiplayer level
 ├── map/                 # MOBA map rendering
@@ -155,8 +155,9 @@ src/
 │   ├── matchmaking/     # Matchmaking UI (MatchmakingUI coordinator, screens, connection)
 │   └── shop/            # Shop UI
 ├── utils/               # Utility functions
-├── vfx/                 # Visual effects system
-│   ├── effects/         # VFX primitives (drawing functions)
+├── vfx/                 # Visual effects system (drawn on the GPU by src/gpu/fx/; tune them at /vfx-lab.html)
+│   ├── effects/         # VFX primitives (2D drawing functions, the fallback)
+│   ├── recipes.ts       # Shorthands for effect configs (sparks, flames, smoke, shockwave, light, pillar...)
 │   ├── champions/       # Per-champion ability VFX definitions
 │   ├── world.ts         # World VFX (hits, level up, deaths, recall, towers)
 │   ├── VFXManager.ts    # Central VFX manager (coordinator: scheduling, active lists, draw order)

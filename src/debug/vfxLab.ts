@@ -1,0 +1,155 @@
+/**
+ * VFX lab (dev only): with the client dev server running, open
+ * /vfx-lab.html. Every registered ability VFX plays on a loop in a grid over
+ * the real GPU ground, its name under it, so effects can be tuned and
+ * compared without a match.
+ *
+ * Query options: ?only=magnus (ids containing the text), ?zoom=1.4 (screen
+ * pixels per world unit), ?period=2.5 (seconds between casts),
+ * ?x=0&y=-700 (where on the map the grid sits), ?speed=0.25 (slow motion),
+ * ?kind=projectile (only projectiles, or only abilities).
+ */
+
+import { getAllRegisteredVFX } from "@/vfx/VFXRegistry";
+import { VFXManager } from "@/vfx/VFXManager";
+import type { OnlineStateManager } from "@/core/OnlineStateManager";
+import { getGPURenderer } from "@/gpu/GPURenderer";
+import { emitProjectile, PROJECTILE_STYLES } from "@/gpu/fx/projectiles";
+
+const params = new URLSearchParams(window.location.search);
+const only = params.get("only");
+const zoom = Number(params.get("zoom") ?? 1.0);
+const period = Number(params.get("period") ?? 2.4);
+const originX = Number(params.get("x") ?? -150);
+const originY = Number(params.get("y") ?? -620);
+const speed = Number(params.get("speed") ?? 1);
+const onlyKind = params.get("kind");
+
+// Slow motion: the effects read performance.now(), so the lab runs its own clock
+const realNow = performance.now.bind(performance);
+let labTime = realNow();
+let lastReal = labTime;
+performance.now = () => labTime;
+
+const CELL_W = 360;
+const CELL_H = 260;
+/** How far from the caster each ability's target is */
+const REACH = 170;
+
+interface Cell {
+  id: string;
+  kind: "ability" | "projectile";
+  casterX: number;
+  casterY: number;
+  targetX: number;
+  targetY: number;
+}
+
+const abilityIds = getAllRegisteredVFX().filter((id) => !only || id.includes(only)).sort();
+const projectileIds = Object.keys(PROJECTILE_STYLES).filter((id) => !only || id.includes(only)).sort();
+const ids: Array<{ id: string; kind: Cell["kind"] }> = [
+  ...abilityIds.map((id) => ({ id, kind: "ability" as const })),
+  ...projectileIds.map((id) => ({ id, kind: "projectile" as const })),
+].filter((entry) => !onlyKind || entry.kind === onlyKind);
+
+const canvas = document.getElementById("lab") as HTMLCanvasElement;
+const ctx = canvas.getContext("2d")!;
+const columns = Math.max(1, Math.floor((window.innerWidth / zoom) / CELL_W));
+const cells: Cell[] = ids.map(({ id, kind }, index) => {
+  const col = index % columns;
+  const row = Math.floor(index / columns);
+  const casterX = originX + (col - (columns - 1) / 2) * CELL_W - REACH / 2;
+  const casterY = originY + row * CELL_H;
+  return { id, kind, casterX, casterY, targetX: casterX + REACH, targetY: casterY };
+});
+
+// The VFX manager only asks the state manager where entities are
+const entities = new Map<string, { position: { x: number; y: number }; snapshot: { entityId: string } }>();
+for (const cell of cells) {
+  entities.set(cell.id, { position: { x: cell.casterX, y: cell.casterY }, snapshot: { entityId: cell.id } });
+}
+const stateManager = { getEntity: (id: string) => entities.get(id) } as unknown as OnlineStateManager;
+const vfx = new VFXManager(stateManager);
+
+let lastCast = -Infinity;
+let lastFrame = performance.now();
+let cameraY = originY + ((Math.ceil(cells.length / columns) - 1) * CELL_H) / 2;
+
+window.addEventListener("wheel", (event) => {
+  cameraY += event.deltaY / zoom;
+});
+
+function frame(): void {
+  const real = realNow();
+  labTime += (real - lastReal) * speed;
+  lastReal = real;
+  const now = labTime;
+  const dt = Math.min(0.1, (now - lastFrame) / 1000);
+  lastFrame = now;
+  if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+
+  if (now - lastCast > period * 1000) {
+    lastCast = now;
+    for (const cell of cells) {
+      if (cell.kind === "ability") vfx.spawnAbilityVFX(cell.id, cell.casterX, cell.casterY, cell.targetX, cell.targetY, cell.id);
+    }
+  }
+
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.setTransform(zoom, 0, 0, zoom, canvas.width / 2 - originX * zoom, canvas.height / 2 - cameraY * zoom);
+
+  const gpu = getGPURenderer();
+  if (!gpu) {
+    ctx.fillStyle = "#fff";
+    ctx.fillText("No WebGL2", 20, 20);
+    return;
+  }
+  gpu.drawGround(ctx);
+
+  vfx.update(dt);
+  vfx.emitGround(gpu.groundFx);
+  gpu.drawFX(ctx, "ground");
+
+  // Casters and targets
+  for (const cell of cells) {
+    ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
+    ctx.beginPath();
+    ctx.ellipse(cell.casterX, cell.casterY + 14, 14, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#e8e8f0";
+    ctx.fillRect(cell.casterX - 5, cell.casterY - 18, 10, 30);
+    if (cell.kind === "ability") {
+      ctx.strokeStyle = "rgba(255, 80, 80, 0.7)";
+      ctx.lineWidth = 2 / zoom;
+      ctx.beginPath();
+      ctx.moveTo(cell.targetX - 5, cell.targetY - 5);
+      ctx.lineTo(cell.targetX + 5, cell.targetY + 5);
+      ctx.moveTo(cell.targetX + 5, cell.targetY - 5);
+      ctx.lineTo(cell.targetX - 5, cell.targetY + 5);
+      ctx.stroke();
+    }
+  }
+
+  vfx.emitTop(gpu.topFx);
+  // Projectiles fly from the caster to the target at game speed, again and again
+  const flight = ((now / 1000) % 0.25) / 0.25;
+  for (const cell of cells) {
+    if (cell.kind !== "projectile") continue;
+    const x = cell.casterX - REACH * 0.5 + REACH * 2 * flight;
+    emitProjectile(gpu.topFx, `${cell.id}:${Math.floor(now / 250)}`, cell.id, x, cell.casterY, 0, now / 1000, 0);
+  }
+  gpu.drawFX(ctx, "top");
+  vfx.renderScreenFlash(ctx);
+
+  ctx.font = `${Math.round(11 / zoom * 1.2)}px monospace`;
+  ctx.fillStyle = "#fff";
+  ctx.textAlign = "center";
+  for (const cell of cells) ctx.fillText(cell.id, cell.casterX + REACH / 2, cell.casterY + 70);
+  requestAnimationFrame(frame);
+}
+
+requestAnimationFrame(frame);

@@ -1,12 +1,15 @@
 /**
  * World VFX (src/vfx/world.ts) for entity state changes seen in deltas:
- * deaths, respawns, level ups and recall arrivals. Also the helper that
- * spawns a world VFX, used by the game event handlers for hit sparks.
+ * deaths, respawns, level ups and recall arrivals, and projectile impacts
+ * (the VFX registered as `<projectile type>_impact`, where it was
+ * destroyed). Also the helper that spawns a world VFX, used by the game
+ * event handlers for hit sparks.
  */
 
 import type Vector from '@/physics/vector';
 import { EntityType } from '@siege/shared';
 import { getVFXManager } from '@/vfx';
+import { getAbilityVFX } from '@/vfx/VFXRegistry';
 import { WORLD_VFX } from '@/vfx/world';
 import { shakeScreen } from '@/core/screenShake';
 import type { InterpolatedEntity } from './entities';
@@ -60,6 +63,11 @@ export class EntityVFX {
         this.deadChampionIds.add(entity.snapshot.entityId);
         spawnWorldVFX(WORLD_VFX.CHAMPION_DEATH, x, y);
         break;
+      case EntityType.PROJECTILE: {
+        const type = (entity.snapshot as { abilityId?: string }).abilityId;
+        if (type && getAbilityVFX(`${type}_impact`)) spawnWorldVFX(`${type}_impact`, x, y);
+        break;
+      }
       case EntityType.TOWER:
       case EntityType.NEXUS:
         spawnWorldVFX(WORLD_VFX.TOWER_DESTROYED, x, y);

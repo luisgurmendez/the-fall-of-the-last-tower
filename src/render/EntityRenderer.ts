@@ -24,6 +24,8 @@ import type {
 
 import { EntityType } from "@siege/shared";
 import { VFXManager, getVFXManager } from "@/vfx";
+import { getGPURenderer } from "@/gpu/GPURenderer";
+import { emitZone, type ZoneSnapshot } from "@/gpu/fx/zones";
 import { OUTLINE_COLORS } from "@/render/OutlinedSpriteCache";
 import type {
   EntityRenderContext,
@@ -270,6 +272,18 @@ export class EntityRenderer implements GameObject {
       // On the ground, under every unit: enemy tower ranges near the local champion
       renderTowerRanges(canvasRenderingContext, entities, localEntity, this.localSide);
 
+      // Effects on the GPU: the ground layer now, the rest after the units
+      this.vfxManager.update(clientDt);
+      const gpu = getGPURenderer();
+      if (gpu) {
+        this.vfxManager.emitGround(gpu.groundFx);
+        for (const entity of entities) {
+          if (entity.snapshot.entityType !== EntityType.ZONE) continue;
+          emitZone(gpu.groundFx, gpu.topFx, entity.snapshot as ZoneSnapshot, entity.position.x, entity.position.y, this.renderContext.animationTime);
+        }
+        gpu.drawFX(canvasRenderingContext, "ground");
+      }
+
       for (const entity of sortedEntities) {
         // Skip dead entities (except light orbs which show a ghost when destroyed)
         const snapshot = entity.snapshot as any;
@@ -327,13 +341,17 @@ export class EntityRenderer implements GameObject {
         this.renderEntity(canvasRenderingContext, entity, isLocalPlayer, state);
       }
 
-      // Update and render VFX system
-      this.vfxManager.update(clientDt);
-      // Render VFX in world space (camera transform already applied)
-      this.vfxManager.render(canvasRenderingContext, 0, 0);
+      // Effects over the units (world space, camera transform already applied)
+      if (gpu) {
+        this.vfxManager.emitTop(gpu.topFx);
+        gpu.drawFX(canvasRenderingContext, "top");
+        this.vfxManager.renderScreenFlash(canvasRenderingContext);
+      } else {
+        this.vfxManager.render(canvasRenderingContext, 0, 0);
+      }
 
-      // Render ability visual effects (legacy system)
-      renderAbilityEffects(canvasRenderingContext, this.stateManager);
+      // Ability shapes (legacy system): on the GPU each ability's own effects show it
+      if (!gpu) renderAbilityEffects(canvasRenderingContext, this.stateManager);
 
       // Render floating damage numbers on top of all entities
       renderDamageNumbers(canvasRenderingContext, this.stateManager);
@@ -425,7 +443,8 @@ export class EntityRenderer implements GameObject {
         renderWard(ctx, snapshot, side, this.renderContext);
         break;
       case EntityType.ZONE:
-        renderZone(ctx, snapshot, this.renderContext);
+        // On the GPU zones are drawn with the ground effects, under every unit
+        if (!getGPURenderer()) renderZone(ctx, snapshot, this.renderContext);
         break;
       case EntityType.LIGHT_ORB:
         this.lightOrbRenderer.render(ctx, snapshot, side);

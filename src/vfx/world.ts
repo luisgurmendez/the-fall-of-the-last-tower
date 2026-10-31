@@ -8,6 +8,24 @@
 
 import { MOBAConfig } from '@siege/shared';
 import { registerAbilityVFX } from './VFXRegistryStore';
+import {
+  coneWarning,
+  debris,
+  embers,
+  flames,
+  light,
+  motes,
+  phase,
+  pillar,
+  ring,
+  scorch,
+  shockwave,
+  sigil,
+  smoke,
+  sparks,
+  twinkles,
+  warning,
+} from './recipes';
 
 /** Keys of the world VFX, spawned with VFXManager.spawnAbilityVFX */
 export const WORLD_VFX = {
@@ -23,475 +41,183 @@ export const WORLD_VFX = {
   DRAGON_DEATH: 'fx_dragon_death',
 } as const;
 
+// A hit: a few short streaks and a pinprick of light, colored by damage type
 function registerHitSpark(abilityId: string, color: string, colorSecondary: string): void {
   registerAbilityVFX({
     abilityId,
     phases: [
-      {
-        name: 'spark',
-        delay: 0,
-        duration: 0.2,
-        anchor: 'caster',
-        effects: [
-          {
-            type: 'particle_burst',
-            count: 5,
-            color,
-            colorSecondary,
-            size: { min: 1.5, max: 3 },
-            speed: { min: 60, max: 140 },
-            lifetime: { min: 0.1, max: 0.22 },
-            spread: Math.PI * 2,
-            friction: 0.85,
-            particleType: 'spark',
-          },
-        ],
-      },
+      phase('spark', 0, 'caster', [
+        sparks(color, 5, [90, 200], Math.PI * 2, { colorSecondary, lifetime: { min: 0.1, max: 0.2 } }),
+        motes(colorSecondary, 1, [0, 0], { size: { min: 4, max: 5 }, lifetime: { min: 0.1, max: 0.14 } }),
+      ], 0.2),
     ],
   });
 }
 
 registerHitSpark(WORLD_VFX.HIT_PHYSICAL, '#ffffff', '#ffb347');
-registerHitSpark(WORLD_VFX.HIT_MAGIC, '#b39ddb', '#5c6bc0');
+registerHitSpark(WORLD_VFX.HIT_MAGIC, '#c8b4ff', '#7c6cff');
 registerHitSpark(WORLD_VFX.HIT_TRUE, '#ffffff', '#fff59d');
 
+// Level up: a golden pillar, a ring and sparkles rising
 registerAbilityVFX({
   abilityId: WORLD_VFX.LEVEL_UP,
   phases: [
-    {
-      name: 'burst',
-      delay: 0,
-      duration: 0.8,
-      anchor: 'caster',
-      effects: [
-        {
-          type: 'expanding_ring',
-          color: '#ffd54f',
-          startRadius: 10,
-          endRadius: 70,
-          thickness: 4,
-          duration: 0.5,
-          fadeOut: true,
-        },
-        {
-          type: 'rising_particles',
-          count: 16,
-          color: '#ffe082',
-          size: { min: 2, max: 4 },
-          speed: { min: 40, max: 90 },
-          spread: 50,
-          lifetime: { min: 0.5, max: 0.9 },
-          particleType: 'star',
-        },
-      ],
-    },
+    phase('burst', 0, 'caster', [
+      pillar('#ffd54f', 140, 9, 0.5, '#fff8e1'),
+      ring('#ffd54f', 10, 70, 0.5, 4),
+      embers('#ffe082', 16, 30),
+      twinkles('#fff8e1', 6, [20, 60]),
+      light('#ffd54f', 90, 0.9, 0.7),
+    ], 0.8),
   ],
 });
 
+// A champion falls: a dark burst and a wisp of light rising from it
 registerAbilityVFX({
   abilityId: WORLD_VFX.CHAMPION_DEATH,
   phases: [
-    {
-      name: 'fall',
-      delay: 0,
-      duration: 1,
-      anchor: 'caster',
-      effects: [
-        {
-          type: 'shockwave',
-          color: '#9e9e9e',
-          startRadius: 10,
-          endRadius: 90,
-          thickness: 6,
-          duration: 0.4,
-        },
-        {
-          type: 'particle_burst',
-          count: 20,
-          color: '#b0bec5',
-          colorSecondary: '#546e7a',
-          size: { min: 2, max: 5 },
-          speed: { min: 40, max: 120 },
-          lifetime: { min: 0.5, max: 0.9 },
-          spread: Math.PI * 2,
-          gravity: 120,
-          particleType: 'square',
-        },
-        {
-          type: 'rising_particles',
-          count: 12,
-          color: '#eceff1',
-          size: { min: 2, max: 3 },
-          speed: { min: 20, max: 50 },
-          spread: 30,
-          lifetime: { min: 0.8, max: 1.2 },
-        },
-      ],
-    },
+    phase('fall', 0, 'caster', [
+      shockwave('#e8e8f0', 10, 90, 0.4, 6),
+      smoke('#2a2630', 10, [14, 22], [30, 90]),
+      sparks('#ffffff', 10, [120, 260]),
+      embers('#dfe8ff', 12, 20, { lifetime: { min: 0.9, max: 1.4 } }),
+      light('#c8d8ff', 90, 0.6, 0.6),
+    ], 1),
   ],
 });
 
+// Back in the fountain: a circle and a pillar of light
 registerAbilityVFX({
   abilityId: WORLD_VFX.RESPAWN,
   phases: [
-    {
-      name: 'pillar',
-      delay: 0,
-      duration: 0.9,
-      anchor: 'caster',
-      effects: [
-        {
-          type: 'ground_circle',
-          color: '#80deea',
-          fillColor: 'rgba(128, 222, 234, 0.15)',
-          radius: 45,
-          duration: 0.9,
-          fadeOut: true,
-        },
-        {
-          type: 'rising_particles',
-          count: 24,
-          color: '#b2ebf2',
-          size: { min: 2, max: 4 },
-          speed: { min: 60, max: 120 },
-          spread: 35,
-          lifetime: { min: 0.5, max: 0.9 },
-          particleType: 'spark',
-        },
-      ],
-    },
+    phase('return', 0, 'caster', [
+      sigil('#9fe8ff', 45, 0.9),
+      pillar('#9fe8ff', 160, 10, 0.5, '#ffffff'),
+      embers('#e0f7ff', 12, 30),
+    ], 0.9),
   ],
 });
 
+// Arriving from a recall: light collapsing onto the spot
 registerAbilityVFX({
   abilityId: WORLD_VFX.RECALL_ARRIVE,
   phases: [
-    {
-      name: 'arrive',
-      delay: 0,
-      duration: 0.6,
-      anchor: 'caster',
-      effects: [
-        {
-          type: 'expanding_ring',
-          color: '#4fc3f7',
-          startRadius: 50,
-          endRadius: 5,
-          thickness: 5,
-          duration: 0.35,
-          fadeOut: true,
-        },
-        {
-          type: 'particle_burst',
-          count: 18,
-          color: '#e1f5fe',
-          colorSecondary: '#4fc3f7',
-          size: { min: 2, max: 4 },
-          speed: { min: 60, max: 150 },
-          lifetime: { min: 0.3, max: 0.6 },
-          spread: Math.PI * 2,
-          friction: 0.9,
-          particleType: 'star',
-        },
-      ],
-    },
+    phase('arrive', 0, 'caster', [
+      ring('#9fd8ff', 50, 5, 0.35, 3),
+      pillar('#9fd8ff', 150, 8, 0.4, '#ffffff'),
+      twinkles('#e0f7ff', 6, [20, 60]),
+      light('#9fd8ff', 70, 0.8, 0.5),
+    ], 0.6),
   ],
 });
 
+// A tower or the nexus goes down: an explosion, flames, smoke and rubble
 registerAbilityVFX({
   abilityId: WORLD_VFX.TOWER_DESTROYED,
   phases: [
-    {
-      name: 'blast',
-      delay: 0,
-      duration: 0.6,
-      anchor: 'caster',
-      effects: [
-        {
-          type: 'screen_flash',
-          color: '#ffcc80',
-          duration: 0.25,
-          maxAlpha: 0.25,
-        },
-        {
-          type: 'shockwave',
-          color: '#ff9800',
-          startRadius: 20,
-          endRadius: 220,
-          thickness: 14,
-          duration: 0.5,
-        },
-        {
-          type: 'particle_burst',
-          count: 40,
-          color: '#ffb74d',
-          colorSecondary: '#e65100',
-          size: { min: 3, max: 7 },
-          speed: { min: 120, max: 280 },
-          lifetime: { min: 0.4, max: 0.9 },
-          spread: Math.PI * 2,
-          gravity: 300,
-          particleType: 'square',
-        },
-      ],
-    },
-    {
-      name: 'rubble',
-      delay: 0.2,
-      duration: 1.5,
-      anchor: 'caster',
-      effects: [
-        {
-          type: 'particle_burst',
-          count: 30,
-          color: '#8d6e63',
-          colorSecondary: '#4e342e',
-          size: { min: 3, max: 6 },
-          speed: { min: 40, max: 120 },
-          lifetime: { min: 0.8, max: 1.4 },
-          spread: Math.PI * 2,
-          gravity: 200,
-          friction: 0.92,
-          particleType: 'square',
-        },
-        {
-          type: 'rising_particles',
-          count: 20,
-          color: '#9e9e9e',
-          size: { min: 4, max: 8 },
-          speed: { min: 20, max: 50 },
-          spread: 80,
-          lifetime: { min: 1, max: 1.5 },
-        },
-      ],
-    },
+    phase('blast', 0, 'caster', [
+      { type: 'screen_flash', color: '#ffffff', duration: 0.25, maxAlpha: 0.35 },
+      shockwave('#ffcc80', 20, 230, 0.5, 14),
+      flames('#ff8a3a', 16, [18, 30], [60, 200]),
+      sparks('#ffd180', 30, [220, 480]),
+      debris('#5d4a3a', 20, [140, 320]),
+      scorch('#1e140c', 140, 4.0, 0.8),
+      light('#ff9a3a', 260, 1.4, 1.0, 0.4),
+    ], 0.6),
+    phase('smoke', 0.2, 'caster', [
+      smoke('#4a4448', 16, [22, 36], [30, 110], { lifetime: { min: 1.2, max: 2.0 } }),
+      embers('#ffab40', 18, 80),
+    ], 1.5),
   ],
 });
 
+// A monster dies: a puff and a few sparks
 registerAbilityVFX({
   abilityId: WORLD_VFX.CREATURE_DEATH,
   phases: [
-    {
-      name: 'puff',
-      delay: 0,
-      duration: 0.6,
-      anchor: 'caster',
-      effects: [
-        {
-          type: 'particle_burst',
-          count: 14,
-          color: '#a1887f',
-          colorSecondary: '#5d4037',
-          size: { min: 2, max: 5 },
-          speed: { min: 40, max: 110 },
-          lifetime: { min: 0.3, max: 0.6 },
-          spread: Math.PI * 2,
-          gravity: 150,
-          particleType: 'square',
-        },
-      ],
-    },
+    phase('burst', 0, 'caster', [
+      smoke('#4a4440', 8, [12, 20], [30, 90]),
+      sparks('#ffe0b2', 8, [100, 220]),
+      twinkles('#fff3e0', 3, [20, 50]),
+    ], 0.6),
   ],
 });
 
+// The dragon dies: a fiery blast and embers drifting up
 registerAbilityVFX({
   abilityId: WORLD_VFX.DRAGON_DEATH,
   phases: [
-    {
-      name: 'collapse',
-      delay: 0,
-      duration: 1.4,
-      anchor: 'caster',
-      effects: [
-        {
-          type: 'shockwave',
-          color: '#ff7043',
-          startRadius: 20,
-          endRadius: 220,
-          thickness: 10,
-          duration: 0.6,
-        },
-        {
-          type: 'expanding_ring',
-          color: '#ffd54f',
-          startRadius: 10,
-          endRadius: 140,
-          thickness: 5,
-          duration: 0.5,
-          fadeOut: true,
-        },
-        {
-          type: 'particle_burst',
-          count: 40,
-          color: '#ffab40',
-          colorSecondary: '#d84315',
-          size: { min: 3, max: 7 },
-          speed: { min: 80, max: 220 },
-          lifetime: { min: 0.6, max: 1.2 },
-          spread: Math.PI * 2,
-          gravity: 120,
-          friction: 0.94,
-          particleType: 'spark',
-          glowIntensity: 0.7,
-        },
-        {
-          type: 'rising_particles',
-          count: 30,
-          color: '#ffcc80',
-          size: { min: 2, max: 5 },
-          speed: { min: 40, max: 90 },
-          spread: 120,
-          lifetime: { min: 1, max: 1.4 },
-          particleType: 'star',
-        },
-      ],
-    },
+    phase('blast', 0, 'caster', [
+      shockwave('#ff7043', 20, 230, 0.6, 16),
+      ring('#ffd180', 10, 150, 0.5, 4),
+      flames('#ff7a1a', 18, [18, 30], [60, 200]),
+      sparks('#ffab40', 30, [200, 460]),
+      scorch('#1e120a', 120, 3.0, 1.0),
+      light('#ff7a1a', 260, 1.5, 1.0, 0.4),
+    ], 0.6),
+    phase('embers', 0.2, 'caster', [
+      embers('#ffab40', 26, 120, { lifetime: { min: 1.0, max: 1.6 } }),
+      smoke('#3a3030', 10, [20, 32], [30, 90], { lifetime: { min: 1.0, max: 1.6 } }),
+    ], 1.4),
   ],
 });
 
-// =============================================================================
-// Monster attacks (server: JungleSpecialAttacks)
-// =============================================================================
-// The warning lasts the wind-up and fills from the center: when the inner
-// ring reaches the edge, the attack lands.
-
 const SPECIAL_ATTACKS = MOBAConfig.JUNGLE.SPECIAL_ATTACKS;
 
+// A big monster's slam: a warning filling up over the windup, then the ground cracks
 function registerMonsterSlam(
   attack: { abilityId: string; radius: number; windup: number },
   color: string,
-  fillColor: string,
   dustColor: string
 ): void {
   registerAbilityVFX({
     abilityId: attack.abilityId,
     phases: [
-      {
-        name: 'warning',
-        delay: 0,
-        duration: attack.windup,
-        anchor: 'caster',
-        effects: [
-          {
-            type: 'ground_circle',
-            color,
-            fillColor,
-            radius: attack.radius,
-            duration: attack.windup,
-            fadeIn: true,
-          },
-          {
-            type: 'expanding_ring',
-            color,
-            startRadius: 0,
-            endRadius: attack.radius,
-            thickness: 3,
-            duration: attack.windup,
-            fadeOut: false,
-          },
-        ],
-      },
-      {
-        name: 'slam',
-        delay: attack.windup,
-        duration: 0.8,
-        anchor: 'caster',
-        effects: [
-          {
-            type: 'shockwave',
-            color,
-            startRadius: attack.radius * 0.3,
-            endRadius: attack.radius,
-            thickness: 10,
-            duration: 0.35,
-          },
-          {
-            type: 'particle_burst',
-            count: 28,
-            color: dustColor,
-            colorSecondary: '#5d4037',
-            size: { min: 3, max: 6 },
-            speed: { min: 60, max: 170 },
-            lifetime: { min: 0.4, max: 0.8 },
-            spread: Math.PI * 2,
-            gravity: 160,
-            friction: 0.9,
-            particleType: 'square',
-          },
-        ],
-      },
+      phase('warning', 0, 'caster', [warning(color, attack.radius, attack.windup)], attack.windup),
+      phase('slam', attack.windup, 'caster', [
+        shockwave(color, attack.radius * 0.3, attack.radius * 1.05, 0.35, 10),
+        scorch('#2a2018', attack.radius * 0.8, 1.6, 0.4),
+        smoke(dustColor, 12, [14, 24], [60, 170]),
+        debris('#5d4037', 14, [100, 220]),
+        sparks(color, 10, [150, 300]),
+        light(color, attack.radius * 1.2, 0.8, 0.4),
+      ], 0.8),
     ],
   });
 }
 
-registerMonsterSlam(SPECIAL_ATTACKS.blue_buff, '#64b5f6', '#1e88e5', '#90caf9');
-registerMonsterSlam(SPECIAL_ATTACKS.red_buff, '#ff8a65', '#e64a19', '#bcaaa4');
+registerMonsterSlam(SPECIAL_ATTACKS.blue_buff, '#64b5f6', '#8a96a8');
+registerMonsterSlam(SPECIAL_ATTACKS.red_buff, '#ff8a65', '#9a8478');
 
 const DRAGON_BREATH = SPECIAL_ATTACKS.dragon;
 
+// The dragon's breath: a cone warning, then a jet of flame across it
 registerAbilityVFX({
   abilityId: DRAGON_BREATH.abilityId,
   phases: [
-    {
-      name: 'warning',
-      delay: 0,
-      duration: DRAGON_BREATH.windup,
-      anchor: 'caster',
-      effects: [
-        {
-          type: 'cone_slash',
-          color: 'rgba(255, 112, 67, 0.22)',
-          radius: DRAGON_BREATH.radius,
-          arcAngle: DRAGON_BREATH.coneAngle,
-          duration: DRAGON_BREATH.windup,
-          fadeOut: false,
-        },
-      ],
-    },
-    {
-      name: 'breath',
-      delay: DRAGON_BREATH.windup,
-      duration: 0.7,
-      anchor: 'caster',
-      effects: [
-        {
-          type: 'cone_slash',
-          color: '#ff7043',
-          radius: DRAGON_BREATH.radius,
-          arcAngle: DRAGON_BREATH.coneAngle,
-          duration: 0.5,
-          fadeOut: true,
-        },
-        {
-          type: 'cone_slash',
-          color: '#ffd54f',
-          radius: DRAGON_BREATH.radius * 0.7,
-          arcAngle: DRAGON_BREATH.coneAngle * 0.6,
-          duration: 0.4,
-          fadeOut: true,
-        },
-      ],
-    },
-    {
-      name: 'embers',
-      delay: DRAGON_BREATH.windup,
-      duration: 1,
-      anchor: 'ground_target',
-      effects: [
-        {
-          type: 'particle_burst',
-          count: 24,
-          color: '#ffab40',
-          colorSecondary: '#d84315',
-          size: { min: 2, max: 5 },
-          speed: { min: 30, max: 110 },
-          lifetime: { min: 0.5, max: 1 },
-          spread: Math.PI * 2,
-          gravity: -40,
-          particleType: 'spark',
-          glowIntensity: 0.6,
-        },
-      ],
-    },
+    phase('warning', 0, 'caster', [
+      coneWarning('#ff7043', DRAGON_BREATH.radius, DRAGON_BREATH.coneAngle, DRAGON_BREATH.windup),
+      light('#ff7043', 70, 0.6, DRAGON_BREATH.windup, 0.4),
+    ], DRAGON_BREATH.windup),
+    phase('breath', DRAGON_BREATH.windup, 'caster', [
+      flames('#ff7a1a', 26, [14, 26], [DRAGON_BREATH.radius * 1.1, DRAGON_BREATH.radius * 1.9], {
+        spread: DRAGON_BREATH.coneAngle * 0.8,
+        lifetime: { min: 0.4, max: 0.6 },
+        friction: 1.5,
+        gravity: 0,
+      }),
+      flames('#ffc04a', 12, [10, 16], [DRAGON_BREATH.radius * 0.8, DRAGON_BREATH.radius * 1.4], {
+        spread: DRAGON_BREATH.coneAngle * 0.5,
+        lifetime: { min: 0.3, max: 0.45 },
+        friction: 1.5,
+        gravity: 0,
+      }),
+      sparks('#ffd180', 18, [300, 600], DRAGON_BREATH.coneAngle * 0.8),
+      light('#ff7a1a', 160, 1.0, 0.6, 0.5),
+    ], 0.7),
+    phase('embers', DRAGON_BREATH.windup + 0.2, 'ground_target', [
+      embers('#ffab40', 20, 120),
+      scorch('#1e120a', 90, 2.0, 0.8),
+    ], 1),
   ],
 });

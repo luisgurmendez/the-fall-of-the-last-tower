@@ -1,206 +1,74 @@
 /**
- * Elara ability VFX definitions. Registered when this module is imported
- * (see ./index.ts).
+ * Elara ability VFX: holy gold and white, and a teal breeze for her speed.
+ * Registered when this module is imported (see ./index.ts).
  */
 
-import { CHAMPION_COLORS } from '../VFXColors';
 import { registerAbilityVFX } from '../VFXRegistryStore';
+import { embers, light, phase, pillar, ring, shockwave, sigil, sparks, swirl, twinkles } from '../recipes';
 
+const HOLY = '#ffe08a';
+const WHITE = '#fffaf0';
+const SOFT = '#fff4c4';
+const TEAL = '#7fffd4';
+
+// Q: a pillar of light on the ally, motes rising around them
 registerAbilityVFX({
   abilityId: 'elara_heal',
   phases: [
-    {
-      name: 'cast',
-      delay: 0,
-      duration: 0.2,
-      anchor: 'caster',
-      effects: [
-        {
-          type: 'particle_burst',
-          count: 8,
-          color: CHAMPION_COLORS.elara.primary,
-          size: { min: 3, max: 5 },
-          speed: { min: 20, max: 40 },
-          lifetime: { min: 0.2, max: 0.3 },
-          spread: Math.PI / 2,
-          direction: 0,
-          particleType: 'star',
-          glowIntensity: 1.5,
-        },
-      ],
-    },
-    {
-      name: 'impact',
-      delay: 0.1,
-      duration: 0.5,
-      anchor: 'target',
-      effects: [
-        {
-          type: 'expanding_ring',
-          color: CHAMPION_COLORS.elara.primary,
-          startRadius: 0,
-          endRadius: 60,
-          thickness: 4,
-          duration: 0.4,
-        },
-        {
-          type: 'rising_particles',
-          count: 10,
-          color: CHAMPION_COLORS.elara.accent,
-          size: { min: 2, max: 4 },
-          speed: { min: 30, max: 60 },
-          spread: 30,
-          lifetime: { min: 0.4, max: 0.7 },
-          particleType: 'star',
-        },
-      ],
-    },
+    phase('cast', 0, 'caster', [twinkles(HOLY, 6, [30, 90]), light(HOLY, 60, 0.6, 0.3)], 0.3),
+    phase('bless', 0.1, 'target', [
+      pillar(HOLY, 180, 10, 0.45, WHITE),
+      ring(HOLY, 0, 60, 0.4, 3),
+      embers(SOFT, 18, 40),
+      twinkles(WHITE, 8, [20, 70]),
+      light(HOLY, 100, 1.0, 0.6),
+    ]),
   ],
 });
 
+// W: a ring closes onto the ally and a golden bubble forms around them
 registerAbilityVFX({
   abilityId: 'elara_barrier',
   phases: [
-    {
-      name: 'cast',
-      delay: 0,
-      duration: 0.2,
-      anchor: 'caster',
-      effects: [
-        {
-          type: 'expanding_ring',
-          color: CHAMPION_COLORS.elara.primary,
-          startRadius: 20,
-          endRadius: 40,
-          thickness: 3,
-          duration: 0.2,
-        },
-      ],
-    },
-    {
-      name: 'active',
-      delay: 0.15,
-      duration: 2.5,
-      anchor: 'target',
-      effects: [
-        {
-          type: 'shield_bubble',
-          color: CHAMPION_COLORS.elara.primary,
-          radius: 28,
-          duration: 2.5,
-          pulseSpeed: 3,
-          hexagonal: true,
-        },
-      ],
-    },
+    phase('cast', 0, 'caster', [ring(WHITE, 20, 46, 0.22, 3), twinkles(HOLY, 6)], 0.25),
+    phase('shield', 0.15, 'target', [
+      { type: 'shield_bubble', color: HOLY, radius: 30, duration: 2.5, pulseSpeed: 1.2 },
+      ring(HOLY, 60, 24, 0.25, 3),
+      light(HOLY, 70, 0.6, 0.4),
+    ], 2.5),
   ],
 });
 
+// E: a gust of wind spiralling out
 registerAbilityVFX({
   abilityId: 'elara_speed',
   phases: [
-    {
-      name: 'cast',
-      delay: 0,
-      duration: 0.15,
-      anchor: 'caster',
-      effects: [
-        {
-          type: 'expanding_ring',
-          color: CHAMPION_COLORS.elara.primary,
-          startRadius: 10,
-          endRadius: 200,
-          thickness: 4,
-          duration: 0.4,
-        },
-      ],
-    },
-    {
-      name: 'active',
-      delay: 0.1,
-      duration: 0.5,
-      anchor: 'caster',
-      effects: [
-        {
-          type: 'ground_circle',
-          color: CHAMPION_COLORS.elara.primary,
-          fillColor: 'rgba(255, 215, 0, 0.15)',
-          radius: 200,
-          duration: 0.5,
-          dashed: true,
-        },
-      ],
-    },
+    phase('gust', 0, 'caster', [
+      ring(TEAL, 10, 200, 0.45, 4),
+      swirl(TEAL, 110, 0.6, 1.6, 3),
+      sparks(TEAL, 18, [220, 380]),
+      light(TEAL, 200, 0.5, 0.5),
+    ]),
   ],
 });
 
+// R: a holy circle gathers light, then a pillar and a wave of it burst out
 registerAbilityVFX({
   abilityId: 'elara_resurrection',
   phases: [
-    {
-      name: 'windup',
-      delay: 0,
-      duration: 0.5,
-      anchor: 'caster',
-      effects: [
-        {
-          type: 'rising_particles',
-          count: 20,
-          color: CHAMPION_COLORS.elara.secondary,
-          size: { min: 2, max: 4 },
-          speed: { min: 80, max: 120 },
-          spread: 40,
-          lifetime: { min: 0.4, max: 0.6 },
-          particleType: 'star',
-        },
-        {
-          type: 'ground_circle',
-          color: CHAMPION_COLORS.elara.primary,
-          radius: 300,
-          duration: 0.5,
-          fadeIn: true,
-        },
-      ],
-    },
-    {
-      name: 'burst',
-      delay: 0.45,
-      duration: 0.3,
-      anchor: 'caster',
-      effects: [
-        {
-          type: 'shockwave',
-          color: CHAMPION_COLORS.elara.secondary,
-          startRadius: 20,
-          endRadius: 320,
-          thickness: 20,
-          duration: 0.3,
-        },
-        {
-          type: 'screen_flash',
-          color: CHAMPION_COLORS.elara.secondary,
-          duration: 0.15,
-          maxAlpha: 0.3,
-        },
-      ],
-    },
-    {
-      name: 'heal',
-      delay: 0.5,
-      duration: 0.5,
-      anchor: 'caster',
-      effects: [
-        {
-          type: 'rising_particles',
-          count: 30,
-          color: CHAMPION_COLORS.elara.primary,
-          size: { min: 3, max: 6 },
-          speed: { min: 40, max: 80 },
-          spread: 280,
-          lifetime: { min: 0.5, max: 0.8 },
-          particleType: 'star',
-        },
-      ],
-    },
+    phase('gather', 0, 'caster', [
+      sigil(HOLY, 300, 0.75, '#fff0b0'),
+      embers(HOLY, 24, 260, { lifetime: { min: 0.6, max: 1.0 } }),
+      light(HOLY, 300, 0.6, 0.7),
+    ], 0.75),
+    phase('burst', 0.45, 'caster', [
+      pillar(WHITE, 320, 26, 0.5, HOLY),
+      shockwave(HOLY, 20, 320, 0.45, 12),
+      ring(WHITE, 10, 280, 0.3, 3),
+      twinkles(WHITE, 20, [80, 220]),
+      light(HOLY, 340, 1.4, 1.0),
+      { type: 'screen_flash', color: '#fffbe6', duration: 0.15, maxAlpha: 0.18 },
+    ]),
+    phase('linger', 0.5, 'caster', [embers(SOFT, 26, 280, { lifetime: { min: 1.0, max: 1.6 } })], 1.6),
   ],
 });
