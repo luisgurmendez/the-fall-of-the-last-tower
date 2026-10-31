@@ -4,6 +4,23 @@
  */
 
 import type { OnlineStateManager } from "@/core/OnlineStateManager";
+import { EntityType } from "@siege/shared";
+
+/** Where a minion's damage numbers start: just above its health bar (see entities/minion.ts) */
+const MINION_NUMBER_START = -32;
+const SIEGE_MINION_NUMBER_START = -39;
+
+/**
+ * How far above its position a unit's damage numbers start, so they don't
+ * cover its health bar. Minions' bars sit right over them; other units'
+ * bars are higher than the numbers rise.
+ */
+function damageNumberStart(stateManager: OnlineStateManager, entityId: string): number {
+  const entity = stateManager.getEntity(entityId);
+  const snapshot = entity?.snapshot as { entityType?: EntityType; minionType?: string; isDead?: boolean } | undefined;
+  if (!snapshot || snapshot.isDead || snapshot.entityType !== EntityType.MINION) return 0;
+  return snapshot.minionType === "siege" ? SIEGE_MINION_NUMBER_START : MINION_NUMBER_START;
+}
 
 /**
  * Colors for damage number types.
@@ -60,8 +77,8 @@ export function renderDamageNumbers(
     // Ease out for smooth deceleration
     const easeOut = 1 - Math.pow(1 - progress, 3);
 
-    // Calculate position (float upward)
-    const yOffset = -DAMAGE_NUMBER_CONFIG.FLOAT_DISTANCE * easeOut;
+    // Calculate position (float upward, from above a minion's health bar)
+    const yOffset = damageNumberStart(stateManager, dn.entityId) - DAMAGE_NUMBER_CONFIG.FLOAT_DISTANCE * easeOut;
 
     // Calculate alpha (fade out in the last 30%)
     const fadeStart = 0.7;
