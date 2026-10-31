@@ -1,26 +1,10 @@
 /**
- * Floating combat text: damage, gold and XP numbers that rise and fade
- * above the entity that triggered them.
+ * Floating combat text: damage numbers pop out of the unit's body to one
+ * side and fall (hits alternate sides), so they never cover its health bar;
+ * gold and XP numbers rise and fade beside the champion that earned them.
  */
 
 import type { OnlineStateManager } from "@/core/OnlineStateManager";
-import { EntityType } from "@siege/shared";
-
-/** Where a minion's damage numbers start: just above its health bar (see entities/minion.ts) */
-const MINION_NUMBER_START = -32;
-const SIEGE_MINION_NUMBER_START = -39;
-
-/**
- * How far above its position a unit's damage numbers start, so they don't
- * cover its health bar. Minions' bars sit right over them; other units'
- * bars are higher than the numbers rise.
- */
-function damageNumberStart(stateManager: OnlineStateManager, entityId: string): number {
-  const entity = stateManager.getEntity(entityId);
-  const snapshot = entity?.snapshot as { entityType?: EntityType; minionType?: string; isDead?: boolean } | undefined;
-  if (!snapshot || snapshot.isDead || snapshot.entityType !== EntityType.MINION) return 0;
-  return snapshot.minionType === "siege" ? SIEGE_MINION_NUMBER_START : MINION_NUMBER_START;
-}
 
 /**
  * Colors for damage number types.
@@ -34,12 +18,16 @@ const DAMAGE_COLORS = {
 };
 
 /**
- * Damage number display settings.
+ * Damage number display settings (world units, from the unit's position,
+ * the middle of its body).
  */
 const DAMAGE_NUMBER_CONFIG = {
   FONT: "16px m5x7",
-  FLOAT_DISTANCE: 30, // How far up the number floats
   FONT_SIZE: 16,
+  START_Y: -8, // Where it pops out, a little above the middle
+  SIDE: 28, // How far out to the side it flies
+  HOP: 6, // How high it pops before falling
+  FALL: 30, // How far it falls
 };
 
 /**
@@ -74,11 +62,12 @@ export function renderDamageNumbers(
   for (const dn of damageNumbers) {
     const progress = stateManager.getDamageNumberProgress(dn);
 
-    // Ease out for smooth deceleration
+    // Out to the side, slowing down, along a short hop that falls away
     const easeOut = 1 - Math.pow(1 - progress, 3);
-
-    // Calculate position (float upward, from above a minion's health bar)
-    const yOffset = damageNumberStart(stateManager, dn.entityId) - DAMAGE_NUMBER_CONFIG.FLOAT_DISTANCE * easeOut;
+    const xOffset = dn.side * DAMAGE_NUMBER_CONFIG.SIDE * easeOut;
+    const yOffset = DAMAGE_NUMBER_CONFIG.START_Y
+      - DAMAGE_NUMBER_CONFIG.HOP * 4 * progress * (1 - progress)
+      + DAMAGE_NUMBER_CONFIG.FALL * progress * progress;
 
     // Calculate alpha (fade out in the last 30%)
     const fadeStart = 0.7;
@@ -86,7 +75,7 @@ export function renderDamageNumbers(
       progress < fadeStart ? 1 : 1 - (progress - fadeStart) / (1 - fadeStart);
 
     ctx.save();
-    ctx.translate(dn.x, dn.y + yOffset);
+    ctx.translate(dn.x + xOffset, dn.y + yOffset);
 
     // Set up font
     ctx.font = DAMAGE_NUMBER_CONFIG.FONT;
@@ -94,33 +83,33 @@ export function renderDamageNumbers(
     ctx.textBaseline = "middle";
     ctx.globalAlpha = alpha;
 
-    // Render shield absorbed amount first (gray, slightly left and up)
+    // Render shield absorbed amount first (gray, just above the damage)
     if (dn.shieldAbsorbed > 0) {
       const shieldText = Math.round(dn.shieldAbsorbed).toString();
+      const shieldY = dn.amount > 0 ? -9 : 0;
 
       // Draw shadow/outline for readability
       ctx.strokeStyle = "#000000";
       ctx.lineWidth = 3;
-      ctx.strokeText(shieldText, -15, -8);
+      ctx.strokeText(shieldText, 0, shieldY);
 
       // Draw shield absorbed text
       ctx.fillStyle = DAMAGE_COLORS.shield;
-      ctx.fillText(shieldText, -15, -8);
+      ctx.fillText(shieldText, 0, shieldY);
     }
 
     // Render damage amount
     if (dn.amount > 0) {
       const damageText = Math.round(dn.amount).toString();
-      const xOffset = dn.shieldAbsorbed > 0 ? 15 : 0;
 
       // Draw shadow/outline for readability
       ctx.strokeStyle = "#000000";
       ctx.lineWidth = 3;
-      ctx.strokeText(damageText, xOffset, 0);
+      ctx.strokeText(damageText, 0, 0);
 
       // Draw damage text with appropriate color
       ctx.fillStyle = DAMAGE_COLORS[dn.damageType] || DAMAGE_COLORS.physical;
-      ctx.fillText(damageText, xOffset, 0);
+      ctx.fillText(damageText, 0, 0);
     }
 
     ctx.restore();

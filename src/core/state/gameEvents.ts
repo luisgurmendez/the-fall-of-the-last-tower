@@ -2,6 +2,10 @@
  * Game events from state updates, turned into client-side effects: attack and
  * cast animations, ability effects and VFX, hit sparks, screen shake,
  * floating damage/gold/XP numbers, camp timers and announcements.
+ *
+ * Floating numbers are only for the local champion, as in the classic MOBA:
+ * the damage it deals or takes, and its own gold, XP and heals. Units
+ * trading hits elsewhere (minions in lane) show nothing over their bars.
  */
 
 import { EntityType, GameEventType, getChampionDefinition, type GameEvent } from '@siege/shared';
@@ -145,7 +149,8 @@ export function processGameEvent(event: GameEvent, ctx: GameEventContext): void 
         spawnWorldVFX(spark, entity.position.x, entity.position.y - 10);
       }
 
-      if (entity && (amount > 0 || shieldAbsorbed > 0)) {
+      const ours = entityId === ctx.localEntityId || event.data.sourceId === ctx.localEntityId;
+      if (entity && ours && (amount > 0 || shieldAbsorbed > 0)) {
         ctx.floatingNumbers.addDamage({
           entityId,
           x: entity.position.x,
@@ -163,7 +168,7 @@ export function processGameEvent(event: GameEvent, ctx: GameEventContext): void 
       const amount = event.data.amount as number;
       const entity = ctx.entities.get(entityId);
 
-      if (entity && amount > 0) {
+      if (entity && entityId === ctx.localEntityId && amount > 0) {
         ctx.floatingNumbers.addGold({
           entityId,
           x: entity.position.x,
@@ -213,7 +218,7 @@ export function processGameEvent(event: GameEvent, ctx: GameEventContext): void 
       const entityId = event.data.entityId as string;
       const amount = event.data.amount as number;
       const entity = ctx.entities.get(entityId);
-      if (entity && amount > 0) {
+      if (entity && entityId === ctx.localEntityId && amount > 0) {
         ctx.floatingNumbers.addHeal({ entityId, x: entity.position.x, y: entity.position.y, amount, startTime: now });
       }
       break;
@@ -224,7 +229,7 @@ export function processGameEvent(event: GameEvent, ctx: GameEventContext): void 
       const amount = event.data.amount as number;
       const entity = ctx.entities.get(entityId);
 
-      if (entity && amount > 0) {
+      if (entity && entityId === ctx.localEntityId && amount > 0) {
         ctx.floatingNumbers.addXp({
           entityId,
           x: entity.position.x,

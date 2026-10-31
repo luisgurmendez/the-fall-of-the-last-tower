@@ -19,6 +19,8 @@ export interface DamageNumber {
   shieldAbsorbed: number;
   /** Type of damage */
   damageType: 'physical' | 'magic' | 'true' | 'pure';
+  /** Which way it flies off: -1 left, 1 right (hits alternate) */
+  side: number;
   /** When the damage occurred (ms) */
   startTime: number;
   /** Duration to display (ms) */
@@ -77,9 +79,11 @@ export class FloatingNumbers {
   private goldNumbers: GoldNumber[] = [];
   private xpNumbers: XpNumber[] = [];
   private healNumbers: HealNumber[] = [];
+  private nextSide = 1;
 
-  addDamage(damageNumber: Omit<DamageNumber, 'duration'>): void {
-    this.damageNumbers.push({ ...damageNumber, duration: DAMAGE_NUMBER_DURATION });
+  addDamage(damageNumber: Omit<DamageNumber, 'duration' | 'side'>): void {
+    this.damageNumbers.push({ ...damageNumber, side: this.nextSide, duration: DAMAGE_NUMBER_DURATION });
+    this.nextSide = -this.nextSide;
   }
 
   addGold(goldNumber: Omit<GoldNumber, 'duration'>): void {

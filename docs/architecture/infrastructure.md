@@ -101,7 +101,7 @@ hands the work to modules in `src/core/state/`:
 | Module | Does |
 |--------|------|
 | `deltas.ts` | Merges full snapshots and entity deltas into the entity map (`null` clears a field, absent means no change) |
-| `gameEvents.ts` | Turns game events into animations, ability effects and VFX, hit sparks, floating numbers, camp timers and announcements |
+| `gameEvents.ts` | Turns game events into animations, ability effects and VFX, hit sparks, floating numbers (only the local champion's: damage it deals or takes, its gold, XP and heals), camp timers and announcements |
 | `entityVFX.ts` | Death, respawn, level up and recall VFX from entity deltas |
 | `entities.ts` | `InterpolatedEntity`, interpolation and animation queries |
 | `abilityEffects.ts` | Legacy ability effect shapes and colors |
