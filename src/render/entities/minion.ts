@@ -81,6 +81,9 @@ const MINION_STRIPS: Record<string, MinionStrips> = {
   siege: minionStrips("siege", 0.78),
 };
 
+/** Walk cycle speed, matched to their pace (88 units a second) so their feet don't slide */
+const MINION_WALK_FPS = 8;
+
 /** Minions' health bars: a thin line just over the head, much slimmer than a champion's */
 const MINION_BAR = {
   width: 24,
@@ -205,7 +208,7 @@ function drawMinionStrips(
   const frameCount = Math.max(1, Math.round(image.naturalWidth / frameSize));
   const frameIndex = state.isAttacking
     ? Math.min(frameCount - 1, Math.floor(rc.stateManager.getAttackAnimationProgress(snapshot.entityId) * frameCount))
-    : Math.floor(rc.animationTime * (isMoving ? 10 : 6)) % frameCount;
+    : Math.floor(rc.animationTime * (isMoving ? MINION_WALK_FPS : 6)) % frameCount;
 
   ctx.save();
   if (!state.facingRight) ctx.scale(-1, 1);

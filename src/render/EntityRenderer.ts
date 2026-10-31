@@ -330,11 +330,11 @@ export class EntityRenderer implements GameObject {
           }
         }
 
-        // Get attack state from event-based animation system
-        // Fall back to snapshot's isAttacking for reconnections (when events might be missed)
-        const isAttacking =
-          this.stateManager.isEntityAttacking(snapshot.entityId) ||
-          (snapshot as any).isAttacking === true;
+        // Get attack state from the event-based animation system only: the
+        // snapshot's isAttacking isn't sent in deltas, so from a full snapshot
+        // (a unit coming into sight mid-attack) it would stay true forever
+        // and freeze the unit on its first attack frame
+        const isAttacking = this.stateManager.isEntityAttacking(snapshot.entityId);
 
         this.updateEntityState(
           state,

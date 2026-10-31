@@ -100,7 +100,23 @@ export class ServerMinion extends ServerEntity {
   private attackTarget: string | null = null;
   private attackCooldown: number = 0;
   private attackAnimationTimer: number = 0;  // Time remaining in attack animation
-  private static readonly ATTACK_ANIMATION_DURATION = 0.4;  // Duration of attack animation in seconds
+  /** An attack started but waiting for its animation's hit frame */
+  private pendingAttack: { targetId: string; delay: number } | null = null;
+
+  /** Frames in a minion's attack strip (public/assets/sprites/minions/<type>/attack.png) */
+  private static readonly ATTACK_FRAMES = 9;
+  /**
+   * Each type's attack animation: seconds the strip plays over, and the frame
+   * where the blow lands or the shot leaves (the sword coming down, the staff
+   * flashing, the cannon firing). The client plays the strip over the
+   * BASIC_ATTACK event's animationDuration, so that frame shows as it happens.
+   */
+  private static readonly ATTACK_ANIMATIONS: Record<MinionType, { duration: number; hitFrame: number }> = {
+    melee: { duration: 0.45, hitFrame: 8 },
+    caster: { duration: 0.45, hitFrame: 6 },
+    siege: { duration: 0.5, hitFrame: 4 },
+    super: { duration: 0.45, hitFrame: 8 },
+  };
 
   // Rewards
   readonly goldReward: number;
@@ -371,6 +387,20 @@ export class ServerMinion extends ServerEntity {
       this.attackAnimationTimer -= dt;
     }
 
+    // An attack winding up lands at its hit frame; a stun cancels it
+    if (this.pendingAttack) {
+      if (!this.ccStatus.canAttack) {
+        this.pendingAttack = null;
+      } else {
+        this.pendingAttack.delay -= dt;
+        if (this.pendingAttack.delay <= 0) {
+          const target = context.getEntity(this.pendingAttack.targetId);
+          this.pendingAttack = null;
+          if (target && !target.isDead) this.landAttack(target, context);
+        }
+      }
+    }
+
     // Only do combat if not stunned
     if (this.ccStatus.canAttack) {
       this.updateCombat(dt, context);
@@ -405,8 +435,8 @@ export class ServerMinion extends ServerEntity {
       }
     }
 
-    // Attack if possible
-    if (this.attackTarget && this.attackCooldown <= 0) {
+    // Attack if possible (one at a time: not while one is winding up)
+    if (this.attackTarget && this.attackCooldown <= 0 && !this.pendingAttack) {
       const target = context.getEntity(this.attackTarget);
       if (target && this.isInAttackRange(target, this.stats.attackRange)) {
         this.attack(target, context);
@@ -509,30 +539,41 @@ export class ServerMinion extends ServerEntity {
   private static readonly PROJECTILE_RADIUS = 8;
 
   /**
-   * Attack a target.
+   * Start an attack on a target: the animation plays now, the blow lands
+   * (or the shot leaves) at its hit frame.
    */
   private attack(target: ServerEntity, context: ServerGameContext): void {
     // Reset cooldown
     this.attackCooldown = this.stats.attackCooldown;
 
     // Start attack animation
-    this.attackAnimationTimer = ServerMinion.ATTACK_ANIMATION_DURATION;
+    const animation = ServerMinion.ATTACK_ANIMATIONS[this.minionType];
+    this.attackAnimationTimer = animation.duration;
+    this.pendingAttack = {
+      targetId: target.id,
+      delay: (animation.hitFrame / ServerMinion.ATTACK_FRAMES) * animation.duration,
+    };
 
     // Emit attack event for client-side animation
     context.addEvent(GameEventType.BASIC_ATTACK, {
       entityId: this.id,
       targetId: target.id,
-      animationDuration: ServerMinion.ATTACK_ANIMATION_DURATION,
+      animationDuration: animation.duration,
     });
 
     // Stop moving while attacking
     this.moveTarget = null;
+  }
 
-    // Caster and siege minions fire projectiles, melee minions deal instant damage
+  /**
+   * The attack's hit frame: caster and siege minions fire projectiles,
+   * melee minions deal their damage.
+   */
+  private landAttack(target: ServerEntity, context: ServerGameContext): void {
     if (this.minionType === 'caster' || this.minionType === 'siege') {
       this.fireProjectile(target, context);
     } else {
-      // Melee - deal damage instantly
+      // Melee - the blow lands
       target.takeDamage(this.stats.attackDamage, 'physical', this.id, context);
       target.onBasicAttackTaken(this, context);
     }
