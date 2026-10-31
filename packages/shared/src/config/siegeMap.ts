@@ -82,13 +82,19 @@ const TOP_SIDE_ISLANDS: Polygon[] = [
 /** Blue's bank of the top river: between the corner and the blue buff's river entrance, and toward mid */
 const TOP_RIVER_ISLANDS: Polygon[] = [
   [[-1780, -1300], [-1600, -1210], [-1450, -1050], [-1520, -920], [-1700, -950], [-1830, -1120]],
-  [[-1090, -650], [-900, -560], [-760, -420], [-820, -290], [-1000, -330], [-1160, -450]],
+  [[-1090, -650], [-900, -560], [-760, -420], [-800, -360], [-1000, -390], [-1160, -450]],
 ];
 
-/** Blue's bank of the bot river: toward mid (the top bank's reflection), then the dragon's pit */
+/**
+ * Blue's bank of the bot river: toward mid (the top bank's reflection), then
+ * the dragon's pit, its wall thickened where it would leave cracks with the
+ * islands behind it and toward mid
+ */
 const BOT_RIVER_ISLANDS: Polygon[] = [
   reflectAcrossMid(TOP_RIVER_ISLANDS[1]),
   ...arc(DRAGON_PIT.x, DRAGON_PIT.y, DRAGON_PIT.radius, 24, 246, 110),
+  ...arc(DRAGON_PIT.x, DRAGON_PIT.y, DRAGON_PIT.radius + 90, 70, 145, 120),
+  ...arc(DRAGON_PIT.x, DRAGON_PIT.y, DRAGON_PIT.radius + 90, 185, 240, 120),
 ];
 
 /** An island grown by `factor` around its center (designs are drawn small, then grown to close the paths down) */
@@ -102,12 +108,13 @@ function grow(island: Polygon, factor: number): Polygon {
  * How much each island is grown, so paths about 180-250 wide are left
  * between them: less by the river corner, where three meet
  */
-const TOP_SIDE_GROWTH = [1.15, 1.5, 1.2, 1.5, 1.5, 1.5, 1.5, 1.5];
-const TOP_RIVER_GROWTH = [1.1, 1.5];
+const TOP_SIDE_GROWTH = [1.15, 1.4, 1.2, 1.5, 1.3, 1.5, 1.3, 1.2];
+const TOP_RIVER_GROWTH = [1.1, 1.2];
 
 const TOP_SIDE: Polygon[] = TOP_SIDE_ISLANDS.map((island, i) => grow(island, TOP_SIDE_GROWTH[i]));
 
-const ISLANDS: Polygon[] = [
+/** Blue's half's islands (red's are their mirror images), before they're clipped to the jungle */
+export const JUNGLE_ISLANDS: Polygon[] = [
   ...TOP_SIDE,
   ...TOP_SIDE.map(reflectAcrossMid),
   ...TOP_RIVER_ISLANDS.map((island, i) => grow(island, TOP_RIVER_GROWTH[i])),
@@ -116,7 +123,7 @@ const ISLANDS: Polygon[] = [
 ];
 
 /** Whether a point on blue's half (y > x) is clear of the lanes, the river and the base */
-function inJungle(x: number, y: number): boolean {
+export function inJungle(x: number, y: number): boolean {
   if (y <= x) return false;
   if (Math.hypot(x - BLUE_NEXUS.x, y - BLUE_NEXUS.y) < BASE_CLEARANCE) return false;
   if (distanceToPolyline(x, y, RIVER_PATH) < RIVER_CLEARANCE) return false;
@@ -128,7 +135,7 @@ function inJungle(x: number, y: number): boolean {
 
 /** Whether a point on blue's half is forest: in an island, clipped to the jungle. Red's half is the mirror image (buildWalls). */
 function isJungleWall(x: number, y: number): boolean {
-  return inJungle(x, y) && ISLANDS.some(island => pointInPolygon(x, y, island));
+  return inJungle(x, y) && JUNGLE_ISLANDS.some(island => pointInPolygon(x, y, island));
 }
 
 export const SIEGE_MAP_WALLS: WallRect[] = buildWalls([], isJungleWall);

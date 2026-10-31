@@ -40,9 +40,10 @@ export type SolidTest = (x: number, y: number) => boolean;
 /**
  * Rasterize one side's walls (plus their mirror images) to tiles: a tile is
  * wall when its center is inside one of the polygons or `sideSolid` says
- * so. Then make every column of wall at least two tiles tall, and merge the
- * tiles into as few rectangles as possible (runs per row, then identical
- * runs on consecutive rows).
+ * so. Then make every column of wall at least two tiles tall, fill the gaps
+ * too narrow to path through (fillNarrowGaps), and merge the tiles
+ * into as few rectangles as possible (runs per row, then identical runs on
+ * consecutive rows).
  */
 export function buildWalls(sidePolygons: Polygon[], sideSolid?: SolidTest): WallRect[] {
   const polygons: Polygon[] = [
@@ -71,6 +72,8 @@ export function buildWalls(sidePolygons: Polygon[], sideSolid?: SolidTest): Wall
       if (runStart && !solid[row + 1][col]) solid[row + 1][col] = true;
     }
   }
+
+  fillNarrowGaps(solid);
 
   // Horizontal runs per row: key "start-end" -> rows
   const runs: { row: number; start: number; end: number }[] = [];
@@ -121,6 +124,59 @@ export function buildWalls(sidePolygons: Polygon[], sideSolid?: SolidTest): Wall
   for (const key of [...open.keys()]) flush(key);
 
   return rects;
+}
+
+/**
+ * Fill the openings a unit can squeeze into but no path goes through.
+ * Paths keep 30 units clear of walls (the server's Terrain), so a gap one
+ * tile (64) wide fits a champion's body but has no path in or out: a
+ * champion that walked into one couldn't find its way out. Corridors are
+ * kept wide by the map's design (see siegeMap.ts); what's left one tile wide
+ * is a crack where two walls nearly meet, or a dent in one. So free tiles
+ * between walls one tile apart (across, up and down, or corner to corner;
+ * the map's edge counts as wall) fill in, and so do dead ends (free tiles
+ * walled in on three sides), pass after pass until none are left; then so
+ * do pockets cut off from the map's center. Each pass is decided before
+ * it's applied, so both sides of the map fill alike.
+ */
+function fillNarrowGaps(solid: boolean[][]): void {
+  const count = solid.length;
+  const wall = (row: number, col: number) => row < 0 || col < 0 || row >= count || col >= count || solid[row][col];
+
+  for (;;) {
+    const gaps: [number, number][] = [];
+    for (let row = 0; row < count; row++) {
+      for (let col = 0; col < count; col++) {
+        if (solid[row][col]) continue;
+        const walls = Number(wall(row - 1, col)) + Number(wall(row + 1, col)) + Number(wall(row, col - 1)) + Number(wall(row, col + 1));
+        const crack = (wall(row, col - 1) && wall(row, col + 1))
+          || (wall(row - 1, col) && wall(row + 1, col))
+          || (wall(row - 1, col - 1) && wall(row + 1, col + 1))
+          || (wall(row - 1, col + 1) && wall(row + 1, col - 1));
+        if (crack || walls >= 3) gaps.push([row, col]);
+      }
+    }
+    if (gaps.length === 0) break;
+    for (const [row, col] of gaps) solid[row][col] = true;
+  }
+
+  // Pockets: free tiles not reachable from the center
+  const reached = solid.map(line => line.map(() => false));
+  const queue: [number, number][] = [[count / 2, count / 2]];
+  reached[count / 2][count / 2] = true;
+  while (queue.length > 0) {
+    const [row, col] = queue.pop()!;
+    for (const [r, c] of [[row - 1, col], [row + 1, col], [row, col - 1], [row, col + 1]]) {
+      if (wall(r, c) || reached[r][c]) continue;
+      reached[r][c] = true;
+      queue.push([r, c]);
+    }
+  }
+  for (let row = 0; row < count; row++) {
+    for (let col = 0; col < count; col++) {
+      if (!reached[row][col]) solid[row][col] = true;
+    }
+  }
 }
 
 /**

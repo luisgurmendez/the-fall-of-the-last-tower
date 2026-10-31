@@ -4,6 +4,7 @@
 import './ServerTestUtils';
 import { describe, test, expect } from 'bun:test';
 import { InputType, MOBAConfig, Vector } from '@siege/shared';
+import { WALL_GRID_HALF, WALL_TILE_SIZE } from '../../../shared/src/config/mapLayout';
 import { Terrain } from '../navigation/Terrain';
 import { Simulation } from '../sim';
 
@@ -30,6 +31,63 @@ describe('Terrain', () => {
       }
     }
     expect(unreachable).toEqual([]);
+  });
+
+  test('no walkable part of the navigation grid is cut off from the rest', () => {
+    // A champion's body fits in gaps paths can't use (they keep 30 units off
+    // walls); if one led to a cut-off patch of the grid, a champion that
+    // walked in could never path out
+    const grid = terrain.navGrid;
+    const start = grid.worldToGrid(0, 0);
+    const reached = new Uint8Array(grid.width * grid.height);
+    const queue = [start.y * grid.width + start.x];
+    reached[queue[0]] = 1;
+    while (queue.length > 0) {
+      const index = queue.pop()!;
+      const x = index % grid.width;
+      const y = Math.floor(index / grid.width);
+      for (const [nx, ny] of [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]]) {
+        const next = ny * grid.width + nx;
+        if (nx < 0 || ny < 0 || nx >= grid.width || ny >= grid.height || reached[next] || !grid.isWalkable(nx, ny)) continue;
+        reached[next] = 1;
+        queue.push(next);
+      }
+    }
+
+    const cutOff: string[] = [];
+    for (let y = 0; y < grid.height; y++) {
+      for (let x = 0; x < grid.width; x++) {
+        if (grid.isWalkable(x, y) && !reached[y * grid.width + x]) {
+          const at = grid.gridToWorld(x, y);
+          cutOff.push(`(${Math.round(at.x)}, ${Math.round(at.y)})`);
+        }
+      }
+    }
+    expect(cutOff).toEqual([]);
+  });
+
+  test('walls leave no crack one tile wide (a body fits in, a path does not)', () => {
+    const tile = WALL_TILE_SIZE;
+    const count = (WALL_GRID_HALF * 2) / tile;
+    const solid = Array.from({ length: count }, () => new Array<boolean>(count).fill(false));
+    for (const wall of MOBAConfig.WALLS) {
+      const col0 = Math.round((wall.position.x - wall.width / 2 + WALL_GRID_HALF) / tile);
+      const row0 = Math.round((wall.position.y - wall.height / 2 + WALL_GRID_HALF) / tile);
+      for (let row = row0; row < row0 + wall.height / tile; row++) {
+        for (let col = col0; col < col0 + wall.width / tile; col++) solid[row][col] = true;
+      }
+    }
+    const isWall = (row: number, col: number) => row < 0 || col < 0 || row >= count || col >= count || solid[row][col];
+
+    const cracks: string[] = [];
+    for (let row = 0; row < count; row++) {
+      for (let col = 0; col < count; col++) {
+        if (solid[row][col]) continue;
+        const across = [[0, 1], [1, 0], [1, 1], [1, -1]].some(([dr, dc]) => isWall(row - dr, col - dc) && isWall(row + dr, col + dc));
+        if (across) cracks.push(`(${-WALL_GRID_HALF + (col + 0.5) * tile}, ${-WALL_GRID_HALF + (row + 0.5) * tile})`);
+      }
+    }
+    expect(cracks).toEqual([]);
   });
 
   test('camps, towers, spawns and lane waypoints are not inside walls', () => {
