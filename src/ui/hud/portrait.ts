@@ -8,6 +8,7 @@ import RenderUtils from '@/render/utils';
 import { getPortraitCanvas } from '@/ui/matchmaking/portraits';
 import { HUD_COLORS, PANEL } from '@/ui/hud/layout';
 import type { HUDChampionData, HUDContext } from '@/ui/hud/types';
+import { drawPixelArt } from '@/render/pixelArt';
 
 /** Draw the champion portrait panel with XP bar */
 export function drawPortraitPanel(
@@ -29,14 +30,11 @@ export function drawPortraitPanel(
   ctx.fillRect(x, y, size, size);
   const portrait = getPortraitCanvas(hud.config.championId);
   if (portrait) {
-    const smoothing = ctx.imageSmoothingEnabled;
-    ctx.imageSmoothingEnabled = false;
     // The face fills the frame (the name is drawn over its bottom)
     const scale = size / Math.max(portrait.width, portrait.height);
     const width = portrait.width * scale;
     const height = portrait.height * scale;
-    ctx.drawImage(portrait, x + (size - width) / 2, y + (size - height) / 2, width, height);
-    ctx.imageSmoothingEnabled = smoothing;
+    drawPixelArt(ctx, portrait, x + (size - width) / 2, y + (size - height) / 2, width, height);
   }
 
   // Border

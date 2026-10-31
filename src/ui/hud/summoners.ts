@@ -11,6 +11,7 @@ import { getSummonerIcon } from '@/ui/summonerIcons';
 import { HUD_COLORS, PANEL } from '@/ui/hud/layout';
 import { wrapText } from '@/ui/hud/tooltipText';
 import type { HUDChampionData, HUDContext } from '@/ui/hud/types';
+import { drawPixelArt } from '@/render/pixelArt';
 
 const KEYS = ['D', 'F'];
 
@@ -34,12 +35,7 @@ export function drawSummonersPanel(
     ctx.fillRect(x, boxY, size, size);
 
     const icon = spell ? getSummonerIcon(spell.id) : null;
-    if (icon) {
-      const smoothing = ctx.imageSmoothingEnabled;
-      ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(icon, x, boxY, size, size);
-      ctx.imageSmoothingEnabled = smoothing;
-    }
+    if (icon) drawPixelArt(ctx, icon, x, boxY, size, size);
 
     const cooling = !!spell && spell.cooldownRemaining > 0;
     if (cooling) {

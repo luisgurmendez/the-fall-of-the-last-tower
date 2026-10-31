@@ -24,6 +24,7 @@ import {
   type JungleCreatureSnapshot,
   getChampionDefinition,
 } from '@siege/shared';
+import { drawPixelArt } from '@/render/pixelArt';
 
 /** Panel configuration - LARGER sizes for better readability */
 const PANEL = {
@@ -165,13 +166,10 @@ export class TargetInfoHUD extends ScreenEntity {
     if (portrait) {
       c.fillStyle = '#000000';
       c.fillRect(portraitX, portraitY, PANEL.portraitSize, PANEL.portraitSize);
-      const smoothing = c.imageSmoothingEnabled;
-      c.imageSmoothingEnabled = false;
       const scale = PANEL.portraitSize / Math.max(portrait.width, portrait.height);
       const w = portrait.width * scale;
       const h = portrait.height * scale;
-      c.drawImage(portrait, portraitX + (PANEL.portraitSize - w) / 2, portraitY + (PANEL.portraitSize - h) / 2, w, h);
-      c.imageSmoothingEnabled = smoothing;
+      drawPixelArt(c, portrait, portraitX + (PANEL.portraitSize - w) / 2, portraitY + (PANEL.portraitSize - h) / 2, w, h);
     }
     c.strokeStyle = COLORS.borderHighlight;
     c.lineWidth = 2;

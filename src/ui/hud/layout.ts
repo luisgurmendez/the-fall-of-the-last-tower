@@ -49,8 +49,9 @@ export const PANEL = {
   effectSize: 30,
   effectSpacing: 3,
   wardBoxSize: 40,
-  summonerBoxSize: 30,
-  summonerSpacing: 4,
+  /** The summoner icons are 32px art, drawn 1:1 */
+  summonerBoxSize: 32,
+  summonerSpacing: 2,
   tooltipWidth: 320,
   tooltipPadding: 8,
   xpBarHeight: 6,

@@ -25,9 +25,10 @@ const KINDS = {
     style: 'pixel art game prop seen from a three-quarter top-down view, small and readable, muted fantasy palette',
     dir: 'public/assets/props',
   },
+  // Drawn at 32 in the HUD: made at that size, so its detail fits it
   icon: {
-    size: 64,
-    style: 'dark fantasy pixel art ability icon, a single centered glowing symbol',
+    size: 32,
+    style: 'simple bold pixel art spell icon readable at small size: one big centered symbol, thick dark outline, few colors, dark background',
     dir: 'public/assets/summoners',
   },
 };
@@ -53,13 +54,13 @@ export const PROPS: Record<string, Prop> = {
     description: 'a small dark stone ward obelisk with carved runes, topped by a glowing crimson crystal eye',
   },
   summoner_blink: { kind: 'icon', file: 'blink', pick: 0, description: 'a burst of violet and white light, a teleport flash with sparkles' },
-  summoner_haste: { kind: 'icon', file: 'haste', pick: 1, description: 'a winged boot with cyan speed streaks' },
+  summoner_haste: { kind: 'icon', file: 'haste', pick: 3, description: 'a winged boot with cyan speed streaks' },
   summoner_mend: { kind: 'icon', file: 'mend', pick: 2, description: 'a glowing green heart wrapped in soft healing light' },
-  summoner_aegis: { kind: 'icon', file: 'aegis', pick: 2, description: 'a round golden shield radiating light' },
-  summoner_scorch: { kind: 'icon', file: 'scorch', pick: 0, description: 'a fierce orange flame burning an ember' },
-  summoner_hinder: { kind: 'icon', file: 'hinder', pick: 0, description: 'heavy purple chains wrapped around an iron weight' },
+  summoner_aegis: { kind: 'icon', file: 'aegis', pick: 3, description: 'a round golden shield radiating light' },
+  summoner_scorch: { kind: 'icon', file: 'scorch', pick: 1, description: 'a fierce orange flame burning an ember' },
+  summoner_hinder: { kind: 'icon', file: 'hinder', pick: 1, description: 'heavy purple chains wrapped around an iron weight' },
   summoner_purge: { kind: 'icon', file: 'purge', pick: 1, description: 'white light shattering a chain into pieces' },
-  summoner_reap: { kind: 'icon', file: 'reap', pick: 2, description: 'a golden lightning bolt striking down' },
+  summoner_reap: { kind: 'icon', file: 'reap', pick: 1, description: 'a golden lightning bolt striking down' },
 };
 
 async function generate(apiKey: string, key: string, outDir: string): Promise<number> {

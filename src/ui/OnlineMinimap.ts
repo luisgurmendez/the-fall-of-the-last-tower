@@ -22,6 +22,7 @@ import { InputManager } from '@/core/input/InputManager';
 import { EntityType } from '@siege/shared';
 import type { OnlineStateManager, InterpolatedEntity } from '@/core/OnlineStateManager';
 import { getPortraitCanvas } from '@/ui/matchmaking/portraits';
+import { drawPixelArt } from '@/render/pixelArt';
 
 /** Radius of a champion's portrait on the minimap */
 const CHAMPION_ICON_RADIUS = 9;
@@ -442,8 +443,7 @@ export class OnlineMinimap extends ScreenEntity {
     ctx.fillStyle = '#1a1a2e';
     ctx.fill();
     ctx.clip();
-    ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(portrait, pos.x - radius, pos.y - radius, radius * 2, radius * 2);
+    drawPixelArt(ctx, portrait, pos.x - radius, pos.y - radius, radius * 2, radius * 2);
     ctx.restore();
 
     ctx.beginPath();

@@ -9,6 +9,7 @@ import type { ItemSlot } from '@siege/shared';
 import { HUD_COLORS, PANEL } from '@/ui/hud/layout';
 import { drawItemIcon, ITEM_ICON_SIZE } from '@/ui/itemIcons';
 import type { HUDChampionData, HUDContext } from '@/ui/hud/types';
+import { drawPixelArt } from '@/render/pixelArt';
 
 /** Draw the items panel (2 rows x 3 cols) with gold display */
 export function drawItemsPanel(
@@ -157,12 +158,9 @@ export function drawWardPanel(
 
   // The ward itself, dimmed while there's no charge
   if (wardIcon.complete && wardIcon.naturalWidth > 0) {
-    const smoothing = ctx.imageSmoothingEnabled;
-    ctx.imageSmoothingEnabled = false;
     ctx.globalAlpha = charges > 0 ? 1 : 0.4;
-    ctx.drawImage(wardIcon, x + 4, y - 2, size - 8, size - 8);
+    drawPixelArt(ctx, wardIcon, x + 4, y - 2, size - 8, size - 8);
     ctx.globalAlpha = 1;
-    ctx.imageSmoothingEnabled = smoothing;
   }
 
   // Charge count

@@ -28,6 +28,7 @@ import {
 import { getItemDefinition } from '@/data/items';
 import { drawItemIcon } from '@/ui/itemIcons';
 import { getPortraitCanvas } from '@/ui/matchmaking/portraits';
+import { drawPixelArt } from '@/render/pixelArt';
 
 /** One champion's line */
 interface ScoreboardRow {
@@ -373,10 +374,7 @@ export class TabScoreboard extends ScreenEntity {
     c.fillRect(colX, iconY, iconSize, iconSize);
     const portrait = getPortraitCanvas(row.championId);
     if (portrait) {
-      const smoothing = c.imageSmoothingEnabled;
-      c.imageSmoothingEnabled = false;
-      c.drawImage(portrait, colX + 2, iconY + 2, iconSize - 4, iconSize - 4);
-      c.imageSmoothingEnabled = smoothing;
+      drawPixelArt(c, portrait, colX + 2, iconY + 2, iconSize - 4, iconSize - 4);
     }
     c.strokeStyle = COLORS.border;
     c.lineWidth = 2;

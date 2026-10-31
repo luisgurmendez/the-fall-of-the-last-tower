@@ -26,7 +26,7 @@ MOBA's, see [map.md](map.md)).
 | `src/ui/matchmaking/summonerPicker.ts` | Champion select: two slots, a list to pick from (picking the other slot's spell swaps them), kept in localStorage |
 | `src/ui/hud/summoners.ts` | HUD column beside the abilities (D over F): icon, cooldown, key, tooltip |
 | `src/vfx/summoners.ts` | VFX `summoner_<id>`, spawned from `SUMMONER_CAST` events |
-| `src/ui/summonerIcons.ts` | Icons (`public/assets/summoners/<id>.png`, made with `scripts/generate-props.ts`) |
+| `src/ui/summonerIcons.ts` | Icons (`public/assets/summoners/<id>.png`, made with `scripts/generate-props.ts`): 32px art, the size of the HUD's boxes, so they're drawn 1:1 instead of shrunk |
 
 ## Flow
 

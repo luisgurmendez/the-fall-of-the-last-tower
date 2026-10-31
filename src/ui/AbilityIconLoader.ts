@@ -5,6 +5,8 @@
  * Where slot is: passive, q, w, e, r
  */
 
+import { drawPixelArt } from '@/render/pixelArt';
+
 export type AbilityIconSlot = 'passive' | 'q' | 'w' | 'e' | 'r';
 
 interface CachedIcon {
@@ -124,8 +126,7 @@ class AbilityIconLoader {
       return false;
     }
 
-    // Draw the icon scaled to fit the box
-    ctx.drawImage(icon, x, y, size, size);
+    drawPixelArt(ctx, icon, x, y, size, size);
     return true;
   }
 
