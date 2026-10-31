@@ -15,10 +15,14 @@ export const GameConfig = {
 
   // Camera settings
   CAMERA: {
-    /** World units visible across the screen at the start, and the zoom limits (so it's the same on any screen) */
+    /**
+     * World units visible across the screen at the start, and the zoom
+     * limits (so it's the same on any screen). Like the classic MOBA, the
+     * view you start with is as far out as it goes; you can only zoom in.
+     */
     DEFAULT_VIEW_WIDTH: 1100,
-    MAX_VIEW_WIDTH: 1500,
-    MIN_VIEW_WIDTH: 600,
+    MAX_VIEW_WIDTH: 1100,
+    MIN_VIEW_WIDTH: 650,
     /** Pixels from the screen edge where the camera pans (only the very edge, like other MOBAs) */
     EDGE_SCROLL_THRESHOLD: 30,
     /** Edge panning speed, in screen pixels per second */
