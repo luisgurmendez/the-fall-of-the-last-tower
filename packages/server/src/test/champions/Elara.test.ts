@@ -57,8 +57,8 @@ describe('Elara', () => {
       expect(level1Arena.blue.maxResource).toBe(400);
     });
 
-    test('should have highest mana regen (14)', () => {
-      expect(level1Arena.blue.definition.baseStats.resourceRegen).toBe(14);
+    test('should have highest mana regen (4.7)', () => {
+      expect(level1Arena.blue.definition.baseStats.resourceRegen).toBe(4.7);
     });
 
     test('should have moderate armor (22)', () => {

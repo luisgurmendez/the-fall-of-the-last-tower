@@ -45,7 +45,7 @@ const VILE_BASE_STATS: ChampionBaseStats = {
   health: 580,
   healthRegen: 7,
   resource: 300, // Mana
-  resourceRegen: 7,
+  resourceRegen: 2.3,
   attackDamage: 60,
   abilityPower: 0,
   attackSpeed: 0.65,
@@ -61,7 +61,7 @@ const VILE_GROWTH_STATS: ChampionGrowthStats = {
   health: 95,
   healthRegen: 0.8,
   resource: 40,
-  resourceRegen: 0.5,
+  resourceRegen: 0.17,
   attackDamage: 3.5,
   attackSpeed: 2.5,
   armor: 4,

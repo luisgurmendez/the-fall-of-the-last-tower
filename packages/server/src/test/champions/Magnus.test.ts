@@ -59,9 +59,9 @@ describe('Magnus', () => {
       expect(level1Arena.blue.maxResource).toBe(375);
     });
 
-    test('should have high mana regen (12)', () => {
+    test('should have high mana regen (4)', () => {
       // This is set in champion definition
-      expect(level1Arena.blue.definition.baseStats.resourceRegen).toBe(12);
+      expect(level1Arena.blue.definition.baseStats.resourceRegen).toBe(4);
     });
   });
 

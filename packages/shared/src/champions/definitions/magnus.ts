@@ -44,7 +44,7 @@ const MAGNUS_BASE_STATS: ChampionBaseStats = {
   health: 425,
   healthRegen: 5,
   resource: 375,
-  resourceRegen: 12,
+  resourceRegen: 4,
   attackDamage: 53,
   abilityPower: 0, // AP comes from items
   attackSpeed: 0.625,
@@ -60,7 +60,7 @@ const MAGNUS_GROWTH_STATS: ChampionGrowthStats = {
   health: 85,
   healthRegen: 0.5,
   resource: 40,
-  resourceRegen: 0.8,
+  resourceRegen: 0.27,
   attackDamage: 3.0,
   attackSpeed: 1.5,
   armor: 3.5,
