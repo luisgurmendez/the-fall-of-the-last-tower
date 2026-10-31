@@ -59,6 +59,14 @@ export interface HUDAbilityDefinition {
     scaling: AbilityScaling;
     duration: number;
   };
+  /** How long its effects last (seconds), for {effectDuration} */
+  effectDuration?: number;
+  /** Stat changes while it lasts, for {attackSpeedBonus} */
+  statTransform?: {
+    statModifiers?: {
+      attackSpeed?: number[];
+    };
+  };
 }
 
 /**

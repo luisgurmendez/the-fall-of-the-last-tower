@@ -87,6 +87,14 @@ export interface ClientAbilityDefinition {
     scaling: AbilityScaling;
     duration: number;
   };
+  /** How long its effects last (seconds), for {effectDuration} */
+  effectDuration?: number;
+  /** Stat changes while it lasts, for {attackSpeedBonus} */
+  statTransform?: {
+    statModifiers?: {
+      attackSpeed?: number[];
+    };
+  };
 }
 
 /**
@@ -136,6 +144,8 @@ function getAbilityDefinition(championId: string, slot: AbilitySlot): ClientAbil
     damage: abilityDef.damage,
     heal: abilityDef.heal,
     shield: abilityDef.shield,
+    effectDuration: abilityDef.effectDuration,
+    statTransform: abilityDef.statTransform,
   };
 }
 

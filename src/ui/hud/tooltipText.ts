@@ -58,7 +58,9 @@ export function wrapText(text: string, maxWidth: number, fontSize: number, charW
 
 /**
  * Interpolate ability description by replacing placeholders with calculated values.
- * Replaces {damage}, {heal}, {shield} with actual values including scaling breakdown.
+ * Replaces {damage}, {heal}, {shield} with actual values including scaling breakdown,
+ * and {effectDuration} and {attackSpeedBonus}. An ability not learned yet shows its
+ * first rank's values. A placeholder with nothing to fill it shows "?".
  */
 export function interpolateAbilityDescription(
   description: string,
@@ -66,9 +68,10 @@ export function interpolateAbilityDescription(
   rank: number,
   stats: ChampionStats
 ): string {
-  if (!definition || rank < 1) {
-    return description;
+  if (!definition) {
+    return description.replace(/\{[a-zA-Z]+\}/g, '?');
   }
+  rank = Math.max(1, rank);
 
   let result = description;
 
@@ -108,7 +111,18 @@ export function interpolateAbilityDescription(
     result = result.replace('{shield}', formatted);
   }
 
-  return result;
+  if (definition.effectDuration !== undefined) {
+    result = result.replace('{effectDuration}', String(definition.effectDuration));
+  }
+
+  const attackSpeedBonus = definition.statTransform?.statModifiers?.attackSpeed;
+  if (attackSpeedBonus) {
+    const bonus = attackSpeedBonus[Math.min(rank, attackSpeedBonus.length) - 1];
+    result = result.replace('{attackSpeedBonus}', String(Math.round(bonus * 100)));
+  }
+
+  // Nothing to fill it: better a "?" than raw braces
+  return result.replace(/\{[a-zA-Z]+\}/g, '?');
 }
 
 /**
