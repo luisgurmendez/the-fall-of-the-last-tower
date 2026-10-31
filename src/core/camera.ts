@@ -48,6 +48,7 @@ class Camera implements GameObject, Stepable, Disposable, Initializable {
 
     this.viewport.w = canvas.width;
     this.viewport.h = canvas.height;
+    this._zoom = this.clampZoom(this.viewport.w / CAMERA_CONFIG.DEFAULT_VIEW_WIDTH);
 
     const handleCanvasWheel = (event: WheelEvent) => {
       event.preventDefault();
@@ -78,6 +79,20 @@ class Camera implements GameObject, Stepable, Disposable, Initializable {
       this.mousePosition = new Vector(mouseX, mouseY);
     };
 
+    // Leaving the window through an edge keeps panning that way (above the
+    // canvas there's only the browser's tab bar), until the pointer comes
+    // back or the window loses focus
+    const handleMouseLeave = (event: MouseEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      this.mousePosition = new Vector(
+        Math.min(Math.max(event.clientX - rect.left, 0), rect.width - 1),
+        Math.min(Math.max(event.clientY - rect.top, 0), rect.height - 1),
+      );
+    };
+    const handleBlur = () => {
+      this.mousePosition = null;
+    };
+
     const handleZoom = (e: KeyboardEvent) => {
       if (e.key === ".") {
         this.zoomIn();
@@ -90,13 +105,17 @@ class Camera implements GameObject, Stepable, Disposable, Initializable {
 
     // add event listeners to handle screen drag
     canvas.addEventListener("mousemove", handleMouseMove);
+    canvas.addEventListener("mouseleave", handleMouseLeave);
     canvas.addEventListener("wheel", handleCanvasWheel);
     window.addEventListener("keydown", handleZoom);
+    window.addEventListener("blur", handleBlur);
 
     this.dispose = () => {
       canvas.removeEventListener("mousemove", handleMouseMove);
+      canvas.removeEventListener("mouseleave", handleMouseLeave);
       canvas.removeEventListener("wheel", handleCanvasWheel);
       window.removeEventListener("keydown", handleZoom);
+      window.removeEventListener("blur", handleBlur);
     };
   }
 
@@ -119,8 +138,17 @@ class Camera implements GameObject, Stepable, Disposable, Initializable {
 
   set zoom(_z: number) {
     if (!this.locked) {
-      this._zoom = Math.min(Math.max(_z, this.getMinZoom()), CAMERA_CONFIG.MAX_ZOOM);
+      this._zoom = this.clampZoom(_z);
     }
+  }
+
+  /**
+   * A zoom within the limits: no more than MAX_VIEW_WIDTH world units across
+   * (nor more than the world), no fewer than MIN_VIEW_WIDTH.
+   */
+  private clampZoom(zoom: number): number {
+    const maxZoom = this.viewport.w / CAMERA_CONFIG.MIN_VIEW_WIDTH;
+    return Math.min(Math.max(zoom, this.getMinZoom()), maxZoom);
   }
 
   get zoom() {
@@ -138,17 +166,19 @@ class Camera implements GameObject, Stepable, Disposable, Initializable {
   }
 
   getMinZoom() {
+    const viewLimit = this.viewport.w / CAMERA_CONFIG.MAX_VIEW_WIDTH;
     if (this.worldDimensions === null) {
-      return CAMERA_CONFIG.MIN_ZOOM;
+      return viewLimit;
     }
     const minZoomX = this.viewport.w / this.worldDimensions.w;
     const minZoomY = this.viewport.h / this.worldDimensions.h;
-    return Math.max(minZoomX, minZoomY);
+    return Math.max(minZoomX, minZoomY, viewLimit);
   }
 
-  private updatePosition() {
+  private updatePosition(dt: number) {
     const edgeThreshold = CAMERA_CONFIG.EDGE_SCROLL_THRESHOLD;
-    const maxSpeed = CAMERA_CONFIG.EDGE_SCROLL_SPEED;
+    // Same speed anywhere within the edge band
+    const speed = CAMERA_CONFIG.EDGE_SCROLL_SPEED * dt;
 
     // Update the camera position based on mouse coordinates
     if (this.mousePosition !== null && !this.isPointerOverUI?.(this.mousePosition.x, this.mousePosition.y)) {
@@ -163,18 +193,10 @@ class Camera implements GameObject, Stepable, Disposable, Initializable {
       const distBottom = this.viewport.h - mouseY;
 
       // Check if we're near any of the edges and update camera position accordingly
-      if (distLeft < edgeThreshold) {
-        deltaX = -maxSpeed * Math.pow((edgeThreshold - distLeft) / edgeThreshold, 2);
-      }
-      if (distRight < edgeThreshold) {
-        deltaX = maxSpeed * Math.pow((edgeThreshold - distRight) / edgeThreshold, 2);
-      }
-      if (distTop < edgeThreshold) {
-        deltaY = -maxSpeed * Math.pow((edgeThreshold - distTop) / edgeThreshold, 2);
-      }
-      if (distBottom < edgeThreshold) {
-        deltaY = maxSpeed * Math.pow((edgeThreshold - distBottom) / edgeThreshold, 2);
-      }
+      if (distLeft < edgeThreshold) deltaX = -speed;
+      if (distRight < edgeThreshold) deltaX = speed;
+      if (distTop < edgeThreshold) deltaY = -speed;
+      if (distBottom < edgeThreshold) deltaY = speed;
 
       // Update the camera position
       this.position.x += deltaX * 1 / this.zoom;
@@ -187,7 +209,9 @@ class Camera implements GameObject, Stepable, Disposable, Initializable {
     const { canvasRenderingContext: { canvas } } = context;
     this.viewport.w = canvas.width;
     this.viewport.h = canvas.height;
-    this.updatePosition();
+    // The limits depend on the window's size
+    this._zoom = this.clampZoom(this._zoom);
+    this.updatePosition(context.dt);
     if (this.following !== null) {
       this._position = this.following.position.clone();
     }

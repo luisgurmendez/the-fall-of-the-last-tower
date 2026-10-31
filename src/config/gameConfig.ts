@@ -15,12 +15,14 @@ export const GameConfig = {
 
   // Camera settings
   CAMERA: {
-    MIN_ZOOM: 0.4,
-    MAX_ZOOM: 14,
-    INITIAL_ZOOM: 0.6,
+    /** World units visible across the screen at the start, and the zoom limits (so it's the same on any screen) */
+    DEFAULT_VIEW_WIDTH: 1100,
+    MAX_VIEW_WIDTH: 1500,
+    MIN_VIEW_WIDTH: 600,
     /** Pixels from the screen edge where the camera pans (only the very edge, like other MOBAs) */
     EDGE_SCROLL_THRESHOLD: 30,
-    EDGE_SCROLL_SPEED: 20,
+    /** Edge panning speed, in screen pixels per second */
+    EDGE_SCROLL_SPEED: 1200,
   },
 
   // Economy settings (LEGACY - online mode uses packages/shared/src/config/GameConfig.ts)
