@@ -51,7 +51,7 @@ const VEX_BASE_STATS: ChampionBaseStats = {
   attackRange: 40, // Melee
   armor: 28,
   magicResist: 30,
-  movementSpeed: 58, // High mobility assassin
+  movementSpeed: 67, // High mobility assassin
   critChance: 0,
   critDamage: 2.0,
 };

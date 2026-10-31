@@ -50,9 +50,9 @@ describe("Lume", () => {
       expect(arena.blue.getStats().attackRange).toBe(400);
     });
 
-    test("should have correct movement speed (58)", () => {
+    test("should have correct movement speed (67)", () => {
       // Movement speed doesn't scale with level
-      expect(arena.blue.getStats().movementSpeed).toBe(58);
+      expect(arena.blue.getStats().movementSpeed).toBe(67);
     });
 
     test("should use mana resource type", () => {

@@ -52,7 +52,7 @@ const VILE_BASE_STATS: ChampionBaseStats = {
   attackRange: 325, // Ranged, becomes melee (40) during R
   armor: 32,
   magicResist: 32,
-  movementSpeed: 55,
+  movementSpeed: 63,
   critChance: 0,
   critDamage: 2.0,
 };

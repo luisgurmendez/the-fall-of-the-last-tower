@@ -77,7 +77,7 @@ interface ChampionBaseStats {
   magicResist: number;   // Magic damage reduction
 
   // Mobility
-  movementSpeed: number; // Units per second (325-355)
+  movementSpeed: number; // Units per second (57-69; minions walk 40-50)
 
   // Critical
   critChance: number;    // 0-1, usually 0 at base
