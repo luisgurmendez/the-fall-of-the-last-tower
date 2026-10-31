@@ -37,14 +37,23 @@ export type VFXEffectType =
   | 'ground_light'
   | 'decal'
   | 'lightning'
-  | 'swirl';
+  | 'swirl'
+  | 'spikes'
+  | 'rays'
+  | 'meteor'
+  | 'cut';
 
 /**
  * How a particle looks. Flames burn away into smoke, smoke is a puff that
  * covers instead of glowing, embers are small flickering lights. Dark
- * colors (blood, mud) are drawn as puffs too, whatever the type.
+ * colors (blood, mud) are drawn as puffs too, whatever the type. On the
+ * GPU: rocks are tumbling chunks of stone, crystals tumbling shards of
+ * light, petals petals of light turning over, leaves solid ones, wisps soul
+ * flames flying where they head.
  */
-export type VFXParticleType = 'circle' | 'square' | 'star' | 'spark' | 'flame' | 'smoke' | 'ember';
+export type VFXParticleType =
+  | 'circle' | 'square' | 'star' | 'spark' | 'flame' | 'smoke' | 'ember'
+  | 'rock' | 'crystal' | 'petal' | 'leaf' | 'wisp';
 
 /**
  * Configuration for a particle burst effect.
@@ -63,6 +72,8 @@ export interface ParticleBurstConfig {
   friction?: number;
   particleType?: VFXParticleType;
   glowIntensity?: number;
+  /** Start on a ring this far out and fly in to the anchor over their lifetime (gathering power) */
+  fromRadius?: number;
 }
 
 /**
@@ -198,6 +209,8 @@ export interface OrbitingParticlesConfig {
   orbitRadius: number;
   orbitSpeed: number; // Radians per second
   duration: number;
+  /** On the GPU: motes of light (default), rocks, spinning blades or soul flames */
+  style?: 'mote' | 'rock' | 'blade' | 'wisp';
 }
 
 /**
@@ -210,6 +223,10 @@ export interface ShieldBubbleConfig {
   duration: number;
   pulseSpeed?: number;
   hexagonal?: boolean;
+  /** On the GPU: hexagons (default), circling steel plates, petals of light, or a ring of stones */
+  style?: 'hex' | 'plates' | 'holy' | 'stone';
+  /** The light in a stone shield's cracks */
+  glowColor?: string;
 }
 
 /**
@@ -276,6 +293,69 @@ export interface SwirlConfig {
 }
 
 /**
+ * Spikes bursting out of the ground and sinking back (GPU only): rocks,
+ * crystals of light or thorny roots, in a ring around the anchor or
+ * scattered over a circle.
+ */
+export interface SpikesConfig {
+  type: 'spikes';
+  style: 'rock' | 'crystal' | 'thorn';
+  color: string;
+  /** Rocks: the glow at their base. Thorns: their veins */
+  glowColor?: string;
+  count: number;
+  /** The ring's radius, or the circle they're scattered over */
+  radius: number;
+  pattern: 'ring' | 'area';
+  length: { min: number; max: number };
+  duration: number;
+}
+
+/**
+ * Rays of light bursting out from the anchor, or (`converge`) gathering
+ * into it (GPU only).
+ */
+export interface RaysConfig {
+  type: 'rays';
+  color: string;
+  radius: number;
+  duration: number;
+  count?: number;
+  spin?: number;
+  converge?: boolean;
+}
+
+/**
+ * Something falling from the sky onto the anchor over `duration` (GPU
+ * only): a flaming rock with a trail, or a blade of light.
+ */
+export interface MeteorConfig {
+  type: 'meteor';
+  style: 'fire' | 'blade';
+  color: string;
+  colorSecondary?: string;
+  size: number;
+  /** How high above the anchor it starts */
+  height: number;
+  duration: number;
+}
+
+/**
+ * Straight cuts of light (GPU only): across the anchor at `angles` from
+ * the aim (an X with two), or with `path` from the caster's start to the
+ * target (a dash).
+ */
+export interface CutConfig {
+  type: 'cut';
+  color: string;
+  length: number;
+  width: number;
+  duration: number;
+  angles?: number[];
+  path?: boolean;
+}
+
+/**
  * Union type for all effect configs.
  */
 export type VFXEffectConfig =
@@ -295,7 +375,11 @@ export type VFXEffectConfig =
   | GroundLightConfig
   | DecalConfig
   | LightningConfig
-  | SwirlConfig;
+  | SwirlConfig
+  | SpikesConfig
+  | RaysConfig
+  | MeteorConfig
+  | CutConfig;
 
 /**
  * Complete VFX definition for an ability.

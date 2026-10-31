@@ -31,6 +31,24 @@ export const FXKind = {
   SEGMENT: 13,
   DUST: 14,
   TELEGRAPH: 15,
+  SHARD: 16,
+  PETAL: 17,
+  RAYS: 18,
+  WISP: 19,
+  THORN: 20,
+  CUT: 21,
+} as const;
+
+/** Shield looks (FXBatch.shield) */
+export const ShieldStyle = {
+  /** A bubble of hexagons (Magnus) */
+  HEX: 0,
+  /** Plates of steel circling (Kael) */
+  PLATES: 1,
+  /** Soft light with petals around the rim (Elara) */
+  HOLY: 2,
+  /** A ring of stones, glowing in the cracks (Gorath) */
+  STONE: 3,
 } as const;
 
 export const FX_UNIFORMS = ["uViewOrigin", "uWorldPerPixel", "uResolution", "uTime", "uPixelSnap"];
@@ -41,7 +59,7 @@ layout(location = 1) in vec4 aPosSize;   // center x, y, half width, half height
 layout(location = 2) in vec4 aRotKind;   // rotation, kind, seed, age
 layout(location = 3) in vec4 aColor;     // r, g, b, intensity
 layout(location = 4) in vec4 aParams;    // per kind
-layout(location = 5) in vec4 aExtra;     // opacity, per kind
+layout(location = 5) in vec4 aExtra;     // opacity, second color
 
 uniform vec2 uViewOrigin;
 uniform float uWorldPerPixel;
@@ -95,6 +113,9 @@ Shade lightOnly(vec3 light) { return Shade(light, vec3(0.0), 0.0); }
 
 // Hot cores go white: blend toward white as intensity climbs
 vec3 heat(vec3 color, float amount) { return mix(color, vec3(1.0), clamp(amount, 0.0, 1.0)); }
+
+// Lit from the top left, like the ground
+const vec2 SUN = vec2(-0.6, -0.8);
 
 // ---------------------------------------------------------------- kinds
 
@@ -209,14 +230,54 @@ float hexEdge(vec2 p) {
   return 0.5 - max(dot(q, s * 0.5), q.x);
 }
 
+// params: style (ShieldStyle). The second color is the glow in the stone's cracks
 Shade shield(vec2 uv, float r, vec3 color, float seed) {
   if (r > 1.0) return lightOnly(vec3(0.0));
   float z = sqrt(max(0.0, 1.0 - r * r));
   float fresnel = pow(1.0 - z, 2.5);
+  float rim = smoothstep(0.86, 0.99, r) * smoothstep(1.0, 0.985, r);
+  float angle = atan(uv.y, uv.x);
+  int style = int(vParams.x + 0.5);
+
+  if (style == 1) {
+    // Four curved plates of steel circling, bevelled, a glint sweeping across each
+    float a = angle + uTime * 1.3 + seed * 6.0;
+    float f = fract(a / TAU * 4.0);
+    float plate = smoothstep(0.03, 0.06, f) * smoothstep(0.97, 0.94, f) * smoothstep(0.62, 0.65, r) * smoothstep(1.0, 0.97, r);
+    float bevel = smoothstep(0.0, 0.1, min(min(f, 1.0 - f) * 2.5, min(r - 0.62, 0.99 - r) * 5.0));
+    float facing = dot(normalize(uv + 0.0001), -SUN);
+    float ridge = smoothstep(0.76, 0.8, r) * smoothstep(0.86, 0.82, r);
+    float metal = (0.3 + 0.35 * max(facing, -0.3) + 0.3 * ridge) * mix(0.45, 1.0, bevel);
+    float glint = exp(-pow((f - fract(uTime * 0.7 + seed)) * 10.0, 2.0)) * plate * ridge;
+    float light = glint * 1.6 + plate * (1.0 - bevel) * 0.15;
+    return Shade(color * light + heat(color, 0.7) * glint * 0.8, vColor.rgb * metal, plate * 0.95 * vExtra.x);
+  }
+  if (style == 2) {
+    // Petals of light around the rim, slowly turning, and light rising inside
+    float lobes = pow(max(0.0, cos(angle * 8.0 + uTime * 0.8 + seed * 4.0)), 3.0);
+    float petals = lobes * smoothstep(0.62, 0.86, r) * smoothstep(1.0, 0.9, r);
+    float rising = smoothstep(0.3, 0.0, abs(fract(uv.y * 1.5 + uTime * 0.6 + hash12(vec2(floor(uv.x * 7.0), seed)) ) - 0.5)) * (1.0 - r) * 0.5;
+    float light = rim * 0.6 + fresnel * 0.5 + petals * 0.8 + rising;
+    return Shade(color * light + heat(color, 0.5) * (rim + petals) * 0.25, color * 0.6, (0.05 + fresnel * 0.12) * vExtra.x);
+  }
+  if (style == 3) {
+    // A ring of stones grinding around, glowing in the cracks between them
+    vec2 p = vec2((angle + uTime * 0.35) / TAU * 9.0, (r - 0.68) * 3.4);
+    vec2 cell = floor(p);
+    vec2 inCell = fract(p);
+    float edge = min(min(inCell.x, 1.0 - inCell.x) * 1.6, min(inCell.y, 1.0 - inCell.y));
+    float band = smoothstep(0.66, 0.7, r) * smoothstep(1.0, 0.96, r);
+    float stone = band * smoothstep(0.02, 0.09, edge);
+    float crack = band * smoothstep(0.09, 0.0, edge);
+    float lit = 0.55 + 0.3 * hash12(cell + seed * 7.0) + 0.25 * dot(normalize(uv + 0.0001), -SUN) * smoothstep(0.5, 0.0, edge - 0.15);
+    vec3 glowColor = vExtra.yzw * vColor.a;
+    float pulse = 0.7 + 0.3 * sin(uTime * 3.0 + cell.x);
+    return Shade(glowColor * crack * pulse * 1.3 + glowColor * fresnel * 0.15, vColor.rgb * lit, stone * 0.92 * vExtra.x);
+  }
+
   vec2 sphere = uv / (z + 0.35) * 2.6 + vec2(uTime * 0.15, seed * 3.0);
   float hex = smoothstep(0.06, 0.0, hexEdge(sphere));
   float shimmer = smoothstep(0.25, 0.0, abs(fract(uv.y * 0.5 + uv.x * 0.2 - uTime * 0.35) - 0.5));
-  float rim = smoothstep(0.86, 0.99, r) * smoothstep(1.0, 0.985, r);
   float light = rim * 0.8 + fresnel * 0.4 + hex * (0.08 + fresnel * 0.4 + shimmer * 0.3);
   return Shade(color * light + heat(color, 0.3) * rim * 0.3, color * 0.5, (0.04 + fresnel * 0.1) * vExtra.x);
 }
@@ -314,19 +375,129 @@ Shade dust(vec2 uv, float r, vec3 color, float seed) {
 }
 
 // A warning on the ground: its edge, and a fill growing out to it as the
-// attack winds up. params: fill 0-1, half-span (0 = full circle)
+// attack winds up. params: fill 0-1, half-span (0 = full circle), line
+// width (of the radius, so big warnings don't get thick lines)
 Shade telegraph(vec2 uv, float r, vec3 color) {
   float angle = atan(uv.y, uv.x);
   float span = vParams.y;
+  float line = vParams.z > 0.0 ? vParams.z : 0.022;
   float inside = span > 0.0 ? smoothstep(span + 0.02, span - 0.02, abs(angle)) : 1.0;
   float reach = vParams.x * 0.96;
-  float edge = exp(-pow((r - 0.96) / 0.022, 2.0));
-  float front = exp(-pow((r - reach) / 0.03, 2.0)) * step(0.02, reach);
+  float edge = exp(-pow((r - 0.96) / line, 2.0));
+  float front = exp(-pow((r - reach) / (line * 1.4), 2.0)) * step(0.02, reach);
   float body = step(r, reach) * (0.1 + 0.25 * r);
   float stripes = 0.6 + 0.4 * sin(r * 38.0 - uTime * 7.0);
-  float sides = span > 0.0 ? exp(-pow((abs(angle) - span) * r / 0.02, 2.0)) * step(r, 0.97) : 0.0;
+  float sides = span > 0.0 ? exp(-pow((abs(angle) - span) * r / line, 2.0)) * step(r, 0.97) : 0.0;
   float light = (edge * 0.7 + front + body * stripes) * inside + sides * 0.7;
   return Shade(color * light, color * 0.25, body * 0.5 * inside * vExtra.x);
+}
+
+// A faceted shard along +x, its base at x = -1 and its tip at x = 1.
+// params: mode (0 rock that covers, lit by the sun; 1 crystal of light),
+// glow at the base (rock, in the second color)
+Shade shard(vec2 uv, vec3 color, float rotation) {
+  float x = uv.x;
+  float width = x < -0.45 ? mix(0.6, 1.0, (x + 1.0) / 0.55) : (1.0 - x) / 1.45;
+  float ridge = 0.12 * (1.0 - x);
+  float inside = step(abs(uv.y), width) * step(-1.0, x) * step(x, 1.0);
+  if (inside <= 0.0) return lightOnly(vec3(0.0));
+  // The face turned toward the sun is bright, the other dark
+  vec2 sunLocal = vec2(SUN.x * cos(rotation) + SUN.y * sin(rotation), -SUN.x * sin(rotation) + SUN.y * cos(rotation));
+  float side = uv.y > ridge ? 1.0 : -1.0;
+  float lit = 0.5 + 0.45 * clamp(-sunLocal.y * side, -1.0, 1.0);
+  float outline = smoothstep(0.82, 1.0, abs(uv.y) / max(width, 0.001));
+  float crest = exp(-pow((uv.y - ridge) / 0.06, 2.0));
+  if (vParams.x > 0.5) {
+    float gleam = exp(-pow((x - (fract(uTime * 1.2) * 3.0 - 1.5)) / 0.18, 2.0));
+    float light = lit * 0.45 + crest * 0.7 + outline * 0.6 + gleam * 0.5;
+    return Shade(color * light + heat(color, 0.6) * (crest + gleam) * 0.35, color * 0.4, 0.25 * vExtra.x);
+  }
+  vec3 glowColor = vExtra.yzw * vColor.a;
+  float base = smoothstep(-0.2, -1.0, x) * vParams.y;
+  vec3 rock = color * (lit * (1.0 - outline * 0.45) + crest * 0.25);
+  return Shade(glowColor * base * (0.6 + 0.4 * (1.0 - outline)), rock, vExtra.x);
+}
+
+// A petal or feather along +x, turning over as it falls: params mode (0 of
+// light, 1 that covers), flutter speed
+Shade petal(vec2 uv, vec3 color, float seed) {
+  float turn = abs(cos(uTime * vParams.y + seed * 6.28));
+  float y = uv.y / max(turn, 0.2);
+  float width = 0.48 * sqrt(max(0.0, 1.0 - uv.x * uv.x)) * (1.0 + 0.35 * uv.x);
+  float d = abs(y) / max(width, 0.001);
+  if (d > 1.0 || abs(uv.x) > 1.0) return lightOnly(vec3(0.0));
+  float vein = exp(-pow(y / 0.06, 2.0)) * step(uv.x, 0.85);
+  float body = smoothstep(1.0, 0.6, d);
+  if (vParams.x > 0.5) {
+    float shade = 0.65 + 0.35 * sign(y) * turn;
+    return Shade(color * vein * 0.3, color * shade, body * vExtra.x);
+  }
+  return lightOnly(color * (body * (0.5 + 0.5 * (1.0 - d)) + vein * 0.5) + heat(color, 0.5) * vein * 0.3);
+}
+
+// Rays of light from the center: params ray count, spin, reach 0-1, width
+Shade rays(vec2 uv, float r, vec3 color, float seed) {
+  float angle = atan(uv.y, uv.x) + uTime * vParams.y;
+  float count = vParams.x;
+  float f = angle / TAU * count;
+  float ray = floor(f);
+  float jitter = hash12(vec2(ray, seed * 13.0));
+  float s = abs(fract(f) - 0.5) * 2.0;
+  float beam = smoothstep(vParams.w * (0.5 + jitter), 0.0, s);
+  float reach = vParams.z * (0.55 + 0.45 * hash12(vec2(ray * 3.1, seed)));
+  float along = smoothstep(reach, reach * 0.35, r) * smoothstep(0.0, 0.12, r);
+  float core = exp(-r * r * 60.0) * vParams.z * 0.5;
+  return lightOnly(color * beam * along * (0.8 + 0.4 * jitter) + heat(color, 0.5) * core);
+}
+
+// A soul flame flying along +x, its tail wavering: params waver
+Shade wisp(vec2 uv, vec3 color, float seed) {
+  vec2 head = uv - vec2(0.45, 0.0);
+  float waver = sin(uv.x * 7.0 - uTime * 14.0 + seed * 9.0) * 0.16 * vParams.x * clamp(0.45 - uv.x, 0.0, 1.5);
+  float t = clamp((uv.x + 1.0) / 1.45, 0.0, 1.0);
+  float width = 0.42 * pow(t, 1.3);
+  float tail = smoothstep(1.0, 0.3, abs(uv.y - waver) / max(width, 0.001)) * step(uv.x, 0.45) * step(-1.0, uv.x);
+  float n = vnoise(uv * 4.0 + vec2(-uTime * 6.0, seed * 5.0));
+  float ball = smoothstep(0.5, 0.25, length(head) + (n - 0.5) * 0.15);
+  float body = max(ball, tail * (0.5 + 0.6 * n) * t);
+  float core = smoothstep(0.28, 0.0, length(head));
+  return lightOnly(color * body * 0.9 + heat(color, 0.7) * core);
+}
+
+// A thorny root along +x from its base at x = -1, bending to one side:
+// params bend. Covers in its color, veins glowing in the second color
+Shade thorn(vec2 uv, vec3 color, float seed) {
+  float t = (uv.x + 1.0) * 0.5;
+  if (t < 0.0 || t > 1.0) return lightOnly(vec3(0.0));
+  float center = vParams.x * t * t * 0.55;
+  float width = 0.3 * pow(1.0 - t, 0.75) + 0.03;
+  // Barbs along the outside of the bend
+  float barbs = max(0.0, 1.0 - abs(fract(t * 5.0 + seed) - 0.5) * 6.0) * 0.12 * (1.0 - t);
+  float y = uv.y - center;
+  float outer = y * sign(vParams.x + 0.0001) > 0.0 ? width + barbs : width;
+  float d = y / outer;
+  float inside = step(abs(d), 1.0);
+  if (inside <= 0.0) return lightOnly(vec3(0.0));
+  float lit = 0.55 + 0.35 * d;
+  vec3 glowColor = vExtra.yzw * vColor.a;
+  float vein = exp(-pow(d / 0.25, 2.0)) * (0.6 + 0.4 * sin(t * 20.0 - uTime * 8.0));
+  return Shade(glowColor * vein * 0.9, color * lit, vExtra.x);
+}
+
+// A straight cut along +x, drawn from -1 to 1 over the first 1/speed of its
+// life: params speed
+Shade cut(vec2 uv, vec3 color, float age) {
+  float reveal = clamp(age * vParams.x, 0.0, 1.0);
+  float head = -1.0 + 2.0 * reveal;
+  if (uv.x > head || uv.x < -1.0) return lightOnly(vec3(0.0));
+  float along = (uv.x + 1.0) / max(head + 1.0, 0.001);
+  float taper = sin(clamp(along, 0.0, 1.0) * 3.1415927);
+  float fade = 1.0 - smoothstep(0.35, 1.0, age);
+  float width = taper * fade;
+  float d = abs(uv.y) / max(width, 0.001);
+  float core = smoothstep(0.4, 0.0, d);
+  float body = exp(-d * d * 2.0) * smoothstep(1.0, 0.4, d);
+  return lightOnly(color * body * fade + heat(color, 0.85) * core * 1.3);
 }
 
 void main() {
@@ -358,6 +529,12 @@ void main() {
   else if (kind == 12) shade = orb(uv, r, color, seed);
   else if (kind == 13) shade = segment(uv, color);
   else if (kind == 15) shade = telegraph(uv, r, color);
+  else if (kind == 16) shade = shard(uv, vParams.x > 0.5 ? color : vColor.rgb, vRotKind.x);
+  else if (kind == 17) shade = petal(uv, vParams.x > 0.5 ? vColor.rgb : color, seed);
+  else if (kind == 18) shade = rays(uv, r, color, seed);
+  else if (kind == 19) shade = wisp(uv, color, seed);
+  else if (kind == 20) shade = thorn(uv, vColor.rgb, seed);
+  else if (kind == 21) shade = cut(uv, color, age);
   else shade = dust(uv, r, vColor.rgb, seed);
 
   float opacity = clamp(shade.opacity, 0.0, 1.0);

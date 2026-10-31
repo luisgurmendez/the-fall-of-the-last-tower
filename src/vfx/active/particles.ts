@@ -56,10 +56,19 @@ export function spawnParticleBurst(
       config.lifetime.min +
       Math.random() * (config.lifetime.max - config.lifetime.min);
 
-    particle.x = x + (Math.random() - 0.5) * 10;
-    particle.y = y + (Math.random() - 0.5) * 10;
-    particle.vx = Math.cos(angle) * speed;
-    particle.vy = Math.sin(angle) * speed;
+    if (config.fromRadius) {
+      // Gathering: from a ring, flying in to arrive as they die
+      const inward = config.fromRadius / lifetime;
+      particle.x = x + Math.cos(angle) * config.fromRadius;
+      particle.y = y + Math.sin(angle) * config.fromRadius;
+      particle.vx = -Math.cos(angle) * inward;
+      particle.vy = -Math.sin(angle) * inward;
+    } else {
+      particle.x = x + (Math.random() - 0.5) * 10;
+      particle.y = y + (Math.random() - 0.5) * 10;
+      particle.vx = Math.cos(angle) * speed;
+      particle.vy = Math.sin(angle) * speed;
+    }
     particle.life = lifetime;
     particle.maxLife = lifetime;
     particle.size = size;
@@ -277,6 +286,25 @@ export function emitParticles(batch: FXBatch, pool: VFXParticlePool): void {
         break;
       case 'ember':
         batch.glow(x, y, size * 2.2, color, 1.6 * remaining, 0.45, 0.5, 0.9, seed);
+        break;
+      case 'rock': {
+        const angle = particle.rotation ?? 0;
+        batch.shard(x - Math.cos(angle) * size * 0.7, y - Math.sin(angle) * size * 0.7, angle, size * 1.4, size * 0.6, color, false, 1, Math.min(1, remaining * 4));
+        break;
+      }
+      case 'crystal': {
+        const angle = particle.rotation ?? 0;
+        batch.shard(x - Math.cos(angle) * size * 0.7, y - Math.sin(angle) * size * 0.7, angle, size * 1.4, size * 0.55, color, true, 0.4 + 1.4 * remaining, remaining);
+        break;
+      }
+      case 'petal':
+        batch.petal(x, y, particle.rotation ?? 0, size, color, 0.3 + 1.2 * remaining, false, 5, 1, seed);
+        break;
+      case 'leaf':
+        batch.petal(x, y, particle.rotation ?? 0, size, color, 1, true, 5, Math.min(1, remaining * 3), seed);
+        break;
+      case 'wisp':
+        batch.wisp(x, y, Math.atan2(particle.vy, particle.vx), size * 2.5, color, 0.4 + 1.3 * remaining, 1, seed);
         break;
       default:
         if (isDark(color)) batch.dust(x, y, size * 1.4, color, 0.85 * remaining, seed);

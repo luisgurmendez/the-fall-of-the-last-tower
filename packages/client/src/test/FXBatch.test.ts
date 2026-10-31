@@ -1,10 +1,11 @@
 /**
  * The GPU effects batch (src/gpu/fx/FXBatch.ts): color parsing, the
- * instance layout the shader reads, and ribbons.
+ * instance layout the shader reads, ribbons, and the kinds placed from a
+ * base or between two points.
  */
 import { describe, it, expect } from 'bun:test';
 import { FXBatch, FX_INSTANCE_FLOATS, fxColor, mixColor } from '@/gpu/fx/FXBatch';
-import { FXKind } from '@/gpu/fx/fxShader';
+import { FXKind, ShieldStyle } from '@/gpu/fx/fxShader';
 
 describe('fxColor', () => {
   it('reads hex and rgb colors', () => {
@@ -58,5 +59,27 @@ describe('FXBatch', () => {
     const light = (i: number, end: number) => batch.data[i * FX_INSTANCE_FLOATS + 14 + end];
     expect(light(0, 0)).toBe(0); // tail
     expect(light(1, 1)).toBe(1); // head
+  });
+
+  it('writes a shield style and its second color', () => {
+    const batch = new FXBatch();
+    batch.shield(0, 0, 40, [0.5, 0.5, 0.5], 1, 0.8, 0, ShieldStyle.STONE, [1, 0.5, 0]);
+    const d = Array.from(batch.data.subarray(0, FX_INSTANCE_FLOATS));
+    expect(d[12]).toBe(ShieldStyle.STONE);
+    expect(d[16]).toBeCloseTo(0.8); // opacity
+    expect(d.slice(17, 20)).toEqual([1, 0.5, 0]); // the glow in the cracks
+  });
+
+  it('stands a shard on its base and draws a cut between its ends', () => {
+    const batch = new FXBatch();
+    batch.shard(100, 100, -Math.PI / 2, 40, 10, [1, 1, 1], false);
+    batch.cut(0, 0, 0, 60, 4, 0.5, [1, 1, 1]);
+    const at = (i: number, field: number) => batch.data[i * FX_INSTANCE_FLOATS + field];
+    expect(at(0, 0)).toBeCloseTo(100); // centered above its base...
+    expect(at(0, 1)).toBeCloseTo(80);
+    expect(at(0, 2)).toBeCloseTo(20); // ...half its length
+    expect(at(1, 1)).toBeCloseTo(30); // the cut's middle
+    expect(at(1, 4)).toBeCloseTo(Math.PI / 2); // along it
+    expect(at(1, 7)).toBe(0.5); // age
   });
 });

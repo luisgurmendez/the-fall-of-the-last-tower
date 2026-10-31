@@ -73,6 +73,8 @@ export interface ActiveShieldBubble {
   startTime: number;
   pulseSpeed?: number;
   hexagonal?: boolean;
+  style?: 'hex' | 'plates' | 'holy' | 'stone';
+  glowColor?: string;
 }
 
 /**
@@ -88,6 +90,7 @@ export interface ActiveOrbitingParticles {
   count: number;
   duration: number;
   startTime: number;
+  style?: 'mote' | 'rock' | 'blade' | 'wisp';
   particles: Array<{ angle: number }>;
 }
 

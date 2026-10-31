@@ -1,30 +1,65 @@
 /**
- * Lume ability VFX: warm light. Registered when this module is imported
- * (see ./index.ts). The Light Orb is drawn by src/render/entities/lightOrb.ts.
+ * Lume ability VFX: warm white light split into prism colors; rays,
+ * crystals and the one pillar of light. Registered when this module is
+ * imported (see ./index.ts). The Light Orb is drawn by
+ * src/render/entities/lightOrb.ts.
  */
 
+import { getAbilityDefinition } from '@siege/shared';
 import { registerAbilityVFX } from '../VFXRegistryStore';
-import { embers, light, phase, pillar, ring, scorch, shockwave, sigil, sparks, twinkles } from '../recipes';
+import {
+  embers,
+  landsAt,
+  light,
+  phase,
+  pillar,
+  rays,
+  ring,
+  scorch,
+  shockwave,
+  sparks,
+  spikes,
+  twinkles,
+  warning,
+} from '../recipes';
 
-const LIGHT = '#ffe566';
+const LIGHT = '#fff3b0';
 const WARM = '#ffd27a';
 const WHITE = '#ffffff';
 const SOFT = '#fff9e0';
+const CYAN = '#9ff3ff';
+const PINK = '#ffb0f0';
 
-// Q: she sends the orb off in a spray of light
+const BEACON = landsAt('lume_r');
+const BEACON_RADIUS = getAbilityDefinition('lume_r')?.aoeRadius ?? 400;
+
+const crystals = (color: string, count: number, speed: [number, number]) =>
+  ({ ...sparks(color, count, speed), particleType: 'crystal' as const, size: { min: 3, max: 5 }, lifetime: { min: 0.4, max: 0.7 } });
+
+// Q: she sends the orb off in a spray of light; it lands in a scatter of crystals
 registerAbilityVFX({
   abilityId: 'lume_q',
   phases: [
-    phase('send', 0, 'caster', [twinkles(LIGHT, 6), sparks(WARM, 8, [180, 340], Math.PI / 4), light(LIGHT, 60, 0.6, 0.25)], 0.3),
-    phase('arrive', 0.2, 'ground_target', [ring(LIGHT, 5, 45, 0.25, 3), twinkles(WHITE, 6, [20, 60])], 0.3),
+    phase('send', 0, 'caster', [twinkles(LIGHT, 5), sparks(WARM, 8, [180, 340], Math.PI / 4), light(LIGHT, 60, 0.6, 0.25)], 0.3),
+    phase('arrive', 0.2, 'ground_target', [
+      ring(WHITE, 5, 50, 0.3, 3),
+      crystals(CYAN, 5, [60, 140]),
+      crystals(PINK, 4, [60, 140]),
+      twinkles(WHITE, 5, [20, 60]),
+    ], 0.7),
   ],
 });
 
-// W: a warm pulse rolling out
+// W: a warm pulse of rays rolling out
 registerAbilityVFX({
   abilityId: 'lume_w',
   phases: [
-    phase('pulse', 0, 'caster', [ring(WARM, 10, 180, 0.4, 4), light(WARM, 180, 0.7, 0.5), embers(SOFT, 16, 120)]),
+    phase('pulse', 0, 'caster', [
+      rays(WARM, 240, 0.6, 18, false, 0.6),
+      ring(WARM, 10, 300, 0.5, 3),
+      light(WARM, 200, 0.6, 0.5),
+      embers(SOFT, 14, 120),
+    ], 0.6),
   ],
 });
 
@@ -37,31 +72,37 @@ registerAbilityVFX({
       { type: 'trail', color: LIGHT, thickness: 9, duration: 0.35, fadeLength: 12 },
     ], 0.35),
     phase('dazzle', 0.2, 'caster', [
-      twinkles(WHITE, 12, [80, 200]),
-      ring(WHITE, 20, 110, 0.25, 4),
-      sparks(LIGHT, 16, [200, 380]),
-      light(WHITE, 130, 1.2, 0.3),
+      rays(WHITE, 200, 0.45, 24, false, 1),
+      crystals(CYAN, 6, [120, 240]),
+      crystals(PINK, 6, [120, 240]),
+      twinkles(WHITE, 8, [80, 200]),
+      light(WHITE, 130, 1.1, 0.35),
       { type: 'screen_flash', color: '#ffffff', duration: 0.08, maxAlpha: 0.1 },
-    ], 0.3),
+    ], 0.45),
   ],
 });
 
-// R: a circle marks the spot, the light gathers, then a beam crashes down
+// R: a warning at the orb while light gathers into it, then a beam crashes
+// down and crystals burst out of the ground
 registerAbilityVFX({
   abilityId: 'lume_r',
   phases: [
-    phase('mark', 0, 'target', [sigil(LIGHT, 220, 0.55, '#fff3b0'), light(LIGHT, 220, 0.5, 0.55)], 0.55),
-    phase('converge', 0.3, 'target', [ring(WHITE, 90, 10, 0.18, 3)], 0.18),
-    phase('fall', 0.38, 'target', [pillar(WHITE, 520, 30, 0.45, LIGHT)], 0.45),
-    phase('impact', 0.48, 'target', [
-      shockwave(LIGHT, 20, 240, 0.45, 14),
-      ring(WHITE, 15, 300, 0.4, 3),
-      twinkles(WHITE, 24, [100, 300]),
-      sparks(LIGHT, 30, [250, 520]),
-      scorch('#3a3020', 140, 2.0, 0.6),
-      light(LIGHT, 320, 1.6, 1.0),
-      { type: 'screen_flash', color: '#fffbe0', duration: 0.25, maxAlpha: 0.2 },
-    ]),
-    phase('afterglow', 0.55, 'target', [embers(SOFT, 30, 220, { lifetime: { min: 0.8, max: 1.6 } })], 1.6),
+    phase('mark', 0, 'target', [
+      warning(LIGHT, BEACON_RADIUS, BEACON),
+      rays(WHITE, BEACON_RADIUS * 0.7, BEACON, 16, true),
+      light(LIGHT, BEACON_RADIUS * 0.6, 0.4, BEACON),
+    ], BEACON),
+    phase('fall', BEACON - 0.12, 'target', [pillar(WHITE, 520, 30, 0.5, LIGHT)], 0.5),
+    phase('impact', BEACON, 'target', [
+      spikes('crystal', CYAN, 10, BEACON_RADIUS * 0.6, 'ring', [30, 54], 1.3),
+      spikes('crystal', PINK, 8, BEACON_RADIUS * 0.75, 'area', [24, 44], 1.2),
+      shockwave(LIGHT, 20, BEACON_RADIUS, 0.5, 14),
+      twinkles(WHITE, 20, [100, 300]),
+      sparks(LIGHT, 24, [250, 520]),
+      scorch(LIGHT, 140, 2.0, 0.6),
+      light(LIGHT, BEACON_RADIUS * 0.8, 1.5, 1.0),
+      { type: 'screen_flash', color: '#fffbe0', duration: 0.2, maxAlpha: 0.18 },
+    ], 1.3),
+    phase('afterglow', BEACON + 0.1, 'target', [embers(SOFT, 26, 220, { lifetime: { min: 0.8, max: 1.6 } })], 1.6),
   ],
 });

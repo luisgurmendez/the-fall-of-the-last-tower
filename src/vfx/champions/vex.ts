@@ -1,78 +1,84 @@
 /**
- * Vex ability VFX: shadow violet and smoke. Registered when this module is
- * imported (see ./index.ts). The shuriken itself is drawn by
+ * Vex ability VFX: ink-black smoke, moonlit steel, a crimson edge and
+ * cherry petals; straight cuts, never crescents. Registered when this
+ * module is imported (see ./index.ts). The shuriken itself is drawn by
  * src/gpu/fx/projectiles.ts.
  */
 
 import { registerAbilityVFX } from '../VFXRegistryStore';
-import { embers, light, phase, ring, shockwave, smoke, sparks, swirl, twinkles } from '../recipes';
+import { cuts, embers, light, pathCut, petals, phase, rays, smoke, sparks, twinkles } from '../recipes';
 
-const SHADOW = '#a35cff';
-const EDGE = '#e8dcff';
-const SMOKE = '#2a2238';
+const INK = '#16131f';
+const MOON = '#d6ecff';
+const CRIMSON = '#ff3b6b';
+const PETAL = '#ffb3c8';
 
-// Q: a flick of violet as the shuriken leaves...
+/** Seconds until the shuriken leaves her hand (its animation's projectile keyframe) */
+const THROW = 0.2;
+
+// Q: a glint as she draws the shuriken, a flick as it leaves...
 registerAbilityVFX({
   abilityId: 'vex_shuriken',
-  phases: [phase('throw', 0, 'caster', [sparks(SHADOW, 6, [200, 360], Math.PI / 4), light(SHADOW, 50, 0.5, 0.2)], 0.25)],
+  phases: [
+    phase('draw', 0, 'caster', [twinkles(MOON, 1, [0, 0], { size: { min: 6, max: 7 }, lifetime: { min: THROW, max: THROW } })], THROW),
+    phase('throw', THROW, 'caster', [sparks(MOON, 5, [200, 360], Math.PI / 5)], 0.25),
+  ],
 });
 
-// ...and a cut of light where it lands
+// ...and an X cut where it lands
 registerAbilityVFX({
   abilityId: 'vex_shuriken_impact',
   phases: [
     phase('hit', 0, 'caster', [
-      twinkles(EDGE, 4, [30, 80]),
-      sparks(SHADOW, 12, [160, 320]),
-      ring(SHADOW, 4, 40, 0.2, 3),
-      light(SHADOW, 60, 0.6, 0.25),
-    ], 0.3),
+      cuts(MOON, 52, 4, 0.35, [Math.PI / 4, -Math.PI / 4]),
+      sparks(CRIMSON, 10, [140, 300]),
+      light(CRIMSON, 50, 0.5, 0.3),
+    ], 0.35),
   ],
 });
 
-// W: she vanishes in a puff of smoke
+// W: she vanishes in a burst of ink smoke and cherry petals
 registerAbilityVFX({
   abilityId: 'vex_shroud',
   phases: [
     phase('vanish', 0, 'caster', [
-      smoke(SMOKE, 18, [18, 30], [20, 90], { lifetime: { min: 0.8, max: 1.4 } }),
-      swirl(SHADOW, 60, 0.6, 1.5, 3),
-      ring(SHADOW, 10, 70, 0.3, 3),
-      sparks(SHADOW, 10, [100, 220]),
-    ]),
+      smoke(INK, 20, [18, 30], [20, 100], { lifetime: { min: 0.9, max: 1.5 } }),
+      petals(PETAL, 16, [60, 170], 'leaf', { gravity: 10 }),
+      embers(CRIMSON, 6, 30),
+    ], 1.5),
   ],
 });
 
-// E: a streak of shadow, smoke where she leaves and where she lands
+// E: a flash step: a cut of light along the dash, smoke where she leaves and lands
 registerAbilityVFX({
   abilityId: 'vex_dash',
   phases: [
     phase('step', 0, 'caster', [
-      { type: 'dash_afterimage', color: SHADOW, imageCount: 5, fadeSpeed: 3.5, duration: 0.3 },
-      { type: 'trail', color: SHADOW, thickness: 9, duration: 0.4, fadeLength: 12 },
-      smoke(SMOKE, 6, [12, 18], [20, 60]),
+      { type: 'dash_afterimage', color: '#3d3a7a', imageCount: 5, fadeSpeed: 3.5, duration: 0.3 },
+      pathCut(MOON, 7, 0.4),
+      smoke(INK, 8, [12, 18], [20, 60]),
     ], 0.4),
     phase('arrive', 0.25, 'caster', [
-      smoke(SMOKE, 8, [14, 22], [30, 90]),
-      sparks(EDGE, 10, [150, 300]),
-      ring(SHADOW, 8, 50, 0.2, 3),
+      smoke(INK, 8, [14, 22], [30, 90]),
+      sparks(MOON, 10, [150, 300]),
+      sparks(CRIMSON, 6, [100, 200]),
     ], 0.3),
   ],
 });
 
-// R: a burst of shadow, then blades of light circling her while it lasts
+// R: a burst of ink and crimson light, then blades circling her while it lasts
 registerAbilityVFX({
   abilityId: 'vex_ninja_mode',
   phases: [
     phase('awaken', 0, 'caster', [
-      shockwave(SHADOW, 10, 90, 0.35, 8),
-      swirl(SHADOW, 75, 0.9, 2, 4),
-      twinkles(EDGE, 10),
-      embers(SHADOW, 16, 40),
-      light(SHADOW, 110, 1.0, 0.6),
+      smoke(INK, 18, [16, 28], [60, 160]),
+      rays(CRIMSON, 110, 0.5, 8, false, 1.5),
+      petals(PETAL, 12, [80, 180], 'leaf'),
+      embers(CRIMSON, 12, 40),
+      light(CRIMSON, 110, 0.8, 0.6),
     ], 0.9),
     phase('aura', 0.3, 'caster', [
-      { type: 'orbiting_particles', color: SHADOW, count: 3, size: 6, orbitRadius: 34, orbitSpeed: 4, duration: 15.0 },
+      { type: 'orbiting_particles', color: CRIMSON, count: 3, size: 6, orbitRadius: 36, orbitSpeed: 4, duration: 15.0, style: 'blade' },
     ], 15.0),
   ],
 });

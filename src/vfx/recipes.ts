@@ -7,18 +7,23 @@
  * vary and fills in the rest; spread the result and override for more.
  */
 
+import { getAbilityDefinition } from '@siege/shared';
 import type {
   AbilityVFXDefinition,
   BeamConfig,
   ConeSlashConfig,
+  CutConfig,
   DecalConfig,
   ExpandingRingConfig,
   GroundCircleConfig,
   GroundLightConfig,
   LightningConfig,
+  MeteorConfig,
   ParticleBurstConfig,
+  RaysConfig,
   RisingParticlesConfig,
   ShockwaveConfig,
+  SpikesConfig,
   SwirlConfig,
   VFXEffectConfig,
 } from './VFXTypes';
@@ -27,6 +32,15 @@ type Range = { min: number; max: number };
 const range = (min: number, max: number): Range => ({ min, max });
 
 type Phase = AbilityVFXDefinition['phases'][number];
+
+/**
+ * Seconds from the cast until the ability's area lands on the server (its
+ * aoeDelay), so the impact is drawn when it hits and the warning fills up
+ * until then.
+ */
+export function landsAt(abilityId: string): number {
+  return getAbilityDefinition(abilityId)?.aoeDelay ?? 0;
+}
 
 /** A phase: effects spawned `delay` seconds after the cast, at the caster, the target or the ground target */
 export function phase(name: string, delay: number, anchor: Phase['anchor'], effects: VFXEffectConfig[], duration = 0.5): Phase {
@@ -122,4 +136,49 @@ export function swirl(color: string, radius: number, duration: number, spin = 1,
 /** Jagged bolts from the anchor to the target */
 export function bolts(color: string, count: number, duration: number, spread = 22, thickness = 2.5): LightningConfig {
   return { type: 'lightning', color, count, duration, spread, thickness };
+}
+
+/** Particles of `type` flying in from `radius` to the anchor over `duration`: power gathering */
+export function gather(color: string, count: number, radius: number, duration: number, type: ParticleBurstConfig['particleType'] = 'circle', extra: Partial<ParticleBurstConfig> = {}): ParticleBurstConfig {
+  return { type: 'particle_burst', count, color, size: range(2, 3.5), speed: range(0, 0), lifetime: range(duration * 0.7, duration), spread: Math.PI * 2, particleType: type, fromRadius: radius, ...extra };
+}
+
+/** Chunks of rock thrown out, tumbling */
+export function rocks(color: string, count: number, speed: [number, number] = [90, 220], size: [number, number] = [3, 6]): ParticleBurstConfig {
+  return { type: 'particle_burst', count, color, size: range(...size), speed: range(...speed), lifetime: range(0.45, 0.75), spread: Math.PI * 2, direction: -Math.PI / 2, gravity: 420, friction: 1, particleType: 'rock' };
+}
+
+/** Petals of light (or with `type` 'leaf', solid ones) drifting out and down */
+export function petals(color: string, count: number, speed: [number, number] = [30, 90], type: 'petal' | 'leaf' = 'petal', extra: Partial<ParticleBurstConfig> = {}): ParticleBurstConfig {
+  return { type: 'particle_burst', count, color, size: range(3.5, 6), speed: range(...speed), lifetime: range(0.8, 1.4), spread: Math.PI * 2, friction: 2, gravity: 25, particleType: type, ...extra };
+}
+
+/** Soul flames flying out and fading */
+export function wisps(color: string, count: number, speed: [number, number] = [60, 150], extra: Partial<ParticleBurstConfig> = {}): ParticleBurstConfig {
+  return { type: 'particle_burst', count, color, size: range(4, 6), speed: range(...speed), lifetime: range(0.5, 0.9), spread: Math.PI * 2, friction: 1.5, gravity: -40, particleType: 'wisp', ...extra };
+}
+
+/** Spikes bursting out of the ground: rocks, crystals of light or thorny roots */
+export function spikes(style: SpikesConfig['style'], color: string, count: number, radius: number, pattern: SpikesConfig['pattern'], length: [number, number], duration: number, glowColor?: string): SpikesConfig {
+  return { type: 'spikes', style, color, glowColor, count, radius, pattern, length: range(...length), duration };
+}
+
+/** Rays of light bursting out (or with `converge`, gathering in) */
+export function rays(color: string, radius: number, duration: number, count = 14, converge = false, spin = 0.3): RaysConfig {
+  return { type: 'rays', color, radius, duration, count, converge, spin };
+}
+
+/** A flaming rock or a blade of light falling onto the anchor over `duration` */
+export function meteor(style: MeteorConfig['style'], color: string, size: number, height: number, duration: number, core?: string): MeteorConfig {
+  return { type: 'meteor', style, color, colorSecondary: core, size, height, duration };
+}
+
+/** Straight cuts across the anchor, at `angles` from the aim (two make an X) */
+export function cuts(color: string, length: number, width: number, duration: number, angles = [0]): CutConfig {
+  return { type: 'cut', color, length, width, duration, angles };
+}
+
+/** A cut along the dash, from where the caster was to the target */
+export function pathCut(color: string, width: number, duration: number): CutConfig {
+  return { type: 'cut', color, length: 0, width, duration, path: true };
 }

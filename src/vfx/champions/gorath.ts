@@ -1,78 +1,87 @@
 /**
- * Gorath ability VFX: earth, dust and amber, a red roar. Registered when
- * this module is imported (see ./index.ts).
+ * Gorath ability VFX: stone and molten amber; rock bursting out of the
+ * ground, a red roar. Registered when this module is imported (see
+ * ./index.ts). Each warning fills up until the area lands on the server.
  */
 
+import { getAbilityDefinition } from '@siege/shared';
 import { registerAbilityVFX } from '../VFXRegistryStore';
-import { debris, flames, light, phase, ring, scorch, shockwave, smoke, sparks, warning } from '../recipes';
+import { gather, landsAt, light, phase, ring, rocks, scorch, smoke, spikes, warning } from '../recipes';
 
 const EARTH = '#d9a35a';
-const AMBER = '#ff9a3a';
+const MOLTEN = '#ff8a2a';
 const DUST = '#8c7a62';
-const ROCK = '#4a3c30';
+const STONE = '#a08c74';
 const ROAR = '#ff5a3a';
 
-// Q: he raises his fists and the ground cracks around him
+const SLAM = landsAt('gorath_slam');
+const SLAM_RADIUS = getAbilityDefinition('gorath_slam')?.aoeRadius ?? 300;
+const ROAR_LANDS = landsAt('gorath_taunt');
+const ROAR_RADIUS = getAbilityDefinition('gorath_taunt')?.aoeRadius ?? 350;
+const QUAKE = landsAt('gorath_earthquake');
+const QUAKE_RADIUS = getAbilityDefinition('gorath_earthquake')?.aoeRadius ?? 450;
+
+// Q: he raises his fists over a warning, then rocks burst out of the ground
 registerAbilityVFX({
   abilityId: 'gorath_slam',
   phases: [
-    phase('raise', 0, 'caster', [smoke(DUST, 4, [8, 12], [10, 30])], 0.3),
-    phase('slam', 0.25, 'caster', [
-      shockwave(EARTH, 20, 160, 0.35, 12),
-      scorch('#2e241c', 115, 1.6, 0.35),
-      smoke(DUST, 14, [16, 26], [70, 170]),
-      debris(ROCK, 14, [100, 230]),
-      sparks(AMBER, 10, [150, 300]),
-      light(AMBER, 170, 0.8, 0.35),
-    ]),
+    phase('raise', 0, 'caster', [warning(MOLTEN, SLAM_RADIUS, SLAM), smoke(DUST, 4, [8, 12], [10, 30])], SLAM),
+    phase('slam', SLAM, 'caster', [
+      spikes('rock', STONE, 22, SLAM_RADIUS * 0.85, 'area', [36, 64], 1.1, MOLTEN),
+      scorch(MOLTEN, SLAM_RADIUS * 0.55, 1.8, 0.6),
+      ring(EARTH, 30, SLAM_RADIUS, 0.4, 5),
+      smoke(DUST, 16, [16, 26], [80, 190]),
+      rocks(STONE, 12),
+      light(MOLTEN, SLAM_RADIUS * 0.8, 0.7, 0.45),
+    ], 1.1),
   ],
 });
 
-// W: skin of stone: a sandy bubble and rocks circling him
+// W: skin of stone: a ring of stones grinding around him, rocks circling
 registerAbilityVFX({
   abilityId: 'gorath_fortify',
   phases: [
     phase('harden', 0, 'caster', [
-      { type: 'shield_bubble', color: '#d9b07a', radius: 36, duration: 4.0, pulseSpeed: 0.8 },
-      { type: 'orbiting_particles', color: AMBER, count: 4, size: 7, orbitRadius: 42, orbitSpeed: 2.5, duration: 4.0 },
-      ring(EARTH, 20, 56, 0.3, 5),
+      { type: 'shield_bubble', color: STONE, radius: 40, duration: 4.0, pulseSpeed: 0.8, style: 'stone', glowColor: MOLTEN },
+      { type: 'orbiting_particles', color: STONE, count: 3, size: 13, orbitRadius: 52, orbitSpeed: 2.2, duration: 4.0, style: 'rock' },
       smoke(DUST, 8, [10, 16], [30, 80]),
-      debris(ROCK, 6, [60, 120]),
+      rocks(STONE, 6, [60, 130]),
     ], 4.0),
   ],
 });
 
-// E: a roar: rings of red sound rolling out
+// E: he draws breath, then roars: rings of red sound rolling out, dust blown away
 registerAbilityVFX({
   abilityId: 'gorath_taunt',
   phases: [
-    phase('roar', 0, 'caster', [
-      shockwave(ROAR, 30, 210, 0.4, 9),
-      ring(ROAR, 30, 170, 0.3, 3),
-      ring('#ffb08a', 25, 120, 0.22, 2),
-      sparks(ROAR, 16, [200, 360]),
-      light(ROAR, 200, 0.7, 0.4),
-    ]),
+    phase('breath', 0, 'caster', [gather(ROAR, 8, 60, ROAR_LANDS, 'ember'), light(ROAR, 60, 0.5, ROAR_LANDS)], ROAR_LANDS),
+    phase('roar', ROAR_LANDS, 'caster', [
+      ring(ROAR, 30, ROAR_RADIUS, 0.45, 3),
+      smoke(DUST, 12, [16, 26], [160, 280]),
+      light(ROAR, ROAR_RADIUS * 0.6, 0.6, 0.45),
+    ], 0.45),
+    phase('echo', ROAR_LANDS + 0.09, 'caster', [ring('#ff8a6a', 25, ROAR_RADIUS * 0.85, 0.4, 2)], 0.4),
+    phase('echo2', ROAR_LANDS + 0.18, 'caster', [ring('#ffb08a', 20, ROAR_RADIUS * 0.7, 0.35, 2)], 0.35),
   ],
 });
 
-// R: the ground rumbles, then splits open in glowing cracks
+// R: the ground rumbles under a wide warning, then splits open: rocks burst
+// out all over it and the cracks glow molten
 registerAbilityVFX({
   abilityId: 'gorath_earthquake',
   phases: [
-    phase('rumble', 0, 'ground_target', [
-      warning(AMBER, 250, 0.45),
-      smoke(DUST, 8, [14, 22], [10, 40]),
-      light(AMBER, 200, 0.4, 0.45),
-    ], 0.45),
-    phase('quake', 0.45, 'ground_target', [
-      shockwave(EARTH, 30, 270, 0.45, 16),
-      scorch('#20160f', 210, 2.5, 0.9),
-      debris(ROCK, 20, [140, 300]),
-      smoke(DUST, 18, [20, 34], [60, 200]),
-      sparks(AMBER, 20, [200, 400]),
-      flames(AMBER, 6, [10, 16], [20, 60]),
-      light(AMBER, 300, 1.2, 0.7, 0.3),
-    ]),
+    phase('rumble', 0, 'caster', [
+      warning(MOLTEN, QUAKE_RADIUS, QUAKE),
+      smoke(DUST, 10, [14, 22], [10, 40]),
+      light(MOLTEN, QUAKE_RADIUS * 0.6, 0.3, QUAKE),
+    ], QUAKE),
+    phase('quake', QUAKE, 'caster', [
+      spikes('rock', STONE, 34, QUAKE_RADIUS * 0.9, 'area', [44, 80], 1.5, MOLTEN),
+      scorch(MOLTEN, QUAKE_RADIUS * 0.7, 2.8, 1.0),
+      smoke(DUST, 20, [20, 34], [60, 220]),
+      rocks(STONE, 18, [140, 300]),
+      light(MOLTEN, QUAKE_RADIUS * 0.9, 1.0, 0.8, 0.3),
+      { type: 'screen_flash', color: '#ffcf9a', duration: 0.1, maxAlpha: 0.1 },
+    ], 1.5),
   ],
 });

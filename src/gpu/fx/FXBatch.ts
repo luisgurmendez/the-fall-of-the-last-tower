@@ -5,16 +5,17 @@
  * Positions and sizes are world units, angles radians. Colors are RGB 0-1
  * (see fxColor) times an intensity; past about 1 the light blooms and its
  * core goes white. `age` runs 0-1 over an effect's life for the kinds that
- * animate by it (slash, ring, sigil, flame, decal).
+ * animate by it (slash, ring, sigil, flame, decal, cut).
  */
 
-import { FXKind } from "./fxShader";
+import { FXKind, ShieldStyle } from "./fxShader";
 
 export type RGB = readonly [number, number, number];
 
 /** Floats per instance: five vec4 attributes */
 export const FX_INSTANCE_FLOATS = 20;
 const MAX_INSTANCES = 16384;
+const NO_COLOR: RGB = [0, 0, 0];
 
 const colorCache = new Map<string, RGB>();
 
@@ -58,6 +59,7 @@ export class FXBatch {
     color: RGB, intensity: number,
     p0: number, p1: number, p2: number, p3: number,
     opacity = 0,
+    second: RGB = NO_COLOR,
   ): void {
     if (this.count >= MAX_INSTANCES) return;
     if ((this.count + 1) * FX_INSTANCE_FLOATS > this.data.length) {
@@ -71,7 +73,7 @@ export class FXBatch {
     d[i++] = rotation; d[i++] = kind; d[i++] = seed; d[i++] = age;
     d[i++] = color[0]; d[i++] = color[1]; d[i++] = color[2]; d[i++] = intensity;
     d[i++] = p0; d[i++] = p1; d[i++] = p2; d[i++] = p3;
-    d[i++] = opacity; d[i++] = 0; d[i++] = 0; d[i++] = 0;
+    d[i++] = opacity; d[i++] = second[0]; d[i++] = second[1]; d[i++] = second[2];
     this.count++;
   }
 
@@ -112,9 +114,12 @@ export class FXBatch {
     this.push(FXKind.SIGIL, x, y, radius, radius, 0, seed, age, color, intensity, spin, runes, 0, drawIn, opacity);
   }
 
-  /** A bubble with a hex pattern and a bright rim */
-  shield(x: number, y: number, radius: number, color: RGB, intensity = 1, opacity = 1, seed = 0): void {
-    this.push(FXKind.SHIELD, x, y, radius, radius, 0, seed, 0, color, intensity, 0, 0, 0, 0, opacity);
+  /**
+   * A shield around a unit, in one of the ShieldStyle looks; `glow` is the
+   * light in the cracks of a stone one.
+   */
+  shield(x: number, y: number, radius: number, color: RGB, intensity = 1, opacity = 1, seed = 0, style: number = ShieldStyle.HEX, glow: RGB = NO_COLOR): void {
+    this.push(FXKind.SHIELD, x, y, radius, radius, 0, seed, 0, color, intensity, style, 0, 0, 0, opacity, glow);
   }
 
   /**
@@ -174,7 +179,46 @@ export class FXBatch {
    * a cone of `span` radians each side of `angle`, or a circle with span 0.
    */
   telegraph(x: number, y: number, radius: number, color: RGB, intensity: number, fill: number, span = 0, angle = 0, opacity = 1): void {
-    this.push(FXKind.TELEGRAPH, x, y, radius, radius, angle, 0, 0, color, intensity, fill, span, 0, 0, opacity);
+    // Lines about 4 world units wide whatever the size
+    this.push(FXKind.TELEGRAPH, x, y, radius, radius, angle, 0, 0, color, intensity, fill, span, Math.min(0.022, 4 / radius), 0, opacity);
+  }
+
+  /**
+   * A faceted shard from its base at (x, y) out `length` along `angle`: a
+   * rock lit by the sun (covering, `glow` at its base) or, with `crystal`, a
+   * shard of light.
+   */
+  shard(x: number, y: number, angle: number, length: number, width: number, color: RGB, crystal: boolean, intensity = 1, opacity = 1, glow: RGB = NO_COLOR, glowAmount = 0): void {
+    const half = length / 2;
+    this.push(FXKind.SHARD, x + Math.cos(angle) * half, y + Math.sin(angle) * half, half, width, angle, 0, 0, color, intensity, crystal ? 1 : 0, glowAmount, 0, 0, opacity, glow);
+  }
+
+  /** A petal or feather turning over as it drifts: of light, or (`solid`) covering */
+  petal(x: number, y: number, angle: number, size: number, color: RGB, intensity = 1, solid = false, flutter = 4, opacity = 1, seed = 0): void {
+    this.push(FXKind.PETAL, x, y, size, size, angle, seed, 0, color, intensity, solid ? 1 : 0, flutter, 0, 0, opacity);
+  }
+
+  /** `count` rays of light from (x, y), reaching `reach` (0-1) of the radius */
+  rays(x: number, y: number, radius: number, color: RGB, intensity = 1, count = 12, reach = 1, spin = 0.3, width = 0.25, seed = 0): void {
+    this.push(FXKind.RAYS, x, y, radius, radius, 0, seed, 0, color, intensity, count, spin, reach, width);
+  }
+
+  /** A soul flame flying along `angle`, its head at (x, y) and its tail behind */
+  wisp(x: number, y: number, angle: number, length: number, color: RGB, intensity = 1, waver = 1, seed = 0): void {
+    const back = length * 0.45;
+    this.push(FXKind.WISP, x - Math.cos(angle) * back, y - Math.sin(angle) * back, length, length * 0.5, angle, seed, 0, color, intensity, waver, 0, 0, 0);
+  }
+
+  /** A thorny root from its base at (x, y) out `length` along `angle`, bending by `bend` (-1 to 1) */
+  thorn(x: number, y: number, angle: number, length: number, width: number, color: RGB, bend: number, opacity = 1, veins: RGB = NO_COLOR, veinLight = 1, seed = 0): void {
+    const half = length / 2;
+    this.push(FXKind.THORN, x + Math.cos(angle) * half, y + Math.sin(angle) * half, half, width, angle, seed, 0, color, veinLight, bend, 0, 0, 0, opacity, veins);
+  }
+
+  /** A straight cut from (x0, y0) to (x1, y1), drawn over the first 1/speed of its life */
+  cut(x0: number, y0: number, x1: number, y1: number, width: number, age: number, color: RGB, intensity = 1.5, speed = 4): void {
+    const length = Math.hypot(x1 - x0, y1 - y0);
+    this.push(FXKind.CUT, (x0 + x1) / 2, (y0 + y1) / 2, length / 2, width, Math.atan2(y1 - y0, x1 - x0), 0, age, color, intensity, speed, 0, 0, 0);
   }
 
   /** A soft puff that covers what's under it instead of glowing */

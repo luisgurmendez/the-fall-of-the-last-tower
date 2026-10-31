@@ -19,7 +19,7 @@ src/vfx/
     trails.ts           # Entity trails and dash afterimages
     auras.ts            # Shield bubbles and orbiting particles
     screenFlash.ts      # Full-screen flash
-  recipes.ts            # Shorthands the definitions layer: sparks(), flames(), smoke(), shockwave(), light(), pillar()...
+  recipes.ts            # Shorthands the definitions layer: sparks(), flames(), smoke(), shockwave(), light(), spikes(), rays(), meteor(), cuts(), landsAt()...
   VFXParticlePool.ts    # Object pooling for particles
   VFXRegistry.ts        # Public registry API; importing it loads every champion's VFX
   VFXRegistryStore.ts   # Registry storage (register / get)
@@ -50,7 +50,7 @@ src/gpu/fx/
 
 `EntityRenderer` updates the VFX manager, has it add the ground parts (`VFXManager.emitGround`) plus the zones (`emitZone`) and each champion's recall circle and buff rings (`emitChampionAuras`), draws the ground layer, draws the units (projectiles add themselves to the top layer as they're drawn, `emitProjectile`), then has the manager add the rest (`emitTop`) and draws the top layer. The screen flash stays 2D. The legacy ability shapes (`overlays/abilityEffects.ts`) are only drawn without the GPU.
 
-Each quad is one primitive (`FXKind`), drawn by the effects shader from the quad's local coordinates: a glow, a spark (a streak along its velocity), a ring broken by noise with a wake of light inside, a slash (a crescent swept across an arc), a beam, a sigil (rings, runes and a star that draw themselves in), a shield (fresnel rim and hex pattern), a flame (fire that burns away into smoke, as a round puff or a tongue licking up), a flare (four-pointed twinkle), a decal (scorch or cracks with embers), a swirl, lightning, an orb, a ribbon segment, dust and a telegraph (a warning filling up). Fragments are snapped to the ground's 1.5-unit art pixels, so effects read as pixel art.
+Each quad is one primitive (`FXKind`), drawn by the effects shader from the quad's local coordinates: a glow, a spark (a streak along its velocity), a ring broken by noise with a wake of light inside, a slash (a crescent swept across an arc), a beam, a sigil (rings, runes and a star that draw themselves in), a shield (in one of four styles, `ShieldStyle`: hexagons, circling steel plates, petals of light, a ring of stones glowing in the cracks), a flame (fire that burns away into smoke, as a round puff or a tongue licking up), a flare (four-pointed twinkle), a decal (scorch or cracks with embers), a swirl, lightning, an orb, a ribbon segment, dust, a telegraph (a warning filling up, its lines the same width whatever its size), a shard (a faceted rock lit by the sun with a glow at its base, or a crystal of light), a petal (of light, or solid like a leaf, turning over as it drifts), rays (light bursting out or gathering in), a wisp (a soul flame with a wavering tail), a thorn (a curved root that covers, its veins glowing) and a cut (a straight blade of light drawn across). Some kinds take a second color (the glow in a stone shield's cracks, at a rock's base, in a thorn's veins). Fragments are snapped to the ground's 1.5-unit art pixels, so effects read as pixel art.
 
 Light adds up in a half-float target; the bloom keeps the parts over a threshold, halves them four times and blurs them back up (dual Kawase), and the composite tone-maps the light (bright cores go white instead of clipping). The output is premultiplied: light has no alpha, so it adds to what's under it, while smoke, dust and scorch marks have alpha and cover it.
 
@@ -58,17 +58,21 @@ How config types look on the GPU:
 
 | Config | GPU |
 |--------|-----|
-| `particle_burst`, `rising_particles`, `falling_particles` | By `particleType`: `circle` glow, `spark` streak, `star` flare, `flame` fire puff, `smoke` dust that covers, `ember` flickering mote. Dark colors (blood, mud) are dust whatever the type. |
+| `particle_burst`, `rising_particles`, `falling_particles` | By `particleType`: `circle` glow, `spark` streak, `star` flare, `flame` fire puff, `smoke` dust that covers, `ember` flickering mote, `rock` tumbling stone, `crystal` tumbling shard of light, `petal` petal of light, `leaf` solid petal, `wisp` soul flame. Dark colors (blood, mud) are dust for the light types. A burst with `fromRadius` starts on a ring and flies in (power gathering). |
 | `expanding_ring` | A broken ring with a wake, and a light pool under it |
 | `shockwave` | A thicker ring with a wake, a light pool and a crack decal under it |
 | `cone_slash` | A crescent swept across the arc toward the target; `style: 'telegraph'` is a cone warning on the ground |
 | `ground_circle` | A magic circle; `style: 'telegraph'` is a warning filling up over the effect's life |
 | `beam` | Light flowing to the target; with `fromSky`, a pillar falling onto the anchor |
 | `trail` | A ribbon through the followed entity's recent positions |
-| `shield_bubble` | A bubble with a hex pattern and a bright rim |
-| `orbiting_particles` | Motes with short tails |
+| `shield_bubble` | By `style`: `hex` (default), `plates`, `holy`, `stone` (with `glowColor` in the cracks) |
+| `orbiting_particles` | By `style`: motes with short tails (default), tumbling `rock`s, spinning `blade`s, `wisp`s |
 | `dash_afterimage` | Glows joined by a streak |
-| `ground_light`, `decal`, `lightning`, `swirl` | GPU only (the 2D fallback skips them) |
+| `spikes` | Rocks, crystals or thorny roots bursting out of the ground in a ring or over a circle, rippling outward, then sinking |
+| `rays` | Rays of light bursting out, or with `converge`, gathering in |
+| `meteor` | A flaming rock (with its shadow growing on the ground) or a blade of light falling onto the anchor over the effect's life |
+| `cut` | Straight cuts across the anchor at `angles` from the aim, or with `path`, along a dash |
+| `ground_light`, `decal`, `lightning`, `swirl`, `spikes`, `rays`, `meteor`, `cut` | GPU only (the 2D fallback skips them) |
 
 **Projectile impacts:** when a projectile is destroyed, `entityVFX.ts` spawns the VFX registered as `<projectile type>_impact` (e.g. `magnus_fireball_impact`) where it was, so explosions happen where the projectile actually hits.
 
@@ -76,7 +80,7 @@ How config types look on the GPU:
 
 ### VFX lab
 
-With the client dev server running, `/vfx-lab.html` plays every registered VFX on a loop in a grid over the real ground (`src/debug/vfxLab.ts`), plus every projectile type in flight, the zones and the champion auras (recall, jungle buffs). Options: `?only=magnus`, `?kind=projectile` (or `ability`, `zone`, `aura`), `?zoom=1.4`, `?period=2.5`, `?speed=0.25` (slow motion). Use it to tune effects without a match.
+With the client dev server running, `/vfx-lab.html` plays every registered VFX on a loop in a grid over the real ground (`src/debug/vfxLab.ts`), plus every projectile type in flight, the zones and the champion auras (recall, jungle buffs). Options: `?only=magnus`, `?kind=projectile` (or `ability`, `zone`, `aura`), `?zoom=1.4`, `?period=2.5`, `?speed=0.25` (slow motion), `?pause=0.6` (freeze 0.6 seconds after the first cast, to screenshot a moment). Use it to tune effects without a match.
 
 ### VFXManager
 
@@ -192,15 +196,17 @@ registerAbilityVFX({
 
 ## Champion Color Palettes
 
-| Champion | Primary | Secondary | Accent |
-|----------|---------|-----------|--------|
-| Elara | Gold #FFD700 | White #FFFFFF | Soft Yellow #FFF9C4 |
-| Gorath | Brown #8B7355 | Stone Gray #708090 | Orange #FF8C00 |
-| Lume | Warm Gold #FFE566 | Soft Yellow #FFF9E0 | White #FFFFFF |
-| Magnus | Fire Orange #FF6600 | Deep Red #CC3300 | Yellow Core #FFDD44 |
-| Vex | Purple #8844CC | Dark #442266 | Shadow #2C3E50 |
-| Vile | Dark Purple #4A0080 | Green-Black #1A3A1A | Soul Cyan #00FFFF |
-| Warrior | Steel Blue #4682B4 | Gold #DAA520 | Iron Gray #708090 |
+Each champion has its own colors and its own shapes, so two champions' effects never look alike:
+
+| Champion | Colors | Signature shapes |
+|----------|--------|------------------|
+| Kael (warrior) | Steel #A8D8FF, azure #4F8DFF, white | Crescent slashes, steel-plate shield, a blade of light falling on his ultimate |
+| Magnus | Fire #FF7A1A, hot #FFC04A, amber ward #FFB347 | Flames, fire gathering before the fireball, hex ward, a meteor |
+| Elara | Holy #FFE9A8, white, sky #8FD6FF, teal wind | Rays and petals of light (no pillars), a ward of petals, leaves in the wind |
+| Gorath | Stone #A08C74, molten #FF8A2A, dust, roar red #FF5A3A | Rocks bursting from the ground, a ring-of-stones shield, orbiting rocks, echoing roar rings |
+| Vex | Ink #16131F, moonlit steel #D6ECFF, crimson #FF3B6B, cherry petals | Straight cuts (an X on the shuriken's hit, a flash step), ink smoke, circling blades |
+| Vile | Void #2A0D3D, violet #A35CFF, soul green #5CFFD0 | Thorny roots, soul flames (wisps), darkness |
+| Lume | White, warm #FFD27A, prism cyan #9FF3FF and pink #FFB0F0 | Crystals of light, rays, the one pillar of light (her ultimate) |
 
 ## Effect Types
 
@@ -435,8 +441,12 @@ case GameEventType.ABILITY_CAST: {
    `CHAMPION_DEFINITIONS` as `abilityId`. For a new champion, create that file
    and import it from `src/vfx/champions/index.ts`.
 2. Build the effects from `src/vfx/recipes.ts` and layer them: a core (slash,
-   ring, pillar), secondary motion (sparks, flames, smoke, debris), and what it
-   leaves on the ground (light pool, scorch).
+   ring, spikes, rays), secondary motion (sparks, flames, smoke, rocks), and
+   what it leaves on the ground (light pool, scorch). Keep to the champion's
+   colors and shapes (see [Champion Color Palettes](#champion-color-palettes)).
+   An area with an `aoeDelay` gets a `warning()` lasting `landsAt(abilityId)`
+   and its impact at that delay; a skillshot gets power gathering (`gather()`)
+   until its projectile keyframe.
 3. A skillshot's explosion goes in `<abilityId>_impact`; its projectile's look
    in `PROJECTILE_STYLES` (`src/gpu/fx/projectiles.ts`).
 4. Tune it in the VFX lab (`/vfx-lab.html?only=<abilityId>&speed=0.3`), then in a match.

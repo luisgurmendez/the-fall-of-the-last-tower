@@ -16,7 +16,9 @@ import {
   light,
   phase,
   pillar,
+  rays,
   ring,
+  rocks,
   scorch,
   shockwave,
   sigil,
@@ -97,13 +99,13 @@ registerAbilityVFX({
   ],
 });
 
-// Arriving from a recall: light collapsing onto the spot
+// Arriving from a recall: light collapsing onto the spot, then rays of it
 registerAbilityVFX({
   abilityId: WORLD_VFX.RECALL_ARRIVE,
   phases: [
     phase('arrive', 0, 'caster', [
       ring('#9fd8ff', 50, 5, 0.35, 3),
-      pillar('#9fd8ff', 150, 8, 0.4, '#ffffff'),
+      rays('#9fd8ff', 80, 0.5, 12),
       twinkles('#e0f7ff', 6, [20, 60]),
       light('#9fd8ff', 70, 0.8, 0.5),
     ], 0.6),
@@ -177,7 +179,7 @@ function registerMonsterSlam(
         shockwave(color, attack.radius * 0.3, attack.radius * 1.05, 0.35, 10),
         scorch('#2a2018', attack.radius * 0.8, 1.6, 0.4),
         smoke(dustColor, 12, [14, 24], [60, 170]),
-        debris('#5d4037', 14, [100, 220]),
+        rocks('#6a5a4a', 12, [100, 220]),
         sparks(color, 10, [150, 300]),
         light(color, attack.radius * 1.2, 0.8, 0.4),
       ], 0.8),

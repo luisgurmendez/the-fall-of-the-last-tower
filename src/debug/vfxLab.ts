@@ -8,7 +8,8 @@
  * Query options: ?only=magnus (ids containing the text), ?zoom=1.4 (screen
  * pixels per world unit), ?period=2.5 (seconds between casts),
  * ?x=0&y=-700 (where on the map the grid sits), ?speed=0.25 (slow motion),
- * ?kind=projectile (or ability, zone, aura).
+ * ?kind=projectile (or ability, zone, aura), ?pause=0.6 (freeze 0.6 seconds
+ * after the first cast, for a screenshot of that moment).
  */
 
 import { getAllRegisteredVFX } from "@/vfx/VFXRegistry";
@@ -28,6 +29,8 @@ const originX = Number(params.get("x") ?? -150);
 const originY = Number(params.get("y") ?? -620);
 const speed = Number(params.get("speed") ?? 1);
 const onlyKind = params.get("kind");
+const pauseAt = params.has("pause") ? Number(params.get("pause")) : null;
+let firstCast: number | null = null;
 
 // Slow motion: the effects read performance.now(), so the lab runs its own clock
 const realNow = performance.now.bind(performance);
@@ -62,7 +65,7 @@ const ids: Array<{ id: string; kind: Cell["kind"] }> = [
 
 const canvas = document.getElementById("lab") as HTMLCanvasElement;
 const ctx = canvas.getContext("2d")!;
-const columns = Math.max(1, Math.floor((window.innerWidth / zoom) / CELL_W));
+const columns = Math.max(1, Math.min(ids.length, Math.floor((window.innerWidth / zoom) / CELL_W)));
 const cells: Cell[] = ids.map(({ id, kind }, index) => {
   const col = index % columns;
   const row = Math.floor(index / columns);
@@ -89,7 +92,9 @@ window.addEventListener("wheel", (event) => {
 
 function frame(): void {
   const real = realNow();
-  labTime += (real - lastReal) * speed;
+  const frozen = pauseAt !== null && firstCast !== null && labTime - firstCast >= pauseAt * 1000;
+  // Small steps up to the pause, so particles move as they would
+  labTime += frozen ? 0 : Math.min((real - lastReal) * speed, pauseAt !== null ? 16 : Infinity);
   lastReal = real;
   const now = labTime;
   const dt = Math.min(0.1, (now - lastFrame) / 1000);
@@ -99,8 +104,9 @@ function frame(): void {
     canvas.height = window.innerHeight;
   }
 
-  if (now - lastCast > period * 1000) {
+  if (now - lastCast > period * 1000 && !frozen) {
     lastCast = now;
+    firstCast ??= now;
     for (const cell of cells) {
       if (cell.kind === "ability") vfx.spawnAbilityVFX(cell.id, cell.casterX, cell.casterY, cell.targetX, cell.targetY, cell.id);
     }

@@ -52,6 +52,7 @@ const VIOLET = fxColor("#a35cff");
 const VOID = fxColor("#2a0d3d");
 const GOLD = fxColor("#ffd45a");
 const SPIT = fxColor("#8be04a");
+const CRIMSON = fxColor("#ff3b6b");
 
 /** A fireball: a churning core, a halo, and flames left behind that burn off */
 function fireball(radius: number, core: RGB, edge: RGB): Style {
@@ -86,14 +87,13 @@ export const PROJECTILE_STYLES: Record<string, Style> = {
   magnus_fireball: fireball(12, fxColor("#ff9a3a"), FIRE),
   dragon_fire: fireball(10, FIRE, FIRE_DEEP),
 
-  // A spinning star of steel and violet light
-  vex_shuriken: (batch, id, x, y, angle, time) => {
+  // A spinning star of moonlit steel, a crimson streak behind it
+  vex_shuriken: (batch, id, x, y, _angle, time) => {
     const points = trailOf(id, x, y, time, 6);
-    batch.ribbon(points, 5, VIOLET, 1.1);
-    batch.glow(x, y, 26, VIOLET, 0.7, 0.2, 0.6);
-    batch.flare(x, y, 18, fxColor("#e8dcff"), 1.6, time * 22);
-    batch.flare(x, y, 12, VIOLET, 1.2, time * 22 + Math.PI / 4);
-    void angle;
+    batch.ribbon(points, 4, CRIMSON, 1.1);
+    batch.glow(x, y, 22, CRIMSON, 0.5, 0.2, 0.6);
+    batch.flare(x, y, 18, fxColor("#e8f2ff"), 1.7, time * 22);
+    batch.flare(x, y, 12, fxColor("#a8c8ff"), 1.1, time * 22 + Math.PI / 4);
   },
 
   // A bolt of shadow: dark smoke behind, violet light at the tip
