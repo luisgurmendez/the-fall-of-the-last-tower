@@ -51,7 +51,7 @@ const VEX_BASE_STATS: ChampionBaseStats = {
   attackRange: 55, // Melee
   armor: 28,
   magicResist: 30,
-  movementSpeed: 124, // High mobility assassin
+  movementSpeed: 105, // High mobility assassin
   critChance: 0,
   critDamage: 2.0,
 };
@@ -82,7 +82,7 @@ export const VexShuriken: AbilityDefinition = {
   manaCost: [30, 30, 30, 30, 30], // Energy-based, low cost
   cooldown: [6, 5.5, 5, 4.5, 4],
   range: 380,
-  projectileSpeed: 600,
+  projectileSpeed: 460,
   projectileRadius: 20,
   shape: "line",
   damage: {

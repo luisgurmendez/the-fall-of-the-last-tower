@@ -52,7 +52,7 @@ const VILE_BASE_STATS: ChampionBaseStats = {
   attackRange: 180, // Ranged, becomes melee (55) during R
   armor: 32,
   magicResist: 32,
-  movementSpeed: 121,
+  movementSpeed: 103,
   critChance: 0,
   critDamage: 2.0,
 };
@@ -87,7 +87,7 @@ export const VileBlackArrows: AbilityDefinition = {
   manaCost: [50, 55, 60, 65, 70],
   cooldown: [12, 11, 10, 9, 8],
   range: 360, // Base range, increases with charge up to +280
-  projectileSpeed: 700,
+  projectileSpeed: 540,
   projectileRadius: 24,
   shape: "line",
   damage: {

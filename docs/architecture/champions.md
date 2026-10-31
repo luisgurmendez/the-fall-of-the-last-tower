@@ -40,7 +40,7 @@ a melee unit hits with its body almost touching the target's, and a ranged champ
 is under two seconds of walking. Current values: Vex and Warrior 55, Gorath 60, Vile 180
 (55 during R), Elara 210, Magnus and Lume 220. Minions: melee 44, super 70, siege 140,
 caster 220. Towers 300 (they see 440). Melee monsters 40-60, thornspitter 100, dragon 200.
-Champions walk 116-124 units a second (a little under the classic MOBA's at our scale, as the camera is closer) and see 560; minions walk 104.
+Champions walk 99-105 units a second (under the classic MOBA's at our scale, for a calmer pace with the closer camera) and see 560; minions walk 88.
 
 ## Resource Types
 
@@ -78,7 +78,7 @@ interface ChampionBaseStats {
   magicResist: number;   // Magic damage reduction
 
   // Mobility
-  movementSpeed: number; // Units per second (116-124; minions walk 104)
+  movementSpeed: number; // Units per second (99-105; minions walk 88)
 
   // Critical
   critChance: number;    // 0-1, usually 0 at base
@@ -188,7 +188,7 @@ const warriorDefinition: ChampionDefinition = {
     attackRange: 55,
     armor: 35,
     magicResist: 32,
-    movementSpeed: 121,
+    movementSpeed: 103,
     critChance: 0,
     critDamage: 2.0,
   },

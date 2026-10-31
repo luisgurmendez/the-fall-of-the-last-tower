@@ -51,7 +51,7 @@ const MAGNUS_BASE_STATS: ChampionBaseStats = {
   attackRange: 220, // Ranged
   armor: 20,
   magicResist: 30,
-  movementSpeed: 119,
+  movementSpeed: 101,
   critChance: 0,
   critDamage: 2.0,
 };
@@ -82,7 +82,7 @@ export const MagnusFireball: AbilityDefinition = {
   manaCost: [60, 65, 70, 75, 80],
   cooldown: [8, 7.5, 7, 6.5, 6],
   range: 440,
-  projectileSpeed: 560, // Dodgeable from about 300 range
+  projectileSpeed: 430, // Dodgeable from about 300 range
   projectileRadius: 28,
   shape: "line",
   damage: {
