@@ -4,9 +4,10 @@
  * frame size is a strip's height and the frame count its width over its
  * height.
  *
- * It plays an ability's own strip over that ability's cast animation, the
- * attack strip once per basic attack, the walk strip while moving and the
- * idle strip otherwise, mirrored when the champion faces left.
+ * It plays an ability's own strip over that ability's cast animation (and
+ * holds it mid-motion for as long as that ability's dash lasts), the attack
+ * strip once per basic attack, the walk strip while moving and the idle
+ * strip otherwise, mirrored when the champion faces left.
  */
 
 import type {
@@ -15,6 +16,9 @@ import type {
 } from "@/render/entities/types";
 import { drawSpriteFrame, getSpriteFeet, imageCache } from "@/render/entities/shared";
 import type { ChampionBodyRenderer } from "./types";
+
+/** Where in its ability strip a dashing champion is held */
+const DASH_HOLD_PROGRESS = 0.45;
 
 /** A champion's strips */
 export interface ChampionStrips {
@@ -65,11 +69,16 @@ export function createStripBodyRenderer(
       const entityId = snapshot.entityId;
       const cast = rc.stateManager.isEntityCastingAbility(entityId);
       const abilityStrip = cast.casting && cast.abilityId ? strips.abilities[cast.abilityId] : undefined;
+      const dashStrip = snapshot.isDashing && snapshot.dashAbilityId ? strips.abilities[snapshot.dashAbilityId] : undefined;
 
       let src: string;
       // Where in a one-shot animation we are (0-1), or null to loop
       let progress: number | null = null;
-      if (abilityStrip) {
+      if (dashStrip) {
+        // Mid-dash: hold the ability's frame of motion
+        src = dashStrip;
+        progress = DASH_HOLD_PROGRESS;
+      } else if (abilityStrip) {
         src = abilityStrip;
         progress = rc.stateManager.getAbilityAnimationProgress(entityId);
       } else if (state.isAttacking) {
