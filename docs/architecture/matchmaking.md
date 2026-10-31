@@ -248,7 +248,8 @@ getStats(): { queueSize: number; matchReady: boolean } {
 | `packages/server/src/server.ts` | Integration with server |
 | `src/ui/matchmaking/MatchmakingUI.ts` | Client UI for queue (coordinates the screens below) |
 | `src/ui/matchmaking/matchConnection.ts` | Client connection: sends READY with the champion and mode, buffers state during loading |
-| `src/ui/matchmaking/championSelect.ts`, `queueScreen.ts`, `matchFound.ts` | Champion select, queue and match found screens |
+| `src/ui/matchmaking/championSelect.ts`, `queueScreen.ts` | Champion select and queue screens |
+| `src/ui/matchmaking/matchFound.ts`, `matchAssets.ts` | Loading screen: a card per player (portrait, champion, player or "Bot", summoner spells, loading bar) and a rotating tip, while `preloadMatchAssets` loads the match's champions, structures, minions, monsters, map art and item icons; the bar follows what's loaded, takes at least 1.5s and gives up waiting at 15s |
 
 ## Future Improvements
 

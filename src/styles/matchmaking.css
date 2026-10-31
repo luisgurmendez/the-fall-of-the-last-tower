@@ -334,77 +334,101 @@
 }
 
 /* ============================================ */
-/* Match Found Screen                          */
+/* Match Found Screen: the loading screen      */
 /* ============================================ */
 
-.match-found-title {
-  font-family: var(--pixel-font);
-  font-size: 60px;
-  color: var(--pixel-gold);
-  margin-bottom: 40px;
-  text-shadow: 2px 2px 0 #000;
-  animation: pixel-glow 1s ease-in-out infinite alternate;
+/* The screen has its own header and tip: no menu logo, no bottom tip */
+.matchmaking-container:has(#screen-match-found.active) {
+  padding: 20px;
 }
 
-.teams-display {
+.matchmaking-container:has(#screen-match-found.active) .game-logo,
+.matchmaking-container:has(#screen-match-found.active) .game-title,
+.matchmaking-container:has(#screen-match-found.active) .game-subtitle {
+  display: none;
+}
+
+/* Room for the status bar only */
+#matchmaking-overlay:has(#screen-match-found.active) {
+  padding-bottom: 40px;
+}
+
+#matchmaking-overlay:has(#screen-match-found.active) .tip-text {
+  display: none;
+}
+
+/* Map and mode */
+.loading-header {
+  margin-bottom: 18px;
+}
+
+.loading-map {
+  font-family: var(--pixel-font);
+  font-size: 56px;
+  color: var(--pixel-gold);
+  text-shadow:
+    3px 3px 0 var(--pixel-gold-darker),
+    6px 6px 0 #000;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.loading-mode {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 2px 14px;
+  font-family: var(--pixel-font);
+  font-size: 24px;
+  color: var(--pixel-accent);
+  text-shadow: 2px 2px 0 #000;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  background: var(--pixel-bg-darker);
+  border: 3px solid var(--pixel-border);
+}
+
+.loading-mode:empty {
+  display: none;
+}
+
+/* Teams: side by side (small teams), or blue over red */
+.loading-teams {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 40px;
-  margin-bottom: 40px;
+  gap: 28px;
 }
 
-.team-box {
-  background: var(--pixel-bg-light);
-  border: 4px solid;
-  padding: 30px 50px;
-  min-width: 160px;
-  box-shadow:
-    inset -4px -4px 0 0 var(--pixel-bg-darker),
-    inset 4px 4px 0 0 var(--pixel-border-highlight);
+.loading-teams[data-layout="rows"] {
+  flex-direction: column;
+  gap: 6px;
 }
 
-.team-box.blue {
-  border-color: var(--pixel-team-blue);
-  box-shadow:
-    inset -4px -4px 0 0 #1a5276,
-    inset 4px 4px 0 0 #5dade2,
-    0 0 20px rgba(52, 152, 219, 0.3);
-}
-
-.team-box.red {
-  border-color: var(--pixel-team-red);
-  box-shadow:
-    inset -4px -4px 0 0 #922b21,
-    inset 4px 4px 0 0 #f1948a,
-    0 0 20px rgba(231, 76, 60, 0.3);
-}
-
-.team-label {
+.loading-team-label {
   font-family: var(--pixel-font);
   font-size: 24px;
   text-transform: uppercase;
   letter-spacing: 3px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   text-shadow: 2px 2px 0 #000;
 }
 
-.team-box.blue .team-label {
+.loading-team.blue .loading-team-label {
   color: var(--pixel-team-blue);
 }
 
-.team-box.red .team-label {
+.loading-team.red .loading-team-label {
   color: var(--pixel-team-red);
 }
 
-.team-champion {
-  font-family: var(--pixel-font);
-  font-size: 36px;
-  color: var(--pixel-text);
-  text-shadow: 2px 2px 0 #000;
+.loading-team-cards {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
 }
 
-.vs-text {
+.loading-vs {
   font-family: var(--pixel-font);
   font-size: 52px;
   color: var(--pixel-gold);
@@ -413,45 +437,337 @@
     4px 4px 0 #000;
 }
 
-/* ============================================ */
-/* Loading Bar                                 */
-/* ============================================ */
-
-.loading-section {
-  margin-top: 30px;
+.loading-teams[data-layout="rows"] .loading-vs {
+  font-size: 32px;
+  line-height: 1;
 }
 
-.loading-text {
+/* ============================================ */
+/* Loading Card                                */
+/* ============================================ */
+
+/*
+ * A tall card per player. --art-size is the portrait's size: whole multiples
+ * of its 64px art keep the pixels square.
+ */
+.loading-card {
+  --team: var(--pixel-team-blue);
+  --team-dark: #1a5276;
+  --team-light: #5dade2;
+  --art-size: 192px;
+  box-sizing: border-box;
+  width: calc(var(--art-size) + 36px);
+  padding: 10px 10px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--team) 18%, var(--pixel-bg-light)) 0%,
+    var(--pixel-bg-light) 45%
+  );
+  border: 4px solid var(--team);
+  box-shadow:
+    inset -4px -4px 0 0 var(--team-dark),
+    inset 4px 4px 0 0 var(--team-light);
+  animation: loading-card-in 0.4s ease-out both;
+  animation-delay: calc(var(--card-index, 0) * 90ms);
+}
+
+.loading-card.red {
+  --team: var(--pixel-team-red);
+  --team-dark: #922b21;
+  --team-light: #f1948a;
+}
+
+/* The local player: a gold ring outside the team border */
+.loading-card.local {
+  box-shadow:
+    inset -4px -4px 0 0 var(--team-dark),
+    inset 4px 4px 0 0 var(--team-light),
+    0 0 0 4px var(--pixel-bg-darker),
+    0 0 0 8px var(--pixel-gold-dark),
+    0 0 24px 8px rgba(201, 162, 39, 0.35);
+}
+
+@keyframes loading-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Portrait frame, with the champion's class on its bottom edge */
+.loading-card-frame {
+  position: relative;
+  width: var(--art-size);
+  height: var(--art-size);
+  margin-bottom: 16px;
+  border: 4px solid var(--pixel-bg-darker);
+  box-shadow: 0 0 0 2px var(--team-dark);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--team) 30%, var(--pixel-bg-darker)) 0%,
+    var(--pixel-bg-darker) 100%
+  );
+}
+
+.loading-card-art {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  image-rendering: pixelated;
+}
+
+.loading-card-art canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+/* The champion's initial until the portrait loads */
+.loading-card-art:empty::before {
+  content: attr(data-initial);
   font-family: var(--pixel-font);
-  font-size: 26px;
-  color: var(--pixel-text-dim);
-  margin-bottom: 15px;
+  font-size: calc(var(--art-size) / 2);
+  color: var(--pixel-border-highlight);
+  text-shadow: 4px 4px 0 #000;
+}
+
+.loading-card-class {
+  position: absolute;
+  left: 50%;
+  bottom: -14px;
+  transform: translateX(-50%);
+  padding: 0 8px;
+  font-family: var(--pixel-font);
+  font-size: 18px;
+  line-height: 20px;
+  color: var(--pixel-accent);
+  text-shadow: 1px 1px 0 #000;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  white-space: nowrap;
+  background: var(--pixel-bg-darker);
+  border: 2px solid var(--pixel-border);
+}
+
+.loading-card-champion,
+.loading-card-title,
+.loading-card-player-name {
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.loading-card-champion {
+  font-family: var(--pixel-font);
+  font-size: 36px;
+  line-height: 1.1;
+  color: var(--pixel-gold);
   text-shadow: 2px 2px 0 #000;
 }
 
-.loading-bar-container {
-  width: 100%;
-  max-width: 400px;
-  height: 16px;
-  background: var(--pixel-bg-darker);
-  border: 4px solid var(--pixel-border);
-  margin: 0 auto;
-  overflow: hidden;
+.loading-card-title {
+  min-height: 1.2em;
+  font-family: var(--pixel-font);
+  font-size: 20px;
+  line-height: 1.2;
+  font-style: italic;
+  color: var(--pixel-text-dim);
+  text-shadow: 1px 1px 0 #000;
 }
 
-.loading-bar {
-  height: 100%;
-  background: var(--pixel-gold);
+/* Summoner spells and player name */
+.loading-card-player {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 3px solid var(--pixel-border);
+}
+
+/* Room for two 24px spell icons; hidden while there are none */
+.loading-card-spells {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.loading-card-spells:empty {
+  display: none;
+}
+
+.loading-card-spell {
+  box-sizing: border-box;
+  width: 24px;
+  height: 24px;
+  font-family: var(--pixel-font);
+  font-size: 18px;
+  line-height: 20px;
+  text-align: center;
+  color: var(--pixel-text-dim);
+  background: var(--pixel-bg-darker);
+  border: 2px solid var(--pixel-border-highlight);
+  image-rendering: pixelated;
+}
+
+.loading-card-player-name {
+  font-family: var(--pixel-font);
+  font-size: 24px;
+  color: var(--pixel-text);
+  text-shadow: 2px 2px 0 #000;
+}
+
+.loading-card.local .loading-card-player-name {
+  color: var(--pixel-gold);
+}
+
+/* Loading bar and percentage */
+.loading-card-progress {
+  box-sizing: border-box;
+  width: 100%;
+  height: 14px;
+  margin-top: 10px;
+  background: var(--pixel-bg-darker);
+  border: 3px solid var(--pixel-border);
+}
+
+.loading-card-progress-fill {
   width: 0%;
-  transition: width 0.3s ease-out;
-  /* Pixel-style progress bar with segments */
+  height: 100%;
   background-image: repeating-linear-gradient(
     90deg,
-    var(--pixel-gold) 0px,
-    var(--pixel-gold) 8px,
-    var(--pixel-gold-dark) 8px,
-    var(--pixel-gold-dark) 10px
+    var(--team-light) 0px,
+    var(--team-light) 6px,
+    var(--team) 6px,
+    var(--team) 8px
   );
+  transition: width 0.1s linear;
+}
+
+.loading-card.ready .loading-card-progress-fill {
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--pixel-health) 0px,
+    var(--pixel-health) 6px,
+    #1e8449 6px,
+    #1e8449 8px
+  );
+}
+
+.loading-card-percent {
+  margin-top: 4px;
+  font-family: var(--pixel-font);
+  font-size: 22px;
+  line-height: 1;
+  color: var(--pixel-text-dim);
+  text-shadow: 2px 2px 0 #000;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.loading-card.ready .loading-card-percent {
+  color: var(--pixel-health);
+}
+
+/* Big teams: smaller cards, each team's label beside its row */
+.loading-teams[data-layout="rows"] .loading-team {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+
+.loading-teams[data-layout="rows"] .loading-team-label {
+  margin: 0;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+.loading-teams[data-layout="rows"] .loading-card {
+  --art-size: 96px;
+}
+
+.loading-teams[data-layout="rows"] .loading-card-champion {
+  font-size: 28px;
+}
+
+.loading-teams[data-layout="rows"] .loading-card-title {
+  font-size: 18px;
+}
+
+.loading-teams[data-layout="rows"] .loading-card-player {
+  gap: 4px;
+}
+
+.loading-teams[data-layout="rows"] .loading-card-player-name {
+  font-size: 20px;
+}
+
+@media (min-height: 1080px) {
+  .loading-teams[data-layout="rows"] .loading-card {
+    --art-size: 128px;
+  }
+}
+
+/* Short or narrow windows */
+@media (max-height: 820px), (max-width: 1100px) {
+  .loading-teams[data-layout="side"] .loading-card {
+    --art-size: 128px;
+  }
+
+  .loading-map {
+    font-size: 44px;
+  }
+}
+
+/* ============================================ */
+/* Loading Status and Tip                      */
+/* ============================================ */
+
+.loading-footer {
+  margin-top: 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.loading-status {
+  font-family: var(--pixel-font);
+  font-size: 26px;
+  color: var(--pixel-text-dim);
+  text-shadow: 2px 2px 0 #000;
+  animation: pixel-pulse 1.4s steps(2) infinite;
+}
+
+.loading-tip {
+  max-width: 640px;
+  padding: 6px 18px;
+  font-family: var(--pixel-font);
+  font-size: 24px;
+  color: var(--pixel-text);
+  text-shadow: 2px 2px 0 #000;
+  background: var(--pixel-bg-dark);
+  border: 3px solid var(--pixel-border);
+  box-shadow: inset 2px 2px 0 0 var(--pixel-border-highlight);
+}
+
+.loading-tip:empty {
+  display: none;
 }
 
 /* ============================================ */

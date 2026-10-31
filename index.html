@@ -89,23 +89,25 @@
 
       <!-- Match Found Screen -->
       <div class="mm-screen" id="screen-match-found">
-        <div class="match-found-title">⚔️ MATCH FOUND ⚔️</div>
-        <div class="teams-display">
-          <div class="team-box blue">
-            <div class="team-label">Blue Team</div>
-            <div class="team-champion" id="blue-champion">Warrior</div>
+        <div class="loading-header">
+          <div class="loading-map" id="loading-map">Siege Arena</div>
+          <div class="loading-mode" id="loading-mode"></div>
+        </div>
+        <!-- Player cards are added by src/ui/matchmaking/matchFound.ts -->
+        <div class="loading-teams" id="loading-teams" data-layout="side">
+          <div class="loading-team blue">
+            <div class="loading-team-label">Blue Team</div>
+            <div class="loading-team-cards" id="loading-blue-team"></div>
           </div>
-          <div class="vs-text">VS</div>
-          <div class="team-box red">
-            <div class="team-label">Red Team</div>
-            <div class="team-champion" id="red-champion">Warrior</div>
+          <div class="loading-vs">VS</div>
+          <div class="loading-team red">
+            <div class="loading-team-label">Red Team</div>
+            <div class="loading-team-cards" id="loading-red-team"></div>
           </div>
         </div>
-        <div class="loading-section">
-          <div class="loading-text">Loading game...</div>
-          <div class="loading-bar-container">
-            <div class="loading-bar" id="loading-bar"></div>
-          </div>
+        <div class="loading-footer">
+          <div class="loading-status" id="loading-status">Loading match...</div>
+          <div class="loading-tip" id="loading-tip"></div>
         </div>
       </div>
 

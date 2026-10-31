@@ -17,7 +17,8 @@
  * - abilityCards.ts, abilityText.ts: ability and passive cards; their
  *   tooltip text and scaling previews
  * - queueScreen.ts: queue timer, position and size
- * - matchFound.ts: each team's champion and the loading bar
+ * - matchFound.ts, matchAssets.ts: the loading screen (a card per player)
+ *   and the art it preloads for the match
  * - matchConnection.ts: NetworkClient setup, player ID and session token,
  *   and the full state and updates buffered for OnlineGame
  * - tips.ts: rotating gameplay tips
@@ -349,8 +350,8 @@ export class MatchmakingUI {
     // Show match found screen
     this.showScreen("match-found");
 
-    // Start loading animation
-    this.matchFound.startLoadingAnimation(() => this.startGame());
+    // Preload the match's art; the game starts once it's loaded
+    this.matchFound.startLoading(() => this.startGame());
   }
 
   /**
