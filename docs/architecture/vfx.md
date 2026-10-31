@@ -75,7 +75,7 @@ How config types look on the GPU:
 | `screen_shake` | The camera shakes (`src/core/screenShake.ts`), in the 2D fallback too |
 | `ground_light`, `decal`, `lightning`, `swirl`, `spikes`, `rays`, `meteor`, `cut` | GPU only (the 2D fallback skips them) |
 
-**Lume's Light Orb** (`src/gpu/fx/lightOrb.ts`): a ball of warm light hovering over its glow on the ground, with a ribbon and prism sparkles behind it while it travels and slow rays while it hangs at a spot; a dim ember while it respawns.
+**Lume's Light Orb** (`src/gpu/fx/lightOrb.ts`): a ball of warm light hovering over its glow on the ground, with a ribbon and sparkles behind it while it travels and slow rays while it hangs at a spot; a dim ember while it respawns. Its ball has a solid gold core under a small halo: light alone takes the color of what's under it, so a big halo made the orb look green over grass and white over water.
 
 **Projectile impacts:** when a projectile is destroyed, `entityVFX.ts` spawns the VFX registered as `<projectile type>_impact` (e.g. `magnus_fireball_impact`) where it was, so explosions happen where the projectile actually hits.
 
