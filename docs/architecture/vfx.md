@@ -68,10 +68,11 @@ How config types look on the GPU:
 | `shield_bubble` | By `style`: `hex` (default), `plates`, `holy`, `stone` (with `glowColor` in the cracks) |
 | `orbiting_particles` | By `style`: motes with short tails (default), tumbling `rock`s, spinning `blade`s, `wisp`s |
 | `dash_afterimage` | Glows joined by a streak |
-| `spikes` | Rocks, crystals or thorny roots bursting out of the ground in a ring or over a circle, rippling outward, then sinking |
+| `spikes` | Rocks, crystals, thorny roots or lava geysers bursting out of the ground in a ring, over a circle, or along fissures running out from the anchor (`pattern: 'lines'`, glowing cracks with the spikes rising one after another along them), then sinking |
 | `rays` | Rays of light bursting out, or with `converge`, gathering in |
 | `meteor` | A flaming rock (with its shadow growing on the ground) or a blade of light falling onto the anchor over the effect's life |
 | `cut` | Straight cuts across the anchor at `angles` from the aim, or with `path`, along a dash |
+| `screen_shake` | The camera shakes (`src/core/screenShake.ts`), in the 2D fallback too |
 | `ground_light`, `decal`, `lightning`, `swirl`, `spikes`, `rays`, `meteor`, `cut` | GPU only (the 2D fallback skips them) |
 
 **Projectile impacts:** when a projectile is destroyed, `entityVFX.ts` spawns the VFX registered as `<projectile type>_impact` (e.g. `magnus_fireball_impact`) where it was, so explosions happen where the projectile actually hits.
@@ -203,7 +204,7 @@ Each champion has its own colors and its own shapes, so two champions' effects n
 | Kael (warrior) | Steel #A8D8FF, azure #4F8DFF, white | Crescent slashes, steel-plate shield, a blade of light falling on his ultimate |
 | Magnus | Fire #FF7A1A, hot #FFC04A, amber ward #FFB347 | Flames, fire gathering before the fireball, hex ward, a meteor |
 | Elara | Holy #FFE9A8, white, sky #8FD6FF, teal wind | Rays and petals of light (no pillars), a ward of petals, leaves in the wind |
-| Gorath | Stone #A08C74, molten #FF8A2A, dust, roar red #FF5A3A | Rocks bursting from the ground, a ring-of-stones shield, orbiting rocks, echoing roar rings |
+| Gorath | Stone #A08C74, molten #FF8A2A, dust, roar red #FF5A3A | Slam: fissures running out with rocks along them. Earthquake: a ring of pillars at the edge, lava geysers, the camera shaking. A ring-of-stones shield, orbiting rocks, echoing roar rings |
 | Vex | Ink #16131F, moonlit steel #D6ECFF, crimson #FF3B6B, cherry petals | Straight cuts (an X on the shuriken's hit, a flash step), ink smoke, circling blades |
 | Vile | Void #2A0D3D, violet #A35CFF, soul green #5CFFD0 | Thorny roots, soul flames (wisps), darkness |
 | Lume | White, warm #FFD27A, prism cyan #9FF3FF and pink #FFB0F0 | Crystals of light, rays, the one pillar of light (her ultimate) |

@@ -26,6 +26,7 @@
 
 import type { OnlineStateManager } from '@/core/OnlineStateManager';
 import type { FXBatch } from '@/gpu/fx/FXBatch';
+import { shakeScreen } from '@/core/screenShake';
 import {
   getGlobalParticlePool,
   type VFXParticlePool,
@@ -273,6 +274,8 @@ export class VFXManager {
       );
     } else if (config.type === 'screen_flash') {
       this.screenFlash = createScreenFlash(config as ScreenFlashConfig, startTime);
+    } else if (config.type === 'screen_shake') {
+      shakeScreen(config.intensity, config.duration);
     }
   }
 

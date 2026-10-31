@@ -221,29 +221,64 @@ function meteorAt(config: MeteorConfig, x: number, y: number, t: number): { x: n
   return { x: x - across * (1 - drop), y: y - config.height * (1 - drop) };
 }
 
+/** The direction of a fissure of the 'lines' pattern */
+const fissureAngle = (line: number, lines: number, seed: number) => (line / lines) * Math.PI * 2 + random(seed, line) * 0.8;
+
+/** Where the ith spike stands, and how far out (0-1) it is */
+function spikeAt(config: SpikesConfig, i: number, x: number, y: number, seed: number): { px: number; py: number; reach: number } {
+  let angle: number;
+  let reach: number;
+  if (config.pattern === 'ring') {
+    angle = (i / config.count) * Math.PI * 2 + random(seed, i) * 0.4;
+    reach = 1;
+  } else if (config.pattern === 'lines') {
+    // Spread over the lines, each a little crooked, from near the center out
+    const lines = config.lines ?? 5;
+    const line = i % lines;
+    const perLine = Math.ceil(config.count / lines);
+    reach = (Math.floor(i / lines) + 0.6 + random(seed, i * 17) * 0.3) / perLine;
+    angle = fissureAngle(line, lines, seed) + (random(seed, i * 19) - 0.5) * 0.1;
+  } else {
+    angle = random(seed, i * 3) * Math.PI * 2;
+    reach = Math.sqrt(random(seed, i * 3 + 1));
+  }
+  return { px: x + Math.cos(angle) * config.radius * reach, py: y + Math.sin(angle) * config.radius * reach * 0.8, reach };
+}
+
 /**
  * Spikes bursting out of the ground: each rises fast a little after the
- * last (outward from the center), stands, and sinks back at the end.
+ * last (outward from the center; along fissures, one after another),
+ * stands, and sinks back at the end. Geysers are tongues of lava shooting
+ * up and burning out.
  */
 function emitSpikes(batch: FXBatch, config: SpikesConfig, x: number, y: number, progress: number, seed: number): void {
   const color = fxColor(config.color);
   const glow = config.glowColor ? fxColor(config.glowColor) : ROCK_GLOW;
-  for (let i = 0; i < config.count; i++) {
-    let px: number;
-    let py: number;
-    let reach: number;
-    if (config.pattern === 'ring') {
-      const angle = (i / config.count) * Math.PI * 2 + random(seed, i) * 0.4;
-      px = x + Math.cos(angle) * config.radius;
-      py = y + Math.sin(angle) * config.radius * 0.8;
-      reach = 1;
-    } else {
-      const angle = random(seed, i * 3) * Math.PI * 2;
-      reach = Math.sqrt(random(seed, i * 3 + 1));
-      px = x + Math.cos(angle) * config.radius * reach;
-      py = y + Math.sin(angle) * config.radius * reach * 0.8;
+  if (config.pattern === 'lines') {
+    // The fissures: cracks of glowing rock running out ahead of the spikes
+    const lines = config.lines ?? 5;
+    for (let line = 0; line < lines; line++) {
+      const angle = fissureAngle(line, lines, seed);
+      const ex = x + Math.cos(angle) * config.radius;
+      const ey = y + Math.sin(angle) * config.radius * 0.8;
+      batch.cut(x, y, ex, ey, 3.5, progress, glow, 1.1, 3.3);
     }
-    const start = reach * 0.07 + random(seed, i * 7) * 0.04;
+  }
+  for (let i = 0; i < config.count; i++) {
+    const { px, py, reach } = spikeAt(config, i, x, y, seed);
+    const spread = config.pattern === 'lines' ? 0.3 : 0.07;
+    const start = reach * spread + random(seed, i * 7) * (config.style === 'geyser' ? 0.35 : 0.04);
+    if (config.style === 'geyser') {
+      const age = (progress - start) / 0.45;
+      if (age <= 0 || age >= 1) continue;
+      const height = config.length.min + (config.length.max - config.length.min) * random(seed, i * 5);
+      const size = height * 0.4 * (0.6 + 0.4 * Math.sin(Math.min(1, age * 3) * Math.PI / 2));
+      // A column: a wide tongue at the base and a thinner one shooting above it
+      batch.glow(px, py, height * 0.7, color, 0.45 * (1 - age), 0, 0, 0.6, random(seed, i));
+      batch.flame(px, py - size * 0.6, size, color, 1.7, age, 0.7, 4, random(seed, i * 23), 1);
+      batch.flame(px, py - size * 1.7, size * 0.7, color, 1.5, Math.min(1, age + 0.15), 0.5, 5, random(seed, i * 29), 1);
+      continue;
+    }
     const t = (progress - start) / 0.1;
     if (t <= 0) continue;
     // Overshoot a little as it bursts out, then sink over the last quarter

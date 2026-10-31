@@ -41,7 +41,8 @@ export type VFXEffectType =
   | 'spikes'
   | 'rays'
   | 'meteor'
-  | 'cut';
+  | 'cut'
+  | 'screen_shake';
 
 /**
  * How a particle looks. Flames burn away into smoke, smoke is a puff that
@@ -294,20 +295,33 @@ export interface SwirlConfig {
 
 /**
  * Spikes bursting out of the ground and sinking back (GPU only): rocks,
- * crystals of light or thorny roots, in a ring around the anchor or
- * scattered over a circle.
+ * crystals of light, thorny roots or geysers of lava, in a ring around the
+ * anchor, scattered over a circle, or along lines running out from the
+ * anchor (fissures, rising one after another outward).
  */
 export interface SpikesConfig {
   type: 'spikes';
-  style: 'rock' | 'crystal' | 'thorn';
+  style: 'rock' | 'crystal' | 'thorn' | 'geyser';
   color: string;
   /** Rocks: the glow at their base. Thorns: their veins */
   glowColor?: string;
   count: number;
   /** The ring's radius, or the circle they're scattered over */
   radius: number;
-  pattern: 'ring' | 'area';
+  pattern: 'ring' | 'area' | 'lines';
+  /** How many lines for the 'lines' pattern (default 5) */
+  lines?: number;
   length: { min: number; max: number };
+  duration: number;
+}
+
+/**
+ * The camera shakes (the shake decays over `duration`; `intensity` is the
+ * largest offset in world units).
+ */
+export interface ScreenShakeConfig {
+  type: 'screen_shake';
+  intensity: number;
   duration: number;
 }
 
@@ -379,7 +393,8 @@ export type VFXEffectConfig =
   | SpikesConfig
   | RaysConfig
   | MeteorConfig
-  | CutConfig;
+  | CutConfig
+  | ScreenShakeConfig;
 
 /**
  * Complete VFX definition for an ability.

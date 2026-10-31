@@ -21,6 +21,7 @@ import type {
   MeteorConfig,
   ParticleBurstConfig,
   RaysConfig,
+  ScreenShakeConfig,
   RisingParticlesConfig,
   ShockwaveConfig,
   SpikesConfig,
@@ -158,9 +159,14 @@ export function wisps(color: string, count: number, speed: [number, number] = [6
   return { type: 'particle_burst', count, color, size: range(4, 6), speed: range(...speed), lifetime: range(0.5, 0.9), spread: Math.PI * 2, friction: 1.5, gravity: -40, particleType: 'wisp', ...extra };
 }
 
-/** Spikes bursting out of the ground: rocks, crystals of light or thorny roots */
+/** Spikes bursting out of the ground: rocks, crystals of light, thorny roots or geysers of lava */
 export function spikes(style: SpikesConfig['style'], color: string, count: number, radius: number, pattern: SpikesConfig['pattern'], length: [number, number], duration: number, glowColor?: string): SpikesConfig {
   return { type: 'spikes', style, color, glowColor, count, radius, pattern, length: range(...length), duration };
+}
+
+/** The camera shakes, by up to `intensity` world units, decaying over `duration` */
+export function shake(intensity: number, duration: number): ScreenShakeConfig {
+  return { type: 'screen_shake', intensity, duration };
 }
 
 /** Rays of light bursting out (or with `converge`, gathering in) */
