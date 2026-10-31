@@ -1,9 +1,9 @@
 /**
  * ChampionRecall - Channel back to base.
  *
- * Recall can start out of combat while alive. It is cancelled by moving,
- * attack orders and entering combat (ServerChampion calls cancelRecall()),
- * and by death. After GameConfig.TIMING.RECALL_DURATION seconds the
+ * Recall can start any time while alive, even in combat (like the classic
+ * MOBA). It is cancelled by moving, attack orders, dealing or taking damage
+ * (ServerChampion.enterCombat calls cancelRecall()), and by death. After GameConfig.TIMING.RECALL_DURATION seconds the
  * champion teleports to its base with full health and resource.
  *
  * The state (isRecalling, recallProgress) stays on the champion for
@@ -21,7 +21,7 @@ export class ChampionRecall {
    */
   start(): boolean {
     const champion = this.champion;
-    if (champion.isRecalling || champion.isDead || champion.inCombat) {
+    if (champion.isRecalling || champion.isDead) {
       return false;
     }
     champion.isRecalling = true;

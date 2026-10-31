@@ -50,7 +50,7 @@ Without WebGL2, `MOBABackground` pre-renders the ground into a canvas from three
 
 - **Collision.** Each tick, after unit collisions, champions, minions and jungle creatures are pushed out of walls and the water (`resolveCircle`). Dashes and knockbacks therefore stop at walls. Projectiles and skillshots fly over walls.
 - **Pathfinding.** A `MOVE` input calls `context.moveChampion()`. If the straight line is clear the champion walks straight. Otherwise A* runs on `ServerNavGrid` (25-unit cells, walls and the two nexus footprints inflated by 30 units so paths don't hug cliffs, binary-heap open set; a cross-map path takes a few ms), and the path is smoothed by line of sight. A destination inside a wall is replaced by the nearest walkable point. If the champion is already there, the order just stops it (`findPath` returns `[]`); it doesn't push into the wall.
-- **Following.** `PathFollower` hands the champion one waypoint at a time as a normal move target. A stop, attack, dash or new command (anything that changes the move target) ends the path. Recalling stops the champion.
+- **Following.** `PathFollower` hands the champion one waypoint at a time as a normal move target. A stop, attack, dash or new command (anything that changes the move target) ends the path. Recalling stops the champion right away.
 - **Minions** follow their lane paths, which stay clear of walls, and slide along walls when chasing.
 - **Jungle creatures** also slide along walls; they walk home when leashed.
 

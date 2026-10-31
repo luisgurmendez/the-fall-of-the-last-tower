@@ -474,7 +474,7 @@ on him; his renderer draws him 30% bigger with a pulsing violet glow. Champions 
 | `ChampionAbilities.ts` | Ability leveling (R at 6/11/16), cooldown/cast/recast-window ticking, recasts, ability projectiles scheduled at an animation keyframe | recast hit positions, ability animation scheduler | `levelUpAbility`, `scheduleAbilityProjectile`, `enableRecast`, `hasRecastAvailable`, `getRecastHitPosition`, `consumeRecast` |
 | `ChampionTransform.ts` | Timed transforms (Vile's R): attack range override and damage aura | transform clock, range override, aura | `setTransformAttackRange`, `startTransformAura`, `getAttackRange`, `isTransformed`, `updateTransformAura` |
 | `ChampionForcedMovement.ts` | Dashes and knockbacks, dash hit detection (function `updateForcedMovement`) | none | (internal, from `update`) |
-| `ChampionRecall.ts` | Recall channel and teleport to base | none | `startRecall`, `cancelRecall` |
+| `ChampionRecall.ts` | Recall channel and teleport to base: B stops the champion and starts it any time while alive, even in combat; moving, attacking or dealing or taking damage cancel it | none | `startRecall`, `cancelRecall` |
 | `ChampionTrinket.ts` | Ward charges, cooldown and recharge | none | `canPlaceWard`, `consumeTrinketCharge`, `getTrinketRechargeProgress` |
 | `ChampionInventory.ts` | Buying and selling items | none | `buyItem`, `sellItem`, `hasItem` |
 | `ChampionSnapshot.ts` | Network snapshot (function `buildChampionSnapshot`) | none | `toSnapshot` |

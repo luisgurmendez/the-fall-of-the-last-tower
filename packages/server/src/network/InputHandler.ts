@@ -388,16 +388,10 @@ export class InputHandler {
    * Handle recall input.
    */
   private handleRecallInput(champion: ServerChampion, context: ServerGameContext): void {
-    // Recalling means standing still: stop walking (and any path) first
-    const wasMoving = champion.targetPosition !== null;
-    const targetPosition = champion.targetPosition;
-    if (wasMoving) champion.stop();
-    if (champion.startRecall()) {
-      context.pathFollower.clear(champion.id);
-    } else if (targetPosition) {
-      // Couldn't recall (in combat): keep walking
-      champion.targetPosition = targetPosition;
-    }
+    // Recalling means standing still: the champion stops (and drops any path) right away
+    champion.stop();
+    context.pathFollower.clear(champion.id);
+    champion.startRecall();
   }
 
   /**
