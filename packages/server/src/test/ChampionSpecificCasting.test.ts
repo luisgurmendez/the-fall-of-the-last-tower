@@ -331,19 +331,19 @@ describe('Mobility abilities under crowd control', () => {
   test('a rooted champion cannot dash', () => {
     arena.blue.applyEffect('root', 2);
     const start = arena.blue.position.clone();
-    const result = arena.castAbility(arena.blue, 'E', { targetPosition: new Vector(250, 0) });
+    const result = arena.castAbility(arena.blue, 'E', { targetPosition: new Vector(getAbilityDefinition('vex_dash')!.range! * 0.8, 0) });
     expect(result).toEqual({ success: false, failReason: 'rooted' });
     expect(arena.blue.position.distanceTo(start)).toBe(0);
   });
 
   test('a grounded champion cannot dash', () => {
     arena.blue.applyEffect('grounded', 2);
-    const result = arena.castAbility(arena.blue, 'E', { targetPosition: new Vector(250, 0) });
+    const result = arena.castAbility(arena.blue, 'E', { targetPosition: new Vector(getAbilityDefinition('vex_dash')!.range! * 0.8, 0) });
     expect(result.failReason).toBe('rooted');
   });
 
   test('a champion free to move can dash', () => {
-    const result = arena.castAbility(arena.blue, 'E', { targetPosition: new Vector(250, 0) });
+    const result = arena.castAbility(arena.blue, 'E', { targetPosition: new Vector(getAbilityDefinition('vex_dash')!.range! * 0.8, 0) });
     expect(result.success).toBe(true);
   });
 });

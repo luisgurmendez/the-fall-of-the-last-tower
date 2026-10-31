@@ -23,12 +23,12 @@ import type { BushManager, BushGroup } from '@/vision';
  * Note: Minions have type-specific sight ranges looked up from DEFAULT_MINION_STATS.
  */
 const SIGHT_RANGES: Record<number, number> = {
-  [EntityType.CHAMPION]: GameConfig.VISION.CHAMPION_SIGHT_RANGE, // 800
+  [EntityType.CHAMPION]: GameConfig.VISION.CHAMPION_SIGHT_RANGE,
   [EntityType.MINION]: DEFAULT_MINION_STATS.melee.sightRange, // Fallback - actual lookup by minionType below
   [EntityType.TOWER]: DEFAULT_TOWER_STATS[1].sightRange, // Same as the server (FogOfWarServer)
-  [EntityType.NEXUS]: 1000,
+  [EntityType.NEXUS]: 440,
   [EntityType.JUNGLE_CAMP]: 400,
-  [EntityType.WARD]: GameConfig.VISION.WARD_SIGHT_RANGE, // 900
+  [EntityType.WARD]: GameConfig.VISION.WARD_SIGHT_RANGE,
   [EntityType.PROJECTILE]: 0, // Projectiles don't provide vision
 };
 

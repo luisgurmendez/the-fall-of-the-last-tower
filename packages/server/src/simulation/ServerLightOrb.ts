@@ -14,6 +14,7 @@ import {
   Vector,
   EntityType,
   Side,
+  LUME_ORB_CONFIG,
   type LightOrbSnapshot,
   type LightOrbState,
 } from '@siege/shared';
@@ -21,24 +22,8 @@ import { ServerEntity, type ServerEntityConfig } from './ServerEntity';
 import type { ServerGameContext } from '../game/ServerGameContext';
 import type { ServerChampion } from './ServerChampion';
 
-// =============================================================================
-// Configuration (duplicated from shared to avoid circular imports)
-// =============================================================================
-
-export const LUME_ORB_CONFIG = {
-  orbitRadius: 60,            // Distance from Lume when orbiting
-  orbitSpeed: 2.0,            // Radians per second
-  travelSpeed: 1200,          // Units per second when traveling
-  stationedDuration: 4.0,     // Seconds before auto-returning
-  passiveAuraRadius: 300,     // Radius for passive effects
-  allySpeedBonus: 0.15,       // 15% movement speed
-  enemyDamageAmp: 0.08,       // 8% increased magic damage from Lume
-  respawnTime: 30.0,          // Seconds to respawn after R
-  qImpactRadius: 150,         // Damage radius on Q arrival
-  wPulseRadius: 300,          // W heal/damage radius
-  eBlindRadius: 200,          // E blind radius on arrival
-  rExplosionRadius: 400,      // R explosion radius
-} as const;
+// The orb's sizes and timings live in the shared Lume definition
+export { LUME_ORB_CONFIG };
 
 // =============================================================================
 // Configuration

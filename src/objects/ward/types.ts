@@ -140,7 +140,7 @@ export const TRINKET_DEFINITIONS: Record<string, TrinketDefinition> = {
     wardType: 'farsight',
     maxCharges: 1,
     rechargeTime: 90,
-    placementRange: 800, // Can place from far away
+    placementRange: 300, // Can place from far away
     cooldown: 1,
   },
 };

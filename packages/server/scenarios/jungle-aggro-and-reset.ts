@@ -3,11 +3,16 @@
  * one wolf (the whole pack fights back), then runs away past the leash (the
  * wolves walk home, can't be hurt on the way, and end at full health).
  */
+import { MOBAConfig } from '@siege/shared';
 import { defineScenario } from '../src/sim';
 import type { ServerJungleCreature } from '../src/simulation/ServerJungleCreature';
 
 const wolves = (sim: Parameters<NonNullable<Parameters<typeof defineScenario>[0]['setup']>>[0]) =>
   sim.context.getAllEntities().filter(e => (e as ServerJungleCreature).campId === 'blue_wolves') as ServerJungleCreature[];
+
+const CAMP = MOBAConfig.JUNGLE.CAMPS.find(camp => camp.id === 'blue_wolves')!.position;
+/** On mid lane, out through the wolves' entrance and well past their leash */
+const ESCAPE = { x: -950, y: 950 };
 
 let damageBeforeAttack = 0;
 let packTargetedChampion = false;
@@ -22,8 +27,8 @@ export default defineScenario({
     damageBeforeAttack = 0;
     packTargetedChampion = false;
     damagedWhileReturning = false;
-    // Next to the wolves (-760, 160)
-    sim.addChampion({ playerId: 'jungler', championId: 'vex', side: 'blue', at: { x: -640, y: 120 }, level: 3 });
+    // Next to the wolves
+    sim.addChampion({ playerId: 'jungler', championId: 'vex', side: 'blue', at: { x: CAMP.x + 120, y: CAMP.y - 40 }, level: 3 });
     sim.onTick(s => {
       const champion = s.champion('jungler');
       const pack = wolves(s);
@@ -39,9 +44,9 @@ export default defineScenario({
   },
   steps: [
     { at: 3, note: 'jungler attacks one wolf', run: sim => sim.attack('jungler', wolves(sim)[0].id) },
-    { at: 6, note: 'jungler runs away toward the top lane', run: sim => sim.move('jungler', -1330, -400) },
+    { at: 6, note: 'jungler runs away to mid lane', run: sim => sim.move('jungler', ESCAPE.x, ESCAPE.y) },
   ],
-  view: { center: { x: -900, y: 0 }, size: 1000 },
+  view: { center: { x: (CAMP.x + ESCAPE.x) / 2, y: (CAMP.y + ESCAPE.y) / 2 }, size: 1200 },
   check(sim, report, expect) {
     expect(damageBeforeAttack === 0, 'wolves should not attack a champion that walks by');
     expect(packTargetedChampion, 'hitting one wolf should make both wolves fight the champion');

@@ -10,11 +10,18 @@
  */
 
 import { describe, test, expect, beforeEach } from 'bun:test';
-import { Vector } from '@siege/shared';
+import { Vector, CHAMPION_DEFINITIONS, getAbilityDefinition } from '@siege/shared';
 import {
   createTestArena,
   TestArena,
 } from '../ServerTestUtils';
+
+const BASE_STATS = CHAMPION_DEFINITIONS.gorath.baseStats;
+const SLAM_RADIUS = getAbilityDefinition('gorath_slam')!.aoeRadius!;
+const ROAR_RADIUS = getAbilityDefinition('gorath_taunt')!.aoeRadius!;
+const QUAKE_RADIUS = getAbilityDefinition('gorath_earthquake')!.aoeRadius!;
+/** Inside every one of his areas */
+const NEAR = Math.min(SLAM_RADIUS, ROAR_RADIUS, QUAKE_RADIUS) * 0.6;
 
 describe('Gorath', () => {
   let arena: TestArena;
@@ -25,7 +32,7 @@ describe('Gorath', () => {
       blueChampion: 'gorath',
       redChampion: 'vex', // Squishy assassin to tank
       bluePosition: new Vector(0, 0),
-      redPosition: new Vector(200, 0),
+      redPosition: new Vector(NEAR, 0),
     });
   });
 
@@ -47,8 +54,9 @@ describe('Gorath', () => {
       expect(level1Arena.blue.maxHealth).toBe(650);
     });
 
-    test('should have melee attack range (50)', () => {
-      expect(level1Arena.blue.getStats().attackRange).toBe(50);
+    test('should have melee attack range', () => {
+      expect(level1Arena.blue.getStats().attackRange).toBe(BASE_STATS.attackRange);
+      expect(BASE_STATS.attackRange).toBeLessThan(100);
     });
 
     test('should have highest base armor (40)', () => {
@@ -59,8 +67,10 @@ describe('Gorath', () => {
       expect(level1Arena.blue.getStats().magicResist).toBe(35);
     });
 
-    test('should have lower movement speed (57)', () => {
-      expect(level1Arena.blue.getStats().movementSpeed).toBe(57);
+    test('should have the lowest movement speed', () => {
+      expect(level1Arena.blue.getStats().movementSpeed).toBe(BASE_STATS.movementSpeed);
+      const others = Object.values(CHAMPION_DEFINITIONS).filter(def => def.id !== 'gorath').map(def => def.baseStats.movementSpeed);
+      expect(BASE_STATS.movementSpeed).toBeLessThan(Math.min(...others));
     });
 
     test('should have highest health growth per level', () => {
@@ -112,8 +122,8 @@ describe('Gorath', () => {
     });
 
     test('should hit multiple enemies in range', () => {
-      const minion1 = arena.addMinion(1, new Vector(100, 50));
-      const minion2 = arena.addMinion(1, new Vector(100, -50));
+      const minion1 = arena.addMinion(1, new Vector(SLAM_RADIUS * 0.6, 40));
+      const minion2 = arena.addMinion(1, new Vector(SLAM_RADIUS * 0.6, -40));
 
       const redHealth = arena.red.health;
       const minion1Health = minion1.health;
@@ -238,9 +248,9 @@ describe('Gorath', () => {
       expect(arena.red.hasEffect('taunt')).toBe(false);
     });
 
-    test('should affect enemies in 350 range', () => {
+    test('should affect enemies at the edge of its range', () => {
       // Position enemy at edge of range
-      arena.red.position.x = 340;
+      arena.red.position.x = ROAR_RADIUS - 10;
 
       arena.castAbility(arena.blue, 'E');
       arena.tick();
@@ -250,7 +260,7 @@ describe('Gorath', () => {
 
     test('should not affect enemies out of range', () => {
       // Position enemy out of range
-      arena.red.position.x = 400;
+      arena.red.position.x = ROAR_RADIUS + 50;
 
       arena.castAbility(arena.blue, 'E');
       arena.tick();
@@ -295,11 +305,11 @@ describe('Gorath', () => {
       expect(arena.red.ccStatus.canMove).toBe(false);
     });
 
-    test('should have large AoE (450)', () => {
+    test('should hit everything within its radius', () => {
       // Add enemies at various distances
-      const minion1 = arena.addMinion(1, new Vector(400, 0));
-      const minion2 = arena.addMinion(1, new Vector(200, 300));
-      const minion3 = arena.addMinion(1, new Vector(500, 0)); // Out of range
+      const minion1 = arena.addMinion(1, new Vector(QUAKE_RADIUS * 0.9, 0));
+      const minion2 = arena.addMinion(1, new Vector(QUAKE_RADIUS * 0.45, QUAKE_RADIUS * 0.65));
+      const minion3 = arena.addMinion(1, new Vector(QUAKE_RADIUS + 60, 0)); // Out of range
 
       const minion1Health = minion1.health;
       const minion2Health = minion2.health;
@@ -376,8 +386,8 @@ describe('Gorath', () => {
 
     test('should be able to lock down multiple enemies with E and R', () => {
       // Add more enemies
-      const minion1 = arena.addMinion(1, new Vector(150, 50));
-      const minion2 = arena.addMinion(1, new Vector(150, -50));
+      const minion1 = arena.addMinion(1, new Vector(NEAR, 40));
+      const minion2 = arena.addMinion(1, new Vector(NEAR, -40));
 
       // E - Taunt
       arena.castAbility(arena.blue, 'E');

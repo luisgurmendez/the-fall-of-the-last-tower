@@ -124,13 +124,14 @@ describe('calculateItemStats', () => {
     const stats = calculateItemStats([
       { definitionId: 'starfall_diadem' },  // 90 AP, 10 ability haste
       { definitionId: 'spiked_bastion' },   // 60 armor, 300 health
-      { definitionId: 'wanderers_boots' },  // 6 movementSpeed
+      { definitionId: 'wanderers_boots' },  // flat movementSpeed
     ]);
     expect(stats.abilityPower).toBe(90);
     expect(stats.abilityHaste).toBe(10);
     expect(stats.armor).toBe(60);
     expect(stats.health).toBe(300);
-    expect(stats.movementSpeed).toBe(6);
+    expect(stats.movementSpeed).toBe(getServerItemById('wanderers_boots')!.stats.movementSpeed!);
+    expect(stats.movementSpeed).toBeGreaterThan(0);
   });
 });
 

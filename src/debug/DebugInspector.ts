@@ -22,7 +22,7 @@ import RenderElement from '@/render/renderElement';
 import { EntityClickDetector } from './EntityClickDetector';
 import { DebugPanel } from './DebugPanel';
 import { DEFAULT_DEBUG_CONFIG, type DebugInspectorConfig, type InspectedEntity } from './types';
-import { EntityType, MOBAConfig, calculateIndividualBushPositions, DEFAULT_TOWER_COLLISION, getChampionDefinition, isRectangleCollision, type EntityCollision } from '@siege/shared';
+import { EntityType, GameConfig, MOBAConfig, calculateIndividualBushPositions, DEFAULT_TOWER_COLLISION, getChampionDefinition, isRectangleCollision, type EntityCollision } from '@siege/shared';
 import type { BushManager } from '@/vision';
 
 /**
@@ -475,7 +475,7 @@ export class DebugInspector implements GameObject {
 
     switch (snapshot.entityType) {
       case EntityType.CHAMPION:
-        return snapshot.sightRange ?? 800; // Default champion sight range
+        return snapshot.sightRange ?? GameConfig.VISION.CHAMPION_SIGHT_RANGE;
       case EntityType.MINION:
         return 500; // All minions have 500 sight range
       case EntityType.TOWER:

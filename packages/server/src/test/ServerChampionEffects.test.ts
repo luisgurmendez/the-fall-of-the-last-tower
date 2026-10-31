@@ -4,7 +4,7 @@
 
 import { describe, test, expect, beforeEach } from 'bun:test';
 import { ServerChampion, type ServerChampionConfig } from '../simulation/ServerChampion';
-import { Vector, TEAM_BLUE, type ChampionDefinition, type Side } from '@siege/shared';
+import { Vector, TEAM_BLUE, getItemCatalogEntry, type ChampionDefinition, type Side } from '@siege/shared';
 
 // Mock champion definition for testing
 const mockChampionDef: ChampionDefinition = {
@@ -133,7 +133,7 @@ describe('ServerChampion Item Stats', () => {
   });
 
   test('movement speed items work', () => {
-    // Equip Boots of Speed (+25 MS)
+    // Equip boots (flat movement speed)
     champion.items[0] = {
       definitionId: 'wanderers_boots',
       slot: 0,
@@ -142,7 +142,9 @@ describe('ServerChampion Item Stats', () => {
     };
 
     const stats = champion.getStats();
-    expect(stats.movementSpeed).toBe(346); // 340 + 6
+    const bonus = getItemCatalogEntry('wanderers_boots')!.stats.movementSpeed!;
+    expect(bonus).toBeGreaterThan(0);
+    expect(stats.movementSpeed).toBe(340 + bonus);
   });
 
   test('mixed stat items work correctly', () => {

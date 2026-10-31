@@ -6,7 +6,7 @@
  */
 
 import { Vector } from "../math/Vector";
-import { SIEGE_MAP_WALLS } from "./siegeMap";
+import { DRAGON_PIT, SIEGE_MAP_WALLS } from "./siegeMap";
 
 /**
  * Side identifiers.
@@ -15,14 +15,19 @@ import { SIEGE_MAP_WALLS } from "./siegeMap";
  */
 export type MapSide = 0 | 1;
 
+/**
+ * Sizes follow the classic MOBA map and its units at 0.4 of their size
+ * (1 Siege unit = 2.5 of those; a champion is 25 across its radius). Keep new
+ * distances, ranges and speeds on that scale.
+ */
 export const MOBAConfig = {
   /**
    * Map dimensions in world units.
-   * World is centered at (0,0), so coordinates range from -1800 to +1800.
+   * World is centered at (0,0), so coordinates range from -2880 to +2880.
    */
   MAP_SIZE: {
-    width: 3600,
-    height: 3600,
+    width: 5760,
+    height: 5760,
   },
 
   /**
@@ -34,11 +39,11 @@ export const MOBAConfig = {
   /**
    * Nexus configuration.
    * Using centered coordinates: (0,0) is center of map.
-   * Blue at bottom-left (-1300, 1300), Red at top-right (1300, -1300)
+   * Blue at bottom-left (-2200, 2200), Red at top-right (2200, -2200)
    */
   NEXUS: {
-    BLUE: { x: -1300, y: 1300 },
-    RED: { x: 1300, y: -1300 },
+    BLUE: { x: -2200, y: 2200 },
+    RED: { x: 2200, y: -2200 },
     RADIUS: 75,
     HEALTH: 5000,
     /** The building's footprint on the ground (the sprite's base is at the position) */
@@ -54,45 +59,48 @@ export const MOBAConfig = {
     TOP: {
       id: "top" as const,
       waypoints: [
-        new Vector(-1300, 1300), // Blue nexus
-        new Vector(-1330, 900), // Out of blue base
-        new Vector(-1330, -1100), // Up along the left edge
-        new Vector(-1100, -1330), // Round the top-left corner
-        new Vector(900, -1330), // Along the top edge
-        new Vector(1300, -1300), // Red nexus
+        new Vector(-2200, 2200), // Blue nexus
+        new Vector(-2420, 1500), // Out of blue base
+        new Vector(-2420, -1950), // Up along the left edge
+        new Vector(-1950, -2420), // Round the top-left corner
+        new Vector(1500, -2420), // Along the top edge
+        new Vector(2200, -2200), // Red nexus
       ],
-      width: 200,
+      width: 280,
     },
     MID: {
       id: "mid" as const,
       waypoints: [
-        new Vector(-1300, 1300), // Blue nexus
+        new Vector(-2200, 2200), // Blue nexus
         new Vector(0, 0), // Center of map
-        new Vector(1300, -1300), // Red nexus
+        new Vector(2200, -2200), // Red nexus
       ],
-      width: 200,
+      width: 280,
     },
     BOT: {
       id: "bot" as const,
       waypoints: [
-        new Vector(-1300, 1300), // Blue nexus
-        new Vector(-900, 1330), // Out of blue base
-        new Vector(1100, 1330), // Right along the bottom edge
-        new Vector(1330, 1100), // Round the bottom-right corner
-        new Vector(1330, -900), // Up the right edge
-        new Vector(1300, -1300), // Red nexus
+        new Vector(-2200, 2200), // Blue nexus
+        new Vector(-1500, 2420), // Out of blue base
+        new Vector(1950, 2420), // Right along the bottom edge
+        new Vector(2420, 1950), // Round the bottom-right corner
+        new Vector(2420, -1500), // Up the right edge
+        new Vector(2200, -2200), // Red nexus
       ],
-      width: 200,
+      width: 280,
     },
   },
 
   /**
-   * The river runs between the corners, across mid. Walkable; drawn as
-   * shallow water. The dragon pit sits in the bot river.
+   * The river runs between the lane corners (along y = x), across mid.
+   * Walkable; drawn as water. The dragon's pit is cut into blue's bank of the
+   * bot river and mirrored into an empty pit on red's bank of the top river
+   * (see siegeMap.ts); both open toward the river.
    */
   RIVER: {
-    points: [new Vector(-1250, -1250), new Vector(1250, 1250)],
-    width: 260,
+    points: [new Vector(-2250, -2250), new Vector(2250, 2250)],
+    width: 360,
+    pits: [new Vector(DRAGON_PIT.x, DRAGON_PIT.y), new Vector(-DRAGON_PIT.x, -DRAGON_PIT.y)],
   },
 
   /**
@@ -107,21 +115,21 @@ export const MOBAConfig = {
       // Blue's top-side jungle
       {
         id: "blue_bluebuff",
-        position: new Vector(-820, -150),
+        position: new Vector(-1440, -200),
         creatureType: "blue_buff" as const,
         count: 1,
         respawnTime: 120,
       },
       {
         id: "blue_thornspitter",
-        position: new Vector(-980, -400),
+        position: new Vector(-2000, -480),
         creatureType: "thornspitter" as const,
         count: 1,
         respawnTime: 60,
       },
       {
         id: "blue_wolves",
-        position: new Vector(-760, 160),
+        position: new Vector(-1440, 360),
         creatureType: "wolf" as const,
         count: 2,
         respawnTime: 50,
@@ -129,21 +137,21 @@ export const MOBAConfig = {
       // Blue's bot-side jungle
       {
         id: "blue_redbuff",
-        position: new Vector(150, 820),
+        position: new Vector(200, 1440),
         creatureType: "red_buff" as const,
         count: 1,
         respawnTime: 120,
       },
       {
         id: "blue_spiders",
-        position: new Vector(400, 980),
+        position: new Vector(-360, 1440),
         creatureType: "spider" as const,
         count: 3,
         respawnTime: 45,
       },
       {
         id: "blue_thornspitter_2",
-        position: new Vector(-160, 760),
+        position: new Vector(480, 2000),
         creatureType: "thornspitter" as const,
         count: 1,
         respawnTime: 60,
@@ -152,42 +160,42 @@ export const MOBAConfig = {
       // ========== RED SIDE JUNGLE (mirror of blue) ==========
       {
         id: "red_bluebuff",
-        position: new Vector(820, 150),
+        position: new Vector(1440, 200),
         creatureType: "blue_buff" as const,
         count: 1,
         respawnTime: 120,
       },
       {
         id: "red_thornspitter",
-        position: new Vector(980, 400),
+        position: new Vector(2000, 480),
         creatureType: "thornspitter" as const,
         count: 1,
         respawnTime: 60,
       },
       {
         id: "red_wolves",
-        position: new Vector(760, -160),
+        position: new Vector(1440, -360),
         creatureType: "wolf" as const,
         count: 2,
         respawnTime: 50,
       },
       {
         id: "red_redbuff",
-        position: new Vector(-150, -820),
+        position: new Vector(-200, -1440),
         creatureType: "red_buff" as const,
         count: 1,
         respawnTime: 120,
       },
       {
         id: "red_spiders",
-        position: new Vector(-400, -980),
+        position: new Vector(360, -1440),
         creatureType: "spider" as const,
         count: 3,
         respawnTime: 45,
       },
       {
         id: "red_thornspitter_2",
-        position: new Vector(160, -760),
+        position: new Vector(-480, -2000),
         creatureType: "thornspitter" as const,
         count: 1,
         respawnTime: 60,
@@ -196,7 +204,7 @@ export const MOBAConfig = {
       // ========== RIVER ==========
       {
         id: "dragon",
-        position: new Vector(720, 720),
+        position: new Vector(DRAGON_PIT.x, DRAGON_PIT.y),
         creatureType: "dragon" as const,
         count: 1,
         respawnTime: 300,
@@ -210,9 +218,9 @@ export const MOBAConfig = {
       thornspitter: {
         health: 500,
         damage: 30,
-        attackRange: 200, // Spits from range
+        attackRange: 100, // Spits from range
         attackCooldown: 1.5,
-        movementSpeed: 40,
+        movementSpeed: 130,
         sightRange: 180,
         leashRange: 300,
         goldReward: 80,
@@ -226,9 +234,9 @@ export const MOBAConfig = {
       wolf: {
         health: 350,
         damage: 25,
-        attackRange: 30,
+        attackRange: 45,
         attackCooldown: 1.0,
-        movementSpeed: 40,
+        movementSpeed: 160,
         sightRange: 200,
         leashRange: 300,
         goldReward: 60,
@@ -242,9 +250,9 @@ export const MOBAConfig = {
       blue_buff: {
         health: 1000,
         damage: 40,
-        attackRange: 45,
+        attackRange: 60,
         attackCooldown: 1.4,
-        movementSpeed: 80,
+        movementSpeed: 140,
         sightRange: 220,
         leashRange: 350,
         goldReward: 120,
@@ -258,9 +266,9 @@ export const MOBAConfig = {
       red_buff: {
         health: 1000,
         damage: 45,
-        attackRange: 45,
+        attackRange: 60,
         attackCooldown: 1.2,
-        movementSpeed: 80,
+        movementSpeed: 140,
         sightRange: 220,
         leashRange: 350,
         goldReward: 120,
@@ -274,9 +282,9 @@ export const MOBAConfig = {
       dragon: {
         health: 2500,
         damage: 100,
-        attackRange: 250, // Breathes fire from range
+        attackRange: 200, // Breathes fire from range
         attackCooldown: 2.0,
-        movementSpeed: 50,
+        movementSpeed: 140,
         sightRange: 250,
         leashRange: 400,
         goldReward: 200,
@@ -290,9 +298,9 @@ export const MOBAConfig = {
       spider: {
         health: 300,
         damage: 22,
-        attackRange: 30,
+        attackRange: 40,
         attackCooldown: 0.9,
-        movementSpeed: 30,
+        movementSpeed: 150,
         sightRange: 180,
         leashRange: 300,
         goldReward: 50,
@@ -312,9 +320,9 @@ export const MOBAConfig = {
      * hits every champion still inside. `radius` is the circle radius or
      * the cone length; `coneAngle` is the full cone width in radians.
      *
-     * Sizes are tuned to champion speed (about 60 units/s). A melee champion
-     * fighting a buff monster stands 125-170 from its center, inside the
-     * slam, and has at least half a second to react and step out. The
+     * Sizes are tuned to champion speed (about 130 units/s). A melee champion
+     * fighting a buff monster stands about 100-130 from its center, inside
+     * the slam, and has over half a second to react and step out. The
      * dragon's breath is too wide to outrun up close; stand beside or behind
      * the dragon instead.
      */
@@ -323,7 +331,7 @@ export const MOBAConfig = {
         abilityId: "jungle_slam_blue",
         shape: "circle" as const,
         radius: 130,
-        windup: 1.5,
+        windup: 1.1,
         cooldown: 8,
         firstUseAfter: 3,
         damage: 80,
@@ -334,7 +342,7 @@ export const MOBAConfig = {
         abilityId: "jungle_slam_red",
         shape: "circle" as const,
         radius: 130,
-        windup: 1.5,
+        windup: 1.1,
         cooldown: 8,
         firstUseAfter: 3,
         damage: 90,
@@ -344,9 +352,9 @@ export const MOBAConfig = {
       dragon: {
         abilityId: "dragon_breath",
         shape: "cone" as const,
-        radius: 300,
+        radius: 260,
         coneAngle: (50 * Math.PI) / 180,
-        windup: 1.3,
+        windup: 1.0,
         cooldown: 9,
         firstUseAfter: 4,
         damage: 160,
@@ -385,8 +393,8 @@ export const MOBAConfig = {
    * Spawning positions for champions.
    */
   CHAMPION_SPAWN: {
-    BLUE: new Vector(-1440, 1440),
-    RED: new Vector(1440, -1440),
+    BLUE: new Vector(-2560, 2560),
+    RED: new Vector(2560, -2560),
   },
 
   /**
@@ -394,7 +402,7 @@ export const MOBAConfig = {
    * health and mana/energy quickly.
    */
   FOUNTAIN: {
-    RADIUS: 300,
+    RADIUS: 360,
     /** Fraction of max health and resource restored per second */
     REGEN_PER_SECOND: 0.12,
   },
@@ -404,38 +412,62 @@ export const MOBAConfig = {
    */
   BUSH_GROUPS: [
     // ========== BLUE HALF ==========
+    // Top lane, by the river corner
+    { center: new Vector(-2190, -1760), bushCount: 4, spread: "cluster" as const },
+    // Top lane, outer side
+    { center: new Vector(-2590, -900), bushCount: 3, spread: "vertical" as const },
+    // Top lane, jungle side
+    { center: new Vector(-2280, -500), bushCount: 3, spread: "vertical" as const },
+    // Top-side jungle, by the top lane entrance
+    { center: new Vector(-1990, -930), bushCount: 3, spread: "cluster" as const },
+    // Top-side jungle, by the river entrance to the blue buff
+    { center: new Vector(-1500, -850), bushCount: 3, spread: "cluster" as const },
+    // Top-side jungle, by the mid entrance to the wolves
+    { center: new Vector(-1300, 600), bushCount: 3, spread: "cluster" as const },
     // Top river, blue bank
-    { center: new Vector(-520, -350), bushCount: 3, spread: "cluster" as const },
-    // Bot river, blue bank
-    { center: new Vector(350, 520), bushCount: 3, spread: "cluster" as const },
-    // Outside top lane
-    { center: new Vector(-1500, -300), bushCount: 3, spread: "vertical" as const },
-    // Top-side jungle entrance from top lane
-    { center: new Vector(-1150, -75), bushCount: 3, spread: "vertical" as const },
-    // Bot-side jungle entrance from bot lane
-    { center: new Vector(75, 1150), bushCount: 3, spread: "horizontal" as const },
-    // Mid entrance to top-side jungle
-    { center: new Vector(-560, 220), bushCount: 3, spread: "diagonal" as const },
-    // Mid entrance to bot-side jungle
-    { center: new Vector(-220, 560), bushCount: 3, spread: "diagonal" as const },
-    // Top-side jungle entrance from the river
-    { center: new Vector(-695, -369), bushCount: 3, spread: "cluster" as const },
-    // Bot-side jungle entrance from the river
-    { center: new Vector(369, 695), bushCount: 3, spread: "cluster" as const },
-    // Outside bot lane
-    { center: new Vector(-300, 1500), bushCount: 3, spread: "horizontal" as const },
+    { center: new Vector(-1235, -1065), bushCount: 3, spread: "cluster" as const },
+    // Top river, near mid
+    { center: new Vector(-570, -430), bushCount: 3, spread: "cluster" as const },
+    // Mid lane, top side
+    { center: new Vector(-591, 309), bushCount: 3, spread: "antidiagonal" as const },
+    // Mid lane, bot side
+    { center: new Vector(-309, 591), bushCount: 3, spread: "antidiagonal" as const },
+    // Bot river, near mid
+    { center: new Vector(430, 570), bushCount: 3, spread: "cluster" as const },
+    // Bot-side jungle, by the river entrance to the red buff
+    { center: new Vector(520, 1180), bushCount: 3, spread: "cluster" as const },
+    // Behind the dragon pit
+    { center: new Vector(1260, 1610), bushCount: 3, spread: "cluster" as const },
+    // Bot-side jungle, by the mid entrance to the spiders
+    { center: new Vector(-600, 1300), bushCount: 3, spread: "cluster" as const },
+    // Bot-side jungle, by the bot lane entrance
+    { center: new Vector(930, 1990), bushCount: 3, spread: "cluster" as const },
+    // Bot lane, jungle side
+    { center: new Vector(500, 2280), bushCount: 3, spread: "horizontal" as const },
+    // Bot lane, outer side
+    { center: new Vector(900, 2590), bushCount: 3, spread: "horizontal" as const },
+    // Bot lane, by the river corner
+    { center: new Vector(1760, 2190), bushCount: 4, spread: "cluster" as const },
 
     // ========== RED HALF (mirror of blue) ==========
-    { center: new Vector(520, 350), bushCount: 3, spread: "cluster" as const },
-    { center: new Vector(-350, -520), bushCount: 3, spread: "cluster" as const },
-    { center: new Vector(1500, 300), bushCount: 3, spread: "vertical" as const },
-    { center: new Vector(1150, 75), bushCount: 3, spread: "vertical" as const },
-    { center: new Vector(-75, -1150), bushCount: 3, spread: "horizontal" as const },
-    { center: new Vector(560, -220), bushCount: 3, spread: "diagonal" as const },
-    { center: new Vector(220, -560), bushCount: 3, spread: "diagonal" as const },
-    { center: new Vector(695, 369), bushCount: 3, spread: "cluster" as const },
-    { center: new Vector(-369, -695), bushCount: 3, spread: "cluster" as const },
-    { center: new Vector(300, -1500), bushCount: 3, spread: "horizontal" as const },
+    { center: new Vector(2190, 1760), bushCount: 4, spread: "cluster" as const },
+    { center: new Vector(2590, 900), bushCount: 3, spread: "vertical" as const },
+    { center: new Vector(2280, 500), bushCount: 3, spread: "vertical" as const },
+    { center: new Vector(1990, 930), bushCount: 3, spread: "cluster" as const },
+    { center: new Vector(1500, 850), bushCount: 3, spread: "cluster" as const },
+    { center: new Vector(1300, -600), bushCount: 3, spread: "cluster" as const },
+    { center: new Vector(1235, 1065), bushCount: 3, spread: "cluster" as const },
+    { center: new Vector(570, 430), bushCount: 3, spread: "cluster" as const },
+    { center: new Vector(591, -309), bushCount: 3, spread: "antidiagonal" as const },
+    { center: new Vector(309, -591), bushCount: 3, spread: "antidiagonal" as const },
+    { center: new Vector(-430, -570), bushCount: 3, spread: "cluster" as const },
+    { center: new Vector(-520, -1180), bushCount: 3, spread: "cluster" as const },
+    { center: new Vector(-1260, -1610), bushCount: 3, spread: "cluster" as const },
+    { center: new Vector(600, -1300), bushCount: 3, spread: "cluster" as const },
+    { center: new Vector(-930, -1990), bushCount: 3, spread: "cluster" as const },
+    { center: new Vector(-500, -2280), bushCount: 3, spread: "horizontal" as const },
+    { center: new Vector(-900, -2590), bushCount: 3, spread: "horizontal" as const },
+    { center: new Vector(-1760, -2190), bushCount: 4, spread: "cluster" as const },
   ],
 
   /**
@@ -474,7 +506,7 @@ export const MOBAConfig = {
     STATS: {
       health: 3000,
       attackDamage: 150,
-      attackRange: 450,
+      attackRange: 300,
       attackCooldown: 1.0,
       armor: 60,
       magicResist: 60,
@@ -491,64 +523,64 @@ export const MOBAConfig = {
       {
         side: 0 as const,
         lane: "top" as const,
-        position: new Vector(-1330, -540),
+        position: new Vector(-2420, -1150),
       },
       {
         side: 0 as const,
         lane: "top" as const,
-        position: new Vector(-1330, 200),
+        position: new Vector(-2420, 200),
       },
       {
         side: 0 as const,
         lane: "mid" as const,
-        position: new Vector(-487, 487),
+        position: new Vector(-560, 560),
       },
       {
         side: 0 as const,
         lane: "mid" as const,
-        position: new Vector(-840, 840),
+        position: new Vector(-1000, 1000),
       },
       {
         side: 0 as const,
         lane: "bot" as const,
-        position: new Vector(540, 1330),
+        position: new Vector(1150, 2420),
       },
       {
         side: 0 as const,
         lane: "bot" as const,
-        position: new Vector(-200, 1330),
+        position: new Vector(-200, 2420),
       },
 
       // ========== RED SIDE (1) (mirror of blue; red's top lane mirrors blue's bot) ==========
       {
         side: 1 as const,
         lane: "top" as const,
-        position: new Vector(-540, -1330),
+        position: new Vector(-1150, -2420),
       },
       {
         side: 1 as const,
         lane: "top" as const,
-        position: new Vector(200, -1330),
+        position: new Vector(200, -2420),
       },
       {
         side: 1 as const,
         lane: "mid" as const,
-        position: new Vector(487, -487),
+        position: new Vector(560, -560),
       },
       {
         side: 1 as const,
         lane: "mid" as const,
-        position: new Vector(840, -840),
+        position: new Vector(1000, -1000),
       },
       {
         side: 1 as const,
         lane: "bot" as const,
-        position: new Vector(1330, 540),
+        position: new Vector(2420, 1150),
       },
       {
         side: 1 as const,
         lane: "bot" as const,
-        position: new Vector(1330, -200),
+        position: new Vector(2420, -200),
       },
     ],
   },
@@ -559,111 +591,111 @@ export const MOBAConfig = {
   DECORATIONS: [
     // ========== BLUE HALF ==========
     {
-      position: new Vector(-900, -280),
+      position: new Vector(-1440, -448),
       type: "mushroom_mid" as const,
       scale: 0.55,
     },
     {
-      position: new Vector(-640, 40),
+      position: new Vector(-1024, 64),
       type: "plant_2" as const,
       scale: 0.7,
     },
     {
-      position: new Vector(-1010, 10),
+      position: new Vector(-1616, 16),
       type: "rock_small" as const,
       scale: 0.6,
     },
     {
-      position: new Vector(-880, 420),
+      position: new Vector(-1408, 672),
       type: "mushroom_big" as const,
       scale: 0.6,
     },
     {
-      position: new Vector(-1040, -560),
+      position: new Vector(-1560, -760),
       type: "rock_mid" as const,
       scale: 0.65,
     },
     {
-      position: new Vector(-1080, -180),
+      position: new Vector(-1728, -288),
       type: "plant_3" as const,
       scale: 0.6,
     },
     {
-      position: new Vector(280, 900),
+      position: new Vector(448, 1440),
       type: "mushroom_mid" as const,
       scale: 0.55,
       flipX: true,
     },
     {
-      position: new Vector(-40, 640),
+      position: new Vector(-64, 1024),
       type: "plant_2" as const,
       scale: 0.7,
       flipX: true,
     },
     {
-      position: new Vector(-10, 1010),
+      position: new Vector(-16, 1616),
       type: "rock_small" as const,
       scale: 0.6,
       flipX: true,
     },
     {
-      position: new Vector(-420, 880),
+      position: new Vector(-672, 1408),
       type: "mushroom_big" as const,
       scale: 0.6,
       flipX: true,
     },
     {
-      position: new Vector(560, 1040),
+      position: new Vector(560, 1640),
       type: "rock_mid" as const,
       scale: 0.65,
       flipX: true,
     },
     {
-      position: new Vector(1080, 180),
+      position: new Vector(1728, 288),
       type: "plant_3" as const,
       scale: 0.6,
       flipX: true,
     },
     {
-      position: new Vector(-1500, 700),
+      position: new Vector(-2620, 1120),
       type: "rock_big" as const,
       scale: 0.75,
     },
     {
-      position: new Vector(-700, 1500),
+      position: new Vector(-1120, 2620),
       type: "rock_big" as const,
       scale: 0.75,
       flipX: true,
     },
     {
-      position: new Vector(-1500, -800),
+      position: new Vector(-2620, -1280),
       type: "plant_3" as const,
       scale: 0.65,
     },
     {
-      position: new Vector(800, 1500),
+      position: new Vector(1280, 2620),
       type: "plant_3" as const,
       scale: 0.65,
       flipX: true,
     },
     {
-      position: new Vector(-1520, 1250),
+      position: new Vector(-2620, 1960),
       type: "scarecrow" as const,
       scale: 0.7,
     },
     {
-      position: new Vector(-1250, 1520),
+      position: new Vector(-1960, 2620),
       type: "scarecrow" as const,
       scale: 0.7,
       flipX: true,
     },
     {
-      position: new Vector(-1500, -1500),
+      position: new Vector(-2400, -2400),
       type: "rock_mid" as const,
       scale: 0.7,
     },
     {
-      position: new Vector(1500, 1500),
+      position: new Vector(2400, 2400),
       type: "rock_mid" as const,
       scale: 0.7,
       flipX: true,
@@ -671,112 +703,112 @@ export const MOBAConfig = {
 
     // ========== RED HALF (mirror of blue) ==========
     {
-      position: new Vector(900, 280),
+      position: new Vector(1440, 448),
       type: "mushroom_mid" as const,
       scale: 0.55,
       flipX: true,
     },
     {
-      position: new Vector(640, -40),
+      position: new Vector(1024, -64),
       type: "plant_2" as const,
       scale: 0.7,
       flipX: true,
     },
     {
-      position: new Vector(1010, -10),
+      position: new Vector(1616, -16),
       type: "rock_small" as const,
       scale: 0.6,
       flipX: true,
     },
     {
-      position: new Vector(880, -420),
+      position: new Vector(1408, -672),
       type: "mushroom_big" as const,
       scale: 0.6,
       flipX: true,
     },
     {
-      position: new Vector(1040, 560),
+      position: new Vector(1560, 760),
       type: "rock_mid" as const,
       scale: 0.65,
       flipX: true,
     },
     {
-      position: new Vector(1080, 180),
+      position: new Vector(1728, 288),
       type: "plant_3" as const,
       scale: 0.6,
       flipX: true,
     },
     {
-      position: new Vector(-280, -900),
+      position: new Vector(-448, -1440),
       type: "mushroom_mid" as const,
       scale: 0.55,
     },
     {
-      position: new Vector(40, -640),
+      position: new Vector(64, -1024),
       type: "plant_2" as const,
       scale: 0.7,
     },
     {
-      position: new Vector(10, -1010),
+      position: new Vector(16, -1616),
       type: "rock_small" as const,
       scale: 0.6,
     },
     {
-      position: new Vector(420, -880),
+      position: new Vector(672, -1408),
       type: "mushroom_big" as const,
       scale: 0.6,
     },
     {
-      position: new Vector(-560, -1040),
+      position: new Vector(-560, -1640),
       type: "rock_mid" as const,
       scale: 0.65,
     },
     {
-      position: new Vector(-1080, -180),
+      position: new Vector(-1728, -288),
       type: "plant_3" as const,
       scale: 0.6,
     },
     {
-      position: new Vector(1500, -700),
+      position: new Vector(2620, -1120),
       type: "rock_big" as const,
       scale: 0.75,
       flipX: true,
     },
     {
-      position: new Vector(700, -1500),
+      position: new Vector(1120, -2620),
       type: "rock_big" as const,
       scale: 0.75,
     },
     {
-      position: new Vector(1500, 800),
+      position: new Vector(2620, 1280),
       type: "plant_3" as const,
       scale: 0.65,
       flipX: true,
     },
     {
-      position: new Vector(-800, -1500),
+      position: new Vector(-1280, -2620),
       type: "plant_3" as const,
       scale: 0.65,
     },
     {
-      position: new Vector(1520, -1250),
+      position: new Vector(2620, -1960),
       type: "scarecrow" as const,
       scale: 0.7,
       flipX: true,
     },
     {
-      position: new Vector(1250, -1520),
+      position: new Vector(1960, -2620),
       type: "scarecrow" as const,
       scale: 0.7,
     },
     {
-      position: new Vector(1500, 1500),
+      position: new Vector(2400, 2400),
       type: "rock_mid" as const,
       scale: 0.7,
       flipX: true,
     },
     {
-      position: new Vector(-1500, -1500),
+      position: new Vector(-2400, -2400),
       type: "rock_mid" as const,
       scale: 0.7,
     },
@@ -785,7 +817,8 @@ export const MOBAConfig = {
 
 export type LaneId = "top" | "mid" | "bot";
 export type JungleCreatureType = keyof typeof MOBAConfig.JUNGLE.CREATURE_STATS;
-export type BushSpread = "horizontal" | "vertical" | "diagonal" | "cluster";
+/** How a group's bushes line up: along x, along y, along y = x, along y = -x (beside mid lane), or around the center */
+export type BushSpread = "horizontal" | "vertical" | "diagonal" | "antidiagonal" | "cluster";
 
 /**
  * Simple seeded random number generator for deterministic bush positions.
@@ -858,6 +891,10 @@ export function calculateIndividualBushPositions(
       case "diagonal":
         x += offset * 0.7 + randX;
         y += offset * 0.7 + randY;
+        break;
+      case "antidiagonal":
+        x += offset * 0.7 + randX;
+        y -= offset * 0.7 + randY;
         break;
       case "cluster":
         const angle = (i / bushCount) * Math.PI * 2 + random() * 0.5;
@@ -968,6 +1005,7 @@ export function calculateBushGroupBounds(
       };
     }
     case "diagonal":
+    case "antidiagonal":
     case "cluster":
     default: {
       // For cluster/diagonal, use a circular-ish bounds

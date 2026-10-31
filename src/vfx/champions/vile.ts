@@ -4,6 +4,7 @@
  * drawn by src/gpu/fx/projectiles.ts.
  */
 
+import { getAbilityDefinition } from '@siege/shared';
 import { registerAbilityVFX } from '../VFXRegistryStore';
 import { gather, light, phase, ring, scorch, sigil, smoke, sparks, spikes, wisps } from '../recipes';
 
@@ -15,6 +16,11 @@ const ROOT = '#4a2e48';
 
 /** Seconds from releasing the bow until the arrows fly (its animation's projectile keyframe) */
 const LOOSE = 0.2;
+
+const TRAP = getAbilityDefinition('vile_roots_of_vilix')?.trap;
+const TRAP_RADIUS = TRAP?.triggerRadius ?? 60;
+const TRAP_BLAST = TRAP?.explosionRadius ?? 140;
+const AURA_RADIUS = getAbilityDefinition('vile_restoration_of_vilix')?.aura?.radius ?? 140;
 
 // Q: souls gather at his bow...
 registerAbilityVFX({
@@ -61,7 +67,7 @@ registerAbilityVFX({
     phase('plant', 0, 'ground_target', [
       spikes('thorn', ROOT, 7, 30, 'ring', [14, 22], 1.0, SOUL),
       smoke(ROT, 8, [12, 20], [30, 80]),
-      sigil(VIOLET, 70, 1.0),
+      sigil(VIOLET, TRAP_RADIUS, 1.0),
       light(SOUL, 70, 0.5, 0.8),
     ], 1.0),
   ],
@@ -85,11 +91,11 @@ registerAbilityVFX({
   abilityId: 'vile_trap_explosion',
   phases: [
     phase('burst', 0, 'caster', [
-      spikes('thorn', ROOT, 14, 90, 'area', [40, 70], 1.1, SOUL),
+      spikes('thorn', ROOT, 14, TRAP_BLAST * 0.8, 'area', [40, 70], 1.1, SOUL),
       smoke(VOID, 16, [18, 30], [60, 170]),
       wisps(SOUL, 10, [100, 220]),
-      scorch(VIOLET, 100, 1.8, 0.5),
-      light(VIOLET, 170, 1.1, 0.5),
+      scorch(VIOLET, TRAP_BLAST * 0.7, 1.8, 0.5),
+      light(VIOLET, TRAP_BLAST, 1.1, 0.5),
     ], 1.1),
   ],
 });
@@ -101,11 +107,11 @@ registerAbilityVFX({
     phase('transform', 0, 'caster', [
       smoke(VOID, 18, [18, 30], [60, 170]),
       wisps(SOUL, 14, [100, 220]),
-      ring(VIOLET, 20, 130, 0.45, 4),
+      ring(VIOLET, 20, AURA_RADIUS, 0.45, 4),
       light(VIOLET, 140, 1.1, 0.8),
     ], 1.0),
     phase('aura', 0.4, 'caster', [
-      sigil(VIOLET, 85, 10.0),
+      sigil(VIOLET, AURA_RADIUS * 0.6, 10.0),
       { type: 'orbiting_particles', color: SOUL, count: 4, size: 6, orbitRadius: 50, orbitSpeed: 2.2, duration: 10.0, style: 'wisp' },
     ], 10.0),
   ],

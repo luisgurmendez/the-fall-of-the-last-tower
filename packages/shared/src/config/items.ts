@@ -123,7 +123,7 @@ const WanderersBoots: ItemCatalogEntry = {
   category: 'movement',
   cost: 300,
   sellValue: 210,
-  stats: { movementSpeed: 6 },
+  stats: { movementSpeed: 13 },
   passives: [],
   isUnique: true,
 };

@@ -85,7 +85,7 @@ export const GameConfig = {
    */
   EXPERIENCE: {
     /** XP range for sharing */
-    XP_RANGE: 1400,
+    XP_RANGE: 560,
     /** Minion XP values */
     MINION_XP: {
       melee: 60,
@@ -128,9 +128,9 @@ export const GameConfig = {
    */
   VISION: {
     /** Default champion sight range */
-    CHAMPION_SIGHT_RANGE: 800,
+    CHAMPION_SIGHT_RANGE: 560,
     /** Ward sight range */
-    WARD_SIGHT_RANGE: 600,
+    WARD_SIGHT_RANGE: 360,
     /** Ward duration (seconds) */
     WARD_DURATION: 180,
     /** Max wards per player */
@@ -166,7 +166,7 @@ export const GameConfig = {
     SIEGE_DAMAGE: 40,
     SUPER_DAMAGE: 30,
     /** Minion movement speed */
-    MOVEMENT_SPEED: 325,
+    MOVEMENT_SPEED: 125,
   },
 
   /**

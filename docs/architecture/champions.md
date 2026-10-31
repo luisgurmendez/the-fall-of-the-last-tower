@@ -35,11 +35,12 @@ a target is in range when the distance between centers is at most
 rule applies to champions, minions, towers and jungle creatures. Ability ranges are still
 measured center to center (`isInRange`).
 
-Ranges are sized to the bodies and to movement speed (about 60 units/s): a melee unit hits
-with its body almost touching the target's, and a ranged champion's range is a few seconds
-of walking. Current values: Vex and Warrior 40, Gorath 50, Vile 325 (40 during R),
-Elara 375, Magnus and Lume 400. Minions: melee 35, super 50, caster and siege 300. Towers
-450 (they see 600). Melee monsters 30-45, thornspitter 200, dragon 250.
+Ranges follow the map's scale (0.4 of the classic MOBA's, see [map.md](map.md#scale)):
+a melee unit hits with its body almost touching the target's, and a ranged champion's range
+is under two seconds of walking. Current values: Vex and Warrior 55, Gorath 60, Vile 180
+(55 during R), Elara 210, Magnus and Lume 220. Minions: melee 44, super 70, siege 140,
+caster 220. Towers 300 (they see 440). Melee monsters 40-60, thornspitter 100, dragon 200.
+Champions walk 128-138 units a second and see 560; minions walk 125.
 
 ## Resource Types
 
@@ -77,7 +78,7 @@ interface ChampionBaseStats {
   magicResist: number;   // Magic damage reduction
 
   // Mobility
-  movementSpeed: number; // Units per second (57-69; minions walk 40-50)
+  movementSpeed: number; // Units per second (128-138; minions walk 125)
 
   // Critical
   critChance: number;    // 0-1, usually 0 at base
@@ -184,10 +185,10 @@ const warriorDefinition: ChampionDefinition = {
     attackDamage: 60,
     abilityPower: 0,
     attackSpeed: 0.658,
-    attackRange: 40,
+    attackRange: 55,
     armor: 35,
     magicResist: 32,
-    movementSpeed: 345,
+    movementSpeed: 134,
     critChance: 0,
     critDamage: 2.0,
   },

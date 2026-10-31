@@ -26,7 +26,9 @@ import {
   TEAM_RED,
   CHAMPION_DEFINITIONS,
   MOBAConfig,
+  GameConfig,
   DEFAULT_MINION_STATS,
+  DEFAULT_TOWER_STATS,
   type Side,
 } from '@siege/shared';
 
@@ -34,14 +36,17 @@ import {
 // Vision Range Constants (derived from actual game values)
 // =============================================================================
 
-/** Champion sight range from ServerChampion */
-const CHAMPION_SIGHT_RANGE = 800; // ServerChampion.sightRange default
+/** Champion sight range (ServerChampion.sightRange default) */
+const CHAMPION_SIGHT_RANGE = GameConfig.VISION.CHAMPION_SIGHT_RANGE;
 
 /** Minion sight range from shared config */
 const MINION_SIGHT_RANGE = DEFAULT_MINION_STATS.melee.sightRange;
 
-/** Ward sight range (hardcoded in FogOfWarServer.updateVision) */
-const WARD_SIGHT_RANGE = 900;
+/** Ward sight range (the mock ward below carries it in its stats) */
+const WARD_SIGHT_RANGE = GameConfig.VISION.WARD_SIGHT_RANGE;
+
+/** Tower sight range (a tier 1 tower's) */
+const TOWER_SIGHT_RANGE = DEFAULT_TOWER_STATS[1].sightRange;
 
 /** Small buffer for "within range" tests (ensure we're safely inside) */
 const RANGE_BUFFER = 100;
@@ -170,7 +175,7 @@ function getBushPosition(): Vector {
  * Uses a position far from all bush centers.
  */
 function getNonBushPosition(offset = 0): Vector {
-  // Position far from any bush (bushes are mostly in -1000 to 1000 range)
+  // No bush on y = 0 from x = 1200 out past any sight range
   return new Vector(1200 + offset, 0);
 }
 
@@ -337,7 +342,7 @@ describe('Fog of War - Comprehensive Tests', () => {
       const redMinion = createMinion(
         'red-minion',
         TEAM_RED,
-        getNonBushPosition().add(new Vector(500, 0)) // Within tower range (~750)
+        getNonBushPosition().add(new Vector(TOWER_SIGHT_RANGE - RANGE_BUFFER, 0))
       );
 
       context.addEntity(blueTower);

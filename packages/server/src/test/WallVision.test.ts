@@ -4,13 +4,15 @@
  */
 import './ServerTestUtils';
 import { describe, test, expect } from 'bun:test';
-import { MOBAConfig, Vector, WallGrid } from '@siege/shared';
+import { GameConfig, MOBAConfig, Vector, WallGrid } from '@siege/shared';
 import { Simulation } from '../sim';
 
 describe('Walls block vision', () => {
   const grid = new WallGrid(MOBAConfig.WALLS);
-  // A wall tile from the layout, and points on either side of it
-  const wall = MOBAConfig.WALLS.find(w => w.width >= 128 && w.height >= 64)!;
+  const sight = GameConfig.VISION.CHAMPION_SIGHT_RANGE;
+  // A wall from the layout narrow enough to see across (if not for the
+  // wall), and points on either side of it
+  const wall = MOBAConfig.WALLS.find(w => w.width >= 128 && w.width + 120 < sight - 100 && w.height >= 64)!;
   const left = new Vector(wall.position.x - wall.width / 2 - 60, wall.position.y);
   const right = new Vector(wall.position.x + wall.width / 2 + 60, wall.position.y);
 
@@ -27,7 +29,7 @@ describe('Walls block vision', () => {
       const hider = sim.addChampion({ playerId: 'red', championId: 'vex', side: 'red', at: right });
       sim.run(0.1);
 
-      expect(viewer.position.distanceTo(hider.position)).toBeLessThan(800);
+      expect(viewer.position.distanceTo(hider.position)).toBeLessThan(sight);
       expect(sim.context.isVisibleTo(hider, 0)).toBe(false);
 
       // Step out in the open next to the viewer

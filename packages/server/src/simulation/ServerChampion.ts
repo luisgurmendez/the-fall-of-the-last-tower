@@ -152,7 +152,7 @@ export class ServerChampion extends ServerEntity {
   passiveState: PassiveState = createDefaultPassiveState();
 
   // Vision - champions provide fog of war vision
-  sightRange = 800;
+  sightRange: number = GameConfig.VISION.CHAMPION_SIGHT_RANGE;
 
   // Trinket (ward placement) state
   trinketCharges = 2;           // Start with 2 charges

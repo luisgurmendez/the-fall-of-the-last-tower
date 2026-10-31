@@ -58,11 +58,12 @@ describe('Terrain', () => {
   });
 
   test('a champion ordered across a wall walks around it and arrives', () => {
-    // From blue buff toward the river: the block between them is in the way
+    // From blue buff toward mid: the block between them is in the way
     const sim = new Simulation({ seed: 1, minionWaves: false, jungle: false, structures: false });
     try {
-      const champion = sim.addChampion({ playerId: 'p1', championId: 'vex', side: 'blue', at: { x: -820, y: -150 } });
-      const destination = { x: -350, y: -250 };
+      const blueBuff = MOBAConfig.JUNGLE.CAMPS.find(camp => camp.id === 'blue_bluebuff')!.position;
+      const champion = sim.addChampion({ playerId: 'p1', championId: 'vex', side: 'blue', at: { x: blueBuff.x, y: blueBuff.y } });
+      const destination = { x: blueBuff.x + 760, y: blueBuff.y + 140 };
       expect(terrain.hasLineOfSight(champion.position, new Vector(destination.x, destination.y))).toBe(false);
 
       sim.move('p1', destination.x, destination.y);

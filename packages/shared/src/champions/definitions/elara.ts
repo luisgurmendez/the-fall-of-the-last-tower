@@ -48,10 +48,10 @@ const ELARA_BASE_STATS: ChampionBaseStats = {
   attackDamage: 48,
   abilityPower: 0,
   attackSpeed: 0.625,
-  attackRange: 375,
+  attackRange: 210,
   armor: 22,
   magicResist: 34,
-  movementSpeed: 69,
+  movementSpeed: 132,
   critChance: 0,
   critDamage: 2.0,
 };
@@ -80,7 +80,7 @@ export const ElaraHeal: AbilityDefinition = {
   maxRank: 5,
   manaCost: [70, 80, 90, 100, 110],
   cooldown: [10, 9, 8, 7, 6],
-  range: 700,
+  range: 300,
   heal: {
     scaling: scaling([70, 110, 150, 190, 230], { apRatio: 0.5 }),
   },
@@ -96,7 +96,7 @@ export const ElaraBarrier: AbilityDefinition = {
   maxRank: 5,
   manaCost: [60, 65, 70, 75, 80],
   cooldown: [12, 11, 10, 9, 8],
-  range: 700,
+  range: 300,
   shield: {
     scaling: scaling([60, 90, 120, 150, 180], { apRatio: 0.35 }),
     duration: 2.5,
@@ -113,7 +113,7 @@ export const ElaraSpeed: AbilityDefinition = {
   maxRank: 5,
   manaCost: [50, 50, 50, 50, 50],
   cooldown: [15, 14, 13, 12, 11],
-  aoeRadius: 400,
+  aoeRadius: 220,
   shape: "circle",
   appliesEffects: ["speed_30"],
   effectDuration: 2,
@@ -129,7 +129,7 @@ export const ElaraResurrection: AbilityDefinition = {
   maxRank: 3,
   manaCost: [100, 100, 100],
   cooldown: [140, 120, 100],
-  aoeRadius: 600,
+  aoeRadius: 280,
   shape: "circle",
   heal: {
     scaling: scaling([150, 250, 350], { apRatio: 0.6 }),
@@ -149,7 +149,7 @@ export const ElaraPassive: PassiveAbilityDefinition = {
   description:
     "Nearby allies within 600 units heal 1% of their max health per second.",
   trigger: "always",
-  auraRadius: 600,
+  auraRadius: 280,
   heal: {
     scaling: scaling([0], { maxHealthRatio: 0.01 }),
   },

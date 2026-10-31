@@ -284,7 +284,7 @@ describe('ServerAbilityExecutor', () => {
       blueChampion.levelUpAbility('R');
 
       // Move enemy champion into range
-      redChampion.position = new Vector(300, 0); // Within R range (600)
+      redChampion.position = new Vector(getAbilityDefinition('warrior_ultimate')!.range! * 0.6, 0);
       const initialHealth = redChampion.health;
 
       const result = abilityExecutor.castAbility({
@@ -299,13 +299,13 @@ describe('ServerAbilityExecutor', () => {
     });
 
     test('target enemy ability out of range fails', () => {
-      // Warrior R has 600 range - set level to 6 and learn R
+      // Warrior R - set level to 6 and learn R
       blueChampion.level = 6;
       blueChampion.skillPoints = 1;
       blueChampion.levelUpAbility('R');
 
       // Move enemy champion out of range
-      redChampion.position = new Vector(700, 0); // Beyond R range (600)
+      redChampion.position = new Vector(getAbilityDefinition('warrior_ultimate')!.range! + 100, 0);
 
       const result = abilityExecutor.castAbility({
         champion: blueChampion,
@@ -355,7 +355,7 @@ describe('ServerAbilityExecutor', () => {
       blueChampion.level = 6;
       blueChampion.skillPoints = 1;
       blueChampion.levelUpAbility('R');
-      redChampion.position = new Vector(300, 0);
+      redChampion.position = new Vector(getAbilityDefinition('warrior_ultimate')!.range! * 0.6, 0);
 
       abilityExecutor.castAbility({
         champion: blueChampion,
@@ -399,10 +399,12 @@ describe('ServerAbilityExecutor', () => {
       redChampion.skillPoints = 1;
       redChampion.levelUpAbility('E');
 
+      // Within range, below Magnus
+      const range = getAbilityDefinition('magnus_mud')!.range!;
       const result = abilityExecutor.castAbility({
         champion: redChampion,
         slot: 'E',
-        targetPosition: new Vector(0, 300),
+        targetPosition: redChampion.position.added(new Vector(0, range * 0.8)),
         context,
       });
 

@@ -22,6 +22,11 @@ import type { ServerMinion } from '../simulation/ServerMinion';
 import type { ServerTower } from '../simulation/ServerTower';
 import type { ServerJungleCreature } from '../simulation/ServerJungleCreature';
 
+/** An ability's cast range, from its definition */
+const rangeOf = (abilityId: string) => getAbilityDefinition(abilityId)!.range!;
+/** An ability's area radius, from its definition */
+const radiusOf = (abilityId: string) => getAbilityDefinition(abilityId)!.aoeRadius!;
+
 // =============================================================================
 // WARRIOR TESTS
 // =============================================================================
@@ -159,7 +164,7 @@ describe('Warrior Abilities - Entity Targeting', () => {
 
   describe('R - Heroic Strike (Targeted Stun)', () => {
     test('should fail to target minion (target_enemy type requires champion by design)', () => {
-      const minion = arena.addMinion(TEAM_RED, new Vector(300, 0));
+      const minion = arena.addMinion(TEAM_RED, new Vector(rangeOf('warrior_ultimate') * 0.8, 0));
 
       const result = arena.castAbility(arena.blue, 'R', {
         targetPosition: minion.position.clone(),
@@ -172,7 +177,7 @@ describe('Warrior Abilities - Entity Targeting', () => {
     });
 
     test('should stun enemy champion', () => {
-      arena.red.position.x = 300;
+      arena.red.position.x = rangeOf('warrior_ultimate') * 0.8;
 
       arena.castAbility(arena.blue, 'R', {
         targetPosition: arena.red.position.clone(),
@@ -570,7 +575,7 @@ describe('Vex Abilities - Entity Targeting', () => {
     test('should dash and not directly damage minions (no collision damage)', () => {
       // Shadow Step is a mobility spell, not a damage dash
       arena.castAbility(arena.blue, 'E', {
-        targetPosition: new Vector(300, 0),
+        targetPosition: new Vector(rangeOf('vex_dash') * 0.8, 0),
       });
 
       arena.tickAllFrames(30);
@@ -634,7 +639,7 @@ describe('Champion-only targeted abilities', () => {
   });
 
   test('should successfully target enemy champion', () => {
-    arena.red.position.x = 300;
+    arena.red.position.x = rangeOf('warrior_ultimate') * 0.8;
 
     const result = arena.castAbility(arena.blue, 'R', {
       targetPosition: arena.red.position.clone(),
@@ -1041,7 +1046,7 @@ describe('Jungle Creature - Ability Interactions', () => {
       redPosition: new Vector(500, 0),
     });
 
-    const creature = gorathArena.addJungleCreature(new Vector(200, 0), 'thornspitter');
+    const creature = gorathArena.addJungleCreature(new Vector(radiusOf('gorath_slam') * 0.7, 0), 'thornspitter');
     const initialHealth = creature.health;
 
     gorathArena.castAbility(gorathArena.blue, 'Q', {

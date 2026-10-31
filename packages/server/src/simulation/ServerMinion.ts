@@ -89,7 +89,7 @@ export class ServerMinion extends ServerEntity {
   /** Stop chasing a target once this far from the lane */
   private static readonly LANE_LEASH = 350;
   /** Allied champions this close can call for help */
-  private static readonly CALL_FOR_HELP_RANGE = 500;
+  private static readonly CALL_FOR_HELP_RANGE = 400;
   /** How recent a champion's attack must be to call for help (seconds) */
   private static readonly CALL_FOR_HELP_WINDOW = 2;
   /** How often a minion with a target looks for a better one (seconds) */

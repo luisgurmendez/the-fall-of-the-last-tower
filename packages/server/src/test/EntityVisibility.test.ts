@@ -19,13 +19,23 @@ import { StateSerializer } from '../network/StateSerializer';
 import { FogOfWarServer } from '../systems/FogOfWarServer';
 import { ServerGameContext } from '../game/ServerGameContext';
 import { ServerMinion } from '../simulation/ServerMinion';
-import { Vector, EntityType, CHAMPION_DEFINITIONS, TEAM_BLUE, TEAM_RED } from '@siege/shared';
+import { Vector, EntityType, CHAMPION_DEFINITIONS, GameConfig, TEAM_BLUE, TEAM_RED } from '@siege/shared';
 import type { ServerEntity } from '../simulation/ServerEntity';
 import { createTestArena, TestChampion } from './ServerTestUtils';
 
 // Side constants
 const SIDE_BLUE = TEAM_BLUE;
 const SIDE_RED = TEAM_RED;
+
+/** How far a champion sees */
+const SIGHT = GameConfig.VISION.CHAMPION_SIGHT_RANGE;
+/**
+ * Distances inside each band of the prioritizer's defaults (CRITICAL up to
+ * 600, HIGH to 900, MEDIUM to 1300, LOW beyond)
+ */
+const HIGH_DISTANCE = 750;
+const MEDIUM_DISTANCE = 1100;
+const LOW_DISTANCE = 2000;
 
 /**
  * Helper to create a mock minion for testing
@@ -71,8 +81,7 @@ describe('EntityPrioritizer', () => {
         redPosition: new Vector(5000, 0),
         learnAbilities: false,
       });
-      // Updated: HIGH priority is between 800-1200 units (was 500-1000)
-      const mediumMinion = createTestMinion('minion-1', SIDE_RED, new Vector(1000, 0));
+      const mediumMinion = createTestMinion('minion-1', SIDE_RED, new Vector(HIGH_DISTANCE, 0));
 
       const priority = prioritizer.calculatePriority(mediumMinion, arena.blue);
       expect(priority).toBe(UpdatePriority.HIGH);
@@ -84,8 +93,7 @@ describe('EntityPrioritizer', () => {
         redPosition: new Vector(5000, 0),
         learnAbilities: false,
       });
-      // Updated: MEDIUM priority is between 1200-1600 units (was 1000-1500)
-      const farMinion = createTestMinion('minion-1', SIDE_RED, new Vector(1400, 0));
+      const farMinion = createTestMinion('minion-1', SIDE_RED, new Vector(MEDIUM_DISTANCE, 0));
 
       const priority = prioritizer.calculatePriority(farMinion, arena.blue);
       expect(priority).toBe(UpdatePriority.MEDIUM);
@@ -97,8 +105,7 @@ describe('EntityPrioritizer', () => {
         redPosition: new Vector(5000, 0),
         learnAbilities: false,
       });
-      // Updated: LOW priority is beyond 1600 units (was 1500)
-      const veryFarMinion = createTestMinion('minion-1', SIDE_RED, new Vector(2000, 0));
+      const veryFarMinion = createTestMinion('minion-1', SIDE_RED, new Vector(LOW_DISTANCE, 0));
 
       const priority = prioritizer.calculatePriority(veryFarMinion, arena.blue);
       expect(priority).toBe(UpdatePriority.LOW);
@@ -124,7 +131,7 @@ describe('EntityPrioritizer', () => {
         redPosition: new Vector(5000, 0),
         learnAbilities: false,
       });
-      const minion = createTestMinion('minion-1', SIDE_RED, new Vector(1200, 0)); // MEDIUM priority
+      const minion = createTestMinion('minion-1', SIDE_RED, new Vector(MEDIUM_DISTANCE, 0));
 
       const result = prioritizer.prioritizeEntities(
         [minion],
@@ -164,8 +171,7 @@ describe('EntityPrioritizer', () => {
         redPosition: new Vector(5000, 0),
         learnAbilities: false,
       });
-      // Updated: MEDIUM priority at 1400 units (was 1200)
-      const farMinion = createTestMinion('minion-1', SIDE_RED, new Vector(1400, 0)); // MEDIUM priority
+      const farMinion = createTestMinion('minion-1', SIDE_RED, new Vector(MEDIUM_DISTANCE, 0));
 
       const includedTicks: number[] = [];
       const excludedTicks: number[] = [];
@@ -202,7 +208,7 @@ describe('EntityPrioritizer', () => {
       });
 
       // Entity starts far away
-      const minion = createTestMinion('minion-1', SIDE_RED, new Vector(1200, 0));
+      const minion = createTestMinion('minion-1', SIDE_RED, new Vector(MEDIUM_DISTANCE, 0));
 
       // First tick - entity is far
       prioritizer.prioritizeEntities([minion], arena.blue, 'player-1', 1);
@@ -435,8 +441,8 @@ describe('Full Integration - FogOfWar + Prioritizer + Serializer', () => {
         learnAbilities: false,
       });
 
-      // Create red minion within sight range (800 units)
-      const redMinion = createTestMinion('red-minion', SIDE_RED, new Vector(600, 0));
+      // Create red minion within sight range
+      const redMinion = createTestMinion('red-minion', SIDE_RED, new Vector(SIGHT * 0.6, 0));
       arena.context.addEntity(redMinion);
 
       const playerStates: Map<number, { deltas: number; position: { x: number; y: number } | null }> = new Map();
@@ -494,16 +500,15 @@ describe('Full Integration - FogOfWar + Prioritizer + Serializer', () => {
       // Entity appears to "freeze" or "disappear" on client
     });
 
-    it('should maintain entity state when entity is near but outside CRITICAL range', () => {
+    it('should keep an entity near the edge of sight visible and sent every tick', () => {
       const arena = createTestArena({
         bluePosition: new Vector(0, 0),
         redPosition: new Vector(5000, 0),
         learnAbilities: false,
       });
 
-      // Create red minion at edge of HIGH priority (500-1000 range)
-      // This is within sight range (800) so it's visible
-      const redMinion = createTestMinion('red-minion', SIDE_RED, new Vector(700, 0));
+      // Red minion near the edge of sight: visible, and CRITICAL reaches past sight
+      const redMinion = createTestMinion('red-minion', SIDE_RED, new Vector(SIGHT * 0.9, 0));
       arena.context.addEntity(redMinion);
 
       const updates: { tick: number; included: boolean; isVisible: boolean }[] = [];
@@ -525,18 +530,14 @@ describe('Full Integration - FogOfWar + Prioritizer + Serializer', () => {
         updates.push({ tick, included: isIncluded, isVisible });
       }
 
-      console.log('[TEST] Entity at 700 units (HIGH priority, within sight range):');
+      console.log('[TEST] Entity near the edge of sight range:');
       for (const u of updates) {
         console.log(`  Tick ${u.tick}: visible=${u.isVisible}, included=${u.included}`);
       }
 
-      // Entity should be visible all ticks
-      const allVisible = updates.every(u => u.isVisible);
-      expect(allVisible).toBe(true);
-
-      // But not all ticks included (HIGH = every 2 ticks)
-      const notAlwaysIncluded = updates.some(u => !u.included);
-      console.log(`[TEST] Not always included: ${notAlwaysIncluded}`);
+      // Entity should be visible all ticks, and sent every tick
+      expect(updates.every(u => u.isVisible)).toBe(true);
+      expect(updates.every(u => u.included)).toBe(true);
     });
 
     it('should handle entity moving from visible to non-visible', () => {
@@ -546,14 +547,15 @@ describe('Full Integration - FogOfWar + Prioritizer + Serializer', () => {
         learnAbilities: false,
       });
 
-      const redMinion = createTestMinion('red-minion', SIDE_RED, new Vector(600, 0));
+      const start = SIGHT - 200;
+      const redMinion = createTestMinion('red-minion', SIDE_RED, new Vector(start, 0));
       arena.context.addEntity(redMinion);
 
       const states: { tick: number; visible: boolean; included: boolean; deltaType: string }[] = [];
 
       for (let tick = 1; tick <= 20; tick++) {
         // Move minion further away each tick
-        const distance = 600 + tick * 100;
+        const distance = start + tick * 100;
         redMinion.position = new Vector(distance, 0);
 
         fogOfWar.updateVision(arena.context, tick);
@@ -582,13 +584,13 @@ describe('Full Integration - FogOfWar + Prioritizer + Serializer', () => {
         states.push({ tick, visible: isVisible, included: isIncluded, deltaType });
       }
 
-      console.log('[TEST] Entity moving from 700 to 2700 units:');
+      console.log(`[TEST] Entity moving from ${start} units out of sight:`);
       for (const s of states) {
-        const dist = 600 + s.tick * 100;
+        const dist = start + s.tick * 100;
         console.log(`  Tick ${s.tick} (dist=${dist}): visible=${s.visible}, included=${s.included}, delta=${s.deltaType}`);
       }
 
-      // When entity moves out of sight range (800), it should become non-visible
+      // When entity moves out of sight range, it should become non-visible
       // And a removal delta should be sent
       const firstNonVisible = states.find(s => !s.visible);
       if (firstNonVisible) {
@@ -598,7 +600,7 @@ describe('Full Integration - FogOfWar + Prioritizer + Serializer', () => {
   });
 
   describe('Multiple Entity Tracking', () => {
-    // Everything within sight range (800) is CRITICAL, so visible entities are
+    // Everything within sight range is CRITICAL, so visible entities are
     // never de-prioritized; entities outside sight are not sent at all
     it('should update every visible entity each tick and skip entities outside vision', () => {
       const arena = createTestArena({
@@ -609,8 +611,8 @@ describe('Full Integration - FogOfWar + Prioritizer + Serializer', () => {
 
       // Create entities at different distances
       const nearMinion = createTestMinion('near-minion', SIDE_RED, new Vector(200, 0));
-      const mediumMinion = createTestMinion('medium-minion', SIDE_RED, new Vector(700, 0));
-      const farMinion = createTestMinion('far-minion', SIDE_RED, new Vector(1200, 0)); // Outside sight
+      const mediumMinion = createTestMinion('medium-minion', SIDE_RED, new Vector(SIGHT * 0.9, 0));
+      const farMinion = createTestMinion('far-minion', SIDE_RED, new Vector(SIGHT + 300, 0)); // Outside sight
 
       arena.context.addEntity(nearMinion);
       arena.context.addEntity(mediumMinion);
@@ -676,8 +678,9 @@ describe('Bug Reproduction: Entity Disappears While Visible', () => {
       learnAbilities: false,
     });
 
-    // Red minion at 700 units - within sight range (800) but in HIGH priority zone
-    const redMinion = createTestMinion('red-minion', SIDE_RED, new Vector(700, 0));
+    // Red minion within sight range
+    const start = SIGHT * 0.6;
+    const redMinion = createTestMinion('red-minion', SIDE_RED, new Vector(start, 0));
     arena.context.addEntity(redMinion);
 
     // Simulate what GameRoom.broadcastStateUpdates does
@@ -688,7 +691,7 @@ describe('Bug Reproduction: Entity Disappears While Visible', () => {
 
     for (let tick = 1; tick <= 30; tick++) {
       // Server state: minion is moving
-      const serverX = 700 + tick * 10;
+      const serverX = start + tick * 10;
       const serverY = 0;
       redMinion.position = new Vector(serverX, serverY);
 
@@ -749,23 +752,24 @@ describe('Bug Reproduction: Entity Disappears While Visible', () => {
     }
   });
 
-  // The chase path crosses a bush (x ~425-575), where the red champion is
-  // correctly hidden, and red stops moving at distance 100, after which there
-  // is nothing new to send. What must hold: whenever red is visible and moved,
-  // a delta is sent.
+  // Red comes into sight partway, and stops moving at distance 100, after
+  // which there is nothing new to send (a bush on the way would rightly hide
+  // it too). What must hold: whenever red is visible and moved, a delta is
+  // sent.
   it('should send a delta every tick an approaching enemy champion is visible and moving', () => {
+    const startDistance = SIGHT + 200;
     const arena = createTestArena({
       bluePosition: new Vector(0, 0),
-      redPosition: new Vector(1000, 0), // Red starts at distance
+      redPosition: new Vector(startDistance, 0), // Red starts out of sight
       learnAbilities: false,
     });
 
     const states: { tick: number; distance: number; visible: boolean; moved: boolean; deltasSent: number }[] = [];
-    let previousDistance = 1000;
+    let previousDistance = startDistance;
 
-    for (let tick = 1; tick <= 40; tick++) {
+    for (let tick = 1; tick <= 60; tick++) {
       // Red champion moves toward blue (simulating chase)
-      const distance = Math.max(100, 1000 - tick * 25); // Gets closer over time
+      const distance = Math.max(100, startDistance - tick * 15); // Gets closer over time
       const moved = distance !== previousDistance;
       previousDistance = distance;
       arena.red.position = new Vector(distance, 0);

@@ -5,12 +5,13 @@
  */
 import { defineScenario } from '../src/sim';
 import { LanePath } from '../src/navigation/LanePath';
-import { MOBAConfig, Vector } from '@siege/shared';
+import { DEFAULT_MINION_STATS, MOBAConfig, Vector } from '@siege/shared';
 
 const lane = new LanePath(MOBAConfig.LANES.BOT.waypoints.map(w => w.clone()));
-const outerTower = MOBAConfig.TOWERS.POSITIONS.filter(t => t.side === 0 && t.lane === 'bot')
-  .map(t => lane.project(t.position).distance)
-  .reduce((a, b) => Math.max(a, b));
+const blueTowers = MOBAConfig.TOWERS.POSITIONS.filter(t => t.side === 0 && t.lane === 'bot');
+const outerTower = blueTowers.map(t => lane.project(t.position).distance).reduce((a, b) => Math.max(a, b));
+/** Long enough to walk 400 past the outer tower (with the spawn stagger), well short of red's towers */
+const DURATION = Math.ceil((outerTower + 400) / DEFAULT_MINION_STATS.melee.movementSpeed + 3);
 
 /** Longest time any minion went without moving, by minion id */
 const longestStill = new Map<string, number>();
@@ -19,7 +20,7 @@ export default defineScenario({
   name: 'minions-pass-own-towers',
   description: 'A blue wave walks bot lane past both blue bot towers without jamming',
   options: { minionWaves: false, jungle: false },
-  duration: 45,
+  duration: DURATION,
   setup(sim) {
     longestStill.clear();
     sim.spawnWave('bot', 'blue');
@@ -36,7 +37,10 @@ export default defineScenario({
       }
     });
   },
-  view: { center: { x: 150, y: 1250 }, size: 1300 },
+  view: {
+    center: { x: (blueTowers[0].position.x + blueTowers[1].position.x) / 2, y: (blueTowers[0].position.y + blueTowers[1].position.y) / 2 },
+    size: 2200,
+  },
   frames: 8,
   check(sim, _report, expect) {
     const minions = sim.entities(e => e.kind === 'minion' && e.side === 0);

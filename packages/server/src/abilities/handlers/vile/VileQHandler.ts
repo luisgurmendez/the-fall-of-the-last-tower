@@ -69,7 +69,7 @@ export class VileQHandler extends BaseAbilityHandler {
       position: champion.position.clone(),
       side: champion.side,
       direction: direction,
-      speed: definition.projectileSpeed ?? 1800,
+      speed: definition.projectileSpeed ?? 700,
       radius: definition.projectileRadius ?? 25,
       maxDistance: effectiveRange,
       sourceId: champion.id,
@@ -134,7 +134,7 @@ export class VileQHandler extends BaseAbilityHandler {
     }
 
     const normalizedDir = direction.normalized();
-    const dashSpeed = 1500;
+    const dashSpeed = 800;
 
     champion.forcedMovement = {
       direction: normalizedDir,

@@ -22,7 +22,7 @@ function isSelfBuff(effectId: string): boolean {
 }
 
 /** Speed of the generic recast dash */
-const RECAST_DASH_SPEED = 1500;
+const RECAST_DASH_SPEED = 800;
 
 /**
  * Dash toward the ability's destination, if it has one.

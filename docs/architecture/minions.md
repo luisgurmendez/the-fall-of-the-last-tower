@@ -28,12 +28,12 @@ A minion attacks a target within `attackRange` of its body, edge to edge (see [c
 
 | Priority | Target |
 |----------|--------|
-| 100 | **Call for help**: an enemy champion that damaged an allied champion within 500 units of the minion in the last 2s |
+| 100 | **Call for help**: an enemy champion that damaged an allied champion within 400 units of the minion in the last 2s |
 | 50 | Enemy minions |
 | 30 | Enemy champions |
 | 10 | Towers, inhibitors, nexus |
 
-Every wave minion moves at the same speed (42) so the formation holds. Attack timings (melee 1.0s, casters 22 damage every 1.6s) are tuned so a wave deals more damage per second than the next wave brings in health; otherwise waves pile up. Over a 9-minute simulation without champions, each side holds a steady 45-50 minions across the three lanes.
+Every wave minion moves at the same speed (125, a little under a champion's) so the formation holds. Attack timings (melee 1.0s, casters 22 damage every 1.6s) are tuned so a wave deals more damage per second than the next wave brings in health; otherwise waves pile up. Over a 9-minute simulation without champions, each side holds a steady 45-50 minions across the three lanes.
 
 Minions never attack jungle creatures, wards, zones or projectiles, and never target units their side can't see.
 

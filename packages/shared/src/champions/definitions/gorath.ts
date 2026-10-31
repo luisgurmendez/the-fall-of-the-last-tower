@@ -48,10 +48,10 @@ const GORATH_BASE_STATS: ChampionBaseStats = {
   attackDamage: 55,
   abilityPower: 0,
   attackSpeed: 0.6,
-  attackRange: 50, // Melee
+  attackRange: 60, // Melee
   armor: 40,
   magicResist: 35,
-  movementSpeed: 57,
+  movementSpeed: 128,
   critChance: 0,
   critDamage: 2.0,
 };
@@ -81,7 +81,7 @@ export const GorathSlam: AbilityDefinition = {
   maxRank: 5,
   manaCost: [50, 55, 60, 65, 70],
   cooldown: [8, 7.5, 7, 6.5, 6],
-  aoeRadius: 300,
+  aoeRadius: 160,
   aoeDelay: 0.35, // Fists raised
   shape: "circle",
   damage: {
@@ -115,7 +115,7 @@ export const GorathTaunt: AbilityDefinition = {
   maxRank: 5,
   manaCost: [70, 70, 70, 70, 70],
   cooldown: [16, 15, 14, 13, 12],
-  aoeRadius: 350,
+  aoeRadius: 150,
   aoeDelay: 0.25, // Drawing breath
   shape: "circle",
   appliesEffects: ["taunt"],
@@ -134,7 +134,7 @@ export const GorathEarthquake: AbilityDefinition = {
   maxRank: 3,
   manaCost: [100, 100, 100],
   cooldown: [130, 110, 90],
-  aoeRadius: 450,
+  aoeRadius: 220,
   aoeDelay: 0.6, // The ground rumbles first
   shape: "circle",
   damage: {

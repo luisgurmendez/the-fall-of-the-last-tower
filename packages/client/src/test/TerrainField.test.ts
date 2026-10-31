@@ -40,8 +40,9 @@ describe('terrain field', () => {
   });
 
   it('has water around the map', () => {
-    expect(fieldDistanceAt(field, WATER, -1750, 0)).toBeLessThan(0);
-    expect(fieldDistanceAt(field, WATER, 0, 1750)).toBeLessThan(0);
+    const edge = MOBAConfig.MAP_SIZE.width / 2 - MOBAConfig.WATER_BORDER_SIZE / 2;
+    expect(fieldDistanceAt(field, WATER, -edge, 0)).toBeLessThan(0);
+    expect(fieldDistanceAt(field, WATER, 0, edge)).toBeLessThan(0);
   });
 
   it('has rock inside the walls', () => {

@@ -45,9 +45,9 @@ export interface EntityPrioritizerConfig {
 const DEFAULT_CONFIG: Required<EntityPrioritizerConfig> = {
   // FIXED: Increased distances to match sight range (~800 units)
   // This prevents entities from being de-prioritized while still visible
-  criticalDistance: 800,   // Always update (matches typical sight range)
-  highDistance: 1200,      // Every 2 ticks
-  mediumDistance: 1600,    // Every 5 ticks
+  criticalDistance: 600,   // Always update (a bit over champion sight range)
+  highDistance: 900,       // Every 2 ticks
+  mediumDistance: 1300,    // Every 5 ticks
   maxTicksWithoutUpdate: 60, // ~0.5 second (was 125, reduced for faster updates)
   movementThreshold: 50,   // Force update if entity moved more than 50 units
 };

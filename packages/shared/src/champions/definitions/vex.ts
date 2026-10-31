@@ -48,10 +48,10 @@ const VEX_BASE_STATS: ChampionBaseStats = {
   attackDamage: 65,
   abilityPower: 0,
   attackSpeed: 0.68,
-  attackRange: 40, // Melee
+  attackRange: 55, // Melee
   armor: 28,
   magicResist: 30,
-  movementSpeed: 67, // High mobility assassin
+  movementSpeed: 138, // High mobility assassin
   critChance: 0,
   critDamage: 2.0,
 };
@@ -81,8 +81,8 @@ export const VexShuriken: AbilityDefinition = {
   maxRank: 5,
   manaCost: [30, 30, 30, 30, 30], // Energy-based, low cost
   cooldown: [6, 5.5, 5, 4.5, 4],
-  range: 700,
-  projectileSpeed: 800,
+  range: 380,
+  projectileSpeed: 600,
   projectileRadius: 20,
   shape: "line",
   damage: {
@@ -117,10 +117,10 @@ export const VexDash: AbilityDefinition = {
   maxRank: 5,
   manaCost: [40, 40, 40, 40, 40],
   cooldown: [14, 12, 10, 8, 6],
-  range: 400,
+  range: 200,
   dash: {
-    speed: 1400,
-    distance: 400,
+    speed: 700,
+    distance: 200,
   },
   // Empowered attack bonus damage
   damage: {

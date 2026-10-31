@@ -8,8 +8,7 @@
  * - Blind causes auto-attacks to miss
  *
  * DASH PROPERTIES:
- * - Speed: 1200 units/s
- * - Max distance: 600 units
+ * - Speed and max distance: the definition's dash
  * - Stops at orb if within range
  */
 

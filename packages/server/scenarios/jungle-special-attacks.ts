@@ -4,6 +4,7 @@
  * the dragon's breath hits the champion in front of it but not the one
  * behind it.
  */
+import { MOBAConfig } from '@siege/shared';
 import { defineScenario } from '../src/sim';
 import type { Simulation } from '../src/sim';
 import type { ServerJungleCreature } from '../src/simulation/ServerJungleCreature';
@@ -12,6 +13,13 @@ function creature(sim: Simulation, campId: string): ServerJungleCreature | undef
   return sim.context.getAllEntities().find(e => (e as unknown as ServerJungleCreature).campId === campId && !e.isDead) as
     ServerJungleCreature | undefined;
 }
+
+const campAt = (id: string) => MOBAConfig.JUNGLE.CAMPS.find(camp => camp.id === id)!.position;
+const BLUE_BUFF = campAt('blue_bluebuff');
+const RED_BUFF = campAt('blue_redbuff');
+const DRAGON = campAt('dragon');
+/** From the dragon toward its pit's mouth, which opens onto the river (see siegeMap.ts) */
+const PIT_MOUTH = { x: Math.SQRT1_2, y: -Math.SQRT1_2 };
 
 /** Champions that were ever slowed by a monster's special attack */
 const slowed = new Set<string>();
@@ -27,10 +35,11 @@ export default defineScenario({
     slowed.clear();
     dodging = false;
     dodges = 0;
-    sim.addChampion({ playerId: 'tank', championId: 'vex', side: 'blue', at: { x: -620, y: -150 }, level: 6 });
-    sim.addChampion({ playerId: 'dodger', championId: 'vex', side: 'blue', at: { x: 400, y: 820 }, level: 3 });
-    sim.addChampion({ playerId: 'front', championId: 'vile', side: 'red', at: { x: 470, y: 720 }, level: 6 });
-    sim.addChampion({ playerId: 'behind', championId: 'vile', side: 'red', at: { x: 900, y: 720 }, level: 6 });
+    sim.addChampion({ playerId: 'tank', championId: 'vex', side: 'blue', at: { x: BLUE_BUFF.x + 200, y: BLUE_BUFF.y }, level: 6 });
+    sim.addChampion({ playerId: 'dodger', championId: 'vex', side: 'blue', at: { x: RED_BUFF.x + 250, y: RED_BUFF.y }, level: 3 });
+    // In the pit's mouth, in front of the dragon, and at the back of the pit, behind it
+    sim.addChampion({ playerId: 'front', championId: 'vile', side: 'red', at: { x: DRAGON.x + PIT_MOUTH.x * 200, y: DRAGON.y + PIT_MOUTH.y * 200 }, level: 6 });
+    sim.addChampion({ playerId: 'behind', championId: 'vile', side: 'red', at: { x: DRAGON.x - PIT_MOUTH.x * 150, y: DRAGON.y - PIT_MOUTH.y * 150 }, level: 6 });
 
     sim.onTick(s => {
       for (const playerId of ['tank', 'dodger', 'front', 'behind']) {
@@ -58,7 +67,7 @@ export default defineScenario({
       sim.attack('front', creature(sim, 'dragon')!.id);
     } },
   ],
-  view: { center: { x: 300, y: 450 }, size: 1700 },
+  view: { center: { x: (BLUE_BUFF.x + DRAGON.x) / 2, y: (BLUE_BUFF.y + DRAGON.y) / 2 }, size: 3000 },
   frames: 8,
   check(sim, report, expect) {
     const casts = (abilityId: string) => sim.recorder.events.filter(e => e.type === 10 && e.data.abilityId === abilityId).length;

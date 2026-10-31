@@ -17,7 +17,7 @@ export interface BushGroupConfig {
   id: string;
   center: Vector;
   bushCount: number;
-  spread: 'horizontal' | 'vertical' | 'diagonal' | 'cluster';
+  spread: 'horizontal' | 'vertical' | 'diagonal' | 'antidiagonal' | 'cluster';
   spacing?: number;
   variance?: number;
 }

@@ -40,7 +40,8 @@ export class GroundPass {
     gl.uniform2f(u.uNexusBlue, MOBAConfig.NEXUS.BLUE.x, MOBAConfig.NEXUS.BLUE.y);
     gl.uniform2f(u.uNexusRed, MOBAConfig.NEXUS.RED.x, MOBAConfig.NEXUS.RED.y);
     // The river pits (the dragon's and its mirror), see siegeMap.ts
-    gl.uniform4f(u.uPits, 720, 720, -720, -720);
+    const [pit, otherPit] = MOBAConfig.RIVER.pits;
+    gl.uniform4f(u.uPits, pit.x, pit.y, otherPit.x, otherPit.y);
     gl.uniform2f(u.uRiverDir, this.riverDirection[0], this.riverDirection[1]);
     gl.disable(gl.BLEND);
     gl.drawArrays(gl.TRIANGLES, 0, 3);

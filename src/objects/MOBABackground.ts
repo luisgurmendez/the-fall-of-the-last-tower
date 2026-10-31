@@ -22,7 +22,7 @@ import { getGPURenderer } from "@/gpu/GPURenderer";
 // Use shared constant from config
 const WATER_BORDER_SIZE = MOBAConfig.WATER_BORDER_SIZE;
 /** Wall tiles are aligned to a 64-unit grid starting at -WALL_GRID_HALF (see shared mapLayout.ts) */
-const WALL_GRID_HALF = 1600;
+const WALL_GRID_HALF = 2752;
 
 export const BACKGROUND_ID = "bg";
 

@@ -48,10 +48,10 @@ const MAGNUS_BASE_STATS: ChampionBaseStats = {
   attackDamage: 53,
   abilityPower: 0, // AP comes from items
   attackSpeed: 0.625,
-  attackRange: 400, // Ranged
+  attackRange: 220, // Ranged
   armor: 20,
   magicResist: 30,
-  movementSpeed: 63,
+  movementSpeed: 132,
   critChance: 0,
   critDamage: 2.0,
 };
@@ -81,9 +81,9 @@ export const MagnusFireball: AbilityDefinition = {
   maxRank: 5,
   manaCost: [60, 65, 70, 75, 80],
   cooldown: [8, 7.5, 7, 6.5, 6],
-  range: 900,
-  projectileSpeed: 700, // Dodgeable from about 650 range
-  projectileRadius: 30,
+  range: 440,
+  projectileSpeed: 560, // Dodgeable from about 300 range
+  projectileRadius: 28,
   shape: "line",
   damage: {
     type: "magic",
@@ -117,8 +117,8 @@ export const MagnusMudGround: AbilityDefinition = {
   maxRank: 5,
   manaCost: [70, 75, 80, 85, 90],
   cooldown: [14, 13, 12, 11, 10],
-  range: 600,
-  aoeRadius: 200,
+  range: 340,
+  aoeRadius: 110,
   aoeDelay: 0.25,
   shape: "circle",
   appliesEffects: ["slow_20"],
@@ -136,8 +136,8 @@ export const MagnusMeteor: AbilityDefinition = {
   maxRank: 3,
   manaCost: [100, 100, 100],
   cooldown: [120, 100, 80],
-  range: 800,
-  aoeRadius: 250,
+  range: 400,
+  aoeRadius: 150,
   aoeDelay: 0.7, // The meteor's fall
   shape: "circle",
   damage: {

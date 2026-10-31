@@ -4,6 +4,7 @@
  * pillars. Registered when this module is imported (see ./index.ts).
  */
 
+import { getAbilityDefinition } from '@siege/shared';
 import { registerAbilityVFX } from '../VFXRegistryStore';
 import { embers, light, petals, phase, rays, ring, shockwave, sigil, sparks, swirl, twinkles } from '../recipes';
 
@@ -12,6 +13,9 @@ const WHITE = '#fffaf0';
 const SKY = '#8fd6ff';
 const TEAL = '#7fffd4';
 const LEAF = '#8fd47a';
+
+const GUST_RADIUS = getAbilityDefinition('elara_speed')?.aoeRadius ?? 220;
+const GRACE_RADIUS = getAbilityDefinition('elara_resurrection')?.aoeRadius ?? 280;
 
 // Q: rays of light bloom on the ally and petals rise around them
 registerAbilityVFX({
@@ -47,11 +51,11 @@ registerAbilityVFX({
   abilityId: 'elara_speed',
   phases: [
     phase('gust', 0, 'caster', [
-      swirl(TEAL, 120, 0.7, 1.6, 3),
-      ring(TEAL, 10, 220, 0.5, 3),
-      sparks(TEAL, 14, [220, 380]),
-      petals(LEAF, 12, [140, 260], 'leaf', { friction: 1.5, gravity: 0 }),
-      light(TEAL, 200, 0.4, 0.5),
+      swirl(TEAL, GUST_RADIUS * 0.55, 0.7, 1.6, 3),
+      ring(TEAL, 10, GUST_RADIUS, 0.5, 3),
+      sparks(TEAL, 14, [180, 320]),
+      petals(LEAF, 12, [120, 220], 'leaf', { friction: 1.5, gravity: 0 }),
+      light(TEAL, GUST_RADIUS * 0.9, 0.4, 0.5),
     ], 0.7),
   ],
 });
@@ -61,21 +65,21 @@ registerAbilityVFX({
   abilityId: 'elara_resurrection',
   phases: [
     phase('gather', 0, 'caster', [
-      sigil(HOLY, 300, 1.2, '#fff0b0'),
-      rays(WHITE, 240, 0.3, 18, true),
-      light(HOLY, 300, 0.6, 0.9),
+      sigil(HOLY, GRACE_RADIUS, 1.2, '#fff0b0'),
+      rays(WHITE, GRACE_RADIUS * 0.8, 0.3, 18, true),
+      light(HOLY, GRACE_RADIUS, 0.6, 0.9),
     ], 1.2),
     phase('burst', 0.3, 'caster', [
-      rays(HOLY, 380, 1.0, 22),
-      shockwave(WHITE, 20, 360, 0.5, 10),
-      petals(WHITE, 30, [80, 240]),
-      twinkles(WHITE, 16, [80, 220]),
-      light(HOLY, 340, 0.8, 1.0),
+      rays(HOLY, GRACE_RADIUS * 1.25, 1.0, 22),
+      shockwave(WHITE, 20, GRACE_RADIUS * 1.1, 0.5, 10),
+      petals(WHITE, 30, [70, 200]),
+      twinkles(WHITE, 16, [70, 190]),
+      light(HOLY, GRACE_RADIUS * 1.1, 0.8, 1.0),
       { type: 'screen_flash', color: '#fffbe6', duration: 0.15, maxAlpha: 0.12 },
     ], 1.0),
     phase('linger', 0.5, 'caster', [
       petals(HOLY, 20, [20, 80], 'petal', { lifetime: { min: 1.2, max: 2.0 } }),
-      embers(WHITE, 16, 260, { lifetime: { min: 1.0, max: 1.6 } }),
+      embers(WHITE, 16, GRACE_RADIUS * 0.9, { lifetime: { min: 1.0, max: 1.6 } }),
     ], 2.0),
   ],
 });

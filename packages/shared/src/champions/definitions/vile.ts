@@ -49,10 +49,10 @@ const VILE_BASE_STATS: ChampionBaseStats = {
   attackDamage: 60,
   abilityPower: 0,
   attackSpeed: 0.65,
-  attackRange: 325, // Ranged, becomes melee (40) during R
+  attackRange: 180, // Ranged, becomes melee (55) during R
   armor: 32,
   magicResist: 32,
-  movementSpeed: 63,
+  movementSpeed: 134,
   critChance: 0,
   critDamage: 2.0,
 };
@@ -86,9 +86,9 @@ export const VileBlackArrows: AbilityDefinition = {
   maxRank: 5,
   manaCost: [50, 55, 60, 65, 70],
   cooldown: [12, 11, 10, 9, 8],
-  range: 800, // Base range, increases with charge up to +600
-  projectileSpeed: 1000,
-  projectileRadius: 25,
+  range: 360, // Base range, increases with charge up to +280
+  projectileSpeed: 700,
+  projectileRadius: 24,
   shape: "line",
   damage: {
     type: "physical",
@@ -101,7 +101,7 @@ export const VileBlackArrows: AbilityDefinition = {
     minChargeTime: 0.3,
     maxChargeTime: 2.0,
     canMoveWhileCharging: false,
-    maxChargeRangeBonus: 600, // Additional range at max charge
+    maxChargeRangeBonus: 280, // Additional range at max charge
     minChargeMultiplier: 1.0, // Full damage at min charge
     maxChargeMultiplier: 1.0, // No damage scaling with charge
   },
@@ -150,7 +150,7 @@ export const VileRootsOfVilix: AbilityDefinition = {
   maxRank: 5,
   manaCost: [0, 0, 0, 0, 0], // Uses charges instead of mana
   cooldown: [1, 1, 1, 1, 1], // Small cooldown between trap placements
-  range: 600,
+  range: 300,
   // Ammo/charge system (follows AmmoBehavior interface)
   ammo: {
     maxCharges: 5,
@@ -159,14 +159,14 @@ export const VileRootsOfVilix: AbilityDefinition = {
   } as AmmoBehavior,
   // Trap properties
   trap: {
-    triggerRadius: 100,
+    triggerRadius: 60,
     duration: 120, // 2 minutes
     isStealthed: true,
     rootDuration: 1,
     soulStacksOnTrigger: 5,
     // Explosion properties (when R is cast)
     explosionDamage: [80, 120, 160], // Based on R rank
-    explosionRadius: 300,
+    explosionRadius: 140,
     explosionRootDuration: 1,
   },
 };
@@ -188,7 +188,7 @@ export const VileRestorationOfVilix: AbilityDefinition = {
   // Stat transform properties (uses StatTransformBehavior)
   statTransform: {
     duration: 10,
-    attackRange: 40, // Melee
+    attackRange: 55, // Melee
     statModifiers: {
       maxHealth: [200, 350, 500],
       attackDamage: [30, 50, 70],
@@ -201,7 +201,7 @@ export const VileRestorationOfVilix: AbilityDefinition = {
   },
   // Aura damage (per second to nearby enemies)
   aura: {
-    radius: 300,
+    radius: 140,
     damage: {
       type: "magic",
       scaling: scaling([25, 40, 55], { apRatio: 0.2 }),

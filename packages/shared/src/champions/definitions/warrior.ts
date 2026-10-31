@@ -48,10 +48,10 @@ const WARRIOR_BASE_STATS: ChampionBaseStats = {
   attackDamage: 60,
   abilityPower: 0,
   attackSpeed: 0.65,
-  attackRange: 40, // Melee
+  attackRange: 55, // Melee
   armor: 35,
   magicResist: 32,
-  movementSpeed: 60,
+  movementSpeed: 134,
   critChance: 0,
   critDamage: 2.0,
 };
@@ -80,8 +80,8 @@ export const WarriorSlash: AbilityDefinition = {
   maxRank: 5,
   manaCost: [40, 45, 50, 55, 60],
   cooldown: [6, 5.5, 5, 4.5, 4],
-  range: 300,
-  aoeRadius: 200,
+  range: 170,
+  aoeRadius: 170,
   aoeDelay: 0.2, // The swing
   coneAngle: Math.PI / 2, // 90 degrees
   shape: "cone",
@@ -116,12 +116,12 @@ export const WarriorCharge: AbilityDefinition = {
   maxRank: 5,
   manaCost: [50, 50, 50, 50, 50],
   cooldown: [12, 11, 10, 9, 8],
-  range: 500,
+  range: 260,
   dash: {
-    speed: 1200,
-    distance: 500,
+    speed: 650,
+    distance: 260,
   },
-  aoeRadius: 60, // Hitbox width during dash
+  aoeRadius: 45, // Hitbox width during dash
   damage: {
     type: "physical",
     scaling: scaling([50, 85, 120, 155, 190], { adRatio: 0.6 }),
@@ -140,10 +140,10 @@ export const WarriorUltimate: AbilityDefinition = {
   maxRank: 3,
   manaCost: [100, 100, 100],
   cooldown: [120, 100, 80],
-  range: 600,
+  range: 260,
   dash: {
-    speed: 1500, // Fast leap
-    distance: 600, // Matches ability range
+    speed: 700, // Fast leap
+    distance: 260, // Matches ability range
   },
   damage: {
     type: "physical",

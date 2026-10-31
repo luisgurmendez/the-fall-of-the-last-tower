@@ -10,12 +10,16 @@
  */
 
 import { describe, test, expect, beforeEach } from 'bun:test';
-import { Vector } from '@siege/shared';
+import { Vector, CHAMPION_DEFINITIONS, getAbilityDefinition } from '@siege/shared';
 import {
   createTestArena,
   TestArena,
   calculatePhysicalDamage,
 } from '../ServerTestUtils';
+
+const BASE_STATS = CHAMPION_DEFINITIONS.warrior.baseStats;
+/** Heroic Strike's cast range */
+const R_RANGE = getAbilityDefinition('warrior_ultimate')!.range!;
 
 describe('Warrior (Kael)', () => {
   let arena: TestArena;
@@ -40,8 +44,9 @@ describe('Warrior (Kael)', () => {
       expect(freshArena.blue.maxHealth).toBe(580);
     });
 
-    test('should have melee attack range (40)', () => {
-      expect(arena.blue.getStats().attackRange).toBe(40);
+    test('should have melee attack range', () => {
+      expect(arena.blue.getStats().attackRange).toBe(BASE_STATS.attackRange);
+      expect(BASE_STATS.attackRange).toBeLessThan(100);
     });
 
     test('should have correct base armor (35)', () => {
@@ -54,8 +59,8 @@ describe('Warrior (Kael)', () => {
       expect(freshArena.blue.getStats().armor).toBe(35);
     });
 
-    test('should have correct base movement speed (60)', () => {
-      expect(arena.blue.getStats().movementSpeed).toBe(60);
+    test('should have correct base movement speed', () => {
+      expect(arena.blue.getStats().movementSpeed).toBe(BASE_STATS.movementSpeed);
     });
 
     test('should have correct base attack damage (60)', () => {
@@ -198,8 +203,9 @@ describe('Warrior (Kael)', () => {
 
     test('should apply slow to enemies hit', () => {
       // Position red in the dash path
-      arena.red.position.x = 250;
+      arena.red.position.x = getAbilityDefinition('warrior_charge')!.dash!.distance * 0.6;
       arena.red.position.y = 0;
+      const baseSpeed = arena.red.getStats().movementSpeed;
 
       arena.castAbility(arena.blue, 'E', {
         targetPosition: new Vector(500, 0),
@@ -209,7 +215,6 @@ describe('Warrior (Kael)', () => {
       arena.tickFrames(30);
 
       // Red should be slowed
-      const baseSpeed = 340;
       const currentSpeed = arena.red.getStats().movementSpeed;
       expect(currentSpeed).toBeLessThan(baseSpeed);
     });
@@ -239,7 +244,7 @@ describe('Warrior (Kael)', () => {
 
     test('should stun the target', () => {
       // Position red in range
-      arena.red.position.x = 300;
+      arena.red.position.x = R_RANGE * 0.8;
 
       arena.castAbility(arena.blue, 'R', {
         targetPosition: arena.red.position.clone(),
@@ -255,7 +260,7 @@ describe('Warrior (Kael)', () => {
     test('should deal significant damage', () => {
       const initialHealth = arena.red.health;
 
-      arena.red.position.x = 300;
+      arena.red.position.x = R_RANGE * 0.8;
 
       arena.castAbility(arena.blue, 'R', {
         targetPosition: arena.red.position.clone(),
@@ -270,7 +275,7 @@ describe('Warrior (Kael)', () => {
     });
 
     test('should have long cooldown (120s at rank 1)', () => {
-      arena.red.position.x = 300;
+      arena.red.position.x = R_RANGE * 0.8;
 
       arena.castAbility(arena.blue, 'R', {
         targetPosition: arena.red.position.clone(),

@@ -10,7 +10,7 @@
  */
 
 import { describe, test, expect, beforeEach } from 'bun:test';
-import { Vector } from '@siege/shared';
+import { Vector, CHAMPION_DEFINITIONS } from '@siege/shared';
 import {
   createTestArena,
   TestArena,
@@ -47,8 +47,10 @@ describe('Vex', () => {
       expect(statsArena.blue.maxHealth).toBe(520);
     });
 
-    test('should have melee attack range (40)', () => {
-      expect(statsArena.blue.getStats().attackRange).toBe(40);
+    test('should have melee attack range', () => {
+      const { attackRange } = CHAMPION_DEFINITIONS.vex.baseStats;
+      expect(statsArena.blue.getStats().attackRange).toBe(attackRange);
+      expect(attackRange).toBeLessThan(100);
     });
 
     test('should have correct base attack damage (65)', () => {

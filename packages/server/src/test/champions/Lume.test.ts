@@ -11,7 +11,7 @@
  */
 
 import { describe, test, expect, beforeEach } from "bun:test";
-import { Vector, EntityType, TEAM_BLUE, TEAM_RED } from "@siege/shared";
+import { Vector, EntityType, TEAM_BLUE, TEAM_RED, CHAMPION_DEFINITIONS, LUME_ORB_CONFIG } from "@siege/shared";
 import { createTestArena, TestArena } from "../ServerTestUtils";
 import { ServerLightOrb } from "../../simulation/ServerLightOrb";
 
@@ -45,14 +45,15 @@ describe("Lume", () => {
     // Base values: health=540, AD=52, mana=320, armor=26, MR=30, MS=335
     // Growth per level: health=85, AD=3.2, mana=45, armor=3.5, MR=1.3
 
-    test("should have ranged attack range (400)", () => {
+    test("should have ranged attack range", () => {
       // Attack range doesn't scale with level
-      expect(arena.blue.getStats().attackRange).toBe(400);
+      expect(arena.blue.getStats().attackRange).toBe(CHAMPION_DEFINITIONS.lume.baseStats.attackRange);
+      expect(CHAMPION_DEFINITIONS.lume.baseStats.attackRange).toBeGreaterThan(100);
     });
 
-    test("should have correct movement speed (67)", () => {
+    test("should have correct movement speed", () => {
       // Movement speed doesn't scale with level
-      expect(arena.blue.getStats().movementSpeed).toBe(67);
+      expect(arena.blue.getStats().movementSpeed).toBe(CHAMPION_DEFINITIONS.lume.baseStats.movementSpeed);
     });
 
     test("should use mana resource type", () => {
@@ -460,14 +461,14 @@ describe("Lume", () => {
       orb.sendTo(new Vector(300, 0));
       expect(orb.state).toBe("traveling");
 
-      // Tick until orb arrives (travels at 1200 units/s, distance ~240 units = ~0.2s = 12 frames)
-      arena.tickAllFrames(20);
+      // Tick until orb arrives (about 240 units at its travel speed)
+      arena.tickAllFrames(Math.ceil((240 / LUME_ORB_CONFIG.travelSpeed) * 60) + 5);
 
       // Should be stationed
       expect(orb.state).toBe("stationed");
 
-      // Tick until auto-return (4 seconds = 240 frames)
-      arena.tickAllFrames(250);
+      // Tick until auto-return
+      arena.tickAllFrames(Math.ceil(LUME_ORB_CONFIG.stationedDuration * 60) + 10);
 
       // Should be traveling back or orbiting
       expect(["traveling", "orbiting"].includes(orb.state)).toBe(true);

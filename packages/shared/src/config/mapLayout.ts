@@ -11,7 +11,7 @@ import { Vector } from '../math/Vector';
 
 export const WALL_TILE_SIZE = 64;
 /** Tile grid spans [-WALL_GRID_HALF, WALL_GRID_HALF] on both axes (symmetric, so mirroring stays on the grid) */
-export const WALL_GRID_HALF = 1600;
+export const WALL_GRID_HALF = 2752;
 
 export interface WallRect {
   position: Vector;

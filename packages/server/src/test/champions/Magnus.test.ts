@@ -10,7 +10,7 @@
  */
 
 import { describe, test, expect, beforeEach } from 'bun:test';
-import { Vector } from '@siege/shared';
+import { Vector, CHAMPION_DEFINITIONS } from '@siege/shared';
 import {
   createTestArena,
   TestArena,
@@ -47,8 +47,10 @@ describe('Magnus', () => {
       expect(level1Arena.blue.maxHealth).toBe(425);
     });
 
-    test('should have ranged attack range (400)', () => {
-      expect(level1Arena.blue.getStats().attackRange).toBe(400);
+    test('should have ranged attack range', () => {
+      const { attackRange } = CHAMPION_DEFINITIONS.magnus.baseStats;
+      expect(level1Arena.blue.getStats().attackRange).toBe(attackRange);
+      expect(attackRange).toBeGreaterThan(100);
     });
 
     test('should have low base armor (20)', () => {

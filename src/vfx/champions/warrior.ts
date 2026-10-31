@@ -3,6 +3,7 @@
  * when this module is imported (see ./index.ts).
  */
 
+import { getAbilityDefinition } from '@siege/shared';
 import { registerAbilityVFX } from '../VFXRegistryStore';
 import {
   coneWarning,
@@ -27,20 +28,21 @@ const WHITE = '#f2f8ff';
 const DUST = '#8a7a66';
 
 const SWING = landsAt('warrior_slash');
+const CLEAVE = getAbilityDefinition('warrior_slash')?.aoeRadius ?? 170;
 
 // Q: the cone flashes as he draws back, then a double crescent sweeps it
 registerAbilityVFX({
   abilityId: 'warrior_slash',
   phases: [
     phase('draw', 0, 'caster', [
-      coneWarning(AZURE, 200, Math.PI / 2, SWING),
+      coneWarning(AZURE, CLEAVE, Math.PI / 2, SWING),
       twinkles(WHITE, 1, [0, 0], { size: { min: 6, max: 7 }, lifetime: { min: SWING, max: SWING } }),
     ], SWING),
     phase('swing', SWING, 'caster', [
-      slash(AZURE, 195, Math.PI * 0.55, 0.36, 90),
-      slash(WHITE, 175, Math.PI * 0.5, 0.28, 24),
-      sparks(STEEL, 14, [200, 420], Math.PI / 2),
-      light(AZURE, 170, 0.6, 0.3),
+      slash(AZURE, CLEAVE * 0.97, Math.PI * 0.55, 0.36, CLEAVE * 0.45),
+      slash(WHITE, CLEAVE * 0.87, Math.PI * 0.5, 0.28, CLEAVE * 0.12),
+      sparks(STEEL, 14, [160, 340], Math.PI / 2),
+      light(AZURE, CLEAVE * 0.85, 0.6, 0.3),
     ], 0.36),
   ],
 });
@@ -85,11 +87,11 @@ registerAbilityVFX({
       { type: 'trail', color: AZURE, thickness: 12, duration: 0.5, fadeLength: 16 },
       embers(STEEL, 10, 30),
     ], 0.5),
-    phase('blade', 0.05, 'target', [meteor('blade', AZURE, 16, 300, 0.35, WHITE)], 0.35),
-    phase('strike', 0.4, 'target', [
-      shockwave(AZURE, 20, 160, 0.45, 12),
-      ring(WHITE, 10, 120, 0.25, 3),
-      scorch(AZURE, 100, 2.0, 0.6),
+    phase('blade', 0.05, 'target', [meteor('blade', AZURE, 16, 300, 0.32, WHITE)], 0.32),
+    phase('strike', 0.37, 'target', [
+      shockwave(AZURE, 20, 130, 0.45, 10),
+      ring(WHITE, 10, 100, 0.25, 3),
+      scorch(AZURE, 80, 2.0, 0.6),
       sparks(WHITE, 24, [200, 440]),
       sparks(AZURE, 12, [120, 260]),
       smoke('#9a8a70', 10, [16, 26], [50, 140]),

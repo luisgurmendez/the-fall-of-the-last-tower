@@ -11,11 +11,17 @@
  */
 
 import { describe, test, expect, beforeEach } from 'bun:test';
-import { Vector, EntityType, TEAM_BLUE, TEAM_RED } from '@siege/shared';
+import { Vector, EntityType, TEAM_BLUE, TEAM_RED, CHAMPION_DEFINITIONS, getAbilityDefinition } from '@siege/shared';
 import {
   createTestArena,
   TestArena,
 } from '../ServerTestUtils';
+
+const BASE_STATS = CHAMPION_DEFINITIONS.vile.baseStats;
+/** His attack range while transformed (R) */
+const TRANSFORMED_RANGE = getAbilityDefinition('vile_restoration_of_vilix')!.statTransform!.attackRange!;
+/** Where the trap tests place traps: well within E's range */
+const TRAP_AT = getAbilityDefinition('vile_roots_of_vilix')!.range! * 0.8;
 
 describe('Vile', () => {
   let arena: TestArena;
@@ -46,16 +52,17 @@ describe('Vile', () => {
       expect(level1Arena.blue.maxHealth).toBe(580);
     });
 
-    test('should have ranged attack range (325)', () => {
-      expect(level1Arena.blue.getStats().attackRange).toBe(325);
+    test('should have ranged attack range', () => {
+      expect(level1Arena.blue.getStats().attackRange).toBe(BASE_STATS.attackRange);
+      expect(BASE_STATS.attackRange).toBeGreaterThan(100);
     });
 
     test('should have correct base attack damage (60)', () => {
       expect(level1Arena.blue.getStats().attackDamage).toBe(60);
     });
 
-    test('should have correct movement speed (63)', () => {
-      expect(level1Arena.blue.getStats().movementSpeed).toBe(63);
+    test('should have correct movement speed', () => {
+      expect(level1Arena.blue.getStats().movementSpeed).toBe(BASE_STATS.movementSpeed);
     });
 
     test('should use mana (300 resource)', () => {
@@ -351,7 +358,7 @@ describe('Vile', () => {
   describe('E - Roots of Vilix', () => {
     test('should cast successfully', () => {
       const result = arena.castAbility(arena.blue, 'E', {
-        targetPosition: new Vector(300, 0),
+        targetPosition: new Vector(TRAP_AT, 0),
       });
 
       expect(result.success).toBe(true);
@@ -361,14 +368,14 @@ describe('Vile', () => {
       const initialMana = arena.blue.resource;
 
       arena.castAbility(arena.blue, 'E', {
-        targetPosition: new Vector(300, 0),
+        targetPosition: new Vector(TRAP_AT, 0),
       });
 
       expect(arena.blue.resource).toBe(initialMana);
     });
 
     test('should place a trap at target location', () => {
-      const trapPosition = new Vector(300, 100);
+      const trapPosition = new Vector(TRAP_AT, 40);
 
       arena.castAbility(arena.blue, 'E', {
         targetPosition: trapPosition,
@@ -385,7 +392,7 @@ describe('Vile', () => {
 
     test('trap should trigger on enemy champion proximity', () => {
       // Place trap
-      const trapPosition = new Vector(300, 0);
+      const trapPosition = new Vector(TRAP_AT, 0);
       arena.castAbility(arena.blue, 'E', {
         targetPosition: trapPosition,
       });
@@ -402,7 +409,7 @@ describe('Vile', () => {
       const initialStacks = arena.blue.passiveState.stacks;
 
       // Place trap
-      const trapPosition = new Vector(300, 0);
+      const trapPosition = new Vector(TRAP_AT, 0);
       arena.castAbility(arena.blue, 'E', {
         targetPosition: trapPosition,
       });
@@ -436,19 +443,22 @@ describe('Vile', () => {
       expect(arena.blue.getStats().maxHealth).toBeGreaterThan(baseHealth);
     });
 
-    test('should reduce attack range to melee (40)', () => {
+    test('should reduce attack range to melee', () => {
       arena.castAbility(arena.blue, 'R');
       arena.tick();
 
-      expect(arena.blue.getAttackRange()).toBe(40);
+      expect(arena.blue.getAttackRange()).toBe(TRANSFORMED_RANGE);
+      expect(TRANSFORMED_RANGE).toBeLessThan(100);
     });
 
     test('should attack from melee range while transformed', () => {
       arena.castAbility(arena.blue, 'R');
       arena.tick();
 
-      // 200 away: in his normal range, out of his transformed one
-      arena.red.position.setFrom(arena.blue.position.added(new Vector(200, 0)));
+      // In his normal range, out of his transformed one
+      const distance = BASE_STATS.attackRange * 0.8;
+      expect(distance).toBeGreaterThan(TRANSFORMED_RANGE + 50);
+      arena.red.position.setFrom(arena.blue.position.added(new Vector(distance, 0)));
       arena.blue.setAttackTarget(arena.red.id);
       arena.tick(0.1);
 
@@ -474,15 +484,15 @@ describe('Vile', () => {
     test('should trigger all owned traps to explode', () => {
       // Place some traps
       arena.castAbility(arena.blue, 'E', {
-        targetPosition: new Vector(300, 0),
+        targetPosition: new Vector(TRAP_AT, 0),
       });
       arena.blue.resetCooldowns();
       arena.castAbility(arena.blue, 'E', {
-        targetPosition: new Vector(350, 0),
+        targetPosition: new Vector(TRAP_AT, 50),
       });
 
       // Position enemy near traps
-      arena.red.position.setFrom(new Vector(325, 0));
+      arena.red.position.setFrom(new Vector(TRAP_AT, 25));
       const initialHealth = arena.red.health;
 
       // Cast R to trigger explosions
@@ -496,11 +506,11 @@ describe('Vile', () => {
     test('trap explosion should root enemies', () => {
       // Place trap
       arena.castAbility(arena.blue, 'E', {
-        targetPosition: new Vector(300, 0),
+        targetPosition: new Vector(TRAP_AT, 0),
       });
 
       // Position enemy near trap
-      arena.red.position.setFrom(new Vector(300, 0));
+      arena.red.position.setFrom(new Vector(TRAP_AT, 0));
 
       // Cast R to trigger explosion
       arena.castAbility(arena.blue, 'R');
@@ -530,7 +540,7 @@ describe('Vile', () => {
       arena.tickFrames(600); // 10 seconds at 60fps
 
       // Attack range should be back to normal
-      expect(arena.blue.getAttackRange()).toBe(325);
+      expect(arena.blue.getAttackRange()).toBe(BASE_STATS.attackRange);
     });
 
     test('should mark champion as transformed', () => {
@@ -637,12 +647,12 @@ describe('Vile', () => {
   describe('Integration - Full Combo', () => {
     test('E > R > Q > auto attack combo should deal significant damage', () => {
       // Setup: Position enemy
-      arena.red.position.setFrom(new Vector(300, 0));
+      arena.red.position.setFrom(new Vector(TRAP_AT, 0));
       const initialHealth = arena.red.health;
 
       // Place trap near enemy
       arena.castAbility(arena.blue, 'E', {
-        targetPosition: new Vector(300, 0),
+        targetPosition: new Vector(TRAP_AT, 0),
       });
       arena.blue.resetCooldowns();
 

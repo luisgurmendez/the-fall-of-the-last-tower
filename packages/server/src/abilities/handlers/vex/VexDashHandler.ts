@@ -88,7 +88,7 @@ export class VexDashHandler extends BaseAbilityHandler {
    */
   private checkForMarkedEnemy(params: AbilityHandlerParams): boolean {
     const { champion, context } = params;
-    const checkRadius = 500; // Dash range + buffer
+    const checkRadius = 260; // Dash range + buffer
 
     const entities = context.getEntitiesInRadius(champion.position, checkRadius);
 

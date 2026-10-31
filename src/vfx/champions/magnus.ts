@@ -34,6 +34,7 @@ const MUD = '#6a4a30';
 /** Seconds until the fireball leaves his staff (its animation's projectile keyframe) */
 const THROW = 0.25;
 const MUD_LANDS = landsAt('magnus_mud');
+const MUD_RADIUS = getAbilityDefinition('magnus_mud')?.aoeRadius ?? 110;
 const METEOR_LANDS = landsAt('magnus_meteor');
 const METEOR_RADIUS = getAbilityDefinition('magnus_meteor')?.aoeRadius ?? 250;
 
@@ -87,11 +88,11 @@ registerAbilityVFX({
 registerAbilityVFX({
   abilityId: 'magnus_mud',
   phases: [
-    phase('soften', 0, 'ground_target', [warning(MUD, 200, MUD_LANDS)], MUD_LANDS),
+    phase('soften', 0, 'ground_target', [warning(MUD, MUD_RADIUS, MUD_LANDS)], MUD_LANDS),
     phase('splash', MUD_LANDS, 'ground_target', [
-      smoke('#5a4030', 16, [14, 24], [60, 170]),
-      debris('#3a2818', 14, [80, 200]),
-      ring('#a07850', 20, 200, 0.4, 3),
+      smoke('#5a4030', 14, [12, 22], [50, 140]),
+      debris('#3a2818', 12, [70, 170]),
+      ring('#a07850', 20, MUD_RADIUS, 0.4, 3),
     ], 0.6),
   ],
 });
@@ -112,8 +113,8 @@ registerAbilityVFX({
       sparks(HOT, 30, [220, 480]),
       rocks('#4a3020', 14, [140, 280]),
       smoke(SMOKE, 10, [20, 32], [40, 120], { lifetime: { min: 1.0, max: 1.6 } }),
-      scorch(FIRE, 160, 5.0, 1.0),
-      light(FIRE, 280, 1.5, 0.9, 0.4),
+      scorch(FIRE, METEOR_RADIUS * 0.65, 5.0, 1.0),
+      light(FIRE, METEOR_RADIUS * 1.1, 1.5, 0.9, 0.4),
       { type: 'screen_flash', color: '#ffb060', duration: 0.12, maxAlpha: 0.15 },
     ], 0.9),
   ],

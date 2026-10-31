@@ -102,15 +102,15 @@ const RETURN_HEALTH = 0.8;
 /** Gold worth a trip home to shop (when its next item is affordable) */
 const SHOPPING_GOLD = 1100;
 /** An enemy champion this close keeps the bot from recalling */
-const RECALL_SAFE_DISTANCE = 900;
+const RECALL_SAFE_DISTANCE = 600;
 /** How far behind the wave front the bot stands */
-const FRONT_OFFSET = 120;
+const FRONT_OFFSET = 80;
 /** Extra margin kept outside enemy tower range */
-const TOWER_MARGIN = 80;
+const TOWER_MARGIN = 60;
 /** Collision radius assumed for the unit at a position (the largest champion's) */
 const UNIT_RADIUS = 25;
 /** How far past its attack range the bot looks for a structure to hit */
-const SIEGE_REACH = 300;
+const SIEGE_REACH = 200;
 /** Allied minions under an enemy tower before the bot follows them in */
 const MIN_TOWER_TANKS = 2;
 /** Seconds of tower shots on minions to spare after walking back out of its range */
@@ -118,7 +118,7 @@ const TOWER_EXIT_MARGIN = 1.5;
 /** How much of the enemy minions' damage on our minions under a tower to count (they spread it, and die too) */
 const ENEMY_MINION_DPS_WEIGHT = 0.5;
 /** How far the bot looks for allied units hitting a minion */
-const MINION_DAMAGE_RADIUS = 700;
+const MINION_DAMAGE_RADIUS = 400;
 /** Same command is re-sent after this long in case it was dropped */
 const RESEND_INTERVAL = 1.0;
 
@@ -296,8 +296,8 @@ export class LaneBot implements BotController {
     // Close enough to fight: our reach, or theirs when they're hitting us from range
     const distance = champion.position.distanceTo(enemy.position);
     const reach = beingHit
-      ? Math.max(champion.getAttackRange(), enemy.getAttackRange()) + 200
-      : champion.getAttackRange() + 250;
+      ? Math.max(champion.getAttackRange(), enemy.getAttackRange()) + 120
+      : champion.getAttackRange() + 150;
     if (distance > reach) return false;
 
     // Don't chase into the enemy's tower unless it's a kill
@@ -348,7 +348,7 @@ export class LaneBot implements BotController {
         return { type: InputType.ABILITY, slot, targetType: 'position', targetX: target.position.x, targetY: target.position.y };
       }
       if (role === 'offense') {
-        if (distance > champion.getAttackRange() + 150) continue;
+        if (distance > champion.getAttackRange() + 100) continue;
         return { type: InputType.ABILITY, slot, targetType: 'none' };
       }
 
@@ -596,7 +596,7 @@ export class LaneBot implements BotController {
    * outside their tower's range (or allied minions are already tanking it).
    */
   private reachableMinions(champion: ServerChampion, context: ServerGameContext): ServerEntity[] {
-    const reach = champion.getAttackRange() + 450;
+    const reach = champion.getAttackRange() + 300;
     return context.getEnemiesInRadius(champion.position, reach, champion.side).filter(entity =>
       entity.entityType === EntityType.MINION &&
       !entity.isDead &&

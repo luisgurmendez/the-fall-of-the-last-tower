@@ -75,9 +75,9 @@ export const DEFAULT_MINION_STATS: Record<MinionType, MinionStats> = {
     armor: 10,
     magicResist: 10,
     attackDamage: 23,
-    attackRange: 35,
+    attackRange: 44,
     attackCooldown: 1.0,
-    movementSpeed: 42,
+    movementSpeed: 125,
     sightRange: 400,
     goldReward: 21,
     experienceReward: 60,
@@ -93,9 +93,9 @@ export const DEFAULT_MINION_STATS: Record<MinionType, MinionStats> = {
     armor: 5,
     magicResist: 5,
     attackDamage: 22,
-    attackRange: 300,
+    attackRange: 220,
     attackCooldown: 1.6,
-    movementSpeed: 42,
+    movementSpeed: 125,
     sightRange: 400,
     goldReward: 14,
     experienceReward: 32,
@@ -111,10 +111,10 @@ export const DEFAULT_MINION_STATS: Record<MinionType, MinionStats> = {
     armor: 30,
     magicResist: 0,
     attackDamage: 50,
-    attackRange: 300,
+    attackRange: 140,
     attackCooldown: 2.0,
-    movementSpeed: 42,
-    sightRange: 500,
+    movementSpeed: 125,
+    sightRange: 400,
     goldReward: 60,
     experienceReward: 93,
     collision: {
@@ -129,10 +129,10 @@ export const DEFAULT_MINION_STATS: Record<MinionType, MinionStats> = {
     armor: 30,
     magicResist: 0,
     attackDamage: 180,
-    attackRange: 50, // Melee super minion
+    attackRange: 70, // Melee super minion
     attackCooldown: 0.85,
-    movementSpeed: 220, // Faster than regular minions
-    sightRange: 500,
+    movementSpeed: 135, // Faster than regular minions
+    sightRange: 400,
     goldReward: 60,
     experienceReward: 97,
     collision: {

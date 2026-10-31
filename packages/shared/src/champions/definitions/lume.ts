@@ -52,16 +52,16 @@ function scaling(
 export const LUME_ORB_CONFIG = {
   orbitRadius: 60, // Distance from Lume when orbiting
   orbitSpeed: 2.0, // Radians per second
-  travelSpeed: 1200, // Units per second when traveling
-  stationedDuration: 5.0, // Seconds before auto-returning (less than min cooldown)
-  passiveAuraRadius: 300, // Radius for passive effects
+  travelSpeed: 700, // Units per second when traveling
+  stationedDuration: 4.0, // Seconds before auto-returning (less than min cooldown)
+  passiveAuraRadius: 160, // Radius for passive effects
   allySpeedBonus: 0.15, // 15% movement speed
   enemyDamageAmp: 0.08, // 8% increased magic damage from Lume
   respawnTime: 30.0, // Seconds to respawn after R
-  qImpactRadius: 150, // Damage radius on Q arrival
-  wPulseRadius: 300, // W heal/damage radius
-  eBlindRadius: 200, // E blind radius on arrival
-  rExplosionRadius: 400, // R explosion radius
+  qImpactRadius: 80, // Damage radius on Q arrival
+  wPulseRadius: 150, // W heal/damage radius
+  eBlindRadius: 100, // E blind radius on arrival
+  rExplosionRadius: 180, // R explosion radius
 } as const;
 
 // =============================================================================
@@ -76,10 +76,10 @@ const LUME_BASE_STATS: ChampionBaseStats = {
   attackDamage: 52,
   abilityPower: 0,
   attackSpeed: 0.65,
-  attackRange: 400, // Standard ranged mage
+  attackRange: 220, // Standard ranged mage
   armor: 26,
   magicResist: 30,
-  movementSpeed: 67, // Slightly slow, E compensates
+  movementSpeed: 132, // Slightly slow, E compensates
   critChance: 0,
   critDamage: 2.0,
 };
@@ -155,7 +155,7 @@ export const LumeQ: AbilityDefinition = {
   maxRank: 5,
   manaCost: [40, 45, 50, 55, 60],
   cooldown: [8, 7.5, 7, 6.5, 6],
-  range: 800,
+  range: 360,
   damage: {
     type: "magic",
     scaling: scaling([60, 95, 130, 165, 200], { apRatio: 0.6 }),
@@ -228,7 +228,7 @@ export const LumeW: AbilityDefinition = {
  *
  * DASH PROPERTIES:
  * - Speed: 1200 units/s
- * - Max distance: 600 units
+ * - Max distance: 300 units
  * - Stops at orb if within range
  * - Can dash toward traveling orb (targets current position)
  * - If orb is destroyed, dashes in facing direction
@@ -251,8 +251,8 @@ export const LumeE: AbilityDefinition = {
   cooldown: [18, 16, 14, 12, 10],
   range: 0, // Not a targeted ability
   dash: {
-    speed: 700,
-    distance: 600,
+    speed: 650,
+    distance: 300,
   },
   appliesEffects: ["blind"],
   effectDuration: 1.2, // Blind duration scales with ability executor

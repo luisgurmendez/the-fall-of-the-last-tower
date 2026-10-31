@@ -30,21 +30,21 @@ export const WARD_DEFINITIONS: Record<WardType, {
 }> = {
   stealth: {
     duration: 90, // 90 seconds
-    sightRange: 600, // Vision radius
+    sightRange: 360, // Vision radius
     health: 3,
     isStealthed: true,
     revealsWards: false,
   },
   control: {
     duration: 0, // Permanent until destroyed
-    sightRange: 600,
+    sightRange: 360,
     health: 4,
     isStealthed: false,
     revealsWards: true,
   },
   farsight: {
     duration: 60, // 60 seconds
-    sightRange: 350,
+    sightRange: 240,
     health: 1,
     isStealthed: false,
     revealsWards: false,
