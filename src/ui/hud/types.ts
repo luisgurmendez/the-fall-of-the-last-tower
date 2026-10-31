@@ -129,6 +129,8 @@ export interface HUDChampionData {
   getActiveEffects(): HUDActiveEffect[];
   getInventory(): ChampionInventory;
   getTrinket(): HUDTrinket | null;
+  /** Control wards carried (bought in the shop, placed with 5) */
+  getControlWards(): number;
   /** The two summoner spells (D, F) and their cooldowns */
   getSummoners(): SummonerSpellState[];
   getPosition(): Vector;

@@ -340,6 +340,13 @@ export const ITEM_CATALOG: ItemCatalogEntry[] = [
   IronheartTalisman,
 ];
 
+/**
+ * The control ward is bought in the shop with BUY_ITEM like an item, but it
+ * isn't one: it's carried apart from the six slots (up to
+ * GameConfig.VISION.MAX_CONTROL_WARDS_CARRIED) and placed with key 5.
+ */
+export const CONTROL_WARD_ITEM_ID = 'control_ward';
+
 const ITEM_BY_ID = new Map<string, ItemCatalogEntry>(
   ITEM_CATALOG.map(item => [item.id, item])
 );

@@ -172,7 +172,7 @@ class OnlineGame {
     const atShop = !GameConfig.ECONOMY.SHOP_ONLY_AT_BASE ||
       Math.hypot(championSnapshot.x - fountain.x, championSnapshot.y - fountain.y) <= MOBAConfig.FOUNTAIN.RADIUS;
 
-    shopUI.updateOnlineState(championSnapshot.gold, items, atShop);
+    shopUI.updateOnlineState(championSnapshot.gold, items, atShop, championSnapshot.controlWards ?? 0);
     const championClass = getChampionDefinition(championSnapshot.championId)?.class;
     if (championClass) shopUI.setChampionClass(championClass);
   }

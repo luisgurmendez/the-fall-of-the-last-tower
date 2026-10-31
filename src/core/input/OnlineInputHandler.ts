@@ -701,13 +701,15 @@ export class OnlineInputHandler implements GameObject {
   /**
    * While a ward key is held: the placement range around the local
    * champion, and the ward and what it will see where it would go (dimmed
-   * when no ward charge is left).
+   * when no ward charge is left, or no control ward is carried).
    */
   private renderWardPlacement(ctx: CanvasRenderingContext2D, wardType: WardType, camera: any): void {
     const local = this.stateManager.getLocalPlayerEntity();
     const at = this.wardPlacement(camera);
     if (!local || !at) return;
-    const charges = (local.snapshot as { trinketCharges?: number }).trinketCharges ?? 1;
+    // A stealth ward uses a trinket charge, a control ward one bought in the shop
+    const snapshot = local.snapshot as { trinketCharges?: number; controlWards?: number };
+    const charges = wardType === "control" ? snapshot.controlWards ?? 0 : snapshot.trinketCharges ?? 1;
 
     ctx.save();
     ctx.beginPath();

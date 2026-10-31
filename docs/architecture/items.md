@@ -99,7 +99,8 @@ selects it. Items that suit the local champion's class have a star (`isRecommend
 `src/data/items.ts`: mages and supports get ability power, assassins attack damage and
 speed, tanks armor, magic resist and health, and so on). Buying keeps the shop open; gold, inventory, affordability and the
 buttons refresh from each server state update (`updateOnlineState`). Buying and selling
-only work at the fountain.
+only work at the fountain. Beside the inventory, the control ward button buys a control
+ward (75 gold) to carry, up to 2, outside the six slots (see [map.md](map.md), Wards).
 
 ## Icons
 

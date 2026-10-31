@@ -203,7 +203,7 @@ Captures player input and sends to server:
 - S → Stop
 - B → Recall
 - D / F → Summoner spells
-- 4 / 5 → Hold to aim a ward / control ward, release to place it
+- 4 / 5 → Hold to aim a ward / control ward (bought in the shop), release to place it
 
 Escape opens the in-match menu (`src/ui/GameMenu.ts`: resume, surrender).
 

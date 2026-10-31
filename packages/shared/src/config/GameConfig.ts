@@ -137,6 +137,9 @@ export const GameConfig = {
     MAX_WARDS: 3,
     /** Max control wards per player, counted apart from the rest */
     MAX_CONTROL_WARDS: 1,
+    /** Control wards are bought in the shop (not trinket charges), up to this many carried */
+    CONTROL_WARD_COST: 75,
+    MAX_CONTROL_WARDS_CARRIED: 2,
     /** How far from its champion a ward can be placed (farther clicks place it at this distance) */
     WARD_PLACE_RANGE: 240,
     /** The same for a farsight ward */

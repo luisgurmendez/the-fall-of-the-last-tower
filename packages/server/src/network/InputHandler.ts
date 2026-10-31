@@ -402,8 +402,9 @@ export class InputHandler {
     input: PlaceWardInput,
     context: ServerGameContext
   ): void {
-    // Check if champion has trinket charges available
-    if (!champion.canPlaceWard()) {
+    // A control ward uses one bought in the shop; the rest use trinket charges
+    const isControl = input.wardType === 'control';
+    if (isControl ? champion.controlWards <= 0 || champion.isDead : !champion.canPlaceWard()) {
       return;
     }
 
@@ -421,8 +422,9 @@ export class InputHandler {
     }
     const targetPos = champion.position.added(direction.scaled(Math.max(0, along)));
 
-    // Consume trinket charge
-    if (!champion.consumeTrinketCharge()) {
+    if (isControl) {
+      champion.controlWards--;
+    } else if (!champion.consumeTrinketCharge()) {
       return;
     }
 

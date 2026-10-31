@@ -9,7 +9,7 @@ import type { NetworkClient } from "@siege/client";
 import { createItemIconElement } from "@/ui/itemIcons";
 import { SHOP_ITEMS, getItemDefinition, getItemPassive, isRecommendedFor } from "@/data/items";
 import { renderItemTree, renderBuildsInto } from "@/ui/shop/itemTree";
-import { planItemPurchase } from "@siege/shared";
+import { CONTROL_WARD_ITEM_ID, GameConfig, planItemPurchase } from "@siege/shared";
 
 type ShopCategory = ItemCategory | "all";
 
@@ -48,6 +48,7 @@ export class ShopUI {
   private atShop = true;
   private sellButton: HTMLButtonElement | null = null;
   private undoButton: HTMLButtonElement | null = null;
+  private controlWardButton: HTMLButtonElement | null = null;
   private closeButton: HTMLButtonElement | null = null;
   private categoryButtons: NodeListOf<HTMLButtonElement> | null = null;
   private inventorySlots: NodeListOf<HTMLElement> | null = null;
@@ -61,6 +62,8 @@ export class ShopUI {
   // Online mode state (from server)
   private onlineGold: number = 0;
   private onlineItems: Array<{ definitionId: string } | null> = [];
+  /** Control wards carried (bought here, apart from the six slots) */
+  private onlineControlWards = 0;
 
   // Track if DOM has been initialized
   private domInitialized: boolean = false;
@@ -84,6 +87,7 @@ export class ShopUI {
     this.buyButton = document.getElementById("btn-buy") as HTMLButtonElement;
     this.sellButton = document.getElementById("btn-sell") as HTMLButtonElement;
     this.undoButton = document.getElementById("btn-undo") as HTMLButtonElement;
+    this.controlWardButton = document.getElementById("btn-control-ward") as HTMLButtonElement;
     this.closeButton = document.getElementById(
       "shop-close"
     ) as HTMLButtonElement;
@@ -128,6 +132,9 @@ export class ShopUI {
 
     // Undo button
     this.undoButton?.addEventListener("click", () => this.undoLastAction());
+
+    // The server checks the gold, the place and how many are carried
+    this.controlWardButton?.addEventListener("click", () => this.networkClient?.sendBuyItemInput(CONTROL_WARD_ITEM_ID));
 
     // Inventory slots
     this.inventorySlots?.forEach((slot, index) => {
@@ -480,6 +487,23 @@ export class ShopUI {
     if (this.undoButton) {
       this.undoButton.disabled = true;
     }
+
+    this.updateControlWardButton();
+  }
+
+  /** The control ward button: how many are carried, and whether one more can be bought */
+  private updateControlWardButton(): void {
+    if (!this.controlWardButton) return;
+    const { CONTROL_WARD_COST, MAX_CONTROL_WARDS_CARRIED } = GameConfig.VISION;
+    const carried = this.onlineControlWards;
+    this.controlWardButton.disabled = !this.atShop || carried >= MAX_CONTROL_WARDS_CARRIED || this.onlineGold < CONTROL_WARD_COST;
+    this.controlWardButton.title = this.atShop
+      ? `Control Ward (${CONTROL_WARD_COST} gold): reveals and disables enemy wards around it. Carry up to ${MAX_CONTROL_WARDS_CARRIED}; place one with 5.`
+      : "Buy at base only";
+    const count = document.getElementById("control-ward-count");
+    if (count) count.textContent = `${carried}/${MAX_CONTROL_WARDS_CARRIED}`;
+    const cost = document.getElementById("control-ward-cost");
+    if (cost) cost.textContent = `${CONTROL_WARD_COST}`;
   }
 
   /**
@@ -626,12 +650,13 @@ export class ShopUI {
    * Update online state from server snapshot.
    * Convenience method that sets both gold and items.
    */
-  updateOnlineState(gold: number, items: Array<{ definitionId: string } | null>, atShop = true): void {
+  updateOnlineState(gold: number, items: Array<{ definitionId: string } | null>, atShop = true, controlWards = 0): void {
     const inventoryChanged = JSON.stringify(this.getInventoryIds()) !==
       JSON.stringify(items.map(item => item?.definitionId ?? null));
     this.onlineGold = gold;
     this.onlineItems = items;
     this.atShop = atShop;
+    this.onlineControlWards = controlWards;
     if (this.state.isOpen) {
       // Gold changes after a purchase or sale, and over time: refresh what it affects
       this.updateGoldDisplay();

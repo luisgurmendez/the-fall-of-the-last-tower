@@ -324,10 +324,11 @@ export class StateSerializer {
         mask |= EntityChangeMask.STATE;
       }
 
-      // Check trinket (ward charges, cooldown)
+      // Check trinket (ward charges, cooldown) and control wards carried
       if (prevChamp.trinketCharges !== currChamp.trinketCharges ||
           prevChamp.trinketCooldown !== currChamp.trinketCooldown ||
-          prevChamp.trinketRechargeProgress !== currChamp.trinketRechargeProgress) {
+          prevChamp.trinketRechargeProgress !== currChamp.trinketRechargeProgress ||
+          prevChamp.controlWards !== currChamp.controlWards) {
         mask |= EntityChangeMask.TRINKET;
       }
 
@@ -486,6 +487,7 @@ export class StateSerializer {
         (result as any).trinketMaxCharges = currChamp.trinketMaxCharges;
         (result as any).trinketCooldown = currChamp.trinketCooldown;
         (result as any).trinketRechargeProgress = currChamp.trinketRechargeProgress;
+        (result as any).controlWards = currChamp.controlWards;
       }
 
       if (mask & EntityChangeMask.GOLD) {

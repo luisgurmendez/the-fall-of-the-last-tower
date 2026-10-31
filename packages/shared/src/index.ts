@@ -14,7 +14,7 @@ export type { Shape } from './math/shapes';
 export * from './types';
 
 // Configuration
-export { MOBAConfig, GameConfig, calculateBushGroupBounds, calculateIndividualBushPositions, isPointInBushGroup, WallGrid, ITEM_CATALOG, getItemCatalogEntry, planItemPurchase, getItemTree, getItemCombineCost, getItemBuildsInto, isItemPartOf } from './config';
+export { MOBAConfig, GameConfig, calculateBushGroupBounds, calculateIndividualBushPositions, isPointInBushGroup, WallGrid, ITEM_CATALOG, getItemCatalogEntry, CONTROL_WARD_ITEM_ID, planItemPurchase, getItemTree, getItemCombineCost, getItemBuildsInto, isItemPartOf } from './config';
 export type { MapSide, LaneId, JungleCreatureType, BushSpread, BushGroupBounds, BushPosition, ItemCatalogEntry, ItemPassiveData, ItemTreeNode, PurchasePlan } from './config';
 
 // Utility functions

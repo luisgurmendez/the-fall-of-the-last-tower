@@ -42,6 +42,7 @@ import {
   calculatePhysicalDamage,
   calculateMagicDamage,
   GameConfig,
+  CONTROL_WARD_ITEM_ID,
   GameEventType,
   getPassiveDefinition,
   createDefaultPassiveState,
@@ -162,6 +163,8 @@ export class ServerChampion extends ServerEntity {
   trinketCooldown = 0;          // Cooldown after placing a ward
   trinketRechargeTimer = 0;     // Time accumulator for next charge
   trinketRechargeTime = 120;    // 120 seconds to recharge one ward
+  /** Control wards carried: bought in the shop, not trinket charges */
+  controlWards = 0;
 
   // Collaborators (see ./champion/)
   private readonly effects = new ChampionEffects(this);
@@ -1070,7 +1073,20 @@ export class ServerChampion extends ServerEntity {
    * @returns true if purchase succeeded
    */
   buyItem(itemId: string): boolean {
+    if (itemId === CONTROL_WARD_ITEM_ID) return this.buyControlWard();
     return this.inventory.buy(itemId);
+  }
+
+  /**
+   * Buy a control ward to carry (not an item: it doesn't take a slot).
+   * @returns true if bought
+   */
+  private buyControlWard(): boolean {
+    const { CONTROL_WARD_COST, MAX_CONTROL_WARDS_CARRIED } = GameConfig.VISION;
+    if (this.controlWards >= MAX_CONTROL_WARDS_CARRIED || this.gold < CONTROL_WARD_COST) return false;
+    this.gold -= CONTROL_WARD_COST;
+    this.controlWards++;
+    return true;
   }
 
   /**

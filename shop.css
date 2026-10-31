@@ -743,3 +743,53 @@
   font-size: 14px;
   text-shadow: 1px 1px 0 #000;
 }
+
+/* Control ward: bought apart from the six slots */
+.control-ward-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  padding: 4px 10px 4px 4px;
+  background: var(--shop-bg-light, #2a2a4a);
+  border: 3px solid var(--shop-border);
+  color: var(--shop-text, #fff);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.control-ward-btn:hover:not(:disabled) {
+  border-color: #ff5fa2;
+}
+
+.control-ward-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.control-ward-btn img {
+  width: 36px;
+  height: 36px;
+  image-rendering: pixelated;
+}
+
+.control-ward-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1;
+}
+
+.control-ward-name {
+  font-size: 16px;
+}
+
+.control-ward-count {
+  font-size: 18px;
+  color: #ff5fa2;
+}
+
+.control-ward-cost {
+  font-size: 20px;
+  color: #ffd700;
+}

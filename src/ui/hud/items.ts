@@ -171,4 +171,19 @@ export function drawWardPanel(
     y + size - 22,
     { color: charges > 0 ? '#44FF44' : HUD_COLORS.textDim, size: 20, centered: true, shadow: false }
   );
+
+  // Control wards carried (key 5): a pink badge on the corner
+  const controlWards = champion.getControlWards();
+  if (controlWards > 0) {
+    ctx.fillStyle = '#ff5fa2';
+    ctx.beginPath();
+    ctx.arc(x + size - 3, y + 3, 8, 0, Math.PI * 2);
+    ctx.fill();
+    RenderUtils.renderBitmapText(ctx, `${controlWards}`, x + size - 3, y - 5, {
+      color: '#1a1a2e',
+      size: 16,
+      centered: true,
+      shadow: false,
+    });
+  }
 }

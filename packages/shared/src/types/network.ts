@@ -363,6 +363,8 @@ export interface ChampionSnapshot {
   trinketMaxCharges: number;
   trinketCooldown: number;
   trinketRechargeProgress: number;
+  /** Control wards carried (bought in the shop; key 5 places one) */
+  controlWards?: number;
 }
 
 /**

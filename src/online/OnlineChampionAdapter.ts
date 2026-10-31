@@ -639,14 +639,18 @@ export class OnlineChampionAdapter {
     return new OnlineInventoryAdapter(snapshot?.items ?? []);
   }
 
-  /**
-   * Get trinket state from server snapshot.
-   * Returns an adapter that provides the same interface as the local Trinket class.
-   */
   getSummoners(): SummonerSpellState[] {
     return this.getSnapshot()?.summoners ?? [];
   }
 
+  getControlWards(): number {
+    return this.getSnapshot()?.controlWards ?? 0;
+  }
+
+  /**
+   * Get trinket state from server snapshot.
+   * Returns an adapter that provides the same interface as the local Trinket class.
+   */
   getTrinket(): HUDTrinket | null {
     const snapshot = this.getSnapshot();
     if (!snapshot) {

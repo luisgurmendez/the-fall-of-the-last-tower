@@ -88,6 +88,7 @@ export function buildChampionSnapshot(champion: ServerChampion): ChampionSnapsho
     summoners: champion.summoners.getState(),
 
     trinketCharges: champion.trinketCharges,
+    controlWards: champion.controlWards,
     trinketMaxCharges: champion.trinketMaxCharges,
     trinketCooldown: champion.trinketCooldown,
     trinketRechargeProgress: champion.getTrinketRechargeProgress(),
