@@ -64,7 +64,7 @@ interface ChampionBaseStats {
 
   // Resource
   resource: number;      // Starting mana/energy
-  resourceRegen: number; // Resource/5 seconds
+  resourceRegen: number; // Resource per second (x2.5 out of combat); mana users 2-5
 
   // Offense
   attackDamage: number;  // Base AD
