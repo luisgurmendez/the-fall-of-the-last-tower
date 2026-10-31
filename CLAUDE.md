@@ -131,6 +131,7 @@ src/
 │   ├── OnlineStateManager.ts  # Server state tracking (coordinator, owns the entity map)
 │   ├── gameContext.ts   # Per-frame game state
 │   └── level.ts         # Level management
+├── gpu/                 # WebGL2 layer drawn into the 2D canvas: GPURenderer, ground/ (terrain shader)
 ├── levels/              # Level definitions
 │   └── onlineLevel.ts   # Online multiplayer level
 ├── map/                 # MOBA map rendering

@@ -17,6 +17,7 @@ import { Rectangle } from "./shapes";
 import { MOBAConfig, MOBAMap } from "@/map";
 import NavigationGrid from "@/navigation/NavigationGrid";
 import { drawTerrain, loadTerrainTilesets, type TerrainTilesets } from "@/map/terrainTiles";
+import { getGPURenderer } from "@/gpu/GPURenderer";
 
 // Use shared constant from config
 const WATER_BORDER_SIZE = MOBAConfig.WATER_BORDER_SIZE;
@@ -202,18 +203,24 @@ class MOBABackground extends BaseObject {
     this.gameMap = new MOBAGameMapAdapter(mobaMap);
     this.worldDimensions = worldDimensions;
 
-    const canvas = document.createElement("canvas");
-    canvas.width = worldDimensions.w;
-    canvas.height = worldDimensions.h;
+    this.backgroundCanvas = document.createElement("canvas");
+    this.canvasRenderingContext = null;
+    // The GPU draws the ground; the pre-rendered canvas is only built without it
+    if (!getGPURenderer()) this.createPrerenderedBackground();
+  }
+
+  private createPrerenderedBackground(): void {
+    if (this.canvasRenderingContext) return;
+    const canvas = this.backgroundCanvas;
+    canvas.width = this.worldDimensions.w;
+    canvas.height = this.worldDimensions.h;
     const ctx = canvas.getContext("2d");
     this.canvasRenderingContext = ctx;
 
     if (ctx) {
       ctx.imageSmoothingEnabled = false;
-      this.renderFallbackBackground(ctx, worldDimensions);
+      this.renderFallbackBackground(ctx, this.worldDimensions);
     }
-
-    this.backgroundCanvas = canvas;
     this.loadAssets();
   }
 
@@ -691,8 +698,10 @@ class MOBABackground extends BaseObject {
   render(): RenderElement {
     const renderFn = (gameContext: GameContext) => {
       const { canvasRenderingContext } = gameContext;
+      if (getGPURenderer()?.drawGround(canvasRenderingContext)) return;
 
       // Draw the pre-rendered background canvas
+      this.createPrerenderedBackground();
       canvasRenderingContext.drawImage(
         this.backgroundCanvas,
         -this.backgroundCanvas.width / 2,

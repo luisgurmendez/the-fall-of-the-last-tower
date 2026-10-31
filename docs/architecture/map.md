@@ -18,7 +18,7 @@ Coordinates run from -1800 to 1800 on both axes, with +y pointing down. A 192-un
 
 ## Walls
 
-(With the generated tilesets, walls are drawn as rock plateaus by `src/map/terrainTiles.ts`; see Ground art. What follows is the fallback tilemap.)
+(The GPU ground draws walls as forest canopy or boulders over a rock face; see Ground art. What follows is the 2D fallback tilemap.)
 
 Walls are designed as polygons for blue's top-side jungle (`stroke`, `blob`, `arc`). They are reflected across mid for blue's bot-side jungle (`reflectAcrossMid`), and `buildWalls()` then mirrors everything through the map center for red. Finally `buildWalls()` rasterizes them to 64-unit tiles and merges the tiles into rectangles. Every column of wall is made at least two tiles tall, so it can show a plateau above a cliff face. The result is `MOBAConfig.WALLS`: rectangles centered on `position`.
 
@@ -31,7 +31,13 @@ To change the layout:
 
 ## Ground art
 
-The ground is drawn once into the background canvas (`MOBABackground`) from three generated Wang tilesets (`scripts/generate-tilesets.ts`, ids in `scripts/tilesets.json`, art in `public/assets/tiles/`): grass and path, grass and water, grass and raised rock. `src/map/terrainTiles.ts` classifies every vertex of a 16-unit grid as water (the border and the river), rock (inside a wall), path (along a lane) or grass. Each cell takes, from each tileset, the tile whose four corners match its vertices; layers go grass, paths, water, rock. Plain tiles are mirrored at random per cell to break up repetition. The second and third tilesets get the first one's grass tile as a reference, so all the grass matches. PixelLab sometimes swaps a set's two terrains; the generator spots it by which plain tile is greener and relabels the corners. Without the tilesets, the older tilemap ground below is drawn.
+The ground is drawn by the GPU every frame (`src/gpu/ground/`): one full-screen triangle runs a fragment shader that paints each pixel from the terrain, so the art follows the exact walls, lanes and river and can move.
+
+- **Terrain field** (`terrainField.ts`): built once at load, one texel per 8 world units over the map. Each channel is a signed distance in world units, negative inside: water (the border and the river), paths (the lanes) and rock (the walls). Water and paths are measured from their polylines. Rock comes from the wall rectangles through a Euclidean distance transform, then a blur, so the 64-unit steps of diagonal walls round off. Read with linear filtering, the edges stay smooth at any zoom. The collision is unchanged: it's still the rectangles.
+- **Shader** (`groundShader.ts`): every screen pixel finds its art pixel (1.5 world units, fixed to the world so nothing swims as the camera moves) and colors it from small color ramps with 4x4 ordered dithering, like pixel art. Grass gets tufts that sway, flower patches, a wind sheen and darker jungle; lanes are dirt with pebbles and a shaded lip; water goes deep to shallow, with flowing ripples, foam lapping at the shore, glints, a wet sand bank and stepping stones where lanes ford the river. Jungle walls are a forest canopy (one shaded crown per tree, the lowest crown in front); walls near the bases and the river pits are mossy boulders. Both stand on a rock face along their south side and cast a shadow down and to the right. Each base has a round plaza of paving stones that breaks up at its edge, with a ring of rune stones in the team's color. Cloud shadows drift over everything. Animated parts step at 8 frames per second.
+- **Layer** (`src/gpu/GPURenderer.ts`): the shader renders into an offscreen WebGL2 canvas the size of the screen, copied into the 2D canvas where the background goes (`MOBABackground.render`). Its view comes from the 2D context's transform, so it matches the camera, zoom and screen shake.
+
+Without WebGL2, `MOBABackground` pre-renders the ground into a canvas from three generated Wang tilesets (`scripts/generate-tilesets.ts`, ids in `scripts/tilesets.json`, art in `public/assets/tiles/`; drawn by `src/map/terrainTiles.ts`), or from the older tilemap below if those are missing.
 
 ## Terrain on the server
 
