@@ -1,7 +1,7 @@
 /**
- * Champion portrait: the champion's art (the first idle frame, as in
- * champion select), name, level badge (pulsing while skill points are
- * unspent) and the XP bar below it.
+ * Champion portrait: the champion's face (as in champion select), name,
+ * level badge (pulsing while skill points are unspent) and the XP bar below
+ * it.
  */
 
 import RenderUtils from '@/render/utils';
@@ -31,11 +31,11 @@ export function drawPortraitPanel(
   if (portrait) {
     const smoothing = ctx.imageSmoothingEnabled;
     ctx.imageSmoothingEnabled = false;
-    // Whole pixels per sprite pixel, centered, leaving room for the name
-    const scale = Math.max(1, Math.floor((size - 8) / Math.max(portrait.width, portrait.height)));
+    // The face fills the frame (the name is drawn over its bottom)
+    const scale = size / Math.max(portrait.width, portrait.height);
     const width = portrait.width * scale;
     const height = portrait.height * scale;
-    ctx.drawImage(portrait, x + (size - width) / 2, y + (size - height) / 2 - 6, width, height);
+    ctx.drawImage(portrait, x + (size - width) / 2, y + (size - height) / 2, width, height);
     ctx.imageSmoothingEnabled = smoothing;
   }
 

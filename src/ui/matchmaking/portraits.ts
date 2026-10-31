@@ -1,6 +1,8 @@
 /**
- * Champion portraits for champion select and the scoreboard: the first frame
- * of the champion's idle sprite, cropped to the figure. A champion without
+ * Champion portraits for champion select, the HUD, the scoreboard and the
+ * minimap: the champion's face (public/assets/champs/<id>/portrait.png,
+ * made with scripts/generate-portraits.ts), or without one, the first frame
+ * of the champion's idle sprite cropped to the figure. A champion without
  * art (or while it loads) shows its emoji icon.
  */
 
@@ -28,17 +30,25 @@ const IDLE_SPRITES: Record<string, string> = {
   gorath: "/assets/champs/gorath/idle.png",
 };
 
-/** Cropped portraits, by sprite, drawn once */
+/** The champion's face */
+const faceOf = (championId: string) => `/assets/champs/${championId}/portrait.png`;
+
+/** Portraits, by champion, drawn once */
 const portraits = new Map<string, Promise<HTMLCanvasElement | null>>();
 /** The ones that have loaded */
 const loadedPortraits = new Map<string, HTMLCanvasElement | null>();
 
-function getPortrait(src: string): Promise<HTMLCanvasElement | null> {
-  let portrait = portraits.get(src);
+function getPortrait(championId: string): Promise<HTMLCanvasElement | null> {
+  let portrait = portraits.get(championId);
   if (!portrait) {
-    portrait = loadPortrait(src);
-    portraits.set(src, portrait);
-    void portrait.then((canvas) => loadedPortraits.set(src, canvas));
+    const sprite = IDLE_SPRITES[championId];
+    portrait = loadImage(faceOf(championId)).then(async (face) => {
+      if (face) return toCanvas(face);
+      const strip = sprite ? await loadImage(sprite) : null;
+      return strip ? cropFirstFrame(strip) : null;
+    });
+    portraits.set(championId, portrait);
+    void portrait.then((canvas) => loadedPortraits.set(championId, canvas));
   }
   return portrait;
 }
@@ -48,10 +58,9 @@ function getPortrait(src: string): Promise<HTMLCanvasElement | null> {
  * first call starts loading it); null until then or without art.
  */
 export function getPortraitCanvas(championId: string): HTMLCanvasElement | null {
-  const src = IDLE_SPRITES[championId];
-  if (!src) return null;
-  void getPortrait(src);
-  return loadedPortraits.get(src) ?? null;
+  if (!IDLE_SPRITES[championId]) return null;
+  void getPortrait(championId);
+  return loadedPortraits.get(championId) ?? null;
 }
 
 /**
@@ -60,10 +69,9 @@ export function getPortraitCanvas(championId: string): HTMLCanvasElement | null 
 export function showPortrait(el: HTMLElement, championId: string): void {
   el.textContent = CHAMPION_ICONS[championId] || "❓";
   el.dataset.portraitFor = championId;
-  const src = IDLE_SPRITES[championId];
-  if (!src) return;
+  if (!IDLE_SPRITES[championId]) return;
 
-  void getPortrait(src).then((canvas) => {
+  void getPortrait(championId).then((canvas) => {
     // Another champion may have been picked while it loaded
     if (!canvas || el.dataset.portraitFor !== championId) return;
     const copy = document.createElement("canvas");
@@ -76,13 +84,21 @@ export function showPortrait(el: HTMLElement, championId: string): void {
   });
 }
 
-function loadPortrait(src: string): Promise<HTMLCanvasElement | null> {
+function loadImage(src: string): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
     const image = new Image();
-    image.onload = () => resolve(cropFirstFrame(image));
+    image.onload = () => resolve(image);
     image.onerror = () => resolve(null);
     image.src = src;
   });
+}
+
+function toCanvas(image: HTMLImageElement): HTMLCanvasElement {
+  const canvas = document.createElement("canvas");
+  canvas.width = image.naturalWidth;
+  canvas.height = image.naturalHeight;
+  canvas.getContext("2d")?.drawImage(image, 0, 0);
+  return canvas;
 }
 
 /**
