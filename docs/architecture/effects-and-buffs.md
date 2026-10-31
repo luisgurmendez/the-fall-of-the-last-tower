@@ -38,6 +38,8 @@ type CrowdControlType =
   | 'suppress'; // Complete disable, can't be cleansed
 ```
 
+On the client, crowd control is drawn on the champion it holds (`src/render/overlays/crowdControl.ts`). Stun, suppress and knockup get stars circling the head; root gets vines at the feet (violet for Vile's `vile_root`); silence gets a crossed-out speech bubble; taunt a red "!"; blind a dark cloud. Under the feet, a label names the strongest one (STUNNED, ROOTED, ...) over a bar of its time left. A new CC effect id needs an entry in `CC_EFFECTS` there.
+
 ### Stat Modifications
 
 ```typescript
