@@ -4,6 +4,7 @@
  * level. Champion-specific drawing lives in src/render/champions/.
  */
 
+import { recallElapsed } from "@/core/state/recallClock";
 import {
   GameConfig,
   getChampionDefinition,
@@ -251,8 +252,9 @@ export class ChampionRenderer {
 
     // On the GPU these are drawn with the ground effects (src/gpu/fx/championAuras.ts)
     if (!getGPURenderer()) {
+      const recalled = recallElapsed(snapshot.entityId, snapshot.isRecalling, snapshot.recallProgress, this.rc.animationTime);
       if (snapshot.isRecalling) {
-        this.renderRecallChannel(ctx, snapshot.recallProgress ?? 0);
+        this.renderRecallChannel(ctx, recalled);
       }
       this.renderJungleBuffAuras(ctx, snapshot.activeEffects);
     }

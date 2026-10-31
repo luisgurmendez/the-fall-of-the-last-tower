@@ -6,6 +6,7 @@
  * of Cinders), so everyone can see who has them.
  */
 
+import { recallElapsed } from "@/core/state/recallClock";
 import { GameConfig } from "@siege/shared";
 import { fxColor, type FXBatch } from "./FXBatch";
 
@@ -19,6 +20,8 @@ const EMBER = fxColor("#ffab40");
 const FEET = 18;
 
 export interface ChampionAuraSnapshot {
+  /** Without one (the VFX lab), recallProgress is taken as is */
+  entityId?: string;
   isRecalling?: boolean;
   recallProgress?: number;
   activeEffects?: Array<{ definitionId: string }>;
@@ -31,8 +34,11 @@ export interface ChampionAuraSnapshot {
 export function emitChampionAuras(ground: FXBatch, top: FXBatch, champion: ChampionAuraSnapshot, x: number, y: number, time: number): void {
   const feetY = y + FEET;
 
+  const recalled = champion.entityId
+    ? recallElapsed(champion.entityId, champion.isRecalling, champion.recallProgress, time)
+    : champion.recallProgress ?? 0;
   if (champion.isRecalling) {
-    const progress = Math.min(1, (champion.recallProgress ?? 0) / GameConfig.TIMING.RECALL_DURATION);
+    const progress = Math.min(1, recalled / GameConfig.TIMING.RECALL_DURATION);
     ground.sigil(x, feetY, 50, RECALL, 1.1, progress, 0.8, 18, 1, 1, 0.3);
     ground.glow(x, feetY, 75, RECALL, 0.25 + progress * 0.35, 0, 0);
     top.beam(x, feetY - 40 - progress * 120, x, feetY, 6 + progress * 10, RECALL_LIGHT, 0.3 + progress * 0.6, 0.2, 6, 0.06, 0.4);
