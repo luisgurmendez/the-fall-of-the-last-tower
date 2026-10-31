@@ -175,8 +175,9 @@ function getBushPosition(): Vector {
  * Uses a position far from all bush centers.
  */
 function getNonBushPosition(offset = 0): Vector {
-  // No bush on y = 0 from x = 1200 out past any sight range
-  return new Vector(1200 + offset, 0);
+  // Along the straight of the top-edge lane: open ground, no walls and no
+  // bush from x = -1000 to past any sight range
+  return new Vector(-1000 + offset, -2420);
 }
 
 /**

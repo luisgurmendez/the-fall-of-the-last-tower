@@ -14,7 +14,7 @@
  *   side, and their shadow and ambient occlusion on the ground
  * - round stone plazas in the bases with a ring of runes in the team's color
  * - brush: packed leafy clumps over exactly the bushes' hitboxes, swaying,
- *   with a shadow under them
+ *   with a shadow under them (on a muddy islet in the river)
  * - cloud shadows drifting over everything
  * Animated parts step at 8 frames per second, like sprite animation.
  */
@@ -418,11 +418,14 @@ void main() {
     // Brush over the ground, and its shadow just under it
     float dBrush = brushField(p);
     bool inBrush = false;
-    if (dBrush < 12.0 && shore > 0.0) {
+    if (dBrush < 12.0) {
       vec4 clumps = brush(p, ip, dither, stepTime);
       if (clumps.a > 0.0) {
         color = clumps.rgb;
         inBrush = true;
+      } else if (shore < 0.0 && dBrush < 5.0) {
+        // Brush in the river grows on a muddy islet
+        color = ramp3(SAND, 0.25 + vnoise(p * 0.2) * 0.3, dither);
       }
     }
 

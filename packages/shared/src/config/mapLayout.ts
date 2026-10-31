@@ -1,7 +1,8 @@
 /**
- * Map layout helpers: terrain walls are designed as polygons for one side,
- * mirrored onto the other side (point reflection through the map center),
- * and rasterized to 64-unit tiles so the client can draw them as cliffs.
+ * Map layout helpers: terrain walls are designed for one side, as polygons
+ * or as a test of whether a point is wall, mirrored onto the other side
+ * (point reflection through the map center), and rasterized to 64-unit
+ * tiles so the client can draw them as cliffs.
  *
  * Output is the `MOBAConfig.WALLS` format: axis-aligned rectangles centered
  * on `position`.
@@ -33,16 +34,23 @@ function pointInPolygon(x: number, y: number, polygon: Polygon): boolean {
   return inside;
 }
 
+/** Whether a point (on one side of the map) is wall */
+export type SolidTest = (x: number, y: number) => boolean;
+
 /**
- * Rasterize polygons (plus their mirror images) to tiles, make every column
- * of wall at least two tiles tall, and merge the tiles into as few rectangles
- * as possible (runs per row, then identical runs on consecutive rows).
+ * Rasterize one side's walls (plus their mirror images) to tiles: a tile is
+ * wall when its center is inside one of the polygons or `sideSolid` says
+ * so. Then make every column of wall at least two tiles tall, and merge the
+ * tiles into as few rectangles as possible (runs per row, then identical
+ * runs on consecutive rows).
  */
-export function buildWalls(sidePolygons: Polygon[]): WallRect[] {
+export function buildWalls(sidePolygons: Polygon[], sideSolid?: SolidTest): WallRect[] {
   const polygons: Polygon[] = [
     ...sidePolygons,
     ...sidePolygons.map(polygon => polygon.map(([x, y]) => [-x, -y] as const)),
   ];
+  const isSolid = (x: number, y: number) =>
+    polygons.some(polygon => pointInPolygon(x, y, polygon)) || (sideSolid !== undefined && (sideSolid(x, y) || sideSolid(-x, -y)));
 
   const count = (WALL_GRID_HALF * 2) / WALL_TILE_SIZE;
   const solid: boolean[][] = [];
@@ -51,7 +59,7 @@ export function buildWalls(sidePolygons: Polygon[]): WallRect[] {
     for (let col = 0; col < count; col++) {
       const cx = -WALL_GRID_HALF + (col + 0.5) * WALL_TILE_SIZE;
       const cy = -WALL_GRID_HALF + (row + 0.5) * WALL_TILE_SIZE;
-      solid[row].push(polygons.some(polygon => pointInPolygon(cx, cy, polygon)));
+      solid[row].push(isSolid(cx, cy));
     }
   }
 
@@ -171,4 +179,22 @@ export function arc(cx: number, cy: number, radius: number, a0: number, a1: numb
  */
 export function reflectAcrossMid(polygon: Polygon): Polygon {
   return polygon.map(([x, y]) => [-y, -x] as const);
+}
+
+/** Distance from a point to a segment */
+export function distanceToSegment(x: number, y: number, ax: number, ay: number, bx: number, by: number): number {
+  const dx = bx - ax;
+  const dy = by - ay;
+  const lengthSq = dx * dx + dy * dy;
+  const t = lengthSq === 0 ? 0 : Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / lengthSq));
+  return Math.hypot(x - (ax + t * dx), y - (ay + t * dy));
+}
+
+/** Distance from a point to a polyline */
+export function distanceToPolyline(x: number, y: number, points: readonly { x: number; y: number }[]): number {
+  let best = Infinity;
+  for (let i = 0; i < points.length - 1; i++) {
+    best = Math.min(best, distanceToSegment(x, y, points[i].x, points[i].y, points[i + 1].x, points[i + 1].y));
+  }
+  return best;
 }

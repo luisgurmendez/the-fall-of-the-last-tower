@@ -36,7 +36,8 @@ export default defineScenario({
     dodging = false;
     dodges = 0;
     sim.addChampion({ playerId: 'tank', championId: 'vex', side: 'blue', at: { x: BLUE_BUFF.x + 200, y: BLUE_BUFF.y }, level: 6 });
-    sim.addChampion({ playerId: 'dodger', championId: 'vex', side: 'blue', at: { x: RED_BUFF.x + 250, y: RED_BUFF.y }, level: 3 });
+    // In the red buff's clearing, on the side of the corridor to the spiders it steps out along
+    sim.addChampion({ playerId: 'dodger', championId: 'vex', side: 'blue', at: { x: RED_BUFF.x - 150, y: RED_BUFF.y }, level: 3 });
     // In the pit's mouth, in front of the dragon, and at the back of the pit, behind it
     sim.addChampion({ playerId: 'front', championId: 'vile', side: 'red', at: { x: DRAGON.x + PIT_MOUTH.x * 200, y: DRAGON.y + PIT_MOUTH.y * 200 }, level: 6 });
     sim.addChampion({ playerId: 'behind', championId: 'vile', side: 'red', at: { x: DRAGON.x - PIT_MOUTH.x * 150, y: DRAGON.y - PIT_MOUTH.y * 150 }, level: 6 });
@@ -53,7 +54,7 @@ export default defineScenario({
       if (redBuff.isWindingUp() && !dodging) {
         dodging = true;
         dodges++;
-        s.move('dodger', redBuff.position.x + 320, redBuff.position.y);
+        s.move('dodger', redBuff.position.x - 320, redBuff.position.y);
       } else if (!redBuff.isWindingUp() && dodging) {
         dodging = false;
         s.attack('dodger', redBuff.id);

@@ -75,13 +75,15 @@ How config types look on the GPU:
 | `screen_shake` | The camera shakes (`src/core/screenShake.ts`), in the 2D fallback too |
 | `ground_light`, `decal`, `lightning`, `swirl`, `spikes`, `rays`, `meteor`, `cut` | GPU only (the 2D fallback skips them) |
 
+**Lume's Light Orb** (`src/gpu/fx/lightOrb.ts`): a ball of warm light hovering over its glow on the ground, with a ribbon and prism sparkles behind it while it travels and slow rays while it hangs at a spot; a dim ember while it respawns.
+
 **Projectile impacts:** when a projectile is destroyed, `entityVFX.ts` spawns the VFX registered as `<projectile type>_impact` (e.g. `magnus_fireball_impact`) where it was, so explosions happen where the projectile actually hits.
 
 **Effects on an ally:** effects that follow an entity (shields, trails, orbits) follow the caster, or in a phase anchored on the target, the cast's `targetEntityId` (Elara's shield on an ally).
 
 ### VFX lab
 
-With the client dev server running, `/vfx-lab.html` plays every registered VFX on a loop in a grid over the real ground (`src/debug/vfxLab.ts`), plus every projectile type in flight, the zones and the champion auras (recall, jungle buffs). Options: `?only=magnus`, `?kind=projectile` (or `ability`, `zone`, `aura`), `?zoom=1.4`, `?period=2.5`, `?speed=0.25` (slow motion), `?pause=0.6` (freeze 0.6 seconds after the first cast, to screenshot a moment). Use it to tune effects without a match.
+With the client dev server running, `/vfx-lab.html` plays every registered VFX on a loop in a grid over the real ground (`src/debug/vfxLab.ts`), plus every projectile type in flight, the zones and the champion auras (recall, jungle buffs). Options: `?only=magnus`, `?kind=projectile` (or `ability`, `zone`, `aura`), `?zoom=1.4`, `?period=2.5`, `?speed=0.25` (slow motion), `?pause=0.6` (freeze 0.6 seconds after the first cast, to screenshot a moment), `?kind=orb` (Lume's Light Orb in each of its states). Use it to tune effects without a match.
 
 ### VFXManager
 

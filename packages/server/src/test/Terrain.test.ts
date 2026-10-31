@@ -44,8 +44,9 @@ describe('Terrain', () => {
   });
 
   test('pushes a unit out of a wall', () => {
-    const wall = MOBAConfig.WALLS[0];
-    const position = wall.position.clone();
+    // Just inside the left edge of a wall with open ground beside it
+    const wall = MOBAConfig.WALLS.find(w => !terrain.isBlocked(w.position.x - w.width / 2 - 40, w.position.y))!;
+    const position = new Vector(wall.position.x - wall.width / 2 + 10, wall.position.y);
     expect(terrain.resolveCircle(position, 25)).toBe(true);
     expect(terrain.isBlocked(position.x, position.y)).toBe(false);
   });
@@ -58,12 +59,13 @@ describe('Terrain', () => {
   });
 
   test('a champion ordered across a wall walks around it and arrives', () => {
-    // From blue buff toward mid: the block between them is in the way
+    // From the thornspitter to the wolves: forest in between, the way round is by the blue buff
     const sim = new Simulation({ seed: 1, minionWaves: false, jungle: false, structures: false });
     try {
-      const blueBuff = MOBAConfig.JUNGLE.CAMPS.find(camp => camp.id === 'blue_bluebuff')!.position;
-      const champion = sim.addChampion({ playerId: 'p1', championId: 'vex', side: 'blue', at: { x: blueBuff.x, y: blueBuff.y } });
-      const destination = { x: blueBuff.x + 760, y: blueBuff.y + 140 };
+      const camp = (id: string) => MOBAConfig.JUNGLE.CAMPS.find(c => c.id === id)!.position;
+      const start = camp('blue_thornspitter');
+      const champion = sim.addChampion({ playerId: 'p1', championId: 'vex', side: 'blue', at: { x: start.x, y: start.y } });
+      const destination = { x: camp('blue_wolves').x, y: camp('blue_wolves').y };
       expect(terrain.hasLineOfSight(champion.position, new Vector(destination.x, destination.y))).toBe(false);
 
       sim.move('p1', destination.x, destination.y);

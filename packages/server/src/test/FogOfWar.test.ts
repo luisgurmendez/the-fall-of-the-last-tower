@@ -79,7 +79,7 @@ describe('FogOfWarServer', () => {
       // Blue minion provides vision (far from center bushes)
       const blueMinion = new ServerMinion({
         id: 'blue-minion',
-        position: new Vector(1200, 0),
+        position: new Vector(-1000, -2420),
         side: 0,
         minionType: 'melee',
         lane: 'mid',
@@ -89,7 +89,7 @@ describe('FogOfWarServer', () => {
       // Red minion nearby (within 800 sight range)
       const redMinion = new ServerMinion({
         id: 'red-minion',
-        position: new Vector(1400, 0), // 200 units away, within sight range
+        position: new Vector(-800, -2420), // 200 units away, within sight range
         side: 1,
         minionType: 'melee',
         lane: 'mid',
@@ -139,7 +139,7 @@ describe('FogOfWarServer', () => {
       // Use position outside of bushes
       const minion = new ServerMinion({
         id: 'minion-1',
-        position: new Vector(1200, 0),
+        position: new Vector(-1000, -2420),
         side: 0,
         minionType: 'melee',
         lane: 'mid',
@@ -150,14 +150,14 @@ describe('FogOfWarServer', () => {
       fogOfWar.updateVision(context, 1);
 
       // Check position nearby (also outside bushes)
-      expect(fogOfWar.isPositionVisibleTo(new Vector(1300, 0), 0)).toBe(true);
+      expect(fogOfWar.isPositionVisibleTo(new Vector(-900, -2420), 0)).toBe(true);
     });
 
     it('should hide position far from vision sources', () => {
       // Use position outside of bushes
       const minion = new ServerMinion({
         id: 'minion-1',
-        position: new Vector(1200, 0),
+        position: new Vector(-1000, -2420),
         side: 0,
         minionType: 'melee',
         lane: 'mid',
@@ -177,7 +177,7 @@ describe('FogOfWarServer', () => {
       // Use positions outside of bush bounds
       const blueMinion = new ServerMinion({
         id: 'blue-minion',
-        position: new Vector(1200, 0),
+        position: new Vector(-1000, -2420),
         side: 0,
         minionType: 'melee',
         lane: 'mid',
@@ -186,7 +186,7 @@ describe('FogOfWarServer', () => {
 
       const redMinion = new ServerMinion({
         id: 'red-minion',
-        position: new Vector(1400, 0), // 200 units away, within sight range
+        position: new Vector(-800, -2420), // 200 units away, within sight range
         side: 1,
         minionType: 'melee',
         lane: 'mid',

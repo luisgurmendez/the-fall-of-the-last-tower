@@ -33,6 +33,7 @@ import type {
   EntityRenderState,
 } from "@/render/entities/types";
 import { TEAM_COLORS, loadImages } from "@/render/entities/shared";
+import { isInBrush } from "@/vision/brush";
 import { ChampionRenderer } from "@/render/entities/champion";
 import { renderMinion, MINION_IMAGES } from "@/render/entities/minion";
 import { renderTower, TOWER_IMAGES } from "@/render/entities/tower";
@@ -103,6 +104,8 @@ export class EntityRenderer implements GameObject {
     [EntityType.NEXUS]: { halfWidth: 90, height: 230 },
   };
   private static readonly SEE_THROUGH_ALPHA = 0.5;
+  /** How see-through our champions are in a bush */
+  private static readonly IN_BRUSH_ALPHA = 0.55;
 
   constructor(stateManager: OnlineStateManager, localSide: number) {
     this.stateManager = stateManager;
@@ -418,6 +421,10 @@ export class EntityRenderer implements GameObject {
     ctx.translate(pos.x, pos.y);
     if (this.hidesLocalChampion(snapshot.entityType, pos)) {
       ctx.globalAlpha = EntityRenderer.SEE_THROUGH_ALPHA;
+    }
+    // Our champions in a bush are drawn see-through: hidden from enemies outside it
+    if (snapshot.entityType === EntityType.CHAMPION && side === this.renderContext.localSide && isInBrush(pos.x, pos.y)) {
+      ctx.globalAlpha *= EntityRenderer.IN_BRUSH_ALPHA;
     }
     // Units flash bright for a moment when hit (jungle creatures add it to their own filters)
     const hitFlash = this.stateManager.getHitFlash(snapshot.entityId);
