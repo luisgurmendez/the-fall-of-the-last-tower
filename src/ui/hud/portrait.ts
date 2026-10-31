@@ -1,9 +1,11 @@
 /**
- * Champion portrait: name, level badge (pulsing while skill points are
+ * Champion portrait: the champion's art (the first idle frame, as in
+ * champion select), name, level badge (pulsing while skill points are
  * unspent) and the XP bar below it.
  */
 
 import RenderUtils from '@/render/utils';
+import { getPortraitCanvas } from '@/ui/matchmaking/portraits';
 import { HUD_COLORS, PANEL } from '@/ui/hud/layout';
 import type { HUDChampionData, HUDContext } from '@/ui/hud/types';
 
@@ -22,9 +24,20 @@ export function drawPortraitPanel(
   const skillPoints = champion.getSkillPoints();
   const xpPercent = expToNext > 0 ? experience / expToNext : 0;
 
-  // Portrait background (black placeholder)
+  // Portrait background, then the champion's art (black until it loads)
   ctx.fillStyle = '#000000';
   ctx.fillRect(x, y, size, size);
+  const portrait = getPortraitCanvas(hud.config.championId);
+  if (portrait) {
+    const smoothing = ctx.imageSmoothingEnabled;
+    ctx.imageSmoothingEnabled = false;
+    // Whole pixels per sprite pixel, centered, leaving room for the name
+    const scale = Math.max(1, Math.floor((size - 8) / Math.max(portrait.width, portrait.height)));
+    const width = portrait.width * scale;
+    const height = portrait.height * scale;
+    ctx.drawImage(portrait, x + (size - width) / 2, y + (size - height) / 2 - 6, width, height);
+    ctx.imageSmoothingEnabled = smoothing;
+  }
 
   // Border
   ctx.strokeStyle = hud.config.accentColor;
