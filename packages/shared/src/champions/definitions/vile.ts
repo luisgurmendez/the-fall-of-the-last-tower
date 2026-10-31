@@ -52,7 +52,7 @@ const VILE_BASE_STATS: ChampionBaseStats = {
   attackRange: 180, // Ranged, becomes melee (55) during R
   armor: 32,
   magicResist: 32,
-  movementSpeed: 134,
+  movementSpeed: 121,
   critChance: 0,
   critDamage: 2.0,
 };
@@ -365,7 +365,7 @@ export const VileDefinition: ChampionDefinition = {
   passive: "vile_passive",
   collision: VILE_COLLISION,
   /** Height of his sprite as drawn (src/render/champions/vile.ts), for the health bar */
-  visualHeight: 70,
+  visualHeight: 78,
   animations: VILE_ANIMATIONS,
   attackAnimationSpeedScale: true,
   // Dark soul projectile for ranged auto attacks

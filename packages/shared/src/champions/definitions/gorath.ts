@@ -51,7 +51,7 @@ const GORATH_BASE_STATS: ChampionBaseStats = {
   attackRange: 60, // Melee
   armor: 40,
   magicResist: 35,
-  movementSpeed: 128,
+  movementSpeed: 116,
   critChance: 0,
   critDamage: 2.0,
 };
@@ -285,7 +285,7 @@ export const GorathDefinition: ChampionDefinition = {
   passive: "gorath_passive",
   collision: GORATH_COLLISION,
   /** Height of the sprite as drawn (src/render/champions/gorath.ts), for the health bar */
-  visualHeight: 75,
+  visualHeight: 84,
   animations: GORATH_ANIMATIONS,
   attackAnimationSpeedScale: true,
 };

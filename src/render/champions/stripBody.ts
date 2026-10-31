@@ -101,7 +101,7 @@ export function createStripBodyRenderer(
       const frameCount = Math.max(1, Math.round(image.naturalWidth / frameSize));
       const frameIndex = progress !== null
         ? Math.min(frameCount - 1, Math.floor(progress * frameCount))
-        : Math.floor(rc.animationTime * (state.isWalking ? 10 : 6)) % frameCount;
+        : Math.floor(rc.animationTime * (state.isWalking ? 9 : 6)) % frameCount;
 
       ctx.save();
       if (!state.facingRight) {

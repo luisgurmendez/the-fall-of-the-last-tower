@@ -30,7 +30,7 @@ const CHAMPION_PRIORITY = 0.2;
 function pickArea(snapshot: { entityType: number; minionType?: string; creatureType?: string }): PickArea {
   switch (snapshot.entityType) {
     case EntityType.CHAMPION:
-      return { radius: 40, lift: 4 };
+      return { radius: 44, lift: 5 };
     case EntityType.MINION:
       return snapshot.minionType === "siege" ? { radius: 30, lift: 2 } : { radius: 26, lift: 2 };
     case EntityType.JUNGLE_CAMP:

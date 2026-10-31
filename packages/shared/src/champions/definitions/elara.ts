@@ -51,7 +51,7 @@ const ELARA_BASE_STATS: ChampionBaseStats = {
   attackRange: 210,
   armor: 22,
   magicResist: 34,
-  movementSpeed: 132,
+  movementSpeed: 119,
   critChance: 0,
   critDamage: 2.0,
 };
@@ -270,7 +270,7 @@ export const ElaraDefinition: ChampionDefinition = {
   passive: "elara_passive",
   collision: ELARA_COLLISION,
   /** Height of the sprite as drawn (src/render/champions/elara.ts), for the health bar */
-  visualHeight: 70,
+  visualHeight: 78,
   animations: ELARA_ANIMATIONS,
   attackAnimationSpeedScale: true,
 };

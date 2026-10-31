@@ -15,7 +15,7 @@ const ELARA_STRIPS = generatedStrips("elara", {
 });
 
 /** World units per sprite pixel */
-const ELARA_SCALE = 0.75;
+const ELARA_SCALE = 0.84;
 
 /**
  * Elara renderer entry.

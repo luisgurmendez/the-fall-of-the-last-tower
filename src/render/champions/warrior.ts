@@ -15,7 +15,7 @@ const WARRIOR_STRIPS = generatedStrips("warrior", {
 });
 
 /** World units per sprite pixel */
-const WARRIOR_SCALE = 0.75;
+const WARRIOR_SCALE = 0.84;
 
 /**
  * Warrior renderer entry.

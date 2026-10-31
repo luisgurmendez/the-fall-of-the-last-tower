@@ -51,7 +51,7 @@ const VEX_BASE_STATS: ChampionBaseStats = {
   attackRange: 55, // Melee
   armor: 28,
   magicResist: 30,
-  movementSpeed: 138, // High mobility assassin
+  movementSpeed: 124, // High mobility assassin
   critChance: 0,
   critDamage: 2.0,
 };
@@ -298,7 +298,7 @@ export const VexDefinition: ChampionDefinition = {
   passive: "vex_passive",
   collision: VEX_COLLISION,
   /** Height of the sprite as drawn (src/render/champions/vex.ts), for the health bar */
-  visualHeight: 70,
+  visualHeight: 78,
   animations: VEX_ANIMATIONS,
   attackAnimationSpeedScale: true,
 };

@@ -51,7 +51,7 @@ const WARRIOR_BASE_STATS: ChampionBaseStats = {
   attackRange: 55, // Melee
   armor: 35,
   magicResist: 32,
-  movementSpeed: 134,
+  movementSpeed: 121,
   critChance: 0,
   critDamage: 2.0,
 };
@@ -291,7 +291,7 @@ export const WarriorDefinition: ChampionDefinition = {
   passive: "warrior_passive",
   collision: WARRIOR_COLLISION,
   /** Height of the sprite as drawn (src/render/champions/warrior.ts), for the health bar */
-  visualHeight: 70,
+  visualHeight: 78,
   animations: WARRIOR_ANIMATIONS,
   attackAnimationSpeedScale: true,
 };

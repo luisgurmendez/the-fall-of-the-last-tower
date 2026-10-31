@@ -15,7 +15,7 @@ const GORATH_STRIPS = generatedStrips("gorath", {
 });
 
 /** World units per sprite pixel: a little bigger than the others, he's the tank */
-const GORATH_SCALE = 0.79;
+const GORATH_SCALE = 0.88;
 
 /**
  * Gorath renderer entry.

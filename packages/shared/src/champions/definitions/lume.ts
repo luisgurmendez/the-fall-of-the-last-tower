@@ -79,7 +79,7 @@ const LUME_BASE_STATS: ChampionBaseStats = {
   attackRange: 220, // Standard ranged mage
   armor: 26,
   magicResist: 30,
-  movementSpeed: 132, // Slightly slow, E compensates
+  movementSpeed: 119, // Slightly slow, E compensates
   critChance: 0,
   critDamage: 2.0,
 };
@@ -319,7 +319,7 @@ const LUME_COLLISION: RectangleCollision = {
 };
 
 // Visual height for UI positioning (matches collision since sprite fits collision bounds)
-const LUME_VISUAL_HEIGHT = 78;
+const LUME_VISUAL_HEIGHT = 87;
 
 const LUME_ANIMATIONS: ChampionAnimations = {
   idle: {
