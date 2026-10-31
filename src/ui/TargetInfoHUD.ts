@@ -2,7 +2,8 @@
  * TargetInfoHUD - Displays information about the currently selected entity.
  *
  * Shows in the top-left corner when an entity is selected via left-click:
- * - Champion: Full panel with portrait, stats, abilities, items, buffs
+ * - Champion: Full panel with portrait, stats, abilities, items, buffs (not
+ *   for your own champion: the HUD at the bottom already shows all that)
  * - Minion: Simple panel with type and health bar
  * - Tower: Simple panel with tier/lane and health bar
  * - Jungle: Simple panel with creature name and health bar
@@ -12,6 +13,7 @@ import { ScreenEntity } from '@/core/GameObject';
 import RenderElement from '@/render/renderElement';
 import RenderUtils from '@/render/utils';
 import GameContext from '@/core/gameContext';
+import { getPortraitCanvas } from '@/ui/matchmaking/portraits';
 import type { OnlineStateManager, InterpolatedEntity } from '@/core/OnlineStateManager';
 import type { OnlineInputHandler } from '@/core/input/OnlineInputHandler';
 import {
@@ -104,7 +106,7 @@ export class TargetInfoHUD extends ScreenEntity {
   render(): RenderElement {
     return this.createOverlayRender((ctx: GameContext) => {
       const selectedId = this.inputHandler.getSelectedEntityId();
-      if (!selectedId) return;
+      if (!selectedId || selectedId === this.stateManager.getLocalEntityId()) return;
 
       const entity = this.stateManager.getEntity(selectedId);
       if (!entity) return;
@@ -156,9 +158,21 @@ export class TargetInfoHUD extends ScreenEntity {
     const portraitX = x + PANEL.padding;
     const portraitY = y + PANEL.padding;
 
-    // Portrait placeholder (colored square)
+    // Portrait: the champion's face, on the team's color until it loads
     c.fillStyle = accentColor;
     c.fillRect(portraitX, portraitY, PANEL.portraitSize, PANEL.portraitSize);
+    const portrait = getPortraitCanvas(snapshot.championId);
+    if (portrait) {
+      c.fillStyle = '#000000';
+      c.fillRect(portraitX, portraitY, PANEL.portraitSize, PANEL.portraitSize);
+      const smoothing = c.imageSmoothingEnabled;
+      c.imageSmoothingEnabled = false;
+      const scale = PANEL.portraitSize / Math.max(portrait.width, portrait.height);
+      const w = portrait.width * scale;
+      const h = portrait.height * scale;
+      c.drawImage(portrait, portraitX + (PANEL.portraitSize - w) / 2, portraitY + (PANEL.portraitSize - h) / 2, w, h);
+      c.imageSmoothingEnabled = smoothing;
+    }
     c.strokeStyle = COLORS.borderHighlight;
     c.lineWidth = 2;
     c.strokeRect(portraitX, portraitY, PANEL.portraitSize, PANEL.portraitSize);
