@@ -38,27 +38,17 @@ const ALLY_TARGETABLE_ENTITY_TYPES: Set<number> = new Set([
   1, // EntityType.MINION
 ]);
 
-/** Move marker sprite configuration */
+/** Move marker: a ring on the ground closing in on the point, with arrows converging on it */
 const MOVE_MARKER_CONFIG = {
-  SPRITE_PATH: "/assets/sprites/Move_To.png",
-  FRAME_COUNT: 6,
-  FRAME_WIDTH: 64,
-  FRAME_HEIGHT: 64,
-  ANIMATION_DURATION: 0.5, // seconds
-  SCALE: 0.75,
+  ANIMATION_DURATION: 0.45, // seconds
+  /** Ring radius at the start and at the end (world units) */
+  START_RADIUS: 20,
+  END_RADIUS: 6,
+  /** The ground is seen at an angle: rings are this much flatter than wide */
+  FLATTEN: 0.55,
+  MOVE_COLOR: "#7CFC8A",
+  ATTACK_MOVE_COLOR: "#FF5A4E",
 };
-
-/** Cached move marker sprite */
-let moveMarkerSprite: HTMLImageElement | null = null;
-let moveMarkerLoaded = false;
-
-/** Load move marker sprite */
-function loadMoveMarkerSprite(): void {
-  if (moveMarkerLoaded) return;
-  moveMarkerSprite = new Image();
-  moveMarkerSprite.src = MOVE_MARKER_CONFIG.SPRITE_PATH;
-  moveMarkerLoaded = true;
-}
 
 /** Active move marker instance */
 interface MoveMarker {
@@ -186,7 +176,6 @@ export class OnlineInputHandler implements GameObject {
     this.localSide = localSide;
     this.championId = championId;
     this.inputManager = InputManager.getInstance();
-    loadMoveMarkerSprite();
   }
 
   /**
@@ -710,55 +699,64 @@ export class OnlineInputHandler implements GameObject {
   }
 
   /**
-   * Render a move marker sprite at the given position.
+   * Render a move marker: a ring on the ground that closes in on the point,
+   * with four arrows converging on it, fading out (red for attack-move).
    */
   private renderMoveMarker(
     ctx: CanvasRenderingContext2D,
     marker: MoveMarker,
   ): void {
-    if (
-      !moveMarkerSprite ||
-      !moveMarkerSprite.complete ||
-      moveMarkerSprite.naturalWidth === 0
-    ) {
-      return;
-    }
-
-    const currentTime = performance.now() / 1000;
-    const elapsed = currentTime - marker.startTime;
+    const elapsed = performance.now() / 1000 - marker.startTime;
     const progress = elapsed / MOVE_MARKER_CONFIG.ANIMATION_DURATION;
-
     if (progress >= 1) return;
 
-    // Calculate frame index
-    const frameIndex = Math.min(
-      Math.floor(progress * MOVE_MARKER_CONFIG.FRAME_COUNT),
-      MOVE_MARKER_CONFIG.FRAME_COUNT - 1,
-    );
-
-    // Fade out as animation progresses
-    const alpha = 1 - progress * 0.5;
-
-    const { FRAME_WIDTH, FRAME_HEIGHT, SCALE } = MOVE_MARKER_CONFIG;
-    const scaledWidth = FRAME_WIDTH * SCALE;
-    const scaledHeight = FRAME_HEIGHT * SCALE;
+    const { START_RADIUS, END_RADIUS, FLATTEN } = MOVE_MARKER_CONFIG;
+    const ease = 1 - Math.pow(1 - progress, 2);
+    const radius = START_RADIUS + (END_RADIUS - START_RADIUS) * ease;
+    const color = marker.attackMove ? MOVE_MARKER_CONFIG.ATTACK_MOVE_COLOR : MOVE_MARKER_CONFIG.MOVE_COLOR;
+    const { x, y } = marker.position;
 
     ctx.save();
-    ctx.globalAlpha = alpha;
-    if (marker.attackMove) {
-      ctx.filter = "sepia(1) saturate(6) hue-rotate(-50deg)";
+    ctx.globalAlpha = 1 - progress * progress;
+    ctx.lineWidth = 2;
+
+    // Dark outline under the colored ring so it reads on grass and paths alike
+    for (const [stroke, width] of [["rgba(0, 0, 0, 0.55)", 4], [color, 2]] as const) {
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = width;
+      ctx.beginPath();
+      ctx.ellipse(x, y, radius, radius * FLATTEN, 0, 0, Math.PI * 2);
+      ctx.stroke();
     }
-    ctx.drawImage(
-      moveMarkerSprite,
-      frameIndex * FRAME_WIDTH,
-      0,
-      FRAME_WIDTH,
-      FRAME_HEIGHT,
-      marker.position.x - scaledWidth / 2,
-      marker.position.y - scaledHeight / 2,
-      scaledWidth,
-      scaledHeight,
-    );
+
+    // Four arrowheads pointing in, riding just outside the ring
+    const arrowDistance = radius + 6;
+    for (let i = 0; i < 4; i++) {
+      const angle = (i * Math.PI) / 2 + Math.PI / 4;
+      const ax = x + Math.cos(angle) * arrowDistance;
+      const ay = y + Math.sin(angle) * arrowDistance * FLATTEN;
+      const inward = Math.atan2(y - ay, (x - ax) * FLATTEN);
+      ctx.save();
+      ctx.translate(ax, ay);
+      ctx.rotate(inward);
+      ctx.beginPath();
+      ctx.moveTo(4, 0);
+      ctx.lineTo(-3, -4);
+      ctx.lineTo(-3, 4);
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.strokeStyle = "rgba(0, 0, 0, 0.55)";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // A dot on the spot itself
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.ellipse(x, y, 2.5, 2.5 * FLATTEN, 0, 0, Math.PI * 2);
+    ctx.fill();
     ctx.restore();
   }
 
