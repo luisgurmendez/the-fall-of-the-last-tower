@@ -43,6 +43,7 @@ import { Announcements, type Announcement } from './state/announcements';
 import { EntityVFX, spawnWorldVFX } from './state/entityVFX';
 import { addOrUpdateEntity, applyEntityDelta, type EntityLifecycleHooks } from './state/deltas';
 import { processGameEvent, type GameEventContext } from './state/gameEvents';
+import { playChangeSound, playDeathSound, playWardPlacedSound } from '@/audio/gameSounds';
 
 export type { EntityAnimationState, InterpolatedEntity } from './state/entities';
 export type { AbilityEffect } from './state/abilityEffects';
@@ -104,13 +105,17 @@ export class OnlineStateManager {
   // Called by the delta merge: entity effects and the local respawn timer
   private readonly lifecycleHooks: EntityLifecycleHooks = {
     onRemoved: (entityId, existing, data) => {
-      if (existing) this.entityVFX.spawnDeathVFX(existing);
+      if (existing) {
+        this.entityVFX.spawnDeathVFX(existing);
+        playDeathSound(existing);
+      }
       if (entityId === this.localEntityId && typeof data.respawnTimer === 'number') {
         this.localRespawnAt = this.gameTime + data.respawnTimer;
       }
     },
     onChanged: (existing, data) => {
       this.entityVFX.spawnChangeVFX(existing, data);
+      playChangeSound(existing, data, this.localEntityId);
     },
     onAdded: (snapshot, position) => {
       // A champion we saw die is back: respawn effect
@@ -119,6 +124,7 @@ export class OnlineStateManager {
       const ward = snapshot as { entityType: EntityType; wardType?: string; age?: number };
       if (ward.entityType === EntityType.WARD && ward.wardType && (ward.age ?? Infinity) < 0.6) {
         spawnWorldVFX(ward.wardType === 'control' ? WORLD_VFX.CONTROL_WARD_PLACED : WORLD_VFX.WARD_PLACED, position.x, position.y);
+        playWardPlacedSound(position.x, position.y);
       }
       if (snapshot.entityId === this.localEntityId) {
         this.localRespawnAt = null;

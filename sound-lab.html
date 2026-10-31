@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Siege sound lab</title>
+  <style>
+    body { margin: 0; padding: 16px 20px; background: #12121e; color: #d8d8e8; font: 14px/1.4 ui-monospace, monospace; }
+    h1 { font-size: 20px; color: #f1c40f; margin: 0 0 4px; }
+    h2 { font-size: 15px; color: #8fb3ff; margin: 18px 0 6px; text-transform: uppercase; }
+    .hint { color: #8a8aa8; margin-bottom: 12px; }
+    .layout { display: flex; gap: 24px; align-items: flex-start; }
+    .sounds { flex: 1; min-width: 0; }
+    .sound { display: flex; gap: 10px; align-items: baseline; padding: 4px 6px; border-radius: 4px; cursor: pointer; }
+    .sound:hover { background: #1f1f33; }
+    .sound.selected { background: #2a2a48; outline: 1px solid #f1c40f; }
+    .sound .key { width: 190px; color: #fff; }
+    .sound button { background: #2b3b5c; color: #fff; border: 0; padding: 2px 8px; cursor: pointer; font: inherit; white-space: nowrap; }
+    .sound button:hover { background: #3d5585; }
+    .sound .prompt { color: #8a8aa8; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pad-box { position: sticky; top: 16px; }
+    #pad { background: #0b0b14; border: 1px solid #333; cursor: crosshair; display: block; }
+  </style>
+</head>
+<body>
+  <h1>Sound lab</h1>
+  <div class="hint">Play buttons play each variant as is. Pick a sound, then click the view on the right to hear it there: the middle is the camera; it fades out past the screen's edge and pans left and right like in a match.</div>
+  <div class="layout">
+    <div class="sounds" id="sounds"></div>
+    <div class="pad-box"><canvas id="pad" width="480" height="300"></canvas><div class="hint" id="pad-info"></div></div>
+  </div>
+  <script type="module" src="/src/debug/soundLab.ts"></script>
+</body>
+</html>

@@ -8,6 +8,8 @@ import Initializable from "@/behaviors/initializable";
 import { Rectangle } from "@/objects/shapes";
 import { GameConfig } from "@/config";
 import { Dimensions } from "@/core/canvas";
+import { getAudio } from "@/audio/AudioManager";
+import { updateAmbience } from "@/audio/ambience";
 
 const { CAMERA: CAMERA_CONFIG } = GameConfig;
 export const CAMERA_ID = "camera";
@@ -220,6 +222,10 @@ class Camera implements GameObject, Stepable, Disposable, Initializable {
       this._position = this.following.position.clone();
     }
     this.adjustPositionIfOutOfWorldsBounds(context.worldDimensions);
+
+    // The camera is what hears the world
+    getAudio().setListener(this._position.x, this._position.y, this.viewport.w / this._zoom);
+    updateAmbience(this._position.x, this._position.y);
   }
 
   adjustPositionIfOutOfWorldsBounds(world: Rectangle) {

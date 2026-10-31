@@ -9,6 +9,7 @@ import type { NetworkClient } from "@siege/client";
 import { createItemIconElement } from "@/ui/itemIcons";
 import { SHOP_ITEMS, getItemDefinition, getItemPassive, isRecommendedFor } from "@/data/items";
 import { renderItemTree, renderBuildsInto } from "@/ui/shop/itemTree";
+import { getAudio } from "@/audio/AudioManager";
 import { CONTROL_WARD_ITEM_ID, GameConfig, planItemPurchase } from "@siege/shared";
 
 type ShopCategory = ItemCategory | "all";
@@ -647,6 +648,10 @@ export class ShopUI {
   updateOnlineState(gold: number, items: Array<{ definitionId: string } | null>, atShop = true, controlWards = 0): void {
     const inventoryChanged = JSON.stringify(this.getInventoryIds()) !==
       JSON.stringify(items.map(item => item?.definitionId ?? null));
+    // Something was bought: gold went down as the inventory or the wards carried changed
+    if (gold < this.onlineGold && (inventoryChanged || controlWards > this.onlineControlWards)) {
+      getAudio().play("item_buy");
+    }
     this.onlineGold = gold;
     this.onlineItems = items;
     this.atShop = atShop;

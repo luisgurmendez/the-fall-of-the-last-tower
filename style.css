@@ -90,6 +90,26 @@ canvas {
     text-align: center;
 }
 
+.game-menu-sound {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.game-menu-volume {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    color: #d8d8e8;
+    font-size: 18px;
+}
+
+.game-menu-volume input {
+    width: 150px;
+    accent-color: var(--pixel-gold);
+}
+
 .game-menu-surrender.confirming {
     background: #c0392b;
     color: #ffffff;

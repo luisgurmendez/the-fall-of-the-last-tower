@@ -15,6 +15,8 @@ export { GameConfig } from './GameConfig';
 
 export { WallGrid } from './WallGrid';
 
+export { inJungle } from './siegeMap';
+
 export { ITEM_CATALOG, getItemCatalogEntry, CONTROL_WARD_ITEM_ID } from './items';
 export type { ItemCatalogEntry, ItemPassiveData } from './items';
 export { planItemPurchase, getItemTree, getItemCombineCost, getItemBuildsInto, isItemPartOf } from './itemTrees';

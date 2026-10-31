@@ -69,6 +69,7 @@ For detailed documentation on the multiplayer MOBA systems, see the following fi
 | **Items & Shop** | [docs/architecture/items.md](docs/architecture/items.md) | Item catalog, shop UI, item icons (PixelLab) |
 | **Simulation** | [docs/architecture/simulation.md](docs/architecture/simulation.md) | Headless scenarios, bots, PNG frames, HTTP sandbox for agents |
 | **Summoner Spells** | [docs/architecture/summoner-spells.md](docs/architecture/summoner-spells.md) | The D/F spells: picks, casting, HUD, icons and VFX |
+| **Audio** | [docs/architecture/audio.md](docs/architecture/audio.md) | Sound effects and ambience: generation (ElevenLabs), the engine, heard from the camera |
 
 ### Quick Reference
 
@@ -107,6 +108,7 @@ For detailed documentation on the multiplayer MOBA systems, see the following fi
 | Items, the shop, item icons | `items.md` |
 | Simulation framework, scenarios, bots | `simulation.md` |
 | Summoner spells | `summoner-spells.md` |
+| Sounds, the audio engine | `audio.md` |
 
 **When adding new systems**, create a new doc file in `docs/architecture/` and add a reference here.
 
@@ -120,6 +122,7 @@ For detailed documentation on the multiplayer MOBA systems, see the following fi
 src/
 ├── @types/              # TypeScript type declarations
 ├── art/                 # Pixel art assets
+├── audio/               # Sound: catalog, AudioManager (heard from the camera), which moment plays what; try them at /sound-lab.html
 ├── behaviors/           # Interface definitions for object capabilities
 ├── config/              # Configuration constants
 │   └── gameConfig.ts    # World, camera, economy settings
@@ -334,6 +337,6 @@ Champions start at level 1. To test ultimates locally, start the server with
 ### Remaining Tasks
 1. Add more client unit tests
 2. Replace BigInt sprite encoding with PNG images
-3. Add sound effects and music
+3. Add music (sound effects: see docs/architecture/audio.md)
 4. Improve UI with proper HUD components
 5. Add more champions and abilities

@@ -19,6 +19,7 @@ import type { CampTimers } from './campTimers';
 import { ANNOUNCEMENT_DURATION, type Announcements } from './announcements';
 import type { DamageTaken } from './damageTaken';
 import { spawnWorldVFX } from './entityVFX';
+import { playEventSound } from '@/audio/gameSounds';
 
 /**
  * What the event handlers read and write: the state manager's entity map,
@@ -77,6 +78,7 @@ function describeDamageSource(data: Record<string, unknown>, ctx: GameEventConte
  */
 export function processGameEvent(event: GameEvent, ctx: GameEventContext): void {
   const now = Date.now();
+  playEventSound(event, ctx);
 
   switch (event.type) {
     case GameEventType.BASIC_ATTACK: {

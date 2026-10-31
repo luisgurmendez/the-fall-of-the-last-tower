@@ -63,6 +63,7 @@ import {
   drawItemTooltip,
 } from '@/ui/hud/tooltips';
 import { drawAbilityRangeCircles } from '@/ui/hud/rangePreview';
+import { getAudio } from '@/audio/AudioManager';
 // Re-export for external use
 export type { ItemSlot, AbilitySlot };
 export type {
@@ -161,6 +162,7 @@ export class ChampionHUD extends ScreenEntity {
       if (!this.inputManager.isKeyJustPressed(slot.toLowerCase())) continue;
       if (!canCastAbility(this.champion.getAbility(slot), this.champion)) {
         this.hud.deniedAt.set(slot, performance.now());
+        getAudio().play('cant_cast');
       }
     }
   }
