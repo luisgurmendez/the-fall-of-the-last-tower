@@ -117,5 +117,29 @@
       "walk": "cfd11b20-83f5-4a62-a63b-a53ba4279516"
     },
     "characterId": "2fa8f9b8-1873-4e52-a2ce-7079430aefa4"
+  },
+  "minion_melee": {
+    "animations": {
+      "attack": "2c9ab96d-d03a-473d-b214-bfdb017d7763",
+      "idle": "6d0a3c6c-085d-44f1-af6b-1320971f9d32",
+      "walk": "cfcaa593-36e2-48c1-a091-bf9bd1f6c26f"
+    },
+    "characterId": "aa54fbdb-fa2a-4673-9c1a-a333e1afaa6a"
+  },
+  "minion_caster": {
+    "animations": {
+      "attack": "7a28a102-b294-4402-9b9b-6cb1290f26d4",
+      "idle": "ebea2dcd-8a5e-447d-b819-9fcc35123976",
+      "walk": "7861d1c0-2bf8-431e-bd74-de1f83a4bd25"
+    },
+    "characterId": "ce71ab63-fcef-4cb3-9d98-82306febc522"
+  },
+  "minion_siege": {
+    "animations": {
+      "attack": "8fd20dec-17e5-48c2-a84b-248030e82b4d",
+      "walk": "08579d2f-ab4f-41a5-9e86-264765cf7787",
+      "idle": "e5ae7327-9739-4bbe-86c7-5165d19dc831"
+    },
+    "characterId": "13a523e6-3a61-4012-bce4-ddd42bc69133"
   }
 }

@@ -41,6 +41,10 @@ A minion keeps its target while it's alive, visible, in reach and the minion is 
 
 Casters and siege minions fire targeted projectiles (`minion_caster`, `minion_siege`). Melee minions hit instantly.
 
+## Art
+
+The minions are generated with PixelLab (`scripts/generate-sprites.ts`, keys `minion_melee`, `minion_caster`, `minion_siege`): a footman with sword and shield, a hooded acolyte with a wand, and a gunner with a shoulder cannon, each with idle, walk and attack strips in `public/assets/sprites/minions/<type>/`. They're drawn in the blue team's colors. `src/render/entities/teamColors.ts` makes the red team's version once per image, turning the strongly blue pixels red and leaving steel, skin and wood alone. Without the strips, `src/render/entities/minion.ts` falls back to the original warrior and archer sprites.
+
 ## Scenarios
 
 `packages/server/scenarios/minion-*.ts` and `minions-pass-own-towers.ts` show and check this behavior. For example, run `bun run sim minion-chase-and-return`; see [simulation.md](simulation.md).

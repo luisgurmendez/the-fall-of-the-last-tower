@@ -1,5 +1,7 @@
 /**
- * Lane minion renderer (melee warriors, caster archers and siege cannons).
+ * Lane minion renderer: the generated footman, acolyte and gunner
+ * (scripts/generate-sprites.ts; drawn in blue, recolored for the red team),
+ * or the original warriors, archers and siege cart while those aren't there.
  */
 
 import type {
@@ -8,9 +10,12 @@ import type {
 } from "@/render/entities/types";
 import {
   TEAM_COLORS,
+  drawGroundShadow,
   drawSpriteFrame,
+  getSpriteFeet,
   imageCache,
 } from "@/render/entities/shared";
+import { getRedVariant } from "@/render/entities/teamColors";
 import {
   HEALTH_BAR_COLORS,
   renderHealthBar,
@@ -51,10 +56,31 @@ const SPRITES = {
   },
 };
 
+/** Generated minion strips: square frames side by side, facing right, in blue */
+interface MinionStrips {
+  idle: string;
+  walk: string;
+  attack: string;
+  /** World units per sprite pixel */
+  scale: number;
+}
+
+function minionStrips(minionType: string, scale: number): MinionStrips {
+  const dir = `/assets/sprites/minions/${minionType}`;
+  return { idle: `${dir}/idle.png`, walk: `${dir}/walk.png`, attack: `${dir}/attack.png`, scale };
+}
+
+const MINION_STRIPS: Record<string, MinionStrips> = {
+  melee: minionStrips("melee", 0.8),
+  caster: minionStrips("caster", 0.8),
+  siege: minionStrips("siege", 0.9),
+};
+
 /**
  * Minion sprite sheets to preload.
  */
 export const MINION_IMAGES = [
+  ...Object.values(MINION_STRIPS).flatMap((strips) => [strips.idle, strips.walk, strips.attack]),
   // Warriors
   SPRITES.WARRIOR.IDLE_BLUE,
   SPRITES.WARRIOR.IDLE_RED,
@@ -82,6 +108,109 @@ export function renderMinion(
   rc: EntityRenderContext,
 ): void {
   const minionType = snapshot.minionType || "melee";
+  const isSiege = minionType === "siege";
+
+  // Generated art when it's there, else the original sprites
+  const strips = MINION_STRIPS[minionType];
+  if (!strips || !drawMinionStrips(ctx, snapshot, side, state, rc, strips)) {
+    drawLegacyMinion(ctx, snapshot, side, state, rc, minionType);
+  }
+
+  // Draw health bar - blue for ally minions, red for enemy minions
+  if (snapshot.health !== undefined && snapshot.maxHealth !== undefined) {
+    const healthBarColor =
+      side === rc.localSide
+        ? HEALTH_BAR_COLORS.ALLY // Blue for allied minions
+        : HEALTH_BAR_COLORS.ENEMY; // Red for enemy minions
+    renderHealthBar(
+      ctx,
+      snapshot.health,
+      snapshot.maxHealth,
+      isSiege ? 40 : 30,
+      isSiege ? -32 : -25,
+      healthBarColor,
+      undefined,
+      { trailHealth: getTrailHealth(snapshot.entityId, snapshot.health) },
+    );
+  }
+}
+
+/**
+ * A small wooden cart with a cannon, drawn under a siege minion.
+ */
+function renderSiegeCart(ctx: CanvasRenderingContext2D, side: number, facingRight: boolean): void {
+  ctx.save();
+  ctx.translate(0, 10);
+  if (!facingRight) ctx.scale(-1, 1);
+
+  // Barrel
+  ctx.fillStyle = "#2f2f2f";
+  ctx.fillRect(2, -9, 16, 6);
+  ctx.fillStyle = "#4a4a4a";
+  ctx.fillRect(16, -10, 4, 8);
+
+  // Cart body in team color trim
+  ctx.fillStyle = "#6d4c2f";
+  ctx.fillRect(-14, -4, 26, 8);
+  ctx.fillStyle = side === 0 ? TEAM_COLORS.BLUE : TEAM_COLORS.RED;
+  ctx.fillRect(-14, -4, 26, 2);
+
+  // Wheels
+  ctx.fillStyle = "#3e2a17";
+  for (const wx of [-8, 7]) {
+    ctx.beginPath();
+    ctx.arc(wx, 5, 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+/**
+ * Draw a minion from its generated strips (the red team's recolored), with
+ * a shadow under its feet. False if the art isn't loaded.
+ */
+function drawMinionStrips(
+  ctx: CanvasRenderingContext2D,
+  snapshot: any,
+  side: number,
+  state: EntityRenderState,
+  rc: EntityRenderContext,
+  strips: MinionStrips,
+): boolean {
+  const isMoving = snapshot.targetX != null && snapshot.targetY != null && !state.isAttacking;
+  const src = state.isAttacking ? strips.attack : isMoving ? strips.walk : strips.idle;
+  const blue = imageCache.get(src);
+  if (!blue || !blue.complete || blue.naturalWidth === 0) return false;
+  const image = side === 0 ? blue : getRedVariant(blue);
+  if (!image) return false;
+
+  const feet = getSpriteFeet(strips.idle, strips.scale);
+  if (feet) drawGroundShadow(ctx, feet.y, feet.halfWidth);
+
+  const frameSize = image.naturalHeight;
+  const frameCount = Math.max(1, Math.round(image.naturalWidth / frameSize));
+  const frameIndex = state.isAttacking
+    ? Math.min(frameCount - 1, Math.floor(rc.stateManager.getAttackAnimationProgress(snapshot.entityId) * frameCount))
+    : Math.floor(rc.animationTime * (isMoving ? 10 : 6)) % frameCount;
+
+  ctx.save();
+  if (!state.facingRight) ctx.scale(-1, 1);
+  drawSpriteFrame(ctx, image, frameIndex * frameSize, frameSize, frameSize, strips.scale, rc.getOutlineColor(snapshot.entityId));
+  ctx.restore();
+  return true;
+}
+
+/**
+ * The original minion sprites (warriors and archers, siege archers on a cart).
+ */
+function drawLegacyMinion(
+  ctx: CanvasRenderingContext2D,
+  snapshot: any,
+  side: number,
+  state: EntityRenderState,
+  rc: EntityRenderContext,
+  minionType: string,
+): void {
   const isWarrior = minionType === "melee";
   const isSiege = minionType === "siege";
   const spriteConfig = isWarrior ? SPRITES.WARRIOR : SPRITES.ARCHER;
@@ -187,52 +316,4 @@ export function renderMinion(
     ctx.lineWidth = 1;
     ctx.stroke();
   }
-
-  // Draw health bar - blue for ally minions, red for enemy minions
-  if (snapshot.health !== undefined && snapshot.maxHealth !== undefined) {
-    const healthBarColor =
-      side === rc.localSide
-        ? HEALTH_BAR_COLORS.ALLY // Blue for allied minions
-        : HEALTH_BAR_COLORS.ENEMY; // Red for enemy minions
-    renderHealthBar(
-      ctx,
-      snapshot.health,
-      snapshot.maxHealth,
-      isSiege ? 40 : 30,
-      isSiege ? -32 : -25,
-      healthBarColor,
-      undefined,
-      { trailHealth: getTrailHealth(snapshot.entityId, snapshot.health) },
-    );
-  }
-}
-
-/**
- * A small wooden cart with a cannon, drawn under a siege minion.
- */
-function renderSiegeCart(ctx: CanvasRenderingContext2D, side: number, facingRight: boolean): void {
-  ctx.save();
-  ctx.translate(0, 10);
-  if (!facingRight) ctx.scale(-1, 1);
-
-  // Barrel
-  ctx.fillStyle = "#2f2f2f";
-  ctx.fillRect(2, -9, 16, 6);
-  ctx.fillStyle = "#4a4a4a";
-  ctx.fillRect(16, -10, 4, 8);
-
-  // Cart body in team color trim
-  ctx.fillStyle = "#6d4c2f";
-  ctx.fillRect(-14, -4, 26, 8);
-  ctx.fillStyle = side === 0 ? TEAM_COLORS.BLUE : TEAM_COLORS.RED;
-  ctx.fillRect(-14, -4, 26, 2);
-
-  // Wheels
-  ctx.fillStyle = "#3e2a17";
-  for (const wx of [-8, 7]) {
-    ctx.beginPath();
-    ctx.arc(wx, 5, 4, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.restore();
 }

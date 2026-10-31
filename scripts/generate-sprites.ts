@@ -29,6 +29,7 @@ import { blit, bottomRow, createImage, decodePng, encodePng, type RgbaImage } fr
 const API = 'https://api.pixellab.ai/v2';
 const MANIFEST_PATH = 'scripts/sprites.json';
 const MONSTERS_DIR = 'public/assets/sprites/monsters';
+const MINIONS_DIR = 'public/assets/sprites/minions';
 
 type AnimationSpec =
   /** Drawn frame by frame from a description (4-16 frames) */
@@ -84,6 +85,27 @@ function champion(championId: string, actions: ChampionActions): SpriteSetSpec {
       w: cast(actions.w),
       e: cast(actions.e),
       r: cast(actions.r),
+    },
+  };
+}
+
+/**
+ * A lane minion: idle, walk and attack, in public/assets/sprites/minions/<minionType>.
+ * It's drawn in the blue team's colors; the red team's are recolored from it
+ * when loaded, so its team color should be a bright blue and the only blue.
+ */
+function minion(minionType: string, name: string, description: string, attack: string): SpriteSetSpec {
+  return {
+    key: `minion_${minionType}`,
+    outputDir: `${MINIONS_DIR}/${minionType}`,
+    name,
+    description,
+    size: 64,
+    template: 'mannequin',
+    animations: {
+      idle: { mode: 'v3', action: 'standing ready, breathing calmly', frames: 4 },
+      walk: { mode: 'template', template: 'walking-6-frames' },
+      attack: { mode: 'pixminimax', action: attack, frames: 8 },
     },
   };
 }
@@ -206,6 +228,24 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
     e: 'spins gracefully as light swirls around her feet',
     r: 'lifts both arms skyward as a column of radiant light descends',
   }),
+  minion(
+    'melee',
+    'Footman',
+    'a small stocky foot soldier in a dented iron helmet and a bright royal blue tabard, holding a short sword and a small round wooden shield',
+    'chops forward with the short sword',
+  ),
+  minion(
+    'caster',
+    'Acolyte',
+    'a small hooded apprentice mage in a bright royal blue robe, holding a short wooden wand with a glowing white tip',
+    'flicks the wand forward and casts a small magic bolt',
+  ),
+  minion(
+    'siege',
+    'Gunner',
+    'a squat heavily armored soldier with a bright royal blue sash, carrying a stubby bronze hand cannon on the shoulder',
+    'braces and fires the shoulder cannon with a burst of smoke, recoiling back',
+  ),
   champion('vex', {
     name: 'Vex',
     description: 'a lithe masked ninja assassin in dark violet and black garb with a hood and a long trailing scarf, glowing violet eyes, a short curved blade in one hand',
