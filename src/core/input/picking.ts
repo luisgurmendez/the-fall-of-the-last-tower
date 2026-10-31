@@ -16,12 +16,12 @@ interface PickArea {
 }
 
 const CREATURE_AREAS: Record<string, PickArea> = {
-  spider: { radius: 24, lift: 0 },
-  wolf: { radius: 30, lift: 0 },
-  thornspitter: { radius: 40, lift: 4 },
-  blue_buff: { radius: 54, lift: 4 },
-  red_buff: { radius: 54, lift: 6 },
-  dragon: { radius: 78, lift: 6 },
+  spider: { radius: 28, lift: 0 },
+  wolf: { radius: 37, lift: 0 },
+  thornspitter: { radius: 45, lift: 5 },
+  blue_buff: { radius: 68, lift: 5 },
+  red_buff: { radius: 70, lift: 8 },
+  dragon: { radius: 114, lift: 9 },
 };
 
 /** Champions win ties with units around them by this much (of their area's radius) */
@@ -36,9 +36,9 @@ function pickArea(snapshot: { entityType: number; minionType?: string; creatureT
     case EntityType.JUNGLE_CAMP:
       return CREATURE_AREAS[snapshot.creatureType ?? ""] ?? { radius: 34, lift: 0 };
     case EntityType.TOWER:
-      return { radius: 70, lift: 70 };
+      return { radius: 92, lift: 92 };
     case EntityType.NEXUS:
-      return { radius: 95, lift: 90 };
+      return { radius: 105, lift: 100 };
     default:
       return { radius: 30, lift: 0 };
   }

@@ -23,7 +23,12 @@ const SPRITES = {
     RED: "/assets/sprites/Buildings/Barracks_Red.png",
     WIDTH: 192,
     HEIGHT: 256,
-    SCALE: 1.0,
+    /** A bit bigger than a tower */
+    SCALE: 1.15,
+    /** Where the art starts, in sprite pixels from the top */
+    ART_TOP: 58,
+    /** How far below the position the image's bottom edge is */
+    BASE_OFFSET: 20,
   },
 };
 
@@ -54,7 +59,7 @@ export function renderNexus(
       SPRITES.NEXUS.WIDTH,
       SPRITES.NEXUS.HEIGHT,
       SPRITES.NEXUS.SCALE,
-      20,
+      SPRITES.NEXUS.BASE_OFFSET,
       outlineColor,
     );
   } else {
@@ -68,13 +73,15 @@ export function renderNexus(
   }
 
   if (snapshot.isProtected) {
-    renderProtectionDome(ctx, 90, -30, rc.animationTime);
+    renderProtectionDome(ctx, 104, -35, rc.animationTime);
   }
 
   // Draw health bar - blue for ally nexus, red for enemy nexus
   if (snapshot.health !== undefined && snapshot.maxHealth !== undefined) {
     const radius = 75;
-    const barY = -radius - 30;
+    // Just above the building
+    const { HEIGHT, ART_TOP, SCALE, BASE_OFFSET } = SPRITES.NEXUS;
+    const barY = BASE_OFFSET - (HEIGHT - ART_TOP) * SCALE - 14;
     const healthBarColor =
       side === rc.localSide
         ? HEALTH_BAR_COLORS.ALLY // Blue for allied nexus

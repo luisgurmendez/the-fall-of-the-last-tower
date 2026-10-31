@@ -48,7 +48,7 @@ class Camera implements GameObject, Stepable, Disposable, Initializable {
 
     this.viewport.w = canvas.width;
     this.viewport.h = canvas.height;
-    this._zoom = this.clampZoom(this.viewport.w / CAMERA_CONFIG.DEFAULT_VIEW_WIDTH);
+    this._zoom = this.getMinZoom();
 
     const handleCanvasWheel = (event: WheelEvent) => {
       event.preventDefault();
@@ -143,8 +143,8 @@ class Camera implements GameObject, Stepable, Disposable, Initializable {
   }
 
   /**
-   * A zoom within the limits: no more than MAX_VIEW_WIDTH world units across
-   * (nor more than the world), no fewer than MIN_VIEW_WIDTH.
+   * A zoom within the limits: no farther out than getMinZoom, no fewer than
+   * MIN_VIEW_WIDTH world units across.
    */
   private clampZoom(zoom: number): number {
     const maxZoom = this.viewport.w / CAMERA_CONFIG.MIN_VIEW_WIDTH;
@@ -165,8 +165,12 @@ class Camera implements GameObject, Stepable, Disposable, Initializable {
     return this._position;
   }
 
+  /** The farthest zoom: MAX_VIEW_WIDTH across, or FAR_VIEW_MIN_HEIGHT tall if that shows more (nor more than the world) */
   getMinZoom() {
-    const viewLimit = this.viewport.w / CAMERA_CONFIG.MAX_VIEW_WIDTH;
+    const viewLimit = Math.min(
+      this.viewport.w / CAMERA_CONFIG.MAX_VIEW_WIDTH,
+      this.viewport.h / CAMERA_CONFIG.FAR_VIEW_MIN_HEIGHT,
+    );
     if (this.worldDimensions === null) {
       return viewLimit;
     }

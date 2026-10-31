@@ -24,7 +24,12 @@ const SPRITES = {
     RED: "/assets/sprites/Buildings/Tower_Red.png",
     WIDTH: 128,
     HEIGHT: 256,
-    SCALE: 0.8,
+    /** Where the art starts, in sprite pixels from the top */
+    ART_TOP: 46,
+    /** How far below the position the image's bottom edge is */
+    BASE_OFFSET: 30,
+    /** Close to three champions tall, like the classic MOBA's towers */
+    SCALE: 1.05,
   },
 };
 
@@ -55,7 +60,7 @@ export function renderTower(
       SPRITES.TOWER.WIDTH,
       SPRITES.TOWER.HEIGHT,
       SPRITES.TOWER.SCALE,
-      30,
+      SPRITES.TOWER.BASE_OFFSET,
       outlineColor,
     );
   } else {
@@ -69,14 +74,14 @@ export function renderTower(
   }
 
   if (snapshot.isProtected) {
-    renderProtectionDome(ctx, 62, -42, rc.animationTime);
+    renderProtectionDome(ctx, 80, -55, rc.animationTime);
   }
 
   renderTargetLockOnLocalPlayer(ctx, snapshot, side, rc);
 
   // Draw health bar - blue for ally towers, red for enemy towers
   if (snapshot.health !== undefined && snapshot.maxHealth !== undefined) {
-    const barY = -SPRITES.TOWER.HEIGHT * SPRITES.TOWER.SCALE + 10;
+    const barY = towerArtTop() - 14;
     const healthBarColor =
       side === rc.localSide
         ? HEALTH_BAR_COLORS.ALLY // Blue for allied towers
@@ -92,6 +97,12 @@ export function renderTower(
       { trailHealth: getTrailHealth(snapshot.entityId, snapshot.health) },
     );
   }
+}
+
+/** Height of the top of the tower's art, above its position (negative) */
+function towerArtTop(): number {
+  const { HEIGHT, ART_TOP, SCALE, BASE_OFFSET } = SPRITES.TOWER;
+  return BASE_OFFSET - (HEIGHT - ART_TOP) * SCALE;
 }
 
 /**
@@ -114,7 +125,7 @@ function renderTargetLockOnLocalPlayer(
   // The tower is drawn at its own position; the line ends at the champion
   const dx = target.position.x - tower.position.x;
   const dy = target.position.y - tower.position.y;
-  const startY = -SPRITES.TOWER.HEIGHT * SPRITES.TOWER.SCALE * 0.75;
+  const startY = towerArtTop() + 30;
   const pulse = 0.55 + Math.sin(rc.animationTime * 10) * 0.25;
 
   ctx.save();

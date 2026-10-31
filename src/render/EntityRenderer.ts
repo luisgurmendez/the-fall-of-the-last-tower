@@ -100,7 +100,7 @@ export class EntityRenderer implements GameObject {
 
   /** Area of a building's sprite above its position: a champion there is behind it */
   private static readonly BUILDING_SPRITE_AREAS: Partial<Record<EntityType, { halfWidth: number; height: number }>> = {
-    [EntityType.TOWER]: { halfWidth: 40, height: 170 },
+    [EntityType.TOWER]: { halfWidth: 55, height: 195 },
     [EntityType.NEXUS]: { halfWidth: 90, height: 230 },
   };
   private static readonly SEE_THROUGH_ALPHA = 0.5;

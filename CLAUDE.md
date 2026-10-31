@@ -228,7 +228,7 @@ Renders all entities based on server state:
 ### 6. Camera System (`src/core/camera.ts`)
 
 - **Edge panning**: Move camera when mouse near screen edges (constant speed; leaving the window through an edge keeps panning until the pointer returns or the window loses focus)
-- **Zoom**: Mouse wheel or keyboard shortcuts, from 650 to 1100 world units across the screen; it starts at 1100, as far out as it goes (`GameConfig.CAMERA` in `src/config/gameConfig.ts`)
+- **Zoom**: Mouse wheel or keyboard shortcuts, from 560 to 900 world units across the screen (on a wide window, as far out as fits 500 top to bottom); it starts as far out as it goes (`GameConfig.CAMERA` in `src/config/gameConfig.ts`)
 - **Bounds clamping**: Keep camera within world dimensions
 
 ---
