@@ -114,7 +114,7 @@ export class OnlineStateManager {
     onRemoved: (entityId, existing, data) => {
       if (existing) {
         this.entityVFX.spawnDeathVFX(existing);
-        playDeathSound(existing);
+        playDeathSound(existing, this.localEntityId);
         this.corpses.add(existing);
       }
       if (entityId === this.localEntityId && typeof data.respawnTimer === 'number') {

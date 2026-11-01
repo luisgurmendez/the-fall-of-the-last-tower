@@ -132,8 +132,12 @@ export function playEventSound(event: GameEvent, ctx: SoundContext): void {
   }
 }
 
-/** A unit died or a structure fell (it's removed from state right after, except an inhibitor) */
-export function playDeathSound(entity: InterpolatedEntity): void {
+/**
+ * A unit died or a structure fell (it's removed from state right after,
+ * except an inhibitor). Our own champion's death is heard wherever the
+ * camera is.
+ */
+export function playDeathSound(entity: InterpolatedEntity, localEntityId?: string): void {
   const audio = getAudio();
   const where = at(entity);
   switch (entity.snapshot.entityType) {
@@ -143,7 +147,7 @@ export function playDeathSound(entity: InterpolatedEntity): void {
     case EntityType.CHAMPION:
       recalls.get(entity.snapshot.entityId)?.stop();
       recalls.delete(entity.snapshot.entityId);
-      audio.play("champion_death", where);
+      audio.play("champion_death", entity.snapshot.entityId === localEntityId ? undefined : where);
       break;
     case EntityType.JUNGLE_CAMP:
       // Its special attack, if it was winding up, won't land
