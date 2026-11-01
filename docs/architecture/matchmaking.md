@@ -121,10 +121,18 @@ When a match is found, the server:
 
 ## Practice Mode
 
-`READY` accepts `mode: 'practice'` (and an optional `botChampionId`). The server skips the queue and starts a match immediately:
-the player on blue, a server-side `LaneBot` on red (mid lane). The bot is a `PlayerInfo` with `isBot: true`; `GameRoom` runs it
-through `BotDriver` each tick before processing inputs, and never sends it state. The client's **PRACTICE** button on champion
-select uses this (the bot gets a random enabled champion). See [simulation.md](simulation.md#bots).
+`READY` accepts `mode: 'practice'`, an optional `practiceSize` (players per team: 1, 3 or 5; default 1) and an optional
+`botChampionId` (the 1v1 bot's champion). The server skips the queue and starts a match immediately (`buildPracticeMatch` in
+`packages/server/src/bots/practiceMatch.ts`): the player in mid on blue, and server-side bots in every other role on both sides:
+- **1v1**: a `LaneBot` in mid on red.
+- **3v3**: `LaneBot`s in top, mid and bot.
+- **5v5**: top, mid, bot, a support (a second `LaneBot` in the bot lane) and a jungler (`JungleBot`).
+
+Bots pick champions that suit their role when free (a tank on top, a healer as support, a fighter in the jungle), never two of
+the same on a team, and summoner spells by role (the junglers Reap). Each bot is a `PlayerInfo` with `isBot: true` (ID
+`bot-<playerId>-<side>-<role>`); `GameRoom` runs it through `BotDriver` each tick before processing inputs, and never sends it
+state. The client's **PRACTICE** button on champion select uses this; the chip beside it cycles the team size (1V1, 3V3, 5V5,
+remembered in localStorage `siege-practice-size`). See [simulation.md](simulation.md#bots).
 
 ## Game End
 

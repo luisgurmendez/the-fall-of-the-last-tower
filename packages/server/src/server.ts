@@ -25,7 +25,7 @@ import { BunWebSocketServer } from './network/BunWebSocketServer';
 import { GameRoomManager } from './game/GameRoomManager';
 import { Matchmaker, type MatchResult } from './matchmaking/Matchmaker';
 import type { PlayerInfo } from './game/GameRoom';
-import { LaneBot } from './bots/LaneBot';
+import { buildPracticeMatch, isPracticeTeamSize, type PracticeTeamSize } from './bots/practiceMatch';
 import type { BotController } from './bots/BotController';
 import type { WebSocketConnection, ParsedMessage } from './network/WebSocketServer';
 import { Logger } from './utils/Logger';
@@ -121,12 +121,14 @@ interface ReadyMessageData {
   mode?: 'queue' | 'practice';
   /** Champion for the practice bot (defaults to the player's champion) */
   botChampionId?: string;
+  /** Players per team in practice: 1 (a bot in mid), 3 or 5 (bots in every role) */
+  practiceSize?: number;
   /** Summoner spells picked in champion select (D, F) */
   summonerSpells?: unknown;
 }
 
 function handleReadyMessage(connection: WebSocketConnection, data: ReadyMessageData): void {
-  const { playerId, championId = 'warrior', sessionToken, mode = 'queue', botChampionId } = data ?? {};
+  const { playerId, championId = 'warrior', sessionToken, mode = 'queue', botChampionId, practiceSize } = data ?? {};
   const summonerSpells = parseSummonerSpells(data?.summonerSpells);
   if (typeof playerId !== 'string' || playerId.length === 0) {
     Logger.server.warn(`READY without a valid playerId from ${connection.id}`);
@@ -209,7 +211,7 @@ function handleReadyMessage(connection: WebSocketConnection, data: ReadyMessageD
   }
 
   if (mode === 'practice') {
-    startPracticeMatch(playerId, championId, summonerSpells, botChampionId);
+    startPracticeMatch(playerId, championId, summonerSpells, botChampionId, isPracticeTeamSize(practiceSize) ? practiceSize : 1);
     return;
   }
 
@@ -267,22 +269,26 @@ function handleMatchFound(match: MatchResult): void {
 }
 
 /**
- * Start a practice match: the player on blue against a LaneBot on red.
+ * Start a practice match: the player in mid on blue, bots in every other
+ * role (practiceMatch.ts).
  */
-function startPracticeMatch(playerId: string, championId: string, summonerSpells: SummonerSpellId[], botChampionId?: string): void {
-  const botChampion = typeof botChampionId === 'string' && CHAMPION_DEFINITIONS.has(botChampionId)
-    ? botChampionId
-    : championId;
-  const botPlayerId = `bot-${playerId}`;
-
-  Logger.server.info(`Practice match: ${playerId} (${championId}) vs bot (${botChampion})`);
-  startMatch(
-    [
-      { playerId, side: 0, championId, connected: true, summonerSpells },
-      { playerId: botPlayerId, side: 1, championId: botChampion, connected: true, isBot: true, summonerSpells: ['blink', 'mend'] },
-    ],
-    [new LaneBot({ playerId: botPlayerId, lane: 'mid' })]
-  );
+function startPracticeMatch(
+  playerId: string,
+  championId: string,
+  summonerSpells: SummonerSpellId[],
+  botChampionId: string | undefined,
+  teamSize: PracticeTeamSize,
+): void {
+  const { players, bots } = buildPracticeMatch({
+    playerId,
+    championId,
+    summonerSpells,
+    teamSize,
+    champions: [...CHAMPION_DEFINITIONS.keys()],
+    botChampionId: typeof botChampionId === 'string' && CHAMPION_DEFINITIONS.has(botChampionId) ? botChampionId : undefined,
+  });
+  Logger.server.info(`Practice ${teamSize}v${teamSize}: ${players.map(p => `${p.playerId} (${p.championId})`).join(', ')}`);
+  startMatch(players, bots);
 }
 
 function startMatch(players: PlayerInfo[], bots: BotController[] = []): void {

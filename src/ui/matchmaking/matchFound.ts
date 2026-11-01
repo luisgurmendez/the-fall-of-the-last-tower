@@ -142,7 +142,8 @@ export class MatchFoundScreen {
     if (this.mapLabel) this.mapLabel.textContent = MAP_NAME;
     if (this.modeLabel) {
       const size = `${blue.length}v${red.length}`;
-      this.modeLabel.textContent = players.some(isBot) ? `Practice ${size} vs bot` : `${size} match`;
+      const bots = red.filter(isBot).length;
+      this.modeLabel.textContent = players.some(isBot) ? `Practice ${size} vs bot${bots > 1 ? "s" : ""}` : `${size} match`;
     }
     this.render(0);
   }

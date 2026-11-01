@@ -73,7 +73,7 @@ Runs are seeded (`seed: 1` by default), so the same scenario gives the same resu
 
 | Method | |
 |--------|---|
-| `addChampion({ playerId, championId, side, at?, level?, ranks?, bot? })` | Spawn a champion. `bot: 'lane'` attaches a LaneBot |
+| `addChampion({ playerId, championId, side, at?, level?, ranks?, summoners?, bot? })` | Spawn a champion. `bot: 'lane'` attaches a LaneBot; pass a controller (`new JungleBot(...)`) for another |
 | `addBot(controller)` | Any `BotController` |
 | `spawnWave(lane, side?)` | One minion wave (both sides by default) |
 | `move / attack / stop / cast / levelUp / recall / buy` | Inputs, queued through the real `InputHandler` |
@@ -110,7 +110,7 @@ Command actions: `move`, `attack` (`targetId`), `stop`, `cast` (`slot`, plus `x,
 
 `BotController` (`packages/server/src/bots/`) is the interface for anything that plays a champion without a connection. Bots return client inputs. `BotDriver` stamps them with sequence numbers and queues them through the `InputHandler`, so bots follow the same validation and rate limits as players. The same bots run in:
 
-- **Practice mode.** The client's PRACTICE button sends `READY` with `mode: 'practice'`. The server starts a match right away, with the player on blue and a `LaneBot` on red.
+- **Practice mode.** The client's PRACTICE button sends `READY` with `mode: 'practice'` and a team size. The server starts a match right away, with the player in mid on blue and bots in every other role (see [matchmaking.md](matchmaking.md#practice-mode)).
 - **Simulations.** Use `addChampion({ bot: 'lane' })` or `addBot()`.
 
 `LaneBot` follows these rules, in priority order:
@@ -127,6 +127,12 @@ Command actions: `move`, `attack` (`targetId`), `stop`, `cast` (`slot`, plus `x,
 10. Stand behind the allied wave. Minions it would have to hit from inside enemy tower range are off limits unless allied minions are tanking the tower.
 
 Champion abilities are bespoke. `ABILITY_ROLES` in `LaneBot.ts` says how to use the ones the generic rules would misuse: offense (self buffs, transforms), defense (stealth, invulnerability) or engage (dashes). `lastDecision` shows what the bot is doing. Scenarios `bot-vs-bot-mid`, `bot-fights-back`, `bot-goes-shopping`, `bot-farms-alone` and `bot-sieges-tower` cover the bot.
+
+Summoner spells come before everything after the level up, when their moment arrives (`summonerTactics.ts`): Purge when stunned or rooted with an enemy near; Mend and Aegis under 30% health in a fight or a chase; Blink toward home under 20% with a chaser within 350, or onto a fleeing enemy under 15% just out of reach; Haste to run or to chase a weakened enemy; Scorch on an enemy under 30% in a fight; Hinder on the enemy in a fight the bot is losing; Reap on a big monster it would kill. Scenarios `bot-summoners-escape` and `bot-summoners-finish` cover them.
+
+`JungleBot` (`JungleBot.ts`) extends `LaneBot` and replaces its lane steps (`chooseLaneAction`, from last-hitting on): it ganks a visible enemy under 55% health within 1600 and out of its towers' reach (from level 3, above 60% health), else clears the nearest camp of its own jungle that's up (the dragon from level 8), focusing the weakest monster and using abilities while it has over 35% mana, else plays mid like a LaneBot until a camp is back. Scenario `bot-jungles` covers it.
+
+The simulation log lists summoner spell casts too.
 
 ## Structures
 

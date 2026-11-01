@@ -71,6 +71,7 @@ export class MatchConnection {
     mode: "queue" | "practice",
     botChampionId: string | undefined,
     events: MatchConnectionEvents,
+    practiceSize?: number,
   ): void {
     // Create network client
     this.networkClient = new NetworkClient({
@@ -93,6 +94,7 @@ export class MatchConnection {
         mode,
         botChampionId,
         summonerSpells: events.getSummonerSpells(),
+        practiceSize,
       });
       if (mode === "queue") {
         events.onQueueEntered();

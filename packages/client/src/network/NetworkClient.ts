@@ -381,7 +381,7 @@ export class NetworkClient {
    */
   sendReady(
     championId: string = 'warrior',
-    options: { mode?: 'queue' | 'practice'; botChampionId?: string; summonerSpells?: string[] } = {}
+    options: { mode?: 'queue' | 'practice'; botChampionId?: string; summonerSpells?: string[]; practiceSize?: number } = {}
   ): void {
     console.log(`[NetworkClient] sendReady: playerId="${this.config.playerId}", championId="${championId}"`);
     this.sendMessage({
@@ -393,6 +393,7 @@ export class NetworkClient {
         mode: options.mode,
         botChampionId: options.botChampionId,
         summonerSpells: options.summonerSpells,
+        practiceSize: options.practiceSize,
       },
     });
   }

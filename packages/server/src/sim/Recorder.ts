@@ -235,6 +235,12 @@ export class Recorder {
         });
         break;
       }
+      case GameEventType.SUMMONER_CAST: {
+        const casterId = data.entityId as string;
+        const target = data.targetId ? ` on ${this.describe(data.targetId as string)}` : '';
+        this.log.push({ time, kind: 'cast', entityId: casterId, text: `${this.describe(casterId)} cast summoner ${data.spellId}${target}`, data });
+        break;
+      }
     }
   }
 

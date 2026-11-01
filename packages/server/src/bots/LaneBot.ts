@@ -24,6 +24,8 @@
  *
  * Champion abilities are bespoke, so ABILITY_ROLES says how a bot should use
  * the ones the generic rules would misuse (stealth, invulnerability, dashes).
+ * Summoner spells come first when their moment arrives (summonerTactics.ts:
+ * Mend when hurt in a fight, Blink to escape or to finish, ...).
  *
  * It reads game state directly (no fog-of-war cheating for targeting: it only
  * fights units its side can see).
@@ -49,6 +51,7 @@ import type { ServerTower } from '../simulation/ServerTower';
 import type { ServerGameContext } from '../game/ServerGameContext';
 import { LanePath } from '../navigation/LanePath';
 import { isStructureVulnerable } from '../systems/StructureRules';
+import { chooseSummonerSpell } from './summonerTactics';
 
 export interface LaneBotConfig {
   playerId: string;
@@ -198,6 +201,14 @@ export class LaneBot implements BotController {
     const enemySide = 1 - champion.side as Side;
     const underEnemyTower = this.findTowerCovering(champion.position, enemySide, context, TOWER_MARGIN) !== null;
 
+    // A summoner spell whose moment has come (a heal when hurt, a blink to escape...)
+    const fighting = enemyChampion !== null && !this.retreating && this.shouldFight(champion, enemyChampion, context);
+    const summoner = chooseSummonerSpell(champion, { retreating: this.retreating, fighting, enemy: enemyChampion, spawn }, context);
+    if (summoner) {
+      this.lastDecision = 'summoner spell';
+      return this.cast(summoner);
+    }
+
     // At base: shop first, until there's nothing left to buy
     if (champion.position.distanceTo(spawn) < 300) {
       const purchase = this.chooseItemToBuy(champion);
@@ -251,6 +262,15 @@ export class LaneBot implements BotController {
       return this.attack(enemyChampion);
     }
 
+    return this.chooseLaneAction(champion, context, enemyChampion);
+  }
+
+  /**
+   * What to do in lane when there's no fight to take: last-hit, harass,
+   * siege, push, or walk up behind the wave. A bot with another job (the
+   * jungle) overrides it.
+   */
+  protected chooseLaneAction(champion: ServerChampion, context: ServerGameContext, enemyChampion: ServerChampion | null): BotInput[] | null {
     const minions = this.predictMinions(champion, context);
     const lastHit = this.findLastHit(minions);
     if (lastHit) {
@@ -288,7 +308,7 @@ export class LaneBot implements BotController {
     return this.moveTo(this.findLanePosition(champion, context));
   }
 
-  private shouldFight(champion: ServerChampion, enemy: ServerChampion, context: ServerGameContext): boolean {
+  protected shouldFight(champion: ServerChampion, enemy: ServerChampion, context: ServerGameContext): boolean {
     const myRatio = champion.health / champion.maxHealth;
     const enemyRatio = enemy.health / enemy.maxHealth;
     const beingHit = context.getRecentChampionVictim(enemy.id, 2)?.id === champion.id;
@@ -315,7 +335,7 @@ export class LaneBot implements BotController {
    * An ability to use now: in a fight ('offense', which includes engages on a
    * weakened target) or while escaping ('defense').
    */
-  private chooseAbility(champion: ServerChampion, target: ServerChampion, mode: 'offense' | 'defense'): BotInput | null {
+  protected chooseAbility(champion: ServerChampion, target: ServerEntity, mode: 'offense' | 'defense'): BotInput | null {
     if (champion.ccStatus.isSilenced || champion.ccStatus.isStunned) return null;
 
     const distance = champion.position.distanceTo(target.position);
@@ -378,11 +398,11 @@ export class LaneBot implements BotController {
     return { type: InputType.BUY_ITEM, itemId };
   }
 
-  private buildCast(
+  protected buildCast(
     slot: AbilitySlot,
     definition: AbilityDefinition,
     champion: ServerChampion,
-    target: ServerChampion,
+    target: ServerEntity,
     distance: number
   ): BotInput | null {
     const range = definition.range ?? 600;
@@ -664,7 +684,7 @@ export class LaneBot implements BotController {
   /**
    * A living tower of `towerSide` whose range (plus margin) covers `position`.
    */
-  private findTowerCovering(
+  protected findTowerCovering(
     position: Vector,
     towerSide: Side,
     context: ServerGameContext,
@@ -723,7 +743,7 @@ export class LaneBot implements BotController {
     return this.lanePath;
   }
 
-  private getSpawn(side: Side, context: ServerGameContext): Vector {
+  protected getSpawn(side: Side, context: ServerGameContext): Vector {
     return side === 0 ? context.mapConfig.CHAMPION_SPAWN.BLUE : context.mapConfig.CHAMPION_SPAWN.RED;
   }
 
@@ -731,21 +751,21 @@ export class LaneBot implements BotController {
   // Commands
   // ===========================================================================
 
-  private moveTo(position: Vector): BotInput[] | null {
+  protected moveTo(position: Vector): BotInput[] | null {
     // Round so tiny shifts of the target don't count as a new command
     const x = Math.round(position.x / 20) * 20;
     const y = Math.round(position.y / 20) * 20;
     return this.command(`move:${x},${y}`, [{ type: InputType.MOVE, targetX: x, targetY: y }]);
   }
 
-  private attack(target: ServerEntity): BotInput[] | null {
+  protected attack(target: ServerEntity): BotInput[] | null {
     return this.command(`attack:${target.id}`, [{ type: InputType.TARGET_UNIT, targetEntityId: target.id }]);
   }
 
   /**
    * Cast right away. Casts are never deduplicated: cooldowns stop repeats.
    */
-  private cast(input: BotInput): BotInput[] {
+  protected cast(input: BotInput): BotInput[] {
     this.lastCommandKey = '';
     return [input];
   }
@@ -753,7 +773,7 @@ export class LaneBot implements BotController {
   /**
    * Send a command unless it's the same as the last one sent recently.
    */
-  private command(key: string, inputs: BotInput[]): BotInput[] | null {
+  protected command(key: string, inputs: BotInput[]): BotInput[] | null {
     if (key === this.lastCommandKey && this.time - this.lastCommandTime < RESEND_INTERVAL) {
       return null;
     }

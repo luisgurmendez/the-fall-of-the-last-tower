@@ -313,7 +313,7 @@ Look at `sheet.png` (frames over time) to see what happened, read `report.md` fo
 `packages/server/scenarios/` with `check()` assertions for new behavior; scenarios run in `bun test`.
 For step-by-step play there is an HTTP sandbox (`bun run sim:serve`). See [docs/architecture/simulation.md](docs/architecture/simulation.md).
 
-To play the real client alone, use the **PRACTICE** button on champion select (you vs a bot).
+To play the real client alone, use the **PRACTICE** button on champion select (you vs bots; the chip beside it picks 1v1, 3v3 or 5v5).
 
 ### Debug starting level
 

@@ -38,6 +38,20 @@ import { MatchFoundScreen } from "./matchFound";
 import { QueueScreen } from "./queueScreen";
 import { SummonerPicker } from "./summonerPicker";
 import { startTipRotation, showRandomTip } from "./tips";
+
+/** Players per team in practice, in the order the size chip cycles them */
+const PRACTICE_SIZES = [1, 3, 5];
+const PRACTICE_SIZE_KEY = "siege-practice-size";
+
+function loadPracticeSize(): number {
+  try {
+    const saved = Number(localStorage.getItem(PRACTICE_SIZE_KEY));
+    return PRACTICE_SIZES.includes(saved) ? saved : 1;
+  } catch {
+    return 1;
+  }
+}
+
 // Re-export for external use
 export type {
   ScreenId,
@@ -53,6 +67,9 @@ export class MatchmakingUI {
   // DOM Elements
   private overlay: HTMLElement;
   private screens: Map<ScreenId, HTMLElement> = new Map();
+
+  /** Players per team in a practice match */
+  private practiceSize = loadPracticeSize();
 
   // Status elements
   private statusDot: HTMLElement;
@@ -155,17 +172,35 @@ export class MatchmakingUI {
   }
 
   /**
-   * Start a practice match against a bot with the selected champion.
+   * Start a practice match against bots with the selected champion: 1v1 in
+   * mid, or 3v3 / 5v5 with bots in every other role (the server picks theirs).
    */
   private startPractice(): void {
     if (!this.championSelect.getSelectedChampionId()) return;
 
-    // Bot plays a random enabled champion
+    // The 1v1 bot plays a random enabled champion
     const botChampionId =
       ENABLED_CHAMPIONS[
         Math.floor(Math.random() * ENABLED_CHAMPIONS.length)
       ];
     this.startMatchmaking("practice", botChampionId);
+  }
+
+  /** Cycle the practice team size (1v1, 3v3, 5v5), remembered across visits */
+  private cyclePracticeSize(): void {
+    const sizes = PRACTICE_SIZES;
+    this.practiceSize = sizes[(sizes.indexOf(this.practiceSize) + 1) % sizes.length];
+    try {
+      localStorage.setItem(PRACTICE_SIZE_KEY, String(this.practiceSize));
+    } catch {
+      // Storage unavailable: it lasts until the page reloads
+    }
+    this.showPracticeSize();
+  }
+
+  private showPracticeSize(): void {
+    const button = document.getElementById("btn-practice-size");
+    if (button) button.textContent = `${this.practiceSize}V${this.practiceSize}`;
   }
 
   /**
@@ -187,10 +222,14 @@ export class MatchmakingUI {
       this.lockInChampion();
     });
 
-    // Practice button - start a match against a bot
+    // Practice button - start a match against bots, as many as the size chip says
     document.getElementById("btn-practice")?.addEventListener("click", () => {
       this.startPractice();
     });
+    document.getElementById("btn-practice-size")?.addEventListener("click", () => {
+      this.cyclePracticeSize();
+    });
+    this.showPracticeSize();
 
     // Cancel connect button
     document
@@ -319,7 +358,7 @@ export class MatchmakingUI {
       onGameStart: (data) => this.handleMatchFound(data),
       onQueueJoined: (position, queueSize) =>
         this.queue.updateInfo(position, queueSize),
-    });
+    }, mode === "practice" ? this.practiceSize : undefined);
   }
 
   /**

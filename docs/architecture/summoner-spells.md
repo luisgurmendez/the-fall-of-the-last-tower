@@ -33,8 +33,9 @@ MOBA's, see [map.md](map.md)).
 1. Champion select sends the pick with READY (`summonerSpells`). The server
    takes it through `parseSummonerSpells` (two different known spells, else the
    defaults), carries it on the queue entry and `PlayerInfo`, and `GameRoom`
-   gives the champion its spells when it spawns. Practice bots get Blink + Mend
-   (they don't cast them yet).
+   gives the champion its spells when it spawns. Practice bots get spells by
+   role and cast them (`packages/server/src/bots/summonerTactics.ts`, see
+   [simulation.md](simulation.md#bots)).
 2. `GAME_START` lists each player's spells (and whether it's a bot) for the
    loading screen's cards.
 3. D / F send `InputType.SUMMONER_SPELL` with the slot, the cursor's position
