@@ -3,8 +3,8 @@
  * other role on both sides.
  * - 1v1: a bot in mid
  * - 3v3: top, mid and bot lanes
- * - 5v5: top, mid, bot, a support (a second LaneBot in the bot lane) and a
- *   jungler (JungleBot)
+ * - 5v5: top, mid, bot, a support (SupportBot, in the bot lane with its
+ *   carry) and a jungler (JungleBot)
  * Bots pick champions that suit their role when they can (a tank on top, a
  * healer as support, a fighter in the jungle), with no repeats on a team.
  */
@@ -14,6 +14,7 @@ import type { PlayerInfo } from '../game/GameRoom';
 import type { BotController } from './BotController';
 import { LaneBot } from './LaneBot';
 import { JungleBot } from './JungleBot';
+import { SupportBot } from './SupportBot';
 
 export type PracticeRole = 'top' | 'mid' | 'bot' | 'support' | 'jungle';
 export type PracticeTeamSize = 1 | 3 | 5;
@@ -74,20 +75,21 @@ export function buildPracticeMatch(options: PracticeMatchOptions): { players: Pl
   const players: PlayerInfo[] = [{ playerId, side: 0, championId, connected: true, summonerSpells }];
   const bots: BotController[] = [];
 
+  const botIdFor = (side: 0 | 1, role: PracticeRole) => `bot-${playerId}-${side === 0 ? 'blue' : 'red'}-${role}`;
   for (const side of [0, 1] as const) {
     const taken = new Set(side === 0 ? [championId] : []);
     for (const role of ROLES[teamSize]) {
       if (side === 0 && role === 'mid') continue; // The player's
 
-      const botId = teamSize === 1 ? `bot-${playerId}` : `bot-${playerId}-${side === 0 ? 'blue' : 'red'}-${role}`;
+      const botId = teamSize === 1 ? `bot-${playerId}` : botIdFor(side, role);
       const botChampion = teamSize === 1
         ? options.botChampionId ?? championId
         : pickChampion(role, champions, taken, random);
       taken.add(botChampion);
 
       players.push({ playerId: botId, side, championId: botChampion, connected: true, isBot: true, summonerSpells: ROLE_SPELLS[role] });
-      bots.push(role === 'jungle'
-        ? new JungleBot({ playerId: botId })
+      bots.push(role === 'jungle' ? new JungleBot({ playerId: botId })
+        : role === 'support' ? new SupportBot({ playerId: botId, lane: ROLE_LANES[role], carryPlayerId: botIdFor(side, 'bot') })
         : new LaneBot({ playerId: botId, lane: ROLE_LANES[role] }));
     }
   }

@@ -98,6 +98,8 @@ const BUILDS: Record<ChampionClass, string[]> = {
 };
 const R_REQUIRED_LEVELS = [6, 11, 16];
 
+/** Health ratio under which an ally gets the bot's heals and shields */
+const WOUNDED = 0.6;
 /** Health ratio below which the bot goes home */
 const RETREAT_HEALTH = 0.3;
 /** Health ratio at which the bot leaves base again */
@@ -234,7 +236,7 @@ export class LaneBot implements BotController {
       }
       this.lastDecision = 'retreat';
       const escape = enemyChampion && enemyChampion.position.distanceTo(champion.position) < 500
-        ? this.chooseAbility(champion, enemyChampion, 'defense')
+        ? this.chooseAbility(champion, enemyChampion, 'defense', context)
         : null;
       if (escape) return this.cast(escape);
       return this.moveTo(spawn);
@@ -257,7 +259,7 @@ export class LaneBot implements BotController {
 
     if (enemyChampion && this.shouldFight(champion, enemyChampion, context)) {
       this.lastDecision = 'fight';
-      const cast = this.chooseAbility(champion, enemyChampion, 'offense');
+      const cast = this.chooseAbility(champion, enemyChampion, 'offense', context);
       if (cast) return this.cast(cast);
       return this.attack(enemyChampion);
     }
@@ -335,7 +337,7 @@ export class LaneBot implements BotController {
    * An ability to use now: in a fight ('offense', which includes engages on a
    * weakened target) or while escaping ('defense').
    */
-  protected chooseAbility(champion: ServerChampion, target: ServerEntity, mode: 'offense' | 'defense'): BotInput | null {
+  protected chooseAbility(champion: ServerChampion, target: ServerEntity, mode: 'offense' | 'defense', context: ServerGameContext): BotInput | null {
     if (champion.ccStatus.isSilenced || champion.ccStatus.isStunned) return null;
 
     const distance = champion.position.distanceTo(target.position);
@@ -357,8 +359,10 @@ export class LaneBot implements BotController {
         const escapeTo = definition.targetType === 'ground_target'
           ? champion.position.added(Vector.direction(target.position, champion.position).scaled(definition.range ?? 300))
           : null;
-        return escapeTo
-          ? { type: InputType.ABILITY, slot, targetType: 'position', targetX: escapeTo.x, targetY: escapeTo.y }
+        if (escapeTo) return { type: InputType.ABILITY, slot, targetType: 'position', targetX: escapeTo.x, targetY: escapeTo.y };
+        // A shield cast on an ally goes on the bot itself
+        return definition.targetType === 'target_ally'
+          ? { type: InputType.ABILITY, slot, targetType: 'unit', targetEntityId: champion.id }
           : { type: InputType.ABILITY, slot, targetType: 'none' };
       }
 
@@ -372,7 +376,7 @@ export class LaneBot implements BotController {
         return { type: InputType.ABILITY, slot, targetType: 'none' };
       }
 
-      const input = this.buildCast(slot, definition, champion, target, distance);
+      const input = this.buildCast(slot, definition, champion, target, distance, context);
       if (input) return input;
     }
     return null;
@@ -403,7 +407,8 @@ export class LaneBot implements BotController {
     definition: AbilityDefinition,
     champion: ServerChampion,
     target: ServerEntity,
-    distance: number
+    distance: number,
+    context: ServerGameContext,
   ): BotInput | null {
     const range = definition.range ?? 600;
 
@@ -419,9 +424,11 @@ export class LaneBot implements BotController {
       case 'target_unit':
         if (distance > range) return null;
         return { type: InputType.ABILITY, slot, targetType: 'unit', targetEntityId: target.id };
-      case 'target_ally':
-        if (champion.health / champion.maxHealth > 0.6) return null;
-        return { type: InputType.ABILITY, slot, targetType: 'unit', targetEntityId: champion.id };
+      case 'target_ally': {
+        // A heal or shield: on the most hurt ally in reach (the bot too)
+        const ally = this.mostWoundedAlly(champion, range, context);
+        return ally ? { type: InputType.ABILITY, slot, targetType: 'unit', targetEntityId: ally.id } : null;
+      }
       case 'self':
       case 'no_target': {
         const reach = definition.aoeRadius ?? 350;
@@ -455,6 +462,17 @@ export class LaneBot implements BotController {
   // ===========================================================================
   // World queries
   // ===========================================================================
+
+  /** The allied champion (the bot included) under WOUNDED health within `range`, the most hurt first */
+  protected mostWoundedAlly(champion: ServerChampion, range: number, context: ServerGameContext): ServerChampion | null {
+    let best: ServerChampion | null = null;
+    for (const ally of context.getChampionsBySide(champion.side)) {
+      if (ally.isDead || ally.position.distanceTo(champion.position) > range + ally.getRadius()) continue;
+      const ratio = ally.health / ally.maxHealth;
+      if (ratio < WOUNDED && (!best || ratio < best.health / best.maxHealth)) best = ally;
+    }
+    return best;
+  }
 
   private findEnemyChampion(champion: ServerChampion, context: ServerGameContext): ServerChampion | null {
     let closest: ServerChampion | null = null;
@@ -569,7 +587,7 @@ export class LaneBot implements BotController {
    * Whether to auto-attack the enemy champion without committing to a fight:
    * it's in range and outside its tower.
    */
-  private canHarass(champion: ServerChampion, enemy: ServerChampion, context: ServerGameContext): boolean {
+  protected canHarass(champion: ServerChampion, enemy: ServerChampion, context: ServerGameContext): boolean {
     if (!champion.isInAttackRange(enemy, champion.getAttackRange() + 30)) return false;
     // Only poke from ahead: an even poke war just sends both bots home
     if (champion.health / champion.maxHealth < enemy.health / enemy.maxHealth + 0.1) return false;

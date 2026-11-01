@@ -126,7 +126,7 @@ When a match is found, the server:
 `packages/server/src/bots/practiceMatch.ts`): the player in mid on blue, and server-side bots in every other role on both sides:
 - **1v1**: a `LaneBot` in mid on red.
 - **3v3**: `LaneBot`s in top, mid and bot.
-- **5v5**: top, mid, bot, a support (a second `LaneBot` in the bot lane) and a jungler (`JungleBot`).
+- **5v5**: top, mid, bot, a support (`SupportBot`, sticking with its team's bot laner) and a jungler (`JungleBot`).
 
 Bots pick champions that suit their role when free (a tank on top, a healer as support, a fighter in the jungle), never two of
 the same on a team, and summoner spells by role (the junglers Reap). Each bot is a `PlayerInfo` with `isBot: true` (ID

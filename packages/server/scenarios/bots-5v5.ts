@@ -3,12 +3,12 @@
  * bot leaves base and plays its role, nobody gets stuck, and the lanes farm.
  * A smoke test for the bots, the map's paths and the jungle together.
  */
-import { CHAMPION_DEFINITIONS, Vector } from '@siege/shared';
+import { CHAMPION_DEFINITIONS, GameEventType, Vector } from '@siege/shared';
 import { defineScenario } from '../src/sim';
 import { buildPracticeMatch } from '../src/bots/practiceMatch';
 import { LaneBot } from '../src/bots/LaneBot';
 
-/** Seconds a bot may stand on the same spot (away from base) before it counts as stuck */
+/** Seconds a bot may stand on the same spot (away from base) without hitting anything before it counts as stuck */
 const STUCK_TIME = 45;
 
 const lastMove = new Map<string, { at: Vector; since: number }>();
@@ -31,11 +31,20 @@ export default defineScenario({
       const bot = bots.find(b => b.playerId === player.playerId) ?? new LaneBot({ playerId: player.playerId, lane: 'mid' });
       sim.addChampion({ playerId: player.playerId, championId: player.championId, side: player.side === 0 ? 'blue' : 'red', bot, summoners: player.summonerSpells });
     }
+    let seenEvents = 0;
     sim.onTick(s => {
+      // Who dealt damage since the last tick
+      const hitters = new Set<string>();
+      for (const event of s.recorder.events.slice(seenEvents)) {
+        if (event.type === GameEventType.DAMAGE) hitters.add(event.data.sourceId as string);
+      }
+      seenEvents = s.recorder.events.length;
       for (const champion of s.context.getAllChampions()) {
         const spawn = champion.side === 0 ? s.context.mapConfig.CHAMPION_SPAWN.BLUE : s.context.mapConfig.CHAMPION_SPAWN.RED;
         const seen = lastMove.get(champion.playerId);
-        if (!seen || seen.at.distanceTo(champion.position) > 40 || champion.isDead || champion.position.distanceTo(spawn) < 400) {
+        // Farming from one spot (a ranged champion) isn't being stuck
+        const hitting = hitters.has(champion.id);
+        if (!seen || hitting || seen.at.distanceTo(champion.position) > 40 || champion.isDead || champion.position.distanceTo(spawn) < 400) {
           lastMove.set(champion.playerId, { at: champion.position.clone(), since: s.time });
         } else if (s.time - seen.since > STUCK_TIME) {
           stuck.add(`${champion.playerId} at (${Math.round(champion.position.x)}, ${Math.round(champion.position.y)})`);

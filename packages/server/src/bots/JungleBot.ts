@@ -48,7 +48,7 @@ export class JungleBot extends LaneBot {
     }
 
     const monsters = this.findCampToClear(champion, context);
-    if (monsters) return this.clearCamp(champion, monsters);
+    if (monsters) return this.clearCamp(champion, monsters, context);
 
     return super.chooseLaneAction(champion, context, enemyChampion);
   }
@@ -86,7 +86,7 @@ export class JungleBot extends LaneBot {
   }
 
   /** Walk to the camp, then focus its weakest monster, abilities first */
-  private clearCamp(champion: ServerChampion, monsters: ServerEntity[]): BotInput[] | null {
+  private clearCamp(champion: ServerChampion, monsters: ServerEntity[], context: ServerGameContext): BotInput[] | null {
     const target = monsters.reduce((weakest, monster) => monster.health < weakest.health ? monster : weakest);
     const distance = target.position.distanceTo(champion.position);
     if (distance > CAMP_REACH + champion.getAttackRange()) {
@@ -96,7 +96,7 @@ export class JungleBot extends LaneBot {
 
     this.lastDecision = 'clear camp';
     if (champion.resource > champion.maxResource * MANA_RESERVE) {
-      const cast = this.chooseAbility(champion, target, 'offense');
+      const cast = this.chooseAbility(champion, target, 'offense', context);
       if (cast) return this.cast(cast);
     }
     return this.attack(target);
