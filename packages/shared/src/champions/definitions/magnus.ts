@@ -41,7 +41,7 @@ function scaling(
 // =============================================================================
 
 const MAGNUS_BASE_STATS: ChampionBaseStats = {
-  health: 425,
+  health: 500,
   healthRegen: 5,
   resource: 375,
   resourceRegen: 4,
@@ -49,7 +49,7 @@ const MAGNUS_BASE_STATS: ChampionBaseStats = {
   abilityPower: 0, // AP comes from items
   attackSpeed: 0.625,
   attackRange: 220, // Ranged
-  armor: 20,
+  armor: 24,
   magicResist: 30,
   movementSpeed: 101,
   critChance: 0,
@@ -80,7 +80,7 @@ export const MagnusFireball: AbilityDefinition = {
   targetType: "skillshot",
   maxRank: 5,
   manaCost: [60, 65, 70, 75, 80],
-  cooldown: [8, 7.5, 7, 6.5, 6],
+  cooldown: [7, 6.5, 6, 5.5, 5],
   range: 440,
   projectileSpeed: 430, // Dodgeable from about 300 range
   projectileRadius: 28,

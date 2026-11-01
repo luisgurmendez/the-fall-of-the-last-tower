@@ -119,6 +119,8 @@ export const vileRenderer: ChampionRendererEntry = {
   markVisuals: {
     // His R shows one icon (vile_transformed)
     vile_transform_aura: { icon: "", bgColor: "", borderColor: "", iconColor: "", showTimer: false, hidden: true },
+    // Just a rule (no second trap for a while), nothing to show
+    vile_trap_caught: { icon: "", bgColor: "", borderColor: "", iconColor: "", showTimer: false, hidden: true },
     vile_transformed: {
       icon: "V",
       bgColor: "rgba(126, 34, 206, 0.85)",

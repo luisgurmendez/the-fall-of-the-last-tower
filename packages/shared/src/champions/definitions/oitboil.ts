@@ -64,7 +64,7 @@ const OITBOIL_BASE_STATS: ChampionBaseStats = {
   abilityPower: 0,
   attackSpeed: 0.65,
   attackRange: 150, // Short bursts of flame
-  armor: 24,
+  armor: 26,
   magicResist: 30,
   movementSpeed: 100,
   critChance: 0,
@@ -97,7 +97,7 @@ export const OitboilSparkSpray: AbilityDefinition = {
   maxRank: 5,
   manaCost: [20, 20, 20, 20, 20],
   cooldown: [3, 3, 3, 3, 3],
-  aoeRadius: 130,
+  aoeRadius: 190, // Reaches what he's attacking from his full range (areas count from the center)
   damage: {
     type: "magic",
     scaling: scaling([50, 75, 100, 125, 150], { apRatio: 0.35 }),

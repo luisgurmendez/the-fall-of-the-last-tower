@@ -12,7 +12,9 @@
     "test": "bun test",
     "typecheck": "tsc -b ../shared && tsc -p tsconfig.test.json",
     "sim": "LOG_LEVEL=${LOG_LEVEL:-warn} bun run src/sim/cli.ts",
-    "sim:serve": "LOG_LEVEL=${LOG_LEVEL:-warn} bun run src/sim/serve.ts"
+    "sim:serve": "LOG_LEVEL=${LOG_LEVEL:-warn} bun run src/sim/serve.ts",
+    "duels": "LOG_LEVEL=${LOG_LEVEL:-warn} bun run src/sim/duels.ts",
+    "games": "LOG_LEVEL=${LOG_LEVEL:-warn} bun run src/sim/games.ts"
   },
   "dependencies": {
     "@siege/shared": "*"

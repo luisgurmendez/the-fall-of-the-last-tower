@@ -136,6 +136,15 @@ Scenarios `bot-jungles` and `bot-jungle-ganks` cover the jungler, and `bots-5v5`
 
 The simulation log lists summoner spell casts too.
 
+## Balance
+
+Two commands measure the champions against each other (from `packages/server`):
+
+- `bun run duels` (`src/sim/duels.ts`): every champion against every other, one on one, on both sides, at levels 6 and 11 (`--levels 3,9`, `--only elora`), in an empty arena with no items. Both play the same plain `DuelBot` (`src/sim/DuelBot.ts`): cast whatever reaches, attack in between. It prints each champion's win rate and health margin and a win matrix. It doesn't dodge or kite, so ranged champions and kits with delayed areas (they land where the enemy was) do worse than in a player's hands, and durable melee champions better: compare champions within a class rather than chase 50% for everyone.
+- `bun run games` (`src/sim/games.ts`): whole practice 5v5s played by the usual bots, teams picked at random by role (`--games 40 --minutes 15`). For each champion: how often its team came out ahead (towers taken, then kills), its kills, deaths and damage to champions. Bots play some kits better than others (the jungler rarely ganks), so read big gaps.
+
+A champion far ahead or behind in both is out of line. The first pass with them found Magnus with 425 health (now 500), Vile's traps chaining roots (they now arm after a second, and a champion caught by one can't be caught by another for three), and Oitboil's Q too small to reach what he attacks.
+
 ## Structures
 
 Scenarios start with every tower, inhibitor and nexus (`structures: false` leaves them out). To get at a structure, destroy the ones before it with true damage, in lane order (`takeDamage(health + 1, 'true', killerId, sim.context)`; StructureRules ignores damage to a protected one). Waves spawned by hand (`spawnWave`, `context.spawnLaneWave`) bring super minions like timed ones while an enemy inhibitor is down. `inhibitor-super-minions` shows the whole cycle: blue's mid inhibitor protected by its towers, destroyed by a red champion, red's next mid wave led by a super minion, and the inhibitor rebuilding 240 seconds later; `map-overview` checks every structure spawns.

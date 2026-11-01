@@ -3,7 +3,10 @@
  *
  * Traps are placeable entities that:
  * - Are invisible to enemies (stealthed)
- * - Trigger when enemy champions enter the trigger radius
+ * - Trigger when enemy champions enter the trigger radius, once armed (a
+ *   moment after being placed: one dropped on an enemy doesn't snap shut at
+ *   once), on a champion not caught by another trap in the last 3 seconds
+ *   (traps can't be chained into one long root)
  * - Apply effects (root) and grant owner stacks
  * - Can be exploded by owner's ultimate
  */
@@ -54,6 +57,13 @@ export class ServerTrap extends ServerEntity {
   private remainingDuration: number;
   private placedAt: number;
   private hasTriggered: boolean = false;
+  /** Seconds until it can trigger */
+  private armingTime = ServerTrap.ARM_DELAY;
+
+  /** A trap arms this long after it's placed */
+  static readonly ARM_DELAY = 1;
+  /** A champion caught by a trap can't be caught by another for this long */
+  static readonly CAUGHT_IMMUNITY = 3;
 
   constructor(config: ServerTrapConfig) {
     super({
@@ -108,7 +118,11 @@ export class ServerTrap extends ServerEntity {
       }
     }
 
-    // Check for enemy champions in trigger radius
+    // Check for enemy champions in trigger radius, once armed
+    if (this.armingTime > 0) {
+      this.armingTime -= dt;
+      return;
+    }
     this.checkTrigger(context);
   }
 
@@ -123,6 +137,7 @@ export class ServerTrap extends ServerEntity {
       if (entity.side === this.side) continue;
       if (entity.entityType !== EntityType.CHAMPION) continue;
       if (entity.isDead) continue;
+      if ((entity as ServerChampion).hasEffect('vile_trap_caught')) continue;
 
       // Trigger on this champion
       this.trigger(entity as ServerChampion, context);
@@ -139,8 +154,9 @@ export class ServerTrap extends ServerEntity {
 
     Logger.debug('Trap', `Trap triggered by ${target.playerId}`);
 
-    // Apply root effect
+    // Apply root effect, and no other trap for a while
     target.applyEffect('vile_root', this.rootDuration, this.ownerId);
+    target.applyEffect('vile_trap_caught', ServerTrap.CAUGHT_IMMUNITY, this.ownerId);
 
     // Grant owner soul stacks
     const owner = context.getEntity(this.ownerId) as ServerChampion | undefined;

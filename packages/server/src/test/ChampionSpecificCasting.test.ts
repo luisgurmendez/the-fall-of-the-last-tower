@@ -364,7 +364,7 @@ describe('Vile - Restoration of Vilix (R)', () => {
     const result = arena.castAbility(arena.blue, 'R');
 
     expect(result.success).toBe(true);
-    expect(arena.blue.getStats().maxHealth).toBe(maxBefore + 200);
-    expect(arena.blue.health).toBe(maxBefore + 200);
+    expect(arena.blue.getStats().maxHealth).toBe(maxBefore + 150);
+    expect(arena.blue.health).toBe(maxBefore + 150);
   });
 });

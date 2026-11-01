@@ -397,12 +397,30 @@ describe('Vile', () => {
         targetPosition: trapPosition,
       });
 
-      // Move enemy to trap
+      // Move enemy to trap (it arms a second after it's placed; 80 frames at 60 fps)
       arena.red.position.setFrom(trapPosition);
-      arena.tickAllFrames(10);
+      arena.tickAllFrames(80);
 
       // Enemy should be rooted
       expect(arena.red.hasEffect('vile_root')).toBe(true);
+    });
+
+    test('traps should not chain: a caught champion is safe from the next one for a while', () => {
+      const trapPosition = new Vector(TRAP_AT, 0);
+      arena.castAbility(arena.blue, 'E', { targetPosition: trapPosition });
+      arena.blue.resetCooldowns();
+      arena.castAbility(arena.blue, 'E', { targetPosition: trapPosition });
+
+      // Both arm; the first catches the enemy, the second waits
+      arena.red.position.setFrom(trapPosition);
+      arena.tickAllFrames(80);
+      const trapsLeft = () => arena.context.getAllEntities().filter(e => e.constructor.name === 'ServerTrap' && !e.isDead).length;
+      expect(arena.red.hasEffect('vile_root')).toBe(true);
+      expect(trapsLeft()).toBe(1);
+
+      // Once the immunity is over, the second one catches it
+      arena.tickAllFrames(200);
+      expect(trapsLeft()).toBe(0);
     });
 
     test('trap should grant soul stacks when triggered', () => {
@@ -414,9 +432,9 @@ describe('Vile', () => {
         targetPosition: trapPosition,
       });
 
-      // Move enemy to trap
+      // Move enemy to trap (it arms a second after it's placed; 80 frames at 60 fps)
       arena.red.position.setFrom(trapPosition);
-      arena.tickAllFrames(10);
+      arena.tickAllFrames(80);
 
       // Should have gained 5 stacks
       expect(arena.blue.passiveState.stacks).toBe(initialStacks + 5);
@@ -474,11 +492,11 @@ describe('Vile', () => {
       expect(arena.blue.activeEffects.some(effect => effect.definitionId === 'vile_transformed')).toBe(true);
     });
 
-    test('should grant 100 soul stacks on cast', () => {
+    test('should grant 60 soul stacks on cast', () => {
       const initialStacks = arena.blue.passiveState.stacks;
       arena.castAbility(arena.blue, 'R');
 
-      expect(arena.blue.passiveState.stacks).toBe(initialStacks + 100);
+      expect(arena.blue.passiveState.stacks).toBe(initialStacks + 60);
     });
 
     test('should trigger all owned traps to explode', () => {
@@ -656,7 +674,7 @@ describe('Vile', () => {
       });
       arena.blue.resetCooldowns();
 
-      // R: Transform (explodes trap, grants 100 stacks)
+      // R: Transform (explodes trap, grants 60 stacks)
       arena.castAbility(arena.blue, 'R');
       arena.tickAllFrames(5);
 
@@ -664,8 +682,8 @@ describe('Vile', () => {
       expect(arena.red.health).toBeLessThan(initialHealth);
       expect(arena.red.hasEffect('vile_root')).toBe(true);
 
-      // Vile should have 100+ soul stacks
-      expect(arena.blue.passiveState.stacks).toBeGreaterThanOrEqual(100);
+      // Vile should have 60+ soul stacks
+      expect(arena.blue.passiveState.stacks).toBeGreaterThanOrEqual(60);
 
       // Q: Fire arrow (should slow)
       arena.castAbility(arena.blue, 'Q', {

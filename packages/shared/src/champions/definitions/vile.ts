@@ -179,7 +179,7 @@ export const VileRestorationOfVilix: AbilityDefinition = {
   id: "vile_restoration_of_vilix",
   name: "Restoration of Vilix",
   description:
-    "Transform for 10 seconds, gaining massive stats, melee range, and an aura that damages nearby enemies. Grants 100 soul stacks and causes all traps to explode.",
+    "Transform for 10 seconds, gaining massive stats, melee range, and an aura that damages nearby enemies. Grants 60 soul stacks and causes all traps to explode.",
   type: "active",
   targetType: "self",
   maxRank: 3,
@@ -190,12 +190,12 @@ export const VileRestorationOfVilix: AbilityDefinition = {
     duration: 10,
     attackRange: 55, // Melee
     statModifiers: {
-      maxHealth: [200, 350, 500],
-      attackDamage: [30, 50, 70],
+      maxHealth: [150, 250, 350],
+      attackDamage: [25, 40, 55],
       attackSpeed: [0.3, 0.45, 0.6], // Percent bonus
       movementSpeed: [0.2, 0.3, 0.4], // Percent bonus
     },
-    soulStacksOnCast: 100,
+    soulStacksOnCast: 60,
     triggersTrapExplosion: true,
     canEndEarly: false,
   },

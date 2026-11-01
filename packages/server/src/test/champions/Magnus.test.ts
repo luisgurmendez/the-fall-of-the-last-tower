@@ -43,8 +43,8 @@ describe('Magnus', () => {
       });
     });
 
-    test('should have correct base health (425)', () => {
-      expect(level1Arena.blue.maxHealth).toBe(425);
+    test('should have correct base health (500)', () => {
+      expect(level1Arena.blue.maxHealth).toBe(500);
     });
 
     test('should have ranged attack range', () => {
@@ -53,8 +53,8 @@ describe('Magnus', () => {
       expect(attackRange).toBeGreaterThan(100);
     });
 
-    test('should have low base armor (20)', () => {
-      expect(level1Arena.blue.getStats().armor).toBe(20);
+    test('should have low base armor (24)', () => {
+      expect(level1Arena.blue.getStats().armor).toBe(24);
     });
 
     test('should have high base mana (375)', () => {
