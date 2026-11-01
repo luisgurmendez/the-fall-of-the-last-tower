@@ -287,6 +287,7 @@ export const MagnusDefinition: ChampionDefinition = {
   visualHeight: 78,
   animations: MAGNUS_ANIMATIONS,
   attackAnimationSpeedScale: true,
+  basicAttackProjectileSpeed: 650, // A mage's bolt: slow enough to see fly
 };
 
 // =============================================================================

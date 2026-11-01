@@ -86,7 +86,7 @@ export class ServerJungleCreature extends ServerEntity {
   private static readonly MAX_ATTACK_ANIMATION = 0.6;
 
   private static readonly RANGED: Partial<Record<string, { projectileType: string; damageType: DamageType; speed: number }>> = {
-    thornspitter: { projectileType: 'jungle_spit', damageType: 'magic', speed: 600 },
+    thornspitter: { projectileType: 'jungle_spit', damageType: 'magic', speed: 450 },
     dragon: { projectileType: 'dragon_fire', damageType: 'magic', speed: 700 },
   };
 

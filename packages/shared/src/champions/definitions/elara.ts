@@ -273,6 +273,7 @@ export const ElaraDefinition: ChampionDefinition = {
   visualHeight: 78,
   animations: ELARA_ANIMATIONS,
   attackAnimationSpeedScale: true,
+  basicAttackProjectileSpeed: 600, // A gentle wisp of light
 };
 
 // =============================================================================

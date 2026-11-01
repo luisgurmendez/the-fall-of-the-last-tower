@@ -369,7 +369,7 @@ export const VileDefinition: ChampionDefinition = {
   animations: VILE_ANIMATIONS,
   attackAnimationSpeedScale: true,
   // Dark soul projectile for ranged auto attacks
-  basicAttackProjectileSpeed: 850,
+  basicAttackProjectileSpeed: 750,
 };
 
 // =============================================================================

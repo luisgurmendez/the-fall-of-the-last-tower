@@ -387,7 +387,7 @@ export const LumeDefinition: ChampionDefinition = {
   visualHeight: LUME_VISUAL_HEIGHT,
   animations: LUME_ANIMATIONS,
   // Fast light-based projectile for ranged auto attacks
-  basicAttackProjectileSpeed: 950,
+  basicAttackProjectileSpeed: 800,
 };
 
 // =============================================================================
