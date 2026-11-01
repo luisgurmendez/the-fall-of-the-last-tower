@@ -29,6 +29,28 @@ import type { ChampionBodyRenderer } from "./types";
 const DASH_HOLD_PROGRESS = 0.45;
 /** The blow frame shows this much of the attack before the damage lands (the swing reads as the hit) */
 const RELEASE_LEAD = 0.08;
+/** Walk cycle frames per second at the champions' base pace (units a second)... */
+const WALK_FPS = 8;
+const WALK_PACE = 100;
+/** ...and slower or faster with their speed (a slow, Haste), so their feet don't slide */
+const MIN_WALK_RATE = 0.4;
+const MAX_WALK_RATE = 1.8;
+/** Idle cycle frames per second */
+const IDLE_FPS = 6;
+
+/** Where each champion is in its walk cycle, advanced at its own speed */
+const walkCycles = new Map<string, { phase: number; time: number }>();
+
+/** The walk strip's frame for a champion walking at `speed` (animation time in seconds) */
+function walkFrame(entityId: string, speed: number | undefined, time: number, frameCount: number): number {
+  const cycle = walkCycles.get(entityId) ?? { phase: 0, time };
+  const rate = Math.min(MAX_WALK_RATE, Math.max(MIN_WALK_RATE, (speed ?? WALK_PACE) / WALK_PACE));
+  // A long gap (it stopped walking) doesn't count
+  cycle.phase += Math.min(0.1, Math.max(0, time - cycle.time)) * WALK_FPS * rate;
+  cycle.time = time;
+  walkCycles.set(entityId, cycle);
+  return Math.floor(cycle.phase) % frameCount;
+}
 
 /** A champion's strips */
 export interface ChampionStrips {
@@ -143,7 +165,9 @@ export function createStripBodyRenderer(
       const frameCount = Math.max(1, Math.round(image.naturalWidth / frameSize));
       let frameIndex: number;
       if (progress === null) {
-        frameIndex = Math.floor(rc.animationTime * (state.isWalking ? 8 : 6)) % frameCount;
+        frameIndex = state.isWalking
+          ? walkFrame(entityId, snapshot.movementSpeed, rc.animationTime, frameCount)
+          : Math.floor(rc.animationTime * IDLE_FPS) % frameCount;
       } else if (src === strips.attack) {
         frameIndex = retimedFrame(progress, frameCount, timing.attackBlow, hitShare(snapshot.championId, snapshot.attackSpeed));
       } else if (src === abilityStrip && !dashStrip && cast.abilityId && cast.duration) {

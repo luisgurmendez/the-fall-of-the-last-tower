@@ -461,7 +461,9 @@ lands when its damage does (the shared `getBasicAttackDamageDelay` /
 `getBasicAttackDuration`, the same the server schedules it with); an ability's when it
 takes effect (`abilityImpactTime` in `src/core/state/abilityTiming.ts`: an area after its
 `aoeDelay`, a projectile as it's thrown, at once otherwise), which its VFX and sounds use
-too. A cast animation lasts at least 0.25 s past that moment. A champion's `visualHeight` places its
+too. A cast animation lasts at least 0.25 s past that moment. The walk cycle runs at 8 frames a
+second at the base pace (100 units a second) and follows the champion's movement speed (0.4x to
+1.8x), so a slowed champion's steps slow down and a hasted one's speed up instead of sliding. A champion's `visualHeight` places its
 health bar above its art. During Vile's R the server puts a `vile_transformed` marker effect
 on him; his renderer draws him 30% bigger with a pulsing violet glow. Champions without art are drawn as a team-colored circle.
 
