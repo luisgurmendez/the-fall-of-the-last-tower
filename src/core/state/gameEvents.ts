@@ -8,7 +8,7 @@
  * trading hits elsewhere (minions in lane) show nothing over their bars.
  */
 
-import { EntityType, GameEventType, getChampionDefinition, type GameEvent } from '@siege/shared';
+import { EntityType, GameEventType, getAbilityDefinition, getChampionDefinition, type GameEvent } from '@siege/shared';
 import { getVFXManager } from '@/vfx';
 import { WORLD_VFX } from '@/vfx/world';
 import { punchCamera, shakeScreen } from '@/core/screenShake';
@@ -121,12 +121,15 @@ export function processGameEvent(event: GameEvent, ctx: GameEventContext): void 
         try {
           const vfxManager = getVFXManager();
           // From where it starts: the caster, or elsewhere (Lume's Eclipse, from her orb)
+          const originX = (event.data.originX as number | undefined) ?? entity.position.x;
+          const originY = (event.data.originY as number | undefined) ?? entity.position.y;
+          const aimed = event.data.originX === undefined ? lineEnd(abilityId, originX, originY, targetX, targetY) : undefined;
           vfxManager.spawnAbilityVFX(
             abilityId,
-            (event.data.originX as number | undefined) ?? entity.position.x,
-            (event.data.originY as number | undefined) ?? entity.position.y,
-            targetX,
-            targetY,
+            originX,
+            originY,
+            aimed?.x ?? targetX,
+            aimed?.y ?? targetY,
             entityId,
             (event.data.targetEntityId as string | undefined) ?? undefined
           );
@@ -359,4 +362,20 @@ function announceChampionKill(data: Record<string, unknown>, now: number, ctx: G
     startTime: now,
     duration: ANNOUNCEMENT_DURATION,
   });
+}
+
+/**
+ * Where a line ability's VFX should end: its area always runs its full
+ * range along the aim (generic/Line.ts), wherever the cursor was, so the
+ * effect is drawn to there. Undefined for other abilities.
+ */
+function lineEnd(abilityId: string, fromX: number, fromY: number, targetX?: number, targetY?: number): { x: number; y: number } | undefined {
+  const definition = getAbilityDefinition(abilityId);
+  if (definition?.targetType !== 'ground_target' || definition.shape !== 'line' || !definition.range) return undefined;
+  if (targetX === undefined || targetY === undefined) return undefined;
+  const dx = targetX - fromX;
+  const dy = targetY - fromY;
+  const length = Math.hypot(dx, dy);
+  if (length < 1) return undefined;
+  return { x: fromX + (dx / length) * definition.range, y: fromY + (dy / length) * definition.range };
 }
