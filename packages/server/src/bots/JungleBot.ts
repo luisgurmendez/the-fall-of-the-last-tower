@@ -30,12 +30,18 @@ const GANK_HEALTH = 0.6;
 const GANK_TARGET_HEALTH = 0.55;
 /** ...within this far */
 const GANK_DISTANCE = 1600;
+/** Once on its way, the bot keeps after its target while it's under this health ratio and this much farther */
+const GANK_COMMIT_HEALTH = 0.7;
+const GANK_COMMIT_DISTANCE = 400;
 /** Mana ratio kept for fights: abilities go on monsters only above it */
 const MANA_RESERVE = 0.35;
 /** A camp this much closer to the enemy's fountain than ours is theirs */
 const OWN_JUNGLE_MARGIN = 200;
 
 export class JungleBot extends LaneBot {
+  /** The enemy it's on its way to gank (it doesn't give up as soon as the target heals a little) */
+  private gankTargetId: string | null = null;
+
   constructor(config: LaneBotConfig) {
     super({ ...config, lane: 'mid' });
   }
@@ -104,19 +110,30 @@ export class JungleBot extends LaneBot {
 
   /** A hurt enemy champion worth walking over to, if the bot's up to it */
   private findGankTarget(champion: ServerChampion, context: ServerGameContext): ServerChampion | null {
-    if (champion.level < GANK_LEVEL || champion.health / champion.maxHealth < GANK_HEALTH) return null;
+    if (champion.level < GANK_LEVEL || champion.health / champion.maxHealth < GANK_HEALTH) {
+      this.gankTargetId = null;
+      return null;
+    }
+    const gankable = (enemy: ServerChampion, health: number, reach: number) =>
+      enemy.side !== champion.side && !enemy.isDead && context.isVisibleTo(enemy, champion.side) &&
+      enemy.health / enemy.maxHealth <= health && enemy.position.distanceTo(champion.position) < reach &&
+      !this.findTowerCovering(enemy.position, enemy.side, context);
+
+    // Keep after the one it's going for
+    const current = this.gankTargetId ? context.getChampion(this.gankTargetId) : undefined;
+    if (current && gankable(current, GANK_COMMIT_HEALTH, GANK_DISTANCE + GANK_COMMIT_DISTANCE)) return current;
+
     let best: ServerChampion | null = null;
     let bestDistance = GANK_DISTANCE;
     for (const enemy of context.getAllChampions()) {
-      if (enemy.side === champion.side || enemy.isDead || !context.isVisibleTo(enemy, champion.side)) continue;
-      if (enemy.health / enemy.maxHealth > GANK_TARGET_HEALTH) continue;
-      if (this.findTowerCovering(enemy.position, enemy.side, context)) continue;
+      if (!gankable(enemy, GANK_TARGET_HEALTH, GANK_DISTANCE)) continue;
       const distance = enemy.position.distanceTo(champion.position);
       if (distance < bestDistance) {
         best = enemy;
         bestDistance = distance;
       }
     }
+    this.gankTargetId = best?.id ?? null;
     return best;
   }
 }
