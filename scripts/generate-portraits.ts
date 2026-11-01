@@ -49,6 +49,8 @@ export const PORTRAITS: Record<string, Portrait> = {
   caelum: { sprite: 'public/assets/champs/caelum/idle.png', pick: 0, prompt: 'an old kind druid with a long white beard and a crown of leaves, soft golden light on his face' },
   fenris: { sprite: 'public/assets/champs/fenris/idle.png', pick: 7, prompt: 'a snarling grey werewolf with glowing red eyes and ragged dark fur, bared fangs' },
   calamitus: { sprite: 'public/assets/champs/calamitus/idle.png', pick: 5, prompt: 'a golem head of black cooled rock with glowing orange magma cracks and burning eyes' },
+  protobot: { sprite: 'public/assets/champs/protobot/idle.png', pick: 0, prompt: 'a dark blue steel war robot head with glowing cyan eyes and the number 45 painted on it' },
+  hop: { sprite: 'public/assets/champs/hop/idle.png', pick: 6, prompt: 'a cute fluffy white rabbit with long ears, big pink eyes and a tiny mischievous grin showing a sharp fang' },
   lume: { sprite: 'public/assets/champs/lume/Lume-IDLE.png', pick: 1, prompt: 'a gentle young woman with white hair in a cream hooded robe, soft warm light on her face' },
 };
 

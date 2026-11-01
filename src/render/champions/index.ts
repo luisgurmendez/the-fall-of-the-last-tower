@@ -25,6 +25,8 @@ import { eloraRenderer } from "./elora";
 import { caelumRenderer } from "./caelum";
 import { fenrisRenderer } from "./fenris";
 import { calamitusRenderer } from "./calamitus";
+import { protobotRenderer } from "./protobot";
+import { hopRenderer } from "./hop";
 import { vileRenderer } from "./vile";
 import { warriorRenderer } from "./warrior";
 
@@ -50,6 +52,8 @@ export const CHAMPION_RENDERERS: Readonly<
   caelum: caelumRenderer,
   fenris: fenrisRenderer,
   calamitus: calamitusRenderer,
+  protobot: protobotRenderer,
+  hop: hopRenderer,
   vex: vexRenderer,
   vile: vileRenderer,
   warrior: warriorRenderer,

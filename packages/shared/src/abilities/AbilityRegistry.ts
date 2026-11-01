@@ -77,6 +77,16 @@ import {
   CalamitusMagmaLandslide,
   CalamitusObsidianSkin,
   CalamitusEruption,
+  ProtobotAbilities,
+  ProtobotMagnetism,
+  ProtobotHypercharge,
+  ProtobotRocketPunch,
+  ProtobotOverload,
+  HopAbilities,
+  HopRodentFangs,
+  HopCarrotBreak,
+  HopBunnyHop,
+  HopSavageKick,
 } from '../champions/definitions';
 
 // Re-export individual abilities for backward compatibility
@@ -146,6 +156,16 @@ export {
   CalamitusMagmaLandslide,
   CalamitusObsidianSkin,
   CalamitusEruption,
+  // Protobot 45
+  ProtobotMagnetism,
+  ProtobotHypercharge,
+  ProtobotRocketPunch,
+  ProtobotOverload,
+  // Hop-To-Eat
+  HopRodentFangs,
+  HopCarrotBreak,
+  HopBunnyHop,
+  HopSavageKick,
 };
 
 // =============================================================================
@@ -169,6 +189,8 @@ export const ABILITY_DEFINITIONS: Record<string, AbilityDefinition> = {
   ...CaelumAbilities,
   ...FenrisAbilities,
   ...CalamitusAbilities,
+  ...ProtobotAbilities,
+  ...HopAbilities,
 };
 
 /**

@@ -131,6 +131,26 @@ export const ICONS: Record<string, ChampionIcons> = {
       r: { seed: 8, prompt: 'a volcano erupting with lava and rocks' },
     },
   },
+  protobot: {
+    theme: 'dark steel blue, electric cyan and rocket orange',
+    icons: {
+      passive: { seed: 8, prompt: 'a robot head with a glowing cyan circuit brain' },
+      q: { seed: 8, prompt: 'a magnetic claw on a chain crackling with cyan electricity' },
+      w: { seed: 7, prompt: 'a glowing cyan hexagon energy shield crackling with lightning bolts' },
+      e: { seed: 8, prompt: 'a steel robot fist flying forward on a rocket flame' },
+      r: { seed: 8, prompt: 'a huge round ring shockwave of cyan electricity bursting outward from a bright center' },
+    },
+  },
+  hop: {
+    theme: 'fluffy white, soft pink and carrot orange',
+    icons: {
+      passive: { seed: 7, prompt: 'a white rabbit foot with motion lines of a big hop' },
+      q: { seed: 8, prompt: 'two big sharp rabbit front teeth biting' },
+      w: { seed: 9, prompt: 'a big orange carrot with a bite taken out of it' },
+      e: { seed: 9, prompt: 'a white rabbit leaping in a high arc' },
+      r: { seed: 8, prompt: 'a big white rabbit foot kicking with a burst of yellow stars' },
+    },
+  },
   uruk: {
     theme: 'silver, steel grey and icy blue',
     icons: {

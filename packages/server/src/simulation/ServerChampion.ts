@@ -628,6 +628,7 @@ export class ServerChampion extends ServerEntity {
         sourceChampionId: source instanceof ServerChampion ? source.definition.id : undefined,
         sourceCreatureType: (source as { creatureType?: string } | undefined)?.creatureType,
       });
+      championHooksRegistry.get(this.definition.id)?.onDamaged?.(this, source, context);
     }
 
     if (this.health <= 0) {
@@ -1012,7 +1013,8 @@ export class ServerChampion extends ServerEntity {
    * Get current attack range (accounting for transform).
    */
   getAttackRange(): number {
-    return this.transform.getAttackRange();
+    const range = this.transform.getAttackRange();
+    return championHooksRegistry.get(this.definition.id)?.getAttackRange?.(this, range) ?? range;
   }
 
   /**

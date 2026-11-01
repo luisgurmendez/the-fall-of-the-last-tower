@@ -221,5 +221,29 @@
       "r": "28a498a8-0122-4850-806b-258ab6fe0158"
     },
     "characterId": "c8687483-c824-47b7-b450-c5639901aa23"
+  },
+  "protobot": {
+    "animations": {
+      "e": "be11193f-39a9-4fda-a7e7-edb8532779df",
+      "q": "67aba5ee-8a9d-48b9-bea7-0bc630a28c5d",
+      "w": "82703367-8312-4f30-95f5-80e21eaca9d0",
+      "r": "fd21e54d-de6f-4c7e-ab05-c9f3ff703278",
+      "attack": "3613d56a-88ce-40cc-9ef8-cd5aa0dffe4b",
+      "walk": "b86289ff-902a-4b4b-8176-a43c511e3b2c",
+      "idle": "bd4ea24f-4247-4d61-b8a5-046f3cba62e5"
+    },
+    "characterId": "3d8e95bb-77d6-45fe-88da-d8ddc432e332"
+  },
+  "hop": {
+    "animations": {
+      "r": "28a3c648-f780-4a3e-8169-637dbd25c810",
+      "q": "ee080a39-5c12-4139-8206-5eb45b315048",
+      "e": "2031d009-d6cc-4fd8-bc13-48bc577ae4f6",
+      "w": "aa8d93f3-0e78-484d-bd44-642e97f8aac5",
+      "attack": "5503f53b-1cb5-4d71-a113-283741cf492e",
+      "idle": "f1ad6cf5-a2bc-4689-bc9d-64e3084c1bef",
+      "walk": "e8d25008-d5cf-4688-aa9d-1637808bc121"
+    },
+    "characterId": "91d6fb27-1917-4ae4-b461-a0365ffa1651"
   }
 }

@@ -233,6 +233,15 @@ Rules that belong to a champion rather than to one ability implement `IChampionH
 | `onRangedAttackHit` | A ranged basic attack's projectile, on hit | Elora: every third arrow on the same target strikes a weak point; the poisoned arrow |
 | `basicAttackProjectileType` | A ranged basic attack about to be fired | Elora: the poisoned arrow and the weak point's arrow look different (their `<type>_impact` VFX play where they land) |
 | `onChampionKill` | `ServerChampion.onDeath`, for the killer (an enemy champion with the last hit) | Fenris: a kill in his Bloodthirst heals him to full |
+| `getAttackRange` | `ServerChampion.getAttackRange`, given the range it would have | Hop-To-Eat: 250 while its hop is ready |
+| `onBasicAttackStart` | A basic attack starting, before its blow | Hop-To-Eat: an attack from out of melee reach hops onto the target (a dash) |
+| `onDamaged` | `ServerChampion.takeDamage`, after damage to its health or shields | Protobot: learns from the enemy champions that hit him |
+
+Two engine pieces serve handlers that move or react to other units: a `ServerProjectile` takes an
+`onHit(entity, context)` callback, called after its damage (Protobot's claw pulls the champion it
+caught), and a `ForcedMovement` (a dash or a knockback, `champion.forcedMovement`) takes `touches`,
+a callback for each unit it runs into on the way (the champions Hop-To-Eat's kick sends a champion
+flying into).
 
 `initializeAbilityHandlers()` (called at server startup) registers both handlers and hooks.
 

@@ -143,6 +143,30 @@ export {
   CALAMITUS_LAVA,
 } from './calamitus';
 
+// Protobot 45
+export {
+  ProtobotDefinition,
+  ProtobotMagnetism,
+  ProtobotHypercharge,
+  ProtobotRocketPunch,
+  ProtobotOverload,
+  ProtobotAbilities,
+  ProtobotPassive,
+  PROTOBOT_MACHINE,
+} from './protobot';
+
+// Hop-To-Eat
+export {
+  HopDefinition,
+  HopRodentFangs,
+  HopCarrotBreak,
+  HopBunnyHop,
+  HopSavageKick,
+  HopAbilities,
+  HopPassive,
+  HOP_HOP,
+} from './hop';
+
 // Lume
 export {
   LumeDefinition,

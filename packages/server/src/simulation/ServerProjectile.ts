@@ -44,6 +44,8 @@ export interface ServerProjectileConfig extends Omit<ServerEntityConfig, 'entity
   appliesEffects?: string[];
   /** Duration for applied effects */
   effectDuration?: number;
+  /** Called after it hit a unit and dealt its damage (e.g., Protobot's claw pulling a champion in) */
+  onHit?: (entity: ServerEntity, context: ServerGameContext) => void;
 }
 
 export class ServerProjectile extends ServerEntity {
@@ -58,6 +60,7 @@ export class ServerProjectile extends ServerEntity {
   readonly piercing: boolean;
   readonly appliesEffects: string[];
   readonly effectDuration: number;
+  private readonly onHit?: (entity: ServerEntity, context: ServerGameContext) => void;
 
   private distanceTraveled = 0;
   private hitEntityIds: Set<string> = new Set();
@@ -81,6 +84,7 @@ export class ServerProjectile extends ServerEntity {
     this.piercing = config.piercing ?? false;
     this.appliesEffects = config.appliesEffects ?? [];
     this.effectDuration = config.effectDuration ?? 0;
+    this.onHit = config.onHit;
 
     // Set movement speed for visual interpolation
     this.movementSpeed = config.speed;
@@ -169,6 +173,8 @@ export class ServerProjectile extends ServerEntity {
         applyEffect.call(entity, effectId, this.effectDuration, this.sourceId);
       }
     }
+
+    this.onHit?.(entity, context);
 
     // Check for recast behavior and notify source champion
     this.notifyRecastOnHit(context);

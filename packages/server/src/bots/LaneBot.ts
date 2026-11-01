@@ -36,6 +36,7 @@ import {
   EntityType,
   InputType,
   getAbilityDefinition,
+  calculateAbilityValue,
   planItemPurchase,
   isItemPartOf,
   type AbilitySlot,
@@ -52,6 +53,7 @@ import type { ServerGameContext } from '../game/ServerGameContext';
 import { LanePath } from '../navigation/LanePath';
 import { isStructureVulnerable } from '../systems/StructureRules';
 import { chooseSummonerSpell } from './summonerTactics';
+import { getScalingStats } from '../abilities/generic/AbilityHelpers';
 
 export interface LaneBotConfig {
   playerId: string;
@@ -68,8 +70,10 @@ const ABILITY_SLOTS: AbilitySlot[] = ['Q', 'W', 'E', 'R'];
  * - defense: while retreating with the enemy close (stealth, invulnerability)
  * - engage: to close the gap on a weakened enemy (dashes to a point)
  * - execute: to finish an enemy under half health (Urûk's Fatal Strike)
+ * - kill: only when the hit would kill (Hop-To-Eat's kick, which otherwise
+ *   sends the enemy out of reach)
  */
-const ABILITY_ROLES: Partial<Record<string, 'offense' | 'defense' | 'engage' | 'execute'>> = {
+const ABILITY_ROLES: Partial<Record<string, 'offense' | 'defense' | 'engage' | 'execute' | 'kill'>> = {
   vex_shroud: 'defense',
   vex_dash: 'engage',
   vex_ninja_mode: 'offense',
@@ -92,6 +96,10 @@ const ABILITY_ROLES: Partial<Record<string, 'offense' | 'defense' | 'engage' | '
   fenris_e: 'engage',
   fenris_r: 'offense',
   calamitus_e: 'defense',
+  protobot_w: 'defense',
+  hop_w: 'offense',
+  hop_e: 'engage',
+  hop_r: 'kill',
 };
 
 /** Health ratio under which a target is worth an execute */
@@ -392,11 +400,25 @@ export class LaneBot implements BotController {
         if (target.health / target.maxHealth > EXECUTE_HEALTH || distance > (definition.range ?? 300)) continue;
         return { type: InputType.ABILITY, slot, targetType: 'unit', targetEntityId: target.id };
       }
+      if (role === 'kill') {
+        const reach = (definition.range ?? 300) + champion.getRadius() + target.getRadius();
+        if (distance > reach || !this.wouldKill(champion, definition, rank, target)) continue;
+        return { type: InputType.ABILITY, slot, targetType: 'unit', targetEntityId: target.id };
+      }
 
       const input = this.buildCast(slot, definition, champion, target, distance, context);
       if (input) return input;
     }
     return null;
+  }
+
+  /** Whether the ability's damage, after the target's armor or magic resist, would kill it */
+  private wouldKill(champion: ServerChampion, definition: AbilityDefinition, rank: number, target: ServerEntity): boolean {
+    if (!definition.damage || target.entityType !== EntityType.CHAMPION) return false;
+    const damage = calculateAbilityValue(definition.damage.scaling, rank, getScalingStats(champion, champion.getStats()));
+    const stats = (target as ServerChampion).getStats();
+    const resist = definition.damage.type === 'physical' ? stats.armor : definition.damage.type === 'magic' ? stats.magicResist : 0;
+    return damage * (100 / (100 + Math.max(0, resist))) >= target.health;
   }
 
   /**

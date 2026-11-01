@@ -10,6 +10,7 @@
 
 import type { Vector, DamageType } from '@siege/shared';
 import type { ServerChampion } from '../ServerChampion';
+import type { ServerEntity } from '../ServerEntity';
 import type { ServerGameContext } from '../../game/ServerGameContext';
 
 export interface ForcedMovement {
@@ -25,6 +26,12 @@ export interface ForcedMovement {
   appliesEffects?: string[]; // Effect IDs to apply
   effectDuration?: number;   // Duration of applied effects
   hitEntities?: Set<string>; // Track already-hit entities
+  /**
+   * Units it runs into on the way, each touched once (e.g., the champions
+   * Hop-To-Eat's kick sends a champion flying into): the callback decides
+   * which ones matter.
+   */
+  touches?: { radius: number; touched: Set<string>; touch: (entity: ServerEntity) => void };
 }
 
 /**
@@ -45,6 +52,13 @@ export function updateForcedMovement(champion: ServerChampion, dt: number, conte
   // Check for collisions during dash (not knockback)
   if (fm.type === 'dash' && fm.hitbox && fm.hitbox > 0) {
     checkDashCollisions(champion, context, fm);
+  }
+  if (fm.touches) {
+    for (const entity of context.getEntitiesInRadius(champion.position, fm.touches.radius)) {
+      if (entity.id === champion.id || entity.isDead || fm.touches.touched.has(entity.id)) continue;
+      fm.touches.touched.add(entity.id);
+      fm.touches.touch(entity);
+    }
   }
 
   if (fm.elapsed >= fm.duration) {

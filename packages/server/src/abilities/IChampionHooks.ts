@@ -91,6 +91,24 @@ export interface IChampionHooks {
   getArmorPenetration?(champion: ServerChampion): number;
 
   /**
+   * The champion's basic attack range, given the range it would have
+   * otherwise (e.g., Hop-To-Eat reaching further while its hop is ready).
+   */
+  getAttackRange?(champion: ServerChampion, range: number): number;
+
+  /**
+   * Called when a basic attack starts, before its blow lands (e.g.,
+   * Hop-To-Eat hopping onto the target).
+   */
+  onBasicAttackStart?(champion: ServerChampion, target: ServerEntity, context: ServerGameContext): void;
+
+  /**
+   * Called after the champion took damage (to its health or its shields),
+   * e.g. Protobot learning from the champions that hit it.
+   */
+  onDamaged?(champion: ServerChampion, source: ServerEntity | undefined, context: ServerGameContext): void;
+
+  /**
    * Called when a ranged basic attack's projectile hits, after its damage
    * and before on_hit passives trigger (e.g., Elora's weak points and
    * Poison Arrow).

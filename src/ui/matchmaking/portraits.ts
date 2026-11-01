@@ -23,6 +23,8 @@ export const CHAMPION_ICONS: Record<string, string> = {
   caelum: "🌿",
   fenris: "🐺",
   calamitus: "🌋",
+  protobot: "🤖",
+  hop: "🐰",
 };
 
 /** Idle sprite strips: square frames side by side, the first one is used */
@@ -40,6 +42,8 @@ const IDLE_SPRITES: Record<string, string> = {
   caelum: "/assets/champs/caelum/idle.png",
   fenris: "/assets/champs/fenris/idle.png",
   calamitus: "/assets/champs/calamitus/idle.png",
+  protobot: "/assets/champs/protobot/idle.png",
+  hop: "/assets/champs/hop/idle.png",
 };
 
 /** The champion's face */

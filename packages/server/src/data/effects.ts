@@ -9,7 +9,7 @@ import type {
   StackBehavior,
   StatModificationType,
 } from '@siege/shared';
-import { CALAMITUS_LAVA } from '@siege/shared';
+import { CALAMITUS_LAVA, PROTOBOT_MACHINE } from '@siege/shared';
 
 /**
  * Base effect definition for server.
@@ -647,6 +647,55 @@ export const OitboilExhaustedDisarmEffect: ServerCCEffectDef = {
   ccType: 'disarm',
 };
 
+// Protobot's Machine Learning (passive): each lesson is a stack of armor and
+// magic resist (ProtobotHooks)
+export const ProtobotLearningEffect: ServerStatEffectDef = {
+  id: 'protobot_learning',
+  name: 'Machine Learning',
+  category: 'buff',
+  stackBehavior: 'stack',
+  maxStacks: PROTOBOT_MACHINE.maxLessons,
+  cleansable: false,
+  persistsThroughDeath: false,
+  stat: 'armor',
+  flatValue: PROTOBOT_MACHINE.resistsPerLesson,
+};
+
+export const ProtobotLearningMREffect: ServerStatEffectDef = {
+  id: 'protobot_learning_mr',
+  name: 'Machine Learning',
+  category: 'buff',
+  stackBehavior: 'stack',
+  maxStacks: PROTOBOT_MACHINE.maxLessons,
+  cleansable: false,
+  persistsThroughDeath: false,
+  stat: 'magic_resist',
+  flatValue: PROTOBOT_MACHINE.resistsPerLesson,
+};
+
+// Hop-To-Eat's Carrot Break (W): it can't move while it eats...
+export const HopEatingEffect: ServerCCEffectDef = {
+  id: 'hop_eating',
+  name: 'Eating',
+  category: 'neutral',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+  ccType: 'root',
+};
+
+// ...then attacks faster
+export const HopSugarRushEffect: ServerStatEffectDef = {
+  id: 'hop_sugar_rush',
+  name: 'Sugar Rush',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+  stat: 'attack_speed',
+  percentValue: 0.3,
+};
+
 // Lume's Prismatic Beam (E): a beam runs from her to the orb while it lasts (LumeHooks)
 export const LumePrismEffect: ServerEffectDefinition = {
   id: 'lume_prism',
@@ -1146,6 +1195,10 @@ export const ALL_SERVER_EFFECTS: AnyServerEffectDef[] = [
   OitboilFlamethrowerEffect,
   OitboilExhaustedEffect,
   OitboilExhaustedDisarmEffect,
+  ProtobotLearningEffect,
+  ProtobotLearningMREffect,
+  HopEatingEffect,
+  HopSugarRushEffect,
   UrukSpearChargeEffect,
   UrukPiercingEffect,
   UrukHuntEffect,

@@ -174,6 +174,16 @@ export const PROJECTILE_STYLES: Record<string, Style> = {
     batch.spark(x, y, angle, 40, 8, fxColor("#fff8e0"), 2);
     batch.glow(x, y, 30, GOLD, 0.9, 0.3, 0.6, 0.3, seed);
   },
+  // Protobot's magnetic claw: a steel chain behind it, a crackling cyan head
+  protobot_q: (batch, id, x, y, angle, time) => {
+    const seed = seedOf(id);
+    const points = trailOf(id, x, y, time, 40);
+    batch.ribbon(points, 5, fxColor("#6a7a8a"), 0.9);
+    batch.ribbon(points, 2, fxColor("#4ae0ff"), 1.3);
+    batch.glow(x, y, 30, fxColor("#4ae0ff"), 0.8, 0.3, 0.6, 0.4, seed);
+    batch.spark(x + Math.cos(angle) * 10, y + Math.sin(angle) * 10, angle, 28, 9, fxColor("#4ae0ff"), 1.8);
+    batch.flare(x, y, 16, fxColor("#d8f8ff"), 1.3, time * 12);
+  },
   minion_caster: energyBolt(4, null, 4, 6),
   tower: energyBolt(8, null, 9, 10),
   default: energyBolt(5, null, 4, 6),

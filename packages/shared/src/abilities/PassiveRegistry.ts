@@ -25,6 +25,8 @@ import {
   CaelumPassive,
   FenrisPassive,
   CalamitusPassive,
+  ProtobotPassive,
+  HopPassive,
 } from '../champions/definitions';
 
 // Re-export individual passives for convenience
@@ -42,6 +44,8 @@ export {
   CaelumPassive,
   FenrisPassive,
   CalamitusPassive,
+  ProtobotPassive,
+  HopPassive,
 };
 
 // =============================================================================
@@ -65,6 +69,8 @@ export const PASSIVE_DEFINITIONS: Record<string, PassiveAbilityDefinition> = {
   caelum_passive: CaelumPassive,
   fenris_passive: FenrisPassive,
   calamitus_passive: CalamitusPassive,
+  protobot_passive: ProtobotPassive,
+  hop_passive: HopPassive,
 };
 
 /**

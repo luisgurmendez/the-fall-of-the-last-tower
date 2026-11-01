@@ -19,3 +19,5 @@ import './elora';
 import './caelum';
 import './fenris';
 import './calamitus';
+import './protobot';
+import './hop';

@@ -50,6 +50,10 @@ const OTHER_CAST_EVENT_IDS = [
   'caelum_r_given',
   'fenris_r_feast',
   'calamitus_lava_erupt',
+  'protobot_q_pull',
+  'protobot_r_pulse',
+  'hop_hop',
+  'hop_r_crash',
   ...Object.values(MOBAConfig.JUNGLE.SPECIAL_ATTACKS).map((attack) => attack.abilityId),
 ];
 

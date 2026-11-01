@@ -4,8 +4,9 @@
  * from it) and the jungle buffs it holds (a blue ring with orbiting motes
  * for Crest of Insight, a flickering red-orange one with embers for Crest
  * of Cinders), so everyone can see who has them; Oitboil on fire while
- * he's overheated; Fenris's red rage, feral or in his bloodthirst; and the
- * glow of Caelum's blessing on whoever he emboldened.
+ * he's overheated; Fenris's red rage, feral or in his bloodthirst; the
+ * glow of Caelum's blessing on whoever he emboldened; Protobot's circuit
+ * while he's learned something; and Hop-To-Eat's sugar rush.
  */
 
 import { recallElapsed } from "@/core/state/recallClock";
@@ -23,6 +24,8 @@ const RAGE = fxColor("#e02a2a");
 const BLOOD = fxColor("#8a0a14");
 const BLESSING = fxColor("#a8e070");
 const BLESSING_LIGHT = fxColor("#fff2a8");
+const CIRCUIT = fxColor("#4ae0ff");
+const SUGAR = fxColor("#ff8ab8");
 
 /** Feet are a little below a champion's position */
 const FEET = 18;
@@ -108,6 +111,19 @@ export function emitChampionAuras(ground: FXBatch, top: FXBatch, champion: Champ
       const angle = time * 2 + (i * Math.PI) / 2;
       const phase = (time * 0.6 + i / 4) % 1;
       top.glow(x + Math.cos(angle) * 24, feetY + Math.sin(angle) * 10 - phase * 50, 4, i % 2 ? BLESSING : BLESSING_LIGHT, 1.3 * (1 - phase), 0.5, 0.6, 0.6, i);
+    }
+  }
+  if (effects.some((effect) => effect.definitionId === "protobot_learning")) {
+    // Learning: a cyan circuit ring at his feet, a spark running round it
+    const angle = time * 3;
+    ground.ring(x, feetY, 44, 2, CIRCUIT, 0.7 + 0.2 * Math.sin(time * 6), 0.4, 0.3, 44);
+    top.glow(x + Math.cos(angle) * 44, feetY + Math.sin(angle) * 22, 5, CIRCUIT, 1.4, 0.5, 0.7);
+  }
+  if (effects.some((effect) => effect.definitionId === "hop_sugar_rush")) {
+    // Sugar rush: pink sparkles bouncing off it
+    for (let i = 0; i < 4; i++) {
+      const phase = (time * 1.4 + i / 4) % 1;
+      top.glow(x + Math.sin(i * 1.9 + time * 3) * 18, feetY - 10 - Math.sin(phase * Math.PI) * 40, 4, SUGAR, 1.4 * (1 - phase * 0.6), 0.5, 0.6, 0.6, i);
     }
   }
   if (hasCinders) {

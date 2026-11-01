@@ -859,10 +859,11 @@
   display: none;
 }
 
-/* Reduce container padding on champion select */
+/* Reduce container padding on champion select, and room for every champion card in one row */
 .matchmaking-container.champion-select-mode {
   padding: 20px;
   overflow: visible;
+  max-width: 1400px;
 }
 
 /* :has() based selectors for browsers that support it (fallback for JS not running) */

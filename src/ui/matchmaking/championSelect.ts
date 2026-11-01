@@ -17,7 +17,7 @@ import { showPortrait } from "./portraits";
  * Champions available for selection.
  * Filter to only show finished/polished champions.
  */
-export const ENABLED_CHAMPIONS = ['vex', 'lume', 'vile', 'warrior', 'magnus', 'elara', 'gorath', 'uruk', 'oitboil', 'elora', 'caelum', 'fenris', 'calamitus'];
+export const ENABLED_CHAMPIONS = ['vex', 'lume', 'vile', 'warrior', 'magnus', 'elara', 'gorath', 'uruk', 'oitboil', 'elora', 'caelum', 'fenris', 'calamitus', 'protobot', 'hop'];
 
 /**
  * Champion select elements and the selected champion, which MatchmakingUI
@@ -109,7 +109,7 @@ export class ChampionSelect {
     showPortrait(portrait, champion.id);
 
     const name = document.createElement("div");
-    name.className = "champion-card-name";
+    name.className = champion.name.length > 9 ? "champion-card-name long" : "champion-card-name";
     name.textContent = champion.name;
 
     const championClass = document.createElement("div");

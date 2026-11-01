@@ -85,6 +85,7 @@ export class ChampionBasicAttacks {
 
     // Dispatch on_attack trigger BEFORE attack (immediately when attack starts)
     passiveTriggerSystem.dispatchTrigger('on_attack', champion, context, { target });
+    championHooksRegistry.get(champion.definition.id)?.onBasicAttackStart?.(champion, target, context);
 
     // Set attack cooldown immediately (can't attack again until cooldown expires)
     this.attackCooldown = 1 / stats.attackSpeed;

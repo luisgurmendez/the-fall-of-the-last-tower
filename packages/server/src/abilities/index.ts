@@ -37,6 +37,8 @@ import { registerEloraHandlers } from './handlers/elora';
 import { registerCaelumHandlers } from './handlers/caelum';
 import { registerFenrisHandlers } from './handlers/fenris';
 import { registerCalamitusHandlers } from './handlers/calamitus';
+import { registerProtobotHandlers } from './handlers/protobot';
+import { registerHopHandlers } from './handlers/hop';
 
 /**
  * Initialize all ability handlers and champion hooks.
@@ -56,4 +58,6 @@ export function initializeAbilityHandlers(): void {
   registerCaelumHandlers();
   registerFenrisHandlers();
   registerCalamitusHandlers();
+  registerProtobotHandlers();
+  registerHopHandlers();
 }

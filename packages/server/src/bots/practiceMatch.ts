@@ -27,11 +27,11 @@ const ROLES: Record<PracticeTeamSize, PracticeRole[]> = {
 
 /** Champions that suit a role, best first (any other will do when they're taken) */
 const ROLE_PICKS: Record<PracticeRole, string[]> = {
-  top: ['gorath', 'warrior', 'vile', 'uruk', 'oitboil', 'fenris', 'calamitus'],
-  mid: ['magnus', 'lume', 'vex', 'oitboil'],
+  top: ['gorath', 'warrior', 'vile', 'uruk', 'oitboil', 'fenris', 'calamitus', 'protobot'],
+  mid: ['magnus', 'lume', 'vex', 'oitboil', 'hop'],
   bot: ['elora', 'vile', 'magnus', 'lume'],
-  support: ['elara', 'caelum', 'lume', 'gorath', 'calamitus'],
-  jungle: ['fenris', 'warrior', 'vex', 'gorath', 'uruk'],
+  support: ['elara', 'caelum', 'protobot', 'lume', 'gorath', 'calamitus'],
+  jungle: ['fenris', 'hop', 'warrior', 'vex', 'gorath', 'uruk'],
 };
 
 /** Summoner spells by role */

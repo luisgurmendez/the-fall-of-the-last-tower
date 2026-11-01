@@ -60,7 +60,7 @@ const ZONES = ["damage", "slow", "heal", "buff", "lava"];
 const ABILITY_ZONES: Record<string, { zoneType: string; abilityId: string }> = {
   lava: { zoneType: "damage", abilityId: "calamitus_q" },
 };
-const AURAS = ["recall", "crest_of_insight", "crest_of_cinders", "both_crests", "oitboil_overheated", "fenris_feral", "fenris_bloodthirst", "caelum_embolden"];
+const AURAS = ["recall", "crest_of_insight", "crest_of_cinders", "both_crests", "oitboil_overheated", "fenris_feral", "fenris_bloodthirst", "caelum_embolden", "protobot_learning", "hop_sugar_rush"];
 const ORBS: LightOrbState[] = ["orbiting", "traveling", "stationed", "destroyed"];
 const ids: Array<{ id: string; kind: Cell["kind"] }> = [
   ...abilityIds.map((id) => ({ id, kind: "ability" as const })),

@@ -11,7 +11,7 @@
 
 #screen-champion-select.active {
   /* Wide enough for every champion card in one row (the panel below stays 900) */
-  max-width: 1280px;
+  max-width: 1400px;
   width: 100%;
   display: flex;
   flex-direction: column;
@@ -46,9 +46,9 @@
 /* Champion Card                               */
 /* ============================================ */
 
-/* Narrow enough for all nine champions in one row */
+/* Narrow enough for every champion in one row */
 .champion-card {
-  width: 74px;
+  width: 70px;
   background: var(--pixel-bg-light);
   border: 4px solid var(--pixel-border);
   box-shadow:
@@ -110,6 +110,12 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* A long name (Protobot 45, Hop-To-Eat) in smaller letters, so it isn't cut */
+.champion-card-name.long {
+  font-size: 17px;
+  line-height: 22px;
 }
 
 /* Champion Class */

@@ -25,6 +25,8 @@ import {
   CaelumDefinition,
   FenrisDefinition,
   CalamitusDefinition,
+  ProtobotDefinition,
+  HopDefinition,
 } from './definitions';
 
 // Re-export individual definitions for backward compatibility
@@ -42,6 +44,8 @@ export {
   CaelumDefinition,
   FenrisDefinition,
   CalamitusDefinition,
+  ProtobotDefinition,
+  HopDefinition,
 };
 
 // =============================================================================
@@ -65,6 +69,8 @@ export const CHAMPION_DEFINITIONS: Record<string, ChampionDefinition> = {
   caelum: CaelumDefinition,
   fenris: FenrisDefinition,
   calamitus: CalamitusDefinition,
+  protobot: ProtobotDefinition,
+  hop: HopDefinition,
 };
 
 /**

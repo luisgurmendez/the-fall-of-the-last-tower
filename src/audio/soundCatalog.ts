@@ -181,6 +181,22 @@ export const SOUNDS = {
   calamitus_e: { prompt: `rock hardening into glassy obsidian, a crystalline crackling and grinding stone, ${DRY}`, duration: 0.8, volume: 1.4, maxVoices: 2 },
   calamitus_r_rumble: { prompt: `the ground rumbling deeply before a volcanic eruption, a low growing rumble, ${DRY}`, duration: 0.8, volume: 0.75, maxVoices: 2 },
   calamitus_r: { prompt: `a volcanic eruption bursting out of the ground, a huge explosive boom with lava splashing and rocks, ${DRY}`, duration: 1.4, volume: 1.1, maxVoices: 2 },
+  // Protobot 45: a war machine of steel, magnets and electricity
+  protobot_attack: { prompt: `a heavy steel robot fist punching, a deep metallic clank, ${DRY}`, duration: 0.5, volume: 0.6, maxVoices: 3 },
+  protobot_q: { prompt: `a magnetic claw fired on a chain, a mechanical launch with a chain rattling out and an electric hum, ${DRY}`, duration: 0.7, volume: 1.2, maxVoices: 2 },
+  protobot_q_pull: { prompt: `a heavy chain reeled in fast by a winch, a ratcheting whir ending in a magnetic clamp clang, ${DRY}`, duration: 0.7, volume: 0.8, maxVoices: 2 },
+  protobot_w: { prompt: `a robot powering up, a rising electric whine with crackling electricity, ${DRY}`, duration: 0.8, volume: 0.5, maxVoices: 2 },
+  protobot_e: { prompt: `a rocket-powered metal fist launched and smashing into something, a short rocket blast and a heavy metallic impact, ${DRY}`, duration: 0.7, volume: 0.45, maxVoices: 2 },
+  protobot_r: { prompt: `a big machine charging up, a fast rising high-pitched electric whine and humming, ${DRY}`, duration: 0.6, volume: 0.45, maxVoices: 2 },
+  protobot_r_pulse: { prompt: `an electromagnetic pulse going off, a deep electric boom with a crackling discharge and electronics shorting out, ${DRY}`, duration: 1.2, volume: 1.15, maxVoices: 2 },
+  // Hop-To-Eat: a cute, vicious rabbit
+  hop_attack: { prompt: `a small quick kick, a soft thump and a short whoosh, ${DRY}`, duration: 0.5, volume: 1, maxVoices: 3 },
+  hop_hop: { prompt: `a cartoon spring boing as a small animal hops, short and bouncy, ${DRY}`, duration: 0.5, volume: 0.55, maxVoices: 2 },
+  hop_q: { prompt: `small sharp teeth biting hard, a quick crunch with a little angry squeak, ${DRY}`, duration: 0.5, volume: 0.85, maxVoices: 2 },
+  hop_w: { prompt: `a rabbit munching a crunchy carrot, several quick crunchy bites, ${DRY}`, duration: 1.0, volume: 1, maxVoices: 2 },
+  hop_e: { prompt: `a big cartoon boing jump and a soft landing thump, ${DRY}`, duration: 0.6, volume: 1, maxVoices: 2 },
+  hop_r: { prompt: `a powerful flying kick, a fast spinning whoosh and a huge cartoon impact smack, ${DRY}`, duration: 0.7, volume: 0.65, maxVoices: 2 },
+  hop_r_crash: { prompt: `two bodies crashing into each other, a heavy thud with a cartoon bonk, ${DRY}`, duration: 0.6, volume: 1.4, maxVoices: 2 },
   elora_r_rain:{ prompt: `a rain of arrows striking the ground, many rapid thuds and whistles, ${DRY}`, duration: 0.9, volume: 1, maxVoices: 2 },
 
   // Announcements (a tower, an inhibitor or the dragon falls, a champion kill)
