@@ -32,6 +32,7 @@ import {
   type InterpolatedEntity,
 } from './state/entities';
 import { AbilityEffects, type AbilityEffect } from './state/abilityEffects';
+import { Corpses, type Corpse } from './state/corpses';
 import {
   FloatingNumbers,
   type DamageNumber,
@@ -103,12 +104,16 @@ export class OnlineStateManager {
   // Ability visual effects (legacy system)
   private readonly abilityEffects = new AbilityEffects();
 
+  // Units that just died, falling and fading out
+  private readonly corpses = new Corpses();
+
   // Called by the delta merge: entity effects and the local respawn timer
   private readonly lifecycleHooks: EntityLifecycleHooks = {
     onRemoved: (entityId, existing, data) => {
       if (existing) {
         this.entityVFX.spawnDeathVFX(existing);
         playDeathSound(existing);
+        this.corpses.add(existing);
       }
       if (entityId === this.localEntityId && typeof data.respawnTimer === 'number') {
         this.localRespawnAt = this.gameTime + data.respawnTimer;
@@ -346,6 +351,11 @@ export class OnlineStateManager {
   /**
    * How strongly an entity flashes from its last hit (1 just hit, 0 not flashing).
    */
+  /** Units that just died, still fading out */
+  getCorpses(): readonly Corpse[] {
+    return this.corpses.get(performance.now());
+  }
+
   getHitFlash(entityId: string): number {
     return getHitFlash(this.entities.get(entityId));
   }

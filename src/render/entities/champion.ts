@@ -215,6 +215,11 @@ export class ChampionRenderer {
   /**
    * Render a champion.
    */
+  /** Just the champion's body (no bars, names or auras), as a corpse is drawn. False if it has none */
+  renderBody(ctx: CanvasRenderingContext2D, snapshot: any, state: EntityRenderState): boolean {
+    return this.bodies.get(snapshot.championId)?.render(ctx, snapshot, state) ?? false;
+  }
+
   render(
     ctx: CanvasRenderingContext2D,
     snapshot: any,

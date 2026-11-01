@@ -298,6 +298,9 @@ export class EntityRenderer implements GameObject {
         gpu.drawFX(canvasRenderingContext, "ground");
       }
 
+      // Units that just died, under the living
+      this.renderCorpses(canvasRenderingContext);
+
       for (const entity of sortedEntities) {
         // Skip dead entities (except light orbs, which show a ghost when
         // destroyed, and inhibitors, whose rubble shows until they rebuild)
@@ -385,6 +388,59 @@ export class EntityRenderer implements GameObject {
     element.positionType = "normal";
     return element;
   }
+
+  /**
+   * Units that just died: champions and minions fall over backward, small
+   * monsters slump, and all of them grey out, sink a little and fade,
+   * instead of vanishing (Corpses keeps them).
+   */
+  private renderCorpses(ctx: CanvasRenderingContext2D): void {
+    const now = performance.now();
+    for (const corpse of this.stateManager.getCorpses()) {
+      const age = now - corpse.diedAt;
+      const t = age / corpse.lifetime;
+      const fall = 1 - (1 - Math.min(1, age / EntityRenderer.CORPSE_FALL_MS)) ** 2;
+      // Only the body: no bars, plates or aggro marks
+      const snapshot = { ...corpse.snapshot, health: undefined, isDashing: false, targetEntityId: null } as any;
+      const side = snapshot.side ?? 0;
+      const facingRight = this.entityStates.get(snapshot.entityId)?.facingRight ?? side === 0;
+      const state: EntityRenderState = {
+        lastX: corpse.x, lastY: corpse.y, facingRight, attackAnimTime: 0,
+        isAttacking: false, isWalking: false, smoothedVelocity: 0, idleFrameCount: 0,
+      };
+
+      ctx.save();
+      ctx.translate(corpse.x, corpse.y + EntityRenderer.CORPSE_PIVOT);
+      if (snapshot.entityType === EntityType.JUNGLE_CAMP) {
+        ctx.scale(1, 1 - 0.3 * fall);
+      } else {
+        ctx.rotate((facingRight ? -1 : 1) * fall * EntityRenderer.CORPSE_TILT);
+      }
+      ctx.translate(0, -EntityRenderer.CORPSE_PIVOT + t * EntityRenderer.CORPSE_SINK);
+      ctx.globalAlpha = t < 0.4 ? 1 : 1 - (t - 0.4) / 0.6;
+      ctx.filter = "grayscale(0.55) brightness(0.9)";
+      switch (snapshot.entityType) {
+        case EntityType.CHAMPION:
+          this.championRenderer.renderBody(ctx, snapshot, state);
+          break;
+        case EntityType.MINION:
+          renderMinion(ctx, snapshot, side, state, this.renderContext);
+          break;
+        case EntityType.JUNGLE_CAMP:
+          renderJungleCamp(ctx, snapshot, state, this.renderContext);
+          break;
+      }
+      ctx.restore();
+    }
+  }
+
+  /** A corpse falls over within this long (ms)... */
+  private static readonly CORPSE_FALL_MS = 260;
+  /** ...this far (radians), around a point this far below its position (its feet)... */
+  private static readonly CORPSE_TILT = 1.3;
+  private static readonly CORPSE_PIVOT = 12;
+  /** ...and sinks this far as it fades */
+  private static readonly CORPSE_SINK = 6;
 
   // Set to false to disable interpolation for debugging
   private static readonly ENABLE_INTERPOLATION = false;
