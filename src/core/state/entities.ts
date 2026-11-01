@@ -116,7 +116,7 @@ export function isAttackAnimationPlaying(entity: InterpolatedEntity | undefined)
 /**
  * Check if an entity is currently casting an ability.
  */
-export function getAbilityCastState(entity: InterpolatedEntity | undefined): { casting: boolean; abilityId?: string } {
+export function getAbilityCastState(entity: InterpolatedEntity | undefined): { casting: boolean; abilityId?: string; duration?: number } {
   if (!entity || !entity.animation.isCastingAbility) {
     return { casting: false };
   }
@@ -128,7 +128,7 @@ export function getAbilityCastState(entity: InterpolatedEntity | undefined): { c
     entity.animation.abilityId = undefined;
     return { casting: false };
   }
-  return { casting: true, abilityId: entity.animation.abilityId };
+  return { casting: true, abilityId: entity.animation.abilityId, duration: entity.animation.abilityDuration / 1000 };
 }
 
 /**

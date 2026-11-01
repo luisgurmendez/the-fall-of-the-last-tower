@@ -7,13 +7,16 @@
 import type { ChampionRendererEntry } from "./types";
 import { createStripBodyRenderer, generatedStrips, stripImages } from "./stripBody";
 
-// The attack strip's blow (the flame leaves the staff) is frame 8
 const MAGNUS_STRIPS = generatedStrips("magnus", {
   q: "magnus_fireball",
   w: "magnus_shield",
   e: "magnus_mud",
   r: "magnus_meteor",
-}, undefined, 8);
+}, {
+  // The frames where the blow lands: the flame leaves the staff, the barrier rises, the mud pools, the flames rise
+  attackBlow: 8,
+  abilityBlows: { magnus_fireball: 8, magnus_shield: 4, magnus_mud: 5, magnus_meteor: 6 },
+});
 
 /** World units per sprite pixel */
 const MAGNUS_SCALE = 0.84;

@@ -5,6 +5,7 @@
 
 import { getAbilityDefinition } from '@siege/shared';
 import { registerAbilityVFX } from '../VFXRegistryStore';
+import { abilityImpactTime } from '@/core/state/abilityTiming';
 import {
   coneWarning,
   embers,
@@ -29,6 +30,8 @@ const WHITE = '#f2f8ff';
 const DUST = '#8a7a66';
 
 const SWING = landsAt('warrior_slash');
+/** When the blade of light lands on Kael's target */
+const STRIKE = abilityImpactTime('warrior_ultimate');
 const CLEAVE = getAbilityDefinition('warrior_slash')?.aoeRadius ?? 170;
 
 // Q: the cone flashes as he draws back, then a double crescent sweeps it
@@ -88,8 +91,8 @@ registerAbilityVFX({
       { type: 'trail', color: AZURE, thickness: 12, duration: 0.5, fadeLength: 16 },
       embers(STEEL, 10, 30),
     ], 0.5),
-    phase('blade', 0.05, 'target', [meteor('blade', AZURE, 16, 300, 0.32, WHITE)], 0.32),
-    phase('strike', 0.37, 'target', [
+    phase('blade', 0.05, 'target', [meteor('blade', AZURE, 16, 300, STRIKE - 0.05, WHITE)], STRIKE - 0.05),
+    phase('strike', STRIKE, 'target', [
       shockwave(AZURE, 20, 130, 0.45, 10),
       ring(WHITE, 10, 100, 0.25, 3),
       scorch(AZURE, 80, 2.0, 0.6),

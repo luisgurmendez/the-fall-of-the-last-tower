@@ -9,12 +9,15 @@ import type { EntityRenderContext } from "@/render/entities/types";
 import type { ChampionBodyRenderer, ChampionRendererEntry } from "./types";
 import { createStripBodyRenderer, generatedStrips, stripImages } from "./stripBody";
 
-// The attack strip's arrow leaves the bow on frame 7
 const VILE_STRIPS = generatedStrips("vile", {
   q: "vile_black_arrows",
   e: "vile_roots_of_vilix",
   r: "vile_restoration_of_vilix",
-}, undefined, 7);
+}, {
+  // The frames where the blow lands: the arrow leaves the bow, the charged arrow, the rune set, the transformation
+  attackBlow: 7,
+  abilityBlows: { vile_black_arrows: 6, vile_roots_of_vilix: 4, vile_restoration_of_vilix: 4 },
+});
 
 /** World units per sprite pixel: about 55 tall, like Vex */
 const VILE_SCALE = 0.84;

@@ -9,13 +9,15 @@
  * strip once per basic attack, the walk strip while moving and the idle
  * strip otherwise, mirrored when the champion faces left.
  *
- * A generated attack rarely lands its blow where the server does: Magnus
+ * A generated strip rarely lands its blow where the game does: Magnus
  * stands still for eight frames and throws on the ninth, while his damage
- * lands halfway. With the strip's blow frame (`attackRelease`), the attack is
- * retimed so that frame shows as the damage lands (attackFrame).
+ * lands halfway. With a strip's blow frame (`StripTiming`), it's retimed so
+ * that frame shows as the attack's damage lands or the ability takes effect
+ * (retimedFrame, abilityImpactTime).
  */
 
 import { getBasicAttackDamageDelay, getBasicAttackDuration, getChampionDefinition } from "@siege/shared";
+import { abilityImpactTime } from "@/core/state/abilityTiming";
 import type {
   EntityRenderContext,
   EntityRenderState,
@@ -35,24 +37,31 @@ export interface ChampionStrips {
   attack: string;
   /** Strips for abilities with their own animation, by ability id */
   abilities: Record<string, string>;
+  timing: StripTiming;
+}
+
+/** Which frames of a champion's strips matter */
+export interface StripTiming {
   /** Where in a dash ability's strip to hold while dashing, by ability id (default DASH_HOLD_PROGRESS) */
   dashHold?: Record<string, number>;
-  /** The attack strip's frame where the blow lands (the swing, the throw, the arrow loosed) */
-  attackRelease?: number;
+  /** The attack strip's blow frame (the swing, the throw, the arrow loosed) */
+  attackBlow?: number;
+  /** Ability strips' blow frames, by ability id */
+  abilityBlows?: Record<string, number>;
 }
 
 /**
- * The attack strip's frame at `progress` (0-1) through the attack: played
- * straight without a blow frame; with one, the frames before it fill the
- * time until just before the damage lands (`hitShare` of the way through)
- * and the rest fill what's left.
+ * A strip's frame at `progress` (0-1) through its animation: played straight
+ * without a blow frame; with one, the frames before it fill the time until
+ * just before the blow lands (`hitShare` of the way through) and the rest
+ * fill what's left.
  */
-export function attackFrame(progress: number, frameCount: number, release: number | undefined, hitShare: number): number {
+export function retimedFrame(progress: number, frameCount: number, blow: number | undefined, hitShare: number): number {
   const last = frameCount - 1;
-  if (release === undefined || release <= 0 || release > last) return Math.min(last, Math.floor(progress * frameCount));
+  if (blow === undefined || blow <= 0 || blow > last) return Math.min(last, Math.floor(progress * frameCount));
   const at = Math.min(0.92, Math.max(0.05, hitShare - RELEASE_LEAD));
-  if (progress < at) return Math.min(release - 1, Math.floor((progress / at) * release));
-  return Math.min(last, release + Math.floor(((progress - at) / (1 - at)) * (frameCount - release)));
+  if (progress < at) return Math.min(blow - 1, Math.floor((progress / at) * blow));
+  return Math.min(last, blow + Math.floor(((progress - at) / (1 - at)) * (frameCount - blow)));
 }
 
 /** How far through a champion's basic attack its damage lands (0-1) */
@@ -71,8 +80,7 @@ function hitShare(championId: string, attackSpeed: number | undefined): number {
 export function generatedStrips(
   championId: string,
   abilities: Partial<Record<"q" | "w" | "e" | "r", string>>,
-  dashHold?: Record<string, number>,
-  attackRelease?: number,
+  timing: StripTiming = {},
 ): ChampionStrips {
   const dir = `/assets/champs/${championId}`;
   return {
@@ -82,8 +90,7 @@ export function generatedStrips(
     abilities: Object.fromEntries(
       Object.entries(abilities).map(([slot, abilityId]) => [abilityId, `${dir}/${slot}.png`]),
     ),
-    dashHold,
-    attackRelease,
+    timing,
   };
 }
 
@@ -106,6 +113,7 @@ export function createStripBodyRenderer(
     render(ctx: CanvasRenderingContext2D, snapshot: any, state: EntityRenderState): boolean {
       const entityId = snapshot.entityId;
       const cast = rc.stateManager.isEntityCastingAbility(entityId);
+      const { timing } = strips;
       const abilityStrip = cast.casting && cast.abilityId ? strips.abilities[cast.abilityId] : undefined;
       const dashStrip = snapshot.isDashing && snapshot.dashAbilityId ? strips.abilities[snapshot.dashAbilityId] : undefined;
 
@@ -115,7 +123,7 @@ export function createStripBodyRenderer(
       if (dashStrip) {
         // Mid-dash: hold the ability's frame of motion
         src = dashStrip;
-        progress = strips.dashHold?.[snapshot.dashAbilityId] ?? DASH_HOLD_PROGRESS;
+        progress = timing.dashHold?.[snapshot.dashAbilityId] ?? DASH_HOLD_PROGRESS;
       } else if (abilityStrip) {
         src = abilityStrip;
         progress = rc.stateManager.getAbilityAnimationProgress(entityId);
@@ -133,11 +141,16 @@ export function createStripBodyRenderer(
 
       const frameSize = image.naturalHeight;
       const frameCount = Math.max(1, Math.round(image.naturalWidth / frameSize));
-      const frameIndex = progress === null
-        ? Math.floor(rc.animationTime * (state.isWalking ? 8 : 6)) % frameCount
-        : src === strips.attack
-          ? attackFrame(progress, frameCount, strips.attackRelease, hitShare(snapshot.championId, snapshot.attackSpeed))
-          : Math.min(frameCount - 1, Math.floor(progress * frameCount));
+      let frameIndex: number;
+      if (progress === null) {
+        frameIndex = Math.floor(rc.animationTime * (state.isWalking ? 8 : 6)) % frameCount;
+      } else if (src === strips.attack) {
+        frameIndex = retimedFrame(progress, frameCount, timing.attackBlow, hitShare(snapshot.championId, snapshot.attackSpeed));
+      } else if (src === abilityStrip && !dashStrip && cast.abilityId && cast.duration) {
+        frameIndex = retimedFrame(progress, frameCount, timing.abilityBlows?.[cast.abilityId], abilityImpactTime(cast.abilityId) / cast.duration);
+      } else {
+        frameIndex = Math.min(frameCount - 1, Math.floor(progress * frameCount));
+      }
 
       ctx.save();
       if (!state.facingRight) {

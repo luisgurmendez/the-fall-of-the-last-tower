@@ -12,10 +12,13 @@ import { createStripBodyRenderer, generatedStrips, stripImages } from "./stripBo
 const VEX_STRIPS = generatedStrips(
   "vex",
   { q: "vex_shuriken", w: "vex_shroud", e: "vex_dash", r: "vex_ninja_mode" },
-  // The Shadow Step strip's blur is near its end
-  { vex_dash: 0.8 },
-  // The attack's slash is frame 6
-  6,
+  {
+    // The Shadow Step strip's blur is near its end
+    dashHold: { vex_dash: 0.8 },
+    // The frames where the blow lands: the slash, the throw, the smoke, the blades drawn
+    attackBlow: 6,
+    abilityBlows: { vex_shuriken: 3, vex_shroud: 4, vex_ninja_mode: 3 },
+  },
 );
 
 /** World units per sprite pixel: about 55 tall, like the others */

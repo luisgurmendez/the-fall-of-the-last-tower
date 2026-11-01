@@ -12,6 +12,7 @@ import { EntityType, GameEventType, getChampionDefinition, type GameEvent } from
 import { getVFXManager } from '@/vfx';
 import { WORLD_VFX } from '@/vfx/world';
 import { punchCamera, shakeScreen } from '@/core/screenShake';
+import { abilityImpactTime } from './abilityTiming';
 import type { InterpolatedEntity } from './entities';
 import type { AbilityEffects } from './abilityEffects';
 import type { FloatingNumbers } from './floatingNumbers';
@@ -36,6 +37,9 @@ export interface GameEventContext {
   /** Damage the local champion took recently (death recap) */
   readonly damageTaken: DamageTaken;
 }
+
+/** Seconds a cast animation goes on after its ability takes effect */
+const CAST_FOLLOW_THROUGH = 0.25;
 
 /** Jungle monsters' names in the death recap, by creature type */
 const MONSTER_NAMES: Record<string, string> = {
@@ -98,7 +102,8 @@ export function processGameEvent(event: GameEvent, ctx: GameEventContext): void 
       const abilityId = event.data.abilityId as string;
       const targetX = event.data.targetX as number | undefined;
       const targetY = event.data.targetY as number | undefined;
-      const duration = ((event.data.animationDuration as number) ?? 0.5) * 1000;
+      // Long enough to show the ability taking effect (an area landing late)
+      const duration = Math.max((event.data.animationDuration as number) ?? 0.5, abilityImpactTime(abilityId) + CAST_FOLLOW_THROUGH) * 1000;
       const entity = ctx.entities.get(entityId);
 
       if (entity) {

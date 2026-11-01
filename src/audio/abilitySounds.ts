@@ -1,12 +1,14 @@
 /**
  * When and where abilities sound (soundCatalog.ts), timed like their VFX
- * (src/vfx/champions/). An ability with no cues here plays the sound with
+ * (src/vfx/champions/): an impact when the ability takes effect
+ * (abilityTiming.ts). An ability with no cues here plays the sound with
  * its own id, if the catalog has one, at the caster as it's cast. A
  * projectile that bursts plays `<abilityId>_impact` where it does, if the
  * catalog has one (gameSounds.ts).
  */
 
-import { getAbilityDefinition, MOBAConfig } from "@siege/shared";
+import { MOBAConfig } from "@siege/shared";
+import { abilityImpactTime } from "@/core/state/abilityTiming";
 import type { SoundKey } from "./soundCatalog";
 
 export interface AbilityCue {
@@ -17,30 +19,22 @@ export interface AbilityCue {
   at?: "caster" | "target";
 }
 
-/** Seconds from the cast until the ability's area lands on the server (its aoeDelay) */
-function landsAt(abilityId: string): number {
-  return getAbilityDefinition(abilityId)?.aoeDelay ?? 0;
-}
+/** Seconds from the cast until the ability takes effect (an area landing, a projectile thrown...) */
+const landsAt = abilityImpactTime;
 
 /** Seconds a jungle monster's special attack winds up before it lands */
 function windup(creatureType: keyof typeof MOBAConfig.JUNGLE.SPECIAL_ATTACKS): number {
   return MOBAConfig.JUNGLE.SPECIAL_ATTACKS[creatureType].windup;
 }
 
-/** About when a projectile leaves the hand, as the VFX throws it */
-const THROW = 0.2;
-/** When Kael's blade of light lands on his target (its VFX's strike) */
-const HEROIC_STRIKE_LANDS = 0.37;
-/** When Lume's orb lands where it was sent (its VFX's arrive) */
-const ORB_ARRIVES = 0.2;
 
 export const ABILITY_CUES: Record<string, AbilityCue[]> = {
   warrior_slash: [{ sound: "warrior_slash", delay: landsAt("warrior_slash") }],
   warrior_ultimate: [
     { sound: "warrior_ultimate_leap" },
-    { sound: "warrior_ultimate_strike", delay: HEROIC_STRIKE_LANDS, at: "target" },
+    { sound: "warrior_ultimate_strike", delay: landsAt("warrior_ultimate"), at: "target" },
   ],
-  magnus_fireball: [{ sound: "magnus_fireball", delay: THROW }],
+  magnus_fireball: [{ sound: "magnus_fireball", delay: landsAt("magnus_fireball") }],
   magnus_mud: [{ sound: "magnus_mud", delay: landsAt("magnus_mud"), at: "target" }],
   magnus_meteor: [
     { sound: "magnus_meteor_fall", at: "target" },
@@ -55,14 +49,14 @@ export const ABILITY_CUES: Record<string, AbilityCue[]> = {
   ],
   lume_q: [
     { sound: "lume_q" },
-    { sound: "lume_q_arrive", delay: ORB_ARRIVES, at: "target" },
+    { sound: "lume_q_arrive", delay: landsAt("lume_q"), at: "target" },
   ],
   lume_r: [
     { sound: "lume_r_charge", at: "target" },
     { sound: "lume_r", delay: landsAt("lume_r"), at: "target" },
   ],
-  vex_shuriken: [{ sound: "vex_shuriken", delay: THROW }],
-  vile_black_arrows: [{ sound: "vile_black_arrows", delay: THROW }],
+  vex_shuriken: [{ sound: "vex_shuriken", delay: landsAt("vex_shuriken") }],
+  vile_black_arrows: [{ sound: "vile_black_arrows", delay: landsAt("vile_black_arrows") }],
   vile_roots_of_vilix: [{ sound: "vile_roots_of_vilix", at: "target" }],
   vile_trap_trigger: [{ sound: "vile_trap_trigger", at: "target" }],
   // Jungle monsters' special attacks: a wind-up, then the hit (cut short if the monster dies first)

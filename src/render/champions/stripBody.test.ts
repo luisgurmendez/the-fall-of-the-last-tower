@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { attackFrame } from './stripBody';
+import { retimedFrame } from './stripBody';
 
 const frames = (release: number | undefined, hitShare: number) =>
-  Array.from({ length: 20 }, (_, i) => attackFrame(i / 20, 9, release, hitShare));
+  Array.from({ length: 20 }, (_, i) => retimedFrame(i / 20, 9, release, hitShare));
 
-describe('attack strip timing', () => {
+describe('strip timing', () => {
   it('plays straight without a blow frame', () => {
     expect(frames(undefined, 0.5)).toEqual([0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8]);
   });

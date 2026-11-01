@@ -6,6 +6,7 @@
 
 import { getAbilityDefinition } from '@siege/shared';
 import { registerAbilityVFX } from '../VFXRegistryStore';
+import { abilityImpactTime } from '@/core/state/abilityTiming';
 import {
   debris,
   embers,
@@ -33,7 +34,7 @@ const WARD = '#ffb347';
 const MUD = '#6a4a30';
 
 /** Seconds until the fireball leaves his staff (its animation's projectile keyframe) */
-const THROW = 0.25;
+const THROW = abilityImpactTime('magnus_fireball');
 const MUD_LANDS = landsAt('magnus_mud');
 const MUD_RADIUS = getAbilityDefinition('magnus_mud')?.aoeRadius ?? 110;
 const METEOR_LANDS = landsAt('magnus_meteor');

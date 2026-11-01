@@ -6,6 +6,7 @@
 
 import { getAbilityDefinition } from '@siege/shared';
 import { registerAbilityVFX } from '../VFXRegistryStore';
+import { abilityImpactTime } from '@/core/state/abilityTiming';
 import { gather, light, phase, ring, scorch, shake, sigil, smoke, sparks, spikes, wisps } from '../recipes';
 
 const VOID = '#2a0d3d';
@@ -15,7 +16,7 @@ const ROT = '#1e2a14';
 const ROOT = '#4a2e48';
 
 /** Seconds from releasing the bow until the arrows fly (its animation's projectile keyframe) */
-const LOOSE = 0.2;
+const LOOSE = abilityImpactTime('vile_black_arrows');
 
 const TRAP = getAbilityDefinition('vile_roots_of_vilix')?.trap;
 const TRAP_RADIUS = TRAP?.triggerRadius ?? 60;

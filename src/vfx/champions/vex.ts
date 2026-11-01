@@ -6,6 +6,7 @@
  */
 
 import { registerAbilityVFX } from '../VFXRegistryStore';
+import { abilityImpactTime } from '@/core/state/abilityTiming';
 import { cuts, embers, light, pathCut, petals, phase, rays, smoke, sparks, twinkles } from '../recipes';
 
 const INK = '#16131f';
@@ -14,7 +15,7 @@ const CRIMSON = '#ff3b6b';
 const PETAL = '#ffb3c8';
 
 /** Seconds until the shuriken leaves her hand (its animation's projectile keyframe) */
-const THROW = 0.2;
+const THROW = abilityImpactTime('vex_shuriken');
 
 // Q: a glint as she draws the shuriken, a flick as it leaves...
 registerAbilityVFX({

@@ -331,7 +331,8 @@ export class OnlineStateManager {
   /**
    * Check if an entity is currently casting an ability.
    */
-  isEntityCastingAbility(entityId: string): { casting: boolean; abilityId?: string } {
+  /** Whether the entity is casting, what, and how long its cast animation lasts (seconds) */
+  isEntityCastingAbility(entityId: string): { casting: boolean; abilityId?: string; duration?: number } {
     return getAbilityCastState(this.entities.get(entityId));
   }
 
