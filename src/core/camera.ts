@@ -10,6 +10,7 @@ import { GameConfig } from "@/config";
 import { Dimensions } from "@/core/canvas";
 import { getAudio } from "@/audio/AudioManager";
 import { updateAmbience } from "@/audio/ambience";
+import { setShakeView } from "@/core/screenShake";
 
 const { CAMERA: CAMERA_CONFIG } = GameConfig;
 export const CAMERA_ID = "camera";
@@ -223,8 +224,9 @@ class Camera implements GameObject, Stepable, Disposable, Initializable {
     }
     this.adjustPositionIfOutOfWorldsBounds(context.worldDimensions);
 
-    // The camera is what hears the world
+    // The camera is what hears the world, and feels it shake
     getAudio().setListener(this._position.x, this._position.y, this.viewport.w / this._zoom);
+    setShakeView(this._position.x, this._position.y, this.viewport.w / this._zoom);
     updateAmbience(this._position.x, this._position.y);
   }
 

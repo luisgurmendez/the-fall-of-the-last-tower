@@ -23,6 +23,7 @@ import {
 } from "@/render/overlays/healthBars";
 import { getTrailHealth } from "@/render/overlays/damageTrail";
 import { renderAggroIndicator } from "@/render/overlays/statusIndicators";
+import { hitFlashFilter } from "@/render/hitFlash";
 
 /**
  * A creature's sprite strips. A strip's frames are as wide as it is tall,
@@ -227,7 +228,7 @@ export function renderJungleCamp(
     const filters = [
       look.filter,
       windup > 0 ? `brightness(${1 + windup * 0.7})` : undefined,
-      hitFlash > 0 ? `brightness(${1 + hitFlash * 1.2})` : undefined,
+      hitFlash > 0 ? hitFlashFilter(hitFlash) : undefined,
     ].filter(Boolean);
     if (filters.length > 0) {
       ctx.filter = filters.join(" ");

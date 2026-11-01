@@ -15,6 +15,7 @@ import {
   phase,
   ring,
   scorch,
+  shake,
   shockwave,
   slash,
   smoke,
@@ -97,6 +98,7 @@ registerAbilityVFX({
       smoke('#9a8a70', 10, [16, 26], [50, 140]),
       light(AZURE, 180, 1.2, 0.6),
       { type: 'screen_flash', color: '#e0ecff', duration: 0.12, maxAlpha: 0.12 },
+      shake(5, 0.25),
     ]),
   ],
 });

@@ -98,6 +98,9 @@ export class RewardSystem {
           entityId: killerChampion.id,
           amount: gold,
           sourceType: killedEntity.entityType, // What was killed to earn gold
+          // Where it fell (the coins of a last hit burst there)
+          x: killedEntity.position.x,
+          y: killedEntity.position.y,
         });
 
         // Dispatch on_kill trigger for passive abilities

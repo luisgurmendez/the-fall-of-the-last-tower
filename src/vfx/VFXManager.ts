@@ -26,7 +26,7 @@
 
 import type { OnlineStateManager } from '@/core/OnlineStateManager';
 import type { FXBatch } from '@/gpu/fx/FXBatch';
-import { shakeScreen } from '@/core/screenShake';
+import { nearView, shakeScreen } from '@/core/screenShake';
 import {
   getGlobalParticlePool,
   type VFXParticlePool,
@@ -273,9 +273,12 @@ export class VFXManager {
         createDashAfterimage(this.generateId(), config as DashAfterimageConfig, casterId, x, y, startTime)
       );
     } else if (config.type === 'screen_flash') {
-      this.screenFlash = createScreenFlash(config as ScreenFlashConfig, startTime);
+      // Only felt near the view, like a shake
+      const felt = nearView({ x, y });
+      const flash = config as ScreenFlashConfig;
+      if (felt > 0) this.screenFlash = createScreenFlash({ ...flash, maxAlpha: flash.maxAlpha * felt }, startTime);
     } else if (config.type === 'screen_shake') {
-      shakeScreen(config.intensity, config.duration);
+      shakeScreen(config.intensity, config.duration, { x, y });
     }
   }
 

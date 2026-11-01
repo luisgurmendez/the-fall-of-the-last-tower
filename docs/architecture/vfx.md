@@ -394,9 +394,16 @@ Heals show as a green "+N" rising beside the entity. `ServerEntity.heal(amount, 
 sourceId)` sends a `HEAL` event `{ entityId, amount, sourceId }` when given a context: ability
 heals, healing auras, heals over time and lifesteal do; max health going up doesn't.
 
-Champions, minions and jungle creatures flash bright for 0.12 s when they take damage: the
+Champions, minions and jungle creatures flash white for 0.12 s when they take damage: the
 `DAMAGE` event stamps `animation.hitTime` (`src/core/state/gameEvents.ts`) and the renderers
-add a fading `brightness` filter (`stateManager.getHitFlash`).
+add a fading filter (`hitFlashFilter` in `src/render/hitFlash.ts`: low contrast and high
+brightness, a white silhouette fading back to the sprite; `stateManager.getHitFlash`).
+The hit also knocks the body back up to 3 units, away from what hit it, springing back as
+the flash fades (`stateManager.getHitRecoil`, applied by `EntityRenderer`).
+
+Damage numbers pop in 60% bigger and settle within the first 12% of their life; hits
+over 40 damage stay bigger (up to 50% at 190).
+
 
 Entities are drawn back to front by Y, buildings included (zones first, under
 everything), so a unit behind a tower is hidden by it. A tower or nexus standing
@@ -523,6 +530,7 @@ Defined in `src/vfx/world.ts` (keys in `WORLD_VFX`). They use the same phase-bas
 | `fx_recall_depart` | A recall ends: where the champion was, the light snaps in and a beam carries it up |
 | `fx_recall_arrive` | A recall ends with the champion jumping to base |
 | `fx_tower_destroyed` | A tower or nexus dies: flash, shockwave, rubble |
+| `fx_last_hit` | The local champion last-hits a minion or monster (`GOLD_EARNED` carries where it fell): a fountain of coins |
 | `fx_creature_death` | A jungle creature dies. Its special attack warning, if it was winding up, is cancelled (`VFXManager.cancelCasterEffects`) |
 | `fx_dragon_death` | The dragon dies: a large fiery shockwave, sparks and embers, and a light screen shake |
 | `jungle_slam_blue` / `jungle_slam_red` / `dragon_breath` | An `ABILITY_CAST` from a monster's special attack: a warning filling up over the wind-up (a circle, or the dragon's cone), then the hit: cracks and dust for the slams, a jet of flame for the breath (sizes from `MOBAConfig.JUNGLE.SPECIAL_ATTACKS`, see [jungle.md](jungle.md)) |
@@ -536,7 +544,8 @@ Drawn directly by renderers rather than as VFX definitions:
 - **Tower range** (`overlays/towerRange.ts`): a dashed ring on the ground around an enemy tower, fading in as the local champion comes within 250 of its reach (attack range plus both radii). It turns red while the tower aims at the champion.
 - **Attack range** (`OnlineInputHandler.renderAttackRange`): a red circle of the local champion's reach while A (attack-move) is held.
 - **Announcements** (`AnnouncementBanner`, fed by `OnlineStateManager`; the texts are in `src/core/state/gameEvents.ts`): champion kills ("You have slain an enemy!" / "You have been slain!" / "First Blood!"), towers destroyed, dragon slain, and the match result.
-- **Screen shake** (`src/core/screenShake.ts`): a decaying jitter on top of the camera transform. It's triggered when a tower falls, when the nexus falls (stronger), and when the local champion takes a hit over 15% of its health.
+- **Screen shake** (`src/core/screenShake.ts`): a decaying jitter on top of the camera transform. It's triggered when a tower falls, when the nexus falls (stronger), when the dragon dies, by ultimates' impacts (`shake()` in their VFX: Kael, Magnus, Lume, Vile, Gorath), when the local champion takes a hit over 15% of its health, and lightly when it deals one over 12% of a champion's. A shake in the world fades with its distance from the middle of the view (full within half the view's width, none past its width), and so do VFX screen flashes (`nearView`), so a fight across the map doesn't shake or flash the screen.
+- **Camera punch** (`punchCamera`, same file): a quick 5% zoom in, easing back over 0.4 s, with a shake, when the local champion takes down a champion or goes down.
 - **Low-health vignette** (`LowHealthVignette`): red screen edges below 30% health, pulsing faster as health drops.
 - **Status icons** (`statusIndicators.ts`): knockup, root, silence, slows, burn and the jungle buffs.
 

@@ -54,7 +54,7 @@ export class EntityVFX {
         }
         if ((entity.snapshot as { creatureType?: string }).creatureType === 'dragon') {
           spawnWorldVFX(WORLD_VFX.DRAGON_DEATH, x, y);
-          shakeScreen(6, 0.4);
+          shakeScreen(6, 0.4, { x, y });
         } else {
           spawnWorldVFX(WORLD_VFX.CREATURE_DEATH, x, y);
         }
@@ -72,7 +72,7 @@ export class EntityVFX {
       case EntityType.INHIBITOR:
       case EntityType.NEXUS:
         spawnWorldVFX(WORLD_VFX.TOWER_DESTROYED, x, y);
-        shakeScreen(entity.snapshot.entityType === EntityType.NEXUS ? 14 : 8, 0.5);
+        shakeScreen(entity.snapshot.entityType === EntityType.NEXUS ? 14 : 8, 0.5, { x, y });
         break;
     }
   }

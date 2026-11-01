@@ -41,6 +41,7 @@ export const WORLD_VFX = {
   TOWER_DESTROYED: 'fx_tower_destroyed',
   CREATURE_DEATH: 'fx_creature_death',
   DRAGON_DEATH: 'fx_dragon_death',
+  LAST_HIT: 'fx_last_hit',
   WARD_PLACED: 'fx_ward_placed',
   CONTROL_WARD_PLACED: 'fx_control_ward_placed',
 } as const;
@@ -169,6 +170,24 @@ registerAbilityVFX({
       smoke('#4a4448', 16, [22, 36], [30, 110], { lifetime: { min: 1.2, max: 2.0 } }),
       embers('#ffab40', 18, 80),
     ], 1.5),
+  ],
+});
+
+// Our last hit on a minion or monster: a fountain of coins where it fell
+registerAbilityVFX({
+  abilityId: WORLD_VFX.LAST_HIT,
+  phases: [
+    phase('coins', 0, 'caster', [
+      {
+        type: 'particle_burst', count: 9, color: '#ffd54f', colorSecondary: '#ff9f1a',
+        size: { min: 3, max: 4 }, speed: { min: 130, max: 210 }, lifetime: { min: 0.5, max: 0.7 },
+        direction: -Math.PI / 2, spread: Math.PI * 0.7, gravity: 520, friction: 0.6,
+        particleType: 'square', glowIntensity: 0.3,
+      },
+      twinkles('#fff3b0', 3, [20, 50]),
+      ring('#ffd54f', 6, 24, 0.22, 2),
+      light('#ffca28', 26, 0.35, 0.25),
+    ], 0.7),
   ],
 });
 

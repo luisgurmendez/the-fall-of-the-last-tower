@@ -53,6 +53,7 @@ import { LightOrbRenderer } from "@/render/entities/lightOrb";
 import { renderGeneric } from "@/render/entities/generic";
 import { renderAbilityEffects } from "@/render/overlays/abilityEffects";
 import { renderTowerRanges } from "@/render/overlays/towerRange";
+import { hitFlashFilter } from "@/render/hitFlash";
 import {
   renderDamageNumbers,
   renderGoldNumbers,
@@ -423,8 +424,13 @@ export class EntityRenderer implements GameObject {
     // Get team color
     const side = (snapshot as any).side;
 
+    // A unit's body is knocked back for a moment when hit
+    const isUnit = snapshot.entityType === EntityType.CHAMPION || snapshot.entityType === EntityType.MINION
+      || snapshot.entityType === EntityType.JUNGLE_CAMP;
+    const recoil = isUnit ? this.stateManager.getHitRecoil(snapshot.entityId) : { x: 0, y: 0 };
+
     ctx.save();
-    ctx.translate(pos.x, pos.y);
+    ctx.translate(pos.x + recoil.x, pos.y + recoil.y);
     if (this.hidesLocalChampion(snapshot.entityType, pos)) {
       ctx.globalAlpha = EntityRenderer.SEE_THROUGH_ALPHA;
     }
@@ -432,10 +438,10 @@ export class EntityRenderer implements GameObject {
     if (snapshot.entityType === EntityType.CHAMPION && side === this.renderContext.localSide && isInBrush(pos.x, pos.y)) {
       ctx.globalAlpha *= EntityRenderer.IN_BRUSH_ALPHA;
     }
-    // Units flash bright for a moment when hit (jungle creatures add it to their own filters)
+    // Units flash white for a moment when hit (jungle creatures add it to their own filters)
     const hitFlash = this.stateManager.getHitFlash(snapshot.entityId);
     if (hitFlash > 0 && (snapshot.entityType === EntityType.CHAMPION || snapshot.entityType === EntityType.MINION)) {
-      ctx.filter = `brightness(${1 + hitFlash * 1.2})`;
+      ctx.filter = hitFlashFilter(hitFlash);
     }
 
     // Draw entity based on type

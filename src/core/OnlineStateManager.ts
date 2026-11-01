@@ -26,6 +26,7 @@ import {
   getAbilityCastState,
   getAttackAnimationProgress,
   getHitFlash,
+  getHitRecoil,
   interpolatePosition,
   isAttackAnimationPlaying,
   type InterpolatedEntity,
@@ -346,6 +347,11 @@ export class OnlineStateManager {
    */
   getHitFlash(entityId: string): number {
     return getHitFlash(this.entities.get(entityId));
+  }
+
+  /** Where a hit has knocked an entity's body to (world units) */
+  getHitRecoil(entityId: string): { x: number; y: number } {
+    return getHitRecoil(this.entities.get(entityId));
   }
 
   /**

@@ -18,6 +18,7 @@ import {
   ring,
   rocks,
   scorch,
+  shake,
   shockwave,
   sigil,
   smoke,
@@ -116,6 +117,7 @@ registerAbilityVFX({
       scorch(FIRE, METEOR_RADIUS * 0.65, 5.0, 1.0),
       light(FIRE, METEOR_RADIUS * 1.1, 1.5, 0.9, 0.4),
       { type: 'screen_flash', color: '#ffb060', duration: 0.12, maxAlpha: 0.15 },
+      shake(5, 0.3),
     ], 0.9),
   ],
 });

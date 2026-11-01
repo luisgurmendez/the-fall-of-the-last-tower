@@ -11,7 +11,7 @@
 import { EntityType, GameEventType, getChampionDefinition, type GameEvent } from '@siege/shared';
 import { getVFXManager } from '@/vfx';
 import { WORLD_VFX } from '@/vfx/world';
-import { shakeScreen } from '@/core/screenShake';
+import { punchCamera, shakeScreen } from '@/core/screenShake';
 import type { InterpolatedEntity } from './entities';
 import type { AbilityEffects } from './abilityEffects';
 import type { FloatingNumbers } from './floatingNumbers';
@@ -134,9 +134,13 @@ export function processGameEvent(event: GameEvent, ctx: GameEventContext): void 
       const damageType = event.data.damageType as 'physical' | 'magic' | 'true' | 'pure';
       const entity = ctx.entities.get(entityId);
 
-      // A heavy hit on the local champion (over 15% of its health) shakes the screen
-      if (entity && entityId === ctx.localEntityId && amount > ((entity.snapshot as any).maxHealth ?? Infinity) * 0.15) {
+      // A heavy hit on the local champion (over 15% of its health) shakes the screen,
+      // and so, a little, does a heavy hit of ours on a champion (over 12%)
+      const maxHealth = (entity?.snapshot as { maxHealth?: number } | undefined)?.maxHealth ?? Infinity;
+      if (entity && entityId === ctx.localEntityId && amount > maxHealth * 0.15) {
         shakeScreen(4, 0.25);
+      } else if (entity?.snapshot.entityType === EntityType.CHAMPION && event.data.sourceId === ctx.localEntityId && amount > maxHealth * 0.12) {
+        shakeScreen(2.5, 0.15);
       }
 
       if (entityId === ctx.localEntityId && amount > 0) {
@@ -145,6 +149,13 @@ export function processGameEvent(event: GameEvent, ctx: GameEventContext): void 
 
       if (entity && amount > 0) {
         entity.animation.hitTime = performance.now();
+        // Knocked back away from what hit it
+        const source = typeof event.data.sourceId === 'string' ? ctx.entities.get(event.data.sourceId) : undefined;
+        const dx = source ? entity.position.x - source.position.x : 0;
+        const dy = source ? entity.position.y - source.position.y : 0;
+        const length = Math.hypot(dx, dy);
+        entity.animation.hitDirX = length > 0 ? dx / length : 0;
+        entity.animation.hitDirY = length > 0 ? dy / length : 0;
         const spark = damageType === 'magic' ? WORLD_VFX.HIT_MAGIC
           : damageType === 'physical' ? WORLD_VFX.HIT_PHYSICAL
           : WORLD_VFX.HIT_TRUE;
@@ -178,6 +189,11 @@ export function processGameEvent(event: GameEvent, ctx: GameEventContext): void 
           amount,
           startTime: now,
         });
+        // Our last hit: coins burst where the minion or monster fell
+        const lastHit = event.data.sourceType === EntityType.MINION || event.data.sourceType === EntityType.JUNGLE_CAMP;
+        if (lastHit && typeof event.data.x === 'number' && typeof event.data.y === 'number') {
+          spawnWorldVFX(WORLD_VFX.LAST_HIT, event.data.x, event.data.y);
+        }
       }
       break;
     }
@@ -211,6 +227,11 @@ export function processGameEvent(event: GameEvent, ctx: GameEventContext): void 
     }
     case GameEventType.CHAMPION_KILL: {
       announceChampionKill(event.data, now, ctx);
+      // We took a champion down, or went down: the camera punches in
+      if (event.data.killerId === ctx.localEntityId || event.data.victimId === ctx.localEntityId) {
+        punchCamera(0.05, 0.4);
+        shakeScreen(5, 0.3);
+      }
       break;
     }
     case GameEventType.TOWER_DESTROYED: {

@@ -27,6 +27,9 @@ export interface EntityAnimationState {
   abilityDuration: number;
   /** When the entity last took damage (ms, performance.now), for the hit flash */
   hitTime: number;
+  /** Which way that hit pushed it (a unit vector away from what hit it; 0, 0 if unknown) */
+  hitDirX: number;
+  hitDirY: number;
 }
 
 /**
@@ -54,11 +57,15 @@ export function createDefaultAnimationState(): EntityAnimationState {
     abilityStartTime: 0,
     abilityDuration: 0,
     hitTime: -Infinity,
+    hitDirX: 0,
+    hitDirY: 0,
   };
 }
 
 /** How long a unit flashes after taking damage (ms) */
 const HIT_FLASH_MS = 120;
+/** How far a hit knocks a unit's body back before it springs back (world units) */
+const HIT_RECOIL = 3;
 
 /**
  * How strongly an entity is flashing from a hit: 1 right after it, fading to 0.
@@ -67,6 +74,17 @@ export function getHitFlash(entity: InterpolatedEntity | undefined): number {
   if (!entity) return 0;
   const elapsed = performance.now() - entity.animation.hitTime;
   return elapsed >= HIT_FLASH_MS ? 0 : 1 - elapsed / HIT_FLASH_MS;
+}
+
+/**
+ * Where a hit has knocked an entity's body to, away from what hit it: out at
+ * once, then springing back as the flash fades.
+ */
+export function getHitRecoil(entity: InterpolatedEntity | undefined): { x: number; y: number } {
+  const flash = getHitFlash(entity);
+  if (!entity || flash <= 0) return { x: 0, y: 0 };
+  const push = HIT_RECOIL * flash * flash;
+  return { x: entity.animation.hitDirX * push, y: entity.animation.hitDirY * push };
 }
 
 /**

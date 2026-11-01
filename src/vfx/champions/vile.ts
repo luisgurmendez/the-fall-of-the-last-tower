@@ -6,7 +6,7 @@
 
 import { getAbilityDefinition } from '@siege/shared';
 import { registerAbilityVFX } from '../VFXRegistryStore';
-import { gather, light, phase, ring, scorch, sigil, smoke, sparks, spikes, wisps } from '../recipes';
+import { gather, light, phase, ring, scorch, shake, sigil, smoke, sparks, spikes, wisps } from '../recipes';
 
 const VOID = '#2a0d3d';
 const VIOLET = '#a35cff';
@@ -109,6 +109,7 @@ registerAbilityVFX({
       wisps(SOUL, 14, [100, 220]),
       ring(VIOLET, 20, AURA_RADIUS, 0.45, 4),
       light(VIOLET, 140, 1.1, 0.8),
+      shake(3, 0.25),
     ], 1.0),
     phase('aura', 0.4, 'caster', [
       sigil(VIOLET, AURA_RADIUS * 0.6, 10.0),

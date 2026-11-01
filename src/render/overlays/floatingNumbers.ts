@@ -28,6 +28,11 @@ const DAMAGE_NUMBER_CONFIG = {
   SIDE: 28, // How far out to the side it flies
   HOP: 6, // How high it pops before falling
   FALL: 30, // How far it falls
+  POP: 0.6, // How much bigger it starts, shrinking back...
+  POP_TIME: 0.12, // ...over this share of its life
+  BIG_HIT: 40, // Hits past this much damage are drawn bigger...
+  BIG_HIT_SCALE: 300, // ...by a share of what's past it over this...
+  MAX_GROWTH: 0.5, // ...up to this much bigger
 };
 
 /**
@@ -74,8 +79,16 @@ export function renderDamageNumbers(
     const alpha =
       progress < fadeStart ? 1 : 1 - (progress - fadeStart) / (1 - fadeStart);
 
+    // Pops in big and settles; bigger hits stay bigger
+    const growth = Math.min(DAMAGE_NUMBER_CONFIG.MAX_GROWTH,
+      Math.max(0, dn.amount - DAMAGE_NUMBER_CONFIG.BIG_HIT) / DAMAGE_NUMBER_CONFIG.BIG_HIT_SCALE);
+    const pop = progress < DAMAGE_NUMBER_CONFIG.POP_TIME
+      ? DAMAGE_NUMBER_CONFIG.POP * (1 - progress / DAMAGE_NUMBER_CONFIG.POP_TIME)
+      : 0;
+
     ctx.save();
     ctx.translate(dn.x + xOffset, dn.y + yOffset);
+    ctx.scale((1 + growth) * (1 + pop), (1 + growth) * (1 + pop));
 
     // Set up font
     ctx.font = DAMAGE_NUMBER_CONFIG.FONT;
