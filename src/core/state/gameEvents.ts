@@ -171,7 +171,12 @@ export function processGameEvent(event: GameEvent, ctx: GameEventContext): void 
         spawnWorldVFX(spark, entity.position.x, entity.position.y - 10);
       }
 
-      const ours = entityId === ctx.localEntityId || event.data.sourceId === ctx.localEntityId;
+      // Ours, and our towers' shots on champions (the enemy ones show on us, so
+      // without these our towers seemed not to hit back)
+      const shooter = typeof event.data.sourceId === 'string' ? ctx.entities.get(event.data.sourceId) : undefined;
+      const ourTowerOnChampion = shooter?.snapshot.entityType === EntityType.TOWER &&
+        shooter.snapshot.side === ctx.localSide && entity?.snapshot.entityType === EntityType.CHAMPION;
+      const ours = entityId === ctx.localEntityId || event.data.sourceId === ctx.localEntityId || ourTowerOnChampion;
       if (entity && ours && (amount > 0 || shieldAbsorbed > 0)) {
         ctx.floatingNumbers.addDamage({
           entityId,
