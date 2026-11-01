@@ -288,6 +288,9 @@ export interface AbilityDefinition {
   /** How targets are selected */
   targetType: AbilityTargetType;
 
+  /** A `target_ally` ability that can't be cast on the caster itself (Caelum's Martyr) */
+  excludesSelf?: boolean;
+
   /** Maximum ability rank */
   maxRank: number;
 

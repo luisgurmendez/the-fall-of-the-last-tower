@@ -151,6 +151,7 @@ export const CaelumMartyr: AbilityDefinition = {
     "Give 25% of your current health to another allied champion: it heals {heal} plus twice the health you gave.",
   type: "active",
   targetType: "target_ally",
+  excludesSelf: true,
   maxRank: 3,
   manaCost: [100, 100, 100],
   cooldown: [110, 95, 80],

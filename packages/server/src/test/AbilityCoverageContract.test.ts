@@ -86,6 +86,7 @@ const GENERIC_SUPPORT: Record<keyof AbilityDefinition, FieldRule> = {
   targetType: (d) =>
     GENERIC_TARGET_TYPES.includes(d.targetType) || `targetType '${d.targetType}' has no generic execution path`,
   castTime: (d) => !d.castTime || 'castTime is not implemented: casts resolve instantly',
+  excludesSelf: always,
 
   // Damage, healing, shields and effects (the generic/ path modules)
   damage: (d) => {

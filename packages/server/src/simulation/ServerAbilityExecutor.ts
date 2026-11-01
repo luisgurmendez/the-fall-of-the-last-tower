@@ -373,6 +373,9 @@ export class ServerAbilityExecutor {
         if (!target || target.isDead || target.side !== champion.side) {
           return { valid: false, reason: "invalid_target" };
         }
+        if (definition.excludesSelf && target.id === champion.id) {
+          return { valid: false, reason: "invalid_target" };
+        }
         // Check range
         if (definition.range) {
           if (!champion.isInRange(target, definition.range)) {

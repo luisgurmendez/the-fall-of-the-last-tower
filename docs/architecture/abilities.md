@@ -42,7 +42,7 @@ type PassiveTrigger =
 type AbilityTargetType =
   | 'self'           // Cast on self (shields, buffs)
   | 'target_enemy'   // Click on enemy
-  | 'target_ally'    // Click on ally
+  | 'target_ally'    // Click on ally (itself too, unless excludesSelf: Caelum's Martyr)
   | 'target_unit'    // Click on any unit
   | 'skillshot'      // Direction-based projectile
   | 'ground_target'  // Click on ground location

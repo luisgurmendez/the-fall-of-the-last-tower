@@ -443,7 +443,7 @@ export class LaneBot implements BotController {
         return { type: InputType.ABILITY, slot, targetType: 'unit', targetEntityId: target.id };
       case 'target_ally': {
         // A heal or shield: on the most hurt ally in reach (the bot too)
-        const ally = this.mostWoundedAlly(champion, range, context);
+        const ally = this.mostWoundedAlly(champion, range, context, definition.excludesSelf);
         return ally ? { type: InputType.ABILITY, slot, targetType: 'unit', targetEntityId: ally.id } : null;
       }
       case 'self':
@@ -481,10 +481,11 @@ export class LaneBot implements BotController {
   // ===========================================================================
 
   /** The allied champion (the bot included) under WOUNDED health within `range`, the most hurt first */
-  protected mostWoundedAlly(champion: ServerChampion, range: number, context: ServerGameContext): ServerChampion | null {
+  protected mostWoundedAlly(champion: ServerChampion, range: number, context: ServerGameContext, excludeSelf = false): ServerChampion | null {
     let best: ServerChampion | null = null;
     for (const ally of context.getChampionsBySide(champion.side)) {
       if (ally.isDead || ally.position.distanceTo(champion.position) > range + ally.getRadius()) continue;
+      if (excludeSelf && ally.id === champion.id) continue;
       const ratio = ally.health / ally.maxHealth;
       if (ratio < WOUNDED && (!best || ratio < best.health / best.maxHealth)) best = ally;
     }

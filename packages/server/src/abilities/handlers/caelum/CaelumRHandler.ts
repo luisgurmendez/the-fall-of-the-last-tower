@@ -2,8 +2,9 @@
  * CaelumRHandler - Martyr
  *
  * Caelum gives a quarter of his current health to another allied champion,
- * which heals the ability's heal plus twice what he gave. Not on himself,
- * nor on minions (the cast is refused and nothing is spent).
+ * which heals the ability's heal plus twice what he gave. Not on himself
+ * (excludesSelf, refused before casting) nor on minions (refused here:
+ * nothing is spent).
  */
 
 import { CAELUM_LIGHT, EntityType, GameEventType } from '@siege/shared';
@@ -16,7 +17,7 @@ export class CaelumRHandler extends BaseAbilityHandler {
   execute(params: AbilityHandlerParams): AbilityExecutionResult {
     const { champion, definition, rank, context, targetEntityId } = params;
     const ally = targetEntityId ? context.getEntity(targetEntityId) : undefined;
-    if (!ally || ally.id === champion.id || ally.entityType !== EntityType.CHAMPION || ally.isDead) {
+    if (!ally || ally.entityType !== EntityType.CHAMPION || ally.isDead) {
       return { success: false };
     }
 
