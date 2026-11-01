@@ -442,26 +442,12 @@ export class EntityRenderer implements GameObject {
   /** ...and sinks this far as it fades */
   private static readonly CORPSE_SINK = 6;
 
-  // Set to false to disable interpolation for debugging
-  private static readonly ENABLE_INTERPOLATION = false;
-
   /**
-   * Calculate interpolated position for smooth rendering.
-   * Lerps between previousPosition and position based on time since last update.
-   * Server runs at 125 Hz (8ms per tick), but network updates may batch.
+   * Where an entity is drawn: its position, eased toward the server's every
+   * frame (OnlineStateManager.advance).
    */
   private getInterpolatedPosition(entity: InterpolatedEntity): Vector {
-    // Skip interpolation if disabled - useful for debugging vibration issues
-    if (!EntityRenderer.ENABLE_INTERPOLATION) {
-      return entity.position;
-    }
-
-    const timeSinceUpdate = Date.now() - entity.lastUpdateTime;
-    // Server sends at 125 Hz (8ms), but account for network jitter with slight buffer
-    const interpolationDelay = 16; // ms - roughly 2 server ticks / 1 client frame
-    const t = Math.min(1, timeSinceUpdate / interpolationDelay);
-
-    return Vector.lerp(entity.previousPosition, entity.position, t);
+    return entity.position;
   }
 
   /**

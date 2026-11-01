@@ -27,7 +27,7 @@ import {
   getAttackAnimationProgress,
   getHitFlash,
   getHitRecoil,
-  interpolatePosition,
+  advanceEntity,
   isAttackAnimationPlaying,
   type InterpolatedEntity,
 } from './state/entities';
@@ -80,9 +80,6 @@ export class OnlineStateManager {
   private currentTick = 0;
   private gameTime = 0;
   private lastUpdateTimestamp = 0;
-
-  // Interpolation settings
-  private interpolationDelay = 100; // ms
 
   // Floating damage, gold and XP numbers
   private readonly floatingNumbers = new FloatingNumbers();
@@ -235,12 +232,12 @@ export class OnlineStateManager {
   }
 
   /**
-   * Get interpolated position for an entity.
+   * Ease every entity toward the server's latest position (once a frame,
+   * before drawing).
    */
-  getInterpolatedPosition(entityId: string): Vector | null {
-    const entity = this.entities.get(entityId);
-    if (!entity) return null;
-    return interpolatePosition(entity, this.interpolationDelay);
+  advance(): void {
+    const now = Date.now();
+    for (const entity of this.entities.values()) advanceEntity(entity, now);
   }
 
   /**

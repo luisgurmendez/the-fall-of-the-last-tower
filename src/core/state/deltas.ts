@@ -8,7 +8,7 @@
 
 import Vector from '@/physics/vector';
 import { EntityType, type EntityDelta, type EntitySnapshot } from '@siege/shared';
-import { createDefaultAnimationState, type InterpolatedEntity } from './entities';
+import { createDefaultAnimationState, setServerPosition, type InterpolatedEntity } from './entities';
 
 /**
  * Called while merging, so the state manager can spawn effects and track the
@@ -80,8 +80,7 @@ export function applyEntityDelta(
     // This prevents position from being reset to (0,0) when delta doesn't include position
     // Round positions to integers to avoid floating point precision issues
     if (data && typeof data.x === 'number' && typeof data.y === 'number') {
-      existing.previousPosition = existing.position.clone();
-      existing.position = new Vector(Math.round(data.x), Math.round(data.y));
+      setServerPosition(existing, Math.round(data.x), Math.round(data.y), Date.now());
     }
 
     existing.snapshot = snapshot;
@@ -96,6 +95,9 @@ export function applyEntityDelta(
     addOrUpdateEntity(entities, delta.data as EntitySnapshot, hooks);
   }
 }
+
+/** How far into its flight a projectile can be when first seen (a tick at the fastest speeds, ~35) */
+const PROJECTILE_FIRST_SEEN_WITHIN = 60;
 
 /**
  * Add or update an entity.
@@ -114,10 +116,22 @@ export function addOrUpdateEntity(
   const existing = entities.get(snapshot.entityId);
   const animation = existing?.animation ?? createDefaultAnimationState();
 
+  // A new projectile is first seen a tick into its flight: it eases out
+  // from whoever fired it instead of popping up ahead of them (unless it
+  // started somewhere else, like Lume's orb)
+  const source = !existing && snapshot.entityType === EntityType.PROJECTILE
+    ? entities.get((snapshot as { sourceId?: string }).sourceId ?? '')
+    : undefined;
+  const fromSource = !!source && source.position.distanceTo(pos) < PROJECTILE_FIRST_SEEN_WITHIN;
+  const drawnFrom = fromSource ? source!.position.clone() : pos.clone();
+
   entities.set(snapshot.entityId, {
     snapshot,
-    position: pos,
-    previousPosition: pos.clone(),
+    position: drawnFrom,
+    previousPosition: drawnFrom.clone(),
+    serverPosition: pos.clone(),
+    positionTime: Date.now(),
+    drawnAt: Date.now(),
     lastUpdateTime: Date.now(),
     animation,
   });

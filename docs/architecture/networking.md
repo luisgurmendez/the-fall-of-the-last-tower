@@ -460,9 +460,8 @@ Ping sent every 5 seconds to maintain connection and measure latency.
 |-----------|-------|-------------|
 | Server Tick Rate | 30 Hz | 33.3ms per tick |
 | Snapshot Rate | 30 Hz | State sent every tick |
-| Client Render Rate | 60 Hz | Smooth via interpolation |
+| Client Render Rate | The screen's (60-120 Hz) | Positions eased over ~1.2 ticks (infrastructure.md) |
 | Input Send Rate | 60 Hz | Responsive input capture |
-| Interpolation Delay | 100ms | 3 snapshots buffered |
 
 ## Key Files
 

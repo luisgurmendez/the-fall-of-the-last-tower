@@ -5,7 +5,7 @@
  */
 
 import Vector from '@/physics/vector';
-import type { EntitySnapshot } from '@siege/shared';
+import { GameConfig, type EntitySnapshot } from '@siege/shared';
 
 /**
  * Animation state for an entity.
@@ -37,8 +37,20 @@ export interface EntityAnimationState {
  */
 export interface InterpolatedEntity {
   snapshot: EntitySnapshot;
+  /**
+   * Where it's drawn: eased from previousPosition to serverPosition over a
+   * server tick, every frame (advanceEntity)
+   */
   position: Vector;
+  /** Where it was drawn when the server's latest position arrived */
   previousPosition: Vector;
+  /** The server's latest position */
+  serverPosition: Vector;
+  /** When the easing toward serverPosition started (ms, Date.now) */
+  positionTime: number;
+  /** When position was last eased (ms, Date.now) */
+  drawnAt: number;
+  /** When the server's latest update for it arrived (ms, Date.now) */
   lastUpdateTime: number;
   /** Animation state from events */
   animation: EntityAnimationState;
@@ -88,14 +100,41 @@ export function getHitRecoil(entity: InterpolatedEntity | undefined): { x: numbe
 }
 
 /**
- * Interpolated position for an entity.
+ * Each new position is eased in over a little more than a server tick, so an
+ * update arriving a few milliseconds late doesn't stall the unit for a frame
  */
-export function interpolatePosition(entity: InterpolatedEntity, interpolationDelay: number): Vector {
-  // Simple linear interpolation based on time since last update
-  const timeSinceUpdate = Date.now() - entity.lastUpdateTime;
-  const t = Math.min(1, timeSinceUpdate / interpolationDelay);
+const EASE_MS = (1000 / GameConfig.TICK.SERVER_TICK_RATE) * 1.2;
+/** A step longer than this in one tick is a teleport (blink, recall, respawn): no easing */
+const SNAP_DISTANCE = 120;
 
-  return Vector.lerp(entity.previousPosition, entity.position, t);
+/**
+ * A new position from the server: the entity eases there from where it's
+ * drawn now, over a tick (drawn straight at the server's positions, units
+ * and projectiles moved in steps 30 times a second on a 120 Hz screen).
+ */
+export function setServerPosition(entity: InterpolatedEntity, x: number, y: number, now: number): void {
+  const next = new Vector(x, y);
+  const teleported = Math.hypot(next.x - entity.position.x, next.y - entity.position.y) > SNAP_DISTANCE;
+  if (teleported) {
+    entity.position.x = next.x;
+    entity.position.y = next.y;
+  }
+  // From where it was last drawn, as of then: starting the easing now would
+  // hold it still for the frame the update arrived in
+  entity.previousPosition = entity.position.clone();
+  entity.serverPosition = next;
+  entity.positionTime = teleported ? now : Math.min(entity.drawnAt, now);
+}
+
+/**
+ * Move an entity's drawn position along its easing, once a frame.
+ */
+export function advanceEntity(entity: InterpolatedEntity, now: number): void {
+  const t = Math.min(1, (now - entity.positionTime) / EASE_MS);
+  const { previousPosition: from, serverPosition: to } = entity;
+  entity.position.x = from.x + (to.x - from.x) * t;
+  entity.position.y = from.y + (to.y - from.y) * t;
+  entity.drawnAt = now;
 }
 
 /**

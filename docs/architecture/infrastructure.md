@@ -88,12 +88,24 @@ Tracks and interpolates server state:
 ```typescript
 interface InterpolatedEntity {
   snapshot: EntitySnapshot;    // Raw server data
-  position: Vector;            // Current interpolated position
-  previousPosition: Vector;    // For interpolation
+  position: Vector;            // Where it's drawn, eased toward serverPosition
+  previousPosition: Vector;    // Where it was drawn when serverPosition arrived
+  serverPosition: Vector;      // The server's latest position
+  positionTime: number;        // When the easing toward it started
+  drawnAt: number;             // When position was last eased
   lastUpdateTime: number;      // When last updated
   animation: EntityAnimationState; // Attack/cast animation from events
 }
 ```
+
+Every frame, before drawing, `OnlineStateManager.advance()` eases each entity's
+`position` toward the server's latest one over a little more than a tick
+(`setServerPosition` and `advanceEntity` in `src/core/state/entities.ts`), from
+where it was last drawn, so units and projectiles move every frame instead of in
+steps 30 times a second. A step longer than 120 units in one tick (a blink, a
+recall, a respawn) is not eased. A new projectile starts drawn at whoever fired
+it, a tick back into its flight. Everything that reads `position` (sprites,
+health bars, GPU effects, auras) sees the eased one.
 
 `OnlineStateManager` owns the entity map, game time and the local player, and
 hands the work to modules in `src/core/state/`:

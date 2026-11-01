@@ -123,6 +123,7 @@ class OnlineGame {
   private update() {
     try {
       const gameApi = this.generateGameApi();
+      this.stateManager.advance();
       this.level.update(gameApi);
 
       // Clear "just pressed" input states at end of frame
