@@ -69,4 +69,5 @@ export const ABILITY_CUES: Record<string, AbilityCue[]> = {
   jungle_slam_blue: [{ sound: "jungle_slam_blue_windup" }, { sound: "jungle_slam_blue", delay: windup("blue_buff") }],
   jungle_slam_red: [{ sound: "jungle_slam_red_windup" }, { sound: "jungle_slam_red", delay: windup("red_buff") }],
   dragon_breath: [{ sound: "dragon_breath_windup" }, { sound: "dragon_breath", delay: windup("dragon") }],
+  rootwyrm_eruption: [{ sound: "rootwyrm_eruption_windup" }, { sound: "rootwyrm_eruption", delay: windup("rootwyrm") }],
 };

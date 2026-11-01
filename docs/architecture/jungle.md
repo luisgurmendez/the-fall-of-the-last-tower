@@ -6,7 +6,7 @@ Client: `src/render/entities/jungleCreature.ts`, camp timers in `OnlineMinimap`,
 
 ## Camps
 
-Each team has six camps, two quadrants with three camps each, plus the dragon in the bot river. Positions are in [map.md](map.md).
+Each team has six camps, two quadrants with three camps each, plus two epic monsters in the river's pits: the dragon in the bot river and the Rootwyrm in the top river. Positions are in [map.md](map.md).
 
 | Creature | Camp | Notes |
 |----------|------|-------|
@@ -15,7 +15,10 @@ Each team has six camps, two quadrants with three camps each, plus the dragon in
 | `thornspitter` | 2 per side | Ranged (spits) |
 | `wolf` | 2 wolves | |
 | `spider` | 3 spiders | |
-| `dragon` | river, respawns in 300s | Ranged (fire); team buff |
+| `dragon` | bot river, respawns in 300s | Ranged (fire); team buff |
+| `rootwyrm` | top river, first at 4:00 (`firstSpawnAt`), respawns in 360s | Melee with long reach (110); 3200 health; team buff |
+
+A camp with `firstSpawnAt` starts empty and counts down to it like a respawn: `ServerJungleCamp.start` sends `CAMP_CLEARED` with its `respawnAt`, so clients show the Rootwyrm's timer on the minimap from the start.
 
 ## Behavior
 
@@ -43,6 +46,7 @@ During a fight the monster checks its special attack. It uses it when the attack
 | Blue buff | `jungle_slam_blue` | circle, radius 130 | 1.1s | 80 magic damage, 30% slow for 1.5s |
 | Red buff | `jungle_slam_red` | circle, radius 130 | 1.1s | 90 physical damage, 30% slow for 1.5s |
 | Dragon | `dragon_breath` | cone at its target, 260 long and 50° wide | 1.0s | 160 magic damage, 20% slow for 1s |
+| Rootwyrm | `rootwyrm_eruption` | circle, radius 190 | 1.3s | 150 magic damage, rooted for 1s |
 
 The sizes are tuned to champion speed (about 100 units/s). A melee champion fighting a buff monster stands about 110 from its center (attack range 55 plus both bodies), inside the slam, and has over half a second to spare when it steps out. The dragon's breath is too wide to outrun up close, so champions should fight it from beside or behind.
 
@@ -63,13 +67,14 @@ The killer must be a champion. The effects live in `packages/server/src/data/eff
 | Blue buff | `crest_of_insight`: +15 ability haste; `crest_of_insight_regen`: +4 mana/energy per second | 90s |
 | Red buff | `crest_of_cinders`: +4 health per second. Basic attacks on champions and minions apply `cinders_burn` (true damage over 3s) and `slow_10` for 1.5s (`ChampionBasicAttacks.applyOnHitBuffs`) | 90s |
 | Dragon | `dragons_might` / `dragons_might_power`: +8% attack damage and ability power for the killer's whole team, kept through death | 150s |
+| Rootwyrm | `heartwood_pact` / `heartwood_pact_ward` / `heartwood_pact_sap` (Heartwood Pact): +12 armor, +12 magic resist and +5 health per second for the killer's whole team, kept through death | 150s |
 
 Buff-camp buffs are lost on death.
 
 ## Events
 
 - `CAMP_CLEARED` `{ campId, creatureType, x, y, respawnAt }`: sent reliably when a camp's last creature dies. The client shows a countdown at the camp on the minimap until `respawnAt`; dragon and buff timers are highlighted.
-- `DRAGON_KILLED` `{ killerId, side, duration }`: the client shows "Your team / The enemy team slew the Dragon!" for 4 seconds.
+- `DRAGON_KILLED` `{ killerId, side, duration, creatureType }`: an epic monster slain (`dragon` or `rootwyrm`; the event kept the dragon's name). The client shows "Your team / The enemy team slew the Dragon!" (or the Rootwyrm) with its buff for 4 seconds.
 
 ## Looks
 
@@ -83,6 +88,7 @@ Each spawned creature type has its own monster, designed for Siege:
 | `blue_buff` | Azure Warden: an ancient tortoise with a blue crystal shell | 124 px |
 | `red_buff` | Ember Brute: a hunched brute of molten rock | 132 px |
 | `dragon` | Dragon: purple scales, folded wings, glowing belly | 164 px |
+| `rootwyrm` | Rootwyrm: an ancient four-legged wyrm of twisted roots and bark, a mossy back with glowing mushrooms | 128 px canvas, drawn at 1.7 |
 
 Each has idle, run and attack strips in `public/assets/sprites/monsters/<type>/`: square
 frames side by side, facing right (`renderJungleCamp` mirrors them to face left). The

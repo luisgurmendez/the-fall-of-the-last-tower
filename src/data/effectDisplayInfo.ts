@@ -395,6 +395,27 @@ const EFFECT_DISPLAY_INFO: Record<string, EffectDisplayInfo> = {
     icon: 'D',
     color: '#9b59b6',
   },
+  heartwood_pact: {
+    name: 'Heartwood Pact',
+    description: 'Rootwyrm slain: +12 armor.',
+    category: 'buff',
+    icon: 'H',
+    color: '#7cb342',
+  },
+  heartwood_pact_ward: {
+    name: 'Heartwood Pact',
+    description: 'Rootwyrm slain: +12 magic resist.',
+    category: 'buff',
+    icon: 'H',
+    color: '#9ccc65',
+  },
+  heartwood_pact_sap: {
+    name: 'Heartwood Pact',
+    description: 'Rootwyrm slain: +5 health regeneration per second.',
+    category: 'buff',
+    icon: 'H',
+    color: '#558b2f',
+  },
 
   burn: {
     name: 'Burning',

@@ -13,17 +13,21 @@ import {
   debris,
   embers,
   flames,
+  gather,
   light,
+  petals,
   phase,
   pillar,
   rays,
   ring,
   rocks,
   scorch,
+  shake,
   shockwave,
   sigil,
   smoke,
   sparks,
+  spikes,
   twinkles,
   warning,
 } from './recipes';
@@ -41,6 +45,7 @@ export const WORLD_VFX = {
   TOWER_DESTROYED: 'fx_tower_destroyed',
   CREATURE_DEATH: 'fx_creature_death',
   DRAGON_DEATH: 'fx_dragon_death',
+  ROOTWYRM_DEATH: 'fx_rootwyrm_death',
   LAST_HIT: 'fx_last_hit',
   WARD_PLACED: 'fx_ward_placed',
   CONTROL_WARD_PLACED: 'fx_control_ward_placed',
@@ -222,6 +227,25 @@ registerAbilityVFX({
   ],
 });
 
+// The Rootwyrm dies: its roots burst apart in a shockwave of leaves and spores
+registerAbilityVFX({
+  abilityId: WORLD_VFX.ROOTWYRM_DEATH,
+  phases: [
+    phase('burst', 0, 'caster', [
+      shockwave('#8bc34a', 20, 230, 0.6, 16),
+      ring('#d4e157', 10, 150, 0.5, 4),
+      spikes('thorn', '#6d4c2f', 12, 120, 'ring', [26, 46], 1.4, '#9ccc65'),
+      petals('#7cb342', 24, [80, 220], 'leaf'),
+      sparks('#e6ee9c', 24, [180, 420]),
+      light('#9ccc65', 240, 1.4, 1.0, 0.3),
+    ], 0.6),
+    phase('spores', 0.2, 'caster', [
+      embers('#dcedc8', 26, 120, { lifetime: { min: 1.2, max: 2.0 } }),
+      smoke('#4e5a3a', 10, [20, 32], [30, 90], { lifetime: { min: 1.0, max: 1.6 } }),
+    ], 1.6),
+  ],
+});
+
 const SPECIAL_ATTACKS = MOBAConfig.JUNGLE.SPECIAL_ATTACKS;
 
 // A big monster's slam: a warning filling up over the windup, then the ground cracks
@@ -248,6 +272,29 @@ function registerMonsterSlam(
 
 registerMonsterSlam(SPECIAL_ATTACKS.blue_buff, '#64b5f6', '#8a96a8');
 registerMonsterSlam(SPECIAL_ATTACKS.red_buff, '#ff8a65', '#9a8478');
+
+const ERUPTION = SPECIAL_ATTACKS.rootwyrm;
+
+// The Rootwyrm's eruption: a warning filling up around it, then thorny roots
+// burst out of the ground all over it and hold whoever's caught
+registerAbilityVFX({
+  abilityId: ERUPTION.abilityId,
+  phases: [
+    phase('warning', 0, 'caster', [
+      warning('#9ccc65', ERUPTION.radius, ERUPTION.windup),
+      gather('#c5e1a5', 10, ERUPTION.radius * 0.9, ERUPTION.windup, 'leaf'),
+    ], ERUPTION.windup),
+    phase('eruption', ERUPTION.windup, 'caster', [
+      spikes('thorn', '#6d4c2f', 14, ERUPTION.radius * 0.85, 'area', [30, 54], 1.1, '#9ccc65'),
+      spikes('thorn', '#5d4037', 10, ERUPTION.radius * 0.95, 'ring', [36, 60], 1.1, '#aed581'),
+      shockwave('#8bc34a', ERUPTION.radius * 0.3, ERUPTION.radius * 1.05, 0.35, 10),
+      rocks('#5a4a3a', 12, [100, 220]),
+      petals('#7cb342', 14, [60, 160], 'leaf'),
+      light('#9ccc65', ERUPTION.radius * 1.2, 0.9, 0.5),
+      shake(4, 0.3),
+    ], 0.9),
+  ],
+});
 
 const DRAGON_BREATH = SPECIAL_ATTACKS.dragon;
 

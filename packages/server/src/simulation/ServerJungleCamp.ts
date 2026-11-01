@@ -20,6 +20,8 @@ export interface JungleCampConfig {
   creatureType: JungleCreatureType;
   count: number;
   respawnTime: number;
+  /** Seconds into the match it first spawns (default: at the start) */
+  firstSpawnAt?: number;
 }
 
 /**
@@ -31,6 +33,7 @@ export class ServerJungleCamp {
   readonly creatureType: JungleCreatureType;
   readonly count: number;
   readonly respawnTime: number;
+  readonly firstSpawnAt: number;
 
   // Tracking
   private creatureIds: Set<string> = new Set();
@@ -43,6 +46,27 @@ export class ServerJungleCamp {
     this.creatureType = config.creatureType;
     this.count = config.count;
     this.respawnTime = config.respawnTime;
+    this.firstSpawnAt = config.firstSpawnAt ?? 0;
+  }
+
+  /**
+   * Start the camp: spawn its creatures now or, for a camp that first
+   * spawns later, count down to it like a respawn (clients get the timer).
+   */
+  start(context: ServerGameContext): void {
+    if (this.firstSpawnAt <= 0) {
+      this.spawnCreatures(context);
+      return;
+    }
+    this.isCleared = true;
+    this.respawnTimer = this.firstSpawnAt;
+    context.addEvent(GameEventType.CAMP_CLEARED, {
+      campId: this.id,
+      creatureType: this.creatureType,
+      x: this.position.x,
+      y: this.position.y,
+      respawnAt: context.getGameTime() + this.firstSpawnAt,
+    });
   }
 
   /**

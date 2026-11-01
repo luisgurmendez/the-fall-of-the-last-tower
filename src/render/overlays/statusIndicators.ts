@@ -124,6 +124,16 @@ const MARK_VISUALS: Record<string, MarkVisualConfig> = {
   // Second halves of two-effect buffs: one icon per buff is enough
   crest_of_insight_regen: { icon: "", bgColor: "", borderColor: "", iconColor: "", showTimer: false, hidden: true },
   dragons_might_power: { icon: "", bgColor: "", borderColor: "", iconColor: "", showTimer: false, hidden: true },
+  heartwood_pact_ward: { icon: "", bgColor: "", borderColor: "", iconColor: "", showTimer: false, hidden: true },
+  heartwood_pact_sap: { icon: "", bgColor: "", borderColor: "", iconColor: "", showTimer: false, hidden: true },
+  heartwood_pact: {
+    icon: "H",
+    bgColor: "rgba(124, 179, 66, 0.85)",
+    borderColor: "#aed581",
+    iconColor: "#ffffff",
+    showTimer: true,
+    isBuff: true,
+  },
   dragons_might: {
     icon: "D",
     bgColor: "rgba(230, 126, 34, 0.85)",

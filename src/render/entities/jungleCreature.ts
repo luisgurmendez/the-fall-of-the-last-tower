@@ -75,6 +75,7 @@ const OLD_LOOKS: Record<string, CreatureLook> = {
   blue_buff: { sprites: BEAR, scale: 0.55, filter: "hue-rotate(185deg) saturate(1.5)" },
   red_buff: { sprites: BEAR, scale: 0.55, filter: "hue-rotate(-25deg) saturate(2) brightness(0.95)" },
   dragon: { sprites: BEAR, scale: 0.85, filter: "hue-rotate(250deg) saturate(1.7)" },
+  rootwyrm: { sprites: BEAR, scale: 0.85, filter: "hue-rotate(60deg) saturate(1.2) brightness(0.8)" },
 };
 
 const CREATURE_LOOKS: Record<string, CreatureLook> = {
@@ -103,6 +104,13 @@ const CREATURE_LOOKS: Record<string, CreatureLook> = {
     aura: "255, 140, 26",
     name: "Dragon",
     fallback: OLD_LOOKS.dragon,
+  },
+  rootwyrm: {
+    sprites: monsterSprites("rootwyrm"),
+    scale: 1.7,
+    aura: "156, 204, 101",
+    name: "Rootwyrm",
+    fallback: OLD_LOOKS.rootwyrm,
   },
 };
 

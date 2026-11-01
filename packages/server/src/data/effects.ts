@@ -713,6 +713,42 @@ export const DragonsMightPowerEffect: ServerStatEffectDef = {
   percentValue: 0.08,
 };
 
+/** Rootwyrm (Heartwood Pact): team-wide armor */
+export const HeartwoodPactEffect: ServerStatEffectDef = {
+  id: 'heartwood_pact',
+  name: 'Heartwood Pact',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: true,
+  stat: 'armor',
+  flatValue: 12,
+};
+
+/** Rootwyrm: team-wide magic resist */
+export const HeartwoodPactWardEffect: ServerStatEffectDef = {
+  id: 'heartwood_pact_ward',
+  name: 'Heartwood Pact',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: true,
+  stat: 'magic_resist',
+  flatValue: 12,
+};
+
+/** Rootwyrm: team-wide health regeneration */
+export const HeartwoodPactSapEffect: ServerStatEffectDef = {
+  id: 'heartwood_pact_sap',
+  name: 'Heartwood Pact',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: true,
+  stat: 'health_regen',
+  flatValue: 5,
+};
+
 // ===================
 // Item passives: markers with no stats, so the HUD and the champion's aura
 // show a passive's state (ChampionItemPassives applies and removes them)
@@ -841,6 +877,9 @@ export const ALL_SERVER_EFFECTS: AnyServerEffectDef[] = [
   CindersBurnEffect,
   DragonsMightEffect,
   DragonsMightPowerEffect,
+  HeartwoodPactEffect,
+  HeartwoodPactWardEffect,
+  HeartwoodPactSapEffect,
   // CC
   StunEffect,
   SilenceEffect,

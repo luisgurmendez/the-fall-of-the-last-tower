@@ -14,6 +14,7 @@ const TIPS = [
   "Tip: Press TAB to see the scoreboard",
   "Tip: Wards reveal invisible enemies",
   "Tip: Killing dragon gives team-wide buffs",
+  "Tip: The Rootwyrm wakes in the top river at 4:00; slaying it toughens your whole team",
 ];
 
 /**

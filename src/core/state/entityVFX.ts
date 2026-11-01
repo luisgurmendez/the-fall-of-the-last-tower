@@ -52,8 +52,9 @@ export class EntityVFX {
         } catch {
           // VFX manager not initialized yet, skip
         }
-        if ((entity.snapshot as { creatureType?: string }).creatureType === 'dragon') {
-          spawnWorldVFX(WORLD_VFX.DRAGON_DEATH, x, y);
+        const creatureType = (entity.snapshot as { creatureType?: string }).creatureType;
+        if (creatureType === 'dragon' || creatureType === 'rootwyrm') {
+          spawnWorldVFX(creatureType === 'dragon' ? WORLD_VFX.DRAGON_DEATH : WORLD_VFX.ROOTWYRM_DEATH, x, y);
           shakeScreen(6, 0.4, { x, y });
         } else {
           spawnWorldVFX(WORLD_VFX.CREATURE_DEATH, x, y);

@@ -22,6 +22,7 @@ const CREATURE_AREAS: Record<string, PickArea> = {
   blue_buff: { radius: 68, lift: 5 },
   red_buff: { radius: 70, lift: 8 },
   dragon: { radius: 114, lift: 9 },
+  rootwyrm: { radius: 114, lift: 9 },
 };
 
 /** Champions win ties with units around them by this much (of their area's radius) */

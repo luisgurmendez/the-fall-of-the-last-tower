@@ -329,7 +329,7 @@ export class OnlineMinimap extends ScreenEntity {
     for (const timer of this.stateManager.getCampTimers()) {
       const pos = this.worldToMinimap(timer.x, timer.y);
       const seconds = Math.ceil(timer.respawnAt - gameTime);
-      const epic = timer.creatureType === 'dragon' || timer.creatureType.endsWith('_buff');
+      const epic = timer.creatureType === 'dragon' || timer.creatureType === 'rootwyrm' || timer.creatureType.endsWith('_buff');
       ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
       ctx.fillRect(pos.x - 9, pos.y - 5, 18, 10);
       ctx.fillStyle = epic ? '#f5b041' : '#d5d8dc';

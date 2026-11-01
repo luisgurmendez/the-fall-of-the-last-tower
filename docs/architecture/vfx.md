@@ -533,7 +533,8 @@ Defined in `src/vfx/world.ts` (keys in `WORLD_VFX`). They use the same phase-bas
 | `fx_last_hit` | The local champion last-hits a minion or monster (`GOLD_EARNED` carries where it fell): a fountain of coins |
 | `fx_creature_death` | A jungle creature dies. Its special attack warning, if it was winding up, is cancelled (`VFXManager.cancelCasterEffects`) |
 | `fx_dragon_death` | The dragon dies: a large fiery shockwave, sparks and embers, and a light screen shake |
-| `jungle_slam_blue` / `jungle_slam_red` / `dragon_breath` | An `ABILITY_CAST` from a monster's special attack: a warning filling up over the wind-up (a circle, or the dragon's cone), then the hit: cracks and dust for the slams, a jet of flame for the breath (sizes from `MOBAConfig.JUNGLE.SPECIAL_ATTACKS`, see [jungle.md](jungle.md)) |
+| `fx_rootwyrm_death` | The Rootwyrm dies: a green shockwave, its thorny roots bursting up, leaves and spores drifting |
+| `jungle_slam_blue` / `jungle_slam_red` / `dragon_breath` / `rootwyrm_eruption` | An `ABILITY_CAST` from a monster's special attack: a warning filling up over the wind-up (a circle, or the dragon's cone), then the hit: cracks and dust for the slams, a jet of flame for the breath, thorny roots bursting out all over the Rootwyrm's circle (sizes from `MOBAConfig.JUNGLE.SPECIAL_ATTACKS`, see [jungle.md](jungle.md)) |
 | `vile_trap_trigger` / `vile_trap_explosion` | An `ABILITY_CAST` from one of Vile's traps snapping on someone, or blown up by his ultimate |
 
 Drawn directly by renderers rather than as VFX definitions:

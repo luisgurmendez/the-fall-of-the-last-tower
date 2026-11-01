@@ -182,6 +182,17 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
       attack: { mode: 'pixminimax', action: 'rears its head back then breathes a burst of fire forward', frames: 8 },
     },
   }),
+  monster('rootwyrm', {
+    name: 'Rootwyrm',
+    description: 'a huge ancient four-legged wyrm made of twisted brown tree roots and bark, a mossy green back with small glowing mushrooms, a long root tail and glowing amber eyes',
+    size: 128,
+    template: 'lion',
+    animations: {
+      idle: { mode: 'v3', action: 'standing still, breathing slowly, moss and mushrooms glowing softly', frames: 4 },
+      run: { mode: 'pixminimax', action: 'walks forward heavily on four root legs in a looping walk cycle', frames: 8 },
+      attack: { mode: 'pixminimax', action: 'rears up and slams its root claws down onto the ground in front of it, then settles back', frames: 8 },
+    },
+  }),
   {
     key: 'vile',
     outputDir: 'public/assets/champs/vile',

@@ -7,6 +7,9 @@
  *   their basic attacks burn and slow (ChampionBasicAttacks.applyOnHitBuffs)
  * - Dragon (Dragon's Might): +8% attack damage and ability power for every
  *   champion on the killer's team, kept through death
+ * - Rootwyrm (Heartwood Pact): +12 armor and magic resist and +5 health
+ *   regen per second for every champion on the killer's team, kept through
+ *   death
  */
 
 import { EntityType, GameEventType } from '@siege/shared';
@@ -20,6 +23,13 @@ export const JUNGLE_BUFF_DURATION = {
   BLUE: 90,
   RED: 90,
   DRAGON: 150,
+  ROOTWYRM: 150,
+};
+
+/** The epic monsters' team-wide effects */
+const TEAM_EFFECTS: Partial<Record<string, string[]>> = {
+  dragon: ['dragons_might', 'dragons_might_power'],
+  rootwyrm: ['heartwood_pact', 'heartwood_pact_ward', 'heartwood_pact_sap'],
 };
 
 const BUFF_EFFECTS: Partial<Record<string, string[]>> = {
@@ -47,16 +57,19 @@ export function grantJungleBuffs(
     return;
   }
 
-  if (creature.creatureType === 'dragon') {
+  const teamEffects = TEAM_EFFECTS[creature.creatureType];
+  if (teamEffects) {
+    const duration = creature.creatureType === 'dragon' ? JUNGLE_BUFF_DURATION.DRAGON : JUNGLE_BUFF_DURATION.ROOTWYRM;
     for (const ally of context.getChampionsBySide(champion.side)) {
-      ally.applyEffect('dragons_might', JUNGLE_BUFF_DURATION.DRAGON, creature.id);
-      ally.applyEffect('dragons_might_power', JUNGLE_BUFF_DURATION.DRAGON, creature.id);
+      for (const effectId of teamEffects) ally.applyEffect(effectId, duration, creature.id);
     }
+    // An epic monster slain (the event's name is the dragon's, which came first)
     context.addEvent(GameEventType.DRAGON_KILLED, {
       killerId: champion.id,
       side: champion.side,
-      duration: JUNGLE_BUFF_DURATION.DRAGON,
+      duration,
+      creatureType: creature.creatureType,
     });
-    Logger.game.info(`${champion.playerId} slew the dragon for team ${champion.side === 0 ? 'blue' : 'red'}`);
+    Logger.game.info(`${champion.playerId} slew the ${creature.creatureType} for team ${champion.side === 0 ? 'blue' : 'red'}`);
   }
 }

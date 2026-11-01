@@ -110,6 +110,7 @@ export class ServerGameContext {
         creatureType: campConfig.creatureType,
         count: campConfig.count,
         respawnTime: campConfig.respawnTime,
+        firstSpawnAt: (campConfig as { firstSpawnAt?: number }).firstSpawnAt,
       });
       this.jungleCamps.push(camp);
     }
@@ -121,7 +122,7 @@ export class ServerGameContext {
    */
   spawnJungleCamps(): void {
     for (const camp of this.jungleCamps) {
-      camp.spawnCreatures(this);
+      camp.start(this);
     }
   }
 

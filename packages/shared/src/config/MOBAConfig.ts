@@ -191,6 +191,16 @@ export const MOBAConfig = {
         count: 1,
         respawnTime: 300,
       },
+      // The top river's pit, mirroring the dragon's: the Rootwyrm wakes up
+      // a few minutes in
+      {
+        id: "rootwyrm",
+        position: new Vector(-DRAGON_PIT.x, -DRAGON_PIT.y),
+        creatureType: "rootwyrm" as const,
+        count: 1,
+        respawnTime: 360,
+        firstSpawnAt: 240,
+      },
     ],
 
     /**
@@ -277,6 +287,22 @@ export const MOBAConfig = {
           offset: { x: 0, y: 0 },
         },
       },
+      rootwyrm: {
+        health: 3200,
+        damage: 85,
+        attackRange: 110, // Its roots reach
+        attackCooldown: 1.8,
+        movementSpeed: 90,
+        sightRange: 260,
+        leashRange: 400,
+        goldReward: 250,
+        expReward: 300,
+        collision: {
+          type: "circle" as const,
+          radius: 44,
+          offset: { x: 0, y: 0 },
+        },
+      },
       spider: {
         health: 300,
         damage: 22,
@@ -342,6 +368,17 @@ export const MOBAConfig = {
         damage: 160,
         damageType: "magic" as const,
         effects: [{ id: "slow_20", duration: 1 }],
+      },
+      rootwyrm: {
+        abilityId: "rootwyrm_eruption",
+        shape: "circle" as const,
+        radius: 190,
+        windup: 1.3,
+        cooldown: 10,
+        firstUseAfter: 4,
+        damage: 150,
+        damageType: "magic" as const,
+        effects: [{ id: "root", duration: 1 }],
       },
     },
   },

@@ -68,7 +68,7 @@ export class JungleBot extends LaneBot {
     for (const entity of context.getAllEntities()) {
       if (entity.entityType !== EntityType.JUNGLE_CAMP || entity.isDead) continue;
       const creature = entity as ServerEntity & { campId: string; creatureType: string };
-      if (creature.creatureType === 'dragon' ? champion.level < DRAGON_LEVEL
+      if (creature.creatureType === 'dragon' || creature.creatureType === 'rootwyrm' ? champion.level < DRAGON_LEVEL
         : creature.position.distanceTo(ownSpawn) > creature.position.distanceTo(enemySpawn) + OWN_JUNGLE_MARGIN) continue;
       camps.set(creature.campId, [...(camps.get(creature.campId) ?? []), creature]);
     }

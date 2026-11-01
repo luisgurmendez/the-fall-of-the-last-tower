@@ -45,6 +45,7 @@ const MONSTER_NAMES: Record<string, string> = {
   blue_buff: 'Azure Warden',
   red_buff: 'Ember Brute',
   dragon: 'Dragon',
+  rootwyrm: 'Rootwyrm',
 };
 
 /**
@@ -266,10 +267,15 @@ export function processGameEvent(event: GameEvent, ctx: GameEventContext): void 
       break;
     }
     case GameEventType.DRAGON_KILLED: {
+      // An epic monster: the dragon or the Rootwyrm
       const allied = event.data.side === ctx.localSide;
+      const rootwyrm = event.data.creatureType === 'rootwyrm';
+      const monster = rootwyrm ? 'the Rootwyrm' : 'the Dragon';
       ctx.announcements.add({
-        text: allied ? 'Your team slew the Dragon!' : 'The enemy team slew the Dragon!',
-        detail: "Dragon's Might: +8% attack damage and ability power",
+        text: allied ? `Your team slew ${monster}!` : `The enemy team slew ${monster}!`,
+        detail: rootwyrm
+          ? 'Heartwood Pact: +12 armor and magic resist, +5 health regen'
+          : "Dragon's Might: +8% attack damage and ability power",
         color: allied ? '#5dade2' : '#ec7063',
         startTime: now,
         duration: ANNOUNCEMENT_DURATION,

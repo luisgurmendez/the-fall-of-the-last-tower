@@ -141,5 +141,13 @@
       "idle": "e5ae7327-9739-4bbe-86c7-5165d19dc831"
     },
     "characterId": "13a523e6-3a61-4012-bce4-ddd42bc69133"
+  },
+  "rootwyrm": {
+    "animations": {
+      "attack": "05288682-122d-4a1c-a91f-2ab954a8253d",
+      "idle": "0fbf6587-d2ff-4eff-8ab8-5ec96cc8a36b",
+      "run": "7098813e-7835-4170-ab32-aa7b1f647701"
+    },
+    "characterId": "c5912bca-0e73-47d0-8186-5586212cad5c"
   }
 }

@@ -50,6 +50,7 @@ export const SOUNDS = {
   monster_blue_buff: { prompt: `a giant ancient tortoise snapping its beak, a heavy thud with a crystal clink, ${DRY}`, duration: 0.7, volume: 0.85, maxVoices: 2 },
   monster_red_buff: { prompt: `a brute of molten rock swinging a heavy fist, a deep thud with sizzling lava, ${DRY}`, duration: 0.7, volume: 0.55, maxVoices: 2 },
   monster_dragon: { prompt: "a large dragon snapping its jaws with a short deep growl, video game sound effect, no music", duration: 0.8, volume: 0.6, maxVoices: 2 },
+  monster_rootwyrm: { prompt: `a huge creature of tree roots lashing its root claws down, a heavy wooden crack and thud, ${DRY}`, duration: 0.8, volume: 0.95, maxVoices: 2 },
   // Their special attacks: the wind-up, then where it lands
   jungle_slam_blue_windup: { prompt: `a giant tortoise rearing up with a deep groan as crystals hum and build up, ${DRY}`, duration: 1.1, volume: 0.6, maxVoices: 1 },
   jungle_slam_blue: { prompt: `a giant crystal shell crashing onto the ground, a heavy boom with shattering crystal, ${DRY}`, duration: 1.2, volume: 1, maxVoices: 1 },
@@ -57,6 +58,8 @@ export const SOUNDS = {
   jungle_slam_red: { prompt: `huge molten fists smashing the ground, a deep boom with cracking rock and hissing lava, ${DRY}`, duration: 1.2, volume: 1, maxVoices: 1 },
   dragon_breath_windup: { prompt: `a huge dragon inhaling deeply, fire rumbling in its throat, ${DRY}`, duration: 1, volume: 0.4, maxVoices: 1 },
   dragon_breath: { prompt: "a dragon breathing a roaring jet of fire, video game sound effect, no music", duration: 1.5, volume: 0.55, maxVoices: 1 },
+  rootwyrm_eruption_windup: { prompt: "a giant ancient tree creature groaning deeply as wood creaks and the ground rumbles, video game sound effect, no music", duration: 1.3, volume: 0.65, maxVoices: 1 },
+  rootwyrm_eruption: { prompt: `huge thorny roots bursting out of the ground all at once, cracking earth and splintering wood, ${DRY}`, duration: 1.3, volume: 1, maxVoices: 1 },
 
   // Deaths
   minion_death: { prompt: `a small soldier grunting and falling with armor clatter, ${DRY}`, duration: 0.7, volume: 0.25, maxVoices: 2 },

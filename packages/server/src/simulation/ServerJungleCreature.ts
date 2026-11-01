@@ -140,8 +140,8 @@ export class ServerJungleCreature extends ServerEntity {
   }
 
   override getMass(): number {
-    // Jungle creatures are heavier than minions
-    if (this.creatureType === 'dragon') {
+    // Jungle creatures are heavier than minions, the epic ones much more
+    if (this.creatureType === 'dragon' || this.creatureType === 'rootwyrm') {
       return 200;
     }
     return 80;
