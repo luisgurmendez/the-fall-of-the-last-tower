@@ -151,6 +151,16 @@ export const ICONS: Record<string, ChampionIcons> = {
       r: { seed: 8, prompt: 'a big white rabbit foot kicking with a burst of yellow stars' },
     },
   },
+  zhakrul: {
+    theme: 'crimson black chitin, venom green and desert sand',
+    icons: {
+      passive: { seed: 9, prompt: 'a drop of glowing green venom falling from a scorpion stinger' },
+      q: { seed: 9, prompt: 'two big crimson scorpion pincers snapping shut like scissors' },
+      w: { seed: 9, prompt: 'a billowing cloud of green poison gas with a skull shape in it' },
+      e: { seed: 8, prompt: 'a scorpion bursting up out of desert sand' },
+      r: { seed: 10, prompt: 'a huge scorpion stinger dripping glowing green venom' },
+    },
+  },
   uruk: {
     theme: 'silver, steel grey and icy blue',
     icons: {

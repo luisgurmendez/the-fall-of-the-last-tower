@@ -32,6 +32,12 @@ export interface ForcedMovement {
    * which ones matter.
    */
   touches?: { radius: number; touched: Set<string>; touch: (entity: ServerEntity) => void };
+  /**
+   * It goes under walls (e.g., Zhak'rul burrowed): walls don't push the
+   * champion out until it ends, so it should end on open ground
+   * (Terrain.landingSpot).
+   */
+  passesWalls?: boolean;
 }
 
 /**

@@ -7,6 +7,7 @@
  *   grid whose walls are inflated by a unit's clearance, so paths don't hug
  *   cliff edges
  * - hasLineOfSight(): straight line not crossing a wall
+ * - landingSpot(): where a unit going past walls (Blink, Zhak'rul's burrow) comes out
  */
 
 import { Vector, type MOBAConfig } from '@siege/shared';
@@ -21,6 +22,8 @@ interface Rect {
 
 /** Spatial bucket size for wall lookups */
 const BUCKET = 256;
+/** How far landingSpot steps back looking for room past a wall */
+const LANDING_STEP = 8;
 
 export class Terrain {
   readonly navGrid: ServerNavGrid;
@@ -131,6 +134,32 @@ export class Terrain {
     }
 
     return moved;
+  }
+
+  /**
+   * Where a unit of `radius` going from `from` toward `to`, at most
+   * `maxDistance` away, comes out: the spot itself, or inside a wall the
+   * farthest open spot short of it along the way (so it crosses a thin wall
+   * when there's room past it).
+   */
+  landingSpot(from: Vector, to: Vector, maxDistance: number, radius: number): Vector {
+    const offset = to.subtracted(from);
+    const distance = offset.length();
+    if (distance === 0) return from.clone();
+    const direction = offset.scaled(1 / distance);
+    for (let along = Math.min(distance, maxDistance); along > 0; along -= LANDING_STEP) {
+      const spot = from.added(direction.scaled(along));
+      if (!this.isBlocked(spot.x, spot.y) && !this.circleTouchesWall(spot, radius)) return spot;
+    }
+    return from.clone();
+  }
+
+  private circleTouchesWall(spot: Vector, radius: number): boolean {
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2;
+      if (this.isBlocked(spot.x + Math.cos(angle) * radius, spot.y + Math.sin(angle) * radius)) return true;
+    }
+    return false;
   }
 
   /**

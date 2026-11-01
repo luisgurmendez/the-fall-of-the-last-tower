@@ -167,6 +167,19 @@ export {
   HOP_HOP,
 } from './hop';
 
+// Zhak'rul
+export {
+  ZhakrulDefinition,
+  ZhakrulDeadlyPincers,
+  ZhakrulToxicCloud,
+  ZhakrulBurrowedAmbush,
+  ZhakrulDeathStinger,
+  ZhakrulAbilities,
+  ZhakrulPassive,
+  ZHAKRUL_VENOM,
+  ZHAKRUL_KIT,
+} from './zhakrul';
+
 // Lume
 export {
   LumeDefinition,

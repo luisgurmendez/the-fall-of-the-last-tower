@@ -6,7 +6,8 @@
  * of Cinders), so everyone can see who has them; Oitboil on fire while
  * he's overheated; Fenris's red rage, feral or in his bloodthirst; the
  * glow of Caelum's blessing on whoever he emboldened; Protobot's circuit
- * while he's learned something; and Hop-To-Eat's sugar rush.
+ * while he's learned something; Hop-To-Eat's sugar rush; and Zhak'rul's
+ * venom on whoever he poisoned, ancient at three doses.
  */
 
 import { recallElapsed } from "@/core/state/recallClock";
@@ -26,6 +27,9 @@ const BLESSING = fxColor("#a8e070");
 const BLESSING_LIGHT = fxColor("#fff2a8");
 const CIRCUIT = fxColor("#4ae0ff");
 const SUGAR = fxColor("#ff8ab8");
+const VENOM = fxColor("#8be04a");
+const VENOM_LIGHT = fxColor("#d4ff8a");
+const VENOM_DARK = fxColor("#3f8a1e");
 
 /** Feet are a little below a champion's position */
 const FEET = 18;
@@ -35,7 +39,7 @@ export interface ChampionAuraSnapshot {
   entityId?: string;
   isRecalling?: boolean;
   recallProgress?: number;
-  activeEffects?: Array<{ definitionId: string }>;
+  activeEffects?: Array<{ definitionId: string; stacks?: number }>;
 }
 
 /**
@@ -124,6 +128,19 @@ export function emitChampionAuras(ground: FXBatch, top: FXBatch, champion: Champ
     for (let i = 0; i < 4; i++) {
       const phase = (time * 1.4 + i / 4) % 1;
       top.glow(x + Math.sin(i * 1.9 + time * 3) * 18, feetY - 10 - Math.sin(phase * Math.PI) * 40, 4, SUGAR, 1.4 * (1 - phase * 0.6), 0.5, 0.6, 0.6, i);
+    }
+  }
+  const venom = effects.find((effect) => effect.definitionId === "zhakrul_venom");
+  if (venom) {
+    // Poisoned: green bubbles rising off it, more for each dose; ancient, a
+    // sickly glow at its feet too
+    const ancient = effects.some((effect) => effect.definitionId === "zhakrul_ancient_venom");
+    const doses = Math.max(1, Math.min(3, venom.stacks ?? 1));
+    if (ancient) ground.glow(x, feetY, 48, VENOM_DARK, 0.75 + 0.25 * Math.sin(time * 5), 0, 0, 0.5, 0.9);
+    const bubbles = doses * 2 + (ancient ? 3 : 0);
+    for (let i = 0; i < bubbles; i++) {
+      const phase = (time * 0.8 + i / bubbles) % 1;
+      top.glow(x + Math.sin(i * 2.7 + time * 1.5) * 16, feetY - 14 - phase * 48, ancient ? 5 : 4, i % 2 ? VENOM : VENOM_LIGHT, 1.3 * (1 - phase), 0.5, 0.5, 0.6, i);
     }
   }
   if (hasCinders) {

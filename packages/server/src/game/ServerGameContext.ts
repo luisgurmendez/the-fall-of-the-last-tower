@@ -389,6 +389,7 @@ export class ServerGameContext {
       if (entity.entityType !== EntityType.CHAMPION &&
           entity.entityType !== EntityType.MINION &&
           entity.entityType !== EntityType.JUNGLE_CAMP) continue;
+      if (entity.entityType === EntityType.CHAMPION && (entity as ServerChampion).forcedMovement?.passesWalls) continue;
       this.terrain.resolveCircle(entity.position, entity.getRadius());
     }
   }

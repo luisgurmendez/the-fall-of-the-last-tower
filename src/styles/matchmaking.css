@@ -863,7 +863,7 @@
 .matchmaking-container.champion-select-mode {
   padding: 20px;
   overflow: visible;
-  max-width: 1400px;
+  max-width: 1480px;
 }
 
 /* :has() based selectors for browsers that support it (fallback for JS not running) */

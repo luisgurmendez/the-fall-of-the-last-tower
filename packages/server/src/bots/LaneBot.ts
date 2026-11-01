@@ -117,6 +117,10 @@ const BUILDS: Record<ChampionClass, string[]> = {
   assassin: ATTACK_BUILD,
   marksman: ATTACK_BUILD,
 };
+/** Champions their class doesn't describe: Zhak'rul fights up close on ability power */
+const CHAMPION_BUILDS: Partial<Record<string, string[]>> = {
+  zhakrul: ['ember_shard', 'wanderers_boots', 'cinder_rod', 'heartstone', 'bulwark_belt', 'starfall_diadem', 'spiked_bastion'],
+};
 const R_REQUIRED_LEVELS = [6, 11, 16];
 
 /** Health ratio under which an ally gets the bot's heals and shields */
@@ -427,7 +431,7 @@ export class LaneBot implements BotController {
    */
   private chooseItemToBuy(champion: ServerChampion): BotInput | null {
     const inventory = champion.items.map(item => item?.definitionId);
-    const build = BUILDS[champion.definition.class] ?? ATTACK_BUILD;
+    const build = CHAMPION_BUILDS[champion.definition.id] ?? BUILDS[champion.definition.class] ?? ATTACK_BUILD;
     const done = (id: string) => inventory.some(owned => owned && (owned === id || isItemPartOf(id, owned)));
     const itemId = build.find(id => {
       if (done(id)) return false;

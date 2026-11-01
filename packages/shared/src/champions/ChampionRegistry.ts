@@ -27,6 +27,7 @@ import {
   CalamitusDefinition,
   ProtobotDefinition,
   HopDefinition,
+  ZhakrulDefinition,
 } from './definitions';
 
 // Re-export individual definitions for backward compatibility
@@ -46,6 +47,7 @@ export {
   CalamitusDefinition,
   ProtobotDefinition,
   HopDefinition,
+  ZhakrulDefinition,
 };
 
 // =============================================================================
@@ -71,6 +73,7 @@ export const CHAMPION_DEFINITIONS: Record<string, ChampionDefinition> = {
   calamitus: CalamitusDefinition,
   protobot: ProtobotDefinition,
   hop: HopDefinition,
+  zhakrul: ZhakrulDefinition,
 };
 
 /**

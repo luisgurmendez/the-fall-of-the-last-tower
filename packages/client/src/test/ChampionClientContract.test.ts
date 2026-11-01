@@ -54,6 +54,7 @@ const OTHER_CAST_EVENT_IDS = [
   'protobot_r_pulse',
   'hop_hop',
   'hop_r_crash',
+  'zhakrul_e_burst',
   ...Object.values(MOBAConfig.JUNGLE.SPECIAL_ATTACKS).map((attack) => attack.abilityId),
 ];
 

@@ -80,6 +80,8 @@ export const ABILITY_CUES: Record<string, AbilityCue[]> = {
   ],
   protobot_e: [{ sound: "protobot_e", at: "target" }],
   hop_r_crash: [{ sound: "hop_r_crash", at: "target" }],
+  zhakrul_q: [{ sound: "zhakrul_q", delay: landsAt("zhakrul_q") }],
+  zhakrul_r: [{ sound: "zhakrul_r", at: "target" }],
   // Jungle monsters' special attacks: a wind-up, then the hit (cut short if the monster dies first)
   jungle_slam_blue: [{ sound: "jungle_slam_blue_windup" }, { sound: "jungle_slam_blue", delay: windup("blue_buff") }],
   jungle_slam_red: [{ sound: "jungle_slam_red_windup" }, { sound: "jungle_slam_red", delay: windup("red_buff") }],

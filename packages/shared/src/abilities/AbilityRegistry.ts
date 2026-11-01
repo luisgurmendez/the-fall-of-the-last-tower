@@ -87,6 +87,11 @@ import {
   HopCarrotBreak,
   HopBunnyHop,
   HopSavageKick,
+  ZhakrulAbilities,
+  ZhakrulDeadlyPincers,
+  ZhakrulToxicCloud,
+  ZhakrulBurrowedAmbush,
+  ZhakrulDeathStinger,
 } from '../champions/definitions';
 
 // Re-export individual abilities for backward compatibility
@@ -166,6 +171,11 @@ export {
   HopCarrotBreak,
   HopBunnyHop,
   HopSavageKick,
+  // Zhak'rul
+  ZhakrulDeadlyPincers,
+  ZhakrulToxicCloud,
+  ZhakrulBurrowedAmbush,
+  ZhakrulDeathStinger,
 };
 
 // =============================================================================
@@ -191,6 +201,7 @@ export const ABILITY_DEFINITIONS: Record<string, AbilityDefinition> = {
   ...CalamitusAbilities,
   ...ProtobotAbilities,
   ...HopAbilities,
+  ...ZhakrulAbilities,
 };
 
 /**

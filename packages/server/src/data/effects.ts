@@ -9,7 +9,7 @@ import type {
   StackBehavior,
   StatModificationType,
 } from '@siege/shared';
-import { CALAMITUS_LAVA, PROTOBOT_MACHINE } from '@siege/shared';
+import { CALAMITUS_LAVA, PROTOBOT_MACHINE, ZHAKRUL_VENOM } from '@siege/shared';
 
 /**
  * Base effect definition for server.
@@ -696,6 +696,28 @@ export const HopSugarRushEffect: ServerStatEffectDef = {
   percentValue: 0.3,
 };
 
+// Zhak'rul's Ancient Venom (passive): the doses on an enemy, for its status
+// icons (the damage ticks come from ZhakrulHooks, which also poison monsters)
+export const ZhakrulVenomEffect: ServerEffectDefinition = {
+  id: 'zhakrul_venom',
+  name: 'Ancient Venom',
+  category: 'debuff',
+  stackBehavior: 'stack',
+  maxStacks: ZHAKRUL_VENOM.maxStacks,
+  cleansable: true,
+  persistsThroughDeath: false,
+};
+
+// At three doses the venom turns ancient and burns harder (ZhakrulHooks)
+export const ZhakrulAncientVenomEffect: ServerEffectDefinition = {
+  id: 'zhakrul_ancient_venom',
+  name: 'Ancient Venom (ancient)',
+  category: 'debuff',
+  stackBehavior: 'refresh',
+  cleansable: true,
+  persistsThroughDeath: false,
+};
+
 // Lume's Prismatic Beam (E): a beam runs from her to the orb while it lasts (LumeHooks)
 export const LumePrismEffect: ServerEffectDefinition = {
   id: 'lume_prism',
@@ -1199,6 +1221,8 @@ export const ALL_SERVER_EFFECTS: AnyServerEffectDef[] = [
   ProtobotLearningMREffect,
   HopEatingEffect,
   HopSugarRushEffect,
+  ZhakrulVenomEffect,
+  ZhakrulAncientVenomEffect,
   UrukSpearChargeEffect,
   UrukPiercingEffect,
   UrukHuntEffect,

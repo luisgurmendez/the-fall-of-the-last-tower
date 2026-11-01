@@ -197,6 +197,13 @@ export const SOUNDS = {
   hop_e: { prompt: `a big cartoon boing jump and a soft landing thump, ${DRY}`, duration: 0.6, volume: 1, maxVoices: 2 },
   hop_r: { prompt: `a powerful flying kick, a fast spinning whoosh and a huge cartoon impact smack, ${DRY}`, duration: 0.7, volume: 0.65, maxVoices: 2 },
   hop_r_crash: { prompt: `two bodies crashing into each other, a heavy thud with a cartoon bonk, ${DRY}`, duration: 0.6, volume: 1.4, maxVoices: 2 },
+  // Zhak'rul: a giant scorpion, chitin, sand and venom
+  zhakrul_attack: { prompt: `a big scorpion pincer snapping shut, a hard chitin clack, ${DRY}`, duration: 0.5, volume: 1, maxVoices: 3 },
+  zhakrul_q: { prompt: `two huge scorpion pincers snapping shut together like giant scissors, a sharp double chitin clack and a slice, ${DRY}`, duration: 0.6, volume: 0.9, maxVoices: 2 },
+  zhakrul_w: { prompt: `a giant creature hissing out a big cloud of poison gas, a long venomous hiss with bubbling, ${DRY}`, duration: 1.2, volume: 0.65, maxVoices: 2 },
+  zhakrul_e: { prompt: `a big creature burrowing fast into sand, digging and sand pouring, ${DRY}`, duration: 0.7, volume: 0.55, maxVoices: 2 },
+  zhakrul_e_burst: { prompt: `a giant scorpion bursting up out of the ground, an explosive burst of sand and rocks with a chitin clack, ${DRY}`, duration: 0.8, volume: 1, maxVoices: 2 },
+  zhakrul_r: { prompt: `a huge scorpion stinger stabbing into flesh and injecting venom, a sharp stab and a sinister squelch with a hiss, ${DRY}`, duration: 0.9, volume: 0.55, maxVoices: 2 },
   elora_r_rain:{ prompt: `a rain of arrows striking the ground, many rapid thuds and whistles, ${DRY}`, duration: 0.9, volume: 1, maxVoices: 2 },
 
   // Announcements (a tower, an inhibitor or the dragon falls, a champion kill)

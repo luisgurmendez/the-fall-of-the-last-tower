@@ -37,7 +37,7 @@
 .champion-grid {
   display: flex;
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
   margin-bottom: 16px;
   flex-wrap: wrap;
 }

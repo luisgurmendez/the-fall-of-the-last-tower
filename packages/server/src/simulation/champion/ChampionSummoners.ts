@@ -27,9 +27,6 @@ export interface SummonerTarget {
   entityId?: string;
 }
 
-/** How far Blink looks for room past a wall when its landing spot is inside one */
-const BLINK_STEP = 8;
-
 export class ChampionSummoners {
   private spells: { id: SummonerSpellId; cooldownRemaining: number }[] = [];
 
@@ -71,7 +68,8 @@ export class ChampionSummoners {
     switch (spell.id) {
       case 'blink': {
         if (!champion.ccStatus.canUseMobilityAbilities || target.x === undefined || target.y === undefined) return false;
-        const to = this.blinkDestination(new Vector(target.x, target.y), definition.range ?? 0, context);
+        // Past a thin wall when there's room beyond it
+        const to = context.terrain.landingSpot(from, new Vector(target.x, target.y), definition.range ?? 0, champion.getRadius());
         champion.position.setFrom(to);
         champion.forcedMovement = null;
         event = { toX: to.x, toY: to.y };
@@ -134,33 +132,6 @@ export class ChampionSummoners {
     champion.cancelRecall();
     context.addEvent(GameEventType.SUMMONER_CAST, { entityId: champion.id, spellId: spell.id, x: from.x, y: from.y, ...event });
     return true;
-  }
-
-  /**
-   * Where Blink lands: toward the target, at most its range away; inside a
-   * wall, the farthest open spot short of it along the way (so it crosses a
-   * thin wall when there's room past it).
-   */
-  private blinkDestination(target: Vector, range: number, context: ServerGameContext): Vector {
-    const from = this.champion.position;
-    const offset = target.subtracted(from);
-    const distance = offset.length();
-    if (distance === 0) return from.clone();
-    const direction = offset.scaled(1 / distance);
-    const radius = this.champion.getRadius();
-    for (let along = Math.min(distance, range); along > 0; along -= BLINK_STEP) {
-      const spot = from.added(direction.scaled(along));
-      if (!context.terrain.isBlocked(spot.x, spot.y) && !this.touchesWall(spot, radius, context)) return spot;
-    }
-    return from.clone();
-  }
-
-  private touchesWall(spot: Vector, radius: number, context: ServerGameContext): boolean {
-    for (let i = 0; i < 8; i++) {
-      const angle = (i / 8) * Math.PI * 2;
-      if (context.terrain.isBlocked(spot.x + Math.cos(angle) * radius, spot.y + Math.sin(angle) * radius)) return true;
-    }
-    return false;
   }
 
   /** The allied champion (not the caster) in range missing the most health */

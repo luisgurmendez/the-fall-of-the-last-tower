@@ -21,3 +21,4 @@ import './fenris';
 import './calamitus';
 import './protobot';
 import './hop';
+import './zhakrul';

@@ -549,6 +549,20 @@ const EFFECT_DISPLAY_INFO: Record<string, EffectDisplayInfo> = {
     icon: 'W',
     color: '#ff8ab8',
   },
+  zhakrul_venom: {
+    name: 'Ancient Venom',
+    description: "Poisoned by Zhak'rul: magic damage each second for each dose, up to 3.",
+    category: 'debuff',
+    icon: '☠',
+    color: '#8be04a',
+  },
+  zhakrul_ancient_venom: {
+    name: 'Ancient Venom',
+    description: 'Three doses: the venom is ancient and deals 40% more damage.',
+    category: 'debuff',
+    icon: '☠',
+    color: '#5aa02a',
+  },
   heartwood_pact: {
     name: 'Heartwood Pact',
     description: 'Rootwyrm slain: +12 armor.',

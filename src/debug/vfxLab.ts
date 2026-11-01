@@ -55,12 +55,13 @@ interface Cell {
 
 const abilityIds = getAllRegisteredVFX().filter((id) => !only || id.includes(only)).sort();
 const projectileIds = Object.keys(PROJECTILE_STYLES).filter((id) => !only || id.includes(only)).sort();
-const ZONES = ["damage", "slow", "heal", "buff", "lava"];
+const ZONES = ["damage", "slow", "heal", "buff", "lava", "toxic_cloud"];
 /** Zones drawn by the ability that left them, as a zone type and that ability */
 const ABILITY_ZONES: Record<string, { zoneType: string; abilityId: string }> = {
   lava: { zoneType: "damage", abilityId: "calamitus_q" },
+  toxic_cloud: { zoneType: "slow", abilityId: "zhakrul_w" },
 };
-const AURAS = ["recall", "crest_of_insight", "crest_of_cinders", "both_crests", "oitboil_overheated", "fenris_feral", "fenris_bloodthirst", "caelum_embolden", "protobot_learning", "hop_sugar_rush"];
+const AURAS = ["recall", "crest_of_insight", "crest_of_cinders", "both_crests", "oitboil_overheated", "fenris_feral", "fenris_bloodthirst", "caelum_embolden", "protobot_learning", "hop_sugar_rush", "zhakrul_venom", "zhakrul_ancient_venom"];
 const ORBS: LightOrbState[] = ["orbiting", "traveling", "stationed", "destroyed"];
 const ids: Array<{ id: string; kind: Cell["kind"] }> = [
   ...abilityIds.map((id) => ({ id, kind: "ability" as const })),
@@ -147,11 +148,12 @@ function frame(): void {
       emitZone(gpu.groundFx, gpu.topFx, { entityId: cell.id, radius: 110, ...(ABILITY_ZONES[cell.id] ?? { zoneType: cell.id }), totalDuration: 5, remainingDuration: 5 - (seconds % 5) }, x, cell.casterY, seconds);
     } else if (cell.kind === "aura") {
       const recall = GameConfig.TIMING.RECALL_DURATION;
-      const crests = cell.id === "both_crests" ? ["crest_of_insight", "crest_of_cinders"] : [cell.id];
+      const crests = cell.id === "both_crests" ? ["crest_of_insight", "crest_of_cinders"]
+        : cell.id === "zhakrul_ancient_venom" ? ["zhakrul_venom", "zhakrul_ancient_venom"] : [cell.id];
       emitChampionAuras(gpu.groundFx, gpu.topFx, {
         isRecalling: cell.id === "recall",
         recallProgress: seconds % recall,
-        activeEffects: crests.map((definitionId) => ({ definitionId })),
+        activeEffects: crests.map((definitionId) => ({ definitionId, stacks: cell.id === "zhakrul_ancient_venom" ? 3 : 1 })),
       }, x, cell.casterY, seconds);
     }
   }

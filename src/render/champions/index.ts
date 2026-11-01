@@ -27,6 +27,7 @@ import { fenrisRenderer } from "./fenris";
 import { calamitusRenderer } from "./calamitus";
 import { protobotRenderer } from "./protobot";
 import { hopRenderer } from "./hop";
+import { zhakrulRenderer } from "./zhakrul";
 import { vileRenderer } from "./vile";
 import { warriorRenderer } from "./warrior";
 
@@ -54,6 +55,7 @@ export const CHAMPION_RENDERERS: Readonly<
   calamitus: calamitusRenderer,
   protobot: protobotRenderer,
   hop: hopRenderer,
+  zhakrul: zhakrulRenderer,
   vex: vexRenderer,
   vile: vileRenderer,
   warrior: warriorRenderer,

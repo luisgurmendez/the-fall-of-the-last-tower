@@ -25,6 +25,7 @@ export const CHAMPION_ICONS: Record<string, string> = {
   calamitus: "🌋",
   protobot: "🤖",
   hop: "🐰",
+  zhakrul: "🦂",
 };
 
 /** Idle sprite strips: square frames side by side, the first one is used */
@@ -44,6 +45,7 @@ const IDLE_SPRITES: Record<string, string> = {
   calamitus: "/assets/champs/calamitus/idle.png",
   protobot: "/assets/champs/protobot/idle.png",
   hop: "/assets/champs/hop/idle.png",
+  zhakrul: "/assets/champs/zhakrul/idle.png",
 };
 
 /** The champion's face */

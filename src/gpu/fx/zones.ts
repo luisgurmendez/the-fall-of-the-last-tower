@@ -1,7 +1,9 @@
 /**
  * Zones (persistent ground effects) drawn on the GPU, by zone type: burning
  * ground with flames licking up and embers rising, a pool of mud with
- * bubbles, a healing circle with motes rising, a blue circle for buffs.
+ * bubbles, a healing circle with motes rising, a blue circle for buffs;
+ * some abilities' zones have their own look (Calamitus's lava, Zhak'rul's
+ * toxic cloud).
  * Each fades in when it appears and out as it runs out.
  */
 
@@ -34,6 +36,12 @@ const CRUST = fxColor("#2a1410");
 /** Calamitus's lava: molten pools, not flames (the stream's pools have no rim) */
 const LAVA_ZONES = new Set(["calamitus_q", "calamitus_w"]);
 const LAVA_STREAMS = new Set(["calamitus_w"]);
+
+const GAS = fxColor("#6fcf3a");
+const GAS_HAZE = fxColor("#b8e64a");
+const GAS_LIGHT = fxColor("#c4f57a");
+/** Zhak'rul's Toxic Cloud: billowing green gas, not mud */
+const GAS_ZONES = new Set(["zhakrul_w"]);
 
 /** Golden-angle spiral: n points spread evenly over a disc */
 function spot(i: number, n: number, radius: number): { x: number; y: number } {
@@ -83,6 +91,10 @@ export function emitZone(ground: FXBatch, top: FXBatch, zone: ZoneSnapshot, x: n
       break;
     }
     case "slow": {
+      if (GAS_ZONES.has(zone.abilityId ?? "")) {
+        emitToxicCloud(ground, top, x, y, radius, fade, time, seed);
+        break;
+      }
       ground.dust(x, y, radius * 1.02, MUD, 0.75 * fade, seed);
       ground.dust(x, y, radius * 0.7, MUD_DARK, 0.45 * fade, seed + 0.3);
       ground.ring(x, y, radius * 0.97, 4, MUD_LIGHT, 0.35 * fade, 1, 0, seed);
@@ -107,6 +119,30 @@ export function emitZone(ground: FXBatch, top: FXBatch, zone: ZoneSnapshot, x: n
       }
       break;
     }
+  }
+}
+
+/**
+ * A cloud of poison gas: a sickly green haze on the ground, billows
+ * drifting and swelling over it, and venom bubbles rising.
+ */
+function emitToxicCloud(ground: FXBatch, top: FXBatch, x: number, y: number, radius: number, fade: number, time: number, seed: number): void {
+  ground.dust(x, y, radius * 1.02, GAS_HAZE, 0.5 * fade, seed);
+  ground.glow(x, y, radius * 0.95, GAS, 0.35 * fade, 0, 0, 0.4, seed);
+  ground.ring(x, y, radius * 0.97, 3, GAS, 0.4 * fade, 1, 0, seed);
+  // Billows of gas swelling up and thinning out, each on its own cycle
+  const puffs = Math.max(10, Math.min(22, Math.round(radius / 9)));
+  for (let i = 0; i < puffs; i++) {
+    const p = spot(i, puffs, radius * 0.82);
+    const age = 0.1 + 0.8 * fract(time * (0.3 + (i % 4) * 0.06) + i * 0.618 + seed);
+    const drift = Math.sin(time * 0.8 + i * 1.7) * 8;
+    const size = radius * 0.2 + (i % 5) * 3;
+    top.flame(x + p.x + drift, y + p.y - age * 14, size, i % 3 === 0 ? GAS_LIGHT : GAS, 0.6 * fade, age, 0.9, 1.2, seed + i * 0.07, 0);
+  }
+  for (let i = 0; i < 8; i++) {
+    const p = spot(i * 2 + 1, 16, radius * 0.85);
+    const t = fract(time * 0.6 + i * 0.37 + seed);
+    top.glow(x + p.x, y + p.y - t * 40, 3, GAS_LIGHT, 1.2 * fade * (1 - t), 0.5, 0.4, 0.6, i * 0.1);
   }
 }
 

@@ -241,7 +241,10 @@ Two engine pieces serve handlers that move or react to other units: a `ServerPro
 `onHit(entity, context)` callback, called after its damage (Protobot's claw pulls the champion it
 caught), and a `ForcedMovement` (a dash or a knockback, `champion.forcedMovement`) takes `touches`,
 a callback for each unit it runs into on the way (the champions Hop-To-Eat's kick sends a champion
-flying into).
+flying into). A `ForcedMovement` with `passesWalls` isn't pushed out of walls while it runs (Zhak'rul
+burrowed); it should end where `Terrain.landingSpot` finds open ground, the spot Blink uses too. The
+generic cone (`executeConeAbility`) takes a `damageFor(entity, damage)` callback for damage that
+depends on the target (Zhak'rul's pincers on the poisoned).
 
 `initializeAbilityHandlers()` (called at server startup) registers both handlers and hooks.
 

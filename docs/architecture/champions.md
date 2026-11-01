@@ -38,10 +38,10 @@ measured center to center (`isInRange`).
 Ranges follow the map's scale (0.4 of the classic MOBA's, see [map.md](map.md#scale)):
 a melee unit hits with its body almost touching the target's, and a ranged champion's range
 is under two seconds of walking. Current values: Vex and Warrior 55, Gorath 60, Vile 180
-(55 during R), Hop-To-Eat 55 (250 when its hop is ready), Fenris 60, Protobot 65, Calamitus 70, Uruk 95, Oitboil 150 (short bursts of flame), Caelum 200, Elara 210, Magnus and Lume 220,
+(55 during R), Hop-To-Eat 55 (250 when its hop is ready), Fenris 60, Protobot 65, Calamitus and Zhak'rul 70, Uruk 95, Oitboil 150 (short bursts of flame), Caelum 200, Elara 210, Magnus and Lume 220,
 Elora 240 (the longest bow). Minions: melee 44, super 70, siege 140,
 caster 220. Towers 300 (they see 440). Melee monsters 40-60, thornspitter 100, dragon 200.
-Champions walk 99-105 units a second (under the classic MOBA's at our scale, for a calmer pace with the closer camera) and see 560; minions walk 88.
+Champions walk 99-106 units a second (under the classic MOBA's at our scale, for a calmer pace with the closer camera) and see 560; minions walk 88.
 
 ## Resource Types
 
@@ -537,7 +537,7 @@ Collaborators clear it with `invalidateStats()`. Code that changes `items`, `lev
 ## Adding New Champions
 
 Urûk, Oitboil, Elora, Caelum, Fenris, Calamitus, Protobot 45 and Hop-To-Eat were added this way, all adapted from the
-user's own card game (see their files for examples; Oitboil's passive is heat shown as the
+user's own card game, and Zhak'rul, designed by the user (see their files for examples; Oitboil's passive is heat shown as the
 passive's stacks, with `stackName` naming them in the tooltip, and Elora's is her aim the same way):
 
 | Champion | Role | Kit in short |
@@ -547,6 +547,7 @@ passive's stacks, with `stackName` naming them in the tooltip, and Elora's is he
 | Fenris, the Cursed Howler | Jungle and top | Feral under 40% health (+30% ability damage, a bigger bite heal, speed). Q a bite that heals, W a rake of claws (slow), E a pounce, R Bloodthirst: faster attacks with life steal, a kill heals him to full |
 | Calamitus, the Flowing Magma | Tank (top, support) | His abilities leave pools of lava that burn enemies; in his lava he gains 15 armor and magic resist. Q lava around him, W a landslide down a line leaving a stream of lava, E an obsidian shield (stronger on his lava), R every pool erupts and stuns |
 | Protobot 45, the Sentient Machine | Tank (support, top) | Machine Learning: each time an enemy champion damages him (once a second) he gains 3 armor and magic resist for 6 s, up to 6 times. Q a magnetic claw: the first enemy hit is damaged, a champion is pulled to him (stunned on the way) and he gains a shield. W a shield and speed, E a rocket punch (knock-up, a small shield), R a pulse after half a second: damage, silence, and it breaks enemy champions' shields |
+| Zhak'rul, the Ancient Scorpion | Fighter on ability power (jungle, top) | Ancient Venom: basic attacks, Toxic Cloud and Death Stinger poison for 3 s (magic damage each second per dose, up to 3; at 3 it's ancient, +40%); the doses are kept on him so monsters are poisoned too, and the bots build ability power (`CHAMPION_BUILDS` in `LaneBot.ts`). Q pincers in a cone, +10% per dose on the target, W a cloud that stays 4 s (slows, hurts 25% more each second an enemy stays, a dose each second), E travels underground, under walls too, and bursts out (knock-up), R a stinger: stun, then magic damage over 3 s (+15% per dose) and every dose |
 | Hop-To-Eat, Deadly Cuteness | Assassin (jungle, mid) | Hop to It!: every 6 s its next basic attack reaches 250 and hops onto the target (a dash timed to land before the blow) for bonus damage. Q a bite through armor (-10 armor, then the damage), W eats a carrot (a heal on missing health, rooted 0.75 s, then +30% attack speed), E a hop that readies the next Hop to It!, R a kick that sends an enemy champion flying 380, stunned; enemy champions it crashes into take the same damage and are knocked up |
 
 

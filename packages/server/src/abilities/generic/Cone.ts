@@ -2,7 +2,8 @@
  * Generic cone (a `ground_target` with shape 'cone' and a coneAngle):
  * damage and effects on enemies in a cone from the caster toward the target.
  * With aoeDelay it lands later (the swing), from wherever the caster is
- * then, still aimed where the cast was.
+ * then, still aimed where the cast was. A handler can change the damage
+ * for each entity hit (damageFor), e.g. Zhak'rul's pincers on the poisoned.
  */
 
 import {
@@ -11,6 +12,7 @@ import {
   type AbilityDefinition,
 } from "@siege/shared";
 import type { AbilityCastParams } from "../../simulation/ServerAbilityExecutor";
+import type { ServerEntity } from "../../simulation/ServerEntity";
 import { getScalingStats, applyEffectsToEntity } from "./AbilityHelpers";
 
 /**
@@ -20,7 +22,8 @@ export function executeConeAbility(
   params: AbilityCastParams,
   definition: AbilityDefinition,
   rank: number,
-  damageMultiplier: number = 1.0
+  damageMultiplier: number = 1.0,
+  damageFor?: (entity: ServerEntity, damage: number) => number
 ): void {
   const { champion, targetPosition, context } = params;
 
@@ -38,7 +41,7 @@ export function executeConeAbility(
     damageAmount = calculateAbilityValue(definition.damage.scaling, rank, getScalingStats(champion, stats)) * damageMultiplier;
   }
 
-  const applyCone = () => applyConeArea(params, definition, dirAngle, damageAmount);
+  const applyCone = () => applyConeArea(params, definition, dirAngle, damageAmount, damageFor);
   if (definition.aoeDelay && definition.aoeDelay > 0) {
     context.schedule(definition.aoeDelay, applyCone);
   } else {
@@ -53,7 +56,8 @@ function applyConeArea(
   params: AbilityCastParams,
   definition: AbilityDefinition,
   dirAngle: number,
-  damageAmount: number
+  damageAmount: number,
+  damageFor?: (entity: ServerEntity, damage: number) => number
 ): void {
   const { champion, context } = params;
   if (champion.isDead) return;
@@ -82,7 +86,7 @@ function applyConeArea(
     if (angleDiff <= coneAngle / 2) {
       // Entity is in cone
       if (damageAmount > 0 && definition.damage) {
-        entity.takeDamage(damageAmount, definition.damage.type, champion.id, context);
+        entity.takeDamage(damageFor ? damageFor(entity, damageAmount) : damageAmount, definition.damage.type, champion.id, context);
       }
 
       if (definition.appliesEffects) {

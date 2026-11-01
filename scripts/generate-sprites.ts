@@ -63,6 +63,9 @@ interface ChampionActions {
   /** Canvas in pixels (default 96); smaller makes chunkier pixels, closer to the ground's */
   size?: number;
   detail?: string;
+  /** Idle and walk, for a champion that doesn't stand or walk like a person (default: breathing, PixelLab's walk) */
+  idle?: string;
+  walk?: string;
   attack: string;
   q: string;
   w: string;
@@ -84,8 +87,10 @@ function champion(championId: string, actions: ChampionActions): SpriteSetSpec {
     detail: actions.detail,
     template: 'mannequin',
     animations: {
-      idle: { mode: 'v3', action: 'standing ready, breathing calmly', frames: 4 },
-      walk: { mode: 'template', template: 'walking-6-frames' },
+      idle: { mode: 'v3', action: actions.idle ?? 'standing ready, breathing calmly', frames: 4 },
+      walk: actions.walk
+        ? { mode: 'pixminimax', action: actions.walk, frames: 8 }
+        : { mode: 'template', template: 'walking-6-frames' },
       attack: cast(actions.attack),
       q: cast(actions.q),
       w: cast(actions.w),
@@ -306,6 +311,19 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
     w: 'sits down and munches a big orange carrot happily',
     e: 'hops high up into the air and lands',
     r: 'spins around and delivers a powerful flying kick forward',
+  }),
+  champion('zhakrul', {
+    name: "Zhak'rul",
+    size: 64,
+    detail: 'low detail',
+    description: 'a big armored desert scorpion seen from the side, dark crimson and black carapace plates, two huge heavy pincers, six legs, a long segmented tail curled high over its back ending in a glowing green venom stinger, small glowing green eyes',
+    idle: 'standing still on its six legs, tail swaying slowly, pincers clicking',
+    walk: 'scuttles forward on its six legs in a looping walk cycle, tail raised high',
+    attack: 'snaps forward with one big pincer',
+    q: 'snaps both big pincers shut together in front of it like scissors',
+    w: 'shakes its tail and puffs out a big cloud of green poison gas all around itself',
+    e: 'bursts up out of the sand with both pincers raised, sand flying',
+    r: 'strikes forward over its head with its tail, stabbing the glowing green stinger',
   }),
   champion('warrior', {
     name: 'Kael',
