@@ -62,6 +62,10 @@ export const LUME_ORB_CONFIG = {
   wPulseRadius: 150, // W heal/damage radius
   eBlindRadius: 100, // E blind radius on arrival
   rExplosionRadius: 180, // R explosion radius
+  // Called back (Q recast), the orb slows the enemies it passes through
+  returnSlowRadius: 50,
+  returnSlowEffect: "slow_30",
+  returnSlowDuration: 1.5,
 } as const;
 
 // =============================================================================
@@ -149,7 +153,7 @@ export const LumeQ: AbilityDefinition = {
   id: "lume_q",
   name: "Send the Light",
   description:
-    "Send the Light Orb to a target location, dealing {damage} magic damage to enemies in a small area on arrival. The orb remains stationed for 5 seconds. Recast to recall the orb early.",
+    "Send the Light Orb to a target location, dealing {damage} magic damage to enemies in a small area on arrival. The orb remains stationed for 4 seconds. Recast to call it back, slowing the enemies it passes through by 30% for 1.5 seconds.",
   type: "active",
   targetType: "ground_target",
   maxRank: 5,
@@ -164,7 +168,7 @@ export const LumeQ: AbilityDefinition = {
   recast: {
     id: "lume_q_recall",
     name: "Recall Light",
-    description: "Recall the Light Orb to orbit around you.",
+    description: "Recall the Light Orb to orbit around you. On its way back it slows the enemies it passes through by 30% for 1.5 seconds.",
     type: "active",
     targetType: "self",
     maxRank: 5,

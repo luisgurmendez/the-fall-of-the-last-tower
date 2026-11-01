@@ -48,6 +48,10 @@ export class ServerLightOrb extends ServerEntity {
   // Note: targetPosition is inherited from ServerEntity
   private isReturningToOwner: boolean = false;
 
+  // Called back by Lume (the Q recast): it slows the enemies it passes through, each once
+  private slowsOnReturn: boolean = false;
+  private slowedOnReturn: Set<string> = new Set();
+
   // Timers
   private stationedTimeRemaining: number = 0;
   private respawnTimeRemaining: number = 0;
@@ -121,6 +125,8 @@ export class ServerLightOrb extends ServerEntity {
     this.isReturningToOwner = true;
     this.stationedTimeRemaining = 0;
     this.onArrivalCallback = null;
+    this.slowsOnReturn = true;
+    this.slowedOnReturn.clear();
 
     return true;
   }
@@ -232,9 +238,15 @@ export class ServerLightOrb extends ServerEntity {
     const moveDistance = LUME_ORB_CONFIG.travelSpeed * dt;
     const arrivalThreshold = this.isReturningToOwner ? LUME_ORB_CONFIG.orbitRadius : 5;
 
+    // Called back, it slows the enemies it passes through
+    if (this.isReturningToOwner && this.slowsOnReturn) {
+      this.slowEnemiesInPath(owner, context);
+    }
+
     if (distance <= Math.max(arrivalThreshold, moveDistance)) {
       if (this.isReturningToOwner) {
         // Returned to owner - start orbiting
+        this.slowsOnReturn = false;
         this._state = 'orbiting';
         this.orbitAngle = Math.atan2(
           this.position.y - owner.position.y,
@@ -262,6 +274,17 @@ export class ServerLightOrb extends ServerEntity {
 
     this.position.x += normalizedDx * moveDistance;
     this.position.y += normalizedDy * moveDistance;
+  }
+
+  /** Slow each enemy the returning orb touches, once per trip */
+  private slowEnemiesInPath(owner: ServerChampion, context: ServerGameContext): void {
+    for (const entity of context.getEntitiesInRadius(this.position, LUME_ORB_CONFIG.returnSlowRadius)) {
+      if (entity.side === owner.side || entity.isDead || this.slowedOnReturn.has(entity.id)) continue;
+      if (entity.entityType !== EntityType.CHAMPION && entity.entityType !== EntityType.MINION && entity.entityType !== EntityType.JUNGLE_CAMP) continue;
+      this.slowedOnReturn.add(entity.id);
+      (entity as ServerEntity & { applyEffect?(id: string, duration: number, sourceId?: string): void })
+        .applyEffect?.(LUME_ORB_CONFIG.returnSlowEffect, LUME_ORB_CONFIG.returnSlowDuration, owner.id);
+    }
   }
 
   private updateStationed(dt: number, owner: ServerChampion): void {

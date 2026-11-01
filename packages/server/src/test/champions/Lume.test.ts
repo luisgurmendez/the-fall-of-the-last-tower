@@ -172,6 +172,29 @@ describe("Lume", () => {
       expect(orb.state).toBe("traveling");
     });
 
+    test("slows the enemies it passes through when called back, each once", () => {
+      giveLumeOrb(arena);
+      const orb = arena.context.getAllEntities().find(e => e.entityType === EntityType.LIGHT_ORB) as unknown as ServerLightOrb;
+      // Out past Magnus (at 400), then back through him
+      orb.sendTo(new Vector(600, 0));
+      for (let i = 0; i < 60 && !orb.isStationed; i++) orb.update(1 / 30, arena.context);
+      expect(orb.isStationed).toBe(true);
+      expect(arena.red.getEffect(LUME_ORB_CONFIG.returnSlowEffect)).toBeUndefined();
+
+      orb.recall();
+      for (let i = 0; i < 60 && !orb.isOrbiting; i++) orb.update(1 / 30, arena.context);
+      expect(arena.red.getEffect(LUME_ORB_CONFIG.returnSlowEffect)).toBeDefined();
+    });
+
+    test("doesn't slow on its own way back after its time is up", () => {
+      giveLumeOrb(arena);
+      const orb = arena.context.getAllEntities().find(e => e.entityType === EntityType.LIGHT_ORB) as unknown as ServerLightOrb;
+      orb.sendTo(new Vector(600, 0));
+      // Stationed, then back on its own once the time is up, through Magnus
+      for (let i = 0; i < 300 && !orb.isOrbiting; i++) orb.update(1 / 30, arena.context);
+      expect(arena.red.getEffect(LUME_ORB_CONFIG.returnSlowEffect)).toBeUndefined();
+    });
+
     test("should not recall when orbiting", () => {
       const orb = new ServerLightOrb({
         id: "test-orb",
