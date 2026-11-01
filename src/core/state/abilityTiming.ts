@@ -1,7 +1,7 @@
 /**
  * When an ability takes effect after it's cast, as players see it: an area
  * lands after its aoeDelay (as on the server), a projectile leaves the hand
- * a moment after the cast, Kael's leap lands on its target; anything else
+ * a moment after the cast, a leap lands on its target; anything else
  * takes effect at once. Its VFX (src/vfx/champions/), its sounds
  * (src/audio/abilitySounds.ts) and the champion's cast strip (stripBody.ts)
  * all play their blow then, and the cast animation lasts past it
@@ -16,8 +16,9 @@ const IMPACT_TIMES: Record<string, number> = {
   magnus_fireball: 0.25,
   vex_shuriken: 0.2,
   vile_black_arrows: 0.2,
-  // Kael's leap: the blade of light lands on his target
+  // Leaps: the blow lands on the target
   warrior_ultimate: 0.37,
+  uruk_r: 0.35,
   // Lume's orb lands where it was sent
   lume_q: 0.2,
 };

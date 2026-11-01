@@ -47,6 +47,11 @@ import {
   LumeW,
   LumeE,
   LumeR,
+  UrukAbilities,
+  UrukThrust,
+  UrukSpearCharge,
+  UrukSilverScales,
+  UrukFatalStrike,
 } from '../champions/definitions';
 
 // Re-export individual abilities for backward compatibility
@@ -86,6 +91,11 @@ export {
   LumeW,
   LumeE,
   LumeR,
+  // Urûk
+  UrukThrust,
+  UrukSpearCharge,
+  UrukSilverScales,
+  UrukFatalStrike,
 };
 
 // =============================================================================
@@ -103,6 +113,7 @@ export const ABILITY_DEFINITIONS: Record<string, AbilityDefinition> = {
   ...GorathAbilities,
   ...VileAbilities,
   ...LumeAbilities,
+  ...UrukAbilities,
 };
 
 /**

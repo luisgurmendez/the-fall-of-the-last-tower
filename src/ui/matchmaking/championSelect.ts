@@ -17,7 +17,7 @@ import { showPortrait } from "./portraits";
  * Champions available for selection.
  * Filter to only show finished/polished champions.
  */
-export const ENABLED_CHAMPIONS = ['vex', 'lume', 'vile', 'warrior', 'magnus', 'elara', 'gorath'];
+export const ENABLED_CHAMPIONS = ['vex', 'lume', 'vile', 'warrior', 'magnus', 'elara', 'gorath', 'uruk'];
 
 /**
  * Champion select elements and the selected champion, which MatchmakingUI

@@ -59,6 +59,11 @@ export const ABILITY_CUES: Record<string, AbilityCue[]> = {
   vile_black_arrows: [{ sound: "vile_black_arrows", delay: landsAt("vile_black_arrows") }],
   vile_roots_of_vilix: [{ sound: "vile_roots_of_vilix", at: "target" }],
   vile_trap_trigger: [{ sound: "vile_trap_trigger", at: "target" }],
+  uruk_q: [{ sound: "uruk_q", delay: landsAt("uruk_q") }],
+  uruk_r: [
+    { sound: "uruk_r_leap" },
+    { sound: "uruk_r", delay: landsAt("uruk_r"), at: "target" },
+  ],
   // Jungle monsters' special attacks: a wind-up, then the hit (cut short if the monster dies first)
   jungle_slam_blue: [{ sound: "jungle_slam_blue_windup" }, { sound: "jungle_slam_blue", delay: windup("blue_buff") }],
   jungle_slam_red: [{ sound: "jungle_slam_red_windup" }, { sound: "jungle_slam_red", delay: windup("red_buff") }],

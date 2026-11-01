@@ -141,6 +141,13 @@ export const SOUNDS = {
   vile_trap_trigger: { prompt: `twisted roots snapping shut around someone's legs, a sharp wooden crack and creak, ${DRY}`, duration: 0.7, volume: 1, maxVoices: 2 },
   vile_trap_explosion: { prompt: `a cursed trap bursting with dark magic, a deep whooshing boom, ${DRY}`, duration: 0.9, volume: 0.95, maxVoices: 3 },
   vile_restoration_of_vilix: { prompt: "a dark demonic transformation, a deep monstrous growl with a surging wave of dark energy, video game sound effect, no music", duration: 1.8, volume: 0.55, maxVoices: 2 },
+  // Urûk: a silver dragonborn's spear and frost
+  uruk_q: { prompt: `a fast spear thrust, a sharp whoosh with a metallic hiss, ${DRY}`, duration: 0.5, volume: 0.75, maxVoices: 2 },
+  uruk_w: { prompt: `a spear spun once and readied, a ringing metallic shing with a frosty chime, ${DRY}`, duration: 0.7, volume: 1, maxVoices: 2 },
+  uruk_e: { prompt: `silver dragon scales hardening over armor, a crystalline metallic crackle, ${DRY}`, duration: 0.8, volume: 1, maxVoices: 2 },
+  uruk_e_burst: { prompt: `a burst of frost shattering outward, an icy crack and whoosh, ${DRY}`, duration: 0.9, volume: 0.9, maxVoices: 2 },
+  uruk_r_leap: { prompt: "a dragonborn warrior leaping high, a heavy whoosh with a short dragon growl, video game sound effect, no music", duration: 0.6, volume: 0.45, maxVoices: 2 },
+  uruk_r: { prompt: `a spear driven down into frozen ground, a heavy impact with cracking ice, ${DRY}`, duration: 1.2, volume: 0.85, maxVoices: 2 },
 
   // Announcements (a tower, an inhibitor or the dragon falls, a champion kill)
   stinger_good: { prompt: `a short triumphant brass fanfare hit, game notification`, duration: 1.5, bus: "ui", volume: 0.5, maxVoices: 1 },

@@ -17,6 +17,7 @@ export const CHAMPION_ICONS: Record<string, string> = {
   gorath: "🛡️",
   vile: "💀",
   lume: "☀️",
+  uruk: "🐉",
 };
 
 /** Idle sprite strips: square frames side by side, the first one is used */
@@ -28,6 +29,7 @@ const IDLE_SPRITES: Record<string, string> = {
   magnus: "/assets/champs/magnus/idle.png",
   elara: "/assets/champs/elara/idle.png",
   gorath: "/assets/champs/gorath/idle.png",
+  uruk: "/assets/champs/uruk/idle.png",
 };
 
 /** The champion's face */

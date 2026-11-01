@@ -19,6 +19,7 @@ import { gorathRenderer } from "./gorath";
 import { lumeRenderer } from "./lume";
 import { magnusRenderer } from "./magnus";
 import { vexRenderer } from "./vex";
+import { urukRenderer } from "./uruk";
 import { vileRenderer } from "./vile";
 import { warriorRenderer } from "./warrior";
 
@@ -38,6 +39,7 @@ export const CHAMPION_RENDERERS: Readonly<
   gorath: gorathRenderer,
   lume: lumeRenderer,
   magnus: magnusRenderer,
+  uruk: urukRenderer,
   vex: vexRenderer,
   vile: vileRenderer,
   warrior: warriorRenderer,

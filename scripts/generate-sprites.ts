@@ -48,6 +48,8 @@ interface SpriteSetSpec {
   description: string;
   /** Character canvas in pixels */
   size: number;
+  /** PixelLab's detail hint (default "medium detail"; "low detail" reads better at the game's size) */
+  detail?: string;
   /** PixelLab skeleton the character is fitted to: mannequin, dog, bear, cat, horse, lion */
   template: string;
   /** Animations by name; every set has an idle (the others' feet line up with it) */
@@ -58,6 +60,9 @@ interface SpriteSetSpec {
 interface ChampionActions {
   name: string;
   description: string;
+  /** Canvas in pixels (default 96); smaller makes chunkier pixels, closer to the ground's */
+  size?: number;
+  detail?: string;
   attack: string;
   q: string;
   w: string;
@@ -75,7 +80,8 @@ function champion(championId: string, actions: ChampionActions): SpriteSetSpec {
     outputDir: `public/assets/champs/${championId}`,
     name: actions.name,
     description: actions.description,
-    size: 96,
+    size: actions.size ?? 96,
+    detail: actions.detail,
     template: 'mannequin',
     animations: {
       idle: { mode: 'v3', action: 'standing ready, breathing calmly', frames: 4 },
@@ -212,6 +218,18 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
       r: { mode: 'pixminimax', action: 'throws his arms wide and roars as dark purple energy erupts around him', frames: 8 },
     },
   },
+  champion('uruk', {
+    name: 'Uruk',
+    // Less detail on a smaller canvas: chunkier pixels that read at the game's size
+    size: 64,
+    detail: 'low detail',
+    description: 'a tall silver-scaled dragonborn warrior with a dragon head, small horns and amber eyes, wearing silver plate armor with leather straps, holding a long spear with a dark steel blade',
+    attack: 'thrusts the spear forward in a quick jab',
+    q: 'steps in and lunges far forward with a long powerful spear thrust',
+    w: 'spins the spear once and holds it ready as the spear tip glows silver',
+    e: 'braces as glowing silver scales harden across his body',
+    r: 'leaps high into the air and plunges down driving the spear into the ground',
+  }),
   champion('warrior', {
     name: 'Kael',
     description: 'a young knight in steel plate armor with a blue tabard, holding a longsword and a round steel shield',
@@ -340,6 +358,7 @@ async function createCharacter(spec: SpriteSetSpec, seed: number): Promise<strin
     image_size: { width: spec.size, height: spec.size },
     view: 'low top-down',
     template_id: spec.template,
+    ...(spec.detail ? { detail: spec.detail } : {}),
     seed,
   });
   await waitForJob(created.background_job_id, `${spec.name} character`);

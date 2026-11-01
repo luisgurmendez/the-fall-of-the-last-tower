@@ -37,12 +37,14 @@ const ABILITIES_WITHOUT_VFX: Record<string, NoVFX> = {};
 
 /**
  * ABILITY_CAST events the server sends that aren't a plain cast: recasts use
- * `<abilityId>_recast` (handled below), Vile's traps send these, and so do
- * the jungle monsters' special attacks.
+ * `<abilityId>_recast` (handled below), Vile's traps send these, Urûk's
+ * scales send one when they burst (UrukHooks), and so do the jungle
+ * monsters' special attacks.
  */
 const OTHER_CAST_EVENT_IDS = [
   'vile_trap_trigger',
   'vile_trap_explosion',
+  'uruk_e_burst',
   ...Object.values(MOBAConfig.JUNGLE.SPECIAL_ATTACKS).map((attack) => attack.abilityId),
 ];
 

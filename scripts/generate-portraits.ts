@@ -43,6 +43,7 @@ export const PORTRAITS: Record<string, Portrait> = {
   vex: { sprite: 'public/assets/champs/vex/idle.png', pick: 0, prompt: 'a ninja in a dark navy hood and face mask, only the eyes showing, a scarf around the neck' },
   gorath: { sprite: 'public/assets/champs/gorath/idle.png', pick: 0, prompt: 'a huge bearded warrior with long brown hair, steel armor and leather straps' },
   vile: { sprite: 'public/assets/champs/vile/idle.png', pick: 4, prompt: 'a grim hunter in a black hood, the face in shadow, faint purple wisps of smoke around him' },
+  uruk: { sprite: 'public/assets/champs/uruk/idle.png', pick: 5, prompt: 'a silver-scaled dragonborn with a dragon head, small horns, amber eyes and silver plate armor' },
   lume: { sprite: 'public/assets/champs/lume/Lume-IDLE.png', pick: 1, prompt: 'a gentle young woman with white hair in a cream hooded robe, soft warm light on her face' },
 };
 

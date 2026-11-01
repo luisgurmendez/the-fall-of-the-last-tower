@@ -81,6 +81,16 @@ export const ICONS: Record<string, ChampionIcons> = {
       r: { seed: 7, prompt: 'a glowing violet crosshair mark' },
     },
   },
+  uruk: {
+    theme: 'silver, steel grey and icy blue',
+    icons: {
+      passive: { seed: 8, prompt: 'a silver dragon eye with a slit amber pupil' },
+      q: { seed: 9, prompt: 'a silver spear thrusting forward with a streak of light' },
+      w: { seed: 8, prompt: 'a spear tip glowing icy white' },
+      e: { seed: 8, prompt: 'overlapping silver dragon scales with frost' },
+      r: { seed: 7, prompt: 'a spear plunging down cracking the ground in ice' },
+    },
+  },
   vile: {
     theme: 'dark purple, black and sickly green',
     icons: {

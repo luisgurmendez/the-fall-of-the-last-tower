@@ -36,7 +36,7 @@
 .champion-grid {
   display: flex;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
   margin-bottom: 16px;
   flex-wrap: wrap;
 }
@@ -45,9 +45,9 @@
 /* Champion Card                               */
 /* ============================================ */
 
-/* Narrow enough for all seven champions in one row */
+/* Narrow enough for all eight champions in one row */
 .champion-card {
-  width: 104px;
+  width: 96px;
   background: var(--pixel-bg-light);
   border: 4px solid var(--pixel-border);
   box-shadow:

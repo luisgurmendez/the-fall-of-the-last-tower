@@ -499,6 +499,49 @@ export const VexEmpoweredEffect: ServerEffectDefinition = {
   persistsThroughDeath: false,
 };
 
+// Urûk's Spear Charge (W): his next basic attack is empowered (UrukHooks)
+export const UrukSpearChargeEffect: ServerEffectDefinition = {
+  id: 'uruk_spear_charge',
+  name: 'Spear Charge',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+};
+
+// Urûk's Spear Charge (W): his physical damage pierces armor (UrukHooks.getArmorPenetration, by W's rank)
+export const UrukPiercingEffect: ServerEffectDefinition = {
+  id: 'uruk_piercing',
+  name: 'Piercing',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+};
+
+// Urûk's Hunter's Instinct (passive): near a hurt enemy champion
+export const UrukHuntEffect: ServerStatEffectDef = {
+  id: 'uruk_hunt',
+  name: "Hunter's Instinct",
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+  stat: 'movement_speed',
+  percentValue: 0.12,
+};
+
+export const UrukHuntSpeedEffect: ServerStatEffectDef = {
+  id: 'uruk_hunt_speed',
+  name: "Hunter's Instinct",
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+  stat: 'attack_speed',
+  percentValue: 0.10,
+};
+
 // Vex's Ninja Mode buff (ultimate)
 export const VexNinjaModeEffect: ServerEffectDefinition = {
   id: 'vex_ninja_mode',
@@ -921,6 +964,10 @@ export const ALL_SERVER_EFFECTS: AnyServerEffectDef[] = [
   VexStealthEffect,
   VexDeathMarkEffect,
   VexEmpoweredEffect,
+  UrukSpearChargeEffect,
+  UrukPiercingEffect,
+  UrukHuntEffect,
+  UrukHuntSpeedEffect,
   VexNinjaModeEffect,
   // Ability-specific - Vile
   VileQSlowEffect,

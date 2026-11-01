@@ -125,6 +125,23 @@ const MARK_VISUALS: Record<string, MarkVisualConfig> = {
   crest_of_insight_regen: { icon: "", bgColor: "", borderColor: "", iconColor: "", showTimer: false, hidden: true },
   dragons_might_power: { icon: "", bgColor: "", borderColor: "", iconColor: "", showTimer: false, hidden: true },
   heartwood_pact_ward: { icon: "", bgColor: "", borderColor: "", iconColor: "", showTimer: false, hidden: true },
+  uruk_hunt_speed: { icon: "", bgColor: "", borderColor: "", iconColor: "", showTimer: false, hidden: true },
+  uruk_hunt: {
+    icon: "H",
+    bgColor: "rgba(255, 179, 71, 0.85)",
+    borderColor: "#ffd08a",
+    iconColor: "#ffffff",
+    showTimer: false,
+    isBuff: true,
+  },
+  uruk_spear_charge: {
+    icon: "W",
+    bgColor: "rgba(159, 216, 255, 0.85)",
+    borderColor: "#d8f0ff",
+    iconColor: "#1c3448",
+    showTimer: true,
+    isBuff: true,
+  },
   heartwood_pact_sap: { icon: "", bgColor: "", borderColor: "", iconColor: "", showTimer: false, hidden: true },
   heartwood_pact: {
     icon: "H",

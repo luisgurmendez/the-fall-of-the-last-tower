@@ -70,6 +70,17 @@ export {
   VilePassive,
 } from './vile';
 
+// Urûk
+export {
+  UrukDefinition,
+  UrukThrust,
+  UrukSpearCharge,
+  UrukSilverScales,
+  UrukFatalStrike,
+  UrukAbilities,
+  UrukPassive,
+} from './uruk';
+
 // Lume
 export {
   LumeDefinition,

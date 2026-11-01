@@ -149,5 +149,17 @@
       "run": "7098813e-7835-4170-ab32-aa7b1f647701"
     },
     "characterId": "c5912bca-0e73-47d0-8186-5586212cad5c"
+  },
+  "uruk": {
+    "animations": {
+      "walk": "845fe74a-0f9c-46d7-9dcf-b1701e4875b1",
+      "attack": "78c58222-c2c8-4c67-9bb8-cc8df837a34f",
+      "r": "cba88e9d-63d7-4015-bc06-9399506d23e3",
+      "e": "98f8fd3d-c307-42ba-bf3c-63fadcdc822f",
+      "q": "69c367ba-cd33-496a-be73-b1474d512fcc",
+      "w": "dba00420-1b58-451b-9c9a-60d56c72f1ba",
+      "idle": "2f1e8416-891d-443b-85c8-78c3dc2b1543"
+    },
+    "characterId": "a8cf3b2c-2463-4af2-87e8-6627de9d15ff"
   }
 }

@@ -13,3 +13,4 @@ import './gorath';
 import './vex';
 import './lume';
 import './vile';
+import './uruk';

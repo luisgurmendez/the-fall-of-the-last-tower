@@ -67,8 +67,9 @@ const ABILITY_SLOTS: AbilitySlot[] = ['Q', 'W', 'E', 'R'];
  * - offense: in a fight (self buffs/transforms, areas centered on something else)
  * - defense: while retreating with the enemy close (stealth, invulnerability)
  * - engage: to close the gap on a weakened enemy (dashes to a point)
+ * - execute: to finish an enemy under half health (Urûk's Fatal Strike)
  */
-const ABILITY_ROLES: Partial<Record<string, 'offense' | 'defense' | 'engage'>> = {
+const ABILITY_ROLES: Partial<Record<string, 'offense' | 'defense' | 'engage' | 'execute'>> = {
   vex_shroud: 'defense',
   vex_dash: 'engage',
   vex_ninja_mode: 'offense',
@@ -82,7 +83,13 @@ const ABILITY_ROLES: Partial<Record<string, 'offense' | 'defense' | 'engage'>> =
   magnus_shield: 'defense',
   elara_barrier: 'defense',
   gorath_fortify: 'defense',
+  uruk_w: 'offense',
+  uruk_e: 'offense',
+  uruk_r: 'execute',
 };
+
+/** Health ratio under which a target is worth an execute */
+const EXECUTE_HEALTH = 0.5;
 
 /** What bots buy, in order */
 const ATTACK_BUILD = ['notched_blade', 'wanderers_boots', 'siege_cleaver', 'heartstone', 'crimson_fang', 'bulwark_belt', 'ironheart_talisman'];
@@ -374,6 +381,10 @@ export class LaneBot implements BotController {
       if (role === 'offense') {
         if (distance > champion.getAttackRange() + 100) continue;
         return { type: InputType.ABILITY, slot, targetType: 'none' };
+      }
+      if (role === 'execute') {
+        if (target.health / target.maxHealth > EXECUTE_HEALTH || distance > (definition.range ?? 300)) continue;
+        return { type: InputType.ABILITY, slot, targetType: 'unit', targetEntityId: target.id };
       }
 
       const input = this.buildCast(slot, definition, champion, target, distance, context);
