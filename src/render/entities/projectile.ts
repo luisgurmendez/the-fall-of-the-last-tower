@@ -99,6 +99,27 @@ const SPECIAL_PROJECTILES: Record<
   },
 };
 
+/** Height above a tower's position its shots leave from (the top of the tower) */
+const TOWER_SHOT_TOP = 105;
+/** Height of a unit's body, where tower shots land */
+const TOWER_SHOT_BODY = 22;
+
+/**
+ * How high a tower shot is drawn: it leaves from the top of the tower and
+ * drops onto its target as it closes in. Drawn at the ground, it stayed
+ * hidden under the tower for the moment it took to hit.
+ */
+function towerShotLift(snapshot: any, x: number, y: number, rc: EntityRenderContext): number {
+  const tower = rc.stateManager.getEntity(snapshot.sourceId);
+  if (!tower) return TOWER_SHOT_BODY;
+  const travelled = Math.hypot(x - tower.position.x, y - tower.position.y);
+  const targetId = (tower.snapshot as { targetEntityId?: string | null }).targetEntityId;
+  const target = targetId ? rc.stateManager.getEntity(targetId) : undefined;
+  const left = target ? Math.hypot(target.position.x - x, target.position.y - y) : 0;
+  const progress = target ? travelled / Math.max(1, travelled + left) : 1;
+  return TOWER_SHOT_TOP + (TOWER_SHOT_BODY - TOWER_SHOT_TOP) * progress;
+}
+
 /**
  * Render a projectile.
  */
@@ -118,8 +139,9 @@ export function renderProjectile(
 
   const gpu = getGPURenderer();
   const position = rc.stateManager.getEntity(snapshot.entityId)?.position;
+  const lift = projectileType === "tower" && position ? towerShotLift(snapshot, position.x, position.y, rc) : 0;
   if (gpu && position) {
-    emitProjectile(gpu.topFx, snapshot.entityId, projectileType, position.x, position.y, angle, rc.animationTime, side);
+    emitProjectile(gpu.topFx, snapshot.entityId, projectileType, position.x, position.y - lift, angle, rc.animationTime, side);
     if (projectileType === "minion_siege") SPECIAL_PROJECTILES.minion_siege(ctx, angle, rc.animationTime);
     return;
   }
@@ -135,6 +157,7 @@ export function renderProjectile(
 
     if (arrowImg && arrowImg.complete && arrowImg.naturalWidth > 0) {
       ctx.save();
+      ctx.translate(0, -lift);
       ctx.rotate(angle);
 
       // Scale: tower arrows are larger

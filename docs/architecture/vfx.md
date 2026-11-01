@@ -77,6 +77,8 @@ How config types look on the GPU:
 
 **Lume's Light Orb** (`src/gpu/fx/lightOrb.ts`): a ball of warm light hovering over its glow on the ground, with a ribbon and sparkles behind it while it travels and slow rays while it hangs at a spot; a dim ember while it respawns (she died). Its ball has a solid gold core under a small halo: light alone takes the color of what's under it, so a big halo made the orb look green over grass and white over water.
 
+**Tower shots** leave from the top of the tower and drop onto their target's body as they close in (`towerShotLift` in `src/render/entities/projectile.ts`); the server's shots fly at 500, so they're on screen for up to about 0.6 seconds. Drawn at the ground they stayed hidden under the tower, and a tower's shots on minions or enemies looked like nothing.
+
 **Projectile impacts:** when a projectile is destroyed, `entityVFX.ts` spawns the VFX registered as `<projectile type>_impact` (e.g. `magnus_fireball_impact`) where it was, so explosions happen where the projectile actually hits.
 
 **Effects on an ally:** effects that follow an entity (shields, trails, orbits) follow the caster, or in a phase anchored on the target, the cast's `targetEntityId` (Elara's shield on an ally).

@@ -290,8 +290,11 @@ export class ServerTower extends ServerEntity {
     return TowerTargetPriority.NONE;
   }
 
-  /** Tower projectile speed */
-  private static readonly PROJECTILE_SPEED = 900;
+  /**
+   * Tower projectile speed: the classic MOBA's at our scale, so a shot
+   * takes a moment to land and can be seen (at 900 it hit within 0.15s)
+   */
+  private static readonly PROJECTILE_SPEED = 500;
   /** Tower projectile radius */
   private static readonly PROJECTILE_RADIUS = 12;
 
