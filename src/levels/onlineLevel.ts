@@ -17,6 +17,7 @@ import { ChampionHUD } from '@/ui/ChampionHUD';
 import { GameStatsHUD } from '@/ui/GameStatsHUD';
 import { OnlineMinimap } from '@/ui/OnlineMinimap';
 import { AnnouncementBanner } from '@/ui/AnnouncementBanner';
+import { KillFeed } from '@/ui/KillFeed';
 import { LowHealthVignette } from '@/ui/LowHealthVignette';
 import { DeathOverlay } from '@/ui/DeathOverlay';
 import { TargetInfoHUD } from '@/ui/TargetInfoHUD';
@@ -168,6 +169,8 @@ export function generateOnlineLevel(config: OnlineLevelConfig): Level {
     minimap,
     // Big moments (dragon slain)
     new AnnouncementBanner(stateManager),
+    // Who took down whom, in the top right
+    new KillFeed(stateManager),
     // Tab scoreboard (full scoreboard overlay when Tab is held)
     tabScoreboard,
     // Debug inspector for entity inspection (F3 to toggle)

@@ -44,8 +44,12 @@ export class RewardSystem {
       context.addEvent(GameEventType.CHAMPION_KILL, {
         victimId: killedEntity.id,
         victimSide: killedEntity.side,
+        // Who, for the kill feed (the victim is gone from clients' state by then)
+        victimChampionId: (killedEntity as ServerChampion).definition.id,
         killerId: killer?.id ?? null,
         killerSide: killer?.side ?? null,
+        killerType: killer?.entityType ?? null,
+        killerChampionId: killer?.entityType === EntityType.CHAMPION ? (killer as ServerChampion).definition.id : null,
         firstBlood: killedByChampion && context.claimFirstBlood(),
       });
     } else if (killedEntity.entityType === EntityType.TOWER) {

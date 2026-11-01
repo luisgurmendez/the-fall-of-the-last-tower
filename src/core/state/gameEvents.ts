@@ -13,6 +13,7 @@ import { getVFXManager } from '@/vfx';
 import { WORLD_VFX } from '@/vfx/world';
 import { punchCamera, shakeScreen } from '@/core/screenShake';
 import { abilityImpactTime } from './abilityTiming';
+import { multiKillName, type KillFeed } from './killFeed';
 import type { InterpolatedEntity } from './entities';
 import type { AbilityEffects } from './abilityEffects';
 import type { FloatingNumbers } from './floatingNumbers';
@@ -34,6 +35,7 @@ export interface GameEventContext {
   readonly abilityEffects: AbilityEffects;
   readonly campTimers: CampTimers;
   readonly announcements: Announcements;
+  readonly killFeed: KillFeed;
   /** Damage the local champion took recently (death recap) */
   readonly damageTaken: DamageTaken;
 }
@@ -323,15 +325,30 @@ function announceChampionKill(data: Record<string, unknown>, now: number, ctx: G
   const victimIsLocal = data.victimId === ctx.localEntityId;
   const killerIsLocal = data.killerId === ctx.localEntityId;
   const allyDied = data.victimSide === ctx.localSide;
+  const kill = ctx.killFeed.add({
+    killerChampionId: (data.killerChampionId as string | null) ?? null,
+    killerType: (data.killerType as EntityType | null) ?? null,
+    killerSide: (data.killerSide as number | null) ?? null,
+    victimChampionId: (data.victimChampionId as string | undefined) ?? '',
+    victimSide: data.victimSide as number,
+    time: now,
+  }, (data.killerId as string | null) ?? null);
 
+  const name = (championId: string | null) => (championId && getChampionDefinition(championId)?.name) || 'A champion';
   let text: string;
   if (victimIsLocal) text = 'You have been slain!';
   else if (killerIsLocal) text = 'You have slain an enemy!';
+  else if (kill.killerChampionId) text = `${name(kill.killerChampionId)} has slain ${name(kill.victimChampionId)}`;
   else text = allyDied ? 'An ally has been slain' : 'An enemy has been slain';
 
+  // A double kill or better takes the banner, with who did it
+  const multiKill = multiKillName(kill.streak);
+  const headline = data.firstBlood ? 'First Blood!' : multiKill
+    ? (killerIsLocal ? multiKill : `${name(kill.killerChampionId)}: ${multiKill}`)
+    : text;
   ctx.announcements.add({
-    text: data.firstBlood ? 'First Blood!' : text,
-    detail: data.firstBlood ? text : undefined,
+    text: headline,
+    detail: headline === text ? undefined : text,
     color: allyDied ? '#ec7063' : '#f5b041',
     startTime: now,
     duration: ANNOUNCEMENT_DURATION,
