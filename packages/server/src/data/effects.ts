@@ -499,6 +499,16 @@ export const VexEmpoweredEffect: ServerEffectDefinition = {
   persistsThroughDeath: false,
 };
 
+// Lume's Prismatic Beam (E): a beam runs from her to the orb while it lasts (LumeHooks)
+export const LumePrismEffect: ServerEffectDefinition = {
+  id: 'lume_prism',
+  name: 'Prismatic Beam',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+};
+
 // Urûk's Spear Charge (W): his next basic attack is empowered (UrukHooks)
 export const UrukSpearChargeEffect: ServerEffectDefinition = {
   id: 'uruk_spear_charge',
@@ -964,6 +974,7 @@ export const ALL_SERVER_EFFECTS: AnyServerEffectDef[] = [
   VexStealthEffect,
   VexDeathMarkEffect,
   VexEmpoweredEffect,
+  LumePrismEffect,
   UrukSpearChargeEffect,
   UrukPiercingEffect,
   UrukHuntEffect,

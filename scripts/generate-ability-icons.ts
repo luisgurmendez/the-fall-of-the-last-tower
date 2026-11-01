@@ -67,8 +67,8 @@ export const ICONS: Record<string, ChampionIcons> = {
       passive: { seed: 20, prompt: 'a plain round glowing golden sphere of light, nothing else' },
       q: { seed: 23, prompt: 'a glowing golden sphere of light flying to the right, leaving a flame-like light trail behind it' },
       w: { seed: 7, prompt: 'a warm golden ring of runes radiating heat' },
-      e: { seed: 7, prompt: 'a cloaked figure dashing forward out of a burst of golden light' },
-      r: { seed: 7, prompt: 'a huge golden starburst of light' },
+      e: { seed: 8, prompt: 'a straight rainbow prism beam of light joining two glowing points' },
+      r: { seed: 8, prompt: 'an eclipse: a dark sun ringed by blazing light firing a huge beam' },
     },
   },
   vex: {

@@ -75,7 +75,7 @@ How config types look on the GPU:
 | `screen_shake` | The camera shakes (`src/core/screenShake.ts`), in the 2D fallback too |
 | `ground_light`, `decal`, `lightning`, `swirl`, `spikes`, `rays`, `meteor`, `cut` | GPU only (the 2D fallback skips them) |
 
-**Lume's Light Orb** (`src/gpu/fx/lightOrb.ts`): a ball of warm light hovering over its glow on the ground, with a ribbon and sparkles behind it while it travels and slow rays while it hangs at a spot; a dim ember while it respawns. Its ball has a solid gold core under a small halo: light alone takes the color of what's under it, so a big halo made the orb look green over grass and white over water.
+**Lume's Light Orb** (`src/gpu/fx/lightOrb.ts`): a ball of warm light hovering over its glow on the ground, with a ribbon and sparkles behind it while it travels and slow rays while it hangs at a spot; a dim ember while it respawns (she died). Its ball has a solid gold core under a small halo: light alone takes the color of what's under it, so a big halo made the orb look green over grass and white over water.
 
 **Projectile impacts:** when a projectile is destroyed, `entityVFX.ts` spawns the VFX registered as `<projectile type>_impact` (e.g. `magnus_fireball_impact`) where it was, so explosions happen where the projectile actually hits.
 
@@ -167,7 +167,9 @@ because importing `VFXRegistry.ts` from them would be an import cycle.
 **The lookup key is the ability ID.** The server's `ABILITY_CAST` event carries
 the ability's definition ID (`champion.definition.abilities[slot]`, for example
 `lume_q`), and `OnlineStateManager` passes it unchanged to `spawnAbilityVFX`
-(the event handlers are in `src/core/state/gameEvents.ts`).
+(the event handlers are in `src/core/state/gameEvents.ts`). The effect plays
+from the caster to the event's target, or from `originX`/`originY` when the
+handler returned a `vfxOrigin` (Lume's Eclipse fires from her orb).
 There is no alias table, so a definition's `abilityId` must be the ability ID
 from `CHAMPION_DEFINITIONS`; VFX registered under any other key never plays.
 `packages/client/src/test/ChampionClientContract.test.ts` checks every
@@ -209,7 +211,7 @@ Each champion has its own colors and its own shapes, so two champions' effects n
 | Gorath | Stone #A08C74, molten #FF8A2A, dust, roar red #FF5A3A | Slam: fissures running out with rocks along them. Earthquake: a ring of pillars at the edge, lava geysers, the camera shaking. A ring-of-stones shield, orbiting rocks, echoing roar rings |
 | Vex | Ink #16131F, moonlit steel #D6ECFF, crimson #FF3B6B, cherry petals | Straight cuts (an X on the shuriken's hit, a flash step), ink smoke, circling blades |
 | Vile | Void #2A0D3D, violet #A35CFF, soul green #5CFFD0 | Thorny roots, soul flames (wisps), darkness |
-| Lume | White, warm #FFD27A, prism cyan #9FF3FF and pink #FFB0F0 | Crystals of light, rays, the one pillar of light (her ultimate) |
+| Lume | White, warm #FFD27A, prism cyan #9FF3FF and pink #FFB0F0 | Crystals of light, rays, beams: the Prismatic Beam (E, drawn by her renderer while it lasts, from her to the orb) and the Eclipse (R, from the orb) |
 
 ## Effect Types
 

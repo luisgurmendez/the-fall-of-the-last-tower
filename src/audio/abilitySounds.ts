@@ -51,9 +51,10 @@ export const ABILITY_CUES: Record<string, AbilityCue[]> = {
     { sound: "lume_q" },
     { sound: "lume_q_arrive", delay: landsAt("lume_q"), at: "target" },
   ],
+  // Eclipse fires from the orb by her: heard there, not at the beam's far end
   lume_r: [
-    { sound: "lume_r_charge", at: "target" },
-    { sound: "lume_r", delay: landsAt("lume_r"), at: "target" },
+    { sound: "lume_r_charge" },
+    { sound: "lume_r", delay: landsAt("lume_r") },
   ],
   vex_shuriken: [{ sound: "vex_shuriken", delay: landsAt("vex_shuriken") }],
   vile_black_arrows: [{ sound: "vile_black_arrows", delay: landsAt("vile_black_arrows") }],

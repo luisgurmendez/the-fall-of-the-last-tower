@@ -1,9 +1,11 @@
 /**
- * Lume: sprite-sheet body with Q/E/R ability animations, and the light
- * photon auto-attack projectile. Lume's Light Orbs are their own entity
- * type (src/render/entities/lightOrb.ts).
+ * Lume: sprite-sheet body with Q/E/R ability animations, the Prismatic Beam
+ * (E) between her and her orb while it lasts, and the light photon
+ * auto-attack projectile. Lume's Light Orbs are their own entity type
+ * (src/render/entities/lightOrb.ts).
  */
 
+import { EntityType } from "@siege/shared";
 import type {
   EntityRenderContext,
   EntityRenderState,
@@ -59,9 +61,10 @@ class LumeBodyRenderer implements ChampionBodyRenderer {
   ): boolean {
     const entityId = snapshot.entityId;
 
-    // Check if dashing with Lume E (special case: hold frame 6 during dash)
-    const isDashingWithE =
-      snapshot.isDashing && snapshot.dashAbilityId === "lume_e";
+    // The Prismatic Beam to the orb, under her
+    if (snapshot.activeEffects?.some((effect: { definitionId: string }) => effect.definitionId === "lume_prism")) {
+      this.renderPrismaticBeam(ctx, entityId);
+    }
 
     // Check if casting an ability
     const castingState = this.rc.stateManager.isEntityCastingAbility(entityId);
@@ -69,24 +72,13 @@ class LumeBodyRenderer implements ChampionBodyRenderer {
       ? this.rc.stateManager.getAbilityAnimationProgress(entityId)
       : 0;
 
-    // Select sprite based on animation state (priority: E dash > ability > walk > idle)
+    // Select sprite based on animation state (priority: ability > walk > idle)
     let spriteSrc: string;
     let frameCount: number;
     let useAbilityProgress = false;
     let fixedFrameIndex: number | null = null;
 
-    if (isDashingWithE) {
-      // Lume E dash: use E sprite, hold on frame 6 (index 5)
-      spriteSrc = SPRITES.LUME.E;
-      frameCount = SPRITES.LUME.E_FRAMES;
-      fixedFrameIndex = 5; // Frame 6 (0-indexed)
-
-      // Override facing direction to look toward dash target (orb)
-      if (snapshot.dashTargetX != null) {
-        const dx = snapshot.dashTargetX - snapshot.x;
-        state.facingRight = dx >= 0;
-      }
-    } else if (castingState.casting && castingState.abilityId) {
+    if (castingState.casting && castingState.abilityId) {
       // Ability animation - check which ability
       const abilityId = castingState.abilityId;
       if (abilityId === "lume_q") {
@@ -94,17 +86,9 @@ class LumeBodyRenderer implements ChampionBodyRenderer {
         frameCount = SPRITES.LUME.Q_FRAMES;
         useAbilityProgress = true;
       } else if (abilityId === "lume_e") {
-        // Lume E after dash: play ending frames (indices 6-10)
-        // abilityProgress goes from ~0.5 to 1.0 during the ending phase
-        // Map this to frames 6-10 (5 frames)
         spriteSrc = SPRITES.LUME.E;
         frameCount = SPRITES.LUME.E_FRAMES;
-        const endingFrameCount = 5;
-        const endingFrameIndex = Math.min(
-          Math.floor(abilityProgress * endingFrameCount),
-          endingFrameCount - 1,
-        );
-        fixedFrameIndex = 6 + endingFrameIndex; // Start from index 6 (frame 7)
+        useAbilityProgress = true;
       } else if (abilityId === "lume_r") {
         spriteSrc = SPRITES.LUME.R;
         frameCount = SPRITES.LUME.R_FRAMES;
@@ -141,7 +125,7 @@ class LumeBodyRenderer implements ChampionBodyRenderer {
       // Calculate animation frame
       let frameIndex: number;
       if (fixedFrameIndex !== null) {
-        // Fixed frame (e.g., Lume E dash holds on frame 6)
+        // Fixed frame (the attack's)
         frameIndex = Math.min(fixedFrameIndex, frameCount - 1);
       } else if (useAbilityProgress) {
         // Use ability progress (0-1) to determine frame
@@ -181,7 +165,66 @@ class LumeBodyRenderer implements ChampionBodyRenderer {
 
     return false;
   }
+
+  /**
+   * The Prismatic Beam from Lume to her orb, wherever both are: a soft glow,
+   * a band of light whose prism colors drift along it, a white core and
+   * sparkles running out to the orb. Drawn in her space (her position is
+   * the origin).
+   */
+  private renderPrismaticBeam(ctx: CanvasRenderingContext2D, entityId: string): void {
+    const lume = this.rc.stateManager.getEntity(entityId);
+    const orb = [...this.rc.stateManager.getEntities()].find((entity) =>
+      entity.snapshot.entityType === EntityType.LIGHT_ORB && (entity.snapshot as { ownerId?: string }).ownerId === entityId);
+    if (!lume || !orb) return;
+
+    const dx = orb.position.x - lume.position.x;
+    const dy = orb.position.y - lume.position.y;
+    const length = Math.hypot(dx, dy);
+    if (length < 4) return;
+    const time = this.rc.animationTime;
+    const from = { x: 0, y: BEAM_HEIGHT };
+    const to = { x: dx, y: dy + BEAM_HEIGHT };
+
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    ctx.lineCap = "round";
+
+    // The colors drift toward the orb
+    const prism = ctx.createLinearGradient(from.x, from.y, to.x, to.y);
+    for (let i = 0; i <= 4; i++) {
+      const hue = (time * 90 + i * 70) % 360;
+      prism.addColorStop(i / 4, `hsla(${hue}, 100%, 72%, 0.75)`);
+    }
+    const stroke = (style: string | CanvasGradient, width: number, alpha: number) => {
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = style;
+      ctx.lineWidth = width;
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(to.x, to.y);
+      ctx.stroke();
+    };
+    const pulse = 0.85 + 0.15 * Math.sin(time * 9);
+    stroke("rgba(255, 243, 176, 1)", 22, 0.18 * pulse);
+    stroke(prism, 10, 0.8 * pulse);
+    stroke("#ffffff", 3, 0.95);
+
+    // Sparkles running out to the orb
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "#ffffff";
+    const sparkles = Math.max(3, Math.floor(length / 40));
+    for (let i = 0; i < sparkles; i++) {
+      const along = (i / sparkles + time * 0.8) % 1;
+      const wobble = Math.sin(time * 12 + i * 2.3) * 4;
+      ctx.fillRect(from.x + dx * along - dy / length * wobble - 1.5, from.y + dy * along + dx / length * wobble - 1.5, 3, 3);
+    }
+    ctx.restore();
+  }
 }
+
+/** How high above Lume's feet the beam runs (her hands, the orb's float) */
+const BEAM_HEIGHT = -22;
 
 /**
  * Lume's light photon auto-attack - small glowing light pulse.
@@ -233,5 +276,8 @@ export const lumeRenderer: ChampionRendererEntry = {
   projectiles: {
     lume_auto: renderLumeAutoProjectile,
   },
-  markVisuals: {},
+  markVisuals: {
+    // The beam itself shows it
+    lume_prism: { icon: "", bgColor: "", borderColor: "", iconColor: "", showTimer: false, hidden: true },
+  },
 };

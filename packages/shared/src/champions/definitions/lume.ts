@@ -60,8 +60,10 @@ export const LUME_ORB_CONFIG = {
   respawnTime: 30.0, // Seconds to respawn after R
   qImpactRadius: 80, // Damage radius on Q arrival
   wPulseRadius: 150, // W heal/damage radius
-  eBlindRadius: 100, // E blind radius on arrival
-  rExplosionRadius: 180, // R explosion radius
+  eBeamHalfWidth: 20, // E: half the width of the beam between Lume and the orb
+  eAllySpeedEffect: "speed_20", // E: allies crossing the beam
+  rBeamLength: 1000, // R: how far the eclipse beam reaches from the orb
+  rBeamHalfWidth: 60, // R: half its width
   // Called back (Q recast), the orb slows the enemies it passes through
   returnSlowRadius: 50,
   returnSlowEffect: "slow_30",
@@ -111,7 +113,8 @@ const LUME_GROWTH_STATS: ChampionGrowthStats = {
  * ALLY BONUS: Champions near the orb gain 15% bonus movement speed.
  * ENEMY DEBUFF: Enemies near the orb take 8% increased magic damage from Lume.
  *
- * If the orb is destroyed (by R), all passive effects are disabled until respawn.
+ * The orb goes when Lume dies and comes back with her; while it's gone the
+ * passive and the orb abilities are off.
  *
  * IMPLEMENTATION NOTES:
  * - Aura effects are applied by ServerLightOrb.updatePassiveEffects()
@@ -122,7 +125,7 @@ export const LumePassive: PassiveAbilityDefinition = {
   id: "lume_passive",
   name: "Guiding Glow",
   description:
-    "Lume is accompanied by a Light Orb. Allies near the orb gain 15% bonus movement speed. Enemies near the orb take 8% increased magic damage from Lume. If the orb is destroyed, it regenerates after 30 seconds.",
+    "Lume is accompanied by a Light Orb. Allies near the orb gain 15% bonus movement speed. Enemies near the orb take 8% increased magic damage from Lume.",
   trigger: "always",
   internalCooldown: 30, // Orb regeneration time
 };
@@ -218,97 +221,70 @@ export const LumeW: AbilityDefinition = {
 };
 
 // =============================================================================
-// E Ability - Dazzle Step
+// E Ability - Prismatic Beam
 // =============================================================================
 
 /**
- * Dazzle Step
+ * Prismatic Beam
  *
- * Dash toward the Light Orb's current position.
- *
- * ON ARRIVAL (within 50 units of orb):
- * - Nearby enemies are blinded
- * - Blind causes auto-attacks to miss
- *
- * DASH PROPERTIES:
- * - Speed: 1200 units/s
- * - Max distance: 300 units
- * - Stops at orb if within range
- * - Can dash toward traveling orb (targets current position)
- * - If orb is destroyed, dashes in facing direction
- *
- * IMPLEMENTATION NOTES:
- * - Dash direction calculated from Lume to orb at cast time
- * - If orb is farther than 600 units, dashes max distance toward it
- * - Blind effect only if Lume ends within 50 units of orb
- * - If orb destroyed, no blind effect (just a dash)
+ * For 2.5 seconds a beam of light runs between Lume and the Light Orb,
+ * wherever they move (LumeHooks applies it each tick while Lume has the
+ * lume_prism effect):
+ * - Enemies it touches take its damage once per cast and are slowed while
+ *   in it
+ * - Allied champions crossing it are sped up
+ * Placing the orb (Q) makes the beam: a wall across a lane, or a line to
+ * chase along.
  */
 export const LumeE: AbilityDefinition = {
   id: "lume_e",
-  name: "Dazzle Step",
+  name: "Prismatic Beam",
   description:
-    "Dash toward the Light Orb. If Lume reaches the orb, nearby enemies are blinded for {effectDuration} seconds.",
+    "For 2.5 seconds a beam of light joins Lume and the Light Orb. Enemies it touches take {damage} magic damage (once) and are slowed by 30% while in it; allied champions crossing it gain 20% movement speed.",
   type: "active",
-  targetType: "self", // Direction determined by orb location
+  targetType: "self", // The beam runs from Lume to the orb
   maxRank: 5,
-  manaCost: [50, 50, 50, 50, 50],
-  cooldown: [18, 16, 14, 12, 10],
-  range: 0, // Not a targeted ability
-  dash: {
-    speed: 650,
-    distance: 300,
-  },
-  appliesEffects: ["blind"],
-  effectDuration: 1.2, // Blind duration scales with ability executor
-  aoeRadius: LUME_ORB_CONFIG.eBlindRadius,
-};
-
-// =============================================================================
-// R Ability - Beaconfall
-// =============================================================================
-
-/**
- * Beaconfall
- *
- * The Light Orb explodes at its current position.
- *
- * EXPLOSION:
- * - Large area magic damage
- * - 40% slow for 2 seconds
- * - Centered on orb's current position
- *
- * CONSEQUENCE:
- * - The orb is destroyed
- * - Passive aura effects stop until orb regenerates
- * - Orb respawns after 30 seconds in orbiting state
- * - Other abilities still usable with reduced functionality
- *
- * CANNOT CAST IF: Orb is already destroyed
- *
- * IMPLEMENTATION NOTES:
- * - Cooldown is separate from orb respawn timer
- * - R cooldown continues even while orb is destroyed
- * - Can only cast R again after orb respawns
- */
-export const LumeR: AbilityDefinition = {
-  id: "lume_r",
-  name: "Beaconfall",
-  description:
-    "The Light Orb explodes, dealing {damage} magic damage in a large area and slowing enemies by 40% for 2 seconds. The orb is destroyed and regenerates after 30 seconds.",
-  type: "active",
-  targetType: "self", // Detonates at orb location
-  maxRank: 3,
-  manaCost: [100, 100, 100],
-  cooldown: [120, 100, 80],
+  manaCost: [60, 60, 60, 60, 60],
+  cooldown: [14, 13, 12, 11, 10],
   range: 0,
   damage: {
     type: "magic",
-    scaling: scaling([200, 300, 400], { apRatio: 0.8 }),
+    scaling: scaling([60, 90, 120, 150, 180], { apRatio: 0.4 }),
   },
-  appliesEffects: ["slow_40"],
-  effectDuration: 2.0,
-  aoeRadius: LUME_ORB_CONFIG.rExplosionRadius,
-  aoeDelay: 0.5, // The beam's fall
+  appliesEffects: ["slow_30"],
+  effectDuration: 2.5, // How long the beam lasts
+  aoeRadius: LUME_ORB_CONFIG.eBeamHalfWidth,
+};
+
+// =============================================================================
+// R Ability - Eclipse
+// =============================================================================
+
+/**
+ * Eclipse
+ *
+ * The Light Orb gathers light for aoeDelay (clients draw the line), then
+ * fires a beam rBeamLength long from where it was toward the aim: magic
+ * damage to every enemy along it. The orb isn't spent (LumeRHandler).
+ */
+export const LumeR: AbilityDefinition = {
+  id: "lume_r",
+  name: "Eclipse",
+  description:
+    "The Light Orb gathers light, then fires a huge beam toward the target location, dealing {damage} magic damage to every enemy along it.",
+  type: "active",
+  targetType: "ground_target", // Aimed; the beam starts at the orb
+  maxRank: 3,
+  manaCost: [100, 100, 100],
+  cooldown: [110, 95, 80],
+  range: 1100, // Aim anywhere ahead
+  shape: "line",
+  damage: {
+    type: "magic",
+    scaling: scaling([220, 340, 460], { apRatio: 0.7 }),
+  },
+  aoeRadius: LUME_ORB_CONFIG.rBeamHalfWidth,
+  aoeDelay: 0.6, // The orb gathering light: the warning
 };
 
 // =============================================================================

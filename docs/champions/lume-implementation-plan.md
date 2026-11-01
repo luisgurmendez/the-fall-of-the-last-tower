@@ -1,5 +1,7 @@
 # Lume Implementation Plan
 
+> **Historical.** Her E and R were replaced (2026-11-01): E is now Prismatic Beam and R is Eclipse, and R no longer destroys the orb. The current kit is in `packages/shared/src/champions/definitions/lume.ts`.
+
 ## Overview
 
 Lume is a utility mage with a unique persistent **Light Orb** mechanic. The orb orbits Lume when idle, can be sent to locations, and serves as the anchor point for his abilities.

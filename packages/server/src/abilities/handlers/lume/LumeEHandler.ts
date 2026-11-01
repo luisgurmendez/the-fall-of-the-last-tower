@@ -1,15 +1,11 @@
 /**
- * LumeEHandler - Dazzle Step
+ * LumeEHandler - Prismatic Beam
  *
- * Dash toward the Light Orb's current position.
- *
- * ON ARRIVAL (within 50 units of orb):
- * - Nearby enemies are blinded
- * - Blind causes auto-attacks to miss
- *
- * DASH PROPERTIES:
- * - Speed and max distance: the definition's dash
- * - Stops at orb if within range
+ * Joins Lume and the Light Orb with a beam of light for the ability's
+ * effectDuration: Lume gets the lume_prism effect, and LumeHooks applies the
+ * beam every tick from wherever she is to wherever the orb is (damage once
+ * per cast, a slow while in it, speed for allies crossing it). Clients draw
+ * the beam while she has the effect.
  */
 
 import { BaseAbilityHandler } from '../../BaseAbilityHandler';
@@ -18,119 +14,34 @@ import type {
   AbilityValidationResult,
   AbilityExecutionResult,
 } from '../../IAbilityHandler';
-import { ServerLightOrb, LUME_ORB_CONFIG } from '../../../simulation/ServerLightOrb';
+import { ServerLightOrb } from '../../../simulation/ServerLightOrb';
 import type { ServerChampion } from '../../../simulation/ServerChampion';
 import type { ServerGameContext } from '../../../game/ServerGameContext';
-import { Logger } from '../../../utils/Logger';
 
 export class LumeEHandler extends BaseAbilityHandler {
   readonly abilityId = 'lume_e';
 
   validate(params: AbilityHandlerParams): AbilityValidationResult {
-    const { champion, context } = params;
-
-    const orb = this.getOrb(champion, context);
+    const orb = findOrb(params.champion, params.context);
     if (!orb || orb.isDestroyed) {
       return { valid: false, reason: 'orb_destroyed', customMessage: 'Light Orb is destroyed' };
     }
-
     return { valid: true };
   }
 
   execute(params: AbilityHandlerParams): AbilityExecutionResult {
-    const { champion, context, definition, rank } = params;
-
-    const orb = this.getOrb(champion, context);
-    if (!orb || orb.isDestroyed) {
-      Logger.debug('Ability', 'Lume E failed - orb is destroyed');
-      return { success: false };
-    }
-
-    // Calculate dash direction toward orb
-    const direction = orb.position.subtracted(champion.position);
-    const maxDashDistance = definition.dash?.distance ?? 600;
-    const distance = Math.min(direction.length(), maxDashDistance);
-
-    if (distance < 10) {
-      // Already at orb - just apply blind (short animation)
-      this.applyBlindEffect(champion, orb.position, definition, rank, context);
-      return { success: true, animationDuration: 0.5 };
-    }
-
-    const normalizedDir = direction.normalized();
-    const dashSpeed = definition.dash?.speed ?? 1200;
-    const dashDuration = distance / dashSpeed;
-
-    // Set up the dash
-    champion.forcedMovement = {
-      direction: normalizedDir,
-      distance,
-      duration: dashDuration,
-      elapsed: 0,
-      type: 'dash',
-      hitEntities: new Set(),
-    };
-
-    // Track that this dash was caused by Lume E (for animation)
-    champion.dashAbilityId = 'lume_e';
-
-    // Update facing direction
-    champion.direction = normalizedDir;
-
-    // Schedule blind effect check on dash completion
-    setTimeout(() => {
-      const currentOrb = this.getOrb(champion, context);
-      if (currentOrb && champion.position.distanceTo(currentOrb.position) <= 50) {
-        this.applyBlindEffect(champion, currentOrb.position, definition, rank, context);
-      }
-    }, dashDuration * 1000);
-
-    Logger.champion.debug(`${champion.playerId} dashed toward Light Orb`);
-
-    // Animation duration: dash time + ending frames (0.4s for frames 7-10)
-    const animationDuration = dashDuration + 0.4;
-
-    return { success: true, animationDuration };
+    const { champion, definition } = params;
+    // A new beam: everything it touches can be hit again
+    (champion.passiveState.customData ??= {}).prismHit = [];
+    champion.applyEffect('lume_prism', definition.effectDuration ?? 2.5, champion.id);
+    return { success: true };
   }
+}
 
-  // =============================================================================
-  // Blind Effect
-  // =============================================================================
-
-  private applyBlindEffect(
-    champion: ServerChampion,
-    position: import('@siege/shared').Vector,
-    definition: import('@siege/shared').AbilityDefinition,
-    rank: number,
-    context: ServerGameContext
-  ): void {
-    const blindRadius = LUME_ORB_CONFIG.eBlindRadius;
-    const blindDuration = Array.isArray(definition.effectDuration)
-      ? definition.effectDuration[rank - 1]
-      : definition.effectDuration ?? 1.0;
-
-    const enemies = context.getEntitiesInRadius(position, blindRadius);
-
-    for (const entity of enemies) {
-      if (entity.side === champion.side) continue;
-      if (entity.isDead) continue;
-
-      this.applyEffects(entity, ['blind'], blindDuration, champion.id);
-    }
-
-    Logger.debug('Ability', `Lume E blinded enemies for ${blindDuration}s`);
+/** Lume's Light Orb */
+export function findOrb(champion: ServerChampion, context: ServerGameContext): ServerLightOrb | null {
+  for (const entity of context.getAllEntities()) {
+    if (entity instanceof ServerLightOrb && entity.ownerId === champion.id) return entity;
   }
-
-  // =============================================================================
-  // Light Orb Helper
-  // =============================================================================
-
-  private getOrb(champion: ServerChampion, context: ServerGameContext): ServerLightOrb | null {
-    for (const entity of context.getAllEntities()) {
-      if (entity instanceof ServerLightOrb && entity.ownerId === champion.id) {
-        return entity;
-      }
-    }
-    return null;
-  }
+  return null;
 }

@@ -69,6 +69,8 @@ export interface AbilityExecutionResult {
   animationDuration?: number;
   /** Custom VFX spawn position (for abilities that spawn VFX at a different location than caster) */
   vfxPosition?: Vector;
+  /** Where the effect starts, when not at the caster (Lume's Eclipse fires from her orb) */
+  vfxOrigin?: Vector;
 }
 
 /**

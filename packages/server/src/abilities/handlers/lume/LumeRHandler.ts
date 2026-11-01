@@ -1,125 +1,59 @@
 /**
- * LumeRHandler - Beaconfall
+ * LumeRHandler - Eclipse
  *
- * The Light Orb explodes at its current position.
- *
- * EXPLOSION:
- * - Large area magic damage
- * - 40% slow for 2 seconds
- * - Centered on orb's position at the cast, landing aoeDelay later (a beam
- *   of light falls on it; clients draw the warning)
- *
- * CONSEQUENCE:
- * - The orb is destroyed
- * - All orb-related abilities (Q, W, E) become unusable
- * - Passive aura effects stop
- * - Orb respawns after 60 seconds
+ * The Light Orb gathers light for aoeDelay (clients draw the line from the
+ * orb), then fires a beam rBeamLength long from where the orb was toward the
+ * aim: magic damage to every enemy along it. The orb isn't spent.
  */
 
+import { canAbilityAffectEntityType, LUME_ORB_CONFIG } from '@siege/shared';
 import { BaseAbilityHandler } from '../../BaseAbilityHandler';
 import type {
   AbilityHandlerParams,
   AbilityValidationResult,
   AbilityExecutionResult,
 } from '../../IAbilityHandler';
-import { ServerLightOrb, LUME_ORB_CONFIG } from '../../../simulation/ServerLightOrb';
-import type { ServerChampion } from '../../../simulation/ServerChampion';
-import type { ServerGameContext } from '../../../game/ServerGameContext';
-import { Logger } from '../../../utils/Logger';
+import { entitiesInBand } from '../../generic/Line';
+import { findOrb } from './LumeEHandler';
 
 export class LumeRHandler extends BaseAbilityHandler {
   readonly abilityId = 'lume_r';
 
   validate(params: AbilityHandlerParams): AbilityValidationResult {
-    const { champion, context } = params;
-
-    const orb = this.getOrb(champion, context);
+    const orb = findOrb(params.champion, params.context);
     if (!orb || orb.isDestroyed) {
       return { valid: false, reason: 'orb_destroyed', customMessage: 'Light Orb is destroyed' };
     }
-
     return { valid: true };
   }
 
   execute(params: AbilityHandlerParams): AbilityExecutionResult {
-    const { champion, context, definition, rank, damageMultiplier } = params;
+    const { champion, context, definition, rank, damageMultiplier, targetPosition } = params;
+    const orb = findOrb(champion, context);
+    if (!orb || orb.isDestroyed || !targetPosition) return { success: false };
 
-    const orb = this.getOrb(champion, context);
-    if (!orb || orb.isDestroyed) {
-      Logger.debug('Ability', 'Lume R failed - orb is destroyed');
-      return { success: false };
-    }
-
-    const explosionPosition = orb.position.clone();
-
-    // Calculate damage
-    const damageAmount = this.calculateDamage(definition, rank, champion, damageMultiplier);
+    // From the orb toward the aim (from Lume's aim when it's on the orb itself)
+    const origin = orb.position.clone();
+    let aim = targetPosition.subtracted(origin);
+    if (aim.length() < 1) aim = targetPosition.subtracted(champion.position);
+    if (aim.length() < 1) return { success: false };
+    const direction = aim.normalized();
+    const length = LUME_ORB_CONFIG.rBeamLength;
+    const damage = this.calculateDamage(definition, rank, champion, damageMultiplier);
     const damageType = definition.damage?.type ?? 'magic';
-    const explosionRadius = definition.aoeRadius ?? LUME_ORB_CONFIG.rExplosionRadius;
 
-    // Get slow duration
-    const slowDuration = Array.isArray(definition.effectDuration)
-      ? definition.effectDuration[rank - 1]
-      : definition.effectDuration ?? 2.0;
-
-    const explode = () => {
-      const enemies = this.getAffectedEnemies(
-        explosionPosition,
-        explosionRadius,
-        champion,
-        definition,
-        context
-      );
-
-      for (const entity of enemies) {
-        // Deal damage
-        this.dealDamage(entity, damageAmount, damageType, champion.id, context);
-
-        // Apply slow
-        if (definition.appliesEffects) {
-          this.applyEffects(entity, definition.appliesEffects, slowDuration, champion.id);
-        }
+    const fire = () => {
+      if (champion.isDead) return;
+      const band = { from: origin, direction, length, halfWidth: definition.aoeRadius ?? LUME_ORB_CONFIG.rBeamHalfWidth };
+      for (const entity of entitiesInBand(context, band)) {
+        if (entity.side === champion.side || entity.isDead) continue;
+        if (!canAbilityAffectEntityType(definition, entity.entityType)) continue;
+        this.dealDamage(entity, damage, damageType, champion.id, context);
       }
     };
-    if (definition.aoeDelay && definition.aoeDelay > 0) {
-      context.schedule(definition.aoeDelay, explode);
-    } else {
-      explode();
-    }
+    context.schedule(definition.aoeDelay ?? 0.6, fire);
 
-    // Destroy the orb
-    Logger.champion.info(`[LumeR] Destroying orb, current state: ${orb.toSnapshot().state}`);
-    orb.destroy();
-    Logger.champion.info(`[LumeR] Orb destroyed, new state: ${orb.toSnapshot().state}`);
-
-    // Reset Q recast window (no orb to recall)
-    champion.abilityStates.Q.recastCount = 0;
-    champion.abilityStates.Q.recastWindowRemaining = undefined;
-
-    // Disable Q, W, E abilities (no orb to interact with)
-    champion.abilityStates.Q.isDisabled = true;
-    champion.abilityStates.W.isDisabled = true;
-    champion.abilityStates.E.isDisabled = true;
-    Logger.champion.info(`[LumeR] Abilities disabled: Q=${champion.abilityStates.Q.isDisabled}, W=${champion.abilityStates.W.isDisabled}, E=${champion.abilityStates.E.isDisabled}`);
-
-    Logger.champion.info(
-      `${champion.playerId} cast Beaconfall - ${damageAmount.toFixed(0)} damage incoming, orb destroyed`
-    );
-
-    // Return orb position for VFX to spawn at the explosion location
-    return { success: true, vfxPosition: explosionPosition };
-  }
-
-  // =============================================================================
-  // Light Orb Helper
-  // =============================================================================
-
-  private getOrb(champion: ServerChampion, context: ServerGameContext): ServerLightOrb | null {
-    for (const entity of context.getAllEntities()) {
-      if (entity instanceof ServerLightOrb && entity.ownerId === champion.id) {
-        return entity;
-      }
-    }
-    return null;
+    // The VFX runs from the orb to the beam's end
+    return { success: true, vfxOrigin: origin, vfxPosition: origin.added(direction.scaled(length)) };
   }
 }

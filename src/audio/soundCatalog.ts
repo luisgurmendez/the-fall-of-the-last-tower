@@ -125,9 +125,9 @@ export const SOUNDS = {
   lume_q_arrive: { prompt: `a small orb of light landing, a bright crystalline pop, ${DRY}`, duration: 0.6, volume: 0.7, maxVoices: 2 },
   lume_q_recast: { prompt: `an orb of light flying back to its owner, a soft reversed shimmering whoosh, ${DRY}`, duration: 0.7, volume: 0.45, maxVoices: 2 },
   lume_w: { prompt: `a warm pulse of light rolling out, a soft resonant swell with gentle bell shimmer, ${DRY}`, duration: 0.9, volume: 0.5, maxVoices: 2 },
-  lume_e: { prompt: `a quick dash in a streak of light ending in a bright flash zing, ${DRY}`, duration: 0.6, volume: 0.9, maxVoices: 2 },
-  lume_r_charge: { prompt: `light gathering into an orb, a fast rising bright shimmering tone, ${DRY}`, duration: 0.5, volume: 0.35, maxVoices: 2 },
-  lume_r: { prompt: `a beam of light crashing down, a huge bright explosion with shattering crystal and a shimmering ring, ${DRY}`, duration: 1.6, volume: 1, maxVoices: 2 },
+  lume_e: { prompt: `a beam of prismatic light forming between two points, a shimmering crystalline hum, ${DRY}`, duration: 1, volume: 0.5, maxVoices: 2 },
+  lume_r_charge: { prompt: `light gathering into a glowing orb, a fast rising bright shimmering tone, ${DRY}`, duration: 0.6, volume: 0.25, maxVoices: 2 },
+  lume_r: { prompt: `a huge beam of light blasting forward, a bright roaring whoosh with a crystalline ring, ${DRY}`, duration: 1.6, volume: 0.5, maxVoices: 2 },
   // Vex: shadow ninja
   vex_shuriken: { prompt: `a ninja throwing a spinning shuriken, a sharp fast metallic whir, ${DRY}`, duration: 0.5, volume: 0.75, maxVoices: 2 },
   vex_shroud: { prompt: `a ninja vanishing into shadow, a soft smoky whoosh and a dark hiss, ${DRY}`, duration: 0.8, volume: 0.6, maxVoices: 2 },

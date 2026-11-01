@@ -120,10 +120,11 @@ export function processGameEvent(event: GameEvent, ctx: GameEventContext): void 
         // Spawn VFX for the ability (new VFX system)
         try {
           const vfxManager = getVFXManager();
+          // From where it starts: the caster, or elsewhere (Lume's Eclipse, from her orb)
           vfxManager.spawnAbilityVFX(
             abilityId,
-            entity.position.x,
-            entity.position.y,
+            (event.data.originX as number | undefined) ?? entity.position.x,
+            (event.data.originY as number | undefined) ?? entity.position.y,
             targetX,
             targetY,
             entityId,

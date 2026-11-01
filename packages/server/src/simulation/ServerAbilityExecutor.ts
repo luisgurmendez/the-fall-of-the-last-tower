@@ -256,6 +256,9 @@ export class ServerAbilityExecutor {
       targetY: vfxY,
       targetEntityId: params.targetEntityId,
       animationDuration: executionResult?.animationDuration,
+      // An effect that starts somewhere else than the caster (Lume's Eclipse, from the orb)
+      originX: executionResult?.vfxOrigin?.x,
+      originY: executionResult?.vfxOrigin?.y,
     });
 
     // Dispatch on_ability_cast trigger for passive abilities

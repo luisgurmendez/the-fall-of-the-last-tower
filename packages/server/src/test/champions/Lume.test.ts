@@ -6,8 +6,8 @@
  * - Passive: Guiding Glow - Allies near orb gain MS, enemies take increased magic damage
  * - Q: Send the Light - Send orb to location, deals damage, recast to recall
  * - W: Warmth - Pulse from orb, heals allies and damages enemies
- * - E: Dazzle Step - Dash toward orb, blind enemies on arrival
- * - R: Beaconfall - Orb explodes, massive damage + slow, orb destroyed for 60s
+ * - E: Prismatic Beam - A beam from Lume to the orb: damages once, slows enemies in it, speeds allies
+ * - R: Eclipse - The orb fires a long beam toward the aim after a windup
  */
 
 import { describe, test, expect, beforeEach } from "bun:test";
@@ -330,59 +330,82 @@ describe("Lume", () => {
     });
   });
 
-  describe("E - Dazzle Step", () => {
+  describe("E - Prismatic Beam", () => {
     beforeEach(() => giveLumeOrb(arena));
+
+    function orb(): ServerLightOrb {
+      return arena.context.getAllEntities().find(e => e.entityType === EntityType.LIGHT_ORB) as unknown as ServerLightOrb;
+    }
 
     test("should cast successfully", () => {
       const result = arena.castAbility(arena.blue, "E");
       expect(result.success).toBe(true);
+      expect(arena.blue.hasEffect("lume_prism")).toBe(true);
     });
 
-    test("should have correct mana cost (50 at all ranks)", () => {
+    test("should have correct mana cost (60) and cooldown at rank 1 (14s)", () => {
       const initialMana = arena.blue.resource;
       arena.castAbility(arena.blue, "E");
-      expect(arena.blue.resource).toBe(initialMana - 50);
+      expect(arena.blue.resource).toBe(initialMana - 60);
+      expect(arena.blue.getAbilityCooldown("E")).toBe(14);
     });
 
-    test("should have correct cooldown at rank 1 (18s)", () => {
+    test("hits an enemy between Lume and the orb once, and slows it while it's in the beam", () => {
+      // The orb out past Magnus (at 400)
+      orb().sendTo(new Vector(600, 0));
+      for (let i = 0; i < 60 && !orb().isStationed; i++) orb().update(1 / 30, arena.context);
+      const health = arena.red.health;
       arena.castAbility(arena.blue, "E");
-      expect(arena.blue.getAbilityCooldown("E")).toBe(18);
+      arena.tickAllFrames(30);
+      const afterBeam = arena.red.health;
+      expect(afterBeam).toBeLessThan(health);
+      expect(arena.red.hasEffect("slow_30")).toBe(true);
+      // Once per cast
+      arena.tickAllFrames(30);
+      expect(arena.red.health).toBeGreaterThanOrEqual(afterBeam - 1);
     });
 
-    test("cooldown should decrease with rank", () => {
-      arena.blue.maxAbility("E");
-      arena.blue.resetCooldowns();
-
+    test("doesn't touch an enemy off the beam", () => {
+      arena.red.position.setFrom(new Vector(300, 300));
+      orb().sendTo(new Vector(600, 0));
+      for (let i = 0; i < 60 && !orb().isStationed; i++) orb().update(1 / 30, arena.context);
+      const health = arena.red.health;
       arena.castAbility(arena.blue, "E");
-      expect(arena.blue.getAbilityCooldown("E")).toBeLessThanOrEqual(10);
+      arena.tickAllFrames(30);
+      // Not hurt (it may have regenerated)
+      expect(arena.red.health).toBeGreaterThanOrEqual(health);
+      expect(arena.red.hasEffect("slow_30")).toBe(false);
     });
   });
 
-  describe("R - Beaconfall", () => {
+  describe("R - Eclipse", () => {
     beforeEach(() => giveLumeOrb(arena));
 
-    test("should cast successfully", () => {
-      const result = arena.castAbility(arena.blue, "R");
+    test("should cast successfully toward a point, and keep the orb", () => {
+      const result = arena.castAbility(arena.blue, "R", { targetPosition: new Vector(800, 0) });
       expect(result.success).toBe(true);
+      const orb = arena.context.getAllEntities().find(e => e.entityType === EntityType.LIGHT_ORB) as unknown as ServerLightOrb;
+      expect(orb.isDestroyed).toBe(false);
     });
 
-    test("should have correct mana cost (100)", () => {
+    test("should have correct mana cost (100) and cooldown at rank 1 (110s)", () => {
       const initialMana = arena.blue.resource;
-      arena.castAbility(arena.blue, "R");
+      arena.castAbility(arena.blue, "R", { targetPosition: new Vector(800, 0) });
       expect(arena.blue.resource).toBe(initialMana - 100);
+      expect(arena.blue.getAbilityCooldown("R")).toBe(110);
     });
 
-    test("should have correct cooldown at rank 1 (120s)", () => {
-      arena.castAbility(arena.blue, "R");
-      expect(arena.blue.getAbilityCooldown("R")).toBe(120);
+    test("the beam from the orb hits an enemy along it after the windup", () => {
+      const health = arena.red.health;
+      arena.castAbility(arena.blue, "R", { targetPosition: new Vector(800, 0) });
+      expect(arena.red.health).toBeLessThan(health);
     });
 
-    test("cooldown should decrease with rank", () => {
-      arena.blue.maxAbility("R");
-      arena.blue.resetCooldowns();
-
-      arena.castAbility(arena.blue, "R");
-      expect(arena.blue.getAbilityCooldown("R")).toBeLessThanOrEqual(80);
+    test("misses an enemy off the beam's line", () => {
+      arena.red.position.setFrom(new Vector(400, 300));
+      const health = arena.red.health;
+      arena.castAbility(arena.blue, "R", { targetPosition: new Vector(800, 0) });
+      expect(arena.red.health).toBe(health);
     });
   });
 
