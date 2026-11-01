@@ -21,6 +21,10 @@ import {
   LumeDefinition,
   UrukDefinition,
   OitboilDefinition,
+  EloraDefinition,
+  CaelumDefinition,
+  FenrisDefinition,
+  CalamitusDefinition,
 } from './definitions';
 
 // Re-export individual definitions for backward compatibility
@@ -34,6 +38,10 @@ export {
   LumeDefinition,
   UrukDefinition,
   OitboilDefinition,
+  EloraDefinition,
+  CaelumDefinition,
+  FenrisDefinition,
+  CalamitusDefinition,
 };
 
 // =============================================================================
@@ -53,6 +61,10 @@ export const CHAMPION_DEFINITIONS: Record<string, ChampionDefinition> = {
   lume: LumeDefinition,
   uruk: UrukDefinition,
   oitboil: OitboilDefinition,
+  elora: EloraDefinition,
+  caelum: CaelumDefinition,
+  fenris: FenrisDefinition,
+  calamitus: CalamitusDefinition,
 };
 
 /**

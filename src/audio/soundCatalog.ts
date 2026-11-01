@@ -154,6 +154,34 @@ export const SOUNDS = {
   oitboil_e: { prompt: `a small rocket jet ignition and launch, a fiery blast and whoosh, ${DRY}`, duration: 0.6, volume: 0.5, maxVoices: 2 },
   oitboil_r: { prompt: `a flamethrower pouring a roaring stream of fire for one second, ${DRY}`, duration: 1.2, volume: 0.55, maxVoices: 2 },
   oitboil_overheat: { prompt: `fire flaring up with a boiling hiss and a metal tank creaking under heat, ${DRY}`, duration: 0.9, volume: 0.95, maxVoices: 2 },
+  // Elora: a hunter's longbow
+  elora_attack: { prompt: `a longbow string released, a taut twang and a quick arrow whoosh, ${DRY}`, duration: 0.5, volume: 0.55, maxVoices: 3 },
+  elora_q: { prompt: `an arrowhead dipped in a small glass vial of poison, a liquid bubble and a soft hiss, ${DRY}`, duration: 0.6, volume: 0.7, maxVoices: 2 },
+  elora_w: { prompt: `a heavy war bow drawn and released, a deep twang and a heavy arrow thudding into wood, ${DRY}`, duration: 0.7, volume: 0.7, maxVoices: 2 },
+  elora_e: { prompt: `a quick roll on dirt, rustling cloak and leather with a soft thump, ${DRY}`, duration: 0.5, volume: 1.2, maxVoices: 2 },
+  elora_r: { prompt: `many bowstrings released at once, a volley of arrows whooshing up into the sky, ${DRY}`, duration: 0.8, volume: 1.4, maxVoices: 2 },
+  // Caelum: an old druid's light and the forest
+  caelum_attack: { prompt: `a small bolt of soft magical light, a gentle bright ping, ${DRY}`, duration: 0.5, volume: 0.65, maxVoices: 3 },
+  caelum_q: { prompt: `a beam of golden holy light fired from a staff, a bright shimmering zap, ${DRY}`, duration: 0.6, volume: 0.5, maxVoices: 2 },
+  caelum_w: { prompt: `a druid blessing an ally, rustling leaves with a warm magical chime, ${DRY}`, duration: 0.8, volume: 0.7, maxVoices: 2 },
+  caelum_e: { prompt: `thick tree roots bursting up out of the ground, creaking and cracking wood with earth rumbling, ${DRY}`, duration: 0.9, volume: 0.95, maxVoices: 2 },
+  caelum_r: { prompt: `a deep heartbeat and a swelling choir-like shimmer of holy light pouring out, ${DRY}`, duration: 1.2, volume: 1.3, maxVoices: 2 },
+  caelum_lightweave: { prompt: `a soft wave of healing light, gentle wind chimes and a warm whoosh, ${DRY}`, duration: 0.8, volume: 0.4, maxVoices: 2 },
+  // Fenris: a cursed werewolf
+  fenris_attack: { prompt: `a werewolf claw swipe, a fast whoosh with a fleshy slash, ${DRY}`, duration: 0.5, volume: 0.9, maxVoices: 3 },
+  fenris_q: { prompt: `a wolf snarling and biting hard, jaws snapping shut, ${DRY}`, duration: 0.6, volume: 1.1, maxVoices: 2 },
+  fenris_w: { prompt: `a heavy raking swipe of big claws, two fast slashing whooshes, ${DRY}`, duration: 0.6, volume: 1.4, maxVoices: 2 },
+  fenris_e: { prompt: `a big wolf pouncing, a growl and a heavy whoosh landing with a thud, ${DRY}`, duration: 0.7, volume: 1.5, maxVoices: 2 },
+  fenris_r: { prompt: "a werewolf howling at the moon, a long eerie menacing howl, video game sound effect, no music", duration: 1.6, volume: 0.35, maxVoices: 2 },
+  fenris_r_feast: { prompt: `a beast growling with satisfaction as dark power surges back into it, ${DRY}`, duration: 0.9, volume: 0.6, maxVoices: 2 },
+  // Calamitus: a golem of rock and lava
+  calamitus_attack: { prompt: `a heavy rock fist punching, a deep stony thud with a lava sizzle, ${DRY}`, duration: 0.5, volume: 0.95, maxVoices: 3 },
+  calamitus_q: { prompt: `fists slamming the ground as lava bursts up, a deep thump and a molten splash with sizzling, ${DRY}`, duration: 0.8, volume: 0.95, maxVoices: 2 },
+  calamitus_w: { prompt: `a wave of magma rolling along the ground, a deep rumbling roar with bubbling lava, ${DRY}`, duration: 1.0, volume: 0.7, maxVoices: 2 },
+  calamitus_e: { prompt: `rock hardening into glassy obsidian, a crystalline crackling and grinding stone, ${DRY}`, duration: 0.8, volume: 1.4, maxVoices: 2 },
+  calamitus_r_rumble: { prompt: `the ground rumbling deeply before a volcanic eruption, a low growing rumble, ${DRY}`, duration: 0.8, volume: 0.75, maxVoices: 2 },
+  calamitus_r: { prompt: `a volcanic eruption bursting out of the ground, a huge explosive boom with lava splashing and rocks, ${DRY}`, duration: 1.4, volume: 1.1, maxVoices: 2 },
+  elora_r_rain:{ prompt: `a rain of arrows striking the ground, many rapid thuds and whistles, ${DRY}`, duration: 0.9, volume: 1, maxVoices: 2 },
 
   // Announcements (a tower, an inhibitor or the dragon falls, a champion kill)
   stinger_good: { prompt: `a short triumphant brass fanfare hit, game notification`, duration: 1.5, bus: "ui", volume: 0.5, maxVoices: 1 },

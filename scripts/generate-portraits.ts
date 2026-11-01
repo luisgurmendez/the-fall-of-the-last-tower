@@ -45,6 +45,10 @@ export const PORTRAITS: Record<string, Portrait> = {
   vile: { sprite: 'public/assets/champs/vile/idle.png', pick: 4, prompt: 'a grim hunter in a black hood, the face in shadow, faint purple wisps of smoke around him' },
   uruk: { sprite: 'public/assets/champs/uruk/idle.png', pick: 5, prompt: 'a silver-scaled dragonborn with a dragon head, small horns, amber eyes and silver plate armor' },
   oitboil: { sprite: 'public/assets/champs/oitboil/idle.png', pick: 10, prompt: 'a green goblin pyromancer with big pointed ears, a wide grin and brass goggles pushed up on his forehead, soot on his cheeks' },
+  elora: { sprite: 'public/assets/champs/elora/idle.png', pick: 0, prompt: 'a young huntress with a dark braid and a hooded forest-green cloak, sharp focused eyes' },
+  caelum: { sprite: 'public/assets/champs/caelum/idle.png', pick: 0, prompt: 'an old kind druid with a long white beard and a crown of leaves, soft golden light on his face' },
+  fenris: { sprite: 'public/assets/champs/fenris/idle.png', pick: 7, prompt: 'a snarling grey werewolf with glowing red eyes and ragged dark fur, bared fangs' },
+  calamitus: { sprite: 'public/assets/champs/calamitus/idle.png', pick: 5, prompt: 'a golem head of black cooled rock with glowing orange magma cracks and burning eyes' },
   lume: { sprite: 'public/assets/champs/lume/Lume-IDLE.png', pick: 1, prompt: 'a gentle young woman with white hair in a cream hooded robe, soft warm light on her face' },
 };
 

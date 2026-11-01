@@ -16,9 +16,12 @@ const IMPACT_TIMES: Record<string, number> = {
   magnus_fireball: 0.25,
   vex_shuriken: 0.2,
   vile_black_arrows: 0.2,
+  elora_w: 0.25,
+  caelum_q: 0.25,
   // Leaps: the blow lands on the target
   warrior_ultimate: 0.37,
   uruk_r: 0.35,
+  fenris_e: 0.4,
   // Lume's orb lands where it was sent
   lume_q: 0.2,
 };

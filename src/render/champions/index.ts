@@ -21,6 +21,10 @@ import { magnusRenderer } from "./magnus";
 import { vexRenderer } from "./vex";
 import { urukRenderer } from "./uruk";
 import { oitboilRenderer } from "./oitboil";
+import { eloraRenderer } from "./elora";
+import { caelumRenderer } from "./caelum";
+import { fenrisRenderer } from "./fenris";
+import { calamitusRenderer } from "./calamitus";
 import { vileRenderer } from "./vile";
 import { warriorRenderer } from "./warrior";
 
@@ -42,6 +46,10 @@ export const CHAMPION_RENDERERS: Readonly<
   magnus: magnusRenderer,
   uruk: urukRenderer,
   oitboil: oitboilRenderer,
+  elora: eloraRenderer,
+  caelum: caelumRenderer,
+  fenris: fenrisRenderer,
+  calamitus: calamitusRenderer,
   vex: vexRenderer,
   vile: vileRenderer,
   warrior: warriorRenderer,

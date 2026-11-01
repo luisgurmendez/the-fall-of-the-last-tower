@@ -173,5 +173,53 @@
       "idle": "5e7fab0c-fd15-4e9b-bb08-8636c0d46e47"
     },
     "characterId": "249b6bfc-627a-4511-8be4-18423a50bf93"
+  },
+  "elora": {
+    "animations": {
+      "w": "aa0b3b39-ac3f-428a-bf8a-7be3108938ec",
+      "r": "7fc61836-2c9f-46e5-aacb-f26de5f8e05c",
+      "e": "5735d4e7-83df-400a-951a-bff0cc89d1d9",
+      "q": "bca100f3-2ce0-48ed-b667-f507785e53cd",
+      "attack": "72e3c045-7ca2-4fa2-ba48-b408578fc52b",
+      "idle": "57b9b5ed-ddf1-456d-92cb-2e8fa0cfc27f",
+      "walk": "c76f4dda-340e-42bf-abc6-57099c5277e6"
+    },
+    "characterId": "d5d23be5-662f-410d-9af2-da09c453594c"
+  },
+  "caelum": {
+    "animations": {
+      "q": "56b0bad9-05ec-45e5-b73e-fc593cda9108",
+      "walk": "30f5c67b-2dc1-4dc5-9256-f83437445ffe",
+      "attack": "290beb6f-d91a-4c48-a642-853c3b2ce543",
+      "w": "8e401f19-4e4d-462a-9811-e99d64111134",
+      "r": "9f25f84f-a19f-41c5-bf52-cd4b2eed75eb",
+      "e": "1d9e7b43-f385-40ca-9d0d-3208632898ac",
+      "idle": "bbef29ce-3ddf-43aa-8954-e7162271c031"
+    },
+    "characterId": "fb08849d-9495-4c5c-898e-85b7b5c8b705"
+  },
+  "fenris": {
+    "animations": {
+      "attack": "cca008ab-c4d4-4a7d-b6ad-0c34044bf53b",
+      "e": "040dbd04-1044-49b8-9a67-16a9552a0893",
+      "w": "d43abfa8-dd68-4880-88e9-4b5a02653ddd",
+      "q": "6c0287de-bb75-446f-a717-01032d4e73f4",
+      "r": "44dab57b-a036-42e0-9fce-c619838af9a7",
+      "walk": "3a753df6-6a05-41b6-8903-7f24ad6a7030",
+      "idle": "444e723b-3010-485c-9a1a-42af309e79a6"
+    },
+    "characterId": "92bf8f16-4c32-4ab3-801d-915558588f5a"
+  },
+  "calamitus": {
+    "animations": {
+      "attack": "6e15faaa-a237-4047-be41-e9e470ae0e8c",
+      "e": "9778efe3-8625-486c-bdb8-c697e7711b18",
+      "q": "b7d8a179-a947-4923-a1c7-16ec556c3cfb",
+      "w": "99ced4f6-436c-41e1-80c7-a180c78b0886",
+      "idle": "4631b4e1-aec3-429d-a115-bdcc39bea351",
+      "walk": "0e9bbf0f-3438-44c6-80b7-885ad0f5dfb9",
+      "r": "28a498a8-0122-4850-806b-258ab6fe0158"
+    },
+    "characterId": "c8687483-c824-47b7-b450-c5639901aa23"
   }
 }

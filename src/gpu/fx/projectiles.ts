@@ -72,6 +72,19 @@ function fireball(radius: number, core: RGB, edge: RGB): Style {
   };
 }
 
+const ARROW = fxColor("#f2ead8");
+const ARROW_TRAIL = fxColor("#b8c8d0");
+const VENOM = fxColor("#7cd64a");
+
+/** An arrow: a bright shaft along its flight with a thin streak behind */
+function arrow(shaft: RGB, length: number, trail: RGB, width = 4): Style {
+  return (batch, id, x, y, angle, time) => {
+    const points = trailOf(id, x, y, time, 6);
+    batch.ribbon(points, width * 0.6, trail, 0.7);
+    batch.spark(x, y, angle, length, width, shaft, 1.8);
+  };
+}
+
 /** A ball of energy with a ribbon behind it and a twinkle at its heart */
 function energyBolt(radius: number, color: RGB | null, trailWidth: number, trailLength = 8): Style {
   return (batch, id, x, y, _angle, time, side) => {
@@ -129,6 +142,37 @@ export const PROJECTILE_STYLES: Record<string, Style> = {
       batch.flame(points[i].x, points[i].y, 5 + t * 6, i % 2 ? FIRE_HOT : FIRE, 1.1 * t, 1 - t, 0.3, 3, seed + i * 0.1, 0);
     }
     batch.glow(x, y, 20, FIRE, 0.9, 0.3, 0.5, 0.6, seed);
+  },
+  // Elora's arrows: a pale shaft with a faint streak, a green-tipped poisoned
+  // one trailing drops, a gold glint for the weak point, a heavy pinning arrow
+  elora_auto: arrow(ARROW, 34, ARROW_TRAIL),
+  elora_poison_auto: (batch, id, x, y, angle, time) => {
+    const seed = seedOf(id);
+    const points = trailOf(id, x, y, time, 9);
+    for (let i = 0; i < points.length - 1; i += 2) {
+      const t = i / (points.length - 1);
+      batch.dust(points[i].x, points[i].y, 5 + t * 4, VENOM, 0.45 * t, seed + i * 0.1);
+    }
+    arrow(ARROW, 34, VENOM)(batch, id, x, y, angle, time, 0);
+    batch.glow(x + Math.cos(angle) * 14, y + Math.sin(angle) * 14, 16, VENOM, 0.9, 0.3, 0.4, 0.5, seed);
+  },
+  elora_weak_auto: (batch, id, x, y, angle, time) => {
+    arrow(ARROW, 36, GOLD)(batch, id, x, y, angle, time, 0);
+    batch.flare(x + Math.cos(angle) * 16, y + Math.sin(angle) * 16, 14, GOLD, 1.4, time * 8);
+  },
+  elora_w: (batch, id, x, y, angle, time) => {
+    arrow(fxColor("#e8dcc0"), 52, fxColor("#c8b070"), 7)(batch, id, x, y, angle, time, 0);
+    batch.glow(x, y, 26, fxColor("#c8b070"), 0.6, 0.2, 0.4, 0.4, seedOf(id));
+  },
+  // Caelum's light: a soft green-gold mote, and a long golden ray
+  caelum_auto: energyBolt(4, fxColor("#c8f08a"), 4, 7),
+  caelum_q: (batch, id, x, y, angle, time) => {
+    const seed = seedOf(id);
+    const points = trailOf(id, x, y, time, 14);
+    batch.ribbon(points, 10, GOLD, 1.1);
+    batch.ribbon(points, 4, fxColor("#fff8e0"), 1.6);
+    batch.spark(x, y, angle, 40, 8, fxColor("#fff8e0"), 2);
+    batch.glow(x, y, 30, GOLD, 0.9, 0.3, 0.6, 0.3, seed);
   },
   minion_caster: energyBolt(4, null, 4, 6),
   tower: energyBolt(8, null, 9, 10),

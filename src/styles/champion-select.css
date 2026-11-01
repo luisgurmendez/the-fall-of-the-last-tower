@@ -10,7 +10,8 @@
 /* ============================================ */
 
 #screen-champion-select.active {
-  max-width: 1000px;
+  /* Wide enough for every champion card in one row (the panel below stays 900) */
+  max-width: 1280px;
   width: 100%;
   display: flex;
   flex-direction: column;
@@ -36,7 +37,7 @@
 .champion-grid {
   display: flex;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   margin-bottom: 16px;
   flex-wrap: wrap;
 }
@@ -47,7 +48,7 @@
 
 /* Narrow enough for all nine champions in one row */
 .champion-card {
-  width: 88px;
+  width: 74px;
   background: var(--pixel-bg-light);
   border: 4px solid var(--pixel-border);
   box-shadow:
@@ -55,7 +56,7 @@
     inset 4px 4px 0 0 var(--pixel-border-highlight);
   cursor: pointer;
   transition: transform 0.1s, border-color 0.1s, box-shadow 0.1s;
-  padding: 8px;
+  padding: 6px;
   text-align: center;
 }
 
@@ -84,8 +85,8 @@
 
 /* Champion Portrait */
 .champion-portrait {
-  width: 70px;
-  height: 70px;
+  width: 60px;
+  height: 60px;
   margin: 0 auto 6px;
   background: var(--pixel-bg-darker);
   border: 3px solid var(--pixel-border);
@@ -102,7 +103,7 @@
 /* Champion Name */
 .champion-card-name {
   font-family: var(--pixel-font);
-  font-size: 28px;
+  font-size: 22px;
   color: var(--pixel-text);
   text-shadow: 2px 2px 0 #000;
   margin-bottom: 2px;

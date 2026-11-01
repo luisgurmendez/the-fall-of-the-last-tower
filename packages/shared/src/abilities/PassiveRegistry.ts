@@ -21,6 +21,10 @@ import {
   LumePassive,
   UrukPassive,
   OitboilPassive,
+  EloraPassive,
+  CaelumPassive,
+  FenrisPassive,
+  CalamitusPassive,
 } from '../champions/definitions';
 
 // Re-export individual passives for convenience
@@ -34,6 +38,10 @@ export {
   LumePassive,
   UrukPassive,
   OitboilPassive,
+  EloraPassive,
+  CaelumPassive,
+  FenrisPassive,
+  CalamitusPassive,
 };
 
 // =============================================================================
@@ -53,6 +61,10 @@ export const PASSIVE_DEFINITIONS: Record<string, PassiveAbilityDefinition> = {
   lume_passive: LumePassive,
   uruk_passive: UrukPassive,
   oitboil_passive: OitboilPassive,
+  elora_passive: EloraPassive,
+  caelum_passive: CaelumPassive,
+  fenris_passive: FenrisPassive,
+  calamitus_passive: CalamitusPassive,
 };
 
 /**

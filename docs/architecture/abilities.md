@@ -212,7 +212,7 @@ Generic path details:
 | `GroundTarget.ts` | `ground_target`: picks trap, cone, line or circle; circles, delayed circles and `zoneDuration` zones |
 | `Cone.ts` | Cones (`ground_target` with `shape: 'cone'` and `coneAngle`) |
 | `Line.ts` | Lines (`ground_target` with `shape: 'line'`): every enemy in a band toward the target |
-| `Trap.ts` | Trap placement (`ground_target` with `trap`) |
+| `Trap.ts` | Trap placement (`ground_target` with `trap`). A trap (`ServerTrap`) arms a second after it's placed, and a champion it catches can't be caught by another trap for three seconds (`vile_trap_caught`), so traps dropped on someone don't chain into one long root |
 | `Movement.ts` | `dash` and `teleport`, run after the path or handler, and the generic recast dash. A dash puts its `appliesEffects` in the `buff` category on the caster and the rest on what it runs into |
 | `AbilityHelpers.ts` | Scaling stats and effect application shared by the paths |
 
@@ -228,8 +228,11 @@ Rules that belong to a champion rather than to one ability implement `IChampionH
 | `breaksStealthOnCast` | Executor, every cast | Vex: Shadow Shroud keeps stealth |
 | `modifyAbilityCooldown` | Executor, after ability haste | Vex: Ninja Mode halves Q/E cooldowns |
 | `onAbilityCast` | Executor, after a cast is paid for (not recasts) | Oitboil: his abilities heat him up, Blue Fire vents heat |
-| `updatePassiveState` | `ServerChampion`, every tick | Lume: passive follows the Light Orb, and the Prismatic Beam (E) hits along the line from her to it; Oitboil: heat falls, the overheat burns him |
-| `onMeleeAttackHit` | `ServerChampion`, melee hits | Vex: empowered attack after Shadow Step |
+| `updatePassiveState` | `ServerChampion`, every tick | Lume: passive follows the Light Orb, and the Prismatic Beam (E) hits along the line from her to it; Oitboil: heat falls, the overheat burns him; Caelum: Lightweaving's pulse; Fenris: feral under 40% health; Calamitus: tougher in his lava |
+| `onMeleeAttackHit` | `ServerChampion`, melee hits (with the damage dealt) | Vex: empowered attack after Shadow Step; Fenris: Bloodthirst's life steal |
+| `onRangedAttackHit` | A ranged basic attack's projectile, on hit | Elora: every third arrow on the same target strikes a weak point; the poisoned arrow |
+| `basicAttackProjectileType` | A ranged basic attack about to be fired | Elora: the poisoned arrow and the weak point's arrow look different (their `<type>_impact` VFX play where they land) |
+| `onChampionKill` | `ServerChampion.onDeath`, for the killer (an enemy champion with the last hit) | Fenris: a kill in his Bloodthirst heals him to full |
 
 `initializeAbilityHandlers()` (called at server startup) registers both handlers and hooks.
 

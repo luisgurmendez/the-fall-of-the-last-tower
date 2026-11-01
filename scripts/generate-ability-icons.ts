@@ -91,6 +91,46 @@ export const ICONS: Record<string, ChampionIcons> = {
       r: { seed: 7, prompt: 'a flamethrower nozzle pouring a wide roaring stream of fire' },
     },
   },
+  elora: {
+    theme: 'forest green, warm wood brown and pale gold',
+    icons: {
+      passive: { seed: 9, prompt: 'an arrow piercing the center of a target with a gold glint' },
+      q: { seed: 8, prompt: 'an arrow with its tip dripping green poison' },
+      w: { seed: 8, prompt: 'a heavy arrow pinned into the ground with dust around it' },
+      e: { seed: 7, prompt: 'a hooded figure rolling with a curved motion streak' },
+      r: { seed: 8, prompt: 'many arrows raining down from above in a volley' },
+    },
+  },
+  caelum: {
+    theme: 'leaf green, warm gold light and bark brown',
+    icons: {
+      passive: { seed: 7, prompt: 'a glowing green leaf woven with threads of golden light' },
+      q: { seed: 7, prompt: 'a straight beam of golden light shooting forward' },
+      w: { seed: 8, prompt: 'a raised fist glowing with green and gold light' },
+      e: { seed: 9, prompt: 'twisting tree roots bursting up out of the ground' },
+      r: { seed: 7, prompt: 'a glowing golden heart giving off light to another heart' },
+    },
+  },
+  fenris: {
+    theme: 'blood red, dark grey fur and black',
+    icons: {
+      passive: { seed: 8, prompt: 'a snarling wolf head with glowing red eyes' },
+      q: { seed: 9, prompt: 'open wolf jaws with sharp fangs biting' },
+      w: { seed: 9, prompt: 'three red claw slash marks' },
+      e: { seed: 7, prompt: 'a wolf leaping forward with claws out' },
+      r: { seed: 9, prompt: 'a wolf howling at a red moon' },
+    },
+  },
+  calamitus: {
+    theme: 'molten orange, lava red and black rock',
+    icons: {
+      passive: { seed: 7, prompt: 'a rocky fist with glowing lava cracks' },
+      q: { seed: 8, prompt: 'lava bursting up from cracked ground in a ring' },
+      w: { seed: 9, prompt: 'a wave of molten magma rolling forward' },
+      e: { seed: 9, prompt: 'a shield of glossy black obsidian crystal' },
+      r: { seed: 8, prompt: 'a volcano erupting with lava and rocks' },
+    },
+  },
   uruk: {
     theme: 'silver, steel grey and icy blue',
     icons: {

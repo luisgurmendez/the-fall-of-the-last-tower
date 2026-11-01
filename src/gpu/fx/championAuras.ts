@@ -3,8 +3,9 @@
  * channel (a circle that draws itself in as the recall goes, light rising
  * from it) and the jungle buffs it holds (a blue ring with orbiting motes
  * for Crest of Insight, a flickering red-orange one with embers for Crest
- * of Cinders), so everyone can see who has them; and Oitboil on fire while
- * he's overheated.
+ * of Cinders), so everyone can see who has them; Oitboil on fire while
+ * he's overheated; Fenris's red rage, feral or in his bloodthirst; and the
+ * glow of Caelum's blessing on whoever he emboldened.
  */
 
 import { recallElapsed } from "@/core/state/recallClock";
@@ -18,6 +19,10 @@ const CINDERS = fxColor("#ff7043");
 const EMBER = fxColor("#ffab40");
 const OVERHEAT = fxColor("#ff6a1a");
 const OVERHEAT_HOT = fxColor("#ffc04a");
+const RAGE = fxColor("#e02a2a");
+const BLOOD = fxColor("#8a0a14");
+const BLESSING = fxColor("#a8e070");
+const BLESSING_LIGHT = fxColor("#fff2a8");
 
 /** Feet are a little below a champion's position */
 const FEET = 18;
@@ -80,6 +85,29 @@ export function emitChampionAuras(ground: FXBatch, top: FXBatch, champion: Champ
       const age = 0.15 + 0.85 * ((time * (1.1 + (i % 3) * 0.2) + i * 0.37) % 1);
       const side = ((i * 2.4) % 2) - 1;
       top.flame(x + side * 20, feetY - 6 - (i % 4) * 12 - age * 18, 13 + (i % 3) * 4, i % 2 ? OVERHEAT_HOT : OVERHEAT, 1.4, age, 0.4, 3, i * 0.13, 1);
+    }
+  }
+  const feral = effects.some((effect) => effect.definitionId === "fenris_feral");
+  const bloodthirst = effects.some((effect) => effect.definitionId === "fenris_bloodthirst");
+  if (feral || bloodthirst) {
+    // A red glow under him, throbbing faster in his bloodthirst, and red
+    // wisps rising off him
+    const pulse = 0.5 + 0.5 * Math.sin(time * (bloodthirst ? 10 : 5));
+    ground.glow(x, feetY, bloodthirst ? 70 : 54, RAGE, (bloodthirst ? 0.9 : 0.55) + pulse * 0.35, 0, 0, 0.5, 0.7);
+    if (bloodthirst) ground.ring(x, feetY, 46, 3, BLOOD, 1.0 + pulse * 0.4, 0.7, 0.3, 0.2);
+    const wisps = bloodthirst ? 7 : 4;
+    for (let i = 0; i < wisps; i++) {
+      const phase = (time * 0.9 + i / wisps) % 1;
+      top.glow(x + Math.sin(i * 2.1 + time * 2.5) * 22, feetY - 8 - phase * 60, 5, i % 2 ? RAGE : BLOOD, 1.4 * (1 - phase), 0.4, 0.3, 0.6, i);
+    }
+  }
+  if (effects.some((effect) => effect.definitionId === "caelum_embolden")) {
+    // Blessed: a soft green-gold glow and leaves of light circling up
+    ground.glow(x, feetY, 50, BLESSING, 0.6 + 0.2 * Math.sin(time * 4), 0, 0, 0.3, 0.5);
+    for (let i = 0; i < 4; i++) {
+      const angle = time * 2 + (i * Math.PI) / 2;
+      const phase = (time * 0.6 + i / 4) % 1;
+      top.glow(x + Math.cos(angle) * 24, feetY + Math.sin(angle) * 10 - phase * 50, 4, i % 2 ? BLESSING : BLESSING_LIGHT, 1.3 * (1 - phase), 0.5, 0.6, 0.6, i);
     }
   }
   if (hasCinders) {

@@ -46,8 +46,15 @@ const OTHER_CAST_EVENT_IDS = [
   'vile_trap_explosion',
   'uruk_e_burst',
   'oitboil_overheat',
+  'caelum_lightweave',
+  'caelum_r_given',
+  'fenris_r_feast',
+  'calamitus_lava_erupt',
   ...Object.values(MOBAConfig.JUNGLE.SPECIAL_ATTACKS).map((attack) => attack.abilityId),
 ];
+
+/** Basic attack projectiles other than <championId>_auto (EloraHooks.basicAttackProjectileType), which have impacts */
+const OTHER_ATTACK_PROJECTILES = ['elora_poison_auto', 'elora_weak_auto'];
 
 const ALL_ABILITY_IDS = Object.values(CHAMPION_DEFINITIONS).flatMap((definition) =>
   Object.values(definition.abilities)
@@ -108,6 +115,7 @@ describe('Champion client contract', () => {
       ...OTHER_CAST_EVENT_IDS,
       // Spawned where a skillshot's projectile is destroyed (state/entityVFX.ts)
       ...ALL_ABILITY_IDS.map((abilityId) => `${abilityId}_impact`),
+      ...OTHER_ATTACK_PROJECTILES.map((projectile) => `${projectile}_impact`),
       // Spawned by OnlineStateManager for hits, deaths, level ups, ...
       ...Object.values(WORLD_VFX),
       // Spawned on SUMMONER_CAST events (state/gameEvents.ts)

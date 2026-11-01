@@ -55,8 +55,12 @@ interface Cell {
 
 const abilityIds = getAllRegisteredVFX().filter((id) => !only || id.includes(only)).sort();
 const projectileIds = Object.keys(PROJECTILE_STYLES).filter((id) => !only || id.includes(only)).sort();
-const ZONES = ["damage", "slow", "heal", "buff"];
-const AURAS = ["recall", "crest_of_insight", "crest_of_cinders", "both_crests", "oitboil_overheated"];
+const ZONES = ["damage", "slow", "heal", "buff", "lava"];
+/** Zones drawn by the ability that left them, as a zone type and that ability */
+const ABILITY_ZONES: Record<string, { zoneType: string; abilityId: string }> = {
+  lava: { zoneType: "damage", abilityId: "calamitus_q" },
+};
+const AURAS = ["recall", "crest_of_insight", "crest_of_cinders", "both_crests", "oitboil_overheated", "fenris_feral", "fenris_bloodthirst", "caelum_embolden"];
 const ORBS: LightOrbState[] = ["orbiting", "traveling", "stationed", "destroyed"];
 const ids: Array<{ id: string; kind: Cell["kind"] }> = [
   ...abilityIds.map((id) => ({ id, kind: "ability" as const })),
@@ -140,7 +144,7 @@ function frame(): void {
       const oy = state === "orbiting" ? cell.casterY + Math.sin(seconds * 2) * 60 : cell.casterY;
       emitLightOrb(gpu.topFx, cell.id, state, ox, oy, seconds, 0);
     } else if (cell.kind === "zone") {
-      emitZone(gpu.groundFx, gpu.topFx, { entityId: cell.id, radius: 110, zoneType: cell.id, totalDuration: 5, remainingDuration: 5 - (seconds % 5) }, x, cell.casterY, seconds);
+      emitZone(gpu.groundFx, gpu.topFx, { entityId: cell.id, radius: 110, ...(ABILITY_ZONES[cell.id] ?? { zoneType: cell.id }), totalDuration: 5, remainingDuration: 5 - (seconds % 5) }, x, cell.casterY, seconds);
     } else if (cell.kind === "aura") {
       const recall = GameConfig.TIMING.RECALL_DURATION;
       const crests = cell.id === "both_crests" ? ["crest_of_insight", "crest_of_cinders"] : [cell.id];

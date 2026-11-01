@@ -57,6 +57,26 @@ import {
   OitboilBlueFire,
   OitboilAfterburner,
   OitboilFlamethrower,
+  EloraAbilities,
+  EloraPoisonArrow,
+  EloraPinningArrow,
+  EloraDexterity,
+  EloraArrowBarrage,
+  CaelumAbilities,
+  CaelumRayOfLight,
+  CaelumEmbolden,
+  CaelumWhisperingRoots,
+  CaelumMartyr,
+  FenrisAbilities,
+  FenrisViciousBite,
+  FenrisSavageClaw,
+  FenrisPounce,
+  FenrisBloodthirst,
+  CalamitusAbilities,
+  CalamitusLavaFlow,
+  CalamitusMagmaLandslide,
+  CalamitusObsidianSkin,
+  CalamitusEruption,
 } from '../champions/definitions';
 
 // Re-export individual abilities for backward compatibility
@@ -106,6 +126,26 @@ export {
   OitboilBlueFire,
   OitboilAfterburner,
   OitboilFlamethrower,
+  // Elora
+  EloraPoisonArrow,
+  EloraPinningArrow,
+  EloraDexterity,
+  EloraArrowBarrage,
+  // Caelum
+  CaelumRayOfLight,
+  CaelumEmbolden,
+  CaelumWhisperingRoots,
+  CaelumMartyr,
+  // Fenris
+  FenrisViciousBite,
+  FenrisSavageClaw,
+  FenrisPounce,
+  FenrisBloodthirst,
+  // Calamitus
+  CalamitusLavaFlow,
+  CalamitusMagmaLandslide,
+  CalamitusObsidianSkin,
+  CalamitusEruption,
 };
 
 // =============================================================================
@@ -125,6 +165,10 @@ export const ABILITY_DEFINITIONS: Record<string, AbilityDefinition> = {
   ...LumeAbilities,
   ...UrukAbilities,
   ...OitboilAbilities,
+  ...EloraAbilities,
+  ...CaelumAbilities,
+  ...FenrisAbilities,
+  ...CalamitusAbilities,
 };
 
 /**

@@ -189,11 +189,14 @@ export class ChampionBasicAttacks {
     const projectileSpeed = champion.definition.basicAttackProjectileSpeed ?? 800;
 
     // Determine projectile type for rendering
-    const projectileType = `${champion.definition.id}_auto`;
+    const hooks = championHooksRegistry.get(champion.definition.id);
+    const projectileType = hooks?.basicAttackProjectileType?.(champion, target) ?? `${champion.definition.id}_auto`;
+    const abilityPower = champion.getStats().abilityPower;
 
     // Create callback to handle on-hit effects when projectile lands
     const onHitCallback = (hitTarget: ServerEntity, hitDamage: number, hitContext: ServerGameContext, dealt: number) => {
       this.applyOnHitBuffs(hitTarget);
+      hooks?.onRangedAttackHit?.(champion, hitTarget, { attackDamage: hitDamage, abilityPower }, hitContext);
       champion.itemPassives.onBasicAttackHit(hitTarget, dealt, hitContext);
 
       // Dispatch on_hit trigger for passives
@@ -244,7 +247,7 @@ export class ChampionBasicAttacks {
     championHooksRegistry.get(champion.definition.id)?.onMeleeAttackHit?.(
       champion,
       target,
-      { attackDamage, abilityPower },
+      { attackDamage, abilityPower, dealt },
       context
     );
 

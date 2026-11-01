@@ -9,6 +9,7 @@ import type {
   StackBehavior,
   StatModificationType,
 } from '@siege/shared';
+import { CALAMITUS_LAVA } from '@siege/shared';
 
 /**
  * Base effect definition for server.
@@ -499,6 +500,108 @@ export const VexEmpoweredEffect: ServerEffectDefinition = {
   persistsThroughDeath: false,
 };
 
+// Elora's Poison Arrow (Q): her next basic attack is poisoned (EloraHooks)
+export const EloraPoisonArrowEffect: ServerEffectDefinition = {
+  id: 'elora_poison_arrow',
+  name: 'Poison Arrow',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+};
+
+// Poison Arrow's poison on its target: the damage ticks come from EloraHooks (scaled by Q's rank)
+export const EloraVenomEffect: ServerEffectDefinition = {
+  id: 'elora_venom',
+  name: 'Venom',
+  category: 'debuff',
+  stackBehavior: 'refresh',
+  cleansable: true,
+  persistsThroughDeath: false,
+};
+
+// Elora's Dexterity (E): she attacks faster after the roll
+export const EloraDexterityEffect: ServerStatEffectDef = {
+  id: 'elora_dexterity',
+  name: 'Dexterity',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+  stat: 'attack_speed',
+  percentValue: 0.35,
+};
+
+// Caelum's Embolden (W): more attack damage and ability power
+export const CaelumEmboldenEffect: ServerStatEffectDef = {
+  id: 'caelum_embolden',
+  name: 'Emboldened',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+  stat: 'attack_damage',
+  percentValue: 0.2,
+};
+
+export const CaelumEmboldenPowerEffect: ServerStatEffectDef = {
+  id: 'caelum_embolden_power',
+  name: 'Emboldened',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+  stat: 'ability_power',
+  percentValue: 0.2,
+};
+
+// Fenris's Adrenaline Rush (passive): feral under 40% health (FenrisHooks), and faster
+export const FenrisFeralEffect: ServerStatEffectDef = {
+  id: 'fenris_feral',
+  name: 'Feral',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+  stat: 'movement_speed',
+  percentValue: 0.12,
+};
+
+// Fenris's Bloodthirst (R): faster attacks; the life steal and the kill's heal are in FenrisHooks
+export const FenrisBloodthirstEffect: ServerStatEffectDef = {
+  id: 'fenris_bloodthirst',
+  name: 'Bloodthirst',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+  stat: 'attack_speed',
+  percentValue: 0.35,
+};
+
+// Calamitus's Lavaborn (passive): armor and magic resist while he stands in his lava
+export const CalamitusLavabornEffect: ServerStatEffectDef = {
+  id: 'calamitus_lavaborn',
+  name: 'Lavaborn',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+  stat: 'armor',
+  flatValue: CALAMITUS_LAVA.resists,
+};
+
+export const CalamitusLavabornMREffect: ServerStatEffectDef = {
+  id: 'calamitus_lavaborn_mr',
+  name: 'Lavaborn',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+  stat: 'magic_resist',
+  flatValue: CALAMITUS_LAVA.resists,
+};
+
 // Oitboil's Overheat (passive): 25% more damage (his attacks through attack
 // damage, his abilities through OitboilHooks) while the fire burns him
 export const OitboilOverheatedEffect: ServerStatEffectDef = {
@@ -688,6 +791,16 @@ export const VileRootEffect: ServerCCEffectDef = {
   cleansable: true,
   persistsThroughDeath: false,
   ccType: 'root',
+};
+
+// Caught by one of Vile's traps: no other trap catches this champion for a while (ServerTrap)
+export const VileTrapCaughtEffect: ServerEffectDefinition = {
+  id: 'vile_trap_caught',
+  name: 'Caught',
+  category: 'neutral',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
 };
 
 // Vile R - Transform aura damage marker (actual damage handled separately)
@@ -1020,6 +1133,15 @@ export const ALL_SERVER_EFFECTS: AnyServerEffectDef[] = [
   VexDeathMarkEffect,
   VexEmpoweredEffect,
   LumePrismEffect,
+  EloraPoisonArrowEffect,
+  EloraVenomEffect,
+  EloraDexterityEffect,
+  CaelumEmboldenEffect,
+  CaelumEmboldenPowerEffect,
+  FenrisFeralEffect,
+  FenrisBloodthirstEffect,
+  CalamitusLavabornEffect,
+  CalamitusLavabornMREffect,
   OitboilOverheatedEffect,
   OitboilFlamethrowerEffect,
   OitboilExhaustedEffect,
@@ -1037,6 +1159,7 @@ export const ALL_SERVER_EFFECTS: AnyServerEffectDef[] = [
   VilePostVeilSpeedEffect,
   VileSlowResistEffect,
   VileRootEffect,
+  VileTrapCaughtEffect,
   VileTransformAuraEffect,
   // Ability-specific - Lume
   LumeGuidingGlowSpeedEffect,

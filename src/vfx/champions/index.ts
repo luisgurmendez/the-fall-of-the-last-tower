@@ -15,3 +15,7 @@ import './lume';
 import './vile';
 import './uruk';
 import './oitboil';
+import './elora';
+import './caelum';
+import './fenris';
+import './calamitus';

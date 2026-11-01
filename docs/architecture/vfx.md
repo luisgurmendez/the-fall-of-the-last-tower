@@ -48,7 +48,7 @@ src/gpu/fx/
 - **Ground** (`groundFx`), drawn after the ground and before any unit: magic circles, warnings, light pools, scorch marks and zones.
 - **Top** (`topFx`), drawn after the units: particles, rings, slashes, beams, trails, shields, projectiles and everything else.
 
-`EntityRenderer` updates the VFX manager, has it add the ground parts (`VFXManager.emitGround`) plus the zones (`emitZone`) and each champion's recall circle, buff rings and Oitboil's overheat fire (`emitChampionAuras`), draws the ground layer, draws the units (projectiles add themselves to the top layer as they're drawn, `emitProjectile`), then has the manager add the rest (`emitTop`) and draws the top layer. The screen flash stays 2D. The legacy ability shapes (`overlays/abilityEffects.ts`) are only drawn without the GPU.
+`EntityRenderer` updates the VFX manager, has it add the ground parts (`VFXManager.emitGround`) plus the zones (`emitZone`, Calamitus's lava drawn by its ability id) and each champion's recall circle, buff rings, Oitboil's overheat fire, Fenris's rage and Caelum's blessing (`emitChampionAuras`), draws the ground layer, draws the units (projectiles add themselves to the top layer as they're drawn, `emitProjectile`), then has the manager add the rest (`emitTop`) and draws the top layer. The screen flash stays 2D. The legacy ability shapes (`overlays/abilityEffects.ts`) are only drawn without the GPU.
 
 Each quad is one primitive (`FXKind`), drawn by the effects shader from the quad's local coordinates: a glow, a spark (a streak along its velocity), a ring broken by noise with a wake of light inside, a slash (a crescent swept across an arc), a beam, a sigil (rings, runes and a star that draw themselves in), a shield (in one of four styles, `ShieldStyle`: hexagons, circling steel plates, petals of light, a ring of stones glowing in the cracks), a flame (fire that burns away into smoke, as a round puff or a tongue licking up), a flare (four-pointed twinkle), a decal (scorch or cracks with embers), a swirl, lightning, an orb, a ribbon segment, dust, a telegraph (a warning filling up, its lines the same width whatever its size), a shard (a faceted rock lit by the sun with a glow at its base, or a crystal of light), a petal (of light, or solid like a leaf, turning over as it drifts), rays (light bursting out or gathering in), a wisp (a soul flame with a wavering tail), a thorn (a curved root that covers, its veins glowing) and a cut (a straight blade of light drawn across). Some kinds take a second color (the glow in a stone shield's cracks, at a rock's base, in a thorn's veins). Fragments are snapped to the ground's 1.5-unit art pixels, so effects read as pixel art.
 
@@ -85,7 +85,7 @@ How config types look on the GPU:
 
 ### VFX lab
 
-With the client dev server running, `/vfx-lab.html` plays every registered VFX on a loop in a grid over the real ground (`src/debug/vfxLab.ts`), plus every projectile type in flight, the zones and the champion auras (recall, jungle buffs, an overheated Oitboil). Options: `?only=magnus`, `?kind=projectile` (or `ability`, `zone`, `aura`), `?zoom=1.4`, `?period=2.5`, `?speed=0.25` (slow motion), `?pause=0.6` (freeze 0.6 seconds after the first cast, to screenshot a moment), `?kind=orb` (Lume's Light Orb in each of its states). Use it to tune effects without a match.
+With the client dev server running, `/vfx-lab.html` plays every registered VFX on a loop in a grid over the real ground (`src/debug/vfxLab.ts`), plus every projectile type in flight, the zones (Calamitus's lava among them) and the champion auras (recall, jungle buffs, an overheated Oitboil, a feral or bloodthirsty Fenris, Caelum's blessing). Options: `?only=magnus`, `?kind=projectile` (or `ability`, `zone`, `aura`), `?zoom=1.4`, `?period=2.5`, `?speed=0.25` (slow motion), `?pause=0.6` (freeze 0.6 seconds after the first cast, to screenshot a moment), `?kind=orb` (Lume's Light Orb in each of its states). Use it to tune effects without a match.
 
 ### VFXManager
 
@@ -214,6 +214,10 @@ Each champion has its own colors and its own shapes, so two champions' effects n
 | Vex | Ink #16131F, moonlit steel #D6ECFF, crimson #FF3B6B, cherry petals | Straight cuts (an X on the shuriken's hit, a flash step), ink smoke, circling blades |
 | Vile | Void #2A0D3D, violet #A35CFF, soul green #5CFFD0 | Thorny roots, soul flames (wisps), darkness |
 | Oitboil | Fire #FF7A1A, hot #FFC04A, soot, cool blue #5CB8FF for Blue Fire | Sparks, gouts of flame (the flamethrower's stream), a trail of burning ground, fire on him while overheated |
+| Elora | Pale wood #F2EAD8, poison green #7CD64A, hunter's gold #FFD45A, dust | Arrows (a shaft with a thin streak; green-tipped when poisoned, a gold glint for a weak point), stakes pinning the ground, a lane marked then swept by arrows |
+| Caelum | Leaf green #9BE070, gold light #FFE08A, bark | Leaves of light, a golden ray, roots bursting up, a pillar of light on the ally he saves, a soft ring for Lightweaving |
+| Fenris | Blood red #E02A2A, dark red, fur grey | Jaws and claw cuts, a pounce's grey streak, a red howl; red rage under him while feral or in his bloodthirst |
+| Calamitus | Lava #FF5A14, hot #FFB02E, black rock, obsidian violet | Molten pools (crust, seams and popping bubbles, not flames: Oitboil's fire is flames), a wave of magma, lava geysers erupting from every pool |
 | Lume | White, warm #FFD27A, prism cyan #9FF3FF and pink #FFB0F0 | Crystals of light, rays, beams: the Prismatic Beam (E, drawn by her renderer while it lasts, from her to the orb) and the Eclipse (R, from the orb) |
 
 ## Effect Types

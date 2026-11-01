@@ -65,6 +65,19 @@ export const ABILITY_CUES: Record<string, AbilityCue[]> = {
     { sound: "uruk_r_leap" },
     { sound: "uruk_r", delay: landsAt("uruk_r"), at: "target" },
   ],
+  elora_w: [{ sound: "elora_w", delay: landsAt("elora_w") }],
+  elora_r: [
+    { sound: "elora_r" },
+    { sound: "elora_r_rain", delay: landsAt("elora_r"), at: "target" },
+  ],
+  caelum_q: [{ sound: "caelum_q", delay: landsAt("caelum_q") }],
+  caelum_w: [{ sound: "caelum_w", at: "target" }],
+  caelum_e: [{ sound: "caelum_e", delay: landsAt("caelum_e"), at: "target" }],
+  fenris_e: [{ sound: "fenris_e" }],
+  calamitus_r: [
+    { sound: "calamitus_r_rumble" },
+    { sound: "calamitus_r", delay: landsAt("calamitus_r") },
+  ],
   // Jungle monsters' special attacks: a wind-up, then the hit (cut short if the monster dies first)
   jungle_slam_blue: [{ sound: "jungle_slam_blue_windup" }, { sound: "jungle_slam_blue", delay: windup("blue_buff") }],
   jungle_slam_red: [{ sound: "jungle_slam_red_windup" }, { sound: "jungle_slam_red", delay: windup("red_buff") }],

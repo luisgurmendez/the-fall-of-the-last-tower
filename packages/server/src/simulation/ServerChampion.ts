@@ -707,6 +707,10 @@ export class ServerChampion extends ServerEntity {
     // Award XP/gold to killer and nearby allies
     if (context) {
       RewardSystem.awardKillRewards(this, killerId, context);
+      const killer = killerId ? context.getEntity(killerId) : undefined;
+      if (killer instanceof ServerChampion && killer.side !== this.side) {
+        championHooksRegistry.get(killer.definition.id)?.onChampionKill?.(killer, this, context);
+      }
     }
 
     // Calculate respawn time

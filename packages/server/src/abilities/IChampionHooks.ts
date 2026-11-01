@@ -91,13 +91,38 @@ export interface IChampionHooks {
   getArmorPenetration?(champion: ServerChampion): number;
 
   /**
+   * Called when a ranged basic attack's projectile hits, after its damage
+   * and before on_hit passives trigger (e.g., Elora's weak points and
+   * Poison Arrow).
+   */
+  onRangedAttackHit?(
+    champion: ServerChampion,
+    target: ServerEntity,
+    attack: { attackDamage: number; abilityPower: number },
+    context: ServerGameContext
+  ): void;
+
+  /**
+   * What a ranged basic attack about to be fired is drawn as, instead of
+   * `<championId>_auto` (e.g., Elora's poisoned arrow).
+   */
+  basicAttackProjectileType?(champion: ServerChampion, target: ServerEntity): string | undefined;
+
+  /**
+   * Called when this champion kills an enemy champion (the last hit), e.g.
+   * Fenris healing to full in his bloodthirst.
+   */
+  onChampionKill?(champion: ServerChampion, victim: ServerChampion, context: ServerGameContext): void;
+
+  /**
    * Called after a melee basic attack damages its target, before on_hit
    * passives trigger (e.g., Vex's empowered attack after Shadow Step).
    */
   onMeleeAttackHit?(
     champion: ServerChampion,
     target: ServerEntity,
-    attack: { attackDamage: number; abilityPower: number },
+    /** dealt: the attack's damage after the target's armor */
+    attack: { attackDamage: number; abilityPower: number; dealt: number },
     context: ServerGameContext
   ): void;
 }

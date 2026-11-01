@@ -94,6 +94,55 @@ export {
   OITBOIL_FLAMETHROWER_SHARE,
 } from './oitboil';
 
+// Elora
+export {
+  EloraDefinition,
+  EloraPoisonArrow,
+  EloraPinningArrow,
+  EloraDexterity,
+  EloraArrowBarrage,
+  EloraAbilities,
+  EloraPassive,
+  ELORA_HUNT,
+  ELORA_POISON,
+} from './elora';
+
+// Caelum
+export {
+  CaelumDefinition,
+  CaelumRayOfLight,
+  CaelumEmbolden,
+  CaelumWhisperingRoots,
+  CaelumMartyr,
+  CaelumAbilities,
+  CaelumPassive,
+  CAELUM_LIGHT,
+} from './caelum';
+
+// Fenris
+export {
+  FenrisDefinition,
+  FenrisViciousBite,
+  FenrisSavageClaw,
+  FenrisPounce,
+  FenrisBloodthirst,
+  FenrisAbilities,
+  FenrisPassive,
+  FENRIS_FERAL,
+} from './fenris';
+
+// Calamitus
+export {
+  CalamitusDefinition,
+  CalamitusLavaFlow,
+  CalamitusMagmaLandslide,
+  CalamitusObsidianSkin,
+  CalamitusEruption,
+  CalamitusAbilities,
+  CalamitusPassive,
+  CALAMITUS_LAVA,
+} from './calamitus';
+
 // Lume
 export {
   LumeDefinition,
