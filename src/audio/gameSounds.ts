@@ -24,6 +24,9 @@ const LANE_VOLUME = 0.3;
 /** Recalls in progress, by champion, to stop their sound when cancelled */
 const recalls = new Map<string, SoundHandle>();
 
+/** Sounds of a monster's special attack still to come, cut short if it dies first */
+const pendingHits = new Map<string, SoundHandle[]>();
+
 /** What the handlers need from the state manager */
 export interface SoundContext {
   readonly entities: ReadonlyMap<string, InterpolatedEntity>;
@@ -51,10 +54,14 @@ function playAbilitySound(data: Record<string, unknown>, ctx: SoundContext): voi
   const unit = typeof data.targetEntityId === "string" ? at(ctx.entities.get(data.targetEntityId)) : undefined;
   if (!caster && !unit) return;
   const aimed = typeof data.targetX === "number" && typeof data.targetY === "number" ? { x: data.targetX, y: data.targetY } : undefined;
+  const monster = ctx.entities.get(data.entityId as string)?.snapshot.entityType === EntityType.JUNGLE_CAMP;
+  const pending: SoundHandle[] = [];
   for (const cue of cues) {
     const where: SoundPosition | undefined = cue.at === "target" ? aimed ?? unit ?? caster : caster ?? unit;
-    getAudio().play(cue.sound, where, 1, cue.delay ?? 0);
+    const handle = getAudio().play(cue.sound, where, 1, cue.delay ?? 0);
+    if (handle && monster && cue.delay) pending.push(handle);
   }
+  if (pending.length > 0) pendingHits.set(data.entityId as string, pending);
 }
 
 /** The sound a unit's basic attack makes as it starts, if any */
@@ -69,6 +76,10 @@ function attackSound(entity: InterpolatedEntity): SoundKey | null {
       return "tower_shot";
     case EntityType.MINION:
       return snapshot.minionType === "siege" ? "cannon_shot" : snapshot.minionType === "caster" ? "attack_bow" : null;
+    case EntityType.JUNGLE_CAMP: {
+      const sound = `monster_${(entity.snapshot as { creatureType?: string }).creatureType}`;
+      return sound in SOUNDS ? (sound as SoundKey) : null;
+    }
     default:
       return null;
   }
@@ -135,6 +146,9 @@ export function playDeathSound(entity: InterpolatedEntity): void {
       audio.play("champion_death", where);
       break;
     case EntityType.JUNGLE_CAMP:
+      // Its special attack, if it was winding up, won't land
+      for (const handle of pendingHits.get(entity.snapshot.entityId) ?? []) handle.stop(0.05);
+      pendingHits.delete(entity.snapshot.entityId);
       audio.play("monster_death", where);
       break;
     case EntityType.TOWER:
@@ -153,10 +167,19 @@ export function playDeathSound(entity: InterpolatedEntity): void {
   }
 }
 
-/** A living unit changed: our level ups and abilities learned, and recalls starting, cancelled or arriving */
+/**
+ * A living unit changed: a tower turning on us, our level ups and abilities
+ * learned, and recalls starting, cancelled or arriving
+ */
 export function playChangeSound(entity: InterpolatedEntity, data: any, localEntityId: string): void {
-  if (!data || entity.snapshot.entityType !== EntityType.CHAMPION) return;
+  if (!data) return;
   const audio = getAudio();
+  // A tower (only enemy ones shoot us) starts aiming at our champion
+  if (entity.snapshot.entityType === EntityType.TOWER && data.targetEntityId === localEntityId &&
+      (entity.snapshot as { targetEntityId?: string | null }).targetEntityId !== localEntityId) {
+    audio.play("tower_alert");
+  }
+  if (entity.snapshot.entityType !== EntityType.CHAMPION) return;
   const previous = entity.snapshot as { entityId: string; level?: number; isRecalling?: boolean; skillPoints?: number };
 
   if (entity.snapshot.entityId === localEntityId) {

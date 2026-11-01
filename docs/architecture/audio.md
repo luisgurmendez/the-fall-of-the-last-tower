@@ -30,7 +30,10 @@ played with the Web Audio API, heard from the camera.
 
 | Moment | Sound | From |
 |---|---|---|
-| Basic attack starts | `attack_swing` (melee champions), `attack_bow` (ranged champions, caster minions), `tower_shot`, `cannon_shot` | `BASIC_ATTACK` |
+| Basic attack starts | `attack_swing` (melee champions), `attack_bow` (ranged champions, caster minions), `tower_shot`, `cannon_shot`, `monster_<creature type>` (a bite, a spit, a fist...) | `BASIC_ATTACK` |
+| A jungle monster's special attack | `<abilityId>_windup` as it winds up, then `<abilityId>` as it lands (cut short if the monster dies first) | `ABILITY_CAST` (`ABILITY_CUES`) |
+| An enemy tower starts aiming at our champion | `tower_alert` | the tower's `targetEntityId` |
+| Our champion under 30% health | `low_health`, a heartbeat loop louder the lower it gets (with the red vignette, `LowHealthVignette`) | every frame |
 | An ability cast (and recast: `<abilityId>_recast`; Vile's traps springing and bursting) | its cues in `ABILITY_CUES`, or else the sound with its id, at the caster | `ABILITY_CAST` |
 | A projectile bursting (where it hit or ran out) | `<abilityId>_impact`, if there's one (Magnus' fireball) | the projectile removed from state |
 | Damage taken | `hit_physical` or `hit_magic` | `DAMAGE` |
@@ -61,6 +64,8 @@ bun scripts/generate-sounds.ts --only hit_magic,gold  # remake these
 bun scripts/generate-sounds.ts --reprocess --only gold --raw <dir>  # clean up the raw takes kept in <dir> again (no credits)
 ```
 
-Add a sound to `SOUNDS` with a prompt (short and concrete; one-shots end with "video game sound effect, dry, no music, no voice"; a roar or a choir leaves out "no voice") and a length, generate it, then play it from `gameSounds.ts` (an ability's: `abilitySounds.ts`). One-shots lose their leading silence, peak at -1 dB (one still quieter than -17 LUFS, a boom with a short spike, is lifted toward it with a limiter, by up to 8 dB), fade out at the end and are saved as mono mp3; loops are asked for as seamless loops and saved as wav (an mp3's padding would leave a gap at the seam). Judge them in `/sound-lab.html` and tune `volume` in the catalog.
+Add a sound to `SOUNDS` with a prompt (short and concrete; one-shots end with "video game sound effect, dry, no music, no voice"; a roar or a choir leaves out "no voice") and a length, generate it, then play it from `gameSounds.ts` (an ability's: `abilitySounds.ts`). One-shots lose their leading silence, peak at -1 dB (one still quieter than -17 LUFS, a boom with a short spike, is lifted toward it with a limiter, by up to 8 dB), fade out at the end and are saved as mono mp3; loops are asked for as seamless loops and saved as wav (an mp3's padding would leave a gap at the seam). Judge them in `/sound-lab.html` and tune `volume` in the catalog (above 1 lifts a quiet file: loops aren't lifted when made).
+
+ElevenLabs' music generation (`POST /v1/music`) needs a paid plan: on the free plan it answers 402, so there's no music yet.
 
 The account is on ElevenLabs' free plan (10,000 credits a month; the script prints what's left, a little behind). A sound costs about 10 credits a second: the 38 ability sounds cost about 400.

@@ -22,7 +22,7 @@ export interface SoundDef {
   loop?: boolean;
   /** Mix bus (default sfx). ui sounds aren't placed in the world */
   bus?: SoundBus;
-  /** Volume, 0-1 (default 1) */
+  /** Volume, 0-1 (default 1); above 1 lifts a quiet file (a loop, which isn't lifted when made) */
   volume?: number;
   /** At most this many playing at once (default 3) */
   maxVoices?: number;
@@ -43,6 +43,21 @@ export const SOUNDS = {
   tower_shot: { prompt: `a heavy magical tower firing a bolt of energy, deep whoosh, ${DRY}`, duration: 0.8, volume: 0.7, maxVoices: 2 },
   cannon_shot: { prompt: `a small cannon firing, short boom, ${DRY}`, duration: 0.6, volume: 0.4, maxVoices: 2 },
 
+  // Jungle monsters' attacks (monster_<creature type>)
+  monster_wolf: { prompt: `a fiery hound snarling and snapping its jaws, a quick vicious bite, ${DRY}`, duration: 0.6, volume: 0.3, maxVoices: 2 },
+  monster_spider: { prompt: `a small cave spider hissing and biting, quick chitter, ${DRY}`, duration: 0.5, volume: 0.25, maxVoices: 2 },
+  monster_thornspitter: { prompt: `a carnivorous plant spitting a thorn, a wet pop and a short whoosh, ${DRY}`, duration: 0.5, volume: 0.6, maxVoices: 2 },
+  monster_blue_buff: { prompt: `a giant ancient tortoise snapping its beak, a heavy thud with a crystal clink, ${DRY}`, duration: 0.7, volume: 0.85, maxVoices: 2 },
+  monster_red_buff: { prompt: `a brute of molten rock swinging a heavy fist, a deep thud with sizzling lava, ${DRY}`, duration: 0.7, volume: 0.55, maxVoices: 2 },
+  monster_dragon: { prompt: "a large dragon snapping its jaws with a short deep growl, video game sound effect, no music", duration: 0.8, volume: 0.6, maxVoices: 2 },
+  // Their special attacks: the wind-up, then where it lands
+  jungle_slam_blue_windup: { prompt: `a giant tortoise rearing up with a deep groan as crystals hum and build up, ${DRY}`, duration: 1.1, volume: 0.6, maxVoices: 1 },
+  jungle_slam_blue: { prompt: `a giant crystal shell crashing onto the ground, a heavy boom with shattering crystal, ${DRY}`, duration: 1.2, volume: 1, maxVoices: 1 },
+  jungle_slam_red_windup: { prompt: "a molten rock brute roaring as it raises its fists, lava rumbling, video game sound effect, no music", duration: 1.1, volume: 0.4, maxVoices: 1 },
+  jungle_slam_red: { prompt: `huge molten fists smashing the ground, a deep boom with cracking rock and hissing lava, ${DRY}`, duration: 1.2, volume: 1, maxVoices: 1 },
+  dragon_breath_windup: { prompt: `a huge dragon inhaling deeply, fire rumbling in its throat, ${DRY}`, duration: 1, volume: 0.4, maxVoices: 1 },
+  dragon_breath: { prompt: "a dragon breathing a roaring jet of fire, video game sound effect, no music", duration: 1.5, volume: 0.55, maxVoices: 1 },
+
   // Deaths
   minion_death: { prompt: `a small soldier grunting and falling with armor clatter, ${DRY}`, duration: 0.7, volume: 0.25, maxVoices: 2 },
   champion_death: { prompt: `a dramatic deep impact with a fading low choir hit, ${DRY}`, duration: 1.5, volume: 0.8, maxVoices: 2 },
@@ -56,6 +71,8 @@ export const SOUNDS = {
   item_buy: { prompt: `a coin purse jingle with a soft confirmation chime, ${DRY}`, duration: 0.7, bus: "ui", volume: 0.6, maxVoices: 1 },
   ability_level_up: { prompt: `a short soft magical click chime, ${DRY}`, duration: 0.5, bus: "ui", volume: 0.5, maxVoices: 1 },
   cant_cast: { prompt: `a short dull muted error thud, ${DRY}`, duration: 0.5, bus: "ui", volume: 0.5, maxVoices: 1 },
+  tower_alert: { prompt: `a short urgent warning: two quick low pulsing alarm tones, ${DRY}`, duration: 0.7, bus: "ui", volume: 0.75, maxVoices: 1 },
+  low_health: { prompt: `a slow soft heartbeat, steady, low thumps, seamless loop, ${DRY}`, duration: 4, loop: true, bus: "ui", volume: 2.5, maxVoices: 1 },
 
   // Wards and recall
   ward_place: { prompt: `a soft magical chime as a small totem is set down on grass, ${DRY}`, duration: 0.7, volume: 0.5, maxVoices: 1 },
