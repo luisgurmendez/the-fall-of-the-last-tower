@@ -10,6 +10,8 @@ import { LaneBot } from '../src/bots/LaneBot';
 
 /** Seconds a bot may stand on the same spot (away from base) without hitting anything before it counts as stuck */
 const STUCK_TIME = 45;
+/** How near a farming ally a bot can stand guard */
+const GUARD_DISTANCE = 300;
 
 const lastMove = new Map<string, { at: Vector; since: number }>();
 const stuck = new Set<string>();
@@ -39,11 +41,14 @@ export default defineScenario({
         if (event.type === GameEventType.DAMAGE) hitters.add(event.data.sourceId as string);
       }
       seenEvents = s.recorder.events.length;
-      for (const champion of s.context.getAllChampions()) {
+      const champions = s.context.getAllChampions();
+      for (const champion of champions) {
         const spawn = champion.side === 0 ? s.context.mapConfig.CHAMPION_SPAWN.BLUE : s.context.mapConfig.CHAMPION_SPAWN.RED;
         const seen = lastMove.get(champion.playerId);
-        // Farming from one spot (a ranged champion) isn't being stuck
-        const hitting = hitters.has(champion.id);
+        // Farming from one spot (a ranged champion) isn't being stuck, nor
+        // is standing by an ally who does (a support)
+        const hitting = hitters.has(champion.id) || champions.some(ally =>
+          ally.side === champion.side && hitters.has(ally.id) && ally.position.distanceTo(champion.position) < GUARD_DISTANCE);
         if (!seen || hitting || seen.at.distanceTo(champion.position) > 40 || champion.isDead || champion.position.distanceTo(spawn) < 400) {
           lastMove.set(champion.playerId, { at: champion.position.clone(), since: s.time });
         } else if (s.time - seen.since > STUCK_TIME) {

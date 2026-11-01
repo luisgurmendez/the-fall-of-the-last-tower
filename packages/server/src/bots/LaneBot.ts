@@ -85,6 +85,8 @@ const ABILITY_ROLES: Partial<Record<string, 'offense' | 'defense' | 'engage' | '
   uruk_w: 'offense',
   uruk_e: 'offense',
   uruk_r: 'execute',
+  oitboil_w: 'defense',
+  oitboil_e: 'engage',
 };
 
 /** Health ratio under which a target is worth an execute */

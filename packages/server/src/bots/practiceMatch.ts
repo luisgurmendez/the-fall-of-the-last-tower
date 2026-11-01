@@ -27,8 +27,8 @@ const ROLES: Record<PracticeTeamSize, PracticeRole[]> = {
 
 /** Champions that suit a role, best first (any other will do when they're taken) */
 const ROLE_PICKS: Record<PracticeRole, string[]> = {
-  top: ['gorath', 'warrior', 'vile', 'uruk'],
-  mid: ['magnus', 'lume', 'vex'],
+  top: ['gorath', 'warrior', 'vile', 'uruk', 'oitboil'],
+  mid: ['magnus', 'lume', 'vex', 'oitboil'],
   bot: ['vile', 'magnus', 'lume'],
   support: ['elara', 'lume', 'gorath'],
   jungle: ['warrior', 'vex', 'gorath', 'uruk'],

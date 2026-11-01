@@ -65,9 +65,12 @@ function playAbilitySound(data: Record<string, unknown>, ctx: SoundContext): voi
 function attackSound(entity: InterpolatedEntity): SoundKey | null {
   const snapshot = entity.snapshot as { entityType: EntityType; championId?: string; minionType?: string };
   switch (snapshot.entityType) {
-    case EntityType.CHAMPION:
-      // Melee champions swing (a spear's reach too); the rest shoot
+    case EntityType.CHAMPION: {
+      // A champion's own (Oitboil's puff of flame), or else melee champions swing (a spear's reach too) and the rest shoot
+      const own = `${snapshot.championId}_attack`;
+      if (own in SOUNDS) return own as SoundKey;
       return getChampionDefinition(snapshot.championId ?? "")?.attackType === "ranged" ? "attack_bow" : "attack_swing";
+    }
     case EntityType.TOWER:
       return "tower_shot";
     case EntityType.MINION:

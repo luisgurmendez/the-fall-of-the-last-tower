@@ -20,6 +20,7 @@ import { lumeRenderer } from "./lume";
 import { magnusRenderer } from "./magnus";
 import { vexRenderer } from "./vex";
 import { urukRenderer } from "./uruk";
+import { oitboilRenderer } from "./oitboil";
 import { vileRenderer } from "./vile";
 import { warriorRenderer } from "./warrior";
 
@@ -40,6 +41,7 @@ export const CHAMPION_RENDERERS: Readonly<
   lume: lumeRenderer,
   magnus: magnusRenderer,
   uruk: urukRenderer,
+  oitboil: oitboilRenderer,
   vex: vexRenderer,
   vile: vileRenderer,
   warrior: warriorRenderer,

@@ -663,6 +663,9 @@ export interface PassiveAbilityDefinition {
   /** Maximum stacks */
   maxStacks?: number;
 
+  /** What the stacks are called in the tooltip (default "Stacks") */
+  stackName?: string;
+
   /** Stacks gained per trigger */
   stacksPerTrigger?: number;
 

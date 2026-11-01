@@ -265,6 +265,7 @@ export class ServerAbilityExecutor {
     passiveTriggerSystem.dispatchTrigger('on_ability_cast', champion, context, {
       abilityId,
     });
+    hooks?.onAbilityCast?.(champion, abilityId, context);
     champion.itemPassives.onAbilityCast(context);
 
     return {

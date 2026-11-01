@@ -18,6 +18,7 @@ export const CHAMPION_ICONS: Record<string, string> = {
   vile: "💀",
   lume: "☀️",
   uruk: "🐉",
+  oitboil: "🔥",
 };
 
 /** Idle sprite strips: square frames side by side, the first one is used */
@@ -30,6 +31,7 @@ const IDLE_SPRITES: Record<string, string> = {
   elara: "/assets/champs/elara/idle.png",
   gorath: "/assets/champs/gorath/idle.png",
   uruk: "/assets/champs/uruk/idle.png",
+  oitboil: "/assets/champs/oitboil/idle.png",
 };
 
 /** The champion's face */

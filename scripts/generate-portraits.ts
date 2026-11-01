@@ -44,6 +44,7 @@ export const PORTRAITS: Record<string, Portrait> = {
   gorath: { sprite: 'public/assets/champs/gorath/idle.png', pick: 0, prompt: 'a huge bearded warrior with long brown hair, steel armor and leather straps' },
   vile: { sprite: 'public/assets/champs/vile/idle.png', pick: 4, prompt: 'a grim hunter in a black hood, the face in shadow, faint purple wisps of smoke around him' },
   uruk: { sprite: 'public/assets/champs/uruk/idle.png', pick: 5, prompt: 'a silver-scaled dragonborn with a dragon head, small horns, amber eyes and silver plate armor' },
+  oitboil: { sprite: 'public/assets/champs/oitboil/idle.png', pick: 10, prompt: 'a green goblin pyromancer with big pointed ears, a wide grin and brass goggles pushed up on his forehead, soot on his cheeks' },
   lume: { sprite: 'public/assets/champs/lume/Lume-IDLE.png', pick: 1, prompt: 'a gentle young woman with white hair in a cream hooded robe, soft warm light on her face' },
 };
 

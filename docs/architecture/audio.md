@@ -30,7 +30,7 @@ played with the Web Audio API, heard from the camera.
 
 | Moment | Sound | From |
 |---|---|---|
-| Basic attack starts | `attack_swing` (melee champions), `attack_bow` (ranged champions, caster minions), `tower_shot`, `cannon_shot`, `monster_<creature type>` (a bite, a spit, a fist...) | `BASIC_ATTACK` |
+| Basic attack starts | a champion's own `<championId>_attack` if the catalog has one (Oitboil's puff of flame), else `attack_swing` (melee champions) or `attack_bow` (ranged champions, caster minions), `tower_shot`, `cannon_shot`, `monster_<creature type>` (a bite, a spit, a fist...) | `BASIC_ATTACK` |
 | A jungle monster's special attack | `<abilityId>_windup` as it winds up, then `<abilityId>` as it lands (cut short if the monster dies first) | `ABILITY_CAST` (`ABILITY_CUES`) |
 | An enemy tower starts aiming at our champion | `tower_alert` | the tower's `targetEntityId` |
 | Our champion under 30% health | `low_health`, a heartbeat loop louder the lower it gets (with the red vignette, `LowHealthVignette`) | every frame |

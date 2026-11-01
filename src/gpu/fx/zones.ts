@@ -9,6 +9,7 @@ import { fxColor, type FXBatch } from "./FXBatch";
 
 export interface ZoneSnapshot {
   entityId: string;
+  abilityId?: string;
   radius?: number;
   zoneType?: string;
   remainingDuration?: number;
@@ -23,6 +24,9 @@ const MUD_DARK = fxColor("#2e1f14");
 const MUD_LIGHT = fxColor("#8a6a44");
 const HEAL = fxColor("#5cff9a");
 const BUFF = fxColor("#5cb8ff");
+
+/** Abilities whose zones are patches of a trail */
+const TRAIL_ZONES = new Set(["oitboil_e"]);
 
 /** Golden-angle spiral: n points spread evenly over a disc */
 function spot(i: number, n: number, radius: number): { x: number; y: number } {
@@ -47,9 +51,11 @@ export function emitZone(ground: FXBatch, top: FXBatch, zone: ZoneSnapshot, x: n
 
   switch (zone.zoneType) {
     case "damage": {
+      // A patch of a trail (Oitboil's E) has no rim, so the patches read as one path of fire
+      const trail = TRAIL_ZONES.has(zone.abilityId ?? "");
       ground.decal(x, y, radius * 0.95, FIRE, 0.35, 0.85 * fade, 0.9, seed);
-      ground.glow(x, y, radius * 1.15, FIRE, 0.55 * fade, 0, 0, 0.5, seed);
-      ground.ring(x, y, radius * 0.95, 4, FIRE, 0.7 * fade, 0.9, 0.3, seed);
+      ground.glow(x, y, radius * 1.15, FIRE, (trail ? 0.35 : 0.55) * fade, 0, 0, 0.5, seed);
+      if (!trail) ground.ring(x, y, radius * 0.95, 4, FIRE, 0.7 * fade, 0.9, 0.3, seed);
       const flames = Math.max(10, Math.min(30, Math.round(radius / 7)));
       for (let i = 0; i < flames; i++) {
         const p = spot(i, flames, radius * 0.92);

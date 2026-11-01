@@ -81,6 +81,16 @@ export const ICONS: Record<string, ChampionIcons> = {
       r: { seed: 7, prompt: 'a glowing violet crosshair mark' },
     },
   },
+  oitboil: {
+    theme: 'fiery orange, red and soot black, with cool blue for blue fire',
+    icons: {
+      passive: { seed: 9, prompt: 'a heat gauge with its needle in the red, flames behind it' },
+      q: { seed: 7, prompt: 'a burst of orange sparks flying out in every direction' },
+      w: { seed: 7, prompt: 'a cool blue flame shaped like a heart' },
+      e: { seed: 9, prompt: 'a rocket jet of flame blasting backward leaving a trail of fire' },
+      r: { seed: 7, prompt: 'a flamethrower nozzle pouring a wide roaring stream of fire' },
+    },
+  },
   uruk: {
     theme: 'silver, steel grey and icy blue',
     icons: {

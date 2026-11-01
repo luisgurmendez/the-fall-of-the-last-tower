@@ -45,9 +45,9 @@
 /* Champion Card                               */
 /* ============================================ */
 
-/* Narrow enough for all eight champions in one row */
+/* Narrow enough for all nine champions in one row */
 .champion-card {
-  width: 96px;
+  width: 88px;
   background: var(--pixel-bg-light);
   border: 4px solid var(--pixel-border);
   box-shadow:

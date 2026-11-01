@@ -20,6 +20,7 @@ import {
   VilePassive,
   LumePassive,
   UrukPassive,
+  OitboilPassive,
 } from '../champions/definitions';
 
 // Re-export individual passives for convenience
@@ -32,6 +33,7 @@ export {
   VilePassive,
   LumePassive,
   UrukPassive,
+  OitboilPassive,
 };
 
 // =============================================================================
@@ -50,6 +52,7 @@ export const PASSIVE_DEFINITIONS: Record<string, PassiveAbilityDefinition> = {
   vile_passive: VilePassive,
   lume_passive: LumePassive,
   uruk_passive: UrukPassive,
+  oitboil_passive: OitboilPassive,
 };
 
 /**

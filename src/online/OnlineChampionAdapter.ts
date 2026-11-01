@@ -352,6 +352,7 @@ class OnlinePassiveAdapter implements HUDPassive {
       internalCooldown: passiveDef?.internalCooldown,
       maxStacks: passiveDef?.maxStacks,
       usesStacks: passiveDef?.usesStacks,
+      stackName: passiveDef?.stackName,
     };
     this._maxStacks = passiveDef?.maxStacks ?? 0;
   }

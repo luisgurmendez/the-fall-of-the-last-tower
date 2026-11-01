@@ -161,5 +161,17 @@
       "idle": "2f1e8416-891d-443b-85c8-78c3dc2b1543"
     },
     "characterId": "a8cf3b2c-2463-4af2-87e8-6627de9d15ff"
+  },
+  "oitboil": {
+    "animations": {
+      "q": "219eada3-1b6f-453f-8b76-705a059a649d",
+      "w": "a7f8c2a2-b670-46b3-a023-14dcfad4604f",
+      "r": "3faedbbe-373c-4344-a47b-1e3aa3ee62b2",
+      "e": "3785ec23-e3df-4b76-993f-8af291ea5988",
+      "attack": "892783b0-fafe-44d3-ad4b-cdb1b10a24d4",
+      "walk": "5683c2e4-7522-4564-9684-48b087841a1c",
+      "idle": "5e7fab0c-fd15-4e9b-bb08-8636c0d46e47"
+    },
+    "characterId": "249b6bfc-627a-4511-8be4-18423a50bf93"
   }
 }

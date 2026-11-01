@@ -227,7 +227,8 @@ Rules that belong to a champion rather than to one ability implement `IChampionH
 | `getAbilityDamageMultiplier`, `consumeAbilityDamageMultiplier` | Executor, every cast | Magnus: Arcane Surge +30% damage |
 | `breaksStealthOnCast` | Executor, every cast | Vex: Shadow Shroud keeps stealth |
 | `modifyAbilityCooldown` | Executor, after ability haste | Vex: Ninja Mode halves Q/E cooldowns |
-| `updatePassiveState` | `ServerChampion`, every tick | Lume: passive follows the Light Orb, and the Prismatic Beam (E) hits along the line from her to it |
+| `onAbilityCast` | Executor, after a cast is paid for (not recasts) | Oitboil: his abilities heat him up, Blue Fire vents heat |
+| `updatePassiveState` | `ServerChampion`, every tick | Lume: passive follows the Light Orb, and the Prismatic Beam (E) hits along the line from her to it; Oitboil: heat falls, the overheat burns him |
 | `onMeleeAttackHit` | `ServerChampion`, melee hits | Vex: empowered attack after Shadow Step |
 
 `initializeAbilityHandlers()` (called at server startup) registers both handlers and hooks.

@@ -20,6 +20,7 @@ import {
   VileDefinition,
   LumeDefinition,
   UrukDefinition,
+  OitboilDefinition,
 } from './definitions';
 
 // Re-export individual definitions for backward compatibility
@@ -32,6 +33,7 @@ export {
   VileDefinition,
   LumeDefinition,
   UrukDefinition,
+  OitboilDefinition,
 };
 
 // =============================================================================
@@ -50,6 +52,7 @@ export const CHAMPION_DEFINITIONS: Record<string, ChampionDefinition> = {
   vile: VileDefinition,
   lume: LumeDefinition,
   uruk: UrukDefinition,
+  oitboil: OitboilDefinition,
 };
 
 /**

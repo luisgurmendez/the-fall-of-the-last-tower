@@ -148,6 +148,12 @@ export const SOUNDS = {
   uruk_e_burst: { prompt: `a burst of frost shattering outward, an icy crack and whoosh, ${DRY}`, duration: 0.9, volume: 0.9, maxVoices: 2 },
   uruk_r_leap: { prompt: "a dragonborn warrior leaping high, a heavy whoosh with a short dragon growl, video game sound effect, no music", duration: 0.6, volume: 0.45, maxVoices: 2 },
   uruk_r: { prompt: `a spear driven down into frozen ground, a heavy impact with cracking ice, ${DRY}`, duration: 1.2, volume: 0.85, maxVoices: 2 },
+  oitboil_attack: { prompt: `a short puff of flame from a small flamethrower nozzle, a quick fiery fwoosh, ${DRY}`, duration: 0.5, volume: 0.45, maxVoices: 3 },
+  oitboil_q: { prompt: `a spray of crackling sparks bursting all around, sizzling and popping, ${DRY}`, duration: 0.6, volume: 0.45, maxVoices: 2 },
+  oitboil_w: { prompt: `cool blue flames wrapping around someone, a soft whoosh with a soothing shimmer, ${DRY}`, duration: 0.9, volume: 0.65, maxVoices: 2 },
+  oitboil_e: { prompt: `a small rocket jet ignition and launch, a fiery blast and whoosh, ${DRY}`, duration: 0.6, volume: 0.5, maxVoices: 2 },
+  oitboil_r: { prompt: `a flamethrower pouring a roaring stream of fire for one second, ${DRY}`, duration: 1.2, volume: 0.55, maxVoices: 2 },
+  oitboil_overheat: { prompt: `fire flaring up with a boiling hiss and a metal tank creaking under heat, ${DRY}`, duration: 0.9, volume: 0.95, maxVoices: 2 },
 
   // Announcements (a tower, an inhibitor or the dragon falls, a champion kill)
   stinger_good: { prompt: `a short triumphant brass fanfare hit, game notification`, duration: 1.5, bus: "ui", volume: 0.5, maxVoices: 1 },

@@ -230,6 +230,17 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
     e: 'braces as glowing silver scales harden across his body',
     r: 'leaps high into the air and plunges down driving the spear into the ground',
   }),
+  champion('oitboil', {
+    name: 'Oitboil',
+    size: 64,
+    detail: 'low detail',
+    description: 'a short stocky green goblin pyromancer with big pointed ears, brass goggles on his forehead, a soot-stained leather apron, a fuel tank on his back and a small flamethrower nozzle strapped to each forearm',
+    attack: 'points a forearm nozzle forward and puffs a short burst of flame',
+    q: 'crouches and sprays a ring of sparks all around him from both nozzles',
+    w: 'raises both arms as cool blue flames wrap around his body',
+    e: 'blasts both nozzles backward and rockets forward low to the ground',
+    r: 'plants his feet and blasts a long roaring stream of fire forward from both nozzles',
+  }),
   champion('warrior', {
     name: 'Kael',
     description: 'a young knight in steel plate armor with a blue tabard, holding a longsword and a round steel shield',

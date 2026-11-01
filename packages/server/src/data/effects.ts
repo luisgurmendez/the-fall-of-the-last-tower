@@ -499,6 +499,51 @@ export const VexEmpoweredEffect: ServerEffectDefinition = {
   persistsThroughDeath: false,
 };
 
+// Oitboil's Overheat (passive): 25% more damage (his attacks through attack
+// damage, his abilities through OitboilHooks) while the fire burns him
+export const OitboilOverheatedEffect: ServerStatEffectDef = {
+  id: 'oitboil_overheated',
+  name: 'Overheated',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+  stat: 'attack_damage',
+  percentValue: 0.25,
+};
+
+// Oitboil's Flamethrower (R): the stream (clients draw it), rooting him...
+export const OitboilFlamethrowerEffect: ServerCCEffectDef = {
+  id: 'oitboil_flamethrower',
+  name: 'Flamethrower',
+  category: 'neutral',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+  ccType: 'root',
+};
+
+// ...then exhausted: no abilities and no attacks, through the stream too
+export const OitboilExhaustedEffect: ServerCCEffectDef = {
+  id: 'oitboil_exhausted',
+  name: 'Exhausted',
+  category: 'neutral',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+  ccType: 'silence',
+};
+
+export const OitboilExhaustedDisarmEffect: ServerCCEffectDef = {
+  id: 'oitboil_exhausted_disarm',
+  name: 'Exhausted',
+  category: 'neutral',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+  ccType: 'disarm',
+};
+
 // Lume's Prismatic Beam (E): a beam runs from her to the orb while it lasts (LumeHooks)
 export const LumePrismEffect: ServerEffectDefinition = {
   id: 'lume_prism',
@@ -975,6 +1020,10 @@ export const ALL_SERVER_EFFECTS: AnyServerEffectDef[] = [
   VexDeathMarkEffect,
   VexEmpoweredEffect,
   LumePrismEffect,
+  OitboilOverheatedEffect,
+  OitboilFlamethrowerEffect,
+  OitboilExhaustedEffect,
+  OitboilExhaustedDisarmEffect,
   UrukSpearChargeEffect,
   UrukPiercingEffect,
   UrukHuntEffect,

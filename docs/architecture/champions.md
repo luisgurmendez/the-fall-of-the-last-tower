@@ -38,7 +38,7 @@ measured center to center (`isInRange`).
 Ranges follow the map's scale (0.4 of the classic MOBA's, see [map.md](map.md#scale)):
 a melee unit hits with its body almost touching the target's, and a ranged champion's range
 is under two seconds of walking. Current values: Vex and Warrior 55, Gorath 60, Vile 180
-(55 during R), Elara 210, Magnus and Lume 220. Minions: melee 44, super 70, siege 140,
+(55 during R), Uruk 95, Oitboil 150 (short bursts of flame), Elara 210, Magnus and Lume 220. Minions: melee 44, super 70, siege 140,
 caster 220. Towers 300 (they see 440). Melee monsters 40-60, thornspitter 100, dragon 200.
 Champions walk 99-105 units a second (under the classic MOBA's at our scale, for a calmer pace with the closer camera) and see 560; minions walk 88.
 
@@ -535,7 +535,8 @@ Collaborators clear it with `invalidateStats()`. Code that changes `items`, `lev
 
 ## Adding New Champions
 
-Urûk was added this way (see his files for an example):
+Urûk and Oitboil were added this way (see their files for examples; Oitboil's passive is heat
+shown as the passive's stacks, with `stackName` naming them in the tooltip):
 
 1. **Definition** (`packages/shared/src/champions/definitions/<id>.ts`): stats, Q/W/E/R and the
    passive. Register it in `definitions/index.ts`, `ChampionRegistry.ts`, `AbilityRegistry.ts` and

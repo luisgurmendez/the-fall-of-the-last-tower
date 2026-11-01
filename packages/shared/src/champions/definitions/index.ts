@@ -81,6 +81,19 @@ export {
   UrukPassive,
 } from './uruk';
 
+// Oitboil
+export {
+  OitboilDefinition,
+  OitboilSparkSpray,
+  OitboilBlueFire,
+  OitboilAfterburner,
+  OitboilFlamethrower,
+  OitboilAbilities,
+  OitboilPassive,
+  OITBOIL_HEAT,
+  OITBOIL_FLAMETHROWER_SHARE,
+} from './oitboil';
+
 // Lume
 export {
   LumeDefinition,

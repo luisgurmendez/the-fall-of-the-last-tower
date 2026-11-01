@@ -3,7 +3,8 @@
  * channel (a circle that draws itself in as the recall goes, light rising
  * from it) and the jungle buffs it holds (a blue ring with orbiting motes
  * for Crest of Insight, a flickering red-orange one with embers for Crest
- * of Cinders), so everyone can see who has them.
+ * of Cinders), so everyone can see who has them; and Oitboil on fire while
+ * he's overheated.
  */
 
 import { recallElapsed } from "@/core/state/recallClock";
@@ -15,6 +16,8 @@ const RECALL_LIGHT = fxColor("#b3e5fc");
 const INSIGHT = fxColor("#4fc3f7");
 const CINDERS = fxColor("#ff7043");
 const EMBER = fxColor("#ffab40");
+const OVERHEAT = fxColor("#ff6a1a");
+const OVERHEAT_HOT = fxColor("#ffc04a");
 
 /** Feet are a little below a champion's position */
 const FEET = 18;
@@ -67,6 +70,16 @@ export function emitChampionAuras(ground: FXBatch, top: FXBatch, champion: Champ
       const step = -Math.sign(ring.speed) * 0.15;
       top.ribbon([at(angle + step * 3), at(angle + step * 2), at(angle + step), at(angle)], 3, ring.color, 1.2);
       top.glow(at(angle).x, at(angle).y, 7, ring.color, 1.3, 0.4, 0.6);
+    }
+  }
+  if (effects.some((effect) => effect.definitionId === "oitboil_overheated")) {
+    // Ablaze: a hot glow under him and flames licking up his body
+    const pulse = 0.5 + 0.5 * Math.sin(time * 9);
+    ground.glow(x, feetY, 64, OVERHEAT, 0.8 + pulse * 0.4, 0, 0, 0.6, 0.3);
+    for (let i = 0; i < 8; i++) {
+      const age = 0.15 + 0.85 * ((time * (1.1 + (i % 3) * 0.2) + i * 0.37) % 1);
+      const side = ((i * 2.4) % 2) - 1;
+      top.flame(x + side * 20, feetY - 6 - (i % 4) * 12 - age * 18, 13 + (i % 3) * 4, i % 2 ? OVERHEAT_HOT : OVERHEAT, 1.4, age, 0.4, 3, i * 0.13, 1);
     }
   }
   if (hasCinders) {

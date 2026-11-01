@@ -228,9 +228,10 @@ export function drawPassiveTooltip(
   // Stack info
   if (passive.definition.usesStacks) {
     // Show stacks with max if there's a cap, otherwise just show current stacks
+    const stackName = passive.definition.stackName ?? (passive.maxStacks > 0 ? 'Stacks' : 'Souls');
     const stackText = passive.maxStacks > 0
-      ? `Stacks: ${passive.stacks}/${passive.maxStacks}`
-      : `Souls: ${passive.stacks}`;
+      ? `${stackName}: ${passive.stacks}/${passive.maxStacks}`
+      : `${stackName}: ${passive.stacks}`;
     RenderUtils.renderBitmapText(
       ctx,
       stackText,

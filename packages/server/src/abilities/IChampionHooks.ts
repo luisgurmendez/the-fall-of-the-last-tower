@@ -68,6 +68,12 @@ export interface IChampionHooks {
    */
   modifyAbilityCooldown?(champion: ServerChampion, slot: AbilitySlot, cooldown: number): number;
 
+  /**
+   * Called after an ability was cast and paid for (not for recasts), e.g.
+   * Oitboil's abilities heating him up.
+   */
+  onAbilityCast?(champion: ServerChampion, abilityId: string, context: ServerGameContext): void;
+
   // ===================
   // Champion simulation (ServerChampion)
   // ===================

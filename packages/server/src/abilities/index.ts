@@ -32,6 +32,7 @@ import { registerElaraHandlers } from './handlers/elara';
 import { registerGorathHandlers } from './handlers/gorath';
 import { registerVileHandlers } from './handlers/vile';
 import { registerUrukHandlers } from './handlers/uruk';
+import { registerOitboilHandlers } from './handlers/oitboil';
 
 /**
  * Initialize all ability handlers and champion hooks.
@@ -46,4 +47,5 @@ export function initializeAbilityHandlers(): void {
   registerGorathHandlers();
   registerVileHandlers();
   registerUrukHandlers();
+  registerOitboilHandlers();
 }

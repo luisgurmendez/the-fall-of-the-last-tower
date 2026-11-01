@@ -52,6 +52,11 @@ import {
   UrukSpearCharge,
   UrukSilverScales,
   UrukFatalStrike,
+  OitboilAbilities,
+  OitboilSparkSpray,
+  OitboilBlueFire,
+  OitboilAfterburner,
+  OitboilFlamethrower,
 } from '../champions/definitions';
 
 // Re-export individual abilities for backward compatibility
@@ -96,6 +101,11 @@ export {
   UrukSpearCharge,
   UrukSilverScales,
   UrukFatalStrike,
+  // Oitboil
+  OitboilSparkSpray,
+  OitboilBlueFire,
+  OitboilAfterburner,
+  OitboilFlamethrower,
 };
 
 // =============================================================================
@@ -114,6 +124,7 @@ export const ABILITY_DEFINITIONS: Record<string, AbilityDefinition> = {
   ...VileAbilities,
   ...LumeAbilities,
   ...UrukAbilities,
+  ...OitboilAbilities,
 };
 
 /**

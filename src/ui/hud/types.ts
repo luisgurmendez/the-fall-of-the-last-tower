@@ -101,6 +101,8 @@ export interface HUDPassiveDefinition {
   internalCooldown?: number;
   maxStacks?: number;
   usesStacks?: boolean;
+  /** What the stacks are called in the tooltip ("Heat") */
+  stackName?: string;
 }
 
 /**

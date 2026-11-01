@@ -48,6 +48,7 @@ type Style = (batch: FXBatch, id: string, x: number, y: number, angle: number, t
 
 const FIRE = fxColor("#ff7a1a");
 const FIRE_DEEP = fxColor("#e0301a");
+const FIRE_HOT = fxColor("#ffc04a");
 const VIOLET = fxColor("#a35cff");
 const VOID = fxColor("#2a0d3d");
 const GOLD = fxColor("#ffd45a");
@@ -118,6 +119,17 @@ export const PROJECTILE_STYLES: Record<string, Style> = {
   },
 
   lume_auto: energyBolt(5, GOLD, 5, 7),
+
+  // A puff of flame: a short fire trail behind a hot core
+  oitboil_auto: (batch, id, x, y, _angle, time) => {
+    const seed = seedOf(id);
+    const points = trailOf(id, x, y, time, 6);
+    for (let i = 0; i < points.length - 1; i++) {
+      const t = i / (points.length - 1);
+      batch.flame(points[i].x, points[i].y, 5 + t * 6, i % 2 ? FIRE_HOT : FIRE, 1.1 * t, 1 - t, 0.3, 3, seed + i * 0.1, 0);
+    }
+    batch.glow(x, y, 20, FIRE, 0.9, 0.3, 0.5, 0.6, seed);
+  },
   minion_caster: energyBolt(4, null, 4, 6),
   tower: energyBolt(8, null, 9, 10),
   default: energyBolt(5, null, 4, 6),
