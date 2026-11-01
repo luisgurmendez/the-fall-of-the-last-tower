@@ -44,6 +44,11 @@ export class ChampionBasicAttacks {
     return Math.max(0, this.attackCooldown);
   }
 
+  /** Make the next attack ready at once (an attack reset, like Urûk's Spear Charge) */
+  resetCooldown(): void {
+    this.attackCooldown = 0;
+  }
+
   /**
    * Seconds from starting an attack to its damage: the animation's damage
    * keyframe (ranged attacks then fire a projectile).

@@ -14,6 +14,8 @@ import {
   GameEventType,
   EntityCollision,
   CircleCollision,
+  calculatePhysicalDamage,
+  calculateMagicDamage,
 } from "@siege/shared";
 import type { ServerGameContext } from "../game/ServerGameContext";
 
@@ -77,8 +79,8 @@ export abstract class ServerEntity {
   ): number {
     if (this.isDead) return 0;
 
-    // Calculate actual damage based on resistances
-    const actualDamage = this.calculateDamage(amount, type);
+    // Calculate actual damage based on resistances (less the attacker's penetration)
+    const actualDamage = this.calculateDamage(amount, type, this.armorPenetrationFrom(sourceId, context));
 
     this.health = Math.max(0, this.health - actualDamage);
 
@@ -101,14 +103,33 @@ export abstract class ServerEntity {
   }
 
   /**
-   * Calculate damage after resistances.
+   * Armor and magic resist that reduce the damage this entity takes (none by
+   * default; units override it).
    */
-  protected calculateDamage(amount: number, type: DamageType): number {
-    if (type === "true" || type === "pure") {
-      return amount;
-    }
-    // Override in subclasses for armor/magic resist
+  protected getResists(): { armor: number; magicResist: number } {
+    return { armor: 0, magicResist: 0 };
+  }
+
+  /**
+   * Flat armor this entity's physical damage ignores (0 by default;
+   * champions get it from effects and their hooks, like Urûk's Spear Charge).
+   */
+  getArmorPenetration(): number {
+    return 0;
+  }
+
+  /**
+   * Calculate damage after resistances, with the attacker's armor penetration.
+   */
+  protected calculateDamage(amount: number, type: DamageType, armorPenetration = 0): number {
+    if (type === "physical") return calculatePhysicalDamage(amount, this.getResists().armor, armorPenetration);
+    if (type === "magic") return calculateMagicDamage(amount, this.getResists().magicResist);
     return amount;
+  }
+
+  /** The armor penetration of whatever dealt the damage */
+  protected armorPenetrationFrom(sourceId?: string, context?: ServerGameContext): number {
+    return sourceId && context ? context.getEntity(sourceId)?.getArmorPenetration() ?? 0 : 0;
   }
 
   /**

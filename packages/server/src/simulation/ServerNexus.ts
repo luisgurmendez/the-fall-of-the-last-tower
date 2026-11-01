@@ -112,26 +112,9 @@ export class ServerNexus extends ServerEntity {
     return super.takeDamage(amount, type, sourceId, context);
   }
 
-  /**
-   * Override damage calculation for armor/magic resist.
-   */
-  protected calculateDamage(amount: number, type: DamageType): number {
-    if (type === 'true' || type === 'pure') {
-      return amount;
-    }
-
-    // Nexus has moderate resistances
-    const armor = 50;
-    const magicResist = 50;
-
-    let reduction = 0;
-    if (type === 'physical') {
-      reduction = armor / (100 + armor);
-    } else if (type === 'magic') {
-      reduction = magicResist / (100 + magicResist);
-    }
-
-    return amount * (1 - reduction);
+  /** Moderate resistances */
+  protected override getResists(): { armor: number; magicResist: number } {
+    return { armor: 50, magicResist: 50 };
   }
 
   /**

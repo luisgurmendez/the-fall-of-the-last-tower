@@ -673,22 +673,9 @@ export class ServerMinion extends ServerEntity {
     this.markForRemoval();
   }
 
-  /**
-   * Override damage calculation for armor/magic resist.
-   */
-  protected calculateDamage(amount: number, type: DamageType): number {
-    if (type === 'true' || type === 'pure') {
-      return amount;
-    }
-
-    let reduction = 0;
-    if (type === 'physical') {
-      reduction = this.stats.armor / (100 + this.stats.armor);
-    } else if (type === 'magic') {
-      reduction = this.stats.magicResist / (100 + this.stats.magicResist);
-    }
-
-    return amount * (1 - reduction);
+  /** Its armor and magic resist */
+  protected override getResists(): { armor: number; magicResist: number } {
+    return { armor: this.stats.armor, magicResist: this.stats.magicResist };
   }
 
   /**

@@ -193,6 +193,9 @@ Generic path details:
 - **`no_target` areas:** effects are split by category. Buffs (`category: 'buff'`) go to the caster and allies in the area. Debuffs and crowd control go to enemies. Gorath's slam no longer slows Gorath, and Elara's speed boost no longer speeds up enemies.
 - **`aoeDelay`:** the windup of an area: `no_target` areas, `ground_target` circles, zones and cones (and Lume's R, in its handler) land after the delay, while clients draw a warning filling up, so the area can be dodged. The generic paths use `ServerGameContext.schedule()`, which runs on game time; tests that update entities directly call `context.advanceTime()`, and the test arena's `castAbility` lets the windup pass unless given `windup: true`. A `no_target` area is centered where the caster stood when casting and doesn't land if the caster died; a cone comes from the caster's position when it lands, aimed where the cast was. The ability VFX read the delay (`landsAt()` in `src/vfx/recipes.ts`), so their impact matches.
 - **Dodging:** champions walk about 100 units a second and are 25 units in radius, so a skillshot of radius `r` takes `(r + 25) / 100` seconds to sidestep, plus a reaction. Skillshot speeds are set so a sidestep started a quarter second after the throw clears them from near max range (Magnus's fireball 430 over 440, Vex's shuriken 460 over 380, Vile's arrows 540 over 360-640; they're slowed along with walking, so the sidestep fits the same), and each has a short windup (its animation's projectile keyframe, 0.2-0.25 s) that the VFX show. Ranges and areas follow the map's scale ([map.md](map.md#scale)). The `skillshots-can-be-dodged` simulation scenario checks this.
+- **Out of range:** a `ground_target` aimed past its range is cast at its range, toward where it was aimed (the client sends the cursor; a cone or a line only needs the aim). It used to fail with `out_of_range`, so Kael's cleave didn't go off when aimed far.
+- **Lines:** a `ground_target` with `shape: 'line'` hits every enemy in a band from the caster toward the target, `range` long and twice `aoeRadius` wide, after its `aoeDelay` (Urûk's Spear Thrust; `Line.ts`).
+- **Executes:** `damage.executeBonus` on a targeted ability adds up to that much more damage the less health the target has (0.5: +50% at 0 health, Urûk's Fatal Strike).
 - **Handler results:** if a handler's `validate` or `execute` fails, the cast fails and costs nothing (no mana, no cooldown). `cooldownOverride`, `skipCooldown` and `skipManaCost` are applied after the standard cooldown; this is how Vex's Shadow Step resets on a marked enemy.
 
 ### Generic Paths
@@ -206,8 +209,9 @@ Generic path details:
 | `NoTargetArea.ts` | `no_target` areas around the caster: buff/debuff split, `aoeDelay` scheduling |
 | `TargetedAbility.ts` | `target_enemy` (damage, effects) and `target_ally` (heal, shield, effects) |
 | `Skillshot.ts` | `skillshot` projectiles: animation keyframe delay, charge range bonus |
-| `GroundTarget.ts` | `ground_target`: picks trap, cone or circle; circles, delayed circles and `zoneDuration` zones |
+| `GroundTarget.ts` | `ground_target`: picks trap, cone, line or circle; circles, delayed circles and `zoneDuration` zones |
 | `Cone.ts` | Cones (`ground_target` with `shape: 'cone'` and `coneAngle`) |
+| `Line.ts` | Lines (`ground_target` with `shape: 'line'`): every enemy in a band toward the target |
 | `Trap.ts` | Trap placement (`ground_target` with `trap`) |
 | `Movement.ts` | `dash` and `teleport`, run after the path or handler, and the generic recast dash. A dash puts its `appliesEffects` in the `buff` category on the caster and the rest on what it runs into |
 | `AbilityHelpers.ts` | Scaling stats and effect application shared by the paths |

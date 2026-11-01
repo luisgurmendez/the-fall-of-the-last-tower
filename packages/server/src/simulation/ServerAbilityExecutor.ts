@@ -171,6 +171,16 @@ export class ServerAbilityExecutor {
       return { success: false, failReason: "not_enough_mana" };
     }
 
+    // A ground target past the ability's range is cast at its range, toward
+    // it (the client sends the cursor; a cone or line only needs the aim)
+    if (definition.targetType === "ground_target" && definition.range && params.targetPosition) {
+      const offset = params.targetPosition.subtracted(champion.position);
+      const distance = offset.length();
+      if (distance > definition.range) {
+        params = { ...params, targetPosition: champion.position.added(offset.scaled(definition.range / distance)) };
+      }
+    }
+
     // Validate target based on ability type
     const targetValidation = this.validateTarget(params, definition);
     if (!targetValidation.valid) {

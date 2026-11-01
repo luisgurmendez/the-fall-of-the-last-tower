@@ -3,6 +3,7 @@
  *
  * - A trap places a ServerTrap (Trap.ts)
  * - A cone hits enemies in front of the caster (Cone.ts)
+ * - A line hits enemies along a band toward the target (Line.ts)
  * - Otherwise a circle at the target position: damage and effects on enemies,
  *   or a persistent ServerZone when the ability has a zoneDuration
  * - With aoeDelay the circle, zone or cone lands later (scheduled on game time)
@@ -17,6 +18,7 @@ import type { AbilityCastParams } from "../../simulation/ServerAbilityExecutor";
 import { ServerZone, type ZoneEffectType } from "../../simulation/ServerZone";
 import { getScalingStats, applyEffectsToEntity } from "./AbilityHelpers";
 import { executeConeAbility } from "./Cone";
+import { executeLineAbility } from "./Line";
 import { executeTrapPlacement } from "./Trap";
 
 /**
@@ -41,6 +43,12 @@ export function executeGroundTarget(
   // Handle cone-shaped abilities
   if (definition.shape === "cone" && definition.coneAngle) {
     executeConeAbility(params, definition, rank, damageMultiplier);
+    return;
+  }
+
+  // Handle line-shaped abilities (a thrust, not a projectile)
+  if (definition.shape === "line") {
+    executeLineAbility(params, definition, rank, damageMultiplier);
     return;
   }
 

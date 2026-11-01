@@ -29,9 +29,11 @@ export function executeTargetEnemyAbility(
 
   const stats = champion.getStats();
 
-  // Calculate and apply damage (with passive multiplier)
+  // Calculate and apply damage (with passive multiplier, and more on a hurt target for an execute)
   if (definition.damage) {
-    const damageAmount = calculateAbilityValue(definition.damage.scaling, rank, getScalingStats(champion, stats)) * damageMultiplier;
+    const missing = target.maxHealth > 0 ? 1 - target.health / target.maxHealth : 0;
+    const execute = 1 + (definition.damage.executeBonus ?? 0) * Math.max(0, Math.min(1, missing));
+    const damageAmount = calculateAbilityValue(definition.damage.scaling, rank, getScalingStats(champion, stats)) * damageMultiplier * execute;
 
     target.takeDamage(damageAmount, definition.damage.type, champion.id, context);
   }

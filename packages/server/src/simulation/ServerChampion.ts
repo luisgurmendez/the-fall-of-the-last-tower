@@ -55,6 +55,7 @@ import type { ServerGameContext } from '../game/ServerGameContext';
 import { RewardSystem } from '../systems/RewardSystem';
 import { passiveTriggerSystem } from '../systems/PassiveTriggerSystem';
 import { championHooksRegistry } from '../abilities/ChampionHooksRegistry';
+import { getServerEffectById, isStatEffect } from '../data/effects';
 import { Logger } from '../utils/Logger';
 import { calculateChampionStats } from './champion/ChampionStats';
 import { ChampionEffects, type ActiveShield } from './champion/ChampionEffects';
@@ -603,9 +604,9 @@ export class ServerChampion extends ServerEntity {
       });
     }
 
-    // Calculate damage after resistances, then let shields absorb what they can
+    // Calculate damage after resistances (less the attacker's penetration), then let shields absorb what they can
     const { damage, absorbed: shieldAbsorbed } = this.effects.absorbDamage(
-      this.calculateDamage(amount, type)
+      this.calculateDamage(amount, type, this.armorPenetrationFrom(sourceId, context))
     );
 
     // Apply remaining damage to health
@@ -674,22 +675,26 @@ export class ServerChampion extends ServerEntity {
     }
   }
 
-  /**
-   * Calculate damage after resistances.
-   */
-  protected override calculateDamage(amount: number, type: DamageType): number {
-    if (type === 'true' || type === 'pure') {
-      return amount;
-    }
-
+  /** Its current armor and magic resist (base, level, items and effects) */
+  protected override getResists(): { armor: number; magicResist: number } {
     const stats = this.getStats();
-    if (type === 'physical') {
-      return calculatePhysicalDamage(amount, stats.armor);
-    } else if (type === 'magic') {
-      return calculateMagicDamage(amount, stats.magicResist);
-    }
+    return { armor: stats.armor, magicResist: stats.magicResist };
+  }
 
-    return amount;
+  /**
+   * Flat armor its physical damage ignores: effects with an
+   * armor_penetration stat, plus what its champion's hooks add (Urûk's
+   * Spear Charge).
+   */
+  override getArmorPenetration(): number {
+    let penetration = 0;
+    for (const effect of this.activeEffects) {
+      const definition = getServerEffectById(effect.definitionId);
+      if (definition && isStatEffect(definition) && definition.stat === 'armor_penetration') {
+        penetration += (definition.flatValue ?? 0) * (effect.stacks ?? 1);
+      }
+    }
+    return penetration + (championHooksRegistry.get(this.definition.id)?.getArmorPenetration?.(this) ?? 0);
   }
 
   /**

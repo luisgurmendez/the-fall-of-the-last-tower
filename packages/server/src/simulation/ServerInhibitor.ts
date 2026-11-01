@@ -149,22 +149,9 @@ export class ServerInhibitor extends ServerEntity {
     return super.takeDamage(amount, type, sourceId, context);
   }
 
-  /**
-   * Armor and magic resist reduce damage like a tower's.
-   */
-  protected calculateDamage(amount: number, type: DamageType): number {
-    if (type === 'true' || type === 'pure') {
-      return amount;
-    }
-
-    let reduction = 0;
-    if (type === 'physical') {
-      reduction = STATS.armor / (100 + STATS.armor);
-    } else if (type === 'magic') {
-      reduction = STATS.magicResist / (100 + STATS.magicResist);
-    }
-
-    return amount * (1 - reduction);
+  /** Its armor and magic resist */
+  protected override getResists(): { armor: number; magicResist: number } {
+    return { armor: STATS.armor, magicResist: STATS.magicResist };
   }
 
   /**

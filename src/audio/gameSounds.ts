@@ -12,9 +12,6 @@ import { ABILITY_CUES, type AbilityCue } from "./abilitySounds";
 import { getAudio, type SoundHandle, type SoundPosition } from "./AudioManager";
 import { SOUNDS, type SoundKey } from "./soundCatalog";
 
-/** Champions with this attack range or less swing; the rest shoot */
-const MELEE_RANGE = 80;
-
 /**
  * The lane (minions, and towers and monsters fighting them) is in the
  * background: what champions do is what the player follows
@@ -68,10 +65,9 @@ function playAbilitySound(data: Record<string, unknown>, ctx: SoundContext): voi
 function attackSound(entity: InterpolatedEntity): SoundKey | null {
   const snapshot = entity.snapshot as { entityType: EntityType; championId?: string; minionType?: string };
   switch (snapshot.entityType) {
-    case EntityType.CHAMPION: {
-      const range = getChampionDefinition(snapshot.championId ?? "")?.baseStats.attackRange ?? 0;
-      return range <= MELEE_RANGE ? "attack_swing" : "attack_bow";
-    }
+    case EntityType.CHAMPION:
+      // Melee champions swing (a spear's reach too); the rest shoot
+      return getChampionDefinition(snapshot.championId ?? "")?.attackType === "ranged" ? "attack_bow" : "attack_swing";
     case EntityType.TOWER:
       return "tower_shot";
     case EntityType.MINION:

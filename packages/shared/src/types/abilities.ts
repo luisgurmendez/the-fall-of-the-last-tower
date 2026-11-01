@@ -313,6 +313,12 @@ export interface AbilityDefinition {
   damage?: {
     type: DamageType;
     scaling: AbilityScaling;
+    /**
+     * Up to this much more damage on a target with no health left, in
+     * proportion to the health it's missing (0.5 = +50% at 0 health): an
+     * execute (Urûk's Fatal Strike). Targeted abilities only.
+     */
+    executeBonus?: number;
   };
 
   /** Heal configuration */

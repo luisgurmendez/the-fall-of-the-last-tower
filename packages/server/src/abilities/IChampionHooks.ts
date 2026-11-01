@@ -79,6 +79,12 @@ export interface IChampionHooks {
   updatePassiveState?(champion: ServerChampion, context: ServerGameContext): void;
 
   /**
+   * Flat armor penetration the champion's physical damage has from its own
+   * rules (e.g., 10-26 for a few seconds after Urûk's Spear Charge).
+   */
+  getArmorPenetration?(champion: ServerChampion): number;
+
+  /**
    * Called after a melee basic attack damages its target, before on_hit
    * passives trigger (e.g., Vex's empowered attack after Shadow Step).
    */
