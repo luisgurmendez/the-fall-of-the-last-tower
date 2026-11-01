@@ -7,12 +7,13 @@
 import type { ChampionRendererEntry } from "./types";
 import { createStripBodyRenderer, generatedStrips, stripImages } from "./stripBody";
 
+// The attack strip's blow (the staff flashes) is frame 4
 const ELARA_STRIPS = generatedStrips("elara", {
   q: "elara_heal",
   w: "elara_barrier",
   e: "elara_speed",
   r: "elara_resurrection",
-});
+}, undefined, 4);
 
 /** World units per sprite pixel */
 const ELARA_SCALE = 0.84;

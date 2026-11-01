@@ -10,7 +10,7 @@
  * - Pending damage is cancelled when the champion can no longer attack
  */
 
-import { EntityType, GameEventType } from '@siege/shared';
+import { EntityType, GameEventType, getBasicAttackDamageDelay, getBasicAttackDuration } from '@siege/shared';
 import { AnimationScheduler, type ScheduledAction } from '../../systems/AnimationScheduler';
 import { passiveTriggerSystem } from '../../systems/PassiveTriggerSystem';
 import { championHooksRegistry } from '../../abilities/ChampionHooksRegistry';
@@ -49,19 +49,8 @@ export class ChampionBasicAttacks {
    * keyframe (ranged attacks then fire a projectile).
    */
   getDamageDelay(): number {
-    const champion = this.champion;
-    const stats = champion.getStats();
-    const attackAnim = champion.definition.animations?.attack;
-    const damageKeyframe = attackAnim?.keyframes.find(k => k.trigger.type === 'damage');
-    if (attackAnim && damageKeyframe) {
-      // Animation speed scales with attack speed if enabled
-      const animSpeed = champion.definition.attackAnimationSpeedScale ? stats.attackSpeed : 1.0;
-      const delay = (damageKeyframe.frame * attackAnim.baseFrameDuration) / animSpeed;
-      if (delay > 0) return delay;
-    }
-    // No animation or keyframe: 50% of the attack animation
-    const animationDuration = Math.max(0.15, 0.4 / stats.attackSpeed);
-    return animationDuration * 0.5;
+    // The animation's damage keyframe, or halfway through it (clients time the strip's blow with the same)
+    return getBasicAttackDamageDelay(this.champion.definition, this.champion.getStats().attackSpeed);
   }
 
   /**
@@ -111,7 +100,7 @@ export class ChampionBasicAttacks {
     });
 
     // Attack animation duration scales with attack speed
-    const animationDuration = Math.max(0.15, 0.4 / stats.attackSpeed);
+    const animationDuration = getBasicAttackDuration(stats.attackSpeed);
 
     // Emit attack event for client-side animation
     context.addEvent(GameEventType.BASIC_ATTACK, {

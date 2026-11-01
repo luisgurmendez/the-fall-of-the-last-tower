@@ -9,11 +9,12 @@ import type { EntityRenderContext } from "@/render/entities/types";
 import type { ChampionBodyRenderer, ChampionRendererEntry } from "./types";
 import { createStripBodyRenderer, generatedStrips, stripImages } from "./stripBody";
 
+// The attack strip's arrow leaves the bow on frame 7
 const VILE_STRIPS = generatedStrips("vile", {
   q: "vile_black_arrows",
   e: "vile_roots_of_vilix",
   r: "vile_restoration_of_vilix",
-});
+}, undefined, 7);
 
 /** World units per sprite pixel: about 55 tall, like Vex */
 const VILE_SCALE = 0.84;

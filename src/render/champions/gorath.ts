@@ -7,12 +7,13 @@
 import type { ChampionRendererEntry } from "./types";
 import { createStripBodyRenderer, generatedStrips, stripImages } from "./stripBody";
 
+// The attack strip's blow (the hammer hits the ground) is frame 7
 const GORATH_STRIPS = generatedStrips("gorath", {
   q: "gorath_slam",
   w: "gorath_fortify",
   e: "gorath_taunt",
   r: "gorath_earthquake",
-});
+}, undefined, 7);
 
 /** World units per sprite pixel: a little bigger than the others, he's the tank */
 const GORATH_SCALE = 0.88;

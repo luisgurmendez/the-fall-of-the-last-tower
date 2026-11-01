@@ -229,6 +229,27 @@ export const LEVEL_EXPERIENCE: number[] = [
   18360,  // Level 18
 ];
 
+/** How long a champion's basic attack animation lasts at this attack speed (seconds; BASIC_ATTACK's animationDuration) */
+export function getBasicAttackDuration(attackSpeed: number): number {
+  return Math.max(0.15, 0.4 / attackSpeed);
+}
+
+/**
+ * Seconds from the start of a champion's basic attack until its damage
+ * lands: the attack animation's damage keyframe (sooner with attack speed
+ * when the animation scales with it), or halfway through the animation.
+ */
+export function getBasicAttackDamageDelay(definition: ChampionDefinition, attackSpeed: number): number {
+  const animation = definition.animations?.attack;
+  const keyframe = animation?.keyframes.find(k => k.trigger.type === 'damage');
+  if (animation && keyframe) {
+    const speed = definition.attackAnimationSpeedScale ? attackSpeed : 1;
+    const delay = (keyframe.frame * animation.baseFrameDuration) / speed;
+    if (delay > 0) return delay;
+  }
+  return getBasicAttackDuration(attackSpeed) * 0.5;
+}
+
 /**
  * Experience needed to go from `level` to the next level (280 at level 1,
  * 380 at level 2, ...).

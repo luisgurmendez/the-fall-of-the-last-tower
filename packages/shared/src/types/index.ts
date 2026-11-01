@@ -39,6 +39,8 @@ export type {
 export {
   LEVEL_EXPERIENCE,
   getExperienceToNextLevel,
+  getBasicAttackDuration,
+  getBasicAttackDamageDelay,
   calculateStat,
   calculateAttackSpeed,
   calculateStatsAtLevel,

@@ -14,6 +14,8 @@ const VEX_STRIPS = generatedStrips(
   { q: "vex_shuriken", w: "vex_shroud", e: "vex_dash", r: "vex_ninja_mode" },
   // The Shadow Step strip's blur is near its end
   { vex_dash: 0.8 },
+  // The attack's slash is frame 6
+  6,
 );
 
 /** World units per sprite pixel: about 55 tall, like the others */

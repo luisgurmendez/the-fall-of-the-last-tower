@@ -7,12 +7,13 @@
 import type { ChampionRendererEntry } from "./types";
 import { createStripBodyRenderer, generatedStrips, stripImages } from "./stripBody";
 
+// The attack strip's blow (the sword sweeps) is frame 3
 const WARRIOR_STRIPS = generatedStrips("warrior", {
   q: "warrior_slash",
   w: "warrior_shield",
   e: "warrior_charge",
   r: "warrior_ultimate",
-});
+}, undefined, 3);
 
 /** World units per sprite pixel */
 const WARRIOR_SCALE = 0.84;
