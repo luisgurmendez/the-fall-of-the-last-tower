@@ -84,6 +84,8 @@ export class NetworkClient {
   // Input sequence tracking
   private inputSeq = 0;
   private pendingInputs: Map<number, ClientInput> = new Map();
+  /** The highest reliable event ID received (resends come with one no higher) */
+  private highestEventId = 0;
 
   // Reconnection
   private reconnectAttempts = 0;
@@ -489,7 +491,27 @@ export class NetworkClient {
       }
     }
 
-    (this.onStateUpdate || this.handlers.onStateUpdate)?.(update);
+    (this.onStateUpdate || this.handlers.onStateUpdate)?.(this.withoutRepeatedEvents(update));
+  }
+
+  /**
+   * The server resends a reliable event (a kill, a tower falling) until it's
+   * acknowledged. Messages arrive in order, so one with an ID no higher than
+   * the highest seen is a resend: drop it, and acknowledge the new ones.
+   */
+  private withoutRepeatedEvents(update: StateUpdate): StateUpdate {
+    if (!update.events?.some(event => event.eventId !== undefined)) return update;
+    const highestBefore = this.highestEventId;
+    const events = update.events.filter(event => {
+      if (event.eventId === undefined) return true;
+      if (event.eventId <= highestBefore) return false;
+      this.highestEventId = Math.max(this.highestEventId, event.eventId);
+      return true;
+    });
+    if (this.highestEventId > highestBefore) {
+      this.sendMessage({ type: ClientMessageType.EVENT_ACK, data: { lastEventId: this.highestEventId } });
+    }
+    return events.length === update.events.length ? update : { ...update, events };
   }
 
   /**

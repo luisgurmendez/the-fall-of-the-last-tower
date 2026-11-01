@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
 import { NetworkClient, ConnectionState } from '../network/NetworkClient';
-import { ClientMessageType, InputType } from '@siege/shared';
+import { ClientMessageType, GameEventType, InputType, ServerMessageType } from '@siege/shared';
 
 // Mock WebSocket
 class MockWebSocket {
@@ -262,6 +262,29 @@ describe('NetworkClient', () => {
       const messages = mockWsInstance?.getSentMessages();
       const recallMessage = messages?.find((m: any) => m.type === ClientMessageType.INPUT && m.data?.type === InputType.RECALL);
       expect(recallMessage).toBeDefined();
+    });
+  });
+
+  describe('reliable events', () => {
+    it('passes each reliable event on once, however often the server resends it, and acknowledges it', async () => {
+      const received: number[] = [];
+      client.setHandlers({ onStateUpdate: update => received.push(...update.events.map(event => event.eventId ?? -1)) });
+      await client.connect();
+      const update = (events: unknown[]) => ({
+        type: ServerMessageType.STATE_UPDATE,
+        data: { tick: 1, gameTime: 0, inputAcks: {}, deltas: [], events },
+      });
+      const kill = { type: GameEventType.CHAMPION_KILL, timestamp: 0, data: {}, eventId: 7 };
+
+      mockWsInstance!.simulateMessage(update([kill]));
+      // A resend of 7 alongside a new one, then an unreliable event (no ID)
+      mockWsInstance!.simulateMessage(update([kill, { ...kill, eventId: 8 }]));
+      mockWsInstance!.simulateMessage(update([kill, { type: GameEventType.DAMAGE, timestamp: 0, data: {} }]));
+
+      expect(received).toEqual([7, 8, -1]);
+      const acks = (mockWsInstance!.getSentMessages() as { type: number; data: { lastEventId: number } }[])
+        .filter(message => message.type === ClientMessageType.EVENT_ACK);
+      expect(acks.map(ack => ack.data.lastEventId)).toEqual([7, 8]);
     });
   });
 

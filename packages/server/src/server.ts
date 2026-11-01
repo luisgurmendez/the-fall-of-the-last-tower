@@ -88,6 +88,10 @@ function handleMessage(connection: WebSocketConnection, message: ParsedMessage):
       handleReadyMessage(connection, message.data as ReadyMessageData);
       break;
 
+    case ClientMessageType.EVENT_ACK:
+      handleEventAckMessage(connection, message.data as { lastEventId?: unknown });
+      break;
+
     default:
       Logger.server.warn(`Unknown message type: ${message.type}`);
   }
@@ -101,6 +105,13 @@ function handleInputMessage(connection: WebSocketConnection, input: ClientInput)
   }
 
   roomManager.handleInput(playerId, input);
+}
+
+/** The client got reliable events up to this ID: stop resending them */
+function handleEventAckMessage(connection: WebSocketConnection, data: { lastEventId?: unknown }): void {
+  const playerId = connectionToPlayer.get(connection.id);
+  if (!playerId || typeof data?.lastEventId !== 'number') return;
+  roomManager.handleEventAck(playerId, data.lastEventId);
 }
 
 function handlePingMessage(connection: WebSocketConnection, data: { timestamp: number }): void {

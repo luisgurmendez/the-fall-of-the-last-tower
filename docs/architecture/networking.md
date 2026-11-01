@@ -415,12 +415,19 @@ class ReliableEventQueue {
 }
 ```
 
-Events requiring reliable delivery:
+Events requiring reliable delivery (`shouldSendReliably`):
 - Champion kills
 - Tower destruction
 - Inhibitors destroyed and rebuilt (`INHIBITOR_DESTROYED`, `INHIBITOR_RESPAWNED`)
-- Objective captures
-- Game end
+- Epic monsters slain, camps cleared (`DRAGON_KILLED`, `CAMP_CLEARED`)
+- Level ups, the nexus destroyed
+
+Each is resent every 10 ticks (up to 10 times) until the client acknowledges it. The client
+(`NetworkClient.withoutRepeatedEvents`) passes each event on once: messages arrive in order, so an
+event with an `eventId` no higher than the highest seen is a resend and is dropped. When new ones
+arrive it sends `EVENT_ACK { lastEventId }`, which `server.ts` routes to
+`GameRoom.handleEventAck`. (Before the client acknowledged them and dropped resends, every kill was
+announced, sounded and put in the kill feed several times.)
 
 ## Latency Measurement
 

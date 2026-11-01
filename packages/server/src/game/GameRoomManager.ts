@@ -139,6 +139,13 @@ export class GameRoomManager {
   }
 
   /**
+   * The player's client got reliable events up to `lastEventId`.
+   */
+  handleEventAck(playerId: string, lastEventId: number): void {
+    this.getRoomByPlayer(playerId)?.handleEventAck(playerId, lastEventId);
+  }
+
+  /**
    * Handle player disconnect.
    */
   handleDisconnect(playerId: string): void {
