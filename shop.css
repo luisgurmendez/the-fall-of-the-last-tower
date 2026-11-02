@@ -382,6 +382,42 @@
 .item-stat-value.crit {
   color: #ef4444;
 }
+.item-stat-value.support {
+  color: #7bd88f;
+}
+.item-stat-value.utility {
+  color: #bcaaa4;
+}
+
+/* The "All" tab's tier headings span the grid */
+.shop-tier-heading {
+  grid-column: 1 / -1;
+  font-size: 18px;
+  color: var(--shop-gold);
+  border-bottom: 2px solid var(--shop-border);
+  padding: 4px 2px 2px;
+  margin-top: 4px;
+}
+
+/* Can't be bought with this inventory (a second pair of boots...) */
+.shop-item.blocked {
+  opacity: 0.45;
+}
+
+.item-detail-blocked {
+  margin-top: 8px;
+  font-size: 18px;
+  color: #ff9f1a;
+}
+
+.item-active .item-passive-name {
+  color: #67e8f9;
+}
+
+.item-active-cooldown {
+  color: var(--shop-text-dim);
+  font-size: 16px;
+}
 
 .item-detail-passives {
   border-top: 2px solid var(--shop-border);

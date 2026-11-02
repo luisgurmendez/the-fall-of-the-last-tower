@@ -106,6 +106,12 @@ interface ChampionGrowthStats {
 
 ## Stat Calculation
 
+Items add stats of their own: penetration, crit, life steal, omnivamp, heal and shield
+power and tenacity (`ItemCombatStats`; see [items.md](items.md#stats)). Basic attacks
+crit with `critChance` for `critDamage` times their damage. A champion's kills award
+assists to the enemies that hurt it in the last 10 seconds (and half the kill gold among
+them).
+
 ```typescript
 function calculateStat(
   base: number,

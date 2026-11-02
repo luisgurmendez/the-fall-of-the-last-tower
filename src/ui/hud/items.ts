@@ -2,14 +2,20 @@
  * Item slots (2 rows x 3 cols) with the gold count below them, and the ward
  * trinket box next to them. Caches the item slot positions in the HUDContext
  * for hit testing.
+ *
+ * A slot shows its key (ITEM_KEYS: 1 2 3 / 6 7 8), brighter for an item it
+ * uses; while an active recharges, a shade falling from the top with the
+ * seconds left; a consumable's charges in the bottom right; a stacking
+ * item's stacks in the top right.
  */
 
 import RenderUtils from '@/render/utils';
 import type { ItemSlot } from '@siege/shared';
 import { HUD_COLORS, PANEL } from '@/ui/hud/layout';
 import { drawItemIcon, ITEM_ICON_SIZE } from '@/ui/itemIcons';
-import type { HUDChampionData, HUDContext } from '@/ui/hud/types';
+import type { EquippedItem, HUDChampionData, HUDContext } from '@/ui/hud/types';
 import { drawPixelArt } from '@/render/pixelArt';
+import { ITEM_KEYS } from '@/core/input/itemKeys';
 
 /** Draw the items panel (2 rows x 3 cols) with gold display */
 export function drawItemsPanel(
@@ -93,6 +99,7 @@ function drawItemSlot(
   }
   ctx.strokeRect(x, y, size, size);
 
+  const key = ITEM_KEYS[slotIndex];
   if (equipped) {
     const iconOffset = (size - ITEM_ICON_SIZE) / 2;
     drawItemIcon(ctx, equipped.definition, x + iconOffset, y + iconOffset, 1, (symbol) => {
@@ -104,15 +111,45 @@ function drawItemSlot(
         { color: getItemCategoryColor(equipped.definition.category), size: 28, centered: true, shadow: true }
       );
     });
+    drawItemState(ctx, x, y, size, equipped);
+    // Its key: bright when it uses the item
+    const usable = equipped.cooldownTotal !== undefined;
+    RenderUtils.renderBitmapText(ctx, key, x + 3, y + 1, {
+      color: usable ? '#ffffff' : HUD_COLORS.textDim, size: 14, centered: false, shadow: true,
+    });
   } else {
-    // Show empty slot with number
+    // Show empty slot with its key
     RenderUtils.renderBitmapText(
       ctx,
-      `${slotIndex + 1}`,
+      key,
       x + size / 2,
       y + size / 2 - 12,
       { color: isHovered ? HUD_COLORS.text : HUD_COLORS.textDim, size: 22, centered: true, shadow: false }
     );
+  }
+}
+
+/** An item's cooldown shade, charges and stacks */
+function drawItemState(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, equipped: EquippedItem): void {
+  const left = equipped.cooldownLeft ?? 0;
+  const total = equipped.cooldownTotal ?? 0;
+  if (left > 0 && total > 0) {
+    const share = Math.min(1, left / total);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+    ctx.fillRect(x, y, size, size * share);
+    RenderUtils.renderBitmapText(ctx, left >= 1 ? `${Math.ceil(left)}` : left.toFixed(1), x + size / 2, y + size / 2 - 10, {
+      color: '#ffffff', size: 20, centered: true, shadow: true,
+    });
+  }
+  if (equipped.charges !== undefined) {
+    RenderUtils.renderBitmapText(ctx, `${equipped.charges}`, x + size - 4, y + size - 16, {
+      color: equipped.charges > 0 ? '#ffffff' : '#ff6b6b', size: 16, centered: true, shadow: true,
+    });
+  }
+  if (equipped.stacks) {
+    RenderUtils.renderBitmapText(ctx, `${equipped.stacks}`, x + size - 6, y + 1, {
+      color: '#ffd54f', size: 14, centered: true, shadow: true,
+    });
   }
 }
 
@@ -127,6 +164,11 @@ export function getItemCategoryColor(category: string): string {
     health: '#2ecc71',
     movement: '#06b6d4',
     utility: '#95a5a6',
+    critical: '#e67e22',
+    mana: '#3498db',
+    support: '#7bd88f',
+    starter: '#d7c49e',
+    consumable: '#f472b6',
   };
   return colors[category] || '#ffffff';
 }

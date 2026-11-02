@@ -26,6 +26,7 @@ import { pickScore } from "@/core/input/picking";
 import RenderElement from "@/render/renderElement";
 import { renderWardPreview } from "@/render/entities/ward";
 import { Dimensions } from "@/core/canvas";
+import { ITEM_KEYS } from "@/core/input/itemKeys";
 
 /** Summoner spell keys and their slots */
 const SUMMONER_KEYS: [string, 0 | 1][] = [["d", 0], ["f", 1]];
@@ -368,6 +369,13 @@ export class OnlineInputHandler implements GameObject {
       const at = this.screenToWorld(this.inputManager.getMousePosition(), camera);
       this.networkClient.sendSummonerSpellInput(slot, at.x, at.y, this.hoveredEnemyId ?? undefined);
     }
+
+    // Items: 1, 2, 3, 6, 7, 8 use the item in each slot, aimed at the cursor
+    ITEM_KEYS.forEach((key, slot) => {
+      if (!this.inputManager.isKeyJustPressed(key)) return;
+      const at = this.screenToWorld(this.inputManager.getMousePosition(), camera);
+      this.networkClient.sendUseItemInput(slot, at.x, at.y);
+    });
 
     // Wards: hold 4 (5 for a control ward) to see where it goes and what it
     // will see (render), release to place it there

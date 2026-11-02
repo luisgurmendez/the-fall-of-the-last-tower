@@ -21,6 +21,7 @@ import {
   RecallInput,
   PlaceWardInput,
   SummonerSpellInput,
+  UseItemInput,
   AbilitySlot,
   GameConfig,
 } from '@siege/shared';
@@ -57,6 +58,7 @@ const RATE_LIMITS: Record<InputType, number> = {
   [InputType.CHAT]: 3,
   [InputType.PLACE_WARD]: 3,      // 3 per second
   [InputType.SUMMONER_SPELL]: 4,
+  [InputType.USE_ITEM]: 8,
   [InputType.SURRENDER]: 1,       // Handled by GameRoom before queueing
 };
 
@@ -115,6 +117,11 @@ function hasValidPayload(input: ClientInput): boolean {
         isOptionalFiniteNumber(data.targetX) &&
         isOptionalFiniteNumber(data.targetY) &&
         isOptionalString(data.targetEntityId);
+
+    case InputType.USE_ITEM:
+      return Number.isInteger(data.slot) && (data.slot as number) >= 0 && (data.slot as number) < 6 &&
+        isOptionalFiniteNumber(data.targetX) &&
+        isOptionalFiniteNumber(data.targetY);
 
     case InputType.PING:
       return isFiniteNumber(data.x) && isFiniteNumber(data.y);
@@ -262,6 +269,13 @@ export class InputHandler {
       case InputType.SUMMONER_SPELL: {
         const { slot, targetX, targetY, targetEntityId } = input as SummonerSpellInput;
         champion.summoners.cast(slot, { x: targetX, y: targetY, entityId: targetEntityId }, context);
+        break;
+      }
+
+      case InputType.USE_ITEM: {
+        const { slot, targetX, targetY } = input as UseItemInput;
+        const target = targetX !== undefined && targetY !== undefined ? { x: targetX, y: targetY } : undefined;
+        champion.itemActives.use(slot, target, context);
         break;
       }
     }

@@ -13,7 +13,7 @@
 
 import { getAbilityDefinition, InputType, Vector, type AbilitySlot } from '@siege/shared';
 import type { BotInput } from './BotController';
-import { LaneBot, type LaneBotConfig } from './LaneBot';
+import { LaneBot, withStarter, type LaneBotConfig } from './LaneBot';
 import type { ServerChampion } from '../simulation/ServerChampion';
 import type { ServerGameContext } from '../game/ServerGameContext';
 
@@ -34,6 +34,11 @@ export class SupportBot extends LaneBot {
   constructor(config: SupportBotConfig) {
     super({ ...config, lane: config.lane ?? 'bot' });
     this.carryPlayerId = config.carryPlayerId;
+  }
+
+  /** Its build starts with the support's lantern */
+  protected override getBuild(champion: ServerChampion): string[] {
+    return withStarter(super.getBuild(champion), 'pilgrim_lantern');
   }
 
   protected override chooseLaneAction(champion: ServerChampion, context: ServerGameContext, enemyChampion: ServerChampion | null): BotInput[] | null {

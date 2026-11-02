@@ -256,6 +256,17 @@ function computeCCStatus(activeEffects: ActiveEffectState[]): CCStatus {
 
 ## Effect Processing
 
+**Tenacity** (`ChampionEffects.apply`): crowd control and slows an enemy puts on a
+champion last `1 - tenacity` as long (from items like Mystic Treads; several sources
+combine). Displacements (knockup, knockback), suppression and stasis aren't shortened.
+
+**Healing reduction**: an effect's `healingReduction` cuts the heals its holder receives
+(Wounds 40%, from items; Scorch 40%); the strongest counts (`ChampionEffects.healingReduction`).
+
+**Stasis** (`ccType: 'stasis'`, effect `item_stasis`, Hourglass of Stillness): the
+champion is frozen like a stun and invulnerable; clients draw a golden shell and the
+label STASIS. See [items.md](items.md) for the item effects.
+
 ### Applying Effects
 
 ```typescript

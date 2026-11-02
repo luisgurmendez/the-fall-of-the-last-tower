@@ -172,7 +172,7 @@ class OnlineGame {
 
     // Update shop with gold and items from server
     const items = championSnapshot.items.map(item =>
-      item ? { definitionId: item.definitionId } : null
+      item ? { definitionId: item.definitionId, charges: item.charges } : null
     );
 
     // The server only sells at the fountain

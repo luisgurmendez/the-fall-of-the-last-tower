@@ -1,13 +1,14 @@
 /**
  * Crowd control drawn on the champion it holds, so it's clear why it can't
- * act: stars circling its head (stunned, suppressed, airborne), roots
+ * act: a golden shell (in stasis, by its own hourglass), stars circling its
+ * head (stunned, suppressed, airborne), roots
  * around its feet (rooted), a crossed-out speech bubble (silenced), a red
  * "!" (taunted), a dark cloud (blinded), and under its feet a label with
  * what it is and a bar of the time left.
  */
 
 /** Kinds of crowd control, strongest first (the label shows the strongest) */
-const KINDS = ["suppress", "stun", "knockup", "taunt", "root", "silence", "blind", "disarm", "grounded"] as const;
+const KINDS = ["stasis", "suppress", "stun", "knockup", "taunt", "root", "silence", "blind", "disarm", "grounded"] as const;
 export type CrowdControlKind = typeof KINDS[number];
 
 /** Effects that are crowd control, by effect id (server data/effects.ts) */
@@ -22,9 +23,11 @@ const CC_EFFECTS: Record<string, CrowdControlKind> = {
   blind: "blind",
   disarm: "disarm",
   grounded: "grounded",
+  item_stasis: "stasis",
 };
 
 const LABELS: Record<CrowdControlKind, string> = {
+  stasis: "STASIS",
   suppress: "SUPPRESSED",
   stun: "STUNNED",
   knockup: "AIRBORNE",
@@ -37,6 +40,7 @@ const LABELS: Record<CrowdControlKind, string> = {
 };
 
 const COLORS: Record<CrowdControlKind, string> = {
+  stasis: "#ffd54f",
   suppress: "#c084fc",
   stun: "#ffd54f",
   knockup: "#ffd54f",
@@ -100,6 +104,7 @@ export function renderCrowdControl(
   const kinds = new Set(crowdControl.map((cc) => cc.kind));
 
   ctx.save();
+  if (kinds.has("stasis")) drawStasis(ctx, headY, feetY, time);
   if (kinds.has("stun") || kinds.has("suppress") || kinds.has("knockup")) {
     const cc = crowdControl.find((c) => c.kind === "stun" || c.kind === "suppress" || c.kind === "knockup")!;
     drawCirclingStars(ctx, headY, time, cc.color);
@@ -113,6 +118,20 @@ export function renderCrowdControl(
 
   drawLabel(ctx, crowdControl[0], feetY);
   ctx.restore();
+}
+
+/** A golden shell over the whole champion, shimmering */
+function drawStasis(ctx: CanvasRenderingContext2D, headY: number, feetY: number, time: number): void {
+  const centerY = (headY + feetY) / 2;
+  const height = feetY - headY + 16;
+  const shimmer = 0.5 + 0.5 * Math.sin(time * 6);
+  ctx.fillStyle = `rgba(255, 213, 79, ${0.28 + 0.1 * shimmer})`;
+  ctx.strokeStyle = `rgba(255, 236, 179, ${0.7 + 0.3 * shimmer})`;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.ellipse(0, centerY, 26, height / 2, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
 }
 
 function drawCirclingStars(ctx: CanvasRenderingContext2D, headY: number, time: number, color: string): void {

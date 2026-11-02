@@ -14,7 +14,7 @@
 
 import { EntityType, type Side } from '@siege/shared';
 import type { BotInput } from './BotController';
-import { LaneBot, type LaneBotConfig } from './LaneBot';
+import { LaneBot, withStarter, type LaneBotConfig } from './LaneBot';
 import type { ServerChampion } from '../simulation/ServerChampion';
 import type { ServerEntity } from '../simulation/ServerEntity';
 import type { ServerGameContext } from '../game/ServerGameContext';
@@ -44,6 +44,11 @@ export class JungleBot extends LaneBot {
 
   constructor(config: LaneBotConfig) {
     super({ ...config, lane: 'mid' });
+  }
+
+  /** Its build starts with the jungle's sickle */
+  protected override getBuild(champion: ServerChampion): string[] {
+    return withStarter(super.getBuild(champion), 'seedling_sickle');
   }
 
   protected override chooseLaneAction(champion: ServerChampion, context: ServerGameContext, enemyChampion: ServerChampion | null): BotInput[] | null {

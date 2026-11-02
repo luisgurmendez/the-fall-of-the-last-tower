@@ -52,10 +52,10 @@ export function getItemPassive(passiveId: string): ItemPassiveData | undefined {
 
 /** Item categories that suit each champion class, for the shop's recommendations */
 const RECOMMENDED_CATEGORIES: Record<ChampionClass, ItemCategory[]> = {
-  mage: ['ability_power', 'magic_resist', 'utility', 'movement'],
-  support: ['ability_power', 'health', 'utility', 'movement'],
+  mage: ['ability_power', 'mana', 'magic_resist', 'utility', 'movement'],
+  support: ['support', 'ability_power', 'health', 'utility', 'movement'],
   assassin: ['attack_damage', 'attack_speed', 'movement'],
-  marksman: ['attack_damage', 'attack_speed', 'movement'],
+  marksman: ['attack_damage', 'attack_speed', 'critical', 'movement'],
   warrior: ['attack_damage', 'health', 'armor', 'movement'],
   tank: ['armor', 'magic_resist', 'health', 'movement'],
 };

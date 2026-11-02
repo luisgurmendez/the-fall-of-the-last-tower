@@ -6,7 +6,7 @@
 import {
   ITEM_CATALOG,
   getItemCatalogEntry,
-  type ChampionBaseStats,
+  type ItemStats,
   type ItemCatalogEntry,
   type ItemPassiveData,
 } from '@siege/shared';
@@ -29,8 +29,8 @@ export function getServerItemById(id: string): ServerItemDefinition | undefined 
  */
 export function calculateItemStats(
   items: { definitionId: string }[]
-): Partial<ChampionBaseStats> {
-  const totalStats: Partial<ChampionBaseStats> = {};
+): ItemStats {
+  const totalStats: ItemStats = {};
 
   for (const item of items) {
     if (!item) continue;
@@ -39,7 +39,7 @@ export function calculateItemStats(
     if (!def) continue;
 
     for (const [stat, value] of Object.entries(def.stats)) {
-      const key = stat as keyof ChampionBaseStats;
+      const key = stat as keyof ItemStats;
       totalStats[key] = (totalStats[key] || 0) + (value as number);
     }
   }

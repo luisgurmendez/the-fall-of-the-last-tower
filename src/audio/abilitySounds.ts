@@ -29,6 +29,20 @@ function windup(creatureType: keyof typeof MOBAConfig.JUNGLE.SPECIAL_ATTACKS): n
 
 
 export const ABILITY_CUES: Record<string, AbilityCue[]> = {
+  // Items used (ChampionItemActives) and passives going off (ChampionItemPassives)
+  item_draught: [{ sound: "item_potion" }],
+  item_flask: [{ sound: "item_potion" }],
+  item_ironbark: [{ sound: "item_elixir" }],
+  item_stormfury: [{ sound: "item_elixir" }],
+  item_unchain: [{ sound: "summoner_purge" }],
+  item_stillness: [{ sound: "item_stasis" }],
+  item_shadowstep: [{ sound: "summoner_blink", at: "target" }],
+  item_gust: [{ sound: "summoner_haste", at: "target" }],
+  item_shelter: [{ sound: "summoner_aegis" }],
+  item_frost_nova: [{ sound: "item_frost_nova" }],
+  item_sanctuary_land: [{ sound: "summoner_mend", at: "target" }],
+  item_static: [{ sound: "item_static", at: "target" }],
+  item_veil: [{ sound: "item_veil" }],
   // Crawling through a jungle tunnel: in at one mouth, out at the other
   [MOBAConfig.TUNNELS.ABILITY_ID]: [
     { sound: "jungle_tunnel" },

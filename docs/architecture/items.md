@@ -4,17 +4,67 @@ Items are bought at the fountain, in the shop (P). The server validates every pu
 
 ## Catalog
 
-`packages/shared/src/config/items.ts` holds `ITEM_CATALOG`: the 18 items the shop sells,
-with their category, cost, sell value, stats and passives. Server and client read the
-same catalog:
+`packages/shared/src/config/items.ts` holds `ITEM_CATALOG`: the 83 items the shop sells,
+with their category, tier, group, cost, sell value, stats, passives and active. Server and
+client read the same catalog:
 
 - **Server:** `packages/server/src/data/items.ts` (`getServerItemById`, `calculateItemStats`).
-  `ChampionInventory` buys and sells; `ChampionStats` adds item stats to the champion's.
+  `ChampionInventory` buys and sells; `ChampionStats` adds item stats to the champion's;
+  `ChampionItemPassives` runs the passives and `ChampionItemActives` the actives.
 - **Client:** `src/data/items.ts` turns catalog entries into `ItemDefinition`s for the
   shop (`SHOP_ITEMS`), the HUD's item slots and tooltips (`getItemDefinition`), and passive
-  text (`getItemPassive`).
+  text (`getItemPassive`); `src/data/itemStats.ts` names and formats every item stat and
+  describes actives and consumables, for the shop and the HUD alike.
 
-To add an item, add it to `ITEM_CATALOG` and give it an icon (below).
+To add an item, add it to `ITEM_CATALOG` (the `item()` and `passive()` helpers fill the
+defaults) and give it an icon (below).
+
+### Design
+
+The items are built around counters, so a build answers the enemy's:
+
+| Strategy | Items that do it | Items that answer it |
+|----------|------------------|----------------------|
+| Sustain: lifesteal, omnivamp, heals | Crimson Fang, Wolfsbane Fang, Bloodroot Sigil, the support items | Wounds: Bramblehook, Witherquill, Witherbloom Orb, Bramble Vest, Spiked Bastion |
+| Burst and executes | Nightglass Edge, Shadowstep Cloak, Crown of the Archmage | Hourglass of Stillness, Stormward Veil, Ironheart Talisman (lifelines) |
+| Stacking health and armor | Mountainheart, Magmaheart Aegis, Frostguard Plate | Sundering Axe, Giantslayer, Viper's Kiss, Emberheart Codex, Voidpierce Staff, lethality |
+| Kiting | Stormstring, Fleetfoot Spurs, Frostwyrm Scepter | Shadowstep, Gust, Swiftstride Greaves, tenacity |
+| Crowd control | The champions' kits, Frost Nova | Unchain (Unchained Sash, Freeblade Scimitar), Mystic Treads, Ironbark Elixir |
+| Crits | Kingsglass Bow, Stormstring, Wyrmslayer Arbalest | Frostguard Plate (Chill Shell), Ironshod Boots |
+| Basic attacks | Marksmen, on-hit items | Bramble Vest and Spiked Bastion (thorns), Bark, Hobnails |
+| Grouping and split pushing | Warden's Standard, the support items | Siegebreaker Hammer (Lone Wolf, Demolish) |
+
+### Tiers
+
+| Tier | What | Examples |
+|------|------|----------|
+| `starter` | One at a time (group `starter`); with a potion they're the 300 starting gold | Forager's Blade (AD), Kindling Wand (AP), Oakbark Buckler (tank), Seedling Sickle (jungle), Pilgrim's Lantern (support) |
+| `consumable` | Used with the item's key; sell for 40% | Healing Draught (stacks to 5), Wayfarer's Flask (2 charges, refills at the fountain), Ironbark and Stormfury elixirs (3 minutes, last through death, one at a time) |
+| `basic` | Parts | Notched Blade, Ember Shard, Gleaming Lens (crit), Mossweave Band (regen), Mana Pearl, Glowcap Spores (heal and shield power)... |
+| `boots` | One pair (group `boots`), upgraded in place from Wanderer's Boots | Swiftstride Greaves, Ironshod Boots, Mystic Treads (tenacity), Fleetfoot Spurs, Spellwalker Sandals (magic pen), Dreamwalker Slippers (haste) |
+| `epic` | Built from parts, built into legendaries | Duskhook Dagger (lethality), Bramblehook (Wounds), Hawkeye Scope, Voidglass Shard, Ember Mantle (immolate), Unchained Sash (active)... |
+| `legendary` | Finished, one of each (`isUnique`) | 34, by role: fighters and assassins, marksmen, mages, tanks, supports |
+
+Low-health shields are a group too (`lifeline`: Ironheart Talisman).
+
+### Stats
+
+Besides the champion stats (`attackSpeed` is a bonus share, added up across items before
+it applies; `health` and `resource` raise the maximums), items give `ItemCombatStats`
+(`packages/shared/src/types/champions.ts`), 0 on a champion without them:
+
+| Stat | What |
+|------|------|
+| `lethality`, `armorPenPercent` | Armor the champion's physical damage ignores (percent first) |
+| `magicPen`, `magicPenPercent` | The same for magic resist |
+| `critChance`, `critDamage` | Basic attacks crit (`ChampionBasicAttacks`): damage times crit damage (2.0 base); DAMAGE events carry `crit`, and the number pops bigger with a "!" |
+| `lifesteal` | Share of basic attack damage dealt that heals |
+| `omnivamp` | Share of all damage dealt that heals (a third against minions and monsters) |
+| `healShieldPower` | Heals and shields it gives allies are stronger |
+| `tenacity` | Crowd control and slows from enemies are shorter (not displacements); several sources combine as 1 - product |
+
+Some passives scale stats in `ChampionStats`: Overflow (ability power from max mana),
+Majesty (+30% ability power), stacking items (their stacks times a stat).
 
 ### Build trees
 
@@ -30,77 +80,113 @@ a part it holds.
 - `planItemPurchase(itemId, inventory)`: the price, the slots used up and the tree with
   the owned parts marked. The server charges with it (`ChampionInventory.buy`); the shop
   shows the same price.
+- `purchaseBlockReason(itemId, inventory)`: why it can't be bought besides gold and room
+  (a unique item owned, another item of its group the purchase doesn't use up, a full
+  stack or a second flask); `consumableStackSlot`: the stack a potion joins.
 - `getItemTree`, `getItemBuildsInto`, `getItemCombineCost`, `isItemPartOf`.
 
-Our own items, three tiers (costs in gold; combine cost in parentheses):
-
-| Item | Stats | Built from | Cost |
-|------|-------|------------|------|
-| Notched Blade | +10 attack damage | | 350 |
-| Ember Shard | +20 ability power | | 435 |
-| Quickdraw Gloves | +12% attack speed | | 300 |
-| Padded Vest | +15 armor | | 300 |
-| Warding Charm | +25 magic resist | | 450 |
-| Heartstone | +150 health | | 400 |
-| Focus Rune | +10 ability haste | | 400 |
-| Wanderer's Boots | +6 movement speed (about 10%) | | 300 |
-| Siege Cleaver | +35 attack damage | 2 Notched Blades | 1200 (500) |
-| Cinder Rod | +50 ability power | 2 Ember Shards | 1100 (230) |
-| Repeater Crossbow | +25% attack speed, Barbed Bolts | 2 Quickdraw Gloves | 1000 (400) |
-| Iron Plate | +40 armor | Padded Vest | 800 (500) |
-| Spellward Cloak | +50 magic resist | Warding Charm | 900 (450) |
-| Bulwark Belt | +350 health | Heartstone | 900 (500) |
-| Crimson Fang | +55 attack damage, Feast | Siege Cleaver, Notched Blade | 3000 (1450) |
-| Starfall Diadem | +90 ability power, +10 ability haste, Starfall | Cinder Rod, Focus Rune | 3000 (1500) |
-| Spiked Bastion | +60 armor, +300 health, Barbs | Iron Plate, Bulwark Belt | 2600 (900) |
-| Ironheart Talisman | +40 attack damage, +400 health, Hold the Line | Siege Cleaver, Bulwark Belt | 3100 (1000) |
-
-Champions move at about 60 units/s, so movement speed items are small. Crit chance
-exists as a stat but no attack uses it, so no item gives it.
-
 `packages/shared/src/test/itemTrees.test.ts` checks that every part exists, no item is
-in its own tree, and no item costs less than its parts.
+in its own tree, no item costs less than its parts, legendaries are built from parts,
+boots are grouped, and the purchase rules.
 
-The practice bot buys its build list in order, skipping items it owns or has already
-built into an owned item, at the tree price.
-
-### Passives
+## Passives
 
 Each passive has a name and a `description` for the shop and tooltips, and an
 `effectType` with `effectData` that `ChampionItemPassives`
-(`packages/server/src/simulation/champion/`) applies:
+(`packages/server/src/simulation/champion/`) applies. Passives with the same `stackKey`
+(default: their id) apply once however many items carry them: the one on the most
+expensive item wins (Smolder and Magma share `immolate`).
 
-| effectType | Item (passive) | What it does |
-|------------|----------------|--------------|
-| `on_hit_damage` | Repeater Crossbow (Barbed Bolts) | Basic attacks deal 12 bonus physical damage |
-| `lifesteal` | Crimson Fang (Feast) | Basic attacks heal for 15% of the damage they deal |
-| `spellblade` | Starfall Diadem (Starfall) | Casting an ability charges the next basic attack within 10s: +75% AP magic damage; 1.5s cooldown from the hit |
-| `thorns` | Spiked Bastion (Barbs) | An enemy (not a tower) that lands a basic attack takes 30 magic damage |
-| `shield` | Ironheart Talisman (Hold the Line) | Taking damage below 30% health grants a shield of 30% max health for 5s; 60s cooldown |
+The champion reports to it:
 
-A passive applies once however many items carry it. While Starfall is charged and while
-Hold the Line's shield is up, the champion also has a marker effect (`item_starfall`,
-`item_hold_the_line`; no stats) that shows in the HUD's buff bar and as an aura: stars
-circling the champion, and a steel dome over it. The hooks: champion basic attacks
-(melee hits and their projectiles) call `onBasicAttackHit`; every basic attack that lands
-(`ServerTargetedProjectile`, minion and monster melee hits) calls the target's
-`onBasicAttackTaken`, which champions pass to `onHitByBasicAttack`; ability casts call
-`onAbilityCast`; `ServerChampion.takeDamage` calls `onDamaged`. Tests:
-`packages/server/src/test/ItemPassives.test.ts`.
+| Hook | Called from | Passives |
+|------|-------------|----------|
+| `onBasicAttackHit` | Melee hits and basic attack projectiles | on-hit damage, Opening Cut, Avalanche, Venom, Triple Volley, Starfall, Static, Hymn's on-hit, Momentum, Harvest's slow, lifesteal and Overfed |
+| `onDamageDealt` | `ServerEntity` / `ServerChampion.takeDamage`, with the source's damage kind | omnivamp and Bloodlust, Harvest's heal, Wounds, Sunder, Tithe, ability burns (Kindle, Smoldering Pages), Rime |
+| `amplifyDamage` | Before resistances | Execution, Giantslayer, Demolish (basic attacks on structures), Harvest (monsters) |
+| `reduceIncomingDamage` | The receiving champion, before resistances | Veil (blocks an enemy champion's ability), Bark, Hobnails, Chill Shell |
+| `onHitByBasicAttack` | Every basic attack that lands on it | thorns (Prickle, Barbs) and their Wounds |
+| `onAllyHealedOrShielded` | `ServerChampion.heal` and `grantShield` from an allied champion | Hymn, Renewal |
+| `onTakedown`, `onKill`, `onDeath` | Kills, assists, monster kills, its death | Hoard, Bedrock, Harvest's growth |
+| `update` | Every tick | burns, Smolder and Magma (only while in combat, so walking past a camp doesn't pull it), Rally, Lone Wolf, Wanderlust, Veil's marker, Static's charge from walking, Tithe's charges |
+
+**Damage kinds.** `ServerChampion.damageKind` says what the damage it's dealing is: its
+basic attacks set `basic` (`withDamageKind`; a basic attack projectile carries
+`basicAttack`), damage from its items `item`, and everything else (abilities, their damage
+over time, summoner spells) is `ability`. Item damage doesn't set off passives meant for
+attacks and abilities, so items don't trigger each other in loops.
+
+**Heals and shields.** `ServerChampion.heal` raises an ally's heal by the healer's heal and
+shield power and Verdant, and cuts it by the strongest healing reduction (Wounds 40%,
+Scorch 40%). Every shield goes through `ServerChampion.grantShield(amount, duration,
+styleId, context, giver)` the same way.
+
+**Assists.** A champion remembers the enemy champions that hurt it in the last 10
+seconds; when it dies, those other than the killer get an assist, a share of half the
+kill gold, and their items' takedown.
+
+Markers show a passive's state on the champion (data/effects.ts, with names in
+`src/data/effectDisplayInfo.ts` and icons in `statusIndicators.ts`): `item_starfall`,
+`item_hold_the_line`, `item_static`, `item_veil`, `item_hymn`, `item_rally`,
+`item_lone_wolf`, `item_wanderlust`, `item_momentum`; on enemies `wounds`, `item_burn`,
+`item_sunder`, `slow_25`. Tests: `ItemPassives.test.ts`, `ItemMechanics.test.ts`.
+
+## Actives and consumables
+
+An item with an `active` is used with its slot's key: **1, 2, 3** (top row) and **6, 7, 8**
+(bottom row), since 4 and 5 place wards (`src/core/input/itemKeys.ts`). The client sends
+`InputType.USE_ITEM { slot, targetX, targetY }` with the cursor's world position;
+`ChampionItemActives.use` checks it and does it:
+
+| Effect | Items |
+|--------|-------|
+| `potion` | Healing Draught (120 health over 12 s; another adds 12 s), Wayfarer's Flask (health and mana) |
+| `elixir` | Ironbark, Stormfury: 3 minutes, one elixir at a time |
+| `cleanse` | Unchain (Unchained Sash, Freeblade Scimitar): removes crowd control and slows; usable while stunned |
+| `stasis` | Stillness (Hourglass of Stillness): invulnerable and frozen 2.5 s (crowd control type `stasis`) |
+| `dash` | Shadowstep (blink 200), Gust (dash 200 and hit where it lands); not while rooted or grounded |
+| `shield_allies` | Shelter (Warden's Standard) |
+| `frost_nova` | Frost Nova (Frostguard Plate): slows enemies around 55% for 2 s |
+| `heal_area` | Sanctuary (Shepherd's Crook): heals allies at a point after 1.5 s, hurts enemies there |
+
+Actives with the same id share a cooldown. It's kept on each item as the game time it's
+ready (`EquippedItemState.readyAt`), so the inventory only changes when an active is used;
+the HUD shades the slot with the seconds left. A consumable's uses are its `charges`: a
+stack of potions lives in one slot, and is gone when drunk up; a flask refills at the
+fountain. A stacking item's `stacks` show on its slot too.
+
+Each use is an `ABILITY_CAST` event `item_<active id>` at the target point; Static's
+discharge (`item_static`), Veil blocking (`item_veil`) and Sanctuary landing
+(`item_sanctuary_land`) send one too. Their VFX are in `src/vfx/items.ts` and their sounds
+in `src/audio/abilitySounds.ts` (new ones `item_potion`, `item_elixir`, `item_stasis`,
+`item_frost_nova`, `item_static`, `item_veil`; the rest reuse summoner spells' sounds).
+
+## Bots
+
+Bots (`LaneBot`) buy their class's build (`BUILDS`) in order: a starter and a potion, boots,
+then each item, buying one of its missing parts when gold doesn't cover it yet (so a later
+item doesn't use up the parts it's saving). A jungle bot starts with the Seedling Sickle and
+a support bot with the Pilgrim's Lantern (`getBuild`). With no room for the next item they
+sell the starter (then a potion); they don't buy starters again once they own a legendary.
+`bots/itemTactics.ts` decides when they use items: a potion under 55% health, an elixir
+right away, Stillness about to die with an enemy near, Unchain when stunned or rooted, and
+Frost Nova, Shelter, Sanctuary and dashes in a fight.
 
 ## Shop UI
 
 `src/ui/shop/ShopUI.ts` drives the shop overlay in `index.html` (styles in `shop.css`):
-category tabs, the item grid (each item at its price for the current inventory, in
-green when parts lower it), the details panel and the six inventory slots. The details
-panel shows the item's build tree with owned parts outlined in green, its stats and
-passives, and what it builds into (`src/ui/shop/itemTree.ts`); clicking an item there
-selects it. Items that suit the local champion's class have a star (`isRecommendedFor` in
-`src/data/items.ts`: mages and supports get ability power, assassins attack damage and
-speed, tanks armor, magic resist and health, and so on). Buying keeps the shop open; gold, inventory, affordability and the
-buttons refresh from each server state update (`updateOnlineState`). Buying and selling
-only work at the fountain. Beside the inventory, the control ward button buys a control
-ward (75 gold) to carry, up to 2, outside the six slots (see [map.md](map.md), Wards).
+category tabs (All, Start, AD, AS/Crit, AP, Armor, MR, Health, Boots, Support; a tab can
+show several categories, `TAB_CATEGORIES`), the item grid by tier then price (the All tab
+heads each tier), the details panel and the six inventory slots. Each item shows at its
+price for the current inventory, in green when parts lower it, dimmed when it can't be
+bought (a second pair of boots...: the details say why). The details panel shows the
+item's build tree with owned parts outlined in green, its stats, active and passives, and
+what it builds into (`src/ui/shop/itemTree.ts`); clicking an item there selects it. Items
+that suit the local champion's class have a star (`isRecommendedFor` in `src/data/items.ts`).
+Buying keeps the shop open; gold, inventory, affordability and the buttons refresh from
+each server state update (`updateOnlineState`). Buying and selling only work at the
+fountain. Beside the inventory, the control ward button buys a control ward (75 gold) to
+carry, up to 2, outside the six slots (see [map.md](map.md), Wards).
 
 ## Icons
 

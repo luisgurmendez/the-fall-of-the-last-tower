@@ -200,6 +200,7 @@ export function processGameEvent(event: GameEvent, ctx: GameEventContext): void 
           amount,
           shieldAbsorbed,
           damageType,
+          crit: event.data.crit === true,
           startTime: now,
         });
       }

@@ -23,6 +23,8 @@ export interface ServerEffectDefinition {
   maxStacks?: number;
   cleansable: boolean;
   persistsThroughDeath: boolean;
+  /** Share less healing the holder receives while it lasts (Wounds) */
+  healingReduction?: number;
 }
 
 /**
@@ -39,6 +41,8 @@ export interface ServerStatEffectDef extends ServerEffectDefinition {
   stat: StatModificationType;
   flatValue?: number;
   percentValue?: number;
+  /** More stats it changes the same way (an aura's armor and magic resist) */
+  alsoModifies?: Array<{ stat: StatModificationType; flatValue?: number; percentValue?: number }>;
 }
 
 /**
@@ -1056,6 +1060,239 @@ export const HoldTheLineEffect: ServerEffectDefinition = {
   persistsThroughDeath: false,
 };
 
+// ===================
+// Item effects (config/items.ts; ChampionItemPassives and ChampionItemActives)
+// ===================
+
+/** Bramblehook, Witherquill, thorns...: heals 40% less */
+export const WoundsEffect: ServerEffectDefinition = {
+  id: 'wounds',
+  name: 'Wounds',
+  category: 'debuff',
+  stackBehavior: 'refresh',
+  cleansable: true,
+  persistsThroughDeath: false,
+  healingReduction: 0.4,
+};
+
+/** An item burn on the champion (the damage is dealt by the source's item passives) */
+export const ItemBurnEffect: ServerEffectDefinition = {
+  id: 'item_burn',
+  name: 'Burning',
+  category: 'debuff',
+  stackBehavior: 'refresh',
+  cleansable: true,
+  persistsThroughDeath: false,
+};
+
+/** Frostwyrm Scepter's Rime */
+export const Slow25Effect: ServerStatEffectDef = {
+  id: 'slow_25',
+  name: 'Slowed',
+  category: 'debuff',
+  stackBehavior: 'refresh',
+  cleansable: true,
+  persistsThroughDeath: false,
+  stat: 'movement_speed',
+  percentValue: -0.25,
+};
+
+/** Sundering Axe: 5% less armor a stack */
+export const SunderEffect: ServerStatEffectDef = {
+  id: 'item_sunder',
+  name: 'Sundered',
+  category: 'debuff',
+  stackBehavior: 'stack',
+  maxStacks: 6,
+  cleansable: false,
+  persistsThroughDeath: false,
+  stat: 'armor',
+  percentValue: -0.05,
+};
+
+/** Skirmisher's Hatchet */
+export const MomentumEffect: ServerStatEffectDef = {
+  id: 'item_momentum',
+  name: 'Momentum',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+  stat: 'movement_speed',
+  flatValue: 8,
+};
+
+/** Swiftstride Greaves, out of combat */
+export const WanderlustEffect: ServerStatEffectDef = {
+  id: 'item_wanderlust',
+  name: 'Wanderlust',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+  stat: 'movement_speed',
+  flatValue: 8,
+};
+
+/** Siegebreaker Hammer, with no ally near */
+export const LoneWolfEffect: ServerStatEffectDef = {
+  id: 'item_lone_wolf',
+  name: 'Lone Wolf',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+  stat: 'movement_speed',
+  flatValue: 10,
+  alsoModifies: [{ stat: 'armor', flatValue: 15 }, { stat: 'magic_resist', flatValue: 15 }],
+};
+
+/** Stormstring: the next basic attack discharges */
+export const StaticEffect: ServerEffectDefinition = {
+  id: 'item_static',
+  name: 'Static',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+};
+
+/** Dawnsong Censer: attack speed (the on-hit damage is in ChampionItemPassives) */
+export const HymnEffect: ServerStatEffectDef = {
+  id: 'item_hymn',
+  name: 'Hymn',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+  stat: 'attack_speed',
+  percentValue: 0.2,
+};
+
+/** Warden's Standard aura */
+export const RallyEffect: ServerStatEffectDef = {
+  id: 'item_rally',
+  name: 'Rally',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+  stat: 'armor',
+  flatValue: 10,
+  alsoModifies: [{ stat: 'magic_resist', flatValue: 10 }],
+};
+
+/** Stormward Veil: an enemy ability will be blocked */
+export const VeilEffect: ServerEffectDefinition = {
+  id: 'item_veil',
+  name: 'Veil',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+};
+
+/** Healing Draught: 120 health over 12 seconds; another draught adds 12 seconds */
+export const DraughtEffect: ServerOverTimeEffectDef = {
+  id: 'item_draught',
+  name: 'Healing Draught',
+  category: 'buff',
+  stackBehavior: 'extend',
+  cleansable: false,
+  persistsThroughDeath: false,
+  otType: 'heal',
+  valuePerTick: 5,
+  tickInterval: 0.5,
+};
+
+/** Wayfarer's Flask: 100 health over 10 seconds */
+export const FlaskEffect: ServerOverTimeEffectDef = {
+  id: 'item_flask',
+  name: "Wayfarer's Flask",
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+  otType: 'heal',
+  valuePerTick: 5,
+  tickInterval: 0.5,
+};
+
+/** Wayfarer's Flask: 40 mana over 10 seconds */
+export const FlaskManaEffect: ServerOverTimeEffectDef = {
+  id: 'item_flask_mana',
+  name: "Wayfarer's Flask",
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+  otType: 'mana_restore',
+  valuePerTick: 2,
+  tickInterval: 0.5,
+};
+
+/** Ironbark Elixir */
+export const IronbarkEffect: ServerStatEffectDef = {
+  id: 'item_ironbark',
+  name: 'Ironbark Elixir',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: true,
+  stat: 'max_health',
+  flatValue: 250,
+  alsoModifies: [{ stat: 'tenacity', flatValue: 0.2 }],
+};
+
+/** Stormfury Elixir */
+export const StormfuryEffect: ServerStatEffectDef = {
+  id: 'item_stormfury',
+  name: 'Stormfury Elixir',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: true,
+  stat: 'attack_damage',
+  flatValue: 18,
+  alsoModifies: [{ stat: 'ability_power', flatValue: 30 }],
+};
+
+/** Hourglass of Stillness: invulnerable, and can't move, attack or cast */
+export const StasisEffect: ServerCCEffectDef & { grantsInvulnerability: boolean } = {
+  id: 'item_stasis',
+  name: 'Stillness',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+  ccType: 'stasis',
+  grantsInvulnerability: true,
+};
+
+/** Freeblade Scimitar: the burst of speed after Unchain */
+export const UnchainSpeedEffect: ServerStatEffectDef = {
+  id: 'item_unchain_speed',
+  name: 'Unchained',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+  stat: 'movement_speed',
+  percentValue: 0.4,
+};
+
+/** Frostguard Plate's Frost Nova */
+export const FrostNovaEffect: ServerStatEffectDef = {
+  id: 'item_frost_nova',
+  name: 'Frost Nova',
+  category: 'debuff',
+  stackBehavior: 'refresh',
+  cleansable: true,
+  persistsThroughDeath: false,
+  stat: 'movement_speed',
+  percentValue: -0.55,
+};
+
 /** Vile's R: transformed (no stats; the transform applies its own) */
 export const VileTransformedEffect: ServerEffectDefinition = {
   id: 'vile_transformed',
@@ -1100,6 +1337,7 @@ export const SummonerScorchEffect: ServerOverTimeEffectDef = {
   stackBehavior: 'refresh',
   cleansable: true,
   persistsThroughDeath: false,
+  healingReduction: 0.4,
   otType: 'damage',
   valuePerTick: 1,
   tickInterval: 0.5,
@@ -1152,6 +1390,25 @@ export const ALL_SERVER_EFFECTS: AnyServerEffectDef[] = [
   // Item passives
   StarfallEffect,
   HoldTheLineEffect,
+  WoundsEffect,
+  ItemBurnEffect,
+  Slow25Effect,
+  SunderEffect,
+  MomentumEffect,
+  WanderlustEffect,
+  LoneWolfEffect,
+  StaticEffect,
+  HymnEffect,
+  RallyEffect,
+  VeilEffect,
+  DraughtEffect,
+  FlaskEffect,
+  FlaskManaEffect,
+  IronbarkEffect,
+  StormfuryEffect,
+  StasisEffect,
+  UnchainSpeedEffect,
+  FrostNovaEffect,
   // Jungle buffs
   CrestOfInsightEffect,
   CrestOfInsightRegenEffect,

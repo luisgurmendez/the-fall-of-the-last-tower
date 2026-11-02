@@ -92,12 +92,7 @@ export class ChampionSummoners {
         break;
       }
       case 'aegis':
-        champion.shields.push({
-          amount: 100 + 20 * champion.level,
-          remainingDuration: 2.5,
-          sourceId: champion.id,
-          shieldType: 'normal',
-        });
+        champion.grantShield(100 + 20 * champion.level, 2.5, champion.id);
         event = {};
         break;
       case 'purge':

@@ -19,6 +19,8 @@ export interface DamageNumber {
   shieldAbsorbed: number;
   /** Type of damage */
   damageType: 'physical' | 'magic' | 'true' | 'pure';
+  /** A critical strike: bigger, with a "!" */
+  crit?: boolean;
   /** Which way it flies off: -1 left, 1 right (hits alternate) */
   side: number;
   /** When the damage occurred (ms) */

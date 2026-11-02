@@ -214,6 +214,7 @@ Captures player input and sends to server:
 - S → Stop
 - B → Recall
 - D / F → Summoner spells
+- 1 / 2 / 3 / 6 / 7 / 8 → Use the item in each inventory slot (actives, potions; see docs/architecture/items.md)
 - 4 / 5 → Hold to aim a ward / control ward (bought in the shop), release to place it
 
 Escape opens the in-match menu (`src/ui/GameMenu.ts`: resume, surrender).

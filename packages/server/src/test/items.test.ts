@@ -30,12 +30,12 @@ describe('Item Definitions', () => {
     }
   });
 
-  test('sell value is approximately 70% of cost', () => {
+  test('sell value is approximately 70% of cost (40% for starters and consumables)', () => {
     for (const item of ALL_SERVER_ITEMS) {
-      const expectedRatio = item.sellValue / item.cost;
-      // Allow 69-71% range for rounding variations
-      expect(expectedRatio).toBeGreaterThanOrEqual(0.69);
-      expect(expectedRatio).toBeLessThanOrEqual(0.71);
+      const expectedRatio = item.tier === 'starter' || item.tier === 'consumable' ? 0.4 : 0.7;
+      // Allow a point either way for rounding
+      expect(item.sellValue / item.cost).toBeGreaterThanOrEqual(expectedRatio - 0.01);
+      expect(item.sellValue / item.cost).toBeLessThanOrEqual(expectedRatio + 0.01);
     }
   });
 
@@ -164,7 +164,7 @@ describe('Item Categories', () => {
     const healthItems = ALL_SERVER_ITEMS.filter(i => i.category === 'health');
     expect(healthItems.length).toBeGreaterThan(0);
     for (const item of healthItems) {
-      expect(item.stats.health).toBeGreaterThan(0);
+      expect((item.stats.health ?? 0) + (item.stats.healthRegen ?? 0)).toBeGreaterThan(0);
     }
   });
 });

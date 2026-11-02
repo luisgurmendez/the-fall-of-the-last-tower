@@ -75,6 +75,10 @@ enum InputType {
   RECALL = 8,         // Return to base
   PING = 9,           // Map ping
   CHAT = 10,          // Chat message
+  PLACE_WARD = 11,    // Place a ward
+  SURRENDER = 12,     // Concede the match
+  SUMMONER_SPELL = 13,// Cast a summoner spell (D or F)
+  USE_ITEM = 14,      // Use the item in a slot { slot, targetX, targetY } (items.md, Actives)
 }
 ```
 

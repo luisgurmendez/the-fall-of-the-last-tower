@@ -28,7 +28,8 @@ export type CrowdControlType =
   | 'charm'      // Forced to move toward source
   | 'taunt'      // Forced to attack source
   | 'sleep'      // Like stun, but breaks on damage
-  | 'suppress';  // Complete lockdown, can't be reduced
+  | 'suppress'   // Complete lockdown, can't be reduced
+  | 'stasis';    // Frozen and invulnerable by choice (Hourglass of Stillness)
 
 /**
  * Types of stat modification effects.
@@ -48,7 +49,9 @@ export type StatModificationType =
   | 'lifesteal'
   | 'spell_vamp'
   | 'armor_penetration'
-  | 'magic_penetration';
+  | 'magic_penetration'
+  | 'max_health'
+  | 'tenacity';
 
 /**
  * Types of over-time effects.

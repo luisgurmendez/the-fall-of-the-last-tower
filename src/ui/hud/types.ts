@@ -15,6 +15,13 @@ export interface EquippedItem {
   slot: ItemSlot;
   passiveCooldowns: Map<string, number>;
   nextIntervalTick: Map<string, number>;
+  /** Uses left (a stack of potions, a flask's charges) */
+  charges?: number;
+  /** Stacks its stacking passive gathered */
+  stacks?: number;
+  /** Seconds until its active is ready (0 when it is), and its full cooldown */
+  cooldownLeft?: number;
+  cooldownTotal?: number;
 }
 
 /**

@@ -7,6 +7,9 @@
  * - Melee attacks hit at the keyframe; ranged attacks fire a targeted
  *   projectile there that deals the damage when it arrives
  * - On hit: jungle buff effects, champion hooks (melee only) and on_hit passives
+ * - It may be a critical strike (crit chance): its damage times crit damage
+ * - Its damage counts as a basic attack for the champion's items
+ *   (ServerChampion.withDamageKind)
  * - Pending damage is cancelled when the champion can no longer attack
  */
 
@@ -161,18 +164,20 @@ export class ChampionBasicAttacks {
     const attackDamage = action.data.attackDamage as number;
     const abilityPower = action.data.abilityPower as number;
 
-    // Raw damage; the target applies its armor in takeDamage()
-    const damage = attackDamage;
+    // Raw damage, times crit damage on a critical strike; the target applies its armor in takeDamage()
+    const stats = champion.getStats();
+    const crit = stats.critChance > 0 && Math.random() < stats.critChance;
+    const damage = crit ? attackDamage * stats.critDamage : attackDamage;
 
     // Check if this champion is ranged
     const isRanged = champion.definition.attackType === 'ranged';
 
     if (isRanged) {
       // Ranged champions fire a projectile that deals damage on hit
-      this.fireBasicAttackProjectile(target, damage, context);
+      this.fireBasicAttackProjectile(target, damage, crit, context);
     } else {
       // Melee champions deal damage instantly
-      this.applyMeleeAttackDamage(target, damage, attackDamage, abilityPower, context);
+      this.applyMeleeAttackDamage(target, damage, crit, attackDamage, abilityPower, context);
     }
   }
 
@@ -182,6 +187,7 @@ export class ChampionBasicAttacks {
   private fireBasicAttackProjectile(
     target: ServerEntity,
     damage: number,
+    crit: boolean,
     context: ServerGameContext
   ): void {
     const champion = this.champion;
@@ -220,6 +226,7 @@ export class ChampionBasicAttacks {
       damage,
       damageType: 'physical',
       onHitCallback,
+      basicAttack: { crit },
     });
 
     context.addEntity(projectile);
@@ -235,13 +242,14 @@ export class ChampionBasicAttacks {
   private applyMeleeAttackDamage(
     target: ServerEntity,
     damage: number,
+    crit: boolean,
     attackDamage: number,
     abilityPower: number,
     context: ServerGameContext
   ): void {
     const champion = this.champion;
 
-    const dealt = target.takeDamage(damage, 'physical', champion.id, context);
+    const dealt = champion.withDamageKind('basic', () => target.takeDamage(damage, 'physical', champion.id, context), crit);
     target.onBasicAttackTaken(champion, context);
 
     // Champion-specific on-attack rules (e.g., Vex's empowered attack)

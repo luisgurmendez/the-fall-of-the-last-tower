@@ -86,9 +86,11 @@ export function renderDamageNumbers(
       ? DAMAGE_NUMBER_CONFIG.POP * (1 - progress / DAMAGE_NUMBER_CONFIG.POP_TIME)
       : 0;
 
+    // A critical strike pops a size up
+    const critScale = dn.crit ? 1.35 : 1;
     ctx.save();
     ctx.translate(dn.x + xOffset, dn.y + yOffset);
-    ctx.scale((1 + growth) * (1 + pop), (1 + growth) * (1 + pop));
+    ctx.scale((1 + growth) * (1 + pop) * critScale, (1 + growth) * (1 + pop) * critScale);
 
     // Set up font
     ctx.font = DAMAGE_NUMBER_CONFIG.FONT;
@@ -113,7 +115,7 @@ export function renderDamageNumbers(
 
     // Render damage amount
     if (dn.amount > 0) {
-      const damageText = Math.round(dn.amount).toString();
+      const damageText = `${Math.round(dn.amount)}${dn.crit ? "!" : ""}`;
 
       // Draw shadow/outline for readability
       ctx.strokeStyle = "#000000";

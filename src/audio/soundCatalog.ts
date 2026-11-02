@@ -88,6 +88,14 @@ export const SOUNDS = {
   recall_depart: { prompt: `a magical teleport beam up: a bright shimmering whine rising fast in pitch, ending in a quick zippy "jee-ooo" as it vanishes into the sky, ${DRY}`, duration: 1.2, volume: 0.55, maxVoices: 2 },
   recall_arrive: { prompt: `a magical teleport whoosh with sparkles, ${DRY}`, duration: 1, volume: 0.6, maxVoices: 2 },
 
+  // Items used (item_<active id>; abilitySounds.ts maps the rest to summoner spells' sounds)
+  item_potion: { prompt: `a quick gulp from a small glass bottle with a soft bubbling heal shimmer, ${DRY}`, duration: 0.8, volume: 0.5, maxVoices: 2 },
+  item_elixir: { prompt: `drinking a thick potion, then a deep magical power-up surge, ${DRY}`, duration: 1, volume: 0.55, maxVoices: 2 },
+  item_stasis: { prompt: `time freezing: a crystalline golden chime with a low resonant hum suddenly stopping, ${DRY}`, duration: 1.2, volume: 0.65, maxVoices: 2 },
+  item_frost_nova: { prompt: `a burst of ice crackling outward, frost shattering, ${DRY}`, duration: 0.9, volume: 0.65, maxVoices: 2 },
+  item_static: { prompt: `a sharp electric zap arcing between targets, ${DRY}`, duration: 0.6, volume: 0.55, maxVoices: 3 },
+  item_veil: { prompt: `a magic spell shattering harmlessly against a glassy barrier, ${DRY}`, duration: 0.7, volume: 0.6, maxVoices: 2 },
+
   // Summoner spells (summoner_<id>)
   summoner_blink: { prompt: `a quick magical teleport zap, ${DRY}`, duration: 0.6, volume: 0.6, maxVoices: 2 },
   summoner_haste: { prompt: `a fast gust of wind whoosh, ${DRY}`, duration: 0.8, volume: 0.6, maxVoices: 2 },

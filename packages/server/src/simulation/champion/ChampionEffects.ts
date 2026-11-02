@@ -15,9 +15,27 @@ import {
   getServerEffectById,
   isCCEffect,
   isOverTimeEffect,
+  isStatEffect,
   isInvulnerabilityEffect,
+  type AnyServerEffectDef,
   type ServerOverTimeEffectDef,
 } from '../../data/effects';
+
+/** Crowd control tenacity doesn't shorten (LoL's rule: displacements and suppression) */
+const UNSHORTENED_CC = new Set(['knockup', 'knockback', 'suppress', 'stasis']);
+
+/**
+ * Whether tenacity shortens an effect: crowd control (but displacements and
+ * suppression) and slows, when an enemy puts them on.
+ */
+function isShortenedByTenacity(def: AnyServerEffectDef): boolean {
+  if (def.category !== 'debuff') return false;
+  if (isCCEffect(def)) return !UNSHORTENED_CC.has(def.ccType);
+  if (isStatEffect(def) && def.stat === 'movement_speed') {
+    return (def.percentValue ?? 0) < 0 || (def.flatValue ?? 0) < 0;
+  }
+  return false;
+}
 import { Logger } from '../../utils/Logger';
 import type { ServerChampion } from '../ServerChampion';
 import type { ServerGameContext } from '../../game/ServerGameContext';
@@ -55,6 +73,7 @@ export function calculateCCStatus(activeEffects: readonly ActiveEffectState[]): 
       case 'knockup':
       case 'knockback':
       case 'suppress':
+      case 'stasis':
         status.isStunned = true;
         break;
       case 'silence':
@@ -196,6 +215,11 @@ export class ChampionEffects {
     if (!def) {
       Logger.champion.warn(`Unknown effect: ${effectId}`);
       return;
+    }
+
+    // Tenacity shortens crowd control and slows from others
+    if (sourceId !== champion.id && isShortenedByTenacity(def)) {
+      duration *= 1 - champion.getStats().tenacity;
     }
 
     // Check for existing effect
@@ -375,6 +399,18 @@ export class ChampionEffects {
    */
   has(effectId: string): boolean {
     return this.champion.activeEffects.some(e => e.definitionId === effectId);
+  }
+
+  /**
+   * How much less healing the champion receives: the strongest of its
+   * effects' healing reductions (Wounds, Scorch).
+   */
+  healingReduction(): number {
+    let reduction = 0;
+    for (const effect of this.champion.activeEffects) {
+      reduction = Math.max(reduction, getServerEffectById(effect.definitionId)?.healingReduction ?? 0);
+    }
+    return reduction;
   }
 
   /**

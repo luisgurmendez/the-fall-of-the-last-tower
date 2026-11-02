@@ -81,12 +81,7 @@ export function executeTargetAllyAbility(
   if (definition.shield && "shields" in target) {
     const shieldAmount = calculateAbilityValue(definition.shield.scaling, rank, getScalingStats(champion, stats));
 
-    (target as ServerChampion).shields.push({
-      amount: shieldAmount,
-      remainingDuration: definition.shield.duration,
-      sourceId: definition.id,
-      shieldType: 'normal',
-    });
+    (target as ServerChampion).grantShield(shieldAmount, definition.shield.duration, definition.id, context, champion);
   }
 
   // Apply effects

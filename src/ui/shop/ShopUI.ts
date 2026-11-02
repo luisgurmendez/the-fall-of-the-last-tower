@@ -8,15 +8,57 @@ import type { ChampionClass, ItemDefinition, ItemSlot, ItemCategory } from "@sie
 import type { NetworkClient } from "@siege/client";
 import { createItemIconElement } from "@/ui/itemIcons";
 import { SHOP_ITEMS, getItemDefinition, getItemPassive, isRecommendedFor } from "@/data/items";
+import { describeConsumable, getItemActive, listItemStats } from "@/data/itemStats";
+import { ITEM_KEYS } from "@/core/input/itemKeys";
 import { renderItemTree, renderBuildsInto } from "@/ui/shop/itemTree";
 import { getAudio } from "@/audio/AudioManager";
-import { CONTROL_WARD_ITEM_ID, GameConfig, planItemPurchase } from "@siege/shared";
+import {
+  CONTROL_WARD_ITEM_ID,
+  GameConfig,
+  getItemCatalogEntry,
+  planItemPurchase,
+  purchaseBlockReason,
+  type ItemTier,
+  type PurchaseBlock,
+} from "@siege/shared";
 
 type ShopCategory = ItemCategory | "all";
 
-function getItemsByCategory(category: ItemCategory): ItemDefinition[] {
-  return SHOP_ITEMS.filter(item => item.category === category);
+/** The categories each tab shows (the tab's data-category in index.html) */
+const TAB_CATEGORIES: Partial<Record<ShopCategory, ItemCategory[]>> = {
+  starter: ["starter", "consumable"],
+  attack_speed: ["attack_speed", "critical"],
+  ability_power: ["ability_power", "mana"],
+  utility: ["utility", "support"],
+};
+
+/** Tiers in the order the grid lists them, with the "All" tab's headings */
+const TIERS: { tier: ItemTier; title: string }[] = [
+  { tier: "starter", title: "Starters" },
+  { tier: "consumable", title: "Potions & elixirs" },
+  { tier: "basic", title: "Basic" },
+  { tier: "boots", title: "Boots" },
+  { tier: "epic", title: "Epic" },
+  { tier: "legendary", title: "Legendary" },
+];
+const TIER_ORDER = new Map(TIERS.map(({ tier }, index) => [tier, index]));
+
+const tierOf = (item: ItemDefinition): ItemTier => getItemCatalogEntry(item.id)?.tier ?? "basic";
+
+/** A tab's items, by tier then price */
+function getItemsByCategory(category: ShopCategory): ItemDefinition[] {
+  const categories = TAB_CATEGORIES[category] ?? [category];
+  return SHOP_ITEMS
+    .filter(item => category === "all" || categories.includes(item.category))
+    .sort((a, b) => (TIER_ORDER.get(tierOf(a))! - TIER_ORDER.get(tierOf(b))!) || a.cost - b.cost);
 }
+
+/** Why the shop won't sell an item, in its words */
+const BLOCK_REASONS: Record<PurchaseBlock, string> = {
+  unique_owned: "You already have one",
+  group_owned: "You already have one of its kind",
+  stack_full: "You can't carry more",
+};
 
 interface ShopState {
   isOpen: boolean;
@@ -62,7 +104,7 @@ export class ShopUI {
 
   // Online mode state (from server)
   private onlineGold: number = 0;
-  private onlineItems: Array<{ definitionId: string } | null> = [];
+  private onlineItems: Array<{ definitionId: string; charges?: number } | null> = [];
   /** Control wards carried (bought here, apart from the six slots) */
   private onlineControlWards = 0;
 
@@ -161,12 +203,18 @@ export class ShopUI {
 
     this.itemsGrid.innerHTML = "";
 
-    const items =
-      this.state.selectedCategory === "all"
-        ? SHOP_ITEMS
-        : getItemsByCategory(this.state.selectedCategory);
+    const items = getItemsByCategory(this.state.selectedCategory);
 
+    // The "All" tab heads each tier
+    let tier: ItemTier | null = null;
     for (const item of items) {
+      if (this.state.selectedCategory === "all" && tierOf(item) !== tier) {
+        tier = tierOf(item);
+        const heading = document.createElement("div");
+        heading.className = "shop-tier-heading";
+        heading.textContent = TIERS.find(entry => entry.tier === tier)?.title ?? tier;
+        this.itemsGrid.appendChild(heading);
+      }
       const itemEl = this.createItemElement(item);
       this.itemsGrid.appendChild(itemEl);
     }
@@ -319,6 +367,7 @@ export class ShopUI {
           ? `<div class="item-detail-passives">${passivesHtml}</div>`
           : ""
       }
+      ${!isOwned && this.blockReason(item) ? `<div class="item-detail-blocked">${BLOCK_REASONS[this.blockReason(item)!]}</div>` : ""}
     `;
     this.detailsPanel.querySelector(".item-detail-icon")?.appendChild(createItemIconElement(item));
 
@@ -354,6 +403,11 @@ export class ShopUI {
     return this.onlineItems.map(item => item?.definitionId ?? null);
   }
 
+  /** Why the item can't be bought with this inventory (a second pair of boots...), or null */
+  private blockReason(item: ItemDefinition): PurchaseBlock | null {
+    return purchaseBlockReason(item.id, this.onlineItems);
+  }
+
   /**
    * What an item costs now: its parts in the inventory are taken off.
    */
@@ -370,69 +424,16 @@ export class ShopUI {
     if (costEl) costEl.textContent = price.toString();
     cell.classList.toggle("discounted", price < item.cost);
     cell.classList.toggle("cannot-afford", this.onlineGold < price);
+    cell.classList.toggle("blocked", this.blockReason(item) !== null);
   }
 
   /**
    * Format item stats for display.
    */
   private formatItemStats(item: ItemDefinition): string {
-    const statNames: Record<
-      string,
-      { name: string; class: string; format: (v: number) => string }
-    > = {
-      attackDamage: {
-        name: "Attack Damage",
-        class: "ad",
-        format: (v) => `+${v}`,
-      },
-      abilityPower: {
-        name: "Ability Power",
-        class: "ap",
-        format: (v) => `+${v}`,
-      },
-      attackSpeed: {
-        name: "Attack Speed",
-        class: "as",
-        format: (v) => `+${Math.round(v * 100)}%`,
-      },
-      armor: { name: "Armor", class: "armor", format: (v) => `+${v}` },
-      magicResist: {
-        name: "Magic Resist",
-        class: "mr",
-        format: (v) => `+${v}`,
-      },
-      health: { name: "Health", class: "health", format: (v) => `+${v}` },
-      movementSpeed: {
-        name: "Movement Speed",
-        class: "ms",
-        format: (v) => `+${v}`,
-      },
-      critChance: {
-        name: "Critical Chance",
-        class: "crit",
-        format: (v) => `+${Math.round(v * 100)}%`,
-      },
-      abilityHaste: {
-        name: "Ability Haste",
-        class: "ap",
-        format: (v) => `+${v}`,
-      },
-    };
-
-    const lines: string[] = [];
-    for (const [key, value] of Object.entries(item.stats)) {
-      const statInfo = statNames[key];
-      if (statInfo && value !== undefined) {
-        lines.push(
-          `<div class="item-stat">${
-            statInfo.name
-          }: <span class="item-stat-value ${statInfo.class}">${statInfo.format(
-            value
-          )}</span></div>`
-        );
-      }
-    }
-    return lines.join("");
+    return listItemStats(item.stats)
+      .map(({ info, value }) => `<div class="item-stat">${info.label}: <span class="item-stat-value ${info.cssClass}">${value}</span></div>`)
+      .join("");
   }
 
   /**
@@ -440,9 +441,17 @@ export class ShopUI {
    * Note: passiveIds are just string IDs - full passive definitions would come from server.
    */
   private formatItemPassives(item: ItemDefinition): string {
-    if (!item.passiveIds || !item.passiveIds.length) return "";
+    const active = getItemActive(item.id);
+    const consumable = describeConsumable(item.id);
+    const activeHtml = active ? `
+      <div class="item-passive item-active">
+        <div class="item-passive-name">Active: ${active.name} <span class="item-active-cooldown">${active.cooldown >= 1 ? `${active.cooldown}s` : ""}</span></div>
+        <div class="item-passive-desc">${active.description}</div>
+      </div>` : "";
+    const consumableHtml = consumable ? `<div class="item-passive-desc">${consumable}</div>` : "";
+    if (!item.passiveIds || !item.passiveIds.length) return activeHtml + consumableHtml;
 
-    return item.passiveIds
+    return activeHtml + consumableHtml + item.passiveIds
       .map((passiveId) => {
         const passive = getItemPassive(passiveId);
         return `
@@ -467,7 +476,8 @@ export class ShopUI {
       const canBuy = this.atShop &&
                      item !== null &&
                      this.state.selectedInventorySlot === null &&
-                     gold >= this.getPrice(item);
+                     gold >= this.getPrice(item) &&
+                     this.blockReason(item) === null;
       this.buyButton.disabled = !canBuy;
       this.buyButton.textContent = this.atShop ? "BUY" : "AT BASE ONLY";
     }
@@ -592,7 +602,8 @@ export class ShopUI {
       } else {
         const numberDiv = document.createElement("div");
         numberDiv.className = "slot-number";
-        numberDiv.textContent = (index + 1).toString();
+        // The key that uses the item in this slot
+        numberDiv.textContent = ITEM_KEYS[index] ?? (index + 1).toString();
         slot.appendChild(numberDiv);
       }
     });
@@ -645,9 +656,8 @@ export class ShopUI {
    * Update online state from server snapshot.
    * Convenience method that sets both gold and items.
    */
-  updateOnlineState(gold: number, items: Array<{ definitionId: string } | null>, atShop = true, controlWards = 0): void {
-    const inventoryChanged = JSON.stringify(this.getInventoryIds()) !==
-      JSON.stringify(items.map(item => item?.definitionId ?? null));
+  updateOnlineState(gold: number, items: Array<{ definitionId: string; charges?: number } | null>, atShop = true, controlWards = 0): void {
+    const inventoryChanged = JSON.stringify(this.onlineItems) !== JSON.stringify(items);
     // Something was bought: gold went down as the inventory or the wards carried changed
     if (gold < this.onlineGold && (inventoryChanged || controlWards > this.onlineControlWards)) {
       getAudio().play("item_buy");

@@ -23,6 +23,9 @@ export { MAPS, useMap, activeMapId, isMapId } from './maps';
 export type { MapId } from './maps';
 
 export { ITEM_CATALOG, getItemCatalogEntry, CONTROL_WARD_ITEM_ID } from './items';
-export type { ItemCatalogEntry, ItemPassiveData } from './items';
-export { planItemPurchase, getItemTree, getItemCombineCost, getItemBuildsInto, isItemPartOf } from './itemTrees';
-export type { ItemTreeNode, PurchasePlan } from './itemTrees';
+export type { ItemCatalogEntry, ItemPassiveData, ItemPassiveEffect, ItemActiveData, ItemActiveEffect, ConsumableData } from './items';
+export {
+  planItemPurchase, getItemTree, getItemCombineCost, getItemBuildsInto, isItemPartOf,
+  purchaseBlockReason, consumableStackSlot,
+} from './itemTrees';
+export type { ItemTreeNode, PurchasePlan, InventoryEntry, PurchaseBlock } from './itemTrees';

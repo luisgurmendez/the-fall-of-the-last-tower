@@ -18,12 +18,11 @@ export class UrukEHandler extends BaseAbilityHandler {
     const { champion, definition, rank } = params;
     if (!definition.shield) return { success: false };
 
-    champion.shields.push({
-      amount: calculateAbilityValue(definition.shield.scaling, rank, getScalingStats(champion, champion.getStats())),
-      remainingDuration: definition.shield.duration,
-      sourceId: definition.id,
-      shieldType: 'normal',
-    });
+    champion.grantShield(
+      calculateAbilityValue(definition.shield.scaling, rank, getScalingStats(champion, champion.getStats())),
+      definition.shield.duration,
+      definition.id,
+    );
     return { success: true };
   }
 }

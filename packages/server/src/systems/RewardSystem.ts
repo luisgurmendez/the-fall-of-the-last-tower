@@ -111,6 +111,7 @@ export class RewardSystem {
         passiveTriggerSystem.dispatchTrigger('on_kill', killerChampion, context, {
           target: killedEntity,
         });
+        killerChampion.itemPassives.onKill(killedEntity, context);
 
         // Extend Ninja Mode on champion takedown (Vex R)
         // Uses generic effect extension - 2s per takedown, max 20s total

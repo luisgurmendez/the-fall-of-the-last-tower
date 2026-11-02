@@ -270,12 +270,7 @@ export abstract class BaseAbilityHandler implements IAbilityHandler {
     shieldType: 'normal' | 'magic' | 'physical' = 'normal'
   ): void {
     if (amount <= 0) return;
-    champion.shields.push({
-      amount,
-      remainingDuration: duration,
-      sourceId,
-      shieldType,
-    });
+    champion.grantShield(amount, duration, sourceId, undefined, undefined, shieldType);
   }
 
   // =============================================================================

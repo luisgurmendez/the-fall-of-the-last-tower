@@ -377,6 +377,20 @@ export class NetworkClient {
   /**
    * Cast a summoner spell (slot 0 = D, 1 = F) at the cursor, on the unit under it if any.
    */
+  /**
+   * Use the item in an inventory slot (its active or a consumable), aimed at a point.
+   */
+  sendUseItemInput(slot: number, targetX: number, targetY: number): void {
+    this.sendInput({
+      seq: ++this.inputSeq,
+      clientTime: Date.now(),
+      type: InputType.USE_ITEM,
+      slot,
+      targetX,
+      targetY,
+    });
+  }
+
   sendSummonerSpellInput(slot: 0 | 1, targetX: number, targetY: number, targetEntityId?: string): void {
     this.sendInput({
       seq: ++this.inputSeq,

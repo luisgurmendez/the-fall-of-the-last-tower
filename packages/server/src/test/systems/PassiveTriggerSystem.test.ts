@@ -40,6 +40,10 @@ const createMockChampion = (championId: string, passiveState?: PassiveState) => 
   level: 1,
   isDead: false,
   shields: [] as any[],
+  grantShield(amount: number, duration: number, styleId: string) {
+    this.shields.push({ amount, remainingDuration: duration, sourceId: styleId, shieldType: 'normal' });
+    return amount;
+  },
   getStats: () => ({
     maxHealth: 1000,
     attackDamage: 100,

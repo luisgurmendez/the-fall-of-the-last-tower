@@ -32,6 +32,7 @@ import {
   AbilityState,
   ChampionDefinition,
   ChampionStats,
+  type FullChampionStats,
   StatModifier,
   ActiveEffectState,
   CrowdControlStatus,
@@ -50,7 +51,7 @@ import {
   type EntityCollision,
   type DebugUnit,
 } from '@siege/shared';
-import { ServerEntity, ServerEntityConfig } from './ServerEntity';
+import { ServerEntity, ServerEntityConfig, type Penetration } from './ServerEntity';
 import { ServerTower } from './ServerTower';
 import type { ServerGameContext } from '../game/ServerGameContext';
 import { RewardSystem } from '../systems/RewardSystem';
@@ -73,6 +74,7 @@ import { ChampionTrinket } from './champion/ChampionTrinket';
 import { ChampionSummoners } from './champion/ChampionSummoners';
 import { ChampionInventory } from './champion/ChampionInventory';
 import { ChampionItemPassives } from './champion/ChampionItemPassives';
+import { ChampionItemActives } from './champion/ChampionItemActives';
 import { buildChampionSnapshot } from './champion/ChampionSnapshot';
 import { describeChampion } from './champion/ChampionDebug';
 
@@ -91,6 +93,9 @@ const ATTACK_MOVE_TARGETS = new Set<EntityType>([
   EntityType.INHIBITOR,
   EntityType.NEXUS,
 ]);
+
+/** What kind of damage a champion is dealing (ServerChampion.damageKind) */
+export type DamageKind = 'basic' | 'ability' | 'item';
 
 export class ServerChampion extends ServerEntity {
   /** How far past its attack range attack-move picks up enemies */
@@ -120,7 +125,21 @@ export class ServerChampion extends ServerEntity {
 
   // Stats
   private statModifiers: StatModifier[] = [];
-  private cachedStats: ChampionStats | null = null;
+  private cachedStats: FullChampionStats | null = null;
+
+  /**
+   * What the damage it's dealing right now is, for its items: its basic
+   * attacks set 'basic' and its items' passives 'item' while they deal it;
+   * anything else (abilities, their damage over time, summoner spells) is
+   * 'ability'.
+   */
+  damageKind: DamageKind = 'ability';
+  /** The basic attack it's dealing is a critical strike */
+  dealingCrit = false;
+  /** Enemy champions that hurt it, with the game time they last did (for assists) */
+  private readonly recentAttackers = new Map<string, number>();
+  /** How long a hit counts toward an assist (seconds) */
+  private static readonly ASSIST_WINDOW = 10;
 
   // Abilities
   abilityRanks: Record<AbilitySlot, number> = { Q: 0, W: 0, E: 0, R: 0 };
@@ -181,6 +200,8 @@ export class ServerChampion extends ServerEntity {
   private readonly inventory = new ChampionInventory(this);
   /** Item passives (lifesteal, thorns, ...); attacks and abilities report to it */
   readonly itemPassives = new ChampionItemPassives(this);
+  /** Item actives (keys 1, 2, 3, 6, 7, 8) and consumables */
+  readonly itemActives = new ChampionItemActives(this);
 
   constructor(config: ServerChampionConfig) {
     super({
@@ -339,8 +360,8 @@ export class ServerChampion extends ServerEntity {
     this.health = stats.maxHealth;
     this.resource = stats.maxResource;
 
-    // Clear effects
-    this.activeEffects = [];
+    // Clear effects (elixirs last through death)
+    this.activeEffects = this.activeEffects.filter(effect => getServerEffectById(effect.definitionId)?.persistsThroughDeath);
     this.shields = [];
     this.ccStatus = defaultCCStatus();
     this.forcedMovement = null;
@@ -468,7 +489,8 @@ export class ServerChampion extends ServerEntity {
   private updateCombat(dt: number, context: ServerGameContext): void {
     // Update attack cooldown
     this.basicAttacks.updateCooldown(dt);
-    this.itemPassives.update(dt);
+    this.itemPassives.update(dt, context);
+    this.itemActives.update(dt, context);
 
     // Update combat timer
     if (this.inCombat) {
@@ -597,6 +619,16 @@ export class ServerChampion extends ServerEntity {
 
     this.enterCombat();
 
+    const source = sourceId && context ? context.getEntity(sourceId) : undefined;
+    if (context && source) {
+      // The source's items may raise it; this champion's may block or lower it (Veil, Bark...)
+      amount = this.itemPassives.reduceIncomingDamage(source.amplifyDamageTo(this, amount, context), source, context);
+      if (amount <= 0) return 0;
+      if (source instanceof ServerChampion && source.side !== this.side) {
+        this.recentAttackers.set(source.id, context.getGameTime());
+      }
+    }
+
     // Dispatch on_take_damage trigger
     if (context) {
       passiveTriggerSystem.dispatchTrigger('on_take_damage', this, context, {
@@ -608,7 +640,7 @@ export class ServerChampion extends ServerEntity {
 
     // Calculate damage after resistances (less the attacker's penetration), then let shields absorb what they can
     const { damage, absorbed: shieldAbsorbed } = this.effects.absorbDamage(
-      this.calculateDamage(amount, type, this.armorPenetrationFrom(sourceId, context))
+      this.calculateDamage(amount, type, source?.getPenetration())
     );
 
     // Apply remaining damage to health
@@ -619,7 +651,6 @@ export class ServerChampion extends ServerEntity {
     // Emit damage event for client-side floating numbers
     if (context && (damage > 0 || shieldAbsorbed > 0)) {
       // What hit it, so the death recap can name a source the client can't see
-      const source = sourceId ? context.getEntity(sourceId) : undefined;
       context.addEvent(GameEventType.DAMAGE, {
         entityId: this.id,
         amount: damage,
@@ -629,8 +660,10 @@ export class ServerChampion extends ServerEntity {
         sourceType: source?.entityType,
         sourceChampionId: source instanceof ServerChampion ? source.definition.id : undefined,
         sourceCreatureType: (source as { creatureType?: string } | undefined)?.creatureType,
+        crit: source instanceof ServerChampion && source.dealingCrit ? true : undefined,
       });
       championHooksRegistry.get(this.definition.id)?.onDamaged?.(this, source, context);
+      source?.onDamageDealt(this, damage + shieldAbsorbed, type, context);
     }
 
     if (this.health <= 0) {
@@ -687,19 +720,45 @@ export class ServerChampion extends ServerEntity {
   }
 
   /**
-   * Flat armor its physical damage ignores: effects with an
-   * armor_penetration stat, plus what its champion's hooks add (Urûk's
-   * Spear Charge).
+   * What its damage ignores of a target's resists: items' lethality and
+   * penetration, effects with an armor_penetration stat (in lethality), plus
+   * what its champion's hooks add (Urûk's Spear Charge).
    */
-  override getArmorPenetration(): number {
-    let penetration = 0;
-    for (const effect of this.activeEffects) {
-      const definition = getServerEffectById(effect.definitionId);
-      if (definition && isStatEffect(definition) && definition.stat === 'armor_penetration') {
-        penetration += (definition.flatValue ?? 0) * (effect.stacks ?? 1);
-      }
+  override getPenetration(): Penetration {
+    const stats = this.getStats();
+    return {
+      armorFlat: stats.lethality + (championHooksRegistry.get(this.definition.id)?.getArmorPenetration?.(this) ?? 0),
+      armorPercent: stats.armorPenPercent,
+      magicFlat: stats.magicPen,
+      magicPercent: stats.magicPenPercent,
+    };
+  }
+
+  /** Its items raise damage it deals (executes, Giantslayer, structure damage) */
+  override amplifyDamageTo(target: ServerEntity, amount: number, context: ServerGameContext): number {
+    return this.itemPassives.amplifyDamage(target, amount, context);
+  }
+
+  /** Its items react to damage it dealt (omnivamp, Wounds, burns, Tithe...) */
+  override onDamageDealt(target: ServerEntity, dealt: number, type: DamageType, context: ServerGameContext): void {
+    this.itemPassives.onDamageDealt(target, dealt, type, this.damageKind, context);
+  }
+
+  /**
+   * Run `deal` with its damage counting as `kind` (a basic attack, an item
+   * passive) for its items; a critical strike is marked too.
+   */
+  withDamageKind<T>(kind: DamageKind, deal: () => T, crit = false): T {
+    const previous = this.damageKind;
+    const previousCrit = this.dealingCrit;
+    this.damageKind = kind;
+    this.dealingCrit = crit;
+    try {
+      return deal();
+    } finally {
+      this.damageKind = previous;
+      this.dealingCrit = previousCrit;
     }
-    return penetration + (championHooksRegistry.get(this.definition.id)?.getArmorPenetration?.(this) ?? 0);
   }
 
   /**
@@ -715,8 +774,12 @@ export class ServerChampion extends ServerEntity {
       const killer = killerId ? context.getEntity(killerId) : undefined;
       if (killer instanceof ServerChampion && killer.side !== this.side) {
         championHooksRegistry.get(killer.definition.id)?.onChampionKill?.(killer, this, context);
+        killer.itemPassives.onTakedown(this, context);
       }
+      this.awardAssists(killer, context);
     }
+    this.recentAttackers.clear();
+    this.itemPassives.onDeath();
 
     // Calculate respawn time
     const baseRespawn = GameConfig.RESPAWN.BASE_RESPAWN_TIME;
@@ -745,7 +808,7 @@ export class ServerChampion extends ServerEntity {
   /**
    * Get current stats (with modifiers).
    */
-  getStats(): ChampionStats {
+  getStats(): FullChampionStats {
     if (this.cachedStats) {
       return this.cachedStats;
     }
@@ -916,10 +979,75 @@ export class ServerChampion extends ServerEntity {
   }
 
   /**
-   * Heal, cut by 40% while Scorched (summoner spell).
+   * Heal it. An allied champion's heal is stronger by the healer's heal and
+   * shield power and tells the healer's items (Hymn, Renewal); Verdant makes
+   * heals it receives stronger; Wounds and Scorch cut them (the strongest
+   * cut counts).
    */
   override heal(amount: number, context?: ServerGameContext, sourceId?: string): number {
-    return super.heal(this.hasEffect('summoner_scorch') ? amount * 0.6 : amount, context, sourceId);
+    const healer = this.allyGiver(sourceId, context);
+    if (healer) amount *= 1 + healer.getStats().healShieldPower;
+    amount *= this.itemPassives.receivedMultiplier();
+    amount *= 1 - this.effects.healingReduction();
+    const healed = super.heal(amount, context, sourceId);
+    if (healer && context && healed > 0) healer.itemPassives.onAllyHealedOrShielded(this, healed, context);
+    return healed;
+  }
+
+  /**
+   * Give it a shield. A shield from an allied champion (`giver`) is stronger
+   * by the giver's heal and shield power and tells the giver's items;
+   * Verdant makes shields it receives stronger.
+   * @param styleId What the shield is from (an ability id), for its look on clients
+   * @returns The shield's amount
+   */
+  grantShield(
+    amount: number,
+    duration: number,
+    styleId: string,
+    context?: ServerGameContext,
+    giver?: ServerChampion,
+    shieldType: ActiveShield['shieldType'] = 'normal',
+  ): number {
+    const fromAlly = giver && giver !== this && giver.side === this.side ? giver : undefined;
+    if (fromAlly) amount *= 1 + fromAlly.getStats().healShieldPower;
+    amount *= this.itemPassives.receivedMultiplier();
+    if (amount <= 0) return 0;
+    this.shields.push({ amount, remainingDuration: duration, sourceId: styleId, shieldType });
+    if (fromAlly && context) fromAlly.itemPassives.onAllyHealedOrShielded(this, amount, context);
+    return amount;
+  }
+
+  /** The allied champion (not itself) behind a heal, if one is */
+  private allyGiver(sourceId: string | undefined, context: ServerGameContext | undefined): ServerChampion | undefined {
+    if (!sourceId || !context || sourceId === this.id) return undefined;
+    const source = context.getEntity(sourceId);
+    return source instanceof ServerChampion && source.side === this.side ? source : undefined;
+  }
+
+  /**
+   * Enemy champions that hurt it within the assist window, other than the
+   * killer, get an assist, a share of half the kill's gold, and their items'
+   * takedown (Soulbinder Tome...).
+   */
+  private awardAssists(killer: ServerEntity | undefined, context: ServerGameContext): void {
+    const now = context.getGameTime();
+    const assistants: ServerChampion[] = [];
+    for (const [championId, at] of this.recentAttackers) {
+      if (championId === killer?.id || now - at > ServerChampion.ASSIST_WINDOW) continue;
+      const champion = context.getEntity(championId);
+      if (champion instanceof ServerChampion && champion.side !== this.side) assistants.push(champion);
+    }
+    if (assistants.length === 0) return;
+    const gold = Math.round(GameConfig.ECONOMY.CHAMPION_KILL_GOLD_BASE * GameConfig.ECONOMY.ASSIST_GOLD_PERCENT / assistants.length);
+    for (const assistant of assistants) {
+      assistant.assists++;
+      assistant.grantGold(gold);
+      context.addEvent(GameEventType.GOLD_EARNED, {
+        entityId: assistant.id, amount: gold, sourceType: EntityType.CHAMPION, x: this.position.x, y: this.position.y,
+      });
+      assistant.itemPassives.onTakedown(this, context);
+    }
   }
 
   /**

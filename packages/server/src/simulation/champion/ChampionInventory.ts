@@ -4,11 +4,14 @@
  * A champion has six item slots (champion.items). Buying uses up the item's
  * parts in the inventory and charges the rest of its cost (planItemPurchase,
  * shared with the shop). It needs that much gold, a free slot (the used-up
- * parts free theirs) and, for unique items, not owning one already. Selling
- * refunds the item's sell value. Item stats are applied by ChampionStats.
+ * parts free theirs) and nothing blocking it (purchaseBlockReason: a unique
+ * item already owned, another item of its group, a full stack). A consumable
+ * adds its charges to its stack when there's one. Selling refunds the item's
+ * sell value (per charge for a stack of potions). Item stats are applied by
+ * ChampionStats.
  */
 
-import { planItemPurchase, type ItemSlot } from '@siege/shared';
+import { consumableStackSlot, planItemPurchase, purchaseBlockReason, type ItemSlot } from '@siege/shared';
 import { getServerItemById } from '../../data/items';
 import { Logger } from '../../utils/Logger';
 import type { ServerChampion } from '../ServerChampion';
@@ -35,10 +38,18 @@ export class ChampionInventory {
     if (!plan || champion.gold < plan.price) {
       return false;
     }
-
-    // Check if unique and already owned
-    if (itemDef.isUnique && champion.hasItem(itemId)) {
+    if (purchaseBlockReason(itemId, champion.items) !== null) {
       return false;
+    }
+
+    // A consumable joins its stack
+    const stackSlot = consumableStackSlot(itemId, champion.items);
+    if (stackSlot !== -1 && itemDef.consumable) {
+      const stack = champion.items[stackSlot]!;
+      stack.charges = (stack.charges ?? 0) + itemDef.consumable.chargesPerPurchase;
+      champion.gold -= plan.price;
+      champion.totalGoldSpent += plan.price;
+      return true;
     }
 
     // Find a slot: an empty one, or one a used-up part frees
@@ -58,6 +69,7 @@ export class ChampionInventory {
       slot: emptySlot as ItemSlot,
       passiveCooldowns: {},
       nextIntervalTick: {},
+      ...(itemDef.consumable ? { charges: itemDef.consumable.chargesPerPurchase } : {}),
     };
 
     // Invalidate cached stats
@@ -87,8 +99,9 @@ export class ChampionInventory {
       return 0;
     }
 
-    // Add gold and remove item
-    const goldGained = itemDef.sellValue;
+    // Add gold and remove item (a stack of potions sells by the potion)
+    const perCharge = itemDef.consumable && !itemDef.consumable.refills;
+    const goldGained = perCharge ? itemDef.sellValue * Math.max(1, item.charges ?? 1) : itemDef.sellValue;
     champion.gold += goldGained;
     champion.items[slot] = null;
 

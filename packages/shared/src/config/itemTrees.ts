@@ -67,6 +67,51 @@ export function planItemPurchase(
   };
 }
 
+/** An inventory slot as purchase rules see it */
+export type InventoryEntry = { definitionId: string; charges?: number } | null | undefined;
+
+/** Why an item can't be bought, besides gold and room */
+export type PurchaseBlock = 'unique_owned' | 'group_owned' | 'stack_full';
+
+/**
+ * Why an item can't be bought with this inventory (gold and a free slot
+ * aside), or null if it can: a unique item already owned, another item of
+ * its group the purchase doesn't use up (a second pair of boots), or a
+ * consumable whose stack is full.
+ */
+export function purchaseBlockReason(itemId: string, inventory: readonly InventoryEntry[]): PurchaseBlock | null {
+  const item = getItemCatalogEntry(itemId);
+  if (!item) return null;
+  const ids = inventory.map(entry => entry?.definitionId);
+
+  if (item.consumable) {
+    // One flask is enough (it refills); a stack of potions has a size
+    const stack = inventory.find(entry => entry?.definitionId === itemId);
+    if (stack && item.consumable.refills) return 'stack_full';
+    if (stack && (stack.charges ?? 0) + item.consumable.chargesPerPurchase > item.consumable.maxCharges) return 'stack_full';
+    return null;
+  }
+  if (item.isUnique && ids.includes(itemId)) return 'unique_owned';
+  if (item.group) {
+    const plan = planItemPurchase(itemId, ids);
+    const usedUp = new Set(plan?.consumedSlots ?? []);
+    const clash = inventory.some((entry, slot) =>
+      entry && !usedUp.has(slot) && getItemCatalogEntry(entry.definitionId)?.group === item.group);
+    if (clash) return 'group_owned';
+  }
+  return null;
+}
+
+/**
+ * The slot a consumable's purchase adds to (its stack, if there's room), or -1.
+ */
+export function consumableStackSlot(itemId: string, inventory: readonly InventoryEntry[]): number {
+  const item = getItemCatalogEntry(itemId);
+  if (!item?.consumable || item.consumable.refills) return -1;
+  return inventory.findIndex(entry => entry?.definitionId === itemId &&
+    (entry.charges ?? 0) + item.consumable!.chargesPerPurchase <= item.consumable!.maxCharges);
+}
+
 /**
  * An item's build tree with nothing owned.
  */

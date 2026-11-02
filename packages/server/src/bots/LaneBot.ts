@@ -39,6 +39,9 @@ import {
   calculateAbilityValue,
   planItemPurchase,
   isItemPartOf,
+  getItemCatalogEntry,
+  purchaseBlockReason,
+  consumableStackSlot,
   type AbilitySlot,
   type AbilityDefinition,
   type ChampionClass,
@@ -54,6 +57,7 @@ import type { ServerGameContext } from '../game/ServerGameContext';
 import { LanePath } from '../navigation/LanePath';
 import { isStructureVulnerable } from '../systems/StructureRules';
 import { chooseSummonerSpell } from './summonerTactics';
+import { chooseItemUse } from './itemTactics';
 import { getScalingStats } from '../abilities/generic/AbilityHelpers';
 
 export interface LaneBotConfig {
@@ -106,21 +110,34 @@ const ABILITY_ROLES: Partial<Record<string, 'offense' | 'defense' | 'engage' | '
 /** Health ratio under which a target is worth an execute */
 const EXECUTE_HEALTH = 0.5;
 
-/** What bots buy, in order */
-const ATTACK_BUILD = ['notched_blade', 'wanderers_boots', 'siege_cleaver', 'heartstone', 'crimson_fang', 'bulwark_belt', 'ironheart_talisman'];
-const ABILITY_BUILD = ['ember_shard', 'wanderers_boots', 'cinder_rod', 'heartstone', 'starfall_diadem', 'bulwark_belt', 'spiked_bastion'];
-/** By champion class: supports add health, tanks go for defenses */
+/**
+ * What bots buy, in order: a starter and a potion with the starting gold,
+ * boots, then parts on the way to their legendary items (an item it owns,
+ * or built into one it owns, is done)
+ */
 const BUILDS: Record<ChampionClass, string[]> = {
-  mage: ABILITY_BUILD,
-  support: ['ember_shard', 'wanderers_boots', 'heartstone', 'cinder_rod', 'ironheart_talisman', 'starfall_diadem', 'bulwark_belt'],
-  tank: ['heartstone', 'wanderers_boots', 'iron_plate', 'bulwark_belt', 'spiked_bastion', 'spellward_cloak', 'ironheart_talisman'],
-  warrior: ATTACK_BUILD,
-  assassin: ATTACK_BUILD,
-  marksman: ATTACK_BUILD,
+  warrior: ['forager_blade', 'healing_draught', 'wanderers_boots', 'leechfang', 'ironshod_boots', 'siege_cleaver',
+    'crimson_fang', 'huntsmans_edge', 'sundering_axe', 'mountain_maul', 'spiked_bastion'],
+  assassin: ['forager_blade', 'healing_draught', 'wanderers_boots', 'duskhook_dagger', 'nightglass_edge',
+    'swiftstride_greaves', 'huntsmans_edge', 'shadowstep_cloak', 'bramblehook', 'wolfsbane_fang'],
+  marksman: ['forager_blade', 'healing_draught', 'wanderers_boots', 'gleaming_lens', 'siege_cleaver', 'kingsglass_bow',
+    'fleetfoot_spurs', 'hawkeye_scope', 'stormstring', 'wyrmslayer_arbalest', 'freeblade_scimitar'],
+  mage: ['kindling_wand', 'healing_draught', 'wanderers_boots', 'ember_shard', 'cinder_rod', 'lunar_prism', 'starfall_diadem',
+    'spellwalker_sandals', 'sandglass_bracer', 'hourglass_of_stillness', 'voidpierce_staff', 'archmage_crown'],
+  support: ['pilgrim_lantern', 'healing_draught', 'wanderers_boots', 'glowcap_spores', 'moonpetal_charm', 'dawnsong_censer',
+    'dreamwalker_slippers', 'tidemother_chalice', 'wardens_standard', 'shepherds_crook'],
+  tank: ['oakbark_buckler', 'healing_draught', 'wanderers_boots', 'heartstone', 'ember_mantle', 'mystic_treads',
+    'magmaheart_aegis', 'bulwark_belt', 'spiked_bastion', 'stormward_veil', 'frostguard_plate'],
 };
+/** A build with another starter (the jungle's sickle, the support's lantern) */
+export function withStarter(build: string[], starter: string): string[] {
+  return build.map(itemId => getItemCatalogEntry(itemId)?.tier === 'starter' ? starter : itemId);
+}
+
 /** Champions their class doesn't describe: Zhak'rul fights up close on ability power */
 const CHAMPION_BUILDS: Partial<Record<string, string[]>> = {
-  zhakrul: ['ember_shard', 'wanderers_boots', 'cinder_rod', 'heartstone', 'bulwark_belt', 'starfall_diadem', 'spiked_bastion'],
+  zhakrul: ['kindling_wand', 'healing_draught', 'wanderers_boots', 'ember_shard', 'bulwark_belt', 'frostwyrm_scepter',
+    'mystic_treads', 'emberheart_codex', 'spiked_bastion', 'stormward_veil'],
 };
 const R_REQUIRED_LEVELS = [6, 11, 16];
 
@@ -206,10 +223,25 @@ export class LaneBot implements BotController {
     const levelUp = this.chooseLevelUp(champion);
     if (levelUp) inputs.push(levelUp);
 
+    const itemUse = chooseItemUse(champion, {
+      enemy: this.findEnemyChampion(champion, context),
+      fighting: this.lastDecision === 'fight',
+      atBase: champion.position.distanceTo(this.getSpawn(champion.side, context)) < 300,
+    }, context);
+    if (itemUse) inputs.push(itemUse);
+
     const action = this.chooseAction(champion, context);
     if (action) inputs.push(...action);
 
     return inputs;
+  }
+
+  /**
+   * What it buys, in order (see BUILDS). A bot with a job changes its
+   * starter: the jungle's sickle, the support's lantern.
+   */
+  protected getBuild(champion: ServerChampion): string[] {
+    return CHAMPION_BUILDS[champion.definition.id] ?? BUILDS[champion.definition.class] ?? BUILDS.warrior;
   }
 
   // ===========================================================================
@@ -427,23 +459,62 @@ export class LaneBot implements BotController {
   }
 
   /**
-   * Buy the next item of the build that the bot can afford. An item it owns,
-   * or already built into one it owns, is done.
+   * Buy toward the next item of the build, in order: the item if gold
+   * covers it, else one of its missing parts (so a later item doesn't use
+   * up the parts it's saving). An item it owns, or already built into one it
+   * owns, is done. With no room for it, the starter (then a potion) is sold.
    */
   private chooseItemToBuy(champion: ServerChampion): BotInput | null {
     const inventory = champion.items.map(item => item?.definitionId);
-    const build = CHAMPION_BUILDS[champion.definition.id] ?? BUILDS[champion.definition.class] ?? ATTACK_BUILD;
+    const build = this.getBuild(champion);
     const done = (id: string) => inventory.some(owned => owned && (owned === id || isItemPartOf(id, owned)));
-    const itemId = build.find(id => {
-      if (done(id)) return false;
-      const plan = planItemPurchase(id, inventory);
-      // Needs a free slot, unless it uses up a part
-      const fits = inventory.some(owned => !owned) || (plan?.consumedSlots.length ?? 0) > 0;
-      return plan !== null && fits && plan.price <= champion.gold;
-    });
+    // A starter is for the start (not again once it has a legendary); potions only with a free slot
+    const tierOf = (id: string | undefined) => (id ? getItemCatalogEntry(id)?.tier : undefined);
+    const hasLegendary = inventory.some(owned => tierOf(owned) === 'legendary');
+    const roomy = inventory.some(owned => !owned);
+    const wanted = (id: string) =>
+      !(tierOf(id) === 'starter' && hasLegendary) && !(tierOf(id) === 'consumable' && !roomy);
+    const next = build.find(id => wanted(id) && !done(id) && purchaseBlockReason(id, champion.items) === null);
+    if (!next) return null;
+
+    const itemId = this.affordablePiece(next, inventory, champion.gold);
     if (!itemId) return null;
+    const plan = planItemPurchase(itemId, inventory);
+    // Needs a free slot, unless it uses up a part (or joins a stack)
+    const fits = inventory.some(owned => !owned) || (plan?.consumedSlots.length ?? 0) > 0 ||
+      consumableStackSlot(itemId, champion.items) !== -1;
+    if (!fits) {
+      const spare = champion.items.findIndex(item => {
+        const tier = item ? getItemCatalogEntry(item.definitionId)?.tier : undefined;
+        return tier === 'starter' || tier === 'consumable';
+      });
+      if (spare === -1) return null;
+      this.lastDecision = `sell ${champion.items[spare]!.definitionId}`;
+      return { type: InputType.SELL_ITEM, slot: spare };
+    }
     this.lastDecision = `buy ${itemId}`;
     return { type: InputType.BUY_ITEM, itemId };
+  }
+
+  /**
+   * The item if gold covers it, else the first of its missing parts (or
+   * theirs) that gold covers; null if none.
+   */
+  private affordablePiece(itemId: string, inventory: (string | undefined)[], gold: number): string | null {
+    const plan = planItemPurchase(itemId, inventory);
+    if (plan && plan.price <= gold) return itemId;
+    // Each owned copy stands for one part (an item built from two of the same part)
+    const unused = [...inventory];
+    for (const partId of getItemCatalogEntry(itemId)?.buildsFrom ?? []) {
+      const owned = unused.indexOf(partId);
+      if (owned !== -1) {
+        unused.splice(owned, 1);
+        continue;
+      }
+      const piece = this.affordablePiece(partId, inventory, gold);
+      if (piece) return piece;
+    }
+    return null;
   }
 
   protected buildCast(

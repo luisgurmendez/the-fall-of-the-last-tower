@@ -81,6 +81,8 @@ export enum InputType {
   SURRENDER = 12,
   /** Cast a summoner spell (D or F) */
   SUMMONER_SPELL = 13,
+  /** Use the item in a slot: its active or a consumable (keys 1, 2, 3, 6, 7, 8) */
+  USE_ITEM = 14,
 }
 
 /**
@@ -205,6 +207,15 @@ export interface SummonerSpellInput extends InputMessage {
   targetEntityId?: string;
 }
 
+export interface UseItemInput extends InputMessage {
+  type: InputType.USE_ITEM;
+  /** Inventory slot, 0-5 */
+  slot: number;
+  /** The cursor's world position, for actives aimed at a point */
+  targetX?: number;
+  targetY?: number;
+}
+
 /**
  * Union type for all input messages.
  */
@@ -228,6 +239,7 @@ export type ClientInput =
   | PingInput
   | PlaceWardInput
   | SummonerSpellInput
+  | UseItemInput
   | SurrenderInput;
 
 /**

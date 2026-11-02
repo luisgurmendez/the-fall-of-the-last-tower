@@ -17,7 +17,7 @@
  */
 
 import { describe, it, expect } from 'bun:test';
-import { CHAMPION_DEFINITIONS, MOBAConfig, SUMMONER_SPELL_IDS } from '@siege/shared';
+import { CHAMPION_DEFINITIONS, ITEM_CATALOG, MOBAConfig, SUMMONER_SPELL_IDS } from '@siege/shared';
 import { CHAMPION_RENDERERS, getChampionRenderer } from '@/render/champions';
 import { getAbilityVFX, getAllRegisteredVFX } from '@/vfx/VFXRegistry';
 import { WORLD_VFX } from '@/vfx/world';
@@ -58,6 +58,11 @@ const OTHER_CAST_EVENT_IDS = [
   ...Object.values(MOBAConfig.JUNGLE.SPECIAL_ATTACKS).map((attack) => attack.abilityId),
   // A champion crawling through a jungle tunnel (server: systems/JungleTunnels.ts)
   MOBAConfig.TUNNELS.ABILITY_ID,
+  // Items used (server: champion/ChampionItemActives.ts) and their passives going off (ChampionItemPassives.ts)
+  ...ITEM_CATALOG.flatMap((item) => (item.active ? [`item_${item.active.id}`] : [])),
+  'item_sanctuary_land',
+  'item_static',
+  'item_veil',
   // A champion picking a healing blossom (server: simulation/ServerBlossom.ts)
   'blossom_heal',
 ];

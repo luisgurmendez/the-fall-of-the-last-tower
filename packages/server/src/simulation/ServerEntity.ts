@@ -20,6 +20,20 @@ import {
 } from "@siege/shared";
 import type { ServerGameContext } from "../game/ServerGameContext";
 
+/** What a source's damage ignores of the target's resists */
+export interface Penetration {
+  /** Flat armor ignored (lethality), after armorPercent */
+  armorFlat: number;
+  /** Share of armor ignored (0-1) */
+  armorPercent: number;
+  /** Flat magic resist ignored, after magicPercent */
+  magicFlat: number;
+  /** Share of magic resist ignored (0-1) */
+  magicPercent: number;
+}
+
+export const NO_PENETRATION: Penetration = { armorFlat: 0, armorPercent: 0, magicFlat: 0, magicPercent: 0 };
+
 export interface ServerEntityConfig {
   id: string;
   entityType: EntityType;
@@ -80,8 +94,10 @@ export abstract class ServerEntity {
   ): number {
     if (this.isDead) return 0;
 
-    // Calculate actual damage based on resistances (less the attacker's penetration)
-    const actualDamage = this.calculateDamage(amount, type, this.armorPenetrationFrom(sourceId, context));
+    // The source's items may raise it, then resistances (less the source's penetration) lower it
+    const source = sourceId && context ? context.getEntity(sourceId) : undefined;
+    if (source) amount = source.amplifyDamageTo(this, amount, context!);
+    const actualDamage = this.calculateDamage(amount, type, source?.getPenetration() ?? NO_PENETRATION);
 
     this.health = Math.max(0, this.health - actualDamage);
 
@@ -93,8 +109,11 @@ export abstract class ServerEntity {
         damageType: type,
         sourceId,
         shieldAbsorbed: 0,
+        crit: (source as { dealingCrit?: boolean } | undefined)?.dealingCrit ? true : undefined,
       });
     }
+
+    if (source && actualDamage > 0) source.onDamageDealt(this, actualDamage, type, context!);
 
     if (this.health <= 0) {
       this.onDeath(sourceId, context);
@@ -102,6 +121,20 @@ export abstract class ServerEntity {
 
     return actualDamage;
   }
+
+  /**
+   * Damage this entity is about to deal to `target`, before resistances:
+   * champions' items raise it (executes, structure damage...). Unchanged by default.
+   */
+  amplifyDamageTo(_target: ServerEntity, amount: number, _context: ServerGameContext): number {
+    return amount;
+  }
+
+  /**
+   * This entity just dealt `dealt` damage (after resistances) to `target`:
+   * champions' items react (omnivamp, Wounds, burns...). Nothing by default.
+   */
+  onDamageDealt(_target: ServerEntity, _dealt: number, _type: DamageType, _context: ServerGameContext): void {}
 
   /**
    * Armor and magic resist that reduce the damage this entity takes (none by
@@ -112,25 +145,22 @@ export abstract class ServerEntity {
   }
 
   /**
-   * Flat armor this entity's physical damage ignores (0 by default;
-   * champions get it from effects and their hooks, like Urûk's Spear Charge).
+   * What this entity's damage ignores of a target's resists (nothing by
+   * default; champions get it from items, effects and their hooks, like
+   * Urûk's Spear Charge).
    */
-  getArmorPenetration(): number {
-    return 0;
+  getPenetration(): Penetration {
+    return NO_PENETRATION;
   }
 
   /**
-   * Calculate damage after resistances, with the attacker's armor penetration.
+   * Calculate damage after resistances, less the attacker's penetration.
    */
-  protected calculateDamage(amount: number, type: DamageType, armorPenetration = 0): number {
-    if (type === "physical") return calculatePhysicalDamage(amount, this.getResists().armor, armorPenetration);
-    if (type === "magic") return calculateMagicDamage(amount, this.getResists().magicResist);
+  protected calculateDamage(amount: number, type: DamageType, penetration: Penetration = NO_PENETRATION): number {
+    const resists = this.getResists();
+    if (type === "physical") return calculatePhysicalDamage(amount, resists.armor, penetration.armorFlat, penetration.armorPercent);
+    if (type === "magic") return calculateMagicDamage(amount, resists.magicResist, penetration.magicFlat, penetration.magicPercent);
     return amount;
-  }
-
-  /** The armor penetration of whatever dealt the damage */
-  protected armorPenetrationFrom(sourceId?: string, context?: ServerGameContext): number {
-    return sourceId && context ? context.getEntity(sourceId)?.getArmorPenetration() ?? 0 : 0;
   }
 
   /**

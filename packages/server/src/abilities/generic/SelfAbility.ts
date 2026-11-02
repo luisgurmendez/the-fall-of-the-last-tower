@@ -31,12 +31,7 @@ export function executeSelfAbility(
   if (definition.shield) {
     const shieldAmount = calculateAbilityValue(definition.shield.scaling, rank, getScalingStats(champion, stats));
 
-    champion.shields.push({
-      amount: shieldAmount,
-      remainingDuration: definition.shield.duration,
-      sourceId: definition.id,
-      shieldType: 'normal',
-    });
+    champion.grantShield(shieldAmount, definition.shield.duration, definition.id);
   }
 
   // Apply effects

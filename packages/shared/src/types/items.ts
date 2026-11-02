@@ -3,7 +3,14 @@
  * Shared between client and server.
  */
 
-import type { ChampionBaseStats } from './champions';
+import type { ChampionBaseStats, ItemCombatStats } from './champions';
+
+/**
+ * What an item adds: champion stats (attackSpeed is a bonus share: 0.25 =
+ * +25%; health and resource raise the maximums) and item stats
+ * (penetration, vamp, tenacity...).
+ */
+export type ItemStats = Partial<ChampionBaseStats & ItemCombatStats>;
 
 /**
  * Item slot types (6 slots like LoL).
@@ -14,6 +21,8 @@ export type ItemSlot = 0 | 1 | 2 | 3 | 4 | 5;
  * Item categories for shop organization.
  */
 export type ItemCategory =
+  | 'starter'
+  | 'consumable'
   | 'attack_damage'
   | 'ability_power'
   | 'attack_speed'
@@ -23,7 +32,20 @@ export type ItemCategory =
   | 'health'
   | 'mana'
   | 'movement'
+  | 'support'
   | 'utility';
+
+/**
+ * Where an item sits in the shop: starters and consumables, basic parts,
+ * epic (middle) items, boots, legendary (finished) items.
+ */
+export type ItemTier = 'starter' | 'consumable' | 'basic' | 'epic' | 'boots' | 'legendary';
+
+/**
+ * Items of a group can't be held together (one pair of boots, one starter,
+ * one low-health shield), except while building one into another.
+ */
+export type ItemGroup = 'starter' | 'boots' | 'lifeline';
 
 /**
  * Passive effect trigger for items.
@@ -91,7 +113,7 @@ export interface ItemDefinition {
   sellValue: number;
 
   /** Stat bonuses (flat values) */
-  stats: Partial<ChampionBaseStats>;
+  stats: ItemStats;
 
   /** Passive effect IDs */
   passiveIds: string[];
@@ -124,6 +146,18 @@ export interface EquippedItemState {
 
   /** For interval passives: time until next trigger */
   nextIntervalTick: Record<string, number>;
+
+  /** Uses left (consumables: potions in the stack, a flask's charges) */
+  charges?: number;
+
+  /** Stacks a stacking passive has gathered (Soulbinder Tome's takedowns...) */
+  stacks?: number;
+
+  /**
+   * Game time its active is ready again (absent or past: ready). A time, not a
+   * countdown, so the inventory only changes when an active is used.
+   */
+  readyAt?: number;
 }
 
 /**
@@ -165,8 +199,8 @@ export interface ItemSellResult {
 export function calculateItemStats(
   items: (EquippedItemState | null)[],
   getDefinition: (id: string) => ItemDefinition | undefined
-): Partial<ChampionBaseStats> {
-  const totalStats: Partial<ChampionBaseStats> = {};
+): ItemStats {
+  const totalStats: ItemStats = {};
 
   for (const item of items) {
     if (!item) continue;
@@ -175,7 +209,7 @@ export function calculateItemStats(
     if (!def) continue;
 
     for (const [stat, value] of Object.entries(def.stats)) {
-      const key = stat as keyof ChampionBaseStats;
+      const key = stat as keyof ItemStats;
       totalStats[key] = (totalStats[key] || 0) + (value as number);
     }
   }

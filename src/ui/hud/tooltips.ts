@@ -10,6 +10,8 @@ import { getEffectDisplayInfo } from '@/data/effectDisplayInfo';
 import { HUD_COLORS, PANEL } from '@/ui/hud/layout';
 import { getItemCategoryColor } from '@/ui/hud/items';
 import { drawItemIcon, ITEM_ICON_SIZE } from '@/ui/itemIcons';
+import { getItemActive, listItemStats } from '@/data/itemStats';
+import { ITEM_KEYS } from '@/core/input/itemKeys';
 import { getItemPassive } from '@/data/items';
 import { wrapText, interpolateAbilityDescription, formatTriggerType, formatBuffName } from '@/ui/hud/tooltipText';
 import type { EquippedItem, HUDActiveEffect, HUDChampionData, HUDPassive } from '@/ui/hud/types';
@@ -502,40 +504,7 @@ export function drawItemTooltip(
   const lineHeight = 18;
 
   // Build stat lines from item stats
-  const statLines: { label: string; value: string; color: string }[] = [];
-  const statLabels: Record<string, { label: string; color: string }> = {
-    attackDamage: { label: 'Attack Damage', color: '#ff6b6b' },
-    abilityPower: { label: 'Ability Power', color: '#a855f7' },
-    attackSpeed: { label: 'Attack Speed', color: '#f1c40f' },
-    movementSpeed: { label: 'Movement Speed', color: '#06b6d4' },
-    armor: { label: 'Armor', color: '#f59e0b' },
-    magicResist: { label: 'Magic Resist', color: '#8b5cf6' },
-    maxHealth: { label: 'Health', color: '#2ecc71' },
-    health: { label: 'Health', color: '#2ecc71' },
-    maxResource: { label: 'Mana', color: '#3498db' },
-    attackRange: { label: 'Attack Range', color: '#95a5a6' },
-    abilityHaste: { label: 'Ability Haste', color: '#a855f7' },
-    healthRegen: { label: 'Health Regen', color: '#2ecc71' },
-    resourceRegen: { label: 'Resource Regen', color: '#3498db' },
-    critChance: { label: 'Crit Chance', color: '#e67e22' },
-  };
-
-  for (const [stat, value] of Object.entries(item.stats)) {
-    if (value !== 0 && value !== undefined) {
-      const info = statLabels[stat] || { label: stat, color: '#ffffff' };
-      let displayValue: string;
-      if (stat === 'critChance' || stat === 'attackSpeed') {
-        displayValue = `+${((value as number) * 100).toFixed(0)}%`;
-      } else {
-        displayValue = `+${value}`;
-      }
-      statLines.push({
-        label: info.label,
-        value: displayValue,
-        color: info.color,
-      });
-    }
-  }
+  const statLines = listItemStats(item.stats).map(({ info, value }) => ({ label: info.label, value, color: info.color }));
 
   // Calculate tooltip dimensions
   const tooltipWidth = 340;
@@ -554,6 +523,16 @@ export function drawItemTooltip(
       descLines: passive ? wrapText(passive.description, tooltipWidth - padding * 2, 16, 0.45) : [],
     };
   });
+  // Its active (and key) first
+  const active = getItemActive(item.id);
+  if (active) {
+    const key = ITEM_KEYS[equipped.slot];
+    const cooldown = active.cooldown >= 1 ? ` - ${active.cooldown}s` : '';
+    passiveData.unshift({
+      name: `Active (${key}): ${active.name}${cooldown}`,
+      descLines: wrapText(active.description, tooltipWidth - padding * 2, 16, 0.45),
+    });
+  }
   let passivesHeight = 0;
   passiveData.forEach((p: { name: string; descLines: string[] }) => {
     passivesHeight += lineHeight + p.descLines.length * lineHeight + 4;

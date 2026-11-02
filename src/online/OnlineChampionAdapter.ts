@@ -21,6 +21,7 @@ import {
   getAbilityDefinition as getSharedAbilityDefinition,
   getChampionDefinition,
   getPassiveDefinition,
+  getItemCatalogEntry,
   type SummonerSpellState,
 } from '@siege/shared';
 import type { HUDTrinket, HUDActiveEffect, HUDPassive, HUDPassiveDefinition } from '@/ui/ChampionHUD';
@@ -42,6 +43,10 @@ interface EquippedItem {
   slot: ItemSlot;
   passiveCooldowns: Map<string, number>;
   nextIntervalTick: Map<string, number>;
+  charges?: number;
+  stacks?: number;
+  cooldownLeft?: number;
+  cooldownTotal?: number;
 }
 
 /**
@@ -297,7 +302,10 @@ class OnlineInventoryAdapter implements ChampionInventory {
   items: Map<ItemSlot, EquippedItem> = new Map();
   totalGoldSpent: number = 0;
 
-  constructor(itemStates: (any | null)[]) {
+  /**
+   * @param gameTime The match's time now, for the actives' cooldowns
+   */
+  constructor(itemStates: (any | null)[], private readonly gameTime: number) {
     // Convert item states to EquippedItem format
     if (itemStates) {
       itemStates.forEach((itemState, index) => {
@@ -324,11 +332,16 @@ class OnlineInventoryAdapter implements ChampionInventory {
       passiveIds: [],
     };
 
+    const active = getItemCatalogEntry(definition.id)?.active;
     return {
       definition,
       slot,
       passiveCooldowns: new Map(),
       nextIntervalTick: new Map(),
+      charges: itemState.charges,
+      stacks: itemState.stacks,
+      cooldownLeft: active && itemState.readyAt != null ? Math.max(0, itemState.readyAt - this.gameTime) : 0,
+      cooldownTotal: active?.cooldown,
     };
   }
 }
@@ -637,7 +650,7 @@ export class OnlineChampionAdapter {
    */
   getInventory(): ChampionInventory {
     const snapshot = this.getSnapshot();
-    return new OnlineInventoryAdapter(snapshot?.items ?? []);
+    return new OnlineInventoryAdapter(snapshot?.items ?? [], this.stateManager.getGameTime());
   }
 
   getSummoners(): SummonerSpellState[] {

@@ -45,12 +45,7 @@ export function handleLowHealthShield(
       }
     );
 
-    champion.shields.push({
-      amount: shieldAmount,
-      remainingDuration: definition.shield.duration,
-      sourceId: `passive_${definition.id}`,
-      shieldType: 'normal',
-    });
+    champion.grantShield(shieldAmount, definition.shield.duration, `passive_${definition.id}`);
   }
 
   // Apply stat modifiers via effects (so they show in HUD)

@@ -83,12 +83,38 @@ export interface ChampionGrowthStats {
 /**
  * Current stats (base + growth + modifiers).
  */
-export interface ChampionStats extends ChampionBaseStats {
+export interface ChampionStats extends ChampionBaseStats, Partial<ItemCombatStats> {
   maxHealth: number;
   maxResource: number;
   level: number;
   abilityHaste: number;
 }
+
+/**
+ * Stats that come from items (and some buffs) rather than a champion's base:
+ * 0 when a champion has none.
+ */
+export interface ItemCombatStats {
+  /** Flat armor its physical damage ignores */
+  lethality: number;
+  /** Share of the target's armor its physical damage ignores (0-1), before lethality */
+  armorPenPercent: number;
+  /** Flat magic resist its magic damage ignores */
+  magicPen: number;
+  /** Share of the target's magic resist its magic damage ignores (0-1), before magicPen */
+  magicPenPercent: number;
+  /** Share of basic attack damage dealt that heals it (0-1) */
+  lifesteal: number;
+  /** Share of all damage dealt that heals it (0-1; a third of it against minions and monsters) */
+  omnivamp: number;
+  /** How much stronger the heals and shields it gives others are (0.1 = 10%) */
+  healShieldPower: number;
+  /** How much shorter crowd control and slows on it are (0-1) */
+  tenacity: number;
+}
+
+/** A champion's computed stats with every item stat filled in (the server's) */
+export type FullChampionStats = ChampionStats & ItemCombatStats;
 
 /**
  * Stat modifiers from items, buffs, etc.

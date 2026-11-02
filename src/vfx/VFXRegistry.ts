@@ -16,6 +16,7 @@
 import './champions';
 import './world';
 import './summoners';
+import './items';
 
 export {
   registerAbilityVFX,
