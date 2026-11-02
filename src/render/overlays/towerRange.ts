@@ -7,13 +7,21 @@
 import {
   DEFAULT_TOWER_STATS,
   EntityType,
+  getChampionDefinition,
   getEffectiveRadius,
+  type ChampionSnapshot,
   type TowerSnapshot,
 } from "@siege/shared";
 import type { InterpolatedEntity } from "@/core/OnlineStateManager";
 
-/** Collision radius of a champion (tower range is edge to edge) */
-const CHAMPION_RADIUS = 25;
+/**
+ * A champion's collision radius, as the server's (ServerChampion.getRadius):
+ * tower range is edge to edge, so the ring adds it
+ */
+function championRadius(snapshot: ChampionSnapshot): number {
+  const collision = getChampionDefinition(snapshot.championId)?.collision;
+  return collision?.type === "circle" ? collision.radius : 25;
+}
 /** The ring starts fading in this far outside it */
 const FADE_DISTANCE = 250;
 
@@ -27,6 +35,7 @@ export function renderTowerRanges(
   localSide: number,
 ): void {
   if (!local || (local.snapshot as { isDead?: boolean }).isDead) return;
+  const ownRadius = local.snapshot.entityType === EntityType.CHAMPION ? championRadius(local.snapshot) : 25;
 
   for (const entity of entities) {
     if (entity.snapshot.entityType !== EntityType.TOWER) continue;
@@ -36,7 +45,7 @@ export function renderTowerRanges(
     const stats = DEFAULT_TOWER_STATS[tower.tier];
     if (!stats) continue;
     const towerRadius = stats.collision ? getEffectiveRadius(stats.collision) : 50;
-    const reach = stats.attackRange + towerRadius + CHAMPION_RADIUS;
+    const reach = stats.attackRange + towerRadius + ownRadius;
 
     const distance = Math.hypot(local.position.x - entity.position.x, local.position.y - entity.position.y);
     const visibility = Math.min(1, (reach + FADE_DISTANCE - distance) / FADE_DISTANCE);

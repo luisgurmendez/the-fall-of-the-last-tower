@@ -9,7 +9,7 @@ import { ServerMinion } from '../simulation/ServerMinion';
 import { ServerWard } from '../simulation/ServerWard';
 import { ServerBlossom } from '../simulation/ServerBlossom';
 import { ServerGameContext } from '../game/ServerGameContext';
-import { Vector, EntityType, Side, CHAMPION_DEFINITIONS, TEAM_RED, MAPS } from '@siege/shared';
+import { Vector, EntityType, Side, CHAMPION_DEFINITIONS, TEAM_RED, TEAM_BLUE, MAPS } from '@siege/shared';
 import { DEFAULT_TOWER_STATS } from '@siege/shared';
 import { TestChampion } from './ServerTestUtils';
 
@@ -468,6 +468,53 @@ describe('ServerTower', () => {
       tower.triggerAggro('champion-1');
       tower.update(0.1, context);
       expect(tower.toSnapshot().targetEntityId).toBe('champion-1');
+    });
+  });
+
+  describe('Aggro', () => {
+    it('should shoot a champion that hit an ally under it from outside its range, once it walks in', () => {
+      const tower = new ServerTower({ id: 'tower-1', position: new Vector(0, 0), side: 0, lane: 'mid', tier: 1 });
+      const ally = new TestChampion({
+        id: 'ally', position: new Vector(200, 0), side: TEAM_BLUE, playerId: 'player-ally',
+        definition: CHAMPION_DEFINITIONS['warrior'],
+      });
+      const enemy = new TestChampion({
+        id: 'enemy', position: new Vector(420, 0), side: TEAM_RED, playerId: 'player-enemy',
+        definition: CHAMPION_DEFINITIONS['warrior'],
+      });
+      const minion = new ServerMinion({
+        id: 'minion-1', position: new Vector(150, 100), side: 1, minionType: 'melee', lane: 'mid', waypoints: [],
+      });
+      for (const entity of [tower, ally, enemy, minion]) context.addEntity(entity);
+      tower.update(0.1, context);
+      expect(tower.toSnapshot().targetEntityId).toBe('minion-1');
+
+      // Hit from out of the tower's range: the ally is in it
+      expect(tower.isInRange(enemy)).toBe(false);
+      ally.takeDamage(30, 'physical', 'enemy', context);
+      expect(tower.hasAggro('enemy')).toBe(true);
+      tower.update(0.1, context);
+      expect(tower.toSnapshot().targetEntityId).toBe('minion-1');
+
+      // It walks in to chase
+      enemy.position = new Vector(320, 0);
+      tower.update(0.1, context);
+      expect(tower.toSnapshot().targetEntityId).toBe('enemy');
+    });
+
+    it('should not aggro on a fight away from it', () => {
+      const tower = new ServerTower({ id: 'tower-1', position: new Vector(0, 0), side: 0, lane: 'mid', tier: 1 });
+      const ally = new TestChampion({
+        id: 'ally', position: new Vector(900, 0), side: TEAM_BLUE, playerId: 'player-ally',
+        definition: CHAMPION_DEFINITIONS['warrior'],
+      });
+      const enemy = new TestChampion({
+        id: 'enemy', position: new Vector(1000, 0), side: TEAM_RED, playerId: 'player-enemy',
+        definition: CHAMPION_DEFINITIONS['warrior'],
+      });
+      for (const entity of [tower, ally, enemy]) context.addEntity(entity);
+      ally.takeDamage(30, 'physical', 'enemy', context);
+      expect(tower.hasAggro('enemy')).toBe(false);
     });
   });
 

@@ -656,7 +656,9 @@ export class ServerChampion extends ServerEntity {
 
   /**
    * Make allied towers aggro an enemy champion that damaged this champion
-   * from inside their range.
+   * while either of them was within their range: a tower shoots it once it's
+   * in range, within the aggro's few seconds (one that hit from outside the
+   * range and walks in to chase gets shot too).
    */
   private alertAlliedTowers(sourceId: string, context: ServerGameContext): void {
     const sourceEntity = context.getEntity(sourceId);
@@ -670,7 +672,7 @@ export class ServerChampion extends ServerEntity {
             entity.side === this.side &&
             !entity.isDead) {
           const tower = entity as ServerTower;
-          if (tower.isInRange(sourceEntity)) {
+          if (tower.isInRange(sourceEntity) || tower.isInRange(this)) {
             tower.triggerAggro(sourceId);
           }
         }
