@@ -247,15 +247,15 @@
     "characterId": "91d6fb27-1917-4ae4-b461-a0365ffa1651"
   },
   "zhakrul": {
+    "characterId": "ebf59f75-1b7b-4400-83b7-e320535ffddc",
     "animations": {
-      "attack": "e202b1dd-dff1-42d3-a93c-07454937e0d5",
-      "r": "81b51a97-2ea0-4200-8ac8-4c56e2c5c593",
-      "e": "961e5fd8-22e2-43a6-8488-603d7d3da66c",
-      "walk": "cf8fea55-ef81-4f06-9d82-f2f84e634011",
-      "w": "d74cd9fd-797d-499c-af47-90775719018f",
-      "q": "a74f56bc-0a6a-4dea-b54a-d6de9a33ec79",
-      "idle": "24dafe72-5131-4d00-a11e-809802bc4d54"
-    },
-    "characterId": "806af5d7-0ed5-451a-aaaa-a32323316f95"
+      "attack": "d1f3119c-13cf-472e-9ade-93f9ec9ccaba",
+      "walk": "97f616c9-a35b-45e0-8763-37b45b9b320f",
+      "idle": "0148a3c9-aed3-44c1-9cdf-ca75fb902a9e",
+      "q": "4937c42e-a551-4bad-a628-ab52ac626e4d",
+      "w": "b208bdd5-00b8-4481-b60e-e8dc8757d763",
+      "e": "a5489f44-96e6-4dd9-b17e-f09ae05dcf30",
+      "r": "7f418b16-9668-43e4-a8de-8682cd252447"
+    }
   }
 }

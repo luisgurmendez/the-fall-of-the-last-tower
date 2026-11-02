@@ -29,6 +29,7 @@ import {
   getHitRecoil,
   advanceEntity,
   isAttackAnimationPlaying,
+  type AbilityCastState,
   type InterpolatedEntity,
 } from './state/entities';
 import { AbilityEffects, type AbilityEffect } from './state/abilityEffects';
@@ -341,8 +342,8 @@ export class OnlineStateManager {
   /**
    * Check if an entity is currently casting an ability.
    */
-  /** Whether the entity is casting, what, and how long its cast animation lasts (seconds) */
-  isEntityCastingAbility(entityId: string): { casting: boolean; abilityId?: string; duration?: number } {
+  /** Whether the entity is casting, what, how long its cast animation lasts (seconds) and where it's aimed */
+  isEntityCastingAbility(entityId: string): AbilityCastState {
     return getAbilityCastState(this.entities.get(entityId));
   }
 

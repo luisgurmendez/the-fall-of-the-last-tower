@@ -1,10 +1,9 @@
 /**
- * Zhak'rul: a giant crimson-black scorpion with a glowing green stinger,
- * drawn from generated sprite strips (scripts/generate-sprites.ts), wide
- * and low like Fenris. While he travels underground (Burrowed Ambush) he's
- * a mound of earth moving under the ground, and when he bursts out
- * (zhakrul_e_burst) his E strip plays. Without the strips he's the default
- * circle.
+ * Zhak'rul: a giant crimson-black scorpion, drawn from generated sprite
+ * strips (scripts/generate-sprites.ts) in four directions, wide and low like
+ * Fenris. While he travels underground (Burrowed Ambush) he's a mound of
+ * earth moving under the ground, and when he bursts out (zhakrul_e_burst)
+ * his E strip plays. Without the strips he's the default circle.
  */
 
 import type { ChampionRendererEntry } from "./types";
@@ -16,11 +15,11 @@ const ZHAKRUL_STRIPS = generatedStrips("zhakrul", {
   e: "zhakrul_e_burst",
   r: "zhakrul_r",
 }, {
-  // The frames where the blow lands: the pincer, the scissors snap, the gas,
-  // the burst out of the sand, the sting
+  // The frames where the blow lands: the pincer, the scissors snap, the tail
+  // shaken, rearing up out of the ground, the sting
   attackBlow: 4,
-  abilityBlows: { zhakrul_q: 6, zhakrul_w: 4, zhakrul_e_burst: 4, zhakrul_r: 3 },
-});
+  abilityBlows: { zhakrul_q: 5, zhakrul_w: 4, zhakrul_e_burst: 3, zhakrul_r: 3 },
+}, ["south", "north"]);
 
 /** World units per sprite pixel: chunky pixels, and a wide body */
 const ZHAKRUL_SCALE = 1.35;

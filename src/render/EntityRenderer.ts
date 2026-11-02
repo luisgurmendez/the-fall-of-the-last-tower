@@ -51,6 +51,7 @@ import { renderWard, WARD_IMAGES } from "@/render/entities/ward";
 import { renderZone } from "@/render/entities/zone";
 import { LightOrbRenderer } from "@/render/entities/lightOrb";
 import { renderGeneric } from "@/render/entities/generic";
+import { verticalFacing } from "@/render/entities/facing";
 import { renderAbilityEffects } from "@/render/overlays/abilityEffects";
 import { renderTowerRanges } from "@/render/overlays/towerRange";
 import { hitFlashFilter } from "@/render/hitFlash";
@@ -151,6 +152,7 @@ export class EntityRenderer implements GameObject {
         lastX: x,
         lastY: y,
         facingRight: side === 0,
+        facingVertical: null,
         attackAnimTime: 0,
         isAttacking: false,
         isWalking: false,
@@ -160,6 +162,15 @@ export class EntityRenderer implements GameObject {
       this.entityStates.set(entityId, state);
     }
     return state;
+  }
+
+  /** Where an entity casting an ability aims it, if anywhere */
+  private castTarget(entityId: string): { x: number; y: number } | null {
+    const target = this.stateManager.isEntityCastingAbility(entityId).target;
+    if (!target) return null;
+    if (!("entityId" in target)) return target;
+    const unit = this.stateManager.getEntity(target.entityId);
+    return unit ? { x: Math.round(unit.position.x), y: Math.round(unit.position.y) } : null;
   }
 
   /**
@@ -214,8 +225,12 @@ export class EntityRenderer implements GameObject {
     const hasFacingTarget = facingTargetX != null && facingTargetY != null;
     if (hasFacingTarget) {
       const targetDx = facingTargetX - x;
+      const targetDy = facingTargetY - y;
       if (Math.abs(targetDx) > 10) {
         state.facingRight = targetDx > 0;
+      }
+      if (Math.hypot(targetDx, targetDy) > 10) {
+        state.facingVertical = verticalFacing(targetDx, targetDy, state.facingVertical);
       }
     }
 
@@ -328,7 +343,12 @@ export class EntityRenderer implements GameObject {
         // Resolve target entity position for facing direction
         let resolvedTargetX = snapshot.targetX;
         let resolvedTargetY = snapshot.targetY;
-        if (snapshot.targetEntityId && resolvedTargetX == null) {
+        // Casting an ability, it faces where the ability is aimed
+        const castAt = this.castTarget(snapshot.entityId);
+        if (castAt) {
+          resolvedTargetX = castAt.x;
+          resolvedTargetY = castAt.y;
+        } else if (snapshot.targetEntityId && resolvedTargetX == null) {
           // Has attack target but no move target - look up target position for facing
           const targetEntity = this.stateManager.getEntity(
             snapshot.targetEntityId,
@@ -403,9 +423,10 @@ export class EntityRenderer implements GameObject {
       // Only the body: no bars, plates or aggro marks
       const snapshot = { ...corpse.snapshot, health: undefined, isDashing: false, targetEntityId: null } as any;
       const side = snapshot.side ?? 0;
-      const facingRight = this.entityStates.get(snapshot.entityId)?.facingRight ?? side === 0;
+      const living = this.entityStates.get(snapshot.entityId);
+      const facingRight = living?.facingRight ?? side === 0;
       const state: EntityRenderState = {
-        lastX: corpse.x, lastY: corpse.y, facingRight, attackAnimTime: 0,
+        lastX: corpse.x, lastY: corpse.y, facingRight, facingVertical: living?.facingVertical ?? null, attackAnimTime: 0,
         isAttacking: false, isWalking: false, smoothedVelocity: 0, idleFrameCount: 0,
       };
 

@@ -42,6 +42,12 @@ export interface GameEventContext {
 
 /** Seconds a cast animation goes on after its ability takes effect */
 const CAST_FOLLOW_THROUGH = 0.25;
+/**
+ * A cast's point this close to the caster isn't where it's aimed but where
+ * its effect is (Zhak'rul's cloud around him, his burst out of the ground):
+ * the caster doesn't turn to it
+ */
+const AIM_MIN_DISTANCE = 30;
 
 /** Jungle monsters' names in the death recap, by creature type */
 const MONSTER_NAMES: Record<string, string> = {
@@ -113,6 +119,12 @@ export function processGameEvent(event: GameEvent, ctx: GameEventContext): void 
         entity.animation.abilityId = abilityId;
         entity.animation.abilityStartTime = now;
         entity.animation.abilityDuration = duration;
+        const aimsAway = targetX !== undefined && targetY !== undefined
+          && Math.hypot(targetX - entity.serverPosition.x, targetY - entity.serverPosition.y) >= AIM_MIN_DISTANCE;
+        entity.animation.abilityTargetX = aimsAway ? targetX : null;
+        entity.animation.abilityTargetY = aimsAway ? targetY : null;
+        const targetId = event.data.targetEntityId as string | undefined;
+        entity.animation.abilityTargetId = targetId && targetId !== entityId ? targetId : null;
 
         // Create visual effect for the ability (legacy system)
         ctx.abilityEffects.create(entity, abilityId, targetX, targetY, now);

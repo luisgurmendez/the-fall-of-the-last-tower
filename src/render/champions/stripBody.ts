@@ -7,7 +7,10 @@
  * It plays an ability's own strip over that ability's cast animation (and
  * holds it mid-motion for as long as that ability's dash lasts), the attack
  * strip once per basic attack, the walk strip while moving and the idle
- * strip otherwise, mirrored when the champion faces left.
+ * strip otherwise, mirrored when the champion faces left. A champion drawn
+ * in four directions also has each strip facing south and north
+ * (<strip>_south.png, <strip>_north.png), played when it faces down or up the
+ * screen (src/render/entities/facing.ts).
  *
  * A generated strip rarely lands its blow where the game does: Magnus
  * stands still for eight frames and throws on the ninth, while his damage
@@ -23,6 +26,7 @@ import type {
   EntityRenderState,
 } from "@/render/entities/types";
 import { drawSpriteFrame, getSpriteFeet, imageCache } from "@/render/entities/shared";
+import type { VerticalFacing } from "@/render/entities/facing";
 import type { ChampionBodyRenderer } from "./types";
 
 /** Where in its ability strip a dashing champion is held */
@@ -60,6 +64,8 @@ export interface ChampionStrips {
   /** Strips for abilities with their own animation, by ability id */
   abilities: Record<string, string>;
   timing: StripTiming;
+  /** The directions its strips are also drawn facing, besides sideways */
+  directions: VerticalFacing[];
 }
 
 /** Which frames of a champion's strips matter */
@@ -97,12 +103,14 @@ function hitShare(championId: string, attackSpeed: number | undefined): number {
 /**
  * The strips scripts/generate-sprites.ts makes for a champion, in
  * /assets/champs/<championId>/, with the ability ids that play its q, w, e
- * and r strips.
+ * and r strips, and the directions they're also drawn facing (a
+ * four-direction champion's south and north).
  */
 export function generatedStrips(
   championId: string,
   abilities: Partial<Record<"q" | "w" | "e" | "r", string>>,
   timing: StripTiming = {},
+  directions: VerticalFacing[] = [],
 ): ChampionStrips {
   const dir = `/assets/champs/${championId}`;
   return {
@@ -113,12 +121,23 @@ export function generatedStrips(
       Object.entries(abilities).map(([slot, abilityId]) => [abilityId, `${dir}/${slot}.png`]),
     ),
     timing,
+    directions,
   };
 }
 
-/** Every strip of a set, to preload */
+/** A strip facing south or north: idle.png -> idle_south.png */
+export function facingStrip(src: string, facing: VerticalFacing): string {
+  return src.replace(/\.png$/, `_${facing}.png`);
+}
+
+/** Every strip of a set, in every direction, to preload */
 export function stripImages(strips: ChampionStrips): string[] {
-  return [strips.idle, strips.walk, strips.attack, ...Object.values(strips.abilities)];
+  const sideways = [strips.idle, strips.walk, strips.attack, ...Object.values(strips.abilities)];
+  return [...sideways, ...strips.directions.flatMap(facing => sideways.map(src => facingStrip(src, facing)))];
+}
+
+function loaded(image: HTMLImageElement | undefined): image is HTMLImageElement {
+  return image !== undefined && image.complete && image.naturalWidth > 0;
 }
 
 /**
@@ -158,8 +177,11 @@ export function createStripBodyRenderer(
         src = strips.idle;
       }
 
-      const image = imageCache.get(src);
-      if (!image || !image.complete || image.naturalWidth === 0) return false;
+      // Facing up or down the screen: that direction's strip, when it has one
+      const facing = state.facingVertical !== null && strips.directions.includes(state.facingVertical) ? state.facingVertical : null;
+      const turned = facing ? imageCache.get(facingStrip(src, facing)) : undefined;
+      const image = loaded(turned) ? turned : imageCache.get(src);
+      if (!loaded(image)) return false;
 
       const frameSize = image.naturalHeight;
       const frameCount = Math.max(1, Math.round(image.naturalWidth / frameSize));
@@ -177,7 +199,8 @@ export function createStripBodyRenderer(
       }
 
       ctx.save();
-      if (!state.facingRight) {
+      // Sideways strips face right
+      if (image !== turned && !state.facingRight) {
         ctx.scale(-1, 1);
       }
       drawSpriteFrame(ctx, image, frameIndex * frameSize, frameSize, frameSize, scale, rc.getOutlineColor(entityId));

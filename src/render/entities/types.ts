@@ -3,6 +3,7 @@
  */
 
 import type { OnlineStateManager } from "@/core/OnlineStateManager";
+import type { VerticalFacing } from "./facing";
 
 /**
  * Track entity state for animations and direction.
@@ -11,6 +12,8 @@ export interface EntityRenderState {
   lastX: number;
   lastY: number;
   facingRight: boolean; // true = facing right, false = facing left
+  /** Facing up or down the screen, for sprites drawn in four directions; null when it faces sideways (facingRight) */
+  facingVertical: VerticalFacing | null;
   attackAnimTime: number; // Time into attack animation
   isAttacking: boolean;
   // Animation state tracking for smooth transitions

@@ -3,23 +3,45 @@
  * jungle monsters and the champions without hand-made art.
  *
  * For each sprite set: a PixelLab character (its look), then its animations
- * facing east; the game mirrors them to face west. Each animation's frames go
- * side by side in <outputDir>/<animation>.png, on a square canvas shared by
- * the set's animations with the feet on the idle's row, so switching
- * animations doesn't make the character jump. The renderer reads the frame
- * size from the strip's height and the frame count from its width.
+ * facing east (the game mirrors them to face west) and, for a set with more
+ * directions, facing south and north too. Each animation's frames go side by
+ * side in <outputDir>/<animation>.png (<animation>_south.png and
+ * <animation>_north.png for the other directions), on a square canvas shared
+ * by all of the set's strips with the feet on the idle's row, so switching
+ * animations or turning doesn't make the character jump. The renderer reads
+ * the frame size from the strip's height and the frame count from its width.
  *
- * scripts/sprites.json keeps each set's character and animation ids: a later
- * run reuses them and only generates what's missing.
+ * What keeps the frames clean:
+ * - Effects aren't drawn into the sprites (the game draws its own): the
+ *   descriptions only say how the body moves
+ * - A set with `reference` is made from a south-facing look picked from a few
+ *   create-image-pixen takes, so all its directions are really that look
+ * - `lockPalette` keeps every frame on the character's own colors
+ * - A looping animation (idle, walk) is drawn back to its first pose
+ * - A direction can be told more than the action: seen from behind, told to
+ *   strike "forward", a character turns around to face the viewer
+ * - Each run prints a check of every strip: frames that lost part of the
+ *   body (a missing foot), that grew something (an effect, a cloud) or that
+ *   jump from the one before. Look at them on the contact sheets --review
+ *   writes (a character turning around mid-animation only shows there) and
+ *   redo the bad ones with another seed (--redo).
+ *
+ * scripts/sprites.json keeps each set's character and animation ids (one
+ * PixelLab animation holds all of its directions): a later run reuses them
+ * and only generates what's missing.
  *
  * Usage (from the repo root; Bun loads PIXELLAB_API_KEY from .env.local):
  *   bun scripts/generate-sprites.ts                  # every set
  *   bun scripts/generate-sprites.ts --only spider    # some sets
  *   bun scripts/generate-sprites.ts --only spider --redo attack --seed 8
- *     # generate those animations again (another seed gives another take)
+ *     # generate those animations again, in every direction (another seed gives another take)
  *   bun scripts/generate-sprites.ts --only spider --new-character
+ *   bun scripts/generate-sprites.ts --only zhakrul --review /tmp/review
+ *     # also write a contact sheet of every strip, scaled up, and the check
  *
- * A character takes about 3 minutes, an animation 1-5 minutes.
+ * A character takes about 3 minutes, an animation 1-5 minutes. On 2026-11-01
+ * at 64px a character turned from a reference cost about USD 0.04 and an
+ * animation about USD 0.01 per direction.
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -31,11 +53,14 @@ const MANIFEST_PATH = 'scripts/sprites.json';
 const MONSTERS_DIR = 'public/assets/sprites/monsters';
 const MINIONS_DIR = 'public/assets/sprites/minions';
 
+/** The directions a set can be animated in; west is east mirrored */
+type Direction = 'east' | 'south' | 'north';
+
 type AnimationSpec =
-  /** Drawn frame by frame from a description (4-16 frames) */
-  | { mode: 'v3'; action: string; frames: number }
-  /** Drawn from a description on PixMiniMax (multiple of 4 frames) */
-  | { mode: 'pixminimax'; action: string; frames: number }
+  /** Drawn frame by frame from a description (4-16 frames); a loop is drawn back to its first pose */
+  | { mode: 'v3'; action: string; frames: number; loop?: boolean }
+  /** Drawn from a description on PixMiniMax (multiple of 4 frames); a loop is drawn back to its first pose */
+  | { mode: 'pixminimax'; action: string; frames: number; loop?: boolean }
   /** A PixelLab skeleton animation (needs a matching character template) */
   | { mode: 'template'; template: string };
 
@@ -52,6 +77,21 @@ interface SpriteSetSpec {
   detail?: string;
   /** PixelLab skeleton the character is fitted to: mannequin, dog, bear, cat, horse, lion */
   template: string;
+  /** Directions its animations face (default east only) */
+  directions?: Direction[];
+  /**
+   * Its south-facing look, a create-image-pixen take (the description and the
+   * seed of the one picked): the character is turned from it. Without it,
+   * PixelLab draws the character from the description.
+   */
+  reference?: { description: string; seed: number };
+  /** Draw every frame with the character's own colors only */
+  lockPalette?: boolean;
+  /**
+   * The frames to keep (first and last) of strips where only part of what
+   * PixelLab drew fits, by manifest key (e, e@south)
+   */
+  trim?: Record<string, [number, number]>;
   /** Animations by name; every set has an idle (the others' feet line up with it) */
   animations: { idle: AnimationSpec } & Record<string, AnimationSpec>;
 }
@@ -63,6 +103,10 @@ interface ChampionActions {
   /** Canvas in pixels (default 96); smaller makes chunkier pixels, closer to the ground's */
   size?: number;
   detail?: string;
+  /** Facing south and north too (the four-direction champions) */
+  directions?: Direction[];
+  reference?: { description: string; seed: number };
+  trim?: Record<string, [number, number]>;
   /** Idle and walk, for a champion that doesn't stand or walk like a person (default: breathing, PixelLab's walk) */
   idle?: string;
   walk?: string;
@@ -75,9 +119,11 @@ interface ChampionActions {
 
 /**
  * A humanoid champion: idle, walk, attack and Q/W/E/R, in public/assets/champs/<championId>.
+ * A four-direction champion idles on PixMiniMax too, its eight frames looping.
  */
 function champion(championId: string, actions: ChampionActions): SpriteSetSpec {
   const cast = (action: string): AnimationSpec => ({ mode: 'pixminimax', action, frames: 8 });
+  const idle = actions.idle ?? 'standing ready, breathing calmly';
   return {
     key: championId,
     outputDir: `public/assets/champs/${championId}`,
@@ -86,10 +132,16 @@ function champion(championId: string, actions: ChampionActions): SpriteSetSpec {
     size: actions.size ?? 96,
     detail: actions.detail,
     template: 'mannequin',
+    directions: actions.directions,
+    reference: actions.reference,
+    lockPalette: actions.directions !== undefined,
+    trim: actions.trim,
     animations: {
-      idle: { mode: 'v3', action: actions.idle ?? 'standing ready, breathing calmly', frames: 4 },
+      idle: actions.directions
+        ? { mode: 'pixminimax', action: idle, frames: 8, loop: true }
+        : { mode: 'v3', action: idle, frames: 4 },
       walk: actions.walk
-        ? { mode: 'pixminimax', action: actions.walk, frames: 8 }
+        ? { mode: 'pixminimax', action: actions.walk, frames: 8, loop: actions.directions !== undefined }
         : { mode: 'template', template: 'walking-6-frames' },
       attack: cast(actions.attack),
       q: cast(actions.q),
@@ -312,18 +364,28 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
     e: 'hops high up into the air and lands',
     r: 'spins around and delivers a powerful flying kick forward',
   }),
+  // The first four-direction champion. Its first take had a glowing venom
+  // stinger, drawn dripping in every frame: the stinger is plain now, and the
+  // actions only move the body (the game draws the poison).
   champion('zhakrul', {
     name: "Zhak'rul",
     size: 64,
     detail: 'low detail',
-    description: 'a big armored desert scorpion seen from the side, dark crimson and black carapace plates, two huge heavy pincers, six legs, a long segmented tail curled high over its back ending in a glowing green venom stinger, small glowing green eyes',
-    idle: 'standing still on its six legs, tail swaying slowly, pincers clicking',
-    walk: 'scuttles forward on its six legs in a looping walk cycle, tail raised high',
-    attack: 'snaps forward with one big pincer',
-    q: 'snaps both big pincers shut together in front of it like scissors',
-    w: 'shakes its tail and puffs out a big cloud of green poison gas all around itself',
-    e: 'bursts up out of the sand with both pincers raised, sand flying',
-    r: 'strikes forward over its head with its tail, stabbing the glowing green stinger',
+    directions: ['east', 'south', 'north'],
+    reference: {
+      description: 'a big armored desert scorpion facing the viewer, dark crimson and black carapace plates, two huge heavy pincers held forward, six legs, a long segmented tail curled up over its back ending in a dark curved stinger, small green eyes, no glow, no effects',
+      seed: 14,
+    },
+    description: 'a big armored desert scorpion with crimson and black carapace plates, two huge heavy pincers, six legs and a long segmented tail curled over its back ending in a dark curved stinger',
+    idle: 'standing still on its six legs, breathing slowly, pincers opening and closing a little, tail swaying gently',
+    walk: 'walks forward on its six legs in a looping walk cycle, the legs stepping in alternating waves, tail held high',
+    attack: 'jabs forward with one big pincer and snaps it shut, then pulls it back',
+    q: 'lunges forward and snaps both big pincers shut together like scissors, then pulls back',
+    w: 'rears up and shakes its raised tail hard, its whole body trembling, then settles back down',
+    // Out of the ground, but not told so: told to burst out of the sand, it
+    // drew the dirt, in its own reds (lockPalette). The game draws the earth.
+    e: 'rears up high with both pincers raised wide open, then slams them down in front of it and settles on its six legs',
+    r: 'arches its tail and stabs the stinger forward over its head, then pulls the tail back',
   }),
   champion('warrior', {
     name: 'Kael',
@@ -392,6 +454,7 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
 
 interface ManifestEntry {
   characterId?: string;
+  /** Animation ids by name, each with all of the set's directions */
   animations: Record<string, string>;
 }
 type Manifest = Record<string, ManifestEntry>;
@@ -401,20 +464,25 @@ interface Options {
   redo: string[];
   newCharacter: boolean;
   seed: number;
+  /** Where to write the contact sheets and checks, if anywhere */
+  review: string | null;
 }
 
 function parseArgs(argv: string[]): Options {
-  const options: Options = { only: null, redo: [], newCharacter: false, seed: 7 };
+  const options: Options = { only: null, redo: [], newCharacter: false, seed: 7, review: null };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--only') options.only = argv[++i].split(',');
     else if (argv[i] === '--redo') options.redo = argv[++i].split(',');
     else if (argv[i] === '--new-character') options.newCharacter = true;
     else if (argv[i] === '--seed') options.seed = Number(argv[++i]);
+    else if (argv[i] === '--review') options.review = argv[++i];
   }
   return options;
 }
 
 const apiKey = process.env.PIXELLAB_API_KEY;
+/** Animations made at once, each a job per direction (PixelLab answers 429 past a few jobs at once) */
+const CONCURRENT_ANIMATIONS = 3;
 
 async function api<T>(path: string, body?: unknown): Promise<T> {
   for (let attempt = 1; ; attempt++) {
@@ -446,55 +514,166 @@ async function waitForJob(jobId: string, label: string): Promise<void> {
   }
 }
 
+function base64Image(image: RgbaImage): { type: 'base64'; base64: string } {
+  return { type: 'base64', base64: `data:image/png;base64,${Buffer.from(encodePng(image)).toString('base64')}` };
+}
+
+/** The set's south-facing look: the create-image-pixen take its reference names */
+async function referenceImage(spec: SpriteSetSpec, reference: { description: string; seed: number }): Promise<string> {
+  const generated = await api<{ image: { base64: string } }>('/create-image-pixen', {
+    description: reference.description,
+    image_size: { width: spec.size, height: spec.size },
+    no_background: true,
+    outline: 'single color black outline',
+    view: 'low top-down',
+    direction: 'south',
+    ...(spec.detail ? { detail: spec.detail } : {}),
+    seed: reference.seed,
+  });
+  const base64 = generated.image.base64;
+  return base64.startsWith('data:') ? base64 : `data:image/png;base64,${base64}`;
+}
+
 async function createCharacter(spec: SpriteSetSpec, seed: number): Promise<string> {
   log(`${spec.name}: creating the character`);
+  const look = spec.reference
+    // Turned from its picked south-facing look, in four directions
+    ? { reference_image: { type: 'base64', base64: await referenceImage(spec, spec.reference) }, n_directions: 4 }
+    : { image_size: { width: spec.size, height: spec.size }, ...(spec.detail ? { detail: spec.detail } : {}) };
   const created = await api<{ character_id: string; background_job_id: string }>('/create-character-v3', {
     description: spec.description,
-    image_size: { width: spec.size, height: spec.size },
+    name: spec.name,
+    ...look,
     view: 'low top-down',
     template_id: spec.template,
-    ...(spec.detail ? { detail: spec.detail } : {}),
+    no_background: true,
     seed,
   });
   await waitForJob(created.background_job_id, `${spec.name} character`);
   return created.character_id;
 }
 
-async function createAnimation(characterId: string, spec: SpriteSetSpec, name: string, seed: number): Promise<string> {
-  const animation = spec.animations[name];
-  const body: Record<string, unknown> = {
-    character_id: characterId,
-    animation_name: name,
-    directions: ['east'],
-    seed,
-  };
-  if (animation.mode === 'template') {
-    Object.assign(body, { mode: 'template', template_animation_id: animation.template });
-  } else {
-    Object.assign(body, { mode: animation.mode, action_description: animation.action, frame_count: animation.frames });
-    if (animation.mode === 'pixminimax') body.subject_description = spec.description;
-  }
-  log(`${spec.name}: animating ${name} (${animation.mode})`);
-  const created = await api<{ animation_group_id: string; background_job_ids: string[] }>('/characters/animations', body);
-  await waitForJob(created.background_job_ids[0], `${spec.name} ${name}`);
-  return created.animation_group_id;
-}
-
 interface CharacterDetail {
+  rotation_urls: Record<string, string>;
   animations: { animation_group_id: string; directions: { direction: string; frames: string[] }[] }[];
 }
 
-async function downloadFrames(characterId: string, groupId: string): Promise<RgbaImage[]> {
+async function downloadImage(url: string): Promise<RgbaImage> {
+  // The file host rejects some default user agents
+  const response = await fetch(url, { headers: { 'User-Agent': 'curl/8' } });
+  if (!response.ok) throw new Error(`${url}: HTTP ${response.status}`);
+  return decodePng(new Uint8Array(await response.arrayBuffer()));
+}
+
+/** The character standing still, facing each direction: where its animations start */
+async function downloadRotations(characterId: string, directions: Direction[]): Promise<Record<Direction, RgbaImage>> {
   const character = await api<CharacterDetail>(`/characters/${characterId}`);
-  const animation = character.animations.find(a => a.animation_group_id === groupId);
-  const east = animation?.directions.find(d => d.direction === 'east');
-  if (!east) throw new Error(`Animation ${groupId} has no east frames`);
-  return Promise.all(east.frames.map(async url => {
-    // The file host rejects some default user agents
-    const response = await fetch(url, { headers: { 'User-Agent': 'curl/8' } });
-    if (!response.ok) throw new Error(`${url}: HTTP ${response.status}`);
-    return decodePng(new Uint8Array(await response.arrayBuffer()));
+  const entries = await Promise.all(directions.map(async direction => [direction, await downloadImage(character.rotation_urls[direction])] as const));
+  return Object.fromEntries(entries) as Record<Direction, RgbaImage>;
+}
+
+/** Every color the character's rotations use, the most used first (PixelLab takes up to 256) */
+function paletteOf(images: RgbaImage[]): string[] {
+  const counts = new Map<string, number>();
+  for (const image of images) {
+    for (let i = 0; i < image.data.length; i += 4) {
+      if (image.data[i + 3] === 0) continue;
+      const hex = '#' + [0, 1, 2].map(c => image.data[i + c].toString(16).padStart(2, '0')).join('');
+      counts.set(hex, (counts.get(hex) ?? 0) + 1);
+    }
+  }
+  return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 256).map(([hex]) => hex);
+}
+
+/** One animation facing one direction: its manifest key */
+function animationKey(name: string, direction: Direction): string {
+  return direction === 'east' ? name : `${name}@${direction}`;
+}
+
+function parseKey(key: string): { name: string; direction: Direction } {
+  const [name, direction] = key.split('@');
+  return { name, direction: (direction ?? 'east') as Direction };
+}
+
+/**
+ * Added to an action facing that way: told to strike "forward", a character
+ * seen from behind turns around to face the viewer
+ */
+const DIRECTION_HINTS: Partial<Record<Direction, { action: string; pose: string }>> = {
+  north: {
+    action: 'seen from behind the whole time, facing away from the viewer',
+    pose: 'standing still, seen from behind, facing away from the viewer',
+  },
+};
+
+interface CreatedAnimation {
+  animation_group_id: string;
+  background_job_ids: string[];
+}
+
+/**
+ * One animation in all of the set's directions, as one PixelLab animation:
+ * the first direction makes it and the others are added to it, each its own
+ * job (PixelLab draws each direction on its own anyway), so each gets its own
+ * hint and, for a loop, its own end pose.
+ */
+async function createAnimation(
+  characterId: string,
+  spec: SpriteSetSpec,
+  name: string,
+  directions: Direction[],
+  seed: number,
+  rotations: Record<Direction, RgbaImage>,
+  palette: string[] | null,
+): Promise<string> {
+  const animation = spec.animations[name];
+  const request = (direction: Direction, groupId?: string): Record<string, unknown> => {
+    const body: Record<string, unknown> = {
+      character_id: characterId,
+      animation_name: name,
+      directions: [direction],
+      seed,
+      ...(groupId ? { animation_group_id: groupId } : {}),
+    };
+    if (animation.mode === 'template') {
+      Object.assign(body, { mode: 'template', template_animation_id: animation.template });
+    } else {
+      const hint = DIRECTION_HINTS[direction];
+      const action = hint ? `${animation.action}, ${hint.action}` : animation.action;
+      Object.assign(body, { mode: animation.mode, action_description: action, frame_count: animation.frames });
+      if (animation.mode === 'pixminimax') {
+        body.subject_description = spec.description;
+        if (hint) body.initial_pose = hint.pose;
+      }
+      // A loop is drawn back to where it starts
+      if (animation.loop) body.end_frame = base64Image(rotations[direction]);
+      if (palette) body.target_palette = { colors: palette };
+    }
+    return body;
+  };
+  const [first, ...others] = directions;
+  log(`${spec.name}: animating ${name} (${animation.mode}, ${directions.join(', ')})`);
+  const created = await api<CreatedAnimation>('/characters/animations', request(first));
+  const groupId = created.animation_group_id;
+  await waitForJob(created.background_job_ids[0], `${spec.name} ${name} ${first}`);
+  await Promise.all(others.map(async direction => {
+    const added = await api<CreatedAnimation>('/characters/animations', request(direction, groupId));
+    await waitForJob(added.background_job_ids[0], `${spec.name} ${name} ${direction}`);
   }));
+  return groupId;
+}
+
+async function downloadFrames(character: CharacterDetail, groupId: string, direction: Direction): Promise<RgbaImage[]> {
+  const animation = character.animations.find(a => a.animation_group_id === groupId);
+  const facing = animation?.directions.find(d => d.direction === direction);
+  if (!facing) throw new Error(`Animation ${groupId} has no ${direction} frames`);
+  return Promise.all(facing.frames.map(downloadImage));
+}
+
+/** The strip file of an animation facing a direction: idle.png, idle_south.png */
+function stripFile(key: string): string {
+  const { name, direction } = parseKey(key);
+  return direction === 'east' ? `${name}.png` : `${name}_${direction}.png`;
 }
 
 /**
@@ -522,33 +701,144 @@ function buildStrips(animations: Record<string, RgbaImage[]>): Record<string, Rg
   return strips;
 }
 
+// =============================================================================
+// The check: frames that lost part of the body, grew something or jump
+// =============================================================================
+
+/** A frame with less of the body than standing still lost something (a foot, a pincer) */
+const MISSING_SHARE = 0.8;
+/** A frame with this much more grew something: an effect, a cloud, sand */
+const EXTRA_SHARE = 1.35;
+/** A frame that changes this many times more than the animation's usual step jumps */
+const JUMP_FACTOR = 2.5;
+/** ...as long as it changes at least this share of the body */
+const JUMP_MIN = 0.2;
+
+function visiblePixels(image: RgbaImage): number {
+  let count = 0;
+  for (let i = 3; i < image.data.length; i += 4) if (image.data[i] > 0) count++;
+  return count;
+}
+
+/** Pixels that differ between two frames of the same size */
+function changedPixels(a: RgbaImage, b: RgbaImage): number {
+  let count = 0;
+  for (let i = 0; i < a.data.length; i += 4) {
+    const aOn = a.data[i + 3] > 0;
+    const bOn = b.data[i + 3] > 0;
+    if (aOn !== bOn) count++;
+    else if (aOn && Math.abs(a.data[i] - b.data[i]) + Math.abs(a.data[i + 1] - b.data[i + 1]) + Math.abs(a.data[i + 2] - b.data[i + 2]) > 60) count++;
+  }
+  return count;
+}
+
+/** The check's findings for one strip, empty when it looks fine */
+function checkStrip(frames: RgbaImage[], standing: RgbaImage, loop: boolean): string[] {
+  const body = visiblePixels(standing);
+  const findings: string[] = [];
+  frames.forEach((frame, i) => {
+    const share = visiblePixels(frame) / body;
+    if (share < MISSING_SHARE) findings.push(`frame ${i} has ${Math.round(share * 100)}% of the body (something missing?)`);
+    if (share > EXTRA_SHARE) findings.push(`frame ${i} has ${Math.round(share * 100)}% of the body (an effect drawn in?)`);
+  });
+  const steps = frames.map((frame, i) => (i === 0 ? 0 : changedPixels(frames[i - 1], frame) / body)).slice(1);
+  if (loop) steps.push(changedPixels(frames[frames.length - 1], frames[0]) / body);
+  const usual = [...steps].sort((a, b) => a - b)[Math.floor(steps.length / 2)] ?? 0;
+  steps.forEach((step, i) => {
+    if (step > JUMP_MIN && step > usual * JUMP_FACTOR) {
+      const to = (i + 1) % frames.length;
+      findings.push(`frame ${i} -> ${to} jumps (${Math.round(step * 100)}% changes, usually ${Math.round(usual * 100)}%)`);
+    }
+  });
+  return findings;
+}
+
+/** Each strip's frames scaled up on a checkerboard, one strip per row */
+function contactSheet(strips: RgbaImage[], scale: number): RgbaImage {
+  const gap = 4;
+  const width = Math.max(...strips.map(strip => strip.width)) * scale;
+  const height = strips.reduce((total, strip) => total + strip.height * scale + gap, 0);
+  const sheet = createImage(width, height);
+  let top = 0;
+  for (const strip of strips) {
+    for (let y = 0; y < strip.height * scale; y++) {
+      for (let x = 0; x < width; x++) {
+        const sx = Math.floor(x / scale);
+        const from = (Math.floor(y / scale) * strip.width + sx) * 4;
+        const alpha = sx < strip.width ? strip.data[from + 3] / 255 : 0;
+        const checker = (Math.floor(x / 8) + Math.floor(y / 8)) % 2 ? 70 : 92;
+        // A red line between frames
+        const edge = sx % strip.height === 0 && x % scale === 0;
+        const to = ((top + y) * width + x) * 4;
+        for (let c = 0; c < 3; c++) {
+          sheet.data[to + c] = edge ? (c === 0 ? 200 : 60) : Math.round(checker * (1 - alpha) + (alpha ? strip.data[from + c] * alpha : 0));
+        }
+        sheet.data[to + 3] = 255;
+      }
+    }
+    top += strip.height * scale + gap;
+  }
+  return sheet;
+}
+
+// =============================================================================
+// A set
+// =============================================================================
+
 async function generateSpriteSet(spec: SpriteSetSpec, manifest: Manifest, options: Options): Promise<void> {
   const entry = (manifest[spec.key] ??= { animations: {} });
+  const directions = spec.directions ?? ['east'];
   const names = Object.keys(spec.animations);
+  // A strip per animation and direction
+  const keys = names.flatMap(name => directions.map(direction => animationKey(name, direction)));
   if (!entry.characterId || options.newCharacter) {
     entry.characterId = await createCharacter(spec, options.seed);
     entry.animations = {};
     saveManifest(manifest);
   }
   const characterId = entry.characterId;
+  const rotations = await downloadRotations(characterId, directions);
+  const palette = spec.lockPalette ? paletteOf(Object.values(rotations)) : null;
 
-  // Missing animations, at the same time
-  await Promise.all(names.map(async name => {
-    if (entry.animations[name] && !options.redo.includes(name)) return;
-    entry.animations[name] = await createAnimation(characterId, spec, name, options.seed);
+  // Missing animations, a few at a time (a redo is a new animation: the old take stays in the PixelLab library)
+  const missing = names.filter(name => !entry.animations[name] || options.redo.includes(name));
+  await runPool(missing, async name => {
+    entry.animations[name] = await createAnimation(characterId, spec, name, directions, options.seed, rotations, palette);
     saveManifest(manifest);
-  }));
+  });
 
+  const character = await api<CharacterDetail>(`/characters/${characterId}`);
   const frames: Record<string, RgbaImage[]> = {};
-  for (const name of names) {
-    frames[name] = await downloadFrames(characterId, entry.animations[name]);
+  for (const key of keys) {
+    const { name, direction } = parseKey(key);
+    const drawn = await downloadFrames(character, entry.animations[name], direction);
+    const animation = spec.animations[name];
+    // A loop's last frame is drawn back to its first pose: drop it so the pose doesn't show twice
+    const kept = animation.mode !== 'template' && animation.loop && drawn.length > 2 ? drawn.slice(0, -1) : drawn;
+    const trim = spec.trim?.[key];
+    frames[key] = trim ? kept.slice(trim[0], trim[1] + 1) : kept;
   }
   const strips = buildStrips(frames);
   mkdirSync(spec.outputDir, { recursive: true });
-  for (const name of names) {
-    writeFileSync(join(spec.outputDir, `${name}.png`), encodePng(strips[name]));
+  for (const key of keys) {
+    writeFileSync(join(spec.outputDir, stripFile(key)), encodePng(strips[key]));
   }
-  log(`${spec.name}: wrote ${spec.outputDir} (${names.map(name => `${name} ${frames[name].length}`).join(', ')} frames, ${strips.idle.height}px)`);
+  log(`${spec.name}: wrote ${spec.outputDir} (${keys.map(key => `${key} ${frames[key].length}`).join(', ')} frames, ${strips.idle.height}px)`);
+
+  const report: string[] = [];
+  for (const key of keys) {
+    const { name, direction } = parseKey(key);
+    const animation = spec.animations[name];
+    const findings = checkStrip(frames[key], rotations[direction], animation.mode === 'template' || animation.loop === true);
+    report.push(findings.length ? `${key}:\n${findings.map(finding => `  - ${finding}`).join('\n')}` : `${key}: ok`);
+  }
+  log(`${spec.name}: check\n${report.join('\n')}`);
+  if (options.review) {
+    mkdirSync(options.review, { recursive: true });
+    writeFileSync(join(options.review, `${spec.key}.png`), encodePng(contactSheet(keys.map(key => strips[key]), 3)));
+    writeFileSync(join(options.review, `${spec.key}.txt`), `${report.join('\n')}\n\nRows: ${keys.join(', ')}\n`);
+    log(`${spec.name}: contact sheet in ${join(options.review, `${spec.key}.png`)}`);
+  }
 }
 
 function loadManifest(): Manifest {
@@ -557,6 +847,13 @@ function loadManifest(): Manifest {
 
 function saveManifest(manifest: Manifest): void {
   writeFileSync(MANIFEST_PATH, JSON.stringify(manifest, null, 2) + '\n');
+}
+
+async function runPool<T>(jobs: T[], worker: (job: T) => Promise<void>): Promise<void> {
+  let next = 0;
+  await Promise.all(Array.from({ length: CONCURRENT_ANIMATIONS }, async () => {
+    while (next < jobs.length) await worker(jobs[next++]);
+  }));
 }
 
 function log(message: string): void {

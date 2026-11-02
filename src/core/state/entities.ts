@@ -25,6 +25,10 @@ export interface EntityAnimationState {
   abilityStartTime: number;
   /** Duration of ability animation (ms) */
   abilityDuration: number;
+  /** Where the ability being cast is aimed: a point, or a unit (null when it isn't aimed) */
+  abilityTargetX: number | null;
+  abilityTargetY: number | null;
+  abilityTargetId: string | null;
   /** When the entity last took damage (ms, performance.now), for the hit flash */
   hitTime: number;
   /** Which way that hit pushed it (a unit vector away from what hit it; 0, 0 if unknown) */
@@ -68,6 +72,9 @@ export function createDefaultAnimationState(): EntityAnimationState {
     abilityId: undefined,
     abilityStartTime: 0,
     abilityDuration: 0,
+    abilityTargetX: null,
+    abilityTargetY: null,
+    abilityTargetId: null,
     hitTime: -Infinity,
     hitDirX: 0,
     hitDirY: 0,
@@ -155,7 +162,16 @@ export function isAttackAnimationPlaying(entity: InterpolatedEntity | undefined)
 /**
  * Check if an entity is currently casting an ability.
  */
-export function getAbilityCastState(entity: InterpolatedEntity | undefined): { casting: boolean; abilityId?: string; duration?: number } {
+export interface AbilityCastState {
+  casting: boolean;
+  abilityId?: string;
+  /** How long its cast animation lasts (seconds) */
+  duration?: number;
+  /** Where it's aimed: a point, or a unit */
+  target?: { x: number; y: number } | { entityId: string };
+}
+
+export function getAbilityCastState(entity: InterpolatedEntity | undefined): AbilityCastState {
   if (!entity || !entity.animation.isCastingAbility) {
     return { casting: false };
   }
@@ -167,7 +183,9 @@ export function getAbilityCastState(entity: InterpolatedEntity | undefined): { c
     entity.animation.abilityId = undefined;
     return { casting: false };
   }
-  return { casting: true, abilityId: entity.animation.abilityId, duration: entity.animation.abilityDuration / 1000 };
+  const { abilityTargetX: x, abilityTargetY: y, abilityTargetId } = entity.animation;
+  const target = x !== null && y !== null ? { x, y } : abilityTargetId !== null ? { entityId: abilityTargetId } : undefined;
+  return { casting: true, abilityId: entity.animation.abilityId, duration: entity.animation.abilityDuration / 1000, target };
 }
 
 /**
