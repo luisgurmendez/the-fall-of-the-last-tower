@@ -6,8 +6,10 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
 import { ServerTower } from '../simulation/ServerTower';
 import { ServerMinion } from '../simulation/ServerMinion';
+import { ServerWard } from '../simulation/ServerWard';
+import { ServerBlossom } from '../simulation/ServerBlossom';
 import { ServerGameContext } from '../game/ServerGameContext';
-import { Vector, EntityType, Side, CHAMPION_DEFINITIONS, TEAM_RED } from '@siege/shared';
+import { Vector, EntityType, Side, CHAMPION_DEFINITIONS, TEAM_RED, MAPS } from '@siege/shared';
 import { DEFAULT_TOWER_STATS } from '@siege/shared';
 import { TestChampion } from './ServerTestUtils';
 
@@ -279,6 +281,38 @@ describe('ServerTower', () => {
       // Tower should target champion when no minions present
       const snapshot = tower.toSnapshot();
       expect(snapshot.targetEntityId).toBe('champion-1');
+    });
+
+    it('should not shoot wards or blossoms', () => {
+      const tower = new ServerTower({
+        id: 'tower-1',
+        position: new Vector(0, 0),
+        side: 0,
+        lane: 'mid',
+        tier: 1,
+      });
+      context.addEntity(tower);
+      context.addEntity(new ServerWard({
+        id: 'red-ward',
+        position: new Vector(100, 0),
+        side: TEAM_RED,
+        wardType: 'stealth',
+        ownerId: 'player-1',
+      }));
+      context.addEntity(new ServerBlossom({ id: 'blossom', position: new Vector(150, 0) }, MAPS.narrows.BLOSSOMS));
+      tower.update(0.1, context);
+      expect(tower.toSnapshot().targetEntityId).toBeNull();
+
+      // A champion walking in is shot
+      context.addEntity(new TestChampion({
+        id: 'champion-1',
+        position: new Vector(250, 0),
+        side: TEAM_RED,
+        playerId: 'player-1',
+        definition: CHAMPION_DEFINITIONS['warrior'],
+      }));
+      tower.update(0.1, context);
+      expect(tower.toSnapshot().targetEntityId).toBe('champion-1');
     });
 
     it('should target champion with aggro over minions', () => {

@@ -244,21 +244,16 @@ export class ServerTower extends ServerEntity {
     let bestDistance = Infinity;
 
     for (const entity of nearbyEntities) {
-      // Skip allies, neutral jungle creatures, self, and structures
-      if (entity.side === this.side) continue;
-      if (entity.entityType === EntityType.JUNGLE_CAMP) continue;
-      if (entity.isDead) continue;
-      if (
-        entity.entityType === EntityType.TOWER ||
-        entity.entityType === EntityType.INHIBITOR ||
-        entity.entityType === EntityType.NEXUS
-      )
-        continue;
+      if (entity.side === this.side || entity.isDead) continue;
+      // Only champions and minions: never structures, jungle creatures,
+      // wards, traps, zones, projectiles, Lume's orb or blossoms (shots at
+      // those flew at nothing, often at things its own side can't see)
+      const priority = this.getTargetPriority(entity);
+      if (priority === TowerTargetPriority.NONE) continue;
 
       if (!this.isInAttackRange(entity, this.stats.attackRange)) continue;
       const distance = this.position.distanceTo(entity.position);
 
-      const priority = this.getTargetPriority(entity);
 
       // Prefer higher priority, then closer distance
       if (
@@ -276,7 +271,8 @@ export class ServerTower extends ServerEntity {
 
   /**
    * How much the tower wants to shoot an entity: champions that hit an
-   * allied champion under it, then minions, then other champions.
+   * allied champion under it, then minions, then other champions; NONE for
+   * everything it doesn't shoot.
    */
   private getTargetPriority(entity: ServerEntity): TowerTargetPriority {
     if (entity.entityType === EntityType.CHAMPION) {
