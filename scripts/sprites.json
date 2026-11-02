@@ -236,15 +236,15 @@
   },
   "hop": {
     "animations": {
-      "r": "28a3c648-f780-4a3e-8169-637dbd25c810",
-      "q": "ee080a39-5c12-4139-8206-5eb45b315048",
-      "e": "2031d009-d6cc-4fd8-bc13-48bc577ae4f6",
-      "w": "aa8d93f3-0e78-484d-bd44-642e97f8aac5",
-      "attack": "5503f53b-1cb5-4d71-a113-283741cf492e",
-      "idle": "f1ad6cf5-a2bc-4689-bc9d-64e3084c1bef",
-      "walk": "e8d25008-d5cf-4688-aa9d-1637808bc121"
+      "attack": "97837dce-8b59-44a8-92a8-0f0584678c0a",
+      "walk": "5a58a277-a203-47df-8510-9f5e191bf9aa",
+      "idle": "b0d316c2-54b7-4858-a512-89ec60b3f41a",
+      "q": "e1489dd7-6709-44d6-a8c0-02542ff620a8",
+      "w": "53658b83-ba50-44bb-8f75-ceb6ffdbd79c",
+      "e": "fe30b9ac-c5ee-47b3-bc24-2051cfe53626",
+      "r": "4c4ca1dc-86f5-4ba2-a557-e84d23cd9b27"
     },
-    "characterId": "91d6fb27-1917-4ae4-b461-a0365ffa1651"
+    "characterId": "8efb4f4a-5203-4e76-88d2-614ed3b0754e"
   },
   "zhakrul": {
     "characterId": "ebf59f75-1b7b-4400-83b7-e320535ffddc",

@@ -36,6 +36,8 @@
  *   bun scripts/generate-sprites.ts --only spider --redo attack --seed 8
  *     # generate those animations again, in every direction (another seed gives another take)
  *   bun scripts/generate-sprites.ts --only spider --new-character
+ *   bun scripts/generate-sprites.ts --only hop --new-character --character-only --review /tmp/review
+ *     # only the character, to look at it facing every direction before animating it
  *   bun scripts/generate-sprites.ts --only zhakrul --review /tmp/review
  *     # also write a contact sheet of every strip, scaled up, and the check
  *
@@ -87,6 +89,14 @@ interface SpriteSetSpec {
   reference?: { description: string; seed: number };
   /** Draw every frame with the character's own colors only */
   lockPalette?: boolean;
+  /** With lockPalette, colors besides the character's that its animations need (a prop it pulls out) */
+  paletteExtras?: string[];
+  /**
+   * An animation's action facing one way, by manifest key (q@north), where
+   * the hint isn't enough: told to bite seen from behind, Hop turned round
+   * to show its teeth
+   */
+  directionActions?: Record<string, string>;
   /**
    * The frames to keep (first and last) of strips where only part of what
    * PixelLab drew fits, by manifest key (e, e@south)
@@ -107,6 +117,8 @@ interface ChampionActions {
   directions?: Direction[];
   reference?: { description: string; seed: number };
   trim?: Record<string, [number, number]>;
+  paletteExtras?: string[];
+  directionActions?: Record<string, string>;
   /** Idle and walk, for a champion that doesn't stand or walk like a person (default: breathing, PixelLab's walk) */
   idle?: string;
   walk?: string;
@@ -135,6 +147,8 @@ function champion(championId: string, actions: ChampionActions): SpriteSetSpec {
     directions: actions.directions,
     reference: actions.reference,
     lockPalette: actions.directions !== undefined,
+    paletteExtras: actions.paletteExtras,
+    directionActions: actions.directionActions,
     trim: actions.trim,
     animations: {
       idle: actions.directions
@@ -353,16 +367,33 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
     e: 'launches its fist forward like a rocket on a burst of flame',
     r: 'raises both arms and releases a big pulse of blue electricity all around',
   }),
+  // Four directions too. Its first take turned to face the viewer to eat and
+  // spun round for its kick: nothing turns now
   champion('hop', {
     name: 'Hop-To-Eat',
     size: 64,
     detail: 'low detail',
-    description: 'a small fluffy white rabbit standing upright on its hind legs, with huge long ears, big innocent pink eyes, tiny sharp fangs, big strong hind feet and a little red scarf',
-    attack: 'hops forward and kicks with its big hind foot',
-    q: 'lunges forward and bites hard with its sharp front teeth',
-    w: 'sits down and munches a big orange carrot happily',
-    e: 'hops high up into the air and lands',
-    r: 'spins around and delivers a powerful flying kick forward',
+    directions: ['east', 'south', 'north'],
+    reference: {
+      description: 'a small fluffy white rabbit standing upright on its hind legs facing the viewer, huge long ears with pink insides, big innocent pink eyes, tiny sharp fangs, big strong hind feet and a little red scarf, no effects',
+      seed: 13,
+    },
+    // Its carrot's orange and green
+    paletteExtras: ['#e8741c', '#f59a3a', '#b4531a', '#5aa83c', '#3a7a28'],
+    // Told to bite or kick seen from behind, it turned round to show its face;
+    // its bite from behind doesn't mention its teeth
+    directionActions: {
+      'q@north': 'seen from behind, its head darts forward away from the viewer with its ears flattening back, then it pulls back, only its back, ears and fluffy tail visible the whole time',
+      'r@north': 'seen from behind, leaps away from the viewer into a flying kick with one hind leg stretched far out, only its back, ears and fluffy tail visible the whole time',
+    },
+    description: 'a small fluffy white rabbit with huge long ears, big innocent pink eyes, tiny sharp fangs, big strong hind feet and a little red scarf',
+    idle: 'sitting up on its hind legs, breathing softly, ears twitching a little, nose wiggling',
+    walk: 'hops forward on its big hind feet in a looping hop cycle, ears bouncing',
+    attack: 'hops forward and kicks with one big hind foot, then lands back where it was',
+    q: 'lunges forward and bites hard with its sharp front teeth, then pulls back',
+    w: 'holds a big orange carrot in its front paws and munches it happily',
+    e: 'crouches, then hops high up into the air and lands on its hind feet',
+    r: 'leaps forward in a powerful flying kick with one hind leg stretched far out, then lands',
   }),
   // The first four-direction champion. Its first take had a glowing venom
   // stinger, drawn dripping in every frame: the stinger is plain now, and the
@@ -466,16 +497,19 @@ interface Options {
   seed: number;
   /** Where to write the contact sheets and checks, if anywhere */
   review: string | null;
+  /** Stop after the character, to look at its rotations before animating it */
+  characterOnly: boolean;
 }
 
 function parseArgs(argv: string[]): Options {
-  const options: Options = { only: null, redo: [], newCharacter: false, seed: 7, review: null };
+  const options: Options = { only: null, redo: [], newCharacter: false, seed: 7, review: null, characterOnly: false };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--only') options.only = argv[++i].split(',');
     else if (argv[i] === '--redo') options.redo = argv[++i].split(',');
     else if (argv[i] === '--new-character') options.newCharacter = true;
     else if (argv[i] === '--seed') options.seed = Number(argv[++i]);
     else if (argv[i] === '--review') options.review = argv[++i];
+    else if (argv[i] === '--character-only') options.characterOnly = true;
   }
   return options;
 }
@@ -601,7 +635,7 @@ function parseKey(key: string): { name: string; direction: Direction } {
  */
 const DIRECTION_HINTS: Partial<Record<Direction, { action: string; pose: string }>> = {
   north: {
-    action: 'seen from behind the whole time, facing away from the viewer',
+    action: 'seen from behind the whole time, its back toward the viewer, facing away from the viewer',
     pose: 'standing still, seen from behind, facing away from the viewer',
   },
 };
@@ -639,7 +673,8 @@ async function createAnimation(
       Object.assign(body, { mode: 'template', template_animation_id: animation.template });
     } else {
       const hint = DIRECTION_HINTS[direction];
-      const action = hint ? `${animation.action}, ${hint.action}` : animation.action;
+      const own = spec.directionActions?.[animationKey(name, direction)];
+      const action = own ?? (hint ? `${animation.action}, ${hint.action}` : animation.action);
       Object.assign(body, { mode: animation.mode, action_description: action, frame_count: animation.frames });
       if (animation.mode === 'pixminimax') {
         body.subject_description = spec.description;
@@ -798,7 +833,16 @@ async function generateSpriteSet(spec: SpriteSetSpec, manifest: Manifest, option
   }
   const characterId = entry.characterId;
   const rotations = await downloadRotations(characterId, directions);
-  const palette = spec.lockPalette ? paletteOf(Object.values(rotations)) : null;
+  if (options.characterOnly) {
+    if (options.review) {
+      mkdirSync(options.review, { recursive: true });
+      const standing = buildStrips(Object.fromEntries(directions.map(direction => [animationKey('idle', direction), [rotations[direction]]])));
+      writeFileSync(join(options.review, `${spec.key}-character.png`), encodePng(contactSheet(Object.values(standing), 4)));
+    }
+    log(`${spec.name}: character ${characterId} (${directions.join(', ')})`);
+    return;
+  }
+  const palette = spec.lockPalette ? [...paletteOf(Object.values(rotations)), ...(spec.paletteExtras ?? [])] : null;
 
   // Missing animations, a few at a time (a redo is a new animation: the old take stays in the PixelLab library)
   const missing = names.filter(name => !entry.animations[name] || options.redo.includes(name));

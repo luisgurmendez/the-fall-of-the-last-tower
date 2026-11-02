@@ -464,8 +464,8 @@ second at the base pace (100 units a second) and follows the champion's movement
 health bar above its art. During Vile's R the server puts a `vile_transformed` marker effect
 on him; his renderer draws him 30% bigger with a pulsing violet glow. Champions without art are drawn as a team-colored circle.
 
-**Four directions.** Zhak'rul is drawn facing east, south and north (west is east mirrored);
-the others only sideways. Each of his strips has a `_south` and a `_north` version
+**Four directions.** Zhak'rul and Hop-To-Eat are drawn facing east, south and north (west is
+east mirrored); the others only sideways. Each of their strips has a `_south` and a `_north` version
 (`idle_south.png`), named by the fourth argument of `generatedStrips`. The client turns a
 champion up or down the screen once what it faces (its move target or its target; while it
 casts, where the ability is aimed, unless that point is at its feet like a cloud around it) is clearly
@@ -474,7 +474,7 @@ sideways under 0.9, so diagonals keep the side view), and draws that direction's
 has one. In `scripts/generate-sprites.ts` such a set has `directions`, a `reference` (the
 create-image-pixen take of its south-facing look the character is turned from; a character
 drawn "from the side" comes out sideways in every direction), `lockPalette` (every frame on the
-character's own colors), looping idle and walk (drawn back to their first pose) and, when only
+character's own colors, plus `paletteExtras` for a prop like Hop's carrot), looping idle and walk (drawn back to their first pose) and, when only
 part of what PixelLab drew fits, `trim` (the frames of a strip to keep). Each animation is one
 PixelLab animation holding all its directions; PixelLab draws each direction on its own, so the
 north one is also told it's seen from behind (told to strike "forward", the scorpion turned
@@ -484,7 +484,12 @@ stinger dripping venom in every frame, and told to burst out of the sand his E d
 in his own reds with the palette locked (now he just rears up). Every run checks each
 strip for frames that lost part of the body, grew something or jump from the one before;
 `--review <dir>` writes contact sheets to look at (a turn-around only shows there), and
-`--redo <name>` draws an animation again with another `--seed`.
+`--redo <name>` draws an animation again with another `--seed`. `--new-character
+--character-only` makes the character and stops, to look at it facing every direction before
+paying for its animations (about USD 0.04 for the character, 0.01 per animation and direction). Where
+the hint isn't enough, `directionActions` gives one direction its own action: told to bite or
+kick seen from behind, Hop turned round to show its face, so its north bite describes its head
+darting forward with its ears flattening back.
 
 ## Server Champion
 
