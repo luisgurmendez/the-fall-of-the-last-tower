@@ -59,9 +59,9 @@ export class FogOfWarServer {
   private readonly wallGrid: WallGrid;
 
   /**
-   * @param walls Terrain walls that block vision (default: the map's walls)
+   * @param walls Terrain walls that block vision (default: the map's walls; null for none)
    */
-  constructor(walls: ConstructorParameters<typeof WallGrid>[0] = MOBAConfig.WALLS) {
+  constructor(walls: ConstructorParameters<typeof WallGrid>[0] = MOBAConfig.WALL_FIELD) {
     this.visionSources.set(0, []);
     this.visionSources.set(1, []);
     this.bushManager = new ServerBushManager();

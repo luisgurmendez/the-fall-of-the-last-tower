@@ -45,9 +45,14 @@ describe('terrain field', () => {
     expect(fieldDistanceAt(field, WATER, 0, edge)).toBeLessThan(0);
   });
 
-  it('has rock inside the walls', () => {
-    const wall = MOBAConfig.WALLS.find(w => w.width >= 128 && w.height >= 128)!;
-    expect(fieldDistanceAt(field, ROCK, wall.position.x, wall.position.y)).toBeLessThan(0);
+  it('has rock where the walls are', () => {
+    // Deep in a wall, and in the open, by the map's wall field
+    let deep: { x: number; y: number } | null = null;
+    for (let y = -2000; y < 2000 && !deep; y += 32) {
+      for (let x = -2000; x < 2000 && !deep; x += 32) if (MOBAConfig.WALL_FIELD.distance(x, y) < -60) deep = { x, y };
+    }
+    expect(deep).not.toBeNull();
+    expect(fieldDistanceAt(field, ROCK, deep!.x, deep!.y)).toBeLessThan(-40);
   });
 
   it('has open grass at a jungle camp', () => {

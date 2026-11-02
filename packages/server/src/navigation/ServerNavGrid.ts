@@ -341,8 +341,10 @@ export class ServerNavGrid {
   /**
    * Find a path from start to end using A*.
    * Returns array of world positions, or null if no path found.
+   * @param lineOfSight Whether a straight line between two waypoints is
+   *   walkable, to straighten the path (default: across walkable cells)
    */
-  findPath(startWorld: Vector, endWorld: Vector): Vector[] | null {
+  findPath(startWorld: Vector, endWorld: Vector, lineOfSight?: (from: Vector, to: Vector) => boolean): Vector[] | null {
     const start = this.worldToGrid(startWorld.x, startWorld.y);
     const end = this.worldToGrid(endWorld.x, endWorld.y);
 
@@ -387,7 +389,7 @@ export class ServerNavGrid {
       closed[current] = 1;
 
       if (current === endIndex) {
-        return this.reconstructPath(parent, endIndex);
+        return this.reconstructPath(parent, endIndex, lineOfSight);
       }
 
       const cx = current % this.width;
@@ -422,14 +424,14 @@ export class ServerNavGrid {
   /**
    * Reconstruct path from the end cell back to the start.
    */
-  private reconstructPath(parent: Int32Array, endIndex: number): Vector[] {
+  private reconstructPath(parent: Int32Array, endIndex: number, lineOfSight?: (from: Vector, to: Vector) => boolean): Vector[] {
     const path: Vector[] = [];
     for (let index = endIndex; index !== -1; index = parent[index]) {
       path.unshift(this.gridToWorld(index % this.width, Math.floor(index / this.width)));
     }
 
     // Simplify path by removing intermediate points on straight lines
-    return this.simplifyPath(path);
+    return this.simplifyPath(path, lineOfSight);
   }
 
   /**
@@ -488,7 +490,7 @@ export class ServerNavGrid {
    * Simplify path using line-of-sight optimization (string pulling).
    * Removes unnecessary waypoints where direct paths exist.
    */
-  private simplifyPath(path: Vector[]): Vector[] {
+  private simplifyPath(path: Vector[], lineOfSight: (from: Vector, to: Vector) => boolean = (a, b) => this.hasLineOfSight(a, b)): Vector[] {
     if (path.length <= 2) return path;
 
     const simplified: Vector[] = [path[0]];
@@ -499,7 +501,7 @@ export class ServerNavGrid {
       let furthest = anchor + 1;
 
       for (let i = anchor + 2; i < path.length; i++) {
-        if (this.hasLineOfSight(path[anchor], path[i])) {
+        if (lineOfSight(path[anchor], path[i])) {
           furthest = i;
         } else {
           // Can't see past this point, stop looking
@@ -584,6 +586,19 @@ export class ServerNavGrid {
     }
 
     return this.gridToWorld(lastValidX, lastValidY);
+  }
+
+  /**
+   * Mark every cell whose center fails `walkable` as blocked.
+   */
+  initializeWalkable(walkable: (worldX: number, worldY: number) => boolean): void {
+    for (let y = 0; y < this.height; y++) {
+      for (let x = 0; x < this.width; x++) {
+        const world = this.gridToWorld(x, y);
+        if (!walkable(world.x, world.y)) this.setBlockedInternal(x, y);
+      }
+    }
+    this._version++;
   }
 
   /**

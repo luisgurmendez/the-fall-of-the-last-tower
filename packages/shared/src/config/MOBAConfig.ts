@@ -6,7 +6,41 @@
  */
 
 import { Vector } from "../math/Vector";
-import { BLUE_NEXUS, DRAGON_PIT, LANE_PATHS, LANE_WIDTH, RIVER_PATH, RIVER_WIDTH, SIEGE_MAP_WALLS } from "./siegeMap";
+import {
+  BLUE_NEXUS, BOT_ONLY_BUSHES, DRAGON_PIT, LANE_PATHS, LANE_WIDTH, RIVER_PATH, RIVER_WIDTH, SIEGE_MAP_WALLS, SIEGE_WALL_FIELD,
+  TOP_ONLY_BUSHES, TOP_SIDE_BUSHES, TOP_SIDE_CAMPS, type BushSpot,
+} from "./siegeMap";
+
+const { blueBuff: BLUE_BUFF, thornspitter: THORNSPITTER, wolves: WOLVES } = TOP_SIDE_CAMPS;
+
+/**
+ * Blue's half's bush groups: the top side's, their reflections across mid
+ * (a line along x becomes one along y), and each side's own. Red's are
+ * their mirror images.
+ */
+function blueHalfBushes(): { center: Vector; bushCount: number; spread: BushSpread; reflectionOf?: number }[] {
+  const group = (spot: BushSpot) => ({ center: new Vector(spot.at.x, spot.at.y), bushCount: spot.count, spread: spot.line });
+  const reflectedLine = { horizontal: "vertical", vertical: "horizontal" } as const;
+  return [
+    ...TOP_SIDE_BUSHES.map(group),
+    ...TOP_ONLY_BUSHES.map(group),
+    ...TOP_SIDE_BUSHES.map((spot, i) => ({
+      ...group({
+        at: { x: -spot.at.y, y: -spot.at.x },
+        count: spot.count,
+        line: spot.line === "horizontal" || spot.line === "vertical" ? reflectedLine[spot.line] : spot.line,
+      }),
+      reflectionOf: i,
+    })),
+    ...BOT_ONLY_BUSHES.map(group),
+  ];
+}
+const BLUE_HALF_BUSHES = blueHalfBushes();
+/** A top-side camp spot, or its reflection across mid (the bot side), or either's mirror image (red's) */
+const campSpot = (spot: { x: number; y: number }, botSide: boolean, red: boolean) => {
+  const [x, y] = botSide ? [-spot.y, -spot.x] : [spot.x, spot.y];
+  return red ? new Vector(-x, -y) : new Vector(x, y);
+};
 
 /**
  * Side identifiers.
@@ -97,21 +131,21 @@ export const MOBAConfig = {
       // Blue's top-side jungle
       {
         id: "blue_bluebuff",
-        position: new Vector(-1440, -200),
+        position: campSpot(BLUE_BUFF, false, false),
         creatureType: "blue_buff" as const,
         count: 1,
         respawnTime: 120,
       },
       {
         id: "blue_thornspitter",
-        position: new Vector(-1960, -420),
+        position: campSpot(THORNSPITTER, false, false),
         creatureType: "thornspitter" as const,
         count: 1,
         respawnTime: 60,
       },
       {
         id: "blue_wolves",
-        position: new Vector(-1440, 360),
+        position: campSpot(WOLVES, false, false),
         creatureType: "wolf" as const,
         count: 2,
         respawnTime: 50,
@@ -119,21 +153,21 @@ export const MOBAConfig = {
       // Blue's bot-side jungle
       {
         id: "blue_redbuff",
-        position: new Vector(200, 1440),
+        position: campSpot(BLUE_BUFF, true, false),
         creatureType: "red_buff" as const,
         count: 1,
         respawnTime: 120,
       },
       {
         id: "blue_spiders",
-        position: new Vector(-360, 1440),
+        position: campSpot(WOLVES, true, false),
         creatureType: "spider" as const,
         count: 3,
         respawnTime: 45,
       },
       {
         id: "blue_thornspitter_2",
-        position: new Vector(420, 1960),
+        position: campSpot(THORNSPITTER, true, false),
         creatureType: "thornspitter" as const,
         count: 1,
         respawnTime: 60,
@@ -142,42 +176,42 @@ export const MOBAConfig = {
       // ========== RED SIDE JUNGLE (mirror of blue) ==========
       {
         id: "red_bluebuff",
-        position: new Vector(1440, 200),
+        position: campSpot(BLUE_BUFF, false, true),
         creatureType: "blue_buff" as const,
         count: 1,
         respawnTime: 120,
       },
       {
         id: "red_thornspitter",
-        position: new Vector(1960, 420),
+        position: campSpot(THORNSPITTER, false, true),
         creatureType: "thornspitter" as const,
         count: 1,
         respawnTime: 60,
       },
       {
         id: "red_wolves",
-        position: new Vector(1440, -360),
+        position: campSpot(WOLVES, false, true),
         creatureType: "wolf" as const,
         count: 2,
         respawnTime: 50,
       },
       {
         id: "red_redbuff",
-        position: new Vector(-200, -1440),
+        position: campSpot(BLUE_BUFF, true, true),
         creatureType: "red_buff" as const,
         count: 1,
         respawnTime: 120,
       },
       {
         id: "red_spiders",
-        position: new Vector(360, -1440),
+        position: campSpot(WOLVES, true, true),
         creatureType: "spider" as const,
         count: 3,
         respawnTime: 45,
       },
       {
         id: "red_thornspitter_2",
-        position: new Vector(-420, -1960),
+        position: campSpot(THORNSPITTER, true, true),
         creatureType: "thornspitter" as const,
         count: 1,
         respawnTime: 60,
@@ -430,72 +464,8 @@ export const MOBAConfig = {
    * Bush group positions and configuration.
    */
   BUSH_GROUPS: [
-    // ========== BLUE HALF ==========
-    // Top lane, outer side
-    { center: new Vector(-2590, -900), bushCount: 3, spread: "vertical" as const },
-    // Top lane, at the entrance to the thornspitter
-    { center: new Vector(-2250, -1060), bushCount: 3, spread: "vertical" as const },
-    // Top lane, at the river corner
-    { center: new Vector(-2150, -1650), bushCount: 3, spread: "cluster" as const },
-    // Top lane, at the entrance by the base
-    { center: new Vector(-2250, 430), bushCount: 3, spread: "vertical" as const },
-    // Top-side jungle, between the thornspitter and the blue buff
-    { center: new Vector(-1720, -380), bushCount: 3, spread: "cluster" as const },
-    // Top-side jungle, on the way from the wolves to the base
-    { center: new Vector(-1600, 800), bushCount: 3, spread: "cluster" as const },
-    // Mid lane, at the entrance to the wolves
-    { center: new Vector(-930, 520), bushCount: 3, spread: "cluster" as const },
-    // Mid lane, at the river crossroads, top side
-    { center: new Vector(-520, 180), bushCount: 3, spread: "cluster" as const },
-    // Top river, at the entrance to the blue buff
-    { center: new Vector(-1250, -1010), bushCount: 3, spread: "cluster" as const },
-    // Top river, at the crossroads by mid
-    { center: new Vector(-560, -250), bushCount: 3, spread: "cluster" as const },
-    // Bot river, at the crossroads by mid
-    { center: new Vector(250, 560), bushCount: 3, spread: "cluster" as const },
-    // Bot river, by the dragon pit
-    { center: new Vector(1000, 1130), bushCount: 3, spread: "cluster" as const },
-    // Behind the dragon pit
-    { center: new Vector(1380, 1710), bushCount: 3, spread: "cluster" as const },
-    // Bot lane, outer side
-    { center: new Vector(900, 2590), bushCount: 3, spread: "horizontal" as const },
-    // Bot lane, at the entrance to the thornspitter
-    { center: new Vector(1060, 2250), bushCount: 3, spread: "horizontal" as const },
-    // Bot lane, at the river corner
-    { center: new Vector(1650, 2150), bushCount: 3, spread: "cluster" as const },
-    // Bot lane, at the entrance by the base
-    { center: new Vector(-430, 2250), bushCount: 3, spread: "horizontal" as const },
-    // Bot-side jungle, between the thornspitter and the red buff
-    { center: new Vector(380, 1720), bushCount: 3, spread: "cluster" as const },
-    // Bot-side jungle, on the way from the spiders to the base
-    { center: new Vector(-800, 1600), bushCount: 3, spread: "cluster" as const },
-    // Mid lane, at the entrance to the spiders
-    { center: new Vector(-520, 930), bushCount: 3, spread: "cluster" as const },
-    // Mid lane, at the river crossroads, bot side
-    { center: new Vector(-180, 520), bushCount: 3, spread: "cluster" as const },
-
-    // ========== RED HALF (mirror of blue) ==========
-    { center: new Vector(2590, 900), bushCount: 3, spread: "vertical" as const },
-    { center: new Vector(2250, 1060), bushCount: 3, spread: "vertical" as const },
-    { center: new Vector(2150, 1650), bushCount: 3, spread: "cluster" as const },
-    { center: new Vector(2250, -430), bushCount: 3, spread: "vertical" as const },
-    { center: new Vector(1720, 380), bushCount: 3, spread: "cluster" as const },
-    { center: new Vector(1600, -800), bushCount: 3, spread: "cluster" as const },
-    { center: new Vector(930, -520), bushCount: 3, spread: "cluster" as const },
-    { center: new Vector(520, -180), bushCount: 3, spread: "cluster" as const },
-    { center: new Vector(1250, 1010), bushCount: 3, spread: "cluster" as const },
-    { center: new Vector(560, 250), bushCount: 3, spread: "cluster" as const },
-    { center: new Vector(-250, -560), bushCount: 3, spread: "cluster" as const },
-    { center: new Vector(-1000, -1130), bushCount: 3, spread: "cluster" as const },
-    { center: new Vector(-1380, -1710), bushCount: 3, spread: "cluster" as const },
-    { center: new Vector(-900, -2590), bushCount: 3, spread: "horizontal" as const },
-    { center: new Vector(-1060, -2250), bushCount: 3, spread: "horizontal" as const },
-    { center: new Vector(-1650, -2150), bushCount: 3, spread: "cluster" as const },
-    { center: new Vector(430, -2250), bushCount: 3, spread: "horizontal" as const },
-    { center: new Vector(-380, -1720), bushCount: 3, spread: "cluster" as const },
-    { center: new Vector(800, -1600), bushCount: 3, spread: "cluster" as const },
-    { center: new Vector(520, -930), bushCount: 3, spread: "cluster" as const },
-    { center: new Vector(180, -520), bushCount: 3, spread: "cluster" as const },
+    ...BLUE_HALF_BUSHES,
+    ...BLUE_HALF_BUSHES.map(group => ({ ...group, center: new Vector(-group.center.x, -group.center.y) })),
   ],
 
   /**
@@ -517,8 +487,14 @@ export const MOBAConfig = {
   },
 
   /**
-   * Terrain walls (tile-aligned to a 64 unit grid), generated from the layout
-   * in siegeMap.ts. Rectangles centered on `position`.
+   * The walls, as a signed distance field (negative inside a wall) from the
+   * layout in siegeMap.ts: what collision, pathfinding, vision and the art read.
+   */
+  WALL_FIELD: SIEGE_WALL_FIELD,
+
+  /**
+   * The walls as 64-unit tiles merged into rectangles centered on
+   * `position`: only a picture of WALL_FIELD, for drawings made of tiles.
    */
   WALLS: SIEGE_MAP_WALLS as Array<{
     position: typeof Vector.prototype;
@@ -810,6 +786,22 @@ export function calculateIndividualBushPositions(
 ): BushPosition[] {
   const groupConfig = MOBAConfig.BUSH_GROUPS[groupIndex];
   if (!groupConfig) return [];
+
+  // Red's groups follow blue's, in the same order: each is the exact mirror
+  // image of its blue twin, bush for bush. A bot-side group made from a
+  // top-side one is its reflection across mid (each bush turned on its side).
+  const blueGroups = MOBAConfig.BUSH_GROUPS.length / 2;
+  if (groupIndex >= blueGroups) {
+    return calculateIndividualBushPositions(groupIndex - blueGroups).map(bush => ({ ...bush, x: -bush.x, y: -bush.y }));
+  }
+  if ("reflectionOf" in groupConfig && groupConfig.reflectionOf !== undefined) {
+    return calculateIndividualBushPositions(groupConfig.reflectionOf).map(bush => ({
+      x: -bush.y,
+      y: -bush.x,
+      width: bush.height,
+      height: bush.width,
+    }));
+  }
 
   const {
     SPACING,

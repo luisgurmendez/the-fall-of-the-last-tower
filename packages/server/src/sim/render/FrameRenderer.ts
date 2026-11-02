@@ -147,19 +147,16 @@ export class FrameRenderer {
       }
     }
 
-    for (const wall of this.map.WALLS as readonly WallConfig[]) {
-      if ('points' in wall && wall.points) {
-        const points = wall.points.map(p => this.toPx(p.x, p.y));
-        raster.fillPolygon(points, COLORS.wall);
-        for (let i = 0; i < points.length; i++) {
-          const [ax, ay] = points[i];
-          const [bx, by] = points[(i + 1) % points.length];
-          raster.line(ax, ay, bx, by, COLORS.wallEdge);
-        }
-      } else if (wall.position) {
-        const [x, y] = this.toPx(wall.position.x - wall.width! / 2, wall.position.y - wall.height! / 2);
-        raster.fillRect(x, y, wall.width! * this.scale, wall.height! * this.scale, COLORS.wall);
-        raster.strokeRect(x, y, wall.width! * this.scale, wall.height! * this.scale, COLORS.wallEdge);
+    // Walls from the distance field, a pixel at a time, with a dark rim
+    const field = this.map.WALL_FIELD;
+    const rim = 1.5 / this.scale;
+    for (let py = 0; py < this.px; py++) {
+      for (let px = 0; px < this.px; px++) {
+        const distance = field.distance(
+          this.center.x + (px + 0.5 - this.px / 2) / this.scale,
+          this.center.y + (py + 0.5 - this.px / 2) / this.scale,
+        );
+        if (distance < 0) raster.plot(px, py, distance > -rim ? COLORS.wallEdge : COLORS.wall);
       }
     }
   }
@@ -302,13 +299,6 @@ export class FrameRenderer {
     raster.text(4, 3, text, COLORS.text, 2);
   }
 }
-
-/**
- * Walls are rectangles centered on `position`, or polygons given by `points`.
- */
-export type WallConfig =
-  | { position: { x: number; y: number }; width?: number; height?: number; points?: undefined }
-  | { points: readonly { x: number; y: number }[]; position?: undefined; width?: undefined; height?: undefined };
 
 export interface SheetOptions extends RenderOptions {
   /** Frames per row (default 4) */

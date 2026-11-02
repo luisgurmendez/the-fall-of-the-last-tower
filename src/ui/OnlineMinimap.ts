@@ -74,6 +74,8 @@ export class OnlineMinimap extends ScreenEntity {
 
   // Click state
   private isHovering: boolean = false;
+  /** The walls at the minimap's size (wallLayer) */
+  private wallCanvas: HTMLCanvasElement | null = null;
   private isDragging: boolean = false;
 
   constructor(
@@ -235,6 +237,37 @@ export class OnlineMinimap extends ScreenEntity {
   }
 
   /**
+   * The walls, drawn from the map's wall field into an image the minimap's
+   * size (at two pixels per point, for retina screens), with a dark rim;
+   * made once.
+   */
+  private wallLayer(): HTMLCanvasElement {
+    const pixels = Math.round(this.config.size * 2);
+    if (this.wallCanvas?.width === pixels) return this.wallCanvas;
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = pixels;
+    const context = canvas.getContext('2d')!;
+    const image = context.createImageData(pixels, pixels);
+    const field = MOBAConfig.WALL_FIELD;
+    const perPixel = this.mapSize / pixels;
+    for (let py = 0; py < pixels; py++) {
+      for (let px = 0; px < pixels; px++) {
+        const distance = field.distance((px + 0.5) * perPixel - this.mapHalfSize, (py + 0.5) * perPixel - this.mapHalfSize);
+        if (distance >= 0) continue;
+        const i = (py * pixels + px) * 4;
+        const rim = distance > -perPixel * 1.5;
+        image.data[i] = rim ? 0x2b : 0x4a;
+        image.data[i + 1] = rim ? 0x26 : 0x42;
+        image.data[i + 2] = rim ? 0x20 : 0x38;
+        image.data[i + 3] = 255;
+      }
+    }
+    context.putImageData(image, 0, 0);
+    this.wallCanvas = canvas;
+    return canvas;
+  }
+
+  /**
    * Render terrain features (lanes and static nexus indicators).
    */
   private renderTerrain(ctx: CanvasRenderingContext2D): void {
@@ -272,11 +305,7 @@ export class OnlineMinimap extends ScreenEntity {
     ctx.stroke();
 
     // Draw walls
-    ctx.fillStyle = '#4a4238';
-    for (const wall of MOBAConfig.WALLS) {
-      const topLeft = this.worldToMinimap(wall.position.x - wall.width / 2, wall.position.y - wall.height / 2);
-      ctx.fillRect(topLeft.x, topLeft.y, wall.width * scale, wall.height * scale);
-    }
+    ctx.drawImage(this.wallLayer(), this.minimapX, this.minimapY, size, size);
 
     // Draw lanes
     ctx.strokeStyle = '#3d5a3d';

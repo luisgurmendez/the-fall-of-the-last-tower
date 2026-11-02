@@ -4,10 +4,10 @@
 import './ServerTestUtils';
 import { describe, test, expect } from 'bun:test';
 import { InputType, MOBAConfig, Vector } from '@siege/shared';
-import { WALL_GRID_HALF, WALL_TILE_SIZE } from '../../../shared/src/config/mapLayout';
 import { Terrain } from '../navigation/Terrain';
 import { LanePath } from '../navigation/LanePath';
 import { Simulation } from '../sim';
+import { findWallCrossing } from './wallSpots';
 
 const terrain = new Terrain(MOBAConfig);
 
@@ -35,10 +35,8 @@ describe('Terrain', () => {
     expect(unreachable).toEqual([]);
   });
 
-  test('no walkable part of the navigation grid is cut off from the rest', () => {
-    // A champion's body fits in gaps paths can't use (they keep 30 units off
-    // walls); if one led to a cut-off patch of the grid, a champion that
-    // walked in could never path out
+  /** The walkable cells of the navigation grid reached from the map's center */
+  function reachedCells(): Uint8Array {
     const grid = terrain.navGrid;
     const start = grid.worldToGrid(0, 0);
     const reached = new Uint8Array(grid.width * grid.height);
@@ -55,7 +53,12 @@ describe('Terrain', () => {
         queue.push(next);
       }
     }
+    return reached;
+  }
 
+  test('no walkable part of the navigation grid is cut off from the rest', () => {
+    const grid = terrain.navGrid;
+    const reached = reachedCells();
     const cutOff: string[] = [];
     for (let y = 0; y < grid.height; y++) {
       for (let x = 0; x < grid.width; x++) {
@@ -68,28 +71,30 @@ describe('Terrain', () => {
     expect(cutOff).toEqual([]);
   });
 
-  test('walls leave no crack one tile wide (a body fits in, a path does not)', () => {
-    const tile = WALL_TILE_SIZE;
-    const count = (WALL_GRID_HALF * 2) / tile;
-    const solid = Array.from({ length: count }, () => new Array<boolean>(count).fill(false));
-    for (const wall of MOBAConfig.WALLS) {
-      const col0 = Math.round((wall.position.x - wall.width / 2 + WALL_GRID_HALF) / tile);
-      const row0 = Math.round((wall.position.y - wall.height / 2 + WALL_GRID_HALF) / tile);
-      for (let row = row0; row < row0 + wall.height / tile; row++) {
-        for (let col = col0; col < col0 + wall.width / tile; col++) solid[row][col] = true;
+  test('wherever a champion fits, a path leads out (no crack a body fits in but paths miss)', () => {
+    // Paths use the cells a champion fits in with a unit to spare; a spot it
+    // squeezes into must have one of those right next to it, or a champion
+    // that walked in could never path out
+    const grid = terrain.navGrid;
+    const reached = reachedCells();
+    const stranded: string[] = [];
+    const half = MOBAConfig.MAP_SIZE.width / 2 - MOBAConfig.WATER_BORDER_SIZE;
+    for (let y = -half; y <= half; y += 16) {
+      for (let x = -half; x <= half; x += 16) {
+        if (terrain.clearanceAt(x, y) < 25) continue;
+        const cell = grid.worldToGrid(x, y);
+        let near = false;
+        for (let dy = -2; dy <= 2 && !near; dy++) {
+          for (let dx = -2; dx <= 2 && !near; dx++) {
+            const nx = cell.x + dx;
+            const ny = cell.y + dy;
+            if (nx >= 0 && ny >= 0 && nx < grid.width && ny < grid.height && reached[ny * grid.width + nx]) near = true;
+          }
+        }
+        if (!near) stranded.push(`(${x}, ${y})`);
       }
     }
-    const isWall = (row: number, col: number) => row < 0 || col < 0 || row >= count || col >= count || solid[row][col];
-
-    const cracks: string[] = [];
-    for (let row = 0; row < count; row++) {
-      for (let col = 0; col < count; col++) {
-        if (solid[row][col]) continue;
-        const across = [[0, 1], [1, 0], [1, 1], [1, -1]].some(([dr, dc]) => isWall(row - dr, col - dc) && isWall(row + dr, col + dc));
-        if (across) cracks.push(`(${-WALL_GRID_HALF + (col + 0.5) * tile}, ${-WALL_GRID_HALF + (row + 0.5) * tile})`);
-      }
-    }
-    expect(cracks).toEqual([]);
+    expect(stranded).toEqual([]);
   });
 
   test('camps, towers, inhibitors, spawns and lane waypoints are not inside walls', () => {
@@ -120,12 +125,32 @@ describe('Terrain', () => {
     }
   });
 
-  test('pushes a unit out of a wall', () => {
+  test('pushes a unit out of a wall, clear of it', () => {
     // Just inside the left edge of a wall with open ground beside it
-    const wall = MOBAConfig.WALLS.find(w => !terrain.isBlocked(w.position.x - w.width / 2 - 40, w.position.y))!;
-    const position = new Vector(wall.position.x - wall.width / 2 + 10, wall.position.y);
+    const wall = findWallCrossing(150, 600);
+    const position = new Vector(wall.left + 10, wall.y);
     expect(terrain.resolveCircle(position, 25)).toBe(true);
-    expect(terrain.isBlocked(position.x, position.y)).toBe(false);
+    expect(terrain.clearanceAt(position.x, position.y)).toBeGreaterThan(24);
+    expect(position.x).toBeLessThan(wall.left);
+  });
+
+  test('a path round a wall is pulled taut against it (no wide berth)', () => {
+    // From the thornspitter's pit to the wolves': the path bends round the
+    // forest between them, and every leg up to a bend grazes a wall's edge
+    // at about a body's width
+    const camp = (id: string) => MOBAConfig.JUNGLE.CAMPS.find(c => c.id === id)!.position;
+    const start = camp('blue_thornspitter');
+    const path = terrain.findPath(start, camp('blue_wolves'))!;
+    expect(path.length).toBeGreaterThan(1);
+    const legs = [start, ...path];
+    for (let i = 0; i < legs.length - 2; i++) {
+      let closest = Infinity;
+      for (let t = 0; t <= 1; t += 0.02) {
+        closest = Math.min(closest, terrain.clearanceAt(legs[i].x + (legs[i + 1].x - legs[i].x) * t, legs[i].y + (legs[i + 1].y - legs[i].y) * t));
+      }
+      expect(closest).toBeGreaterThan(20);
+      expect(closest).toBeLessThan(32);
+    }
   });
 
   test('a path across the map is found quickly', () => {
@@ -161,8 +186,8 @@ describe('Terrain', () => {
   });
 
   describe('a point inside a wall', () => {
-    const wall = MOBAConfig.WALLS[3];
-    const inWall = { x: wall.position.x + wall.width / 2, y: wall.position.y + wall.height / 2 };
+    const wall = findWallCrossing(200, 700, 260);
+    const inWall = { x: wall.left + 50, y: wall.y };
 
     function walkToWall(order: InputType.MOVE | InputType.ATTACK_MOVE) {
       const sim = new Simulation({ seed: 1, minionWaves: false, jungle: false, structures: false });

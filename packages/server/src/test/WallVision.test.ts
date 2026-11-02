@@ -6,18 +6,19 @@ import './ServerTestUtils';
 import { describe, test, expect } from 'bun:test';
 import { GameConfig, MOBAConfig, Vector, WallGrid } from '@siege/shared';
 import { Simulation } from '../sim';
+import { findWallCrossing } from './wallSpots';
 
 describe('Walls block vision', () => {
-  const grid = new WallGrid(MOBAConfig.WALLS);
+  const grid = new WallGrid(MOBAConfig.WALL_FIELD);
   const sight = GameConfig.VISION.CHAMPION_SIGHT_RANGE;
   // A wall from the layout narrow enough to see across (if not for the
   // wall), and points on either side of it
-  const wall = MOBAConfig.WALLS.find(w => w.width >= 128 && w.width + 120 < sight - 100 && w.height >= 64)!;
-  const left = new Vector(wall.position.x - wall.width / 2 - 60, wall.position.y);
-  const right = new Vector(wall.position.x + wall.width / 2 + 60, wall.position.y);
+  const wall = findWallCrossing(128, sight - 220, 80);
+  const left = new Vector(wall.left - 60, wall.y);
+  const right = new Vector(wall.right + 60, wall.y);
 
   test('the wall grid finds walls and blocked sight lines', () => {
-    expect(grid.isWall(wall.position.x, wall.position.y)).toBe(true);
+    expect(grid.isWall(wall.x, wall.y)).toBe(true);
     expect(grid.hasLineOfSight(left.x, left.y, right.x, right.y)).toBe(false);
     expect(grid.hasLineOfSight(left.x, left.y, left.x, left.y - 40)).toBe(true);
   });

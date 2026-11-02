@@ -4,8 +4,8 @@
  * distance (world units, negative inside) to one terrain:
  * - R: water (the border around the map and the river)
  * - G: the lanes' paths
- * - B: rock (the walls), from the wall rectangles; smoothed, so the 64-unit
- *   steps of diagonal walls round off into curves
+ * - B: rock (the walls), read straight from the map's wall field, so the
+ *   art's edges are exactly where units bump into them
  * - A: brush (the bushes' hitboxes, the same the server hides units in),
  *   smoothed a little so the rectangles' corners round off
  * Distances are stored as 128 + d / 2, so ±256 units fit in a byte, and
@@ -158,20 +158,6 @@ export function buildTerrainField(): TerrainField {
   const playableHalf = MOBAConfig.MAP_SIZE.width / 2 - MOBAConfig.WATER_BORDER_SIZE;
   const lanes = Object.values(MOBAConfig.LANES);
 
-  // Rock: the wall rectangles, on the cells they cover
-  const rock = new Uint8Array(width * height);
-  for (const wall of MOBAConfig.WALLS) {
-    const x0 = Math.round((wall.position.x - wall.width / 2 - originX) / cell);
-    const x1 = Math.round((wall.position.x + wall.width / 2 - originX) / cell);
-    const y0 = Math.round((wall.position.y - wall.height / 2 - originY) / cell);
-    const y1 = Math.round((wall.position.y + wall.height / 2 - originY) / cell);
-    for (let y = Math.max(0, y0); y < Math.min(height, y1); y++) {
-      for (let x = Math.max(0, x0); x < Math.min(width, x1); x++) rock[y * width + x] = 1;
-    }
-  }
-  const rockDistance = signedDistance(rock, width, height, cell);
-  blur(rockDistance, width, height, 2, 2);
-
   // Brush: every bush of every group
   const brush = new Uint8Array(width * height);
   for (let group = 0; group < MOBAConfig.BUSH_GROUPS.length; group++) {
@@ -200,7 +186,7 @@ export function buildTerrainField(): TerrainField {
       const i = (y * width + x) * 4;
       data[i] = encode(water);
       data[i + 1] = encode(path);
-      data[i + 2] = encode(rockDistance[y * width + x]);
+      data[i + 2] = encode(MOBAConfig.WALL_FIELD.distance(px, py));
       data[i + 3] = encode(brushDistance[y * width + x]);
     }
   }

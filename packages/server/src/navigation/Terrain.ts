@@ -1,75 +1,87 @@
 /**
  * Terrain - Walls and water as the server sees them.
  *
+ * The walls are the map's distance field (MOBAConfig.WALL_FIELD): smooth
+ * curves, and exactly what the client draws.
  * - resolveCircle(): pushes a unit out of walls and the water border (run
- *   every tick after movement and unit collisions)
+ *   every tick after movement and unit collisions), straight away from the
+ *   nearest wall, so units slide along curved walls
  * - findPath(): A* around walls and the nexus buildings on a navigation
- *   grid whose walls are inflated by a unit's clearance, so paths don't hug
- *   cliff edges
- * - hasLineOfSight(): straight line not crossing a wall
+ *   grid of the spots a champion fits, straightened along lines that keep
+ *   a body's width off walls, so paths hug walls without scraping them
+ * - hasLineOfSight(): straight line a champion walks without touching a wall
  * - landingSpot(): where a unit going past walls (Blink, Zhak'rul's burrow) comes out
  */
 
-import { Vector, type MOBAConfig } from '@siege/shared';
+import { Vector, type MOBAConfig, type WallField } from '@siege/shared';
 import { ServerNavGrid } from './ServerNavGrid';
 
-interface Rect {
+/** How far landingSpot steps back looking for room past a wall */
+const LANDING_STEP = 8;
+/** A champion's radius: what paths make room for unless told otherwise */
+const BODY_RADIUS = 25;
+/** How much a straightened path may shave off a body's clearance at a corner (the unit slides past) */
+const CORNER_SHAVE = 3;
+/** A destination closer than this to where the unit stands is already reached */
+const ARRIVED = 6;
+
+interface Box {
   cx: number;
   cy: number;
   hx: number;
   hy: number;
 }
 
-/** Spatial bucket size for wall lookups */
-const BUCKET = 256;
-/** How far landingSpot steps back looking for room past a wall */
-const LANDING_STEP = 8;
+/** Signed distance to a box (negative inside) */
+function boxDistance(x: number, y: number, box: Box): number {
+  const qx = Math.abs(x - box.cx) - box.hx;
+  const qy = Math.abs(y - box.cy) - box.hy;
+  return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0);
+}
+
+/** The point on segment a-b closest to p */
+function closestOnSegment(p: Vector, a: Vector, b: Vector): Vector {
+  const ab = b.subtracted(a);
+  const lengthSq = ab.x * ab.x + ab.y * ab.y;
+  const t = lengthSq === 0 ? 0 : Math.max(0, Math.min(1, ((p.x - a.x) * ab.x + (p.y - a.y) * ab.y) / lengthSq));
+  return a.added(ab.scaled(t));
+}
 
 export class Terrain {
   readonly navGrid: ServerNavGrid;
-  private readonly rects: Rect[];
-  private readonly buckets: Map<string, number[]> = new Map();
+  private readonly field: WallField;
   private readonly playableHalf: number;
+  /** The nexus buildings: units collide with them, so paths go around */
+  private readonly nexuses: Box[];
 
   /**
    * @param map Map config (walls, water border, nexus footprints)
-   * @param clearance How far paths keep from walls (about a champion's radius)
+   * @param clearance How far the navigation grid keeps paths' cells from walls (a champion's radius)
    */
-  constructor(map: typeof MOBAConfig, clearance = 30) {
+  constructor(map: typeof MOBAConfig, private readonly clearance = BODY_RADIUS + 1) {
+    this.field = map.WALL_FIELD;
     this.playableHalf = map.MAP_SIZE.width / 2 - map.WATER_BORDER_SIZE;
-    this.rects = map.WALLS.map(wall => ({
-      cx: wall.position.x,
-      cy: wall.position.y,
-      hx: wall.width / 2,
-      hy: wall.height / 2,
-    }));
 
-    this.rects.forEach((rect, index) => {
-      for (const key of this.bucketKeys(rect.cx - rect.hx, rect.cy - rect.hy, rect.cx + rect.hx, rect.cy + rect.hy)) {
-        const list = this.buckets.get(key) ?? [];
-        list.push(index);
-        this.buckets.set(key, list);
-      }
-    });
-
-    // Paths also go around the nexus buildings (units collide with them)
     const footprint = map.NEXUS.collision;
-    const nexuses = [map.NEXUS.BLUE, map.NEXUS.RED].map(center => ({
-      position: { x: center.x + footprint.offset.x, y: center.y + footprint.offset.y },
-      width: footprint.width,
-      height: footprint.height,
+    this.nexuses = [map.NEXUS.BLUE, map.NEXUS.RED].map(center => ({
+      cx: center.x + footprint.offset.x,
+      cy: center.y + footprint.offset.y,
+      hx: footprint.width / 2,
+      hy: footprint.height / 2,
     }));
 
     this.navGrid = new ServerNavGrid(map.MAP_SIZE.width);
-    this.navGrid.initializeFromConfig({
-      MAP_SIZE: map.MAP_SIZE,
-      WATER_BORDER_SIZE: map.WATER_BORDER_SIZE + clearance,
-      WALLS: [...map.WALLS, ...nexuses].map(wall => ({
-        position: wall.position,
-        width: wall.width + clearance * 2,
-        height: wall.height + clearance * 2,
-      })),
-    });
+    this.navGrid.initializeWalkable((x, y) => this.clearanceAt(x, y) >= clearance);
+  }
+
+  /**
+   * How far a point is from the nearest wall, water or nexus building
+   * (negative inside one).
+   */
+  clearanceAt(x: number, y: number): number {
+    let clearance = Math.min(this.field.distance(x, y), this.playableHalf - Math.abs(x), this.playableHalf - Math.abs(y));
+    for (const nexus of this.nexuses) clearance = Math.min(clearance, boxDistance(x, y, nexus));
+    return clearance;
   }
 
   /**
@@ -77,11 +89,7 @@ export class Terrain {
    */
   isBlocked(x: number, y: number): boolean {
     if (Math.abs(x) > this.playableHalf || Math.abs(y) > this.playableHalf) return true;
-    for (const index of this.bucketAt(x, y)) {
-      const rect = this.rects[index];
-      if (Math.abs(x - rect.cx) <= rect.hx && Math.abs(y - rect.cy) <= rect.hy) return true;
-    }
-    return false;
+    return this.field.isWall(x, y);
   }
 
   /**
@@ -91,37 +99,15 @@ export class Terrain {
   resolveCircle(position: Vector, radius: number): boolean {
     let moved = false;
 
-    // Two passes handle corners where rectangles meet
-    for (let pass = 0; pass < 2; pass++) {
-      for (const index of this.bucketsAround(position.x, position.y, radius)) {
-        const rect = this.rects[index];
-        const dx = position.x - rect.cx;
-        const dy = position.y - rect.cy;
-        if (Math.abs(dx) >= rect.hx + radius || Math.abs(dy) >= rect.hy + radius) continue;
-
-        const closestX = Math.max(-rect.hx, Math.min(rect.hx, dx));
-        const closestY = Math.max(-rect.hy, Math.min(rect.hy, dy));
-        const ox = dx - closestX;
-        const oy = dy - closestY;
-        const distanceSq = ox * ox + oy * oy;
-
-        if (distanceSq >= radius * radius) continue;
-
-        if (distanceSq > 1e-6) {
-          // Center outside the rectangle: push along the normal from the closest point
-          const distance = Math.sqrt(distanceSq);
-          const push = radius - distance;
-          position.x += (ox / distance) * push;
-          position.y += (oy / distance) * push;
-        } else {
-          // Center inside: leave through the nearest side
-          const pushX = rect.hx - Math.abs(dx) + radius;
-          const pushY = rect.hy - Math.abs(dy) + radius;
-          if (pushX < pushY) position.x += dx >= 0 ? pushX : -pushX;
-          else position.y += dy >= 0 ? pushY : -pushY;
-        }
-        moved = true;
-      }
+    // Edges wander, so the field isn't an exact distance: a few small steps settle it
+    for (let pass = 0; pass < 4; pass++) {
+      const distance = this.field.distance(position.x, position.y);
+      if (distance >= radius - 0.01) break;
+      const normal = this.field.normal(position.x, position.y);
+      if (normal.x === 0 && normal.y === 0) break;
+      position.x += normal.x * (radius - distance);
+      position.y += normal.y * (radius - distance);
+      moved = true;
     }
 
     const limit = this.playableHalf - radius;
@@ -149,69 +135,96 @@ export class Terrain {
     const direction = offset.scaled(1 / distance);
     for (let along = Math.min(distance, maxDistance); along > 0; along -= LANDING_STEP) {
       const spot = from.added(direction.scaled(along));
-      if (!this.isBlocked(spot.x, spot.y) && !this.circleTouchesWall(spot, radius)) return spot;
+      if (this.clearanceAt(spot.x, spot.y) >= radius) return spot;
     }
     return from.clone();
   }
 
-  private circleTouchesWall(spot: Vector, radius: number): boolean {
-    for (let i = 0; i < 8; i++) {
-      const angle = (i / 8) * Math.PI * 2;
-      if (this.isBlocked(spot.x + Math.cos(angle) * radius, spot.y + Math.sin(angle) * radius)) return true;
-    }
-    return false;
-  }
-
   /**
-   * Waypoints from `from` to `to` around walls (not including `from`).
-   * Returns [to] when the straight line is clear, null when unreachable, and
-   * [] when `to` is in a wall and `from` is already as close as it gets.
+   * Waypoints from `from` to `to` around walls (not including `from`) for a
+   * unit of `radius`. A destination too close to a wall for the body (or in
+   * one) becomes the nearest spot it fits, so a click on the forest's edge
+   * walks right up to it. Returns null when unreachable, and [] when the
+   * unit already stands as close as it gets.
    */
-  findPath(from: Vector, to: Vector): Vector[] | null {
-    if (this.navGrid.hasLineOfSight(from, to)) return [to.clone()];
+  findPath(from: Vector, to: Vector, radius = BODY_RADIUS): Vector[] | null {
+    const goal = to.clone();
+    if (this.clearanceAt(goal.x, goal.y) < radius) this.resolveCircle(goal, radius);
+    if (goal.distanceTo(from) < ARRIVED && goal.distanceTo(to) > 0.01) return [];
+    if (this.lineClear(from, goal, radius, true)) return [goal];
 
-    const path = this.navGrid.findPath(from, to);
+    const path = this.navGrid.findPath(from, goal, (a, b) => this.lineClear(a, b, radius));
     if (!path || path.length === 0) return null;
 
-    // The grid path starts at the cell we're in; drop it, and end exactly at the target
-    // (or as close as the grid allows when the target itself is in a wall)
+    // The grid path starts at the cell we're in; drop it, and end exactly at the goal
+    // (or as close as the grid gets when the body doesn't fit there)
     const waypoints = path.slice(1);
-    const destinationWalkable = this.navGrid.isWalkableWorld(to.x, to.y);
-    if (destinationWalkable) {
-      if (waypoints.length === 0) return [to.clone()];
-      waypoints[waypoints.length - 1] = to.clone();
+    const goalFits = this.clearanceAt(goal.x, goal.y) >= radius - 1;
+    if (goalFits) {
+      if (waypoints.length === 0) return [goal];
+      waypoints[waypoints.length - 1] = goal;
     }
-    if (waypoints.length > 0) return waypoints;
-    return destinationWalkable ? [to.clone()] : [];
+    if (waypoints.length === 0) return goalFits ? [goal] : [];
+    return this.tighten([from, ...waypoints], radius).slice(1);
   }
 
   /**
-   * Whether the straight line between two points stays clear of walls
-   * (on the inflated navigation grid).
+   * Pull a path taut, like an elastic band: each corner slides toward the
+   * straight line between its neighbors as far as the walls allow, so the
+   * path rounds a wall's edge at a body's width from it instead of wherever
+   * the grid's cells put it (and a corner no longer needed goes).
+   * `points` starts where the unit stands.
    */
-  hasLineOfSight(from: Vector, to: Vector): boolean {
-    return this.navGrid.hasLineOfSight(from, to);
-  }
-
-  private bucketKeys(minX: number, minY: number, maxX: number, maxY: number): string[] {
-    const keys: string[] = [];
-    for (let bx = Math.floor(minX / BUCKET); bx <= Math.floor(maxX / BUCKET); bx++) {
-      for (let by = Math.floor(minY / BUCKET); by <= Math.floor(maxY / BUCKET); by++) {
-        keys.push(`${bx},${by}`);
+  private tighten(points: Vector[], radius: number): Vector[] {
+    const clear = (a: Vector, b: Vector) => this.lineClear(a, b, radius, a === points[0]);
+    for (let round = 0; round < 3; round++) {
+      for (let i = 1; i < points.length - 1; i++) {
+        const before = points[i - 1];
+        const after = points[i + 1];
+        if (clear(before, after)) {
+          points.splice(i, 1);
+          i--;
+          continue;
+        }
+        const corner = points[i];
+        const target = closestOnSegment(corner, before, after);
+        let reach = 0;
+        let limit = 1;
+        for (let step = 0; step < 7; step++) {
+          const t = (reach + limit) / 2;
+          const moved = corner.added(target.subtracted(corner).scaled(t));
+          if (clear(before, moved) && clear(moved, after)) reach = t;
+          else limit = t;
+        }
+        points[i] = corner.added(target.subtracted(corner).scaled(reach));
       }
     }
-    return keys;
+    return points;
   }
 
-  private bucketAt(x: number, y: number): number[] {
-    return this.buckets.get(`${Math.floor(x / BUCKET)},${Math.floor(y / BUCKET)}`) ?? [];
+  /**
+   * Whether a champion walks the straight line between two points without
+   * touching a wall.
+   */
+  hasLineOfSight(from: Vector, to: Vector): boolean {
+    return this.lineClear(from, to, BODY_RADIUS, true);
   }
 
-  private bucketsAround(x: number, y: number, radius: number): Set<number> {
-    const result = new Set<number>();
-    for (const key of this.bucketKeys(x - radius, y - radius, x + radius, y + radius)) {
-      for (const index of this.buckets.get(key) ?? []) result.add(index);
+  /**
+   * Whether a body of `radius` follows the straight line from a to b
+   * without walls in the way. From where a unit stands (`fromUnit`), the
+   * first stretch may be tight, as long as it isn't through a wall (a unit
+   * pressed against one walks away from it).
+   */
+  private lineClear(from: Vector, to: Vector, radius: number, fromUnit = false): boolean {
+    const length = from.distanceTo(to);
+    const steps = Math.max(1, Math.ceil(length / 8));
+    const needed = radius - CORNER_SHAVE;
+    for (let i = 1; i <= steps; i++) {
+      const t = i / steps;
+      const clearance = this.clearanceAt(from.x + (to.x - from.x) * t, from.y + (to.y - from.y) * t);
+      if (clearance < needed && (!fromUnit || clearance < 0 || t * length > radius)) return false;
     }
-    return result;
+    return true;
   }
 }

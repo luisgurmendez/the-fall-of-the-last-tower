@@ -8,6 +8,7 @@ import './ServerTestUtils';
 import { describe, test, expect } from 'bun:test';
 import { CONTROL_WARD_ITEM_ID, GameConfig, InputType, MOBAConfig, type WardType } from '@siege/shared';
 import { Simulation } from '../sim';
+import { findWallCrossing } from './wallSpots';
 
 function setup(at: { x: number; y: number }): Simulation {
   const sim = new Simulation({ seed: 1, minionWaves: false, jungle: false, structures: false });
@@ -34,14 +35,14 @@ describe('Ward placement', () => {
   });
 
   test('a ward aimed into a wall goes at the edge of the wall', () => {
-    const wall = MOBAConfig.WALLS.find(w => w.width >= 192 && w.height >= 192)!;
+    const wall = findWallCrossing(192, 300);
     // Stand just left of the wall and aim at its middle
-    const sim = setup({ x: wall.position.x - wall.width / 2 - 60, y: wall.position.y });
-    place(sim, 'stealth', wall.position.x, wall.position.y);
+    const sim = setup({ x: wall.left - 60, y: wall.y });
+    place(sim, 'stealth', wall.x, wall.y);
     const [ward] = sim.context.getWardsByOwner('p1');
     expect(ward).toBeDefined();
     expect(sim.context.terrain.isBlocked(ward.position.x, ward.position.y)).toBe(false);
-    expect(ward.position.x).toBeGreaterThan(wall.position.x - wall.width / 2 - 20);
+    expect(ward.position.x).toBeGreaterThan(wall.left - 20);
     sim.dispose();
   });
 

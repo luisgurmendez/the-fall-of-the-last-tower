@@ -2,13 +2,15 @@
  * WallGrid - Where the walls are, on a fine grid, for line of sight.
  *
  * Server fog of war and the client fog renderer use the same grid and the
- * same sampling, so they agree on what a wall hides.
+ * same sampling, so they agree on what a wall hides. A cell is wall when the
+ * wall field (wallField.ts) says its center is.
  */
 
 import { MOBAConfig } from './MOBAConfig';
+import type { WallField } from './wallField';
 
-/** Grid resolution in world units (wall tiles are 64, so this is exact) */
-const CELL_SIZE = 32;
+/** Grid resolution in world units */
+const CELL_SIZE = 16;
 /** Distance between samples along a sight line */
 const SAMPLE_STEP = 16;
 
@@ -17,23 +19,19 @@ export class WallGrid {
   private readonly size: number;
   private readonly half: number;
 
-  constructor(
-    walls: readonly { position: { x: number; y: number }; width: number; height: number }[] = MOBAConfig.WALLS,
-    mapSize: number = MOBAConfig.MAP_SIZE.width
-  ) {
+  /**
+   * @param field The walls (null for none)
+   */
+  constructor(field: WallField | null = MOBAConfig.WALL_FIELD, mapSize: number = MOBAConfig.MAP_SIZE.width) {
     this.half = mapSize / 2;
     this.size = Math.ceil(mapSize / CELL_SIZE);
     this.cells = new Uint8Array(this.size * this.size);
-
-    for (const wall of walls) {
-      const minX = this.toCell(wall.position.x - wall.width / 2 + 1);
-      const maxX = this.toCell(wall.position.x + wall.width / 2 - 1);
-      const minY = this.toCell(wall.position.y - wall.height / 2 + 1);
-      const maxY = this.toCell(wall.position.y + wall.height / 2 - 1);
-      for (let cy = minY; cy <= maxY; cy++) {
-        for (let cx = minX; cx <= maxX; cx++) {
-          if (cx >= 0 && cy >= 0 && cx < this.size && cy < this.size) this.cells[cy * this.size + cx] = 1;
-        }
+    if (!field) return;
+    for (let cy = 0; cy < this.size; cy++) {
+      for (let cx = 0; cx < this.size; cx++) {
+        const x = -this.half + (cx + 0.5) * CELL_SIZE;
+        const y = -this.half + (cy + 0.5) * CELL_SIZE;
+        if (field.isWall(x, y)) this.cells[cy * this.size + cx] = 1;
       }
     }
   }

@@ -1,11 +1,10 @@
 /**
- * Map layout helpers: terrain walls are designed for one side, as polygons
- * or as a test of whether a point is wall, mirrored onto the other side
- * (point reflection through the map center), and rasterized to 64-unit
- * tiles so the client can draw them as cliffs.
+ * Map layout helpers: distances to polylines for designing the terrain, and
+ * the walls as tile rectangles for the drawings that work in tiles (the 2D
+ * ground without the GPU).
  *
- * Output is the `MOBAConfig.WALLS` format: axis-aligned rectangles centered
- * on `position`.
+ * The walls themselves are a distance field (wallField.ts); the rectangles
+ * are only a picture of it.
  */
 
 import { Vector } from '../math/Vector';
@@ -20,39 +19,14 @@ export interface WallRect {
   height: number;
 }
 
-export type Polygon = readonly (readonly [number, number])[];
-
-export function pointInPolygon(x: number, y: number, polygon: Polygon): boolean {
-  let inside = false;
-  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-    const [xi, yi] = polygon[i];
-    const [xj, yj] = polygon[j];
-    if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) {
-      inside = !inside;
-    }
-  }
-  return inside;
-}
-
-/** Whether a point (on one side of the map) is wall */
-export type SolidTest = (x: number, y: number) => boolean;
-
 /**
- * Rasterize one side's walls (plus their mirror images) to tiles: a tile is
- * wall when its center is inside one of the polygons or `sideSolid` says
- * so. Then make every column of wall at least two tiles tall, fill the gaps
- * too narrow to path through (fillNarrowGaps), and merge the tiles
- * into as few rectangles as possible (runs per row, then identical runs on
- * consecutive rows).
+ * The walls as tiles merged into rectangles: a tile is wall when its center
+ * is. Every column of wall is at least two tiles tall, so a tile drawing
+ * can show a grass plateau over a cliff face (a lone row would be all cliff).
+ * Rows of tiles are merged into runs, and identical runs on consecutive rows
+ * into taller rectangles.
  */
-export function buildWalls(sidePolygons: Polygon[], sideSolid?: SolidTest): WallRect[] {
-  const polygons: Polygon[] = [
-    ...sidePolygons,
-    ...sidePolygons.map(polygon => polygon.map(([x, y]) => [-x, -y] as const)),
-  ];
-  const isSolid = (x: number, y: number) =>
-    polygons.some(polygon => pointInPolygon(x, y, polygon)) || (sideSolid !== undefined && (sideSolid(x, y) || sideSolid(-x, -y)));
-
+export function tileRects(isSolid: (x: number, y: number) => boolean): WallRect[] {
   const count = (WALL_GRID_HALF * 2) / WALL_TILE_SIZE;
   const solid: boolean[][] = [];
   for (let row = 0; row < count; row++) {
@@ -63,9 +37,6 @@ export function buildWalls(sidePolygons: Polygon[], sideSolid?: SolidTest): Wall
       solid[row].push(isSolid(cx, cy));
     }
   }
-
-  // Every column of wall is at least two tiles tall, so the client can draw
-  // a grass plateau with a cliff face under it (a lone row would be all cliff)
   for (let row = 0; row < count - 1; row++) {
     for (let col = 0; col < count; col++) {
       const runStart = solid[row][col] && (row === 0 || !solid[row - 1][col]);
@@ -73,24 +44,6 @@ export function buildWalls(sidePolygons: Polygon[], sideSolid?: SolidTest): Wall
     }
   }
 
-  fillNarrowGaps(solid);
-
-  // Horizontal runs per row: key "start-end" -> rows
-  const runs: { row: number; start: number; end: number }[] = [];
-  for (let row = 0; row < count; row++) {
-    let col = 0;
-    while (col < count) {
-      if (!solid[row][col]) {
-        col++;
-        continue;
-      }
-      const start = col;
-      while (col < count && solid[row][col]) col++;
-      runs.push({ row, start, end: col });
-    }
-  }
-
-  // Merge identical runs on consecutive rows into taller rectangles
   const rects: WallRect[] = [];
   const open = new Map<string, { rowStart: number; rowEnd: number; start: number; end: number }>();
   const flush = (key: string) => {
@@ -109,132 +62,39 @@ export function buildWalls(sidePolygons: Polygon[], sideSolid?: SolidTest): Wall
   };
 
   for (let row = 0; row <= count; row++) {
-    const rowRuns = runs.filter(run => run.row === row);
-    const keys = new Set(rowRuns.map(run => `${run.start}-${run.end}`));
+    const keys = new Set<string>();
+    if (row < count) {
+      let col = 0;
+      while (col < count) {
+        if (!solid[row][col]) {
+          col++;
+          continue;
+        }
+        const start = col;
+        while (col < count && solid[row][col]) col++;
+        const key = `${start}-${col}`;
+        keys.add(key);
+        const existing = open.get(key);
+        if (existing && existing.rowEnd === row) existing.rowEnd = row + 1;
+        else {
+          if (existing) flush(key);
+          open.set(key, { rowStart: row, rowEnd: row + 1, start, end: col });
+        }
+      }
+    }
     for (const key of [...open.keys()]) {
       if (!keys.has(key)) flush(key);
     }
-    for (const run of rowRuns) {
-      const key = `${run.start}-${run.end}`;
-      const existing = open.get(key);
-      if (existing) existing.rowEnd = row + 1;
-      else open.set(key, { rowStart: row, rowEnd: row + 1, start: run.start, end: run.end });
-    }
   }
-  for (const key of [...open.keys()]) flush(key);
-
   return rects;
 }
 
 /**
- * Fill the openings a unit can squeeze into but no path goes through.
- * Paths keep 30 units clear of walls (the server's Terrain), so a gap one
- * tile (64) wide fits a champion's body but has no path in or out: a
- * champion that walked into one couldn't find its way out. Corridors are
- * kept wide by the map's design (see siegeMap.ts); what's left one tile wide
- * is a crack where two walls nearly meet, or a dent in one. So free tiles
- * between walls one tile apart (across, up and down, or corner to corner;
- * the map's edge counts as wall) fill in, and so do dead ends (free tiles
- * walled in on three sides), pass after pass until none are left; then so
- * do pockets cut off from the map's center. Each pass is decided before
- * it's applied, so both sides of the map fill alike.
+ * Reflect a point across the mid lane (the line y = -x), mapping a team's
+ * top-side jungle onto its bot-side jungle.
  */
-function fillNarrowGaps(solid: boolean[][]): void {
-  const count = solid.length;
-  const wall = (row: number, col: number) => row < 0 || col < 0 || row >= count || col >= count || solid[row][col];
-
-  for (;;) {
-    const gaps: [number, number][] = [];
-    for (let row = 0; row < count; row++) {
-      for (let col = 0; col < count; col++) {
-        if (solid[row][col]) continue;
-        const walls = Number(wall(row - 1, col)) + Number(wall(row + 1, col)) + Number(wall(row, col - 1)) + Number(wall(row, col + 1));
-        const crack = (wall(row, col - 1) && wall(row, col + 1))
-          || (wall(row - 1, col) && wall(row + 1, col))
-          || (wall(row - 1, col - 1) && wall(row + 1, col + 1))
-          || (wall(row - 1, col + 1) && wall(row + 1, col - 1));
-        if (crack || walls >= 3) gaps.push([row, col]);
-      }
-    }
-    if (gaps.length === 0) break;
-    for (const [row, col] of gaps) solid[row][col] = true;
-  }
-
-  // Pockets: free tiles not reachable from the center
-  const reached = solid.map(line => line.map(() => false));
-  const queue: [number, number][] = [[count / 2, count / 2]];
-  reached[count / 2][count / 2] = true;
-  while (queue.length > 0) {
-    const [row, col] = queue.pop()!;
-    for (const [r, c] of [[row - 1, col], [row + 1, col], [row, col - 1], [row, col + 1]]) {
-      if (wall(r, c) || reached[r][c]) continue;
-      reached[r][c] = true;
-      queue.push([r, c]);
-    }
-  }
-  for (let row = 0; row < count; row++) {
-    for (let col = 0; col < count; col++) {
-      if (!reached[row][col]) solid[row][col] = true;
-    }
-  }
-}
-
-/**
- * Mirror a point to the other side of the map (point reflection).
- */
-export function mirror(point: { x: number; y: number }): Vector {
-  return new Vector(-point.x, -point.y);
-}
-
-// =============================================================================
-// Shape helpers for designing walls
-// =============================================================================
-
-/**
- * A straight wall segment of a given thickness.
- */
-export function stroke(ax: number, ay: number, bx: number, by: number, thickness: number): Polygon {
-  const length = Math.hypot(bx - ax, by - ay);
-  const nx = (-(by - ay) / length) * (thickness / 2);
-  const ny = ((bx - ax) / length) * (thickness / 2);
-  return [[ax + nx, ay + ny], [bx + nx, by + ny], [bx - nx, by - ny], [ax - nx, ay - ny]];
-}
-
-/**
- * A rounded block (regular polygon stretched to rx/ry).
- */
-export function blob(cx: number, cy: number, rx: number, ry: number, sides = 8, rotation = 0): Polygon {
-  return Array.from({ length: sides }, (_, i) => {
-    const angle = rotation + (i / sides) * Math.PI * 2;
-    return [cx + Math.cos(angle) * rx, cy + Math.sin(angle) * ry] as const;
-  });
-}
-
-/**
- * A curved wall: an arc around (cx, cy) from angle a0 to a1 (degrees, screen
- * coordinates with +y down), made of short strokes.
- */
-export function arc(cx: number, cy: number, radius: number, a0: number, a1: number, thickness: number): Polygon[] {
-  const steps = Math.max(1, Math.ceil(Math.abs(a1 - a0) / 15));
-  const point = (degrees: number) => {
-    const radians = (degrees * Math.PI) / 180;
-    return [cx + Math.cos(radians) * radius, cy + Math.sin(radians) * radius] as const;
-  };
-  const segments: Polygon[] = [];
-  for (let i = 0; i < steps; i++) {
-    const [sx, sy] = point(a0 + ((a1 - a0) * i) / steps);
-    const [ex, ey] = point(a0 + ((a1 - a0) * (i + 1)) / steps);
-    segments.push(stroke(sx, sy, ex, ey, thickness));
-  }
-  return segments;
-}
-
-/**
- * Reflect across the mid lane (the line y = -x), mapping a team's top-side
- * jungle onto its bot-side jungle.
- */
-export function reflectAcrossMid(polygon: Polygon): Polygon {
-  return polygon.map(([x, y]) => [-y, -x] as const);
+export function reflectAcrossMid(x: number, y: number): [number, number] {
+  return [-y, -x];
 }
 
 /** Distance from a point to a segment */
