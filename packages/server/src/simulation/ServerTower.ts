@@ -198,14 +198,16 @@ export class ServerTower extends ServerEntity {
       }
     }
 
-    // Re-evaluate every tick, but keep the current target unless something of
-    // higher priority shows up (a champion that hit an ally under the tower);
-    // switching to whichever minion is closest spread the damage around
+    // Re-evaluate every tick, but keep the current target until it dies or
+    // leaves range: only a champion that hit an ally under the tower takes
+    // it over. A champion it picked stays picked when minions walk in or its
+    // aggro runs out, and it doesn't jump to whichever minion is closest
     const bestTarget = this.findTarget(context);
     const current = this.attackTarget ? context.getEntity(this.attackTarget) : undefined;
     const best = bestTarget ? context.getEntity(bestTarget) : undefined;
+    const aggro = TowerTargetPriority.CHAMPION_WITH_AGGRO;
     const keepCurrent = !!current && !!best &&
-      this.getTargetPriority(best) <= this.getTargetPriority(current);
+      (this.getTargetPriority(best) < aggro || this.getTargetPriority(current) === aggro);
     if (!keepCurrent && bestTarget !== this.attackTarget) {
       this.attackTarget = bestTarget;
       if (this.attackTarget !== this.warmupTarget) {
@@ -224,7 +226,7 @@ export class ServerTower extends ServerEntity {
   }
 
   /**
-   * Find a target to attack.
+   * Find a target to attack (when it has none, or for aggro to take over).
    * Priority: Champions with aggro > Minions > Champions without aggro
    *
    * Champions get aggro when they damage an allied champion under tower.

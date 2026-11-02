@@ -356,7 +356,7 @@ describe('ServerTower', () => {
       expect(snapshot.targetEntityId).toBe('champion-1');
     });
 
-    it('should return to targeting minions after aggro expires', () => {
+    it('should keep shooting the champion after aggro expires', () => {
       const tower = new ServerTower({
         id: 'tower-1',
         position: new Vector(0, 0),
@@ -397,9 +397,77 @@ describe('ServerTower', () => {
         tower.update(0.1, context);
       }
 
-      // Aggro should have expired, tower should target minion again
+      // Aggro is gone, but the champion is still in range: it stays the target
       expect(tower.hasAggro('champion-1')).toBe(false);
+      expect(tower.toSnapshot().targetEntityId).toBe('champion-1');
+
+      // Out of range, the tower goes back to the minion
+      enemyChampion.position = new Vector(2000, 0);
+      tower.update(0.1, context);
       expect(tower.toSnapshot().targetEntityId).toBe('minion-1');
+    });
+
+    it('should keep shooting a champion when a minion walks in', () => {
+      const tower = new ServerTower({
+        id: 'tower-1',
+        position: new Vector(0, 0),
+        side: 0,
+        lane: 'mid',
+        tier: 1,
+      });
+      context.addEntity(tower);
+      context.addEntity(new TestChampion({
+        id: 'champion-1',
+        position: new Vector(200, 0),
+        side: TEAM_RED,
+        playerId: 'player-1',
+        definition: CHAMPION_DEFINITIONS['warrior'],
+      }));
+      tower.update(0.1, context);
+      expect(tower.toSnapshot().targetEntityId).toBe('champion-1');
+
+      context.addEntity(new ServerMinion({
+        id: 'minion-1',
+        position: new Vector(100, 0),
+        side: 1,
+        minionType: 'melee',
+        lane: 'mid',
+        waypoints: [],
+      }));
+      tower.update(0.1, context);
+      expect(tower.toSnapshot().targetEntityId).toBe('champion-1');
+    });
+
+    it('should switch from a minion to a champion that hit an ally', () => {
+      const tower = new ServerTower({
+        id: 'tower-1',
+        position: new Vector(0, 0),
+        side: 0,
+        lane: 'mid',
+        tier: 1,
+      });
+      context.addEntity(tower);
+      context.addEntity(new ServerMinion({
+        id: 'minion-1',
+        position: new Vector(100, 0),
+        side: 1,
+        minionType: 'melee',
+        lane: 'mid',
+        waypoints: [],
+      }));
+      context.addEntity(new TestChampion({
+        id: 'champion-1',
+        position: new Vector(200, 0),
+        side: TEAM_RED,
+        playerId: 'player-1',
+        definition: CHAMPION_DEFINITIONS['warrior'],
+      }));
+      tower.update(0.1, context);
+      expect(tower.toSnapshot().targetEntityId).toBe('minion-1');
+
+      tower.triggerAggro('champion-1');
+      tower.update(0.1, context);
+      expect(tower.toSnapshot().targetEntityId).toBe('champion-1');
     });
   });
 
