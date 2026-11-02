@@ -141,7 +141,7 @@ export class FrameRenderer {
     }
 
     for (let i = 0; i < this.map.BUSH_GROUPS.length; i++) {
-      for (const bush of calculateIndividualBushPositions(i)) {
+      for (const bush of calculateIndividualBushPositions(i, this.map.BUSH_GROUPS)) {
         const [x, y] = this.toPx(bush.x - bush.width / 2, bush.y - bush.height / 2);
         raster.fillRect(x, y, bush.width * this.scale, bush.height * this.scale, COLORS.bush);
       }

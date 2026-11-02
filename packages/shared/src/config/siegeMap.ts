@@ -313,8 +313,3 @@ export const SIEGE_WALL_FIELD: WallField = WallField.buildSymmetric(blueHalfWall
 
 /** The walls as tile rectangles, for drawings that work in tiles (collision uses the field) */
 export const SIEGE_MAP_WALLS: WallRect[] = tileRects((x, y) => SIEGE_WALL_FIELD.isWall(x, y));
-
-/** Whether a point on blue's half (y > x) is in the jungle: clear of the lanes, the river and the base */
-export function inJungle(x: number, y: number): boolean {
-  return y > x && forestRegionDistance(x, y) < 0;
-}

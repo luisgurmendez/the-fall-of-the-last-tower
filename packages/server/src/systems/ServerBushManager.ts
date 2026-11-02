@@ -55,16 +55,19 @@ export class ServerBushManager {
   /** Current tick for cache invalidation */
   private currentTick = -1;
 
-  constructor() {
+  /**
+   * @param groups The map's bush groups
+   */
+  constructor(private readonly groups: typeof MOBAConfig.BUSH_GROUPS = MOBAConfig.BUSH_GROUPS) {
     this.initializeBushGroups();
   }
 
   /**
-   * Initialize bush groups from shared MOBAConfig.
+   * Initialize bush groups from the map's.
    * Stores index for individual bush position lookup via shared function.
    */
   private initializeBushGroups(): void {
-    const { BUSH_GROUPS } = MOBAConfig;
+    const BUSH_GROUPS = this.groups;
 
     for (let i = 0; i < BUSH_GROUPS.length; i++) {
       const groupConfig = BUSH_GROUPS[i];
@@ -119,7 +122,7 @@ export class ServerBushManager {
   getBushGroupAtPosition(position: Vector): ServerBushGroup | undefined {
     for (const group of this.bushGroups) {
       // Check if position is inside any individual bush in this group
-      if (isPointInBushGroup(position, group.index)) {
+      if (isPointInBushGroup(position, group.index, this.groups)) {
         return group;
       }
     }

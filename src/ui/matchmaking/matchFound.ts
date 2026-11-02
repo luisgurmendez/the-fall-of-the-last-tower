@@ -9,8 +9,7 @@
  * MAX_LOADING_MS even if some art never answered.
  */
 
-import { MAP_NAME } from "@/config/brand";
-import { CHAMPION_DEFINITIONS, SUMMONER_SPELLS, type SummonerSpellId } from "@siege/shared";
+import { CHAMPION_DEFINITIONS, MOBAConfig, SUMMONER_SPELLS, type SummonerSpellId } from "@siege/shared";
 import { summonerIconUrl } from "@/ui/summonerIcons";
 import { preloadMatchAssets } from "./matchAssets";
 import { showPortrait } from "./portraits";
@@ -138,7 +137,7 @@ export class MatchFoundScreen {
       const teamSize = Math.max(blue.length, red.length);
       this.teams.dataset.layout = teamSize <= SIDE_BY_SIDE_TEAM_SIZE ? "side" : "rows";
     }
-    if (this.mapLabel) this.mapLabel.textContent = MAP_NAME;
+    if (this.mapLabel) this.mapLabel.textContent = MOBAConfig.NAME;
     if (this.modeLabel) {
       const size = `${blue.length}v${red.length}`;
       const bots = red.filter(isBot).length;

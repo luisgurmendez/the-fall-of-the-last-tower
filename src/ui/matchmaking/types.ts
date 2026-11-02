@@ -26,6 +26,8 @@ export type ConnectionStatus = "offline" | "connecting" | "online";
 export interface MatchData {
   gameId: string;
   yourSide: number;
+  /** The map it's played on (shared maps.ts) */
+  mapId?: string;
   players: Array<{
     playerId: string;
     championId: string;

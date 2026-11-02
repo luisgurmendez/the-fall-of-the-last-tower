@@ -18,6 +18,8 @@ import {
   ChampionDefinition,
   DEFAULT_SUMMONER_SPELLS,
   type SummonerSpellId,
+  MAPS,
+  type MapId,
 } from '@siege/shared';
 import { ServerGame } from './ServerGame';
 import { ServerGameContext } from './ServerGameContext';
@@ -47,6 +49,8 @@ export interface GameRoomConfig {
   championDefinitions: Map<string, ChampionDefinition>;
   /** Controllers for players with isBot set */
   bots?: BotController[];
+  /** The map it's played on (default the main map) */
+  mapId?: MapId;
   onStateUpdate?: (playerId: string, update: StateUpdate) => void;
   onGameEnd?: (winningSide: Side) => void;
 }
@@ -92,6 +96,7 @@ export class GameRoom {
     // Create game context
     this.context = new ServerGameContext({
       gameId: config.gameId,
+      mapConfig: MAPS[config.mapId ?? 'wildcrown'],
     });
 
     // Create input handler

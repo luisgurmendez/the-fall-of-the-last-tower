@@ -63,15 +63,17 @@ async function main(): Promise<void> {
   mkdirSync(outDir, { recursive: true });
 
   const frames = result.sim.recorder.frames;
+  const map = result.sim.context.mapConfig;
   const sheet = renderSheet(pickFrames(frames, Number(flags.frames ?? scenario.frames ?? 8)), frames, {
     ...view,
+    map,
     cellPx: Number(flags.px ?? 360),
     title: scenario.name,
   });
   writeFileSync(join(outDir, 'sheet.png'), sheet.toPNG());
 
   const finalFrame = frames[frames.length - 1] ?? result.sim.frame();
-  const final = new FrameRenderer({ ...view, px: 900 }).render(finalFrame, { history: frames, title: `${scenario.name} (final)` });
+  const final = new FrameRenderer({ ...view, map, px: 900 }).render(finalFrame, { history: frames, title: `${scenario.name} (final)` });
   writeFileSync(join(outDir, 'final.png'), final.toPNG());
 
   writeFileSync(join(outDir, 'report.md'), result.report.markdown + formatFailures(result.failures));

@@ -3,7 +3,7 @@
  */
 import './ServerTestUtils';
 import { describe, test, expect } from 'bun:test';
-import { InputType, MOBAConfig, Vector } from '@siege/shared';
+import { InputType, MOBAConfig, Vector, getLane } from '@siege/shared';
 import { Terrain } from '../navigation/Terrain';
 import { LanePath } from '../navigation/LanePath';
 import { Simulation } from '../sim';
@@ -114,7 +114,7 @@ describe('Terrain', () => {
     const { radius } = MOBAConfig.INHIBITORS.STATS.collision;
     const clearance = radius + 60;
     for (const { lane, position } of MOBAConfig.INHIBITORS.POSITIONS) {
-      const path = new LanePath(MOBAConfig.LANES[lane.toUpperCase() as 'TOP' | 'MID' | 'BOT'].waypoints.map(w => w.clone()));
+      const path = new LanePath(getLane(MOBAConfig, lane).waypoints.map(w => w.clone()));
       expect(path.project(position).offset).toBeLessThan(10);
       for (let angle = 0; angle < 360; angle += 15) {
         const radians = (angle * Math.PI) / 180;

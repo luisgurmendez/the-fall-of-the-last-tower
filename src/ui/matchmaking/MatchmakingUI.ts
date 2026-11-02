@@ -33,6 +33,7 @@ import type {
   MatchData,
   MatchmakingUICallbacks,
 } from "./types";
+import { isMapId, useMap, type MapId } from "@siege/shared";
 import { ChampionSelect, ENABLED_CHAMPIONS } from "./championSelect";
 import { MatchConnection } from "./matchConnection";
 import { MatchFoundScreen } from "./matchFound";
@@ -44,16 +45,22 @@ import { TitleScreen } from "../title/TitleScreen";
 /** The screens the title screen's valley shows behind (not champion select or the loading screen) */
 const TITLE_SCREENS: ReadonlySet<ScreenId> = new Set(["menu", "how-to-play", "connecting", "queue", "error"]);
 
-/** Players per team in practice, in the order the size chip cycles them */
-const PRACTICE_SIZES = [1, 3, 5];
-const PRACTICE_SIZE_KEY = "siege-practice-size";
+/** Practice matches, in the order the chip beside the practice button cycles them */
+const PRACTICE_MODES = [
+  { label: "1V1", size: 1, map: "wildcrown", title: "1v1 in mid on Wildcrown Vale" },
+  { label: "3V3", size: 3, map: "wildcrown", title: "3v3 on Wildcrown Vale: you in mid, bots in top and bot" },
+  { label: "5V5", size: 5, map: "wildcrown", title: "5v5 on Wildcrown Vale: you in mid, bots in every other role" },
+  { label: "ARAM", size: 1, map: "narrows", title: "1v1 on The Narrows: one lane, no jungle" },
+] as const satisfies readonly { label: string; size: number; map: MapId; title: string }[];
+type PracticeMode = (typeof PRACTICE_MODES)[number];
+const PRACTICE_MODE_KEY = "siege-practice-mode";
 
-function loadPracticeSize(): number {
+function loadPracticeMode(): PracticeMode {
   try {
-    const saved = Number(localStorage.getItem(PRACTICE_SIZE_KEY));
-    return PRACTICE_SIZES.includes(saved) ? saved : 1;
+    const saved = localStorage.getItem(PRACTICE_MODE_KEY);
+    return PRACTICE_MODES.find(mode => mode.label === saved) ?? PRACTICE_MODES[0];
   } catch {
-    return 1;
+    return PRACTICE_MODES[0];
   }
 }
 
@@ -74,8 +81,8 @@ export class MatchmakingUI {
   private screens: Map<ScreenId, HTMLElement> = new Map();
   private titleScreen: TitleScreen | null = null;
 
-  /** Players per team in a practice match */
-  private practiceSize = loadPracticeSize();
+  /** The practice match the chip is on: players per team and map */
+  private practiceMode: PracticeMode = loadPracticeMode();
 
   // Status elements
   private statusDot: HTMLElement;
@@ -196,21 +203,23 @@ export class MatchmakingUI {
     this.startMatchmaking("practice", botChampionId);
   }
 
-  /** Cycle the practice team size (1v1, 3v3, 5v5), remembered across visits */
-  private cyclePracticeSize(): void {
-    const sizes = PRACTICE_SIZES;
-    this.practiceSize = sizes[(sizes.indexOf(this.practiceSize) + 1) % sizes.length];
+  /** Cycle the practice match (1v1, 3v3, 5v5, ARAM), remembered across visits */
+  private cyclePracticeMode(): void {
+    const modes: readonly PracticeMode[] = PRACTICE_MODES;
+    this.practiceMode = modes[(modes.indexOf(this.practiceMode) + 1) % modes.length];
     try {
-      localStorage.setItem(PRACTICE_SIZE_KEY, String(this.practiceSize));
+      localStorage.setItem(PRACTICE_MODE_KEY, this.practiceMode.label);
     } catch {
       // Storage unavailable: it lasts until the page reloads
     }
-    this.showPracticeSize();
+    this.showPracticeMode();
   }
 
-  private showPracticeSize(): void {
+  private showPracticeMode(): void {
     const button = document.getElementById("btn-practice-size");
-    if (button) button.textContent = `${this.practiceSize}V${this.practiceSize}`;
+    if (!button) return;
+    button.textContent = this.practiceMode.label;
+    button.title = this.practiceMode.title;
   }
 
   /**
@@ -237,9 +246,9 @@ export class MatchmakingUI {
       this.startPractice();
     });
     document.getElementById("btn-practice-size")?.addEventListener("click", () => {
-      this.cyclePracticeSize();
+      this.cyclePracticeMode();
     });
-    this.showPracticeSize();
+    this.showPracticeMode();
 
     // Cancel connect button
     document
@@ -369,7 +378,7 @@ export class MatchmakingUI {
       onGameStart: (data) => this.handleMatchFound(data),
       onQueueJoined: (position, queueSize) =>
         this.queue.updateInfo(position, queueSize),
-    }, mode === "practice" ? this.practiceSize : undefined);
+    }, mode === "practice" ? { size: this.practiceMode.size, map: this.practiceMode.map } : undefined);
   }
 
   /**
@@ -397,6 +406,8 @@ export class MatchmakingUI {
   private handleMatchFound(data: any): void {
     this.queue.stopTimer();
     this.matchData = data;
+    // The match's map becomes the active one before anything draws it
+    useMap(isMapId(data?.mapId) ? data.mapId : "wildcrown");
 
     // Update team displays
     this.matchFound.showTeams(data);

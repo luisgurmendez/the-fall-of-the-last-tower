@@ -7,7 +7,7 @@ import { defineScenario } from '../src/sim';
 import { LanePath } from '../src/navigation/LanePath';
 import { DEFAULT_MINION_STATS, MOBAConfig, Vector } from '@siege/shared';
 
-const lane = new LanePath(MOBAConfig.LANES.BOT.waypoints.map(w => w.clone()));
+const lane = new LanePath(MOBAConfig.LANES.BOT!.waypoints.map(w => w.clone()));
 const blueTowers = MOBAConfig.TOWERS.POSITIONS.filter(t => t.side === 0 && t.lane === 'bot');
 const outerTower = blueTowers.map(t => lane.project(t.position).distance).reduce((a, b) => Math.max(a, b));
 /** Long enough to walk 400 past the outer tower (with the spawn stagger), well short of red's towers */

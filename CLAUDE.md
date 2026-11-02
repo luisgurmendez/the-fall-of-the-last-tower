@@ -6,7 +6,9 @@ Siege is a **multiplayer MOBA** (Multiplayer Online Battle Arena) game. The game
 
 > **Note**: This project was originally built for the js13kb game contest as a tower defense game. The legacy tower defense code and offline single-player mode have been **removed**. The game is now **online-only** with server-authoritative gameplay.
 
-> **Name**: players see the game as **Wildcrown** (`src/config/brand.ts`: the logo, the browser tab, the loading screen's map name). "Siege" is only the codebase's name (packages, `@siege/shared`, storage keys).
+> **Name**: players see the game as **Wildcrown** (`src/config/brand.ts`: the logo, the browser tab). "Siege" is only the codebase's name (packages, `@siege/shared`, storage keys).
+
+> **Maps**: `packages/shared/src/config/maps.ts` lists them: Wildcrown Vale (5v5, the jungle) and The Narrows (one lane, 1v1, the practice chip's ARAM). The server builds each match on its map (`ServerGameContext.mapConfig`: read the map from there, never from the global `MOBAConfig`, in server code); a client calls `useMap()` when a match is found, which swaps the map into `MOBAConfig`. See [docs/architecture/map.md](docs/architecture/map.md#maps).
 
 ---
 
@@ -65,7 +67,7 @@ For detailed documentation on the multiplayer MOBA systems, see the following fi
 | **Effects & Buffs** | [docs/architecture/effects-and-buffs.md](docs/architecture/effects-and-buffs.md) | Buff/debuff system, crowd control, stat modifiers |
 | **Collision** | [docs/architecture/collision.md](docs/architecture/collision.md) | Unit collision detection, separation, spatial grid |
 | **VFX** | [docs/architecture/vfx.md](docs/architecture/vfx.md) | Visual effects system, particles, ability VFX |
-| **Map & Terrain** | [docs/architecture/map.md](docs/architecture/map.md) | Layout, walls, river, pathfinding, wall collision |
+| **Map & Terrain** | [docs/architecture/map.md](docs/architecture/map.md) | The maps, layout, walls, river, pathfinding, wall collision |
 | **Jungle** | [docs/architecture/jungle.md](docs/architecture/jungle.md) | Camps, neutral monster AI, buffs, dragon, camp timers |
 | **Lanes & Minions** | [docs/architecture/minions.md](docs/architecture/minions.md) | Waves, lane following, minion targeting and call for help |
 | **Items & Shop** | [docs/architecture/items.md](docs/architecture/items.md) | Item catalog, shop UI, item icons (PixelLab) |
@@ -316,7 +318,7 @@ Look at `sheet.png` (frames over time) to see what happened, read `report.md` fo
 `packages/server/scenarios/` with `check()` assertions for new behavior; scenarios run in `bun test`.
 For step-by-step play there is an HTTP sandbox (`bun run sim:serve`). See [docs/architecture/simulation.md](docs/architecture/simulation.md).
 
-To play the real client alone, use the **PRACTICE** button on champion select (you vs bots; the chip beside it picks 1v1, 3v3 or 5v5).
+To play the real client alone, use the **PRACTICE** button on champion select (you vs bots; the chip beside it picks 1v1, 3v3, 5v5 or ARAM: 1v1 on The Narrows).
 
 ### Debug starting level
 

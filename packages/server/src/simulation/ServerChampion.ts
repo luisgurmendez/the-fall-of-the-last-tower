@@ -290,7 +290,7 @@ export class ServerChampion extends ServerEntity {
 
     // Update recall
     if (this.isRecalling) {
-      this.recall.update(dt);
+      this.recall.update(dt, context);
     }
 
     // Regeneration (out of combat)

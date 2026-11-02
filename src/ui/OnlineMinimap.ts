@@ -17,7 +17,7 @@ import { ScreenEntity } from '@/core/GameObject';
 import GameContext from '@/core/gameContext';
 import RenderElement from '@/render/renderElement';
 import Vector from '@/physics/vector';
-import { MOBAConfig } from '@siege/shared';
+import { MOBAConfig, mapLanes, type WallField } from '@siege/shared';
 import { InputManager } from '@/core/input/InputManager';
 import { EntityType } from '@siege/shared';
 import type { OnlineStateManager, InterpolatedEntity } from '@/core/OnlineStateManager';
@@ -76,6 +76,8 @@ export class OnlineMinimap extends ScreenEntity {
   private isHovering: boolean = false;
   /** The walls at the minimap's size (wallLayer) */
   private wallCanvas: HTMLCanvasElement | null = null;
+  /** The map's walls it was drawn from (a new map draws them again) */
+  private wallCanvasField: WallField | null = null;
   private isDragging: boolean = false;
 
   constructor(
@@ -239,16 +241,16 @@ export class OnlineMinimap extends ScreenEntity {
   /**
    * The walls, drawn from the map's wall field into an image the minimap's
    * size (at two pixels per point, for retina screens), with a dark rim;
-   * made once.
+   * made once per map.
    */
   private wallLayer(): HTMLCanvasElement {
     const pixels = Math.round(this.config.size * 2);
-    if (this.wallCanvas?.width === pixels) return this.wallCanvas;
+    const field = MOBAConfig.WALL_FIELD;
+    if (this.wallCanvas?.width === pixels && this.wallCanvasField === field) return this.wallCanvas;
     const canvas = document.createElement('canvas');
     canvas.width = canvas.height = pixels;
     const context = canvas.getContext('2d')!;
     const image = context.createImageData(pixels, pixels);
-    const field = MOBAConfig.WALL_FIELD;
     const perPixel = this.mapSize / pixels;
     for (let py = 0; py < pixels; py++) {
       for (let px = 0; px < pixels; px++) {
@@ -264,6 +266,7 @@ export class OnlineMinimap extends ScreenEntity {
     }
     context.putImageData(image, 0, 0);
     this.wallCanvas = canvas;
+    this.wallCanvasField = field;
     return canvas;
   }
 
@@ -327,42 +330,18 @@ export class OnlineMinimap extends ScreenEntity {
 
     // Draw lanes
     ctx.strokeStyle = '#3d5a3d';
-    ctx.lineWidth = MOBAConfig.LANES.TOP.width * scale * 0.5;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-
-    // Top lane
-    ctx.beginPath();
-    const topWaypoints = MOBAConfig.LANES.TOP.waypoints;
-    let start = this.worldToMinimap(topWaypoints[0].x, topWaypoints[0].y);
-    ctx.moveTo(start.x, start.y);
-    for (let i = 1; i < topWaypoints.length; i++) {
-      const pt = this.worldToMinimap(topWaypoints[i].x, topWaypoints[i].y);
-      ctx.lineTo(pt.x, pt.y);
+    for (const lane of mapLanes(MOBAConfig)) {
+      ctx.lineWidth = lane.width * scale * 0.5;
+      ctx.beginPath();
+      lane.waypoints.forEach((point, i) => {
+        const pt = this.worldToMinimap(point.x, point.y);
+        if (i === 0) ctx.moveTo(pt.x, pt.y);
+        else ctx.lineTo(pt.x, pt.y);
+      });
+      ctx.stroke();
     }
-    ctx.stroke();
-
-    // Mid lane
-    ctx.beginPath();
-    const midWaypoints = MOBAConfig.LANES.MID.waypoints;
-    start = this.worldToMinimap(midWaypoints[0].x, midWaypoints[0].y);
-    ctx.moveTo(start.x, start.y);
-    for (let i = 1; i < midWaypoints.length; i++) {
-      const pt = this.worldToMinimap(midWaypoints[i].x, midWaypoints[i].y);
-      ctx.lineTo(pt.x, pt.y);
-    }
-    ctx.stroke();
-
-    // Bot lane
-    ctx.beginPath();
-    const botWaypoints = MOBAConfig.LANES.BOT.waypoints;
-    start = this.worldToMinimap(botWaypoints[0].x, botWaypoints[0].y);
-    ctx.moveTo(start.x, start.y);
-    for (let i = 1; i < botWaypoints.length; i++) {
-      const pt = this.worldToMinimap(botWaypoints[i].x, botWaypoints[i].y);
-      ctx.lineTo(pt.x, pt.y);
-    }
-    ctx.stroke();
   }
 
   /**

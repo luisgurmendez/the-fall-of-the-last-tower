@@ -127,6 +127,7 @@ const server = Bun.serve({
             center: param('x') !== null ? { x: Number(param('x')), y: Number(param('y') ?? 0) } : undefined,
             size: param('size') !== null ? Number(param('size')) : undefined,
             px: Number(param('px') ?? 720),
+            map: sim.context.mapConfig,
           });
           const image = renderer.render(sim.frame(), {
             history: sim.recorder.frames,
@@ -143,6 +144,7 @@ const server = Bun.serve({
               ? { x: Number(url.searchParams.get('x')), y: Number(url.searchParams.get('y') ?? 0) }
               : undefined,
             size: url.searchParams.get('size') !== null ? Number(url.searchParams.get('size')) : undefined,
+            map: sim.context.mapConfig,
           });
           return png(sheet.toPNG());
         }

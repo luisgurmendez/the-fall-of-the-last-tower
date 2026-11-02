@@ -14,7 +14,7 @@
  * its camps' lairs.
  */
 
-import { MOBAConfig, calculateIndividualBushPositions, jungleTrails } from "@siege/shared";
+import { MOBAConfig, calculateIndividualBushPositions } from "@siege/shared";
 
 /** World units per texel */
 export const FIELD_CELL = 8;
@@ -203,7 +203,7 @@ export function buildTerrainField(): TerrainField {
       }
     }
   };
-  for (const points of jungleTrails()) {
+  for (const points of MOBAConfig.TRAILS) {
     for (let i = 0; i < points.length - 1; i++) {
       markWithin(points[i].x, points[i].y, points[i + 1].x, points[i + 1].y, TRAIL_HALF_WIDTH, trail);
     }

@@ -60,11 +60,15 @@ export class FogOfWarServer {
 
   /**
    * @param walls Terrain walls that block vision (default: the map's walls; null for none)
+   * @param bushGroups The map's tall grass
    */
-  constructor(walls: ConstructorParameters<typeof WallGrid>[0] = MOBAConfig.WALL_FIELD) {
+  constructor(
+    walls: ConstructorParameters<typeof WallGrid>[0] = MOBAConfig.WALL_FIELD,
+    bushGroups: typeof MOBAConfig.BUSH_GROUPS = MOBAConfig.BUSH_GROUPS,
+  ) {
     this.visionSources.set(0, []);
     this.visionSources.set(1, []);
-    this.bushManager = new ServerBushManager();
+    this.bushManager = new ServerBushManager(bushGroups);
     this.wallGrid = new WallGrid(walls);
   }
 

@@ -6,7 +6,7 @@ import { defineScenario } from '../src/sim';
 import { LanePath } from '../src/navigation/LanePath';
 import { MOBAConfig, Vector } from '@siege/shared';
 
-const lane = new LanePath(MOBAConfig.LANES.MID.waypoints.map(w => w.clone()));
+const lane = new LanePath(MOBAConfig.LANES.MID!.waypoints.map(w => w.clone()));
 
 export default defineScenario({
   name: 'minion-chase-and-return',

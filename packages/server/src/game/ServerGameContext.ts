@@ -15,6 +15,8 @@ import {
   GameEvent,
   GameEventType,
   type LaneId,
+  getLane,
+  mapLanes,
   type MinionType,
   type WardType,
 } from '@siege/shared';
@@ -94,7 +96,7 @@ export class ServerGameContext {
     this.gameId = config.gameId;
     this.mapConfig = config.mapConfig ?? MOBAConfig;
     this.minionWavesEnabled = config.minionWaves ?? true;
-    this.fogOfWar = new FogOfWarServer(this.mapConfig.WALL_FIELD);
+    this.fogOfWar = new FogOfWarServer(this.mapConfig.WALL_FIELD, this.mapConfig.BUSH_GROUPS);
     this.collisionSystem = new CollisionSystem();
     this.terrain = new Terrain(this.mapConfig);
     this.tunnels = new JungleTunnels(this.mapConfig.TUNNELS);
@@ -427,7 +429,7 @@ export class ServerGameContext {
   private spawnMinionWave(): void {
     Logger.game.debug(`Minion wave ${this.minionWaveCount + 1} spawning`);
 
-    const lanes: LaneId[] = ['top', 'mid', 'bot'];
+    const lanes = mapLanes(this.mapConfig).map(lane => lane.id);
     const waveConfig = this.mapConfig.MINION_WAVES.WAVE_COMPOSITION;
     const withSiege = (this.minionWaveCount + 1) % this.mapConfig.MINION_WAVES.SIEGE_EVERY === 0;
 
@@ -472,7 +474,7 @@ export class ServerGameContext {
     waveConfig: { swordsmen: number; archers: number },
     withSiege: boolean
   ): void {
-    const laneConfig = this.mapConfig.LANES[lane.toUpperCase() as 'TOP' | 'MID' | 'BOT'];
+    const laneConfig = getLane(this.mapConfig, lane);
 
     // Get waypoints - blue side uses them as-is, red side reverses them
     const waypoints = side === 0

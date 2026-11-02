@@ -41,8 +41,10 @@ const WARD_KEYS: [string, WardType][] = [["4", "stealth"], ["5", "control"]];
 const TUNNEL_MOUTH_HALF_WIDTH = 30;
 const TUNNEL_MOUTH_HALF_HEIGHT = 22;
 
-/** The mouths of the jungle's tunnels */
-const TUNNEL_MOUTHS = MOBAConfig.TUNNELS.LIST.flatMap(({ a, b }) => [a, b]);
+/** The mouths of the active map's jungle tunnels */
+function tunnelMouths(): { x: number; y: number }[] {
+  return MOBAConfig.TUNNELS.LIST.flatMap(({ a, b }) => [a, b]);
+}
 
 const ATTACKABLE_ENTITY_TYPES: Set<number> = new Set([
   0, // EntityType.CHAMPION
@@ -516,7 +518,7 @@ export class OnlineInputHandler implements GameObject {
     }
 
     // A tunnel's mouth, when no unit is in the way
-    this.hoveredTunnelMouth = closestEnemy || closestAlly ? null : TUNNEL_MOUTHS.find(mouth =>
+    this.hoveredTunnelMouth = closestEnemy || closestAlly ? null : tunnelMouths().find(mouth =>
       ((mouseWorldPos.x - mouth.x) / TUNNEL_MOUTH_HALF_WIDTH) ** 2 + ((mouseWorldPos.y - mouth.y) / TUNNEL_MOUTH_HALF_HEIGHT) ** 2 <= 1
     ) ?? null;
 

@@ -1,11 +1,14 @@
 /**
- * Ambience: the river's water and the jungle's birds, faded in and out by
+ * Ambience: the river's water and the forest's birds, faded in and out by
  * where the camera looks (Camera.step calls this every frame).
  */
 
-import { MOBAConfig, inJungle } from "@siege/shared";
+import { MOBAConfig } from "@siege/shared";
 import { getAudio } from "./AudioManager";
 
+/** The jungle's sounds are at full volume this close to the forest's edge (or in it), silent this far */
+const FOREST_NEAR = 150;
+const FOREST_FAR = 450;
 /** The river is at full volume this close to its middle line, silent this far */
 const RIVER_NEAR = 250;
 const RIVER_FAR = 800;
@@ -28,8 +31,9 @@ function distanceToRiver(x: number, y: number): number {
 export function updateAmbience(x: number, y: number): void {
   const audio = getAudio();
   const river = Math.max(0, Math.min(1, 1 - (distanceToRiver(x, y) - RIVER_NEAR) / (RIVER_FAR - RIVER_NEAR)));
-  // inJungle covers blue's half; red's mirrors it with x and y swapped
-  const jungle = inJungle(x, y) || inJungle(y, x) ? 1 : 0;
+  // Birds and insects near the forest: full within FOREST_NEAR of its edge, gone by FOREST_FAR
+  const forestEdge = MOBAConfig.WALL_FIELD.distance(x, y);
+  const jungle = Math.max(0, Math.min(1, 1 - (forestEdge - FOREST_NEAR) / (FOREST_FAR - FOREST_NEAR)));
   audio.setLoopLevel("amb_river", river);
   audio.setLoopLevel("amb_jungle", jungle * (1 - river * 0.6));
 }

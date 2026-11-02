@@ -7,16 +7,20 @@ export {
   calculateBushGroupBounds,
   calculateIndividualBushPositions,
   isPointInBushGroup,
+  mapLanes,
+  getLane,
   default as default
 } from './MOBAConfig';
-export type { MapSide, LaneId, JungleCreatureType, BushSpread, BushGroupBounds, BushPosition } from './MOBAConfig';
+export type { MapSide, LaneId, LaneConfig, JungleCreatureType, BushSpread, BushGroupBounds, BushPosition } from './MOBAConfig';
 
 export { GameConfig } from './GameConfig';
 
 export { WallGrid } from './WallGrid';
 
-export { inJungle, jungleTrails } from './siegeMap';
+export { jungleTrails } from './siegeMap';
 export { WallField } from './wallField';
+export { MAPS, useMap, activeMapId, isMapId } from './maps';
+export type { MapId } from './maps';
 
 export { ITEM_CATALOG, getItemCatalogEntry, CONTROL_WARD_ITEM_ID } from './items';
 export type { ItemCatalogEntry, ItemPassiveData } from './items';

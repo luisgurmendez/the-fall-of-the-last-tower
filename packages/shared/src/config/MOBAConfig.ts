@@ -8,7 +8,7 @@
 import { Vector } from "../math/Vector";
 import {
   BLUE_NEXUS, BOT_ONLY_BUSHES, DRAGON_PIT, LANE_PATHS, LANE_WIDTH, RIVER_PATH, RIVER_WIDTH, SIEGE_MAP_WALLS, SIEGE_WALL_FIELD,
-  TOP_ONLY_BUSHES, TOP_SIDE_BUSHES, TOP_SIDE_CAMPS, jungleTunnels, type BushSpot,
+  TOP_ONLY_BUSHES, TOP_SIDE_BUSHES, TOP_SIDE_CAMPS, jungleTrails, jungleTunnels, type BushSpot,
 } from "./siegeMap";
 
 const { blueBuff: BLUE_BUFF, thornspitter: THORNSPITTER, wolves: WOLVES } = TOP_SIDE_CAMPS;
@@ -54,7 +54,28 @@ export type MapSide = 0 | 1;
  * (1 Siege unit = 2.5 of those; a champion is 25 across its radius). Keep new
  * distances, ranges and speeds on that scale.
  */
+/** A list in the config whose length varies from map to map (its items keep their exact types) */
+function list<T>(items: readonly T[]): readonly T[] {
+  return items;
+}
+
+/** A lane: its id and the waypoints its minions follow from blue's nexus to red's */
+export interface LaneConfig {
+  id: "top" | "mid" | "bot";
+  waypoints: Vector[];
+  width: number;
+}
+
+/**
+ * The main map's config, and the shape every map has (maps.ts holds the
+ * others). A client plays one match at a time, so it swaps the active map's
+ * fields into this object (useMap); the server never does, and reads each
+ * match's map from its context (ServerGameContext.mapConfig).
+ */
 export const MOBAConfig = {
+  /** The map's name, on the loading screen */
+  NAME: "Wildcrown Vale" as string,
+
   /**
    * Map dimensions in world units.
    * World is centered at (0,0), so coordinates range from -2880 to +2880.
@@ -105,7 +126,7 @@ export const MOBAConfig = {
       waypoints: LANE_PATHS.bot.map((p) => new Vector(p.x, p.y)),
       width: LANE_WIDTH,
     },
-  },
+  } as Partial<Record<"TOP" | "MID" | "BOT", LaneConfig>>,
 
   /**
    * The river runs between the lane corners (along y = x), across mid.
@@ -115,8 +136,8 @@ export const MOBAConfig = {
    */
   RIVER: {
     points: RIVER_PATH.map((p) => new Vector(p.x, p.y)),
-    width: RIVER_WIDTH,
-    pits: [new Vector(DRAGON_PIT.x, DRAGON_PIT.y), new Vector(-DRAGON_PIT.x, -DRAGON_PIT.y)],
+    width: RIVER_WIDTH as number,
+    pits: [new Vector(DRAGON_PIT.x, DRAGON_PIT.y), new Vector(-DRAGON_PIT.x, -DRAGON_PIT.y)] as readonly Vector[],
   },
 
   /**
@@ -126,7 +147,7 @@ export const MOBAConfig = {
     /**
      * Camp spawn positions and configurations.
      */
-    CAMPS: [
+    CAMPS: list([
       // ========== BLUE SIDE JUNGLE ==========
       // Blue's top-side jungle
       {
@@ -235,7 +256,7 @@ export const MOBAConfig = {
         respawnTime: 360,
         firstSpawnAt: 240,
       },
-    ],
+    ]),
 
     /**
      * Stats for each creature type.
@@ -460,6 +481,9 @@ export const MOBAConfig = {
     REGEN_PER_SECOND: 0.12,
   },
 
+  /** The jungle paths' centerlines, drawn as trodden trails on the ground (siegeMap.ts) */
+  TRAILS: list(jungleTrails()),
+
   /**
    * Tunnels: burrows through the jungle's walls (siegeMap.ts). A champion
    * sent into a mouth (right-clicked) crawls through to the other one, hidden,
@@ -542,7 +566,7 @@ export const MOBAConfig = {
     },
 
     /** Tower positions by side and lane (outer tower first: tier 1, then inner: tier 2) */
-    POSITIONS: [
+    POSITIONS: list([
       // ========== BLUE SIDE (0) ==========
       {
         side: 0 as const,
@@ -606,7 +630,7 @@ export const MOBAConfig = {
         lane: "bot" as const,
         position: new Vector(2420, -200),
       },
-    ],
+    ]),
   },
 
   /**
@@ -634,7 +658,7 @@ export const MOBAConfig = {
     },
 
     /** Inhibitor positions by side and lane (red's mirror blue's with x and y swapped; lane names stay) */
-    POSITIONS: [
+    POSITIONS: list([
       // ========== BLUE SIDE (0) ==========
       { side: 0 as const, lane: "top" as const, position: new Vector(-2390, 1600) },
       { side: 0 as const, lane: "mid" as const, position: new Vector(-1700, 1700) },
@@ -644,13 +668,13 @@ export const MOBAConfig = {
       { side: 1 as const, lane: "top" as const, position: new Vector(1600, -2390) },
       { side: 1 as const, lane: "mid" as const, position: new Vector(1700, -1700) },
       { side: 1 as const, lane: "bot" as const, position: new Vector(2390, -1600) },
-    ],
+    ]),
   },
 
   /**
    * Map decorations - non-interactive visual elements.
    */
-  DECORATIONS: [
+  DECORATIONS: list([
     // ========== BLUE HALF ==========
     {
       position: new Vector(-1728, -288),
@@ -764,10 +788,20 @@ export const MOBAConfig = {
       type: "rock_mid" as const,
       scale: 0.7,
     },
-  ],
+  ]),
 } as const;
 
 export type LaneId = "top" | "mid" | "bot";
+
+/** A map's lanes (The Narrows has only mid) */
+export function mapLanes(map: typeof MOBAConfig): LaneConfig[] {
+  return Object.values(map.LANES).filter((lane): lane is LaneConfig => lane !== undefined);
+}
+
+/** A map's lane by id; on a map without it, its first lane */
+export function getLane(map: typeof MOBAConfig, lane: LaneId): LaneConfig {
+  return map.LANES[lane.toUpperCase() as "TOP" | "MID" | "BOT"] ?? mapLanes(map)[0];
+}
 export type JungleCreatureType = keyof typeof MOBAConfig.JUNGLE.CREATURE_STATS;
 /** How a group's bushes line up: along x, along y, along y = x, along y = -x (beside mid lane), or around the center */
 export type BushSpread = "horizontal" | "vertical" | "diagonal" | "antidiagonal" | "cluster";
@@ -799,23 +833,25 @@ export interface BushPosition {
  * Used by both server (for visibility checks) and can be used by client.
  *
  * @param groupIndex - Index of the bush group in BUSH_GROUPS array
+ * @param groups - The map's bush groups (default: the active map's)
  * @returns Array of individual bush positions with their dimensions
  */
 export function calculateIndividualBushPositions(
   groupIndex: number,
+  groups: typeof MOBAConfig.BUSH_GROUPS = MOBAConfig.BUSH_GROUPS,
 ): BushPosition[] {
-  const groupConfig = MOBAConfig.BUSH_GROUPS[groupIndex];
+  const groupConfig = groups[groupIndex];
   if (!groupConfig) return [];
 
   // Red's groups follow blue's, in the same order: each is the exact mirror
   // image of its blue twin, bush for bush. A bot-side group made from a
   // top-side one is its reflection across mid (each bush turned on its side).
-  const blueGroups = MOBAConfig.BUSH_GROUPS.length / 2;
+  const blueGroups = groups.length / 2;
   if (groupIndex >= blueGroups) {
-    return calculateIndividualBushPositions(groupIndex - blueGroups).map(bush => ({ ...bush, x: -bush.x, y: -bush.y }));
+    return calculateIndividualBushPositions(groupIndex - blueGroups, groups).map(bush => ({ ...bush, x: -bush.x, y: -bush.y }));
   }
   if ("reflectionOf" in groupConfig && groupConfig.reflectionOf !== undefined) {
-    return calculateIndividualBushPositions(groupConfig.reflectionOf).map(bush => ({
+    return calculateIndividualBushPositions(groupConfig.reflectionOf, groups).map(bush => ({
       x: -bush.y,
       y: -bush.x,
       width: bush.height,
@@ -894,8 +930,9 @@ export function calculateIndividualBushPositions(
 export function isPointInBushGroup(
   point: { x: number; y: number },
   groupIndex: number,
+  groups: typeof MOBAConfig.BUSH_GROUPS = MOBAConfig.BUSH_GROUPS,
 ): boolean {
-  const bushes = calculateIndividualBushPositions(groupIndex);
+  const bushes = calculateIndividualBushPositions(groupIndex, groups);
 
   for (const bush of bushes) {
     const halfW = bush.width / 2;

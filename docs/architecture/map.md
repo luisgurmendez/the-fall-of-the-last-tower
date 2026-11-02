@@ -4,6 +4,19 @@ Config: `packages/shared/src/config/MOBAConfig.ts` (lanes, river, towers, inhibi
 Wall layout: `packages/shared/src/config/siegeMap.ts`, built with the helpers in `mapLayout.ts`.
 Server: `packages/server/src/navigation/` (`Terrain`, `PathFollower`, `ServerNavGrid`, `LanePath`).
 
+## Maps
+
+`packages/shared/src/config/maps.ts` lists the maps (`MAPS`, `MapId`). Each is a whole map config, the shape of `MOBAConfig`:
+
+| Map | Id | For | Layout |
+|-----|----|-----|--------|
+| Wildcrown Vale | `wildcrown` | 5v5 (and every practice size) | Three lanes, the river and the jungle (`siegeMap.ts`, below) |
+| The Narrows | `narrows` | 1v1 (the practice chip's ARAM) | One lane through a forest gorge (`narrowsMap.ts`) |
+
+- **Server:** each match is built on its map: `GameRoom` takes a `mapId` and gives `ServerGameContext` its config (`mapConfig`); terrain, vision, bushes, camps, tunnels, towers, waves (one per lane the map has, `mapLanes`), spawns and recall all read it. Server code must read the map from the context, never from the global `MOBAConfig` (which stays Wildcrown Vale on the server; several matches on different maps run side by side). A practice `READY` can carry a `mapId`; The Narrows is always 1v1. `GAME_START` tells the client the `mapId`.
+- **Client:** when a match is found, `useMap(mapId)` swaps the map's fields into `MOBAConfig`, so everything that reads it sees the match's map. What's worked out from the map once is worked out again when it changes: the ground's field (`GroundPass`), the minimap's walls, the brush rectangles; the rest is built per match.
+- **The Narrows:** a single lane (mid's diagonal) from base to base, about 40 seconds' walk, through a gorge about 560 wide with a wider arena in the middle and pockets off its sides with tall grass (`NARROWS_BLUE_BUSHES`). Each side has two towers, an inhibitor and its nexus along the lane; no jungle, river or tunnels. Same distance field machinery as the main map. `bun run sim narrows-duel` plays two bots on it; `Maps.test.ts` checks every map is playable.
+
 ## Scale
 
 Everything is sized like the classic MOBA map and its units at 0.4 of their size: 1 Siege unit = 2.5 of those. The champions' art fixes that scale (a champion is 25 units in radius), and the rest follows: champions walk about 100 units a second and minions 88 (under that scale, for a calmer pace with the closer camera), melee champions hit from 55-60 and ranged ones from 180-220, towers shoot 300, champions see 560, experience is shared within 560, ability ranges are 170-440 and their areas 60-220 in radius. Walking from base to the far nexus takes about 65 seconds (about 50 on the classic map). Keep new distances, ranges and speeds on this scale.

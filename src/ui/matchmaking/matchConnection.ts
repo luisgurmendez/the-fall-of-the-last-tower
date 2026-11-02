@@ -7,6 +7,7 @@
  */
 
 import { NetworkClient } from "../../../packages/client/src/network/NetworkClient";
+import type { MapId } from "@siege/shared";
 import type { ConnectionStatus } from "./types";
 
 /**
@@ -71,7 +72,7 @@ export class MatchConnection {
     mode: "queue" | "practice",
     botChampionId: string | undefined,
     events: MatchConnectionEvents,
-    practiceSize?: number,
+    practice?: { size: number; map: MapId },
   ): void {
     // Create network client
     this.networkClient = new NetworkClient({
@@ -94,7 +95,8 @@ export class MatchConnection {
         mode,
         botChampionId,
         summonerSpells: events.getSummonerSpells(),
-        practiceSize,
+        practiceSize: practice?.size,
+        mapId: practice?.map,
       });
       if (mode === "queue") {
         events.onQueueEntered();

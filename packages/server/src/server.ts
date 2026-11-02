@@ -19,6 +19,8 @@ import {
   CHAMPION_DEFINITIONS as CHAMPION_REGISTRY,
   parseSummonerSpells,
   type SummonerSpellId,
+  isMapId,
+  type MapId,
 } from '@siege/shared';
 
 import { BunWebSocketServer } from './network/BunWebSocketServer';
@@ -134,12 +136,14 @@ interface ReadyMessageData {
   botChampionId?: string;
   /** Players per team in practice: 1 (a bot in mid), 3 or 5 (bots in every role) */
   practiceSize?: number;
+  /** The map for a practice match (maps.ts; default the main map). The Narrows is always 1v1 */
+  mapId?: unknown;
   /** Summoner spells picked in champion select (D, F) */
   summonerSpells?: unknown;
 }
 
 function handleReadyMessage(connection: WebSocketConnection, data: ReadyMessageData): void {
-  const { playerId, championId = 'warrior', sessionToken, mode = 'queue', botChampionId, practiceSize } = data ?? {};
+  const { playerId, championId = 'warrior', sessionToken, mode = 'queue', botChampionId, practiceSize, mapId } = data ?? {};
   const summonerSpells = parseSummonerSpells(data?.summonerSpells);
   if (typeof playerId !== 'string' || playerId.length === 0) {
     Logger.server.warn(`READY without a valid playerId from ${connection.id}`);
@@ -222,7 +226,10 @@ function handleReadyMessage(connection: WebSocketConnection, data: ReadyMessageD
   }
 
   if (mode === 'practice') {
-    startPracticeMatch(playerId, championId, summonerSpells, botChampionId, isPracticeTeamSize(practiceSize) ? practiceSize : 1);
+    const map = isMapId(mapId) ? mapId : 'wildcrown';
+    // The Narrows has a single lane: always a duel
+    const teamSize = map === 'narrows' ? 1 : isPracticeTeamSize(practiceSize) ? practiceSize : 1;
+    startPracticeMatch(playerId, championId, summonerSpells, botChampionId, teamSize, map);
     return;
   }
 
@@ -289,6 +296,7 @@ function startPracticeMatch(
   summonerSpells: SummonerSpellId[],
   botChampionId: string | undefined,
   teamSize: PracticeTeamSize,
+  mapId: MapId,
 ): void {
   const { players, bots } = buildPracticeMatch({
     playerId,
@@ -298,13 +306,13 @@ function startPracticeMatch(
     champions: [...CHAMPION_DEFINITIONS.keys()],
     botChampionId: typeof botChampionId === 'string' && CHAMPION_DEFINITIONS.has(botChampionId) ? botChampionId : undefined,
   });
-  Logger.server.info(`Practice ${teamSize}v${teamSize}: ${players.map(p => `${p.playerId} (${p.championId})`).join(', ')}`);
-  startMatch(players, bots);
+  Logger.server.info(`Practice ${teamSize}v${teamSize} on ${mapId}: ${players.map(p => `${p.playerId} (${p.championId})`).join(', ')}`);
+  startMatch(players, bots, mapId);
 }
 
-function startMatch(players: PlayerInfo[], bots: BotController[] = []): void {
+function startMatch(players: PlayerInfo[], bots: BotController[] = [], mapId: MapId = 'wildcrown'): void {
   // Create the game room
-  const room = roomManager.createRoom(players, bots);
+  const room = roomManager.createRoom(players, bots, mapId);
   const gameId = room.getState() === 'waiting' ? room.gameId : null;
 
   if (!gameId) {
@@ -339,6 +347,7 @@ function startMatch(players: PlayerInfo[], bots: BotController[] = []): void {
         gameTime: 0,
         yourSide: player.side,
         players: playersWithEntityIds,
+        mapId,
       },
     });
 

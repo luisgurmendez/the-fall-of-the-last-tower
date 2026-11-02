@@ -43,6 +43,7 @@ import {
   type AbilityDefinition,
   type ChampionClass,
   type LaneId,
+  getLane,
   type Side,
 } from '@siege/shared';
 import type { BotController, BotInput } from './BotController';
@@ -797,8 +798,7 @@ export class LaneBot implements BotController {
 
   private getLanePath(side: Side, context: ServerGameContext): LanePath {
     if (!this.lanePath) {
-      const laneKey = this.lane.toUpperCase() as 'TOP' | 'MID' | 'BOT';
-      const waypoints = context.mapConfig.LANES[laneKey].waypoints.map(w => w.clone());
+      const waypoints = getLane(context.mapConfig, this.lane).waypoints.map(w => w.clone());
       // Lanes are defined blue -> red
       this.lanePath = new LanePath(side === 0 ? waypoints : waypoints.reverse());
     }

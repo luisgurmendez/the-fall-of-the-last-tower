@@ -20,6 +20,7 @@ import {
   getChampionDefinition,
   type AbilitySlot,
   type LaneId,
+  getLane,
   type MinionType,
   type Side,
   DEFAULT_SUMMONER_SPELLS,
@@ -161,8 +162,7 @@ export class Simulation {
    */
   addMinion(options: { side: SideInput; lane: LaneId; at: { x: number; y: number }; type?: MinionType; laneOffset?: number }): ServerMinion {
     const side = toSide(options.side);
-    const laneKey = options.lane.toUpperCase() as 'TOP' | 'MID' | 'BOT';
-    const waypoints = this.context.mapConfig.LANES[laneKey].waypoints.map(w => w.clone());
+    const waypoints = getLane(this.context.mapConfig, options.lane).waypoints.map(w => w.clone());
     if (side === 1) waypoints.reverse();
 
     const position = new Vector(options.at.x, options.at.y);

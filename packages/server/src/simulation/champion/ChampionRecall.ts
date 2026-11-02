@@ -10,7 +10,8 @@
  * snapshots and the network layer.
  */
 
-import { GameConfig, MOBAConfig } from '@siege/shared';
+import { GameConfig } from '@siege/shared';
+import type { ServerGameContext } from '../../game/ServerGameContext';
 import type { ServerChampion } from '../ServerChampion';
 
 export class ChampionRecall {
@@ -40,25 +41,25 @@ export class ChampionRecall {
   /**
    * Update recall.
    */
-  update(dt: number): void {
+  update(dt: number, context: ServerGameContext): void {
     this.champion.recallProgress += dt;
     if (this.champion.recallProgress >= GameConfig.TIMING.RECALL_DURATION) {
-      this.complete();
+      this.complete(context);
     }
   }
 
   /**
    * Complete recall (teleport to base).
    */
-  private complete(): void {
+  private complete(context: ServerGameContext): void {
     const champion = this.champion;
     champion.isRecalling = false;
     champion.recallProgress = 0;
 
     // Teleport to the fountain (the spawn point), where the shop is
     const spawnPos = champion.side === 0
-      ? MOBAConfig.CHAMPION_SPAWN.BLUE
-      : MOBAConfig.CHAMPION_SPAWN.RED;
+      ? context.mapConfig.CHAMPION_SPAWN.BLUE
+      : context.mapConfig.CHAMPION_SPAWN.RED;
     champion.position.setFrom(spawnPos);
 
     // Restore health and mana

@@ -10,7 +10,7 @@
 
 import { GameRoom, type PlayerInfo, type GameRoomState } from './GameRoom';
 import type { BotController } from '../bots/BotController';
-import type { ClientInput, StateUpdate, FullStateSnapshot, ChampionDefinition, Side } from '@siege/shared';
+import type { ClientInput, StateUpdate, FullStateSnapshot, ChampionDefinition, Side, MapId } from '@siege/shared';
 import { Logger } from '../utils/Logger';
 
 /**
@@ -74,13 +74,14 @@ export class GameRoomManager {
    * Create a new game room.
    * @param bots Controllers for the players marked isBot
    */
-  createRoom(players: PlayerInfo[], bots: BotController[] = []): GameRoom {
+  createRoom(players: PlayerInfo[], bots: BotController[] = [], mapId: MapId = 'wildcrown'): GameRoom {
     const gameId = `game-${Date.now()}-${this.gameIdCounter++}`;
 
     const room = new GameRoom({
       gameId,
       players,
       bots,
+      mapId,
       championDefinitions: this.championDefinitions,
       onStateUpdate: (playerId, update) => {
         this.onStateUpdate?.(playerId, update);
