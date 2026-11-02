@@ -27,7 +27,7 @@ import { EntityRenderer } from '@/render/EntityRenderer';
 import { OnlineChampionAdapter } from '@/online/OnlineChampionAdapter';
 import { OnlineFogProvider } from '@/online/OnlineFogProvider';
 import { AbilityRangeIndicator } from '@/ui/AbilityRangeIndicator';
-import { DebugInspector } from '@/debug';
+import type { DebugOverlay } from '@/debug/DebugOverlay';
 import { getChampionDefinition } from '@siege/shared';
 import { InputManager } from '@/core/input/InputManager';
 import type { OnlineStateManager } from '@/core/OnlineStateManager';
@@ -42,13 +42,15 @@ export interface OnlineLevelConfig {
   networkClient: NetworkClient;
   stateManager: OnlineStateManager;
   matchData: MatchData;
+  /** F3's debug overlay (drawn over the units, under the HUD) */
+  debugOverlay: DebugOverlay;
 }
 
 /**
  * Generate an online level that renders server state.
  */
 export function generateOnlineLevel(config: OnlineLevelConfig): Level {
-  const { networkClient, stateManager, matchData } = config;
+  const { networkClient, stateManager, matchData, debugOverlay } = config;
 
   // Create world dimensions
   const { width, height } = MOBAConfig.MAP_SIZE;
@@ -105,9 +107,8 @@ export function generateOnlineLevel(config: OnlineLevelConfig): Level {
   // Wire bush manager to fog provider for bush transparency in online mode
   fogProvider.setBushManager(mobaMap.getBushManager());
 
-  // Create debug inspector for entity inspection (toggle with F3)
-  const debugInspector = new DebugInspector(stateManager);
-  debugInspector.setBushManager(mobaMap.getBushManager());
+  // The debug overlay shows the unit selected with a left click
+  debugOverlay.setSelectionSource(() => inputHandler.getSelectedEntityId());
 
   // Create champion HUD and wire up level-up handler
   const championHUD = new ChampionHUD(hudConfig, championAdapter);
@@ -155,6 +156,8 @@ export function generateOnlineLevel(config: OnlineLevelConfig): Level {
     inputHandler,
     // Camera controller
     cameraController,
+    // What the server thinks about the units in sight (F3, practice matches)
+    debugOverlay,
     // Red screen edges when the local champion is low, dim screen while dead (under the HUD)
     new LowHealthVignette(stateManager),
     new DeathOverlay(stateManager),
@@ -173,8 +176,6 @@ export function generateOnlineLevel(config: OnlineLevelConfig): Level {
     new KillFeed(stateManager),
     // Tab scoreboard (full scoreboard overlay when Tab is held)
     tabScoreboard,
-    // Debug inspector for entity inspection (F3 to toggle)
-    debugInspector,
   ];
 
   // Enable fog of war visuals (fog provider updates based on server state)

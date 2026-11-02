@@ -48,6 +48,7 @@ import {
   createDefaultPassiveState,
   DEFAULT_CHAMPION_COLLISION,
   type EntityCollision,
+  type DebugUnit,
 } from '@siege/shared';
 import { ServerEntity, ServerEntityConfig } from './ServerEntity';
 import { ServerTower } from './ServerTower';
@@ -73,6 +74,7 @@ import { ChampionSummoners } from './champion/ChampionSummoners';
 import { ChampionInventory } from './champion/ChampionInventory';
 import { ChampionItemPassives } from './champion/ChampionItemPassives';
 import { buildChampionSnapshot } from './champion/ChampionSnapshot';
+import { describeChampion } from './champion/ChampionDebug';
 
 export interface ServerChampionConfig extends Omit<ServerEntityConfig, 'entityType'> {
   definition: ChampionDefinition;
@@ -1164,5 +1166,10 @@ export class ServerChampion extends ServerEntity {
    */
   toSnapshot(): ChampionSnapshot {
     return buildChampionSnapshot(this);
+  }
+
+  /** For the debug overlay (a bot's decision is added by DebugReport) */
+  override debugInfo(context: ServerGameContext): DebugUnit {
+    return describeChampion(this, context);
   }
 }

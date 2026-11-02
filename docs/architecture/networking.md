@@ -39,6 +39,7 @@ enum ClientMessageType {
   PING = 1,       // Latency measurement
   READY = 2,      // Join queue with champion
   EVENT_ACK = 3,  // Acknowledge received events
+  DEBUG = 4,      // Debug overlay on/off: { enabled } (practice matches, see debug.md)
 }
 ```
 
@@ -53,6 +54,7 @@ enum ServerMessageType {
   PONG = 4,           // Ping response
   GAME_START = 5,     // Match begins
   GAME_END = 6,       // Match ends
+  DEBUG_STATE = 7,    // What the server thinks about the units in sight (see debug.md)
 }
 ```
 

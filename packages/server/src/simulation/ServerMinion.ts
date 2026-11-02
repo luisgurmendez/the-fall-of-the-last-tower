@@ -17,6 +17,7 @@ import {
   MinionSnapshot,
   GameEventType,
   ActiveEffectState,
+  type DebugUnit,
 } from '@siege/shared';
 import type { MinionType, LaneId, MinionStats, DamageType } from '@siege/shared';
 import { DEFAULT_MINION_STATS } from '@siege/shared';
@@ -676,6 +677,31 @@ export class ServerMinion extends ServerEntity {
   /** Its armor and magic resist */
   protected override getResists(): { armor: number; magicResist: number } {
     return { armor: this.stats.armor, magicResist: this.stats.magicResist };
+  }
+
+  /** For the debug overlay: its target and why, and where it's steering */
+  override debugInfo(context: ServerGameContext): DebugUnit {
+    const target = this.attackTarget ? context.getEntity(this.attackTarget) : undefined;
+    let state = 'walking the lane';
+    const notes: string[] = [];
+    if (target) {
+      state = this.isInAttackRange(target, this.stats.attackRange) ? 'attacking' : 'chasing';
+      const priority = this.getPriority(target, context);
+      if (priority === MinionTargetPriority.CALL_FOR_HELP) notes.push('target: hit an allied champion (call for help)');
+    }
+    if (this.ccStatus.isStunned) state = 'stunned';
+    else if (this.ccStatus.isRooted) state += ' (rooted)';
+    if (this.ccStatus.slowPercent > 0) notes.push(`slowed ${Math.round(this.ccStatus.slowPercent * 100)}%`);
+    return {
+      entityId: this.id,
+      radius: this.getRadius(),
+      attackRange: this.stats.attackRange,
+      sight: this.getAcquisitionRange(),
+      targetId: this.attackTarget,
+      path: this.moveTarget ? [{ x: this.moveTarget.x, y: this.moveTarget.y }] : [],
+      state,
+      notes,
+    };
   }
 
   /**

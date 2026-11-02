@@ -17,6 +17,7 @@ import { getCursorManager } from './CursorManager';
 import { OnlineStateManager } from './OnlineStateManager';
 import { EntityType, GameConfig, MOBAConfig, getChampionDefinition, type ChampionSnapshot } from '@siege/shared';
 import { GameMenu } from '@/ui/GameMenu';
+import { DebugOverlay } from '@/debug/DebugOverlay';
 import type { NetworkClient } from '@siege/client';
 import type { MatchData } from '@/ui/matchmaking/MatchmakingUI';
 import type { GameApi } from './gameContext';
@@ -36,6 +37,8 @@ export interface OnlineGameConfig {
 class OnlineGame {
   /** The Escape menu (resume, surrender) */
   private gameMenu!: GameMenu;
+  /** F3: what the server thinks about the units in sight (practice matches) */
+  private readonly debugOverlay: DebugOverlay;
   private clock: Clock;
   private canvasRenderingContext: CanvasRenderingContext2D;
   private canvas: HTMLCanvasElement;
@@ -62,11 +65,15 @@ class OnlineGame {
       this.updateShopFromServerState();
     };
 
+    this.debugOverlay = new DebugOverlay(this.networkClient, this.stateManager);
+    this.networkClient.onDebugState = (data) => this.debugOverlay.receive(data);
+
     // Initialize level for online play
     this.level = generateOnlineLevel({
       networkClient: this.networkClient,
       stateManager: this.stateManager,
       matchData: this.matchData,
+      debugOverlay: this.debugOverlay,
     });
 
     // Initialize canvas rendering context
@@ -85,7 +92,7 @@ class OnlineGame {
   init() {
     // Note: No pause on blur/focus - online games continue running on server
 
-    this.gameMenu = new GameMenu(() => this.networkClient.sendSurrender());
+    this.gameMenu = new GameMenu(() => this.networkClient.sendSurrender(), this.debugOverlay);
 
     // Wire up shop to network client for online buy/sell
     const shopUI = getShopUI();
@@ -179,10 +186,11 @@ class OnlineGame {
   }
 
   /**
-   * The match is over: the in-match menu goes away.
+   * The match is over: the in-match menu and the debug overlay go away.
    */
   onMatchEnd(): void {
     this.gameMenu.dispose();
+    this.debugOverlay.dispose();
   }
 
   /**

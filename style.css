@@ -114,3 +114,75 @@ canvas {
     background: #c0392b;
     color: #ffffff;
 }
+
+/* Debug overlay's panel (src/debug/DebugOverlay.ts) */
+.debug-panel {
+    position: fixed;
+    left: 12px;
+    /* Under the selected unit's info (TargetInfoHUD) */
+    top: 262px;
+    z-index: 2100;
+    width: 290px;
+    max-height: calc(100vh - 280px);
+    overflow-y: auto;
+    padding: 10px 12px;
+    background: rgba(10, 10, 18, 0.88);
+    border: 2px solid var(--pixel-border);
+    font-family: monospace;
+    font-size: 12px;
+    line-height: 1.45;
+    color: #e6e6f0;
+}
+
+.debug-panel-title {
+    color: var(--pixel-gold);
+    font-family: var(--pixel-font);
+    font-size: 18px;
+    margin-bottom: 6px;
+}
+
+.debug-panel-title span {
+    color: #8a8aa8;
+    font-size: 13px;
+    margin-left: 6px;
+}
+
+.debug-panel-layers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 8px;
+}
+
+.debug-panel-chip {
+    padding: 2px 6px;
+    background: transparent;
+    border: 1px solid var(--pixel-border);
+    color: #8a8aa8;
+    font-family: monospace;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.debug-panel-chip.on {
+    background: var(--pixel-border);
+    color: #ffffff;
+}
+
+.debug-panel-name {
+    font-size: 14px;
+    font-weight: bold;
+    margin-top: 6px;
+}
+
+.debug-panel-dim {
+    color: #8a8aa8;
+}
+
+.debug-panel-note {
+    color: #b8c4d8;
+}
+
+.debug-panel-warning {
+    color: #ff9f1a;
+}

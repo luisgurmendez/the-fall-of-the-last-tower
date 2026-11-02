@@ -20,6 +20,7 @@ import {
   type AbilitySlot,
   type WardType,
   type GameEndData,
+  type DebugStateData,
 } from '@siege/shared';
 
 /**
@@ -67,6 +68,7 @@ export interface NetworkEventHandlers {
   onError?: (error: string) => void;
   onLatencyUpdate?: (latency: number) => void;
   onEvent?: (event: { event: string; [key: string]: any }) => void;
+  onDebugState?: (data: DebugStateData) => void;
 }
 
 /**
@@ -106,6 +108,8 @@ export class NetworkClient {
   onError?: (error: string) => void;
   onLatencyUpdate?: (latency: number) => void;
   onEvent?: (event: { event: string; [key: string]: any }) => void;
+  /** What the server thinks about the units in sight, while the debug overlay is on (sendDebug) */
+  onDebugState?: (data: DebugStateData) => void;
 
   constructor(config: NetworkClientConfig) {
     this.config = {
@@ -263,6 +267,13 @@ export class NetworkClient {
   /**
    * Concede the match.
    */
+  /**
+   * Ask the server for DEBUG_STATE messages, or to stop them (practice matches only).
+   */
+  sendDebug(enabled: boolean): void {
+    this.sendMessage({ type: ClientMessageType.DEBUG, data: { enabled } });
+  }
+
   sendSurrender(): void {
     this.sendInput({
       seq: ++this.inputSeq,
@@ -457,6 +468,10 @@ export class NetworkClient {
 
         case ServerMessageType.ERROR:
           (this.onError || this.handlers.onError)?.((message.data as { error: string }).error);
+          break;
+
+        case ServerMessageType.DEBUG_STATE:
+          (this.onDebugState || this.handlers.onDebugState)?.(message.data as DebugStateData);
           break;
 
         case ServerMessageType.PONG:

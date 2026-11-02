@@ -20,6 +20,8 @@ export type BotInput = DistributiveOmit<ClientInput, 'seq' | 'clientTime'>;
 
 export interface BotController {
   readonly playerId: string;
+  /** What it decided last, in a few words (the debug overlay and the simulation sandbox show it) */
+  readonly lastDecision?: string;
 
   /**
    * Decide what to do this tick.

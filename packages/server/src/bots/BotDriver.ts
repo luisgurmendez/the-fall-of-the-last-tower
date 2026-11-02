@@ -35,6 +35,11 @@ export class BotDriver {
     return this.bots.some(bot => bot.controller.playerId === playerId);
   }
 
+  /** What the bot playing a player last decided (undefined for humans) */
+  decisionOf(playerId: string): string | undefined {
+    return this.bots.find(bot => bot.controller.playerId === playerId)?.controller.lastDecision;
+  }
+
   /**
    * Let every bot think and queue its inputs.
    * @param clientTime Timestamp to stamp inputs with

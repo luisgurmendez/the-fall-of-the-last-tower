@@ -759,6 +759,45 @@ export enum ServerMessageType {
   GAME_START = 5,
   /** Game end */
   GAME_END = 6,
+  /** What the server thinks about the units in sight (DebugStateData), while the debug overlay is on */
+  DEBUG_STATE = 7,
+}
+
+/**
+ * What the server thinks about one unit, for the debug overlay.
+ */
+export interface DebugUnit {
+  entityId: string;
+  /** Collision radius */
+  radius: number;
+  /** Basic attack range, edge to edge (absent for units that don't attack) */
+  attackRange?: number;
+  /** How far it sees (or, for minions, looks for targets) */
+  sight?: number;
+  /** The unit it's attacking or chasing */
+  targetId?: string | null;
+  /** Where it's walking, the next point first */
+  path?: { x: number; y: number }[];
+  /** What it's doing, in a few words (a bot's decision, a monster's state) */
+  state: string;
+  /** More details, one per line */
+  notes?: string[];
+  /** A circle it keeps to: a monster's leash around its camp */
+  leash?: { x: number; y: number; radius: number };
+  /** Its learned abilities' reach (champions) */
+  abilities?: { slot: string; range: number; radius?: number }[];
+}
+
+/**
+ * DEBUG_STATE data: the units the player's side sees, a few times a second.
+ * Debug is for practice matches only: elsewhere the server answers once with
+ * unavailable set.
+ */
+export interface DebugStateData {
+  tick: number;
+  gameTime: number;
+  units: DebugUnit[];
+  unavailable?: boolean;
 }
 
 /**
@@ -800,6 +839,8 @@ export enum ClientMessageType {
   READY = 2,
   /** Event acknowledgment for reliable delivery */
   EVENT_ACK = 3,
+  /** Turn the debug overlay's DEBUG_STATE messages on or off: { enabled: boolean } */
+  DEBUG = 4,
 }
 
 /**

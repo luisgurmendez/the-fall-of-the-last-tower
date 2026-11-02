@@ -15,6 +15,7 @@ import {
   getEffectiveRadius,
   EntityCollision,
   DEFAULT_TOWER_COLLISION,
+  type DebugUnit,
 } from "@siege/shared";
 import type {
   TowerTier,
@@ -386,6 +387,23 @@ export class ServerTower extends ServerEntity {
   /** Its armor and magic resist */
   protected override getResists(): { armor: number; magicResist: number } {
     return { armor: this.stats.armor, magicResist: this.stats.magicResist };
+  }
+
+  /** For the debug overlay: its target, warmup and which champions have aggro */
+  override debugInfo(_context: ServerGameContext): DebugUnit {
+    const notes = [`warmup ${this.warmupStacks}/${this.stats.maxWarmupStacks}`];
+    if (this.attackCooldown > 0) notes.push(`next shot in ${this.attackCooldown.toFixed(1)}s`);
+    for (const [championId, remaining] of this.aggroMap) {
+      notes.push(`aggro on ${championId} for ${remaining.toFixed(1)}s`);
+    }
+    return {
+      entityId: this.id,
+      radius: this.getRadius(),
+      attackRange: this.stats.attackRange,
+      targetId: this.attackTarget,
+      state: this.isProtected ? 'protected' : this.attackTarget ? 'shooting' : 'idle',
+      notes,
+    };
   }
 
   /**

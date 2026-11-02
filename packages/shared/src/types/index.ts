@@ -153,6 +153,8 @@ export type {
   FullStateSnapshot,
   FinalPlayerStats,
   GameEndData,
+  DebugUnit,
+  DebugStateData,
 } from './network';
 export {
   InputType,

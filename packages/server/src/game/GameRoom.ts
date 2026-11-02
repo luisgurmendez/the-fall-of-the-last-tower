@@ -29,7 +29,8 @@ import { BotDriver } from '../bots/BotDriver';
 import type { BotController } from '../bots/BotController';
 import { StateSerializer } from '../network/StateSerializer';
 import { ReliableEventQueue, shouldSendReliably } from '../network/ReliableEventQueue';
-import type { ClientInput, FinalPlayerStats } from '@siege/shared';
+import type { ClientInput, DebugStateData, FinalPlayerStats } from '@siege/shared';
+import { buildDebugState } from './DebugReport';
 import { Logger } from '../utils/Logger';
 
 export interface PlayerInfo {
@@ -51,7 +52,11 @@ export interface GameRoomConfig {
   bots?: BotController[];
   /** The map it's played on (default the main map) */
   mapId?: MapId;
+  /** Players may turn on the debug overlay (practice matches) */
+  allowDebug?: boolean;
   onStateUpdate?: (playerId: string, update: StateUpdate) => void;
+  /** A debug overlay's DEBUG_STATE for a player who turned it on */
+  onDebugState?: (playerId: string, data: DebugStateData) => void;
   onGameEnd?: (winningSide: Side) => void;
 }
 
@@ -76,7 +81,15 @@ export class GameRoom {
   private championDefinitions: Map<string, ChampionDefinition>;
 
   private onStateUpdate?: (playerId: string, update: StateUpdate) => void;
+  private onDebugState?: (playerId: string, data: DebugStateData) => void;
   private onGameEnd?: (winningSide: Side) => void;
+
+  /** Players may turn on the debug overlay */
+  private readonly allowDebug: boolean;
+  /** Players who turned it on */
+  private readonly debugPlayers = new Set<string>();
+  /** Debug states go out every this many broadcasts (10 a second at 30) */
+  private static readonly DEBUG_EVERY = 3;
 
   // Game timing
   private gameStartTime = 0;
@@ -85,7 +98,9 @@ export class GameRoom {
     this.gameId = config.gameId;
     this.championDefinitions = config.championDefinitions;
     this.onStateUpdate = config.onStateUpdate;
+    this.onDebugState = config.onDebugState;
     this.onGameEnd = config.onGameEnd;
+    this.allowDebug = config.allowDebug ?? false;
 
     // Initialize players
     for (const player of config.players) {
@@ -258,7 +273,24 @@ export class GameRoom {
       }
 
       this.onStateUpdate(playerId, update);
+
+      if (this.debugPlayers.has(playerId) && tick % GameRoom.DEBUG_EVERY === 0) {
+        this.onDebugState?.(playerId, buildDebugState(
+          visibleEntities, this.context, tick, id => this.botDriver.decisionOf(id),
+        ));
+      }
     }
+  }
+
+  /**
+   * Turn a player's debug overlay on or off. False if this match doesn't
+   * allow it (only practice matches do).
+   */
+  setDebug(playerId: string, enabled: boolean): boolean {
+    if (!this.allowDebug || !this.players.has(playerId)) return false;
+    if (enabled) this.debugPlayers.add(playerId);
+    else this.debugPlayers.delete(playerId);
+    return true;
   }
 
   /**

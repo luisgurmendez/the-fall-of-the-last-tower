@@ -1,6 +1,7 @@
 /**
  * GameMenu - The in-match menu Escape opens: resume, the sound's volumes
- * (master, effects, ambience; kept by AudioManager), or surrender.
+ * (master, effects, ambience; kept by AudioManager), the debug overlay
+ * (F3 too), or surrender.
  *
  * The game keeps running on the server while it's open. Surrendering asks
  * for a second click instead of a browser dialog; the match then ends like
@@ -10,6 +11,12 @@
 import { getAudio, type VolumeChannel } from "@/audio/AudioManager";
 
 const CONFIRM_MS = 3000;
+
+/** The debug overlay's switch (src/debug/DebugOverlay.ts) */
+export interface DebugSwitch {
+  isEnabled(): boolean;
+  toggle(): void;
+}
 
 /** The volume sliders, in order */
 const VOLUMES: { channel: VolumeChannel; label: string }[] = [
@@ -21,10 +28,11 @@ const VOLUMES: { channel: VolumeChannel; label: string }[] = [
 export class GameMenu {
   private readonly root: HTMLDivElement;
   private readonly surrenderButton: HTMLButtonElement;
+  private readonly debugButton: HTMLButtonElement | null = null;
   private confirmUntil = 0;
   private closed = false;
 
-  constructor(private readonly onSurrender: () => void) {
+  constructor(private readonly onSurrender: () => void, private readonly debug?: DebugSwitch) {
     this.root = document.createElement("div");
     this.root.className = "game-menu";
     this.root.hidden = true;
@@ -49,7 +57,18 @@ export class GameMenu {
     hint.className = "game-menu-hint";
     hint.textContent = "The match keeps going while this is open";
 
-    panel.append(title, resumeButton, this.createSoundControls(), this.surrenderButton, hint);
+    panel.append(title, resumeButton, this.createSoundControls());
+    if (debug) {
+      const button = document.createElement("button");
+      button.className = "pixel-button";
+      button.addEventListener("click", () => {
+        debug.toggle();
+        this.labelDebugButton();
+      });
+      panel.append(button);
+      this.debugButton = button;
+    }
+    panel.append(this.surrenderButton, hint);
     this.root.append(panel);
     // Clicks on the dimmed backdrop close it
     this.root.addEventListener("mousedown", (event) => {
@@ -71,7 +90,13 @@ export class GameMenu {
   show(): void {
     if (this.closed) return;
     this.resetSurrenderButton();
+    this.labelDebugButton();
     this.root.hidden = false;
+  }
+
+  private labelDebugButton(): void {
+    if (!this.debugButton || !this.debug) return;
+    this.debugButton.textContent = `Debug: ${this.debug.isEnabled() ? "on" : "off"} (F3)`;
   }
 
   hide(): void {

@@ -41,6 +41,12 @@ export class PathFollower {
     return this.paths.has(championId);
   }
 
+  /** The waypoints a champion has left to walk, the current one first (null when not following a path) */
+  remainingWaypoints(championId: string): Vector[] | null {
+    const path = this.paths.get(championId);
+    return path ? path.waypoints.slice(path.index) : null;
+  }
+
   /**
    * Advance champions that reached (or are about to reach) their waypoint.
    * Call before entities move.

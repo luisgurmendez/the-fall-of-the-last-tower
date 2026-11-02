@@ -23,6 +23,7 @@ import {
   GameEventType,
   type JungleCreatureSnapshot,
   type DamageType,
+  type DebugUnit,
 } from '@siege/shared';
 import { ServerEntity, type ServerEntityConfig } from './ServerEntity';
 import type { ServerGameContext } from '../game/ServerGameContext';
@@ -458,6 +459,34 @@ export class ServerJungleCreature extends ServerEntity {
     this.moveTarget = null;
     this.windup = null;
     this.markForRemoval();
+  }
+
+  /** For the debug overlay: its state, leash, patience and who hit it */
+  override debugInfo(_context: ServerGameContext): DebugUnit {
+    const notes: string[] = [];
+    if (this.aiState === 'aggro') {
+      const leash = this.position.distanceTo(this.homePosition) / this.leashRange;
+      const patience = Math.max(0, 1 - (this.now - this.lastEngagedAt) / ServerJungleCreature.KITE_RESET_TIME);
+      notes.push(`leash ${Math.round(leash * 100)}%`, `patience ${Math.round(patience * 100)}%`);
+      if (this.getSpecialAttack()) {
+        notes.push(this.specialCooldownTimer > 0 ? `special in ${this.specialCooldownTimer.toFixed(1)}s` : 'special ready');
+      }
+    }
+    for (const [championId, at] of this.aggressors) {
+      notes.push(`hit by ${championId} ${(this.now - at).toFixed(1)}s ago`);
+    }
+    const path = [...(this.moveTarget ? [this.moveTarget] : []), ...(this.aiState === 'returning' ? this.returnPath : [])];
+    return {
+      entityId: this.id,
+      radius: this.getRadius(),
+      attackRange: this.attackRange,
+      sight: this.sightRange,
+      targetId: this.attackTarget,
+      path: path.map(point => ({ x: point.x, y: point.y })),
+      state: this.windup ? 'winding up its special' : this.aiState,
+      notes,
+      leash: { x: this.homePosition.x, y: this.homePosition.y, radius: this.leashRange },
+    };
   }
 
   /**

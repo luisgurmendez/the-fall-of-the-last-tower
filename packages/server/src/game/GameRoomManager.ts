@@ -10,7 +10,7 @@
 
 import { GameRoom, type PlayerInfo, type GameRoomState } from './GameRoom';
 import type { BotController } from '../bots/BotController';
-import type { ClientInput, StateUpdate, FullStateSnapshot, ChampionDefinition, Side, MapId } from '@siege/shared';
+import type { ClientInput, StateUpdate, FullStateSnapshot, ChampionDefinition, Side, MapId, DebugStateData } from '@siege/shared';
 import { Logger } from '../utils/Logger';
 
 /**
@@ -28,6 +28,8 @@ export type FullStateCallback = (playerId: string, snapshot: FullStateSnapshot) 
  */
 export type GameEndCallback = (gameId: string, winningSide: Side) => void;
 
+export type DebugStateCallback = (playerId: string, data: DebugStateData) => void;
+
 /**
  * Configuration for GameRoomManager.
  */
@@ -40,6 +42,8 @@ export interface GameRoomManagerConfig {
   onFullState?: FullStateCallback;
   /** Callback when a game ends */
   onGameEnd?: GameEndCallback;
+  /** Callback with a debug overlay's DEBUG_STATE (practice matches) */
+  onDebugState?: DebugStateCallback;
   /** How long a room with no connected humans is kept for reconnects (ms, default 60s) */
   abandonTimeoutMs?: number;
 }
@@ -55,6 +59,7 @@ export class GameRoomManager {
   private onStateUpdate?: StateUpdateCallback;
   private onFullState?: FullStateCallback;
   private onGameEnd?: GameEndCallback;
+  private onDebugState?: DebugStateCallback;
 
   private gameIdCounter = 0;
 
@@ -68,13 +73,19 @@ export class GameRoomManager {
     this.onStateUpdate = config.onStateUpdate;
     this.onFullState = config.onFullState;
     this.onGameEnd = config.onGameEnd;
+    this.onDebugState = config.onDebugState;
   }
 
   /**
    * Create a new game room.
    * @param bots Controllers for the players marked isBot
    */
-  createRoom(players: PlayerInfo[], bots: BotController[] = [], mapId: MapId = 'wildcrown'): GameRoom {
+  createRoom(
+    players: PlayerInfo[],
+    bots: BotController[] = [],
+    mapId: MapId = 'wildcrown',
+    options: { allowDebug?: boolean } = {},
+  ): GameRoom {
     const gameId = `game-${Date.now()}-${this.gameIdCounter++}`;
 
     const room = new GameRoom({
@@ -82,9 +93,13 @@ export class GameRoomManager {
       players,
       bots,
       mapId,
+      allowDebug: options.allowDebug,
       championDefinitions: this.championDefinitions,
       onStateUpdate: (playerId, update) => {
         this.onStateUpdate?.(playerId, update);
+      },
+      onDebugState: (playerId, data) => {
+        this.onDebugState?.(playerId, data);
       },
       onGameEnd: (winningSide) => {
         this.onGameEnd?.(gameId, winningSide);
@@ -137,6 +152,13 @@ export class GameRoomManager {
 
     room.handleInput(playerId, input);
     return true;
+  }
+
+  /**
+   * Turn a player's debug overlay on or off; false if their match doesn't allow it.
+   */
+  setDebug(playerId: string, enabled: boolean): boolean {
+    return this.getRoomByPlayer(playerId)?.setDebug(playerId, enabled) ?? false;
   }
 
   /**

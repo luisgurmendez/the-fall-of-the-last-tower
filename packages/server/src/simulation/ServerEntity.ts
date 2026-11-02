@@ -16,6 +16,7 @@ import {
   CircleCollision,
   calculatePhysicalDamage,
   calculateMagicDamage,
+  type DebugUnit,
 } from "@siege/shared";
 import type { ServerGameContext } from "../game/ServerGameContext";
 
@@ -313,5 +314,13 @@ export abstract class ServerEntity {
    */
   getMass(): number {
     return 100; // Default mass
+  }
+
+  /**
+   * What it's doing, for the debug overlay (see DebugReport); null for
+   * entities the overlay leaves out. Units override it.
+   */
+  debugInfo(_context: ServerGameContext): DebugUnit | null {
+    return null;
   }
 }

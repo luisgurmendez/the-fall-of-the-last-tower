@@ -3,7 +3,7 @@
  *
  * Two modes:
  * 1. SILENT MODE (always on in dev): Logs RED warnings when functions exceed thresholds
- * 2. VERBOSE MODE (F3): Shows detailed debug panel with all timings
+ * 2. VERBOSE MODE (F4): Shows detailed debug panel with all timings
  *
  * Usage:
  *   @Profile()                    - Profile method, log if > 16ms (1 frame)
@@ -14,8 +14,8 @@
  *   profiler.end('section')       - Manual section end
  *
  * Controls:
- *   F3 - Toggle verbose debug panel
- *   F4 - Log detailed breakdown to console
+ *   F4 - Toggle verbose debug panel (F3 is the debug overlay, src/debug/DebugOverlay.ts)
+ *   Shift+F4 - Log detailed breakdown to console
  */
 
 import Stats from 'stats.js';
@@ -97,13 +97,10 @@ class PerformanceProfiler {
 
   private setupKeyboardShortcuts(): void {
     window.addEventListener('keydown', (e) => {
-      if (e.key === 'F3') {
-        e.preventDefault();
-        this.toggleVerboseMode();
-      }
       if (e.key === 'F4') {
         e.preventDefault();
-        this.logDetailedBreakdown();
+        if (e.shiftKey) this.logDetailedBreakdown();
+        else this.toggleVerboseMode();
       }
     });
   }
@@ -250,7 +247,7 @@ class PerformanceProfiler {
     if (this.verboseMode) {
       document.body.appendChild(this.stats.dom);
       this.createOverlay();
-      console.log('%c📊 Performance Profiler: VERBOSE MODE ON (F3 to toggle, F4 for breakdown)',
+      console.log('%c📊 Performance Profiler: VERBOSE MODE ON (F4 to toggle, Shift+F4 for breakdown)',
         'color: #0f0; font-weight: bold;');
     } else {
       if (this.stats.dom.parentElement) {
@@ -329,7 +326,7 @@ class PerformanceProfiler {
         📊 PERFORMANCE PROFILER
       </div>
       <div style="color:#888;margin-bottom:8px;font-size:10px;">
-        F3: toggle | F4: console log
+        F4: toggle | Shift+F4: console log
       </div>
       <div style="color:#fff;margin-bottom:8px;">Frame: ${this.currentFrame}</div>
     `;

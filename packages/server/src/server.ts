@@ -94,6 +94,10 @@ function handleMessage(connection: WebSocketConnection, message: ParsedMessage):
       handleEventAckMessage(connection, message.data as { lastEventId?: unknown });
       break;
 
+    case ClientMessageType.DEBUG:
+      handleDebugMessage(connection, message.data as { enabled?: unknown });
+      break;
+
     default:
       Logger.server.warn(`Unknown message type: ${message.type}`);
   }
@@ -114,6 +118,19 @@ function handleEventAckMessage(connection: WebSocketConnection, data: { lastEven
   const playerId = connectionToPlayer.get(connection.id);
   if (!playerId || typeof data?.lastEventId !== 'number') return;
   roomManager.handleEventAck(playerId, data.lastEventId);
+}
+
+/** Turn the player's debug overlay on or off (practice matches only) */
+function handleDebugMessage(connection: WebSocketConnection, data: { enabled?: unknown }): void {
+  const playerId = connectionToPlayer.get(connection.id);
+  if (!playerId) return;
+  const enabled = data?.enabled === true;
+  if (!roomManager.setDebug(playerId, enabled) && enabled) {
+    wsServer.sendToConnection(connection.id, {
+      type: ServerMessageType.DEBUG_STATE,
+      data: { tick: 0, gameTime: 0, units: [], unavailable: true },
+    });
+  }
 }
 
 function handlePingMessage(connection: WebSocketConnection, data: { timestamp: number }): void {
@@ -308,12 +325,17 @@ function startPracticeMatch(
     botChampionId: typeof botChampionId === 'string' && CHAMPION_DEFINITIONS.has(botChampionId) ? botChampionId : undefined,
   });
   Logger.server.info(`Practice ${teamSize}v${teamSize} on ${mapId}: ${players.map(p => `${p.playerId} (${p.championId})`).join(', ')}`);
-  startMatch(players, bots, mapId);
+  startMatch(players, bots, mapId, { allowDebug: true });
 }
 
-function startMatch(players: PlayerInfo[], bots: BotController[] = [], mapId: MapId = 'wildcrown'): void {
+function startMatch(
+  players: PlayerInfo[],
+  bots: BotController[] = [],
+  mapId: MapId = 'wildcrown',
+  options: { allowDebug?: boolean } = {},
+): void {
   // Create the game room
-  const room = roomManager.createRoom(players, bots, mapId);
+  const room = roomManager.createRoom(players, bots, mapId, options);
   const gameId = room.getState() === 'waiting' ? room.gameId : null;
 
   if (!gameId) {
@@ -446,6 +468,9 @@ async function startServer(): Promise<void> {
     championDefinitions: CHAMPION_DEFINITIONS,
     onStateUpdate: handleStateUpdate,
     onFullState: handleFullState,
+    onDebugState: (playerId, data) => {
+      wsServer.sendToPlayer(playerId, { type: ServerMessageType.DEBUG_STATE, data });
+    },
     onGameEnd: (gameId, winningSide) => {
       Logger.game.info(`Game ended: ${gameId} - Winner: ${winningSide === 0 ? 'Blue' : 'Red'}`);
 
