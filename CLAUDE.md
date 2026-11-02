@@ -6,6 +6,8 @@ Siege is a **multiplayer MOBA** (Multiplayer Online Battle Arena) game. The game
 
 > **Note**: This project was originally built for the js13kb game contest as a tower defense game. The legacy tower defense code and offline single-player mode have been **removed**. The game is now **online-only** with server-authoritative gameplay.
 
+> **Name**: players see the game as **Wildcrown** (`src/config/brand.ts`: the logo, the browser tab, the loading screen's map name). "Siege" is only the codebase's name (packages, `@siege/shared`, storage keys).
+
 ---
 
 ## IMPORTANT: Use `null` for Clearable Values (Not `undefined`)
@@ -158,6 +160,7 @@ src/
 │   ├── DeathOverlay.ts  # Respawn countdown
 │   ├── LowHealthVignette.ts   # Red screen edges at low health
 │   ├── matchmaking/     # Matchmaking UI (MatchmakingUI coordinator, screens, connection)
+│   ├── title/           # The animated title screen behind the menu: a pixel-art valley, the champions marching through it, the pixel logo
 │   └── shop/            # Shop UI
 ├── utils/               # Utility functions
 ├── vfx/                 # Visual effects system (drawn on the GPU by src/gpu/fx/; tune them at /vfx-lab.html)

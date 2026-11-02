@@ -1,0 +1,206 @@
+/**
+ * The title screen (src/ui/title/): the animated valley behind the menu,
+ * the pixel logo, and the menu over them. TitleScreen puts
+ * .title-scene-on on the overlay while the valley shows, and .title-intro
+ * the first time, for the entrance.
+ */
+
+/* ============================================ */
+/* The valley                                  */
+/* ============================================ */
+
+.title-scene {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  image-rendering: pixelated;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.4s ease;
+}
+
+/* Darker edges and a darker top, so the menu reads over the sky */
+.title-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 75% 70% at 50% 42%, transparent 55%, rgba(6, 3, 18, 0.6) 100%),
+    linear-gradient(to bottom, rgba(6, 3, 18, 0.45), transparent 22%);
+  opacity: 0;
+  transition: opacity 1.4s ease;
+}
+
+#matchmaking-overlay.title-scene-on .title-scene,
+#matchmaking-overlay.title-scene-on .title-vignette {
+  opacity: 1;
+}
+
+/* No scanlines or checkered pattern over the valley */
+#matchmaking-overlay.title-scene-on::before,
+#matchmaking-overlay.title-scene-on::after {
+  display: none;
+}
+
+/* ============================================ */
+/* The logo                                    */
+/* ============================================ */
+
+.game-logo.has-logo {
+  font-size: inherit;
+  margin: 0 0 6px;
+  filter: drop-shadow(0 0 28px rgba(255, 190, 70, 0.35));
+}
+
+/* Its size, a whole number of screen pixels per logo pixel, is set by TitleScreen */
+.title-logo {
+  display: block;
+  margin: 0 auto;
+  image-rendering: pixelated;
+  width: var(--logo-width);
+  height: var(--logo-height);
+}
+
+/* Smaller on the screens around the menu, without the tagline */
+#matchmaking-overlay:not(:has(#screen-menu.active)) .title-logo {
+  width: var(--logo-compact-width);
+  height: var(--logo-compact-height);
+}
+
+#matchmaking-overlay.title-scene-on:not(:has(#screen-menu.active)) .game-subtitle {
+  display: none;
+}
+
+/* The plain title stays for screen readers only */
+.game-logo.has-logo .game-title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+#matchmaking-overlay.title-scene-on .game-subtitle {
+  color: #f7e6c4;
+  font-size: 30px;
+  letter-spacing: 12px;
+  margin-bottom: 44px;
+  text-shadow: 0 3px 0 #000, 0 0 14px rgba(0, 0, 0, 0.85);
+}
+
+/* ============================================ */
+/* The menu over the valley                    */
+/* ============================================ */
+
+/* The logo and menu up in the sky, the ground left to the marching champions */
+#matchmaking-overlay.title-scene-on {
+  align-items: flex-start;
+  padding-top: 4vh;
+}
+
+#matchmaking-overlay.title-scene-on:has(#screen-menu.active) {
+  padding-top: 7vh;
+}
+
+#matchmaking-overlay.title-scene-on .play-button {
+  animation: title-play-glow 2.6s ease-in-out infinite;
+}
+
+#matchmaking-overlay.title-scene-on .menu-link {
+  color: #d8cce8;
+  text-shadow: 0 2px 0 #000, 0 0 10px rgba(0, 0, 0, 0.9);
+}
+
+#matchmaking-overlay.title-scene-on .menu-link:hover {
+  color: var(--pixel-gold);
+}
+
+/* The other screens over the valley sit on a panel */
+#matchmaking-overlay.title-scene-on .mm-screen.active:not(#screen-menu) {
+  background: rgba(12, 8, 30, 0.86);
+  border: 4px solid var(--pixel-border);
+  box-shadow: 0 0 0 4px #000, 0 24px 60px rgba(0, 0, 0, 0.6);
+  padding: 28px 40px;
+}
+
+#matchmaking-overlay.title-scene-on .tip-text {
+  background: rgba(8, 5, 20, 0.62);
+  padding: 4px 16px;
+}
+
+@keyframes title-play-glow {
+  0%, 100% {
+    box-shadow:
+      inset -4px -4px 0 0 var(--pixel-gold-darker),
+      inset 4px 4px 0 0 var(--pixel-gold),
+      0 0 24px rgba(255, 196, 60, 0.35);
+  }
+  50% {
+    box-shadow:
+      inset -4px -4px 0 0 var(--pixel-gold-darker),
+      inset 4px 4px 0 0 var(--pixel-gold),
+      0 0 46px rgba(255, 196, 60, 0.7);
+  }
+}
+
+/* ============================================ */
+/* The entrance                                */
+/* ============================================ */
+
+#matchmaking-overlay.title-intro .game-logo {
+  animation: title-logo-drop 1s cubic-bezier(0.2, 1.5, 0.4, 1) 0.25s both;
+}
+
+#matchmaking-overlay.title-intro .game-subtitle {
+  animation: title-rise 0.8s ease-out 0.8s both;
+}
+
+#matchmaking-overlay.title-intro #screen-menu {
+  animation: title-rise 0.8s ease-out 1.05s both;
+}
+
+@keyframes title-logo-drop {
+  0% {
+    opacity: 0;
+    transform: translateY(-60px) scale(0.9);
+    filter: brightness(3) drop-shadow(0 0 28px rgba(255, 190, 70, 0.35));
+  }
+  60% {
+    opacity: 1;
+    filter: brightness(1.6) drop-shadow(0 0 40px rgba(255, 210, 90, 0.7));
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+    filter: drop-shadow(0 0 28px rgba(255, 190, 70, 0.35));
+  }
+}
+
+@keyframes title-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #matchmaking-overlay.title-intro .game-logo,
+  #matchmaking-overlay.title-intro .game-subtitle,
+  #matchmaking-overlay.title-intro #screen-menu,
+  #matchmaking-overlay.title-scene-on .play-button {
+    animation: none;
+  }
+}
+
+/* The heading holding the logo: no heading margins or weight */
+.game-logo {
+  margin-top: 0;
+  font-weight: normal;
+}

@@ -9,6 +9,7 @@
  * MAX_LOADING_MS even if some art never answered.
  */
 
+import { MAP_NAME } from "@/config/brand";
 import { CHAMPION_DEFINITIONS, SUMMONER_SPELLS, type SummonerSpellId } from "@siege/shared";
 import { summonerIconUrl } from "@/ui/summonerIcons";
 import { preloadMatchAssets } from "./matchAssets";
@@ -53,8 +54,6 @@ const TIP_MS = 5000;
 /** Teams this size or smaller face each other side by side, bigger ones in two rows */
 const SIDE_BY_SIDE_TEAM_SIZE = 2;
 
-/** The map, for the header */
-const MAP_NAME = "Siege Arena";
 /** Where matchConnection.ts keeps the local player's ID */
 const PLAYER_ID_KEY = "siege-player-id";
 

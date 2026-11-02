@@ -4,10 +4,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wildcrown</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="src/styles/pixel-ui-base.css" />
   <link rel="stylesheet" href="src/styles/matchmaking.css" />
   <link rel="stylesheet" href="src/styles/champion-select.css" />
+  <link rel="stylesheet" href="src/styles/title.css" />
   <link rel="stylesheet" href="shop.css" />
 </head>
 
@@ -19,10 +21,9 @@
   <!-- Matchmaking Overlay -->
   <div id="matchmaking-overlay" class="pixel-ui">
     <div class="matchmaking-container">
-      <!-- Logo -->
-      <div class="game-logo">⚔️</div>
-      <div class="game-title">SIEGE</div>
-      <div class="game-subtitle">ARENA COMBAT</div>
+      <!-- Logo: src/ui/title/ draws it over the plain title, and the valley behind the menu -->
+      <h1 class="game-logo"><span class="game-title">WILDCROWN</span></h1>
+      <div class="game-subtitle">5V5 PIXEL ARENA</div>
 
       <!-- Main Menu Screen -->
       <div class="mm-screen active" id="screen-menu">
@@ -98,7 +99,7 @@
       <!-- Match Found Screen -->
       <div class="mm-screen" id="screen-match-found">
         <div class="loading-header">
-          <div class="loading-map" id="loading-map">Siege Arena</div>
+          <div class="loading-map" id="loading-map">Wildcrown Vale</div>
           <div class="loading-mode" id="loading-mode"></div>
         </div>
         <!-- Player cards are added by src/ui/matchmaking/matchFound.ts -->

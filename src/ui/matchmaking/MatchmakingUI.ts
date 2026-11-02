@@ -23,6 +23,7 @@
  *   and the full state and updates buffered for OnlineGame
  * - tips.ts: rotating gameplay tips
  * - types.ts: screen, status, match data and callback types (re-exported here)
+ * - ../title/: the animated title screen behind the menu
  */
 
 import type { NetworkClient } from "../../../packages/client/src/network/NetworkClient";
@@ -38,6 +39,10 @@ import { MatchFoundScreen } from "./matchFound";
 import { QueueScreen } from "./queueScreen";
 import { SummonerPicker } from "./summonerPicker";
 import { startTipRotation, showRandomTip } from "./tips";
+import { TitleScreen } from "../title/TitleScreen";
+
+/** The screens the title screen's valley shows behind (not champion select or the loading screen) */
+const TITLE_SCREENS: ReadonlySet<ScreenId> = new Set(["menu", "how-to-play", "connecting", "queue", "error"]);
 
 /** Players per team in practice, in the order the size chip cycles them */
 const PRACTICE_SIZES = [1, 3, 5];
@@ -67,6 +72,7 @@ export class MatchmakingUI {
   // DOM Elements
   private overlay: HTMLElement;
   private screens: Map<ScreenId, HTMLElement> = new Map();
+  private titleScreen: TitleScreen | null = null;
 
   /** Players per team in a practice match */
   private practiceSize = loadPracticeSize();
@@ -147,6 +153,10 @@ export class MatchmakingUI {
       );
       return;
     }
+
+    // The animated title screen, behind the menu it starts on
+    this.titleScreen = new TitleScreen(this.overlay);
+    this.titleScreen.setActive(this.isVisible() && TITLE_SCREENS.has(this.currentScreen));
 
     // Setup champion select
     this.championSelect.setup();
@@ -293,6 +303,7 @@ export class MatchmakingUI {
         container.classList.remove("champion-select-mode");
       }
     }
+    this.titleScreen?.setActive(this.isVisible() && TITLE_SCREENS.has(screenId));
   }
 
   /**
@@ -436,6 +447,7 @@ export class MatchmakingUI {
    */
   hide(): void {
     this.overlay?.classList.add("hidden");
+    this.titleScreen?.setActive(false);
   }
 
   /**
