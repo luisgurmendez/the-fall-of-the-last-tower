@@ -16,6 +16,8 @@
  *   walls and mossy boulders on the others, a rock face on their south
  *   side, and their shadow and ambient occlusion on the ground
  * - round stone plazas in the bases with a ring of runes in the team's color
+ * - the jungle's floor: trails trodden down its paths and its camps'
+ *   trampled lairs, bones scattered about
  * - brush: tall grass, blades swaying over exactly the bushes' hitboxes
  *   (reaching up past their top edge), with a shadow under them (on a
  *   muddy islet in the river)
@@ -31,6 +33,7 @@ const RIVER_REACH = (MOBAConfig.MAP_SIZE.width / 2 - MOBAConfig.WATER_BORDER_SIZ
 
 export const GROUND_UNIFORMS = [
   "uField",
+  "uFloor",
   "uFieldOrigin",
   "uFieldSize",
   "uViewOrigin",
@@ -48,6 +51,7 @@ precision highp float;
 precision highp int;
 
 uniform sampler2D uField;
+uniform sampler2D uFloor;
 uniform vec2 uFieldOrigin;
 uniform vec2 uFieldSize;
 uniform vec2 uViewOrigin;
@@ -96,6 +100,11 @@ vec3 field(vec2 p) {
 
 float brushField(vec2 p) {
   return (texture(uField, (p - uFieldOrigin) / uFieldSize).a * 255.0 - 128.0) * 2.0;
+}
+
+// The jungle's floor: x the trodden trails, y the camps' lairs (signed distances)
+vec2 floorField(vec2 p) {
+  return (texture(uFloor, (p - uFieldOrigin) / uFieldSize).rg * 255.0 - 128.0) * 2.0;
 }
 
 int level(float v, float dither, int top) {
@@ -213,6 +222,45 @@ vec3 dirt(vec2 p, vec2 ip, float dither, float edge, float dPath) {
     float wide = hash12(cell + 4.0) < 0.5 ? 2.0 : 1.0;
     if (r.y == 0.0 && r.x >= 0.0 && r.x <= wide) color = r.x == 0.0 ? vec3(0.749, 0.682, 0.580) : vec3(0.553, 0.494, 0.431);
     else if (r.y == 1.0 && r.x >= 0.0 && r.x <= wide) color = vec3(0.235, 0.165, 0.129);
+  }
+  return color;
+}
+
+// ---------------------------------------------------------------- jungle floor
+
+const vec3 BONE = vec3(0.835, 0.796, 0.698);
+
+// Trails trodden down the middle of the jungle's paths, wandering and worn
+// thin in places, and the trampled earth of the camps' lairs with bones
+// scattered about; stippled into the grass at their edges
+vec3 jungleFloor(vec2 p, vec2 ip, float dither, vec3 ground) {
+  vec2 f = floorField(p);
+  float trail = f.x + (fbm(p * 0.025) - 0.5) * 18.0;
+  float lair = f.y + (fbm(p * 0.035 + 7.0) - 0.5) * 30.0;
+  float worn = smoothstep(6.0, -12.0, trail) * (0.6 + 0.4 * fbm(p * 0.06 + 2.0));
+  worn = max(worn, smoothstep(10.0, -45.0, lair) * 0.92);
+  if (worn <= dither) return ground;
+
+  float v = 0.32 + (fbm(p * 0.04) - 0.5) * 0.45 + (hash12(ip) - 0.5) * 0.12;
+  int base = level(v, dither, 3);
+  vec3 color = DIRT[base];
+  // Pebbles
+  vec2 cell = floor(ip / 9.0);
+  if (hash12(cell + 23.0) < 0.2) {
+    vec2 r = ip - cell * 9.0 - 1.0 - floor(hash22(cell + 4.0) * 6.0);
+    if (r.y == 0.0 && (r.x == 0.0 || r.x == 1.0)) color = r.x == 0.0 ? DIRT[4] : DIRT[3];
+    else if (r.y == 1.0 && (r.x == 0.0 || r.x == 1.0)) color = DIRT[0];
+  }
+  // Bones in a lair: a short pale bar with a knob at each end
+  if (lair < -12.0) {
+    vec2 boneCell = floor(ip / 21.0);
+    if (hash12(boneCell + 51.0) < 0.4) {
+      vec2 r = ip - boneCell * 21.0 - 4.0 - floor(hash22(boneCell + 9.0) * 12.0);
+      bool shaft = r.y == 0.0 && r.x >= 0.0 && r.x <= 5.0;
+      bool knob = (r.x == -1.0 || r.x == 6.0) && abs(r.y) <= 1.0 && r.y != 0.0;
+      if (shaft || knob) color = BONE;
+      else if (r.y == 1.0 && r.x >= 0.0 && r.x <= 5.0) color = DIRT[0];
+    }
   }
   return color;
 }
@@ -442,7 +490,7 @@ void main() {
       float jungle = smoothstep(80.0, 300.0, dPath) * smoothstep(60.0, 250.0, dWater);
       float plazaEdge = PLAZA_RADIUS + (fbm(p * 0.02) - 0.5) * 70.0;
       float edge = dPath + (fbm(p * 0.05) - 0.5) * 18.0 + (hash12(ip * 1.3) - 0.5) * 2.5;
-      color = edge < 0.0 ? dirt(p, ip, dither, edge, dPath) : grass(p, ip, dither, jungle, stepTime);
+      color = edge < 0.0 ? dirt(p, ip, dither, edge, dPath) : jungleFloor(p, ip, dither, grass(p, ip, dither, jungle, stepTime));
       if (fromBlue < plazaEdge) color = plaza(p, ip, dither, uNexusBlue, TEAM_BLUE, fromBlue, plazaEdge, color);
       else if (fromRed < plazaEdge) color = plaza(p, ip, dither, uNexusRed, TEAM_RED, fromRed, plazaEdge, color);
 

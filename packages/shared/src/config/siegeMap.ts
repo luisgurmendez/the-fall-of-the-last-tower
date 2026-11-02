@@ -255,6 +255,19 @@ function blueHalfWallDistance(x: number, y: number): number {
   return smoothMax(region, -carved, MOUTH_FLARE) + edgeNoise(fx, fy);
 }
 
+/**
+ * The jungle's paths as centerlines over the whole map, both sides and both
+ * halves, for the art's trodden trails.
+ */
+export function jungleTrails(): Point[][] {
+  const reflect = (p: Point) => point(-p.y, -p.x);
+  const blue = [
+    ...[...TOP_SIDE_CORRIDORS, ...TOP_ONLY_CORRIDORS].map(corridor => [...corridor.points]),
+    ...[...TOP_SIDE_CORRIDORS, ...BOT_ONLY_CORRIDORS].map(corridor => corridor.points.map(reflect)),
+  ];
+  return [...blue, ...blue.map(points => points.map(p => point(-p.x, -p.y)))];
+}
+
 /** The walls, as a distance field over the whole map */
 export const SIEGE_WALL_FIELD: WallField = WallField.buildSymmetric(blueHalfWallDistance, MAP_HALF);
 

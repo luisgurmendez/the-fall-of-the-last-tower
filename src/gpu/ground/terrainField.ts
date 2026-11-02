@@ -9,10 +9,12 @@
  * - A: brush (the bushes' hitboxes, the same the server hides units in),
  *   smoothed a little so the rectangles' corners round off
  * Distances are stored as 128 + d / 2, so ±256 units fit in a byte, and
- * read with linear filtering, so edges stay smooth at any zoom.
+ * read with linear filtering, so edges stay smooth at any zoom. A second
+ * field of the same size holds the jungle's floor: its trodden trails and
+ * its camps' lairs.
  */
 
-import { MOBAConfig, calculateIndividualBushPositions } from "@siege/shared";
+import { MOBAConfig, calculateIndividualBushPositions, jungleTrails } from "@siege/shared";
 
 /** World units per texel */
 export const FIELD_CELL = 8;
@@ -26,7 +28,17 @@ export interface TerrainField {
   cell: number;
   /** RGBA bytes, row by row from the top */
   data: Uint8Array;
+  /**
+   * The jungle's floor, the same size, encoded the same way: R the trodden
+   * trails along its paths, G the trampled lairs of its camps
+   */
+  floor: Uint8Array;
 }
+
+/** Half a trail's width (the path around it is 140-170 wide) */
+const TRAIL_HALF_WIDTH = 18;
+/** How far a camp's trampled lair reaches, by creature (epic monsters have their pits) */
+const LAIR_RADIUS: Record<string, number> = { blue_buff: 105, red_buff: 105, thornspitter: 80, wolf: 85, spider: 85 };
 
 interface Point {
   x: number;
@@ -174,6 +186,39 @@ export function buildTerrainField(): TerrainField {
   const brushDistance = signedDistance(brush, width, height, cell);
   blur(brushDistance, width, height, 1, 2);
 
+  // The jungle's floor: trails down the middle of its paths, and its camps' lairs
+  const trail = new Uint8Array(width * height);
+  const markWithin = (ax: number, ay: number, bx: number, by: number, reach: number, mask: Uint8Array) => {
+    const x0 = Math.max(0, Math.floor((Math.min(ax, bx) - reach - originX) / cell));
+    const x1 = Math.min(width - 1, Math.ceil((Math.max(ax, bx) + reach - originX) / cell));
+    const y0 = Math.max(0, Math.floor((Math.min(ay, by) - reach - originY) / cell));
+    const y1 = Math.min(height - 1, Math.ceil((Math.max(ay, by) + reach - originY) / cell));
+    for (let y = y0; y <= y1; y++) {
+      for (let x = x0; x <= x1; x++) {
+        const at = { x: originX + (x + 0.5) * cell, y: originY + (y + 0.5) * cell };
+        if (distanceToSegment(at.x, at.y, { x: ax, y: ay }, { x: bx, y: by }) <= reach) mask[y * width + x] = 1;
+      }
+    }
+  };
+  for (const points of jungleTrails()) {
+    for (let i = 0; i < points.length - 1; i++) {
+      markWithin(points[i].x, points[i].y, points[i + 1].x, points[i + 1].y, TRAIL_HALF_WIDTH, trail);
+    }
+  }
+  const trailDistance = signedDistance(trail, width, height, cell);
+  blur(trailDistance, width, height, 1, 1);
+  const lair = new Uint8Array(width * height);
+  for (const camp of MOBAConfig.JUNGLE.CAMPS) {
+    const radius = LAIR_RADIUS[camp.creatureType];
+    if (radius) markWithin(camp.position.x, camp.position.y, camp.position.x, camp.position.y, radius, lair);
+  }
+  const lairDistance = signedDistance(lair, width, height, cell);
+  const floor = new Uint8Array(width * height * 4);
+  for (let i = 0; i < width * height; i++) {
+    floor[i * 4] = encode(trailDistance[i]);
+    floor[i * 4 + 1] = encode(lairDistance[i]);
+  }
+
   const data = new Uint8Array(width * height * 4);
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
@@ -190,7 +235,7 @@ export function buildTerrainField(): TerrainField {
       data[i + 3] = encode(brushDistance[y * width + x]);
     }
   }
-  return { width, height, originX, originY, cell, data };
+  return { width, height, originX, originY, cell, data, floor };
 }
 
 /**

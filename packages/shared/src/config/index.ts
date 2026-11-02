@@ -15,7 +15,7 @@ export { GameConfig } from './GameConfig';
 
 export { WallGrid } from './WallGrid';
 
-export { inJungle } from './siegeMap';
+export { inJungle, jungleTrails } from './siegeMap';
 export { WallField } from './wallField';
 
 export { ITEM_CATALOG, getItemCatalogEntry, CONTROL_WARD_ITEM_ID } from './items';
