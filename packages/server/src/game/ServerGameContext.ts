@@ -25,6 +25,7 @@ import { ServerJungleCamp } from '../simulation/ServerJungleCamp';
 import { ServerWard } from '../simulation/ServerWard';
 import { FogOfWarServer } from '../systems/FogOfWarServer';
 import { Terrain } from '../navigation/Terrain';
+import { JungleTunnels } from '../systems/JungleTunnels';
 import { PathFollower } from '../navigation/PathFollower';
 import { CollisionSystem } from '../systems/CollisionSystem';
 import { passiveTriggerSystem } from '../systems/PassiveTriggerSystem';
@@ -70,6 +71,8 @@ export class ServerGameContext {
   // Walls and water: unit push-out and pathfinding
   readonly terrain: Terrain;
   readonly pathFollower = new PathFollower();
+  /** Burrows through the jungle's walls */
+  readonly tunnels: JungleTunnels;
 
   // Jungle camps
   private jungleCamps: ServerJungleCamp[] = [];
@@ -94,6 +97,7 @@ export class ServerGameContext {
     this.fogOfWar = new FogOfWarServer(this.mapConfig.WALL_FIELD);
     this.collisionSystem = new CollisionSystem();
     this.terrain = new Terrain(this.mapConfig);
+    this.tunnels = new JungleTunnels(this.mapConfig.TUNNELS);
 
     // Initialize jungle camps
     this.initializeJungleCamps();
@@ -291,8 +295,9 @@ export class ServerGameContext {
   update(dt: number): void {
     this.advanceTime(dt);
 
-    // Champions walking around walls get their next waypoint
+    // Champions walking around walls get their next waypoint, and those at a tunnel's mouth go in
     this.pathFollower.update(this, dt);
+    this.tunnels.update(this);
 
     // Update all entities
     for (const entity of this.entities.values()) {
@@ -398,6 +403,7 @@ export class ServerGameContext {
    * Send a champion to a point, walking around walls.
    */
   moveChampion(champion: ServerChampion, destination: Vector): void {
+    this.tunnels.onMoveOrder(champion, destination);
     const path = this.terrain.findPath(champion.position, destination) ?? [destination];
     // Already as close as it gets to a point inside a wall: stop here
     this.pathFollower.follow(champion, path.length > 0 ? path : [champion.position.clone()]);

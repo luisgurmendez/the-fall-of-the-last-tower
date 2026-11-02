@@ -307,6 +307,24 @@ export class OnlineMinimap extends ScreenEntity {
     // Draw walls
     ctx.drawImage(this.wallLayer(), this.minimapX, this.minimapY, size, size);
 
+    // Tunnels through them: their mouths joined by a dotted line
+    ctx.save();
+    ctx.strokeStyle = 'rgba(214, 178, 120, 0.7)';
+    ctx.fillStyle = '#d6b278';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 2]);
+    for (const { a, b } of MOBAConfig.TUNNELS.LIST) {
+      const from = this.worldToMinimap(a.x, a.y);
+      const to = this.worldToMinimap(b.x, b.y);
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(to.x, to.y);
+      ctx.stroke();
+      ctx.fillRect(from.x - 1, from.y - 1, 2, 2);
+      ctx.fillRect(to.x - 1, to.y - 1, 2, 2);
+    }
+    ctx.restore();
+
     // Draw lanes
     ctx.strokeStyle = '#3d5a3d';
     ctx.lineWidth = MOBAConfig.LANES.TOP.width * scale * 0.5;

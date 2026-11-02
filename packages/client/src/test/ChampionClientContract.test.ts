@@ -56,6 +56,8 @@ const OTHER_CAST_EVENT_IDS = [
   'hop_r_crash',
   'zhakrul_e_burst',
   ...Object.values(MOBAConfig.JUNGLE.SPECIAL_ATTACKS).map((attack) => attack.abilityId),
+  // A champion crawling through a jungle tunnel (server: systems/JungleTunnels.ts)
+  MOBAConfig.TUNNELS.ABILITY_ID,
 ];
 
 /** Basic attack projectiles other than <championId>_auto (EloraHooks.basicAttackProjectileType), which have impacts */

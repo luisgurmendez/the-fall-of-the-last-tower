@@ -179,6 +179,46 @@ export const BOT_ONLY_BUSHES: BushSpot[] = [
 ];
 
 // =============================================================================
+// Tunnels
+// =============================================================================
+
+/** A burrow through the forest, from one mouth to the other (either way) */
+export interface Tunnel {
+  a: Point;
+  b: Point;
+}
+
+/** Tunnels on blue's top side, reflected for the bot side: shortcuts through the thickest forest */
+const TOP_SIDE_TUNNELS: Tunnel[] = [
+  // The path along the lane to the blue buff's path down to the wolves
+  { a: point(-1922, -120), b: point(-1445, -100) },
+  // The wolves' pit to the crossroads, under the forest between them
+  { a: point(-1200, 310), b: point(-890, -50) },
+];
+
+/** Only on the top side: from the path inside the river bank out to the river */
+const TOP_ONLY_TUNNELS: Tunnel[] = [
+  { a: point(-1560, -860), b: point(-1330, -1080) },
+];
+
+/** Only on the bot side (in its own coordinates): from the thornspitter's pit into the dragon's pit */
+const BOT_ONLY_TUNNELS: Tunnel[] = [
+  { a: point(580, 1850), b: point(860, 1520) },
+];
+
+/** Every tunnel on the map */
+export function jungleTunnels(): Tunnel[] {
+  const reflect = (p: Point) => point(-p.y, -p.x);
+  const blue = [
+    ...TOP_SIDE_TUNNELS,
+    ...TOP_ONLY_TUNNELS,
+    ...TOP_SIDE_TUNNELS.map(tunnel => ({ a: reflect(tunnel.a), b: reflect(tunnel.b) })),
+    ...BOT_ONLY_TUNNELS,
+  ];
+  return [...blue, ...blue.map(tunnel => ({ a: point(-tunnel.a.x, -tunnel.a.y), b: point(-tunnel.b.x, -tunnel.b.y) }))];
+}
+
+// =============================================================================
 // The field
 // =============================================================================
 

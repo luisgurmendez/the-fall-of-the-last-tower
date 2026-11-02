@@ -29,6 +29,11 @@ function windup(creatureType: keyof typeof MOBAConfig.JUNGLE.SPECIAL_ATTACKS): n
 
 
 export const ABILITY_CUES: Record<string, AbilityCue[]> = {
+  // Crawling through a jungle tunnel: in at one mouth, out at the other
+  [MOBAConfig.TUNNELS.ABILITY_ID]: [
+    { sound: "jungle_tunnel" },
+    { sound: "jungle_tunnel", delay: MOBAConfig.TUNNELS.CRAWL_TIME - 0.15, at: "target" },
+  ],
   warrior_slash: [{ sound: "warrior_slash", delay: landsAt("warrior_slash") }],
   warrior_ultimate: [
     { sound: "warrior_ultimate_leap" },

@@ -222,6 +222,23 @@ registerAbilityVFX({
   ],
 });
 
+// A champion crawls into a jungle tunnel: earth kicked up at the mouth it
+// goes in by, and at the other one as it climbs out (the crawl's length later)
+registerAbilityVFX({
+  abilityId: MOBAConfig.TUNNELS.ABILITY_ID,
+  phases: [
+    phase('in', 0, 'caster', [
+      smoke('#6d5a44', 8, [10, 18], [30, 90]),
+      sparks('#a08060', 10, [80, 180]),
+    ], 0.5),
+    phase('out', MOBAConfig.TUNNELS.CRAWL_TIME - 0.1, 'target', [
+      smoke('#6d5a44', 10, [12, 20], [40, 110]),
+      sparks('#a08060', 14, [100, 220]),
+      ring('#c8a878', 8, 40, 0.3, 3),
+    ], 0.6),
+  ],
+});
+
 // The dragon dies: a fiery blast and embers drifting up
 registerAbilityVFX({
   abilityId: WORLD_VFX.DRAGON_DEATH,

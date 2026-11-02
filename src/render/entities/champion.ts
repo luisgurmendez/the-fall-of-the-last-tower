@@ -7,6 +7,7 @@
 import { recallElapsed } from "@/core/state/recallClock";
 import {
   GameConfig,
+  MOBAConfig,
   getChampionDefinition,
   isRectangleCollision,
   isCircleCollision,
@@ -227,6 +228,9 @@ export class ChampionRenderer {
     isLocalPlayer: boolean,
     state: EntityRenderState,
   ): void {
+    // Crawling through a jungle tunnel: under the forest, out of sight
+    if (snapshot.isDashing && snapshot.dashAbilityId === MOBAConfig.TUNNELS.ABILITY_ID) return;
+
     const size = 40;
     const color = side === 0 ? TEAM_COLORS.BLUE : TEAM_COLORS.RED;
 

@@ -17,7 +17,7 @@
  *   side, and their shadow and ambient occlusion on the ground
  * - round stone plazas in the bases with a ring of runes in the team's color
  * - the jungle's floor: trails trodden down its paths and its camps'
- *   trampled lairs, bones scattered about
+ *   trampled lairs, bones scattered about, and burrows at its tunnels' mouths
  * - brush: tall grass, blades swaying over exactly the bushes' hitboxes
  *   (reaching up past their top edge), with a shadow under them (on a
  *   muddy islet in the river)
@@ -102,9 +102,10 @@ float brushField(vec2 p) {
   return (texture(uField, (p - uFieldOrigin) / uFieldSize).a * 255.0 - 128.0) * 2.0;
 }
 
-// The jungle's floor: x the trodden trails, y the camps' lairs (signed distances)
-vec2 floorField(vec2 p) {
-  return (texture(uFloor, (p - uFieldOrigin) / uFieldSize).rg * 255.0 - 128.0) * 2.0;
+// The jungle's floor: x the trodden trails, y the camps' lairs (signed
+// distances), z the distance to the nearest tunnel mouth
+vec3 floorField(vec2 p) {
+  return (texture(uFloor, (p - uFieldOrigin) / uFieldSize).rgb * 255.0 - 128.0) * 2.0;
 }
 
 int level(float v, float dither, int top) {
@@ -234,7 +235,7 @@ const vec3 BONE = vec3(0.835, 0.796, 0.698);
 // thin in places, and the trampled earth of the camps' lairs with bones
 // scattered about; stippled into the grass at their edges
 vec3 jungleFloor(vec2 p, vec2 ip, float dither, vec3 ground) {
-  vec2 f = floorField(p);
+  vec3 f = floorField(p);
   float trail = f.x + (fbm(p * 0.025) - 0.5) * 18.0;
   float lair = f.y + (fbm(p * 0.035 + 7.0) - 0.5) * 30.0;
   float worn = smoothstep(6.0, -12.0, trail) * (0.6 + 0.4 * fbm(p * 0.06 + 2.0));
@@ -262,6 +263,32 @@ vec3 jungleFloor(vec2 p, vec2 ip, float dither, vec3 ground) {
       else if (r.y == 1.0 && r.x >= 0.0 && r.x <= 5.0) color = DIRT[0];
     }
   }
+  return color;
+}
+
+// A tunnel's mouth: a dark hole in a mound of dug-up earth, lit from the
+// top left, seen a little from above (squashed), stippled into the ground
+vec3 burrow(vec2 p, vec2 ip, float dither, float distance, vec3 ground) {
+  // Where the point is from the mouth's center, from the field's slope
+  float h = 3.0;
+  vec2 slope = vec2(floorField(p + vec2(h, 0.0)).z - floorField(p - vec2(h, 0.0)).z,
+                    floorField(p + vec2(0.0, h)).z - floorField(p - vec2(0.0, h)).z);
+  vec2 rel = normalize(slope + vec2(1e-5)) * distance;
+  float e = length(vec2(rel.x, rel.y * 1.5)) + (hash12(ip) - 0.5) * 1.5;
+  if (e < 11.0) {
+    // The hole, its far (upper) wall catching a little light
+    if (rel.y < -4.0 && e > 7.5) return DIRT[0];
+    return vec3(0.075, 0.055, 0.045);
+  }
+  if (e < 13.0) return DIRT[0] * 0.75;
+  // The mound of dug-up earth: solid, then crumbling into the grass
+  float crumble = smoothstep(19.0, 26.0, e + (fbm(p * 0.15) - 0.5) * 6.0);
+  if (crumble > dither) return ground;
+  float v = 0.55 + 0.35 * (-rel.y / 24.0) + 0.15 * (-rel.x / 24.0) + (fbm(p * 0.2) - 0.5) * 0.25;
+  vec3 color = ramp5(DIRT, v, dither);
+  // Clods and a root or two
+  if (hash12(floor(ip / 2.0) + 13.0) > 0.88) color = DIRT[4];
+  if (abs(rel.x * 0.4 - rel.y) < 0.8 && e < 18.0 && rel.x > 0.0) color = vec3(0.25, 0.17, 0.11);
   return color;
 }
 
@@ -491,6 +518,8 @@ void main() {
       float plazaEdge = PLAZA_RADIUS + (fbm(p * 0.02) - 0.5) * 70.0;
       float edge = dPath + (fbm(p * 0.05) - 0.5) * 18.0 + (hash12(ip * 1.3) - 0.5) * 2.5;
       color = edge < 0.0 ? dirt(p, ip, dither, edge, dPath) : jungleFloor(p, ip, dither, grass(p, ip, dither, jungle, stepTime));
+      float dMouth = floorField(p).z;
+      if (dMouth < 26.0) color = burrow(p, ip, dither, dMouth, color);
       if (fromBlue < plazaEdge) color = plaza(p, ip, dither, uNexusBlue, TEAM_BLUE, fromBlue, plazaEdge, color);
       else if (fromRed < plazaEdge) color = plaza(p, ip, dither, uNexusRed, TEAM_RED, fromRed, plazaEdge, color);
 

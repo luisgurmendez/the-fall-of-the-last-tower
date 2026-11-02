@@ -44,6 +44,14 @@ The creature's snapshot carries its home (`homeX`, `homeY`) and, while it fights
 - **Giving up**: the red "!" over a fighting monster turns into a bobbing amber "?" past 80% of the leash or below a third of its patience.
 - **Reset**: a pale puff with a ring closing in on it (`fx_creature_reset`) and a grumbling huff (`monster_reset`); while it walks home it's drawn pale and see-through (it can't be hurt) with a curling arrow over it.
 
+## Tunnels
+
+Burrows through the forest (`MOBAConfig.TUNNELS`, laid out in `siegeMap.ts`; server: `systems/JungleTunnels.ts`). Each quadrant has three: on both sides, one from the path along the outer lane to the buff's path down to the wolves (or spiders), and one from the wolves' (spiders') pit to the crossroads; on the top side, one from the path inside the river bank out to the river; on the bot side, one from the thornspitter's pit into the dragon's pit (red's into the Rootwyrm's). They're designed on the top side and reflected and mirrored like the rest of the jungle.
+
+- **Going in.** A move order that ends within `ORDER_REACH` (70) of a mouth is an order to go through: when the champion gets within 30 of the mouth, it crawls to the other mouth in `CRAWL_TIME` (0.9 s), a dash that passes walls with `dashAbilityId` `jungle_tunnel`. An attack, an attack-move, another move, a recall or being stopped short calls it off. It can't go back in for `COOLDOWN` (4 s) after coming out.
+- **Seen.** Clients don't draw a champion crawling through (it's under the forest); the cast (`ABILITY_CAST` `jungle_tunnel`, aimed at the far mouth) kicks up earth at the mouth it went in by and, as it climbs out, at the other (`src/vfx/world.ts`), each with a scrambling sound (`jungle_tunnel`). Each mouth is drawn on the ground as a dark hole in a mound of dug-up earth (the floor field's blue channel, `burrow` in the ground shader), and the minimap joins each tunnel's mouths with a dotted line.
+- **Tested.** `JungleTunnels.test.ts`: every mouth is on open ground and out of tall grass with forest between the two, walking to a mouth comes out of the other, the cooldown holds, and another order calls it off.
+
 ## Special attacks
 
 Configured in `MOBAConfig.JUNGLE.SPECIAL_ATTACKS`; the server logic is in `simulation/JungleSpecialAttacks.ts`.

@@ -30,11 +30,14 @@ export interface TerrainField {
   data: Uint8Array;
   /**
    * The jungle's floor, the same size, encoded the same way: R the trodden
-   * trails along its paths, G the trampled lairs of its camps
+   * trails along its paths, G the trampled lairs of its camps, B the
+   * distance to the nearest tunnel mouth
    */
   floor: Uint8Array;
 }
 
+/** How far from a tunnel's mouth its distance is kept (past it, the field just says far) */
+const MOUTH_REACH = 80;
 /** Half a trail's width (the path around it is 140-170 wide) */
 const TRAIL_HALF_WIDTH = 18;
 /** How far a camp's trampled lair reaches, by creature (epic monsters have their pits) */
@@ -213,10 +216,27 @@ export function buildTerrainField(): TerrainField {
     if (radius) markWithin(camp.position.x, camp.position.y, camp.position.x, camp.position.y, radius, lair);
   }
   const lairDistance = signedDistance(lair, width, height, cell);
+  // Tunnel mouths: the distance to the nearest, near them (far is just "far")
+  const mouthDistance = new Float64Array(width * height).fill(MOUTH_REACH);
+  for (const tunnel of MOBAConfig.TUNNELS.LIST) {
+    for (const mouth of [tunnel.a, tunnel.b]) {
+      const cx = (mouth.x - originX) / cell - 0.5;
+      const cy = (mouth.y - originY) / cell - 0.5;
+      const reach = Math.ceil(MOUTH_REACH / cell);
+      for (let y = Math.max(0, Math.floor(cy) - reach); y <= Math.min(height - 1, Math.ceil(cy) + reach); y++) {
+        for (let x = Math.max(0, Math.floor(cx) - reach); x <= Math.min(width - 1, Math.ceil(cx) + reach); x++) {
+          const distance = Math.hypot(x - cx, y - cy) * cell;
+          if (distance < mouthDistance[y * width + x]) mouthDistance[y * width + x] = distance;
+        }
+      }
+    }
+  }
+
   const floor = new Uint8Array(width * height * 4);
   for (let i = 0; i < width * height; i++) {
     floor[i * 4] = encode(trailDistance[i]);
     floor[i * 4 + 1] = encode(lairDistance[i]);
+    floor[i * 4 + 2] = encode(mouthDistance[i]);
   }
 
   const data = new Uint8Array(width * height * 4);

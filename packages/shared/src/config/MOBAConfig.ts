@@ -8,7 +8,7 @@
 import { Vector } from "../math/Vector";
 import {
   BLUE_NEXUS, BOT_ONLY_BUSHES, DRAGON_PIT, LANE_PATHS, LANE_WIDTH, RIVER_PATH, RIVER_WIDTH, SIEGE_MAP_WALLS, SIEGE_WALL_FIELD,
-  TOP_ONLY_BUSHES, TOP_SIDE_BUSHES, TOP_SIDE_CAMPS, type BushSpot,
+  TOP_ONLY_BUSHES, TOP_SIDE_BUSHES, TOP_SIDE_CAMPS, jungleTunnels, type BushSpot,
 } from "./siegeMap";
 
 const { blueBuff: BLUE_BUFF, thornspitter: THORNSPITTER, wolves: WOLVES } = TOP_SIDE_CAMPS;
@@ -458,6 +458,22 @@ export const MOBAConfig = {
     RADIUS: 360,
     /** Fraction of max health and resource restored per second */
     REGEN_PER_SECOND: 0.12,
+  },
+
+  /**
+   * Tunnels: burrows through the jungle's walls (siegeMap.ts). A champion
+   * ordered to walk to a mouth crawls through to the other one, hidden,
+   * in CRAWL_TIME seconds, and can't go back in for COOLDOWN seconds
+   * (server: systems/JungleTunnels.ts).
+   */
+  TUNNELS: {
+    LIST: jungleTunnels(),
+    /** The crawl is a dash with this id: clients hide the champion and show dust at both mouths */
+    ABILITY_ID: "jungle_tunnel",
+    CRAWL_TIME: 0.9,
+    COOLDOWN: 4,
+    /** An order to walk this close to a mouth is an order to go in */
+    ORDER_REACH: 70,
   },
 
   /**
