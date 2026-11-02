@@ -89,11 +89,18 @@ export class EntityVFX {
   }
 
   /**
-   * Effects for state changes of a living entity (level ups, recalls finishing).
+   * Effects for state changes of a living entity (level ups, recalls
+   * finishing, jungle monsters resetting).
    */
   spawnChangeVFX(entity: InterpolatedEntity, data: any): void {
-    if (!data || entity.snapshot.entityType !== EntityType.CHAMPION) return;
+    if (!data) return;
     const previous = entity.snapshot as any;
+
+    // A jungle monster gave up the fight: it heads home
+    if (entity.snapshot.entityType === EntityType.JUNGLE_CAMP && data.isReturning === true && !previous.isReturning) {
+      spawnWorldVFX(WORLD_VFX.CREATURE_RESET, entity.position.x, entity.position.y);
+    }
+    if (entity.snapshot.entityType !== EntityType.CHAMPION) return;
 
     if (typeof data.level === 'number' && data.level > previous.level) {
       spawnWorldVFX(WORLD_VFX.LEVEL_UP, entity.position.x, entity.position.y);

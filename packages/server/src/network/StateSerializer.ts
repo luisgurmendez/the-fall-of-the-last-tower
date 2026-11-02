@@ -392,7 +392,8 @@ export class StateSerializer {
         mask |= EntityChangeMask.TARGET;
       }
 
-      if (prev.isDead !== curr.isDead) {
+      if (prev.isDead !== curr.isDead || prev.leash !== curr.leash ||
+          prev.patience !== curr.patience || prev.isReturning !== curr.isReturning) {
         mask |= EntityChangeMask.STATE;
       }
     }
@@ -556,6 +557,10 @@ export class StateSerializer {
 
       if (mask & EntityChangeMask.STATE) {
         (result as any).isDead = currCreature.isDead;
+        // How far it's pulled and its patience (null when not fighting), and whether it's walking home
+        (result as any).leash = currCreature.leash ?? null;
+        (result as any).patience = currCreature.patience ?? null;
+        (result as any).isReturning = currCreature.isReturning ?? false;
       }
     }
 

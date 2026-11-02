@@ -332,6 +332,27 @@ describe('StateSerializer', () => {
       expect((delta.data as JungleCreatureSnapshot).side).toBe(2);
     });
 
+    it('should send how far a fighting jungle creature is pulled, its patience, and its reset', () => {
+      const playerId = 'player-1';
+      const creature = (fields: Partial<JungleCreatureSnapshot>) => {
+        const snapshot: JungleCreatureSnapshot = {
+          entityId: 'wolf-1', entityType: EntityType.JUNGLE_CAMP, side: 2, campId: 'camp', creatureType: 'wolf',
+          x: 0, y: 0, health: 100, maxHealth: 100, isDead: false, homeX: 0, homeY: 0,
+          leash: null, patience: null, isReturning: false, ...fields,
+        };
+        return { id: 'wolf-1', entityType: EntityType.JUNGLE_CAMP, toSnapshot: () => ({ ...snapshot }) };
+      };
+      serializer.createDeltaUpdates([creature({})] as any, playerId, 1);
+
+      const [pulled] = serializer.createDeltaUpdates([creature({ leash: 0.7, patience: 0.4 })] as any, playerId, 2);
+      expect((pulled.data as JungleCreatureSnapshot).leash).toBe(0.7);
+      expect((pulled.data as JungleCreatureSnapshot).patience).toBe(0.4);
+
+      const [reset] = serializer.createDeltaUpdates([creature({ isReturning: true })] as any, playerId, 3);
+      expect((reset.data as JungleCreatureSnapshot).isReturning).toBe(true);
+      expect((reset.data as JungleCreatureSnapshot).leash).toBeNull();
+    });
+
     it('should return no deltas when nothing changed', () => {
       const playerId = 'player-1';
 

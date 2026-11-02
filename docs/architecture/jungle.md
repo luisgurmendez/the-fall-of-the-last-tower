@@ -6,7 +6,7 @@ Client: `src/render/entities/jungleCreature.ts`, camp timers in `OnlineMinimap`,
 
 ## Camps
 
-Each team has six camps, two quadrants with three camps each, plus two epic monsters in the river's pits: the dragon in the bot river and the Rootwyrm in the top river. Positions are in [map.md](map.md).
+Each team has six camps, two quadrants with three camps each, plus two epic monsters in the river's pits: the dragon in the bot river and the Rootwyrm in the top river. The top side's camp spots are `TOP_SIDE_CAMPS` in `siegeMap.ts` (`MOBAConfig.JUNGLE.CAMPS` reflects them across mid for the bot side and mirrors them for red); the layout around them is in [map.md](map.md).
 
 | Creature | Camp | Notes |
 |----------|------|-------|
@@ -27,13 +27,22 @@ Creatures are neutral monsters:
 - **Passive until attacked.** Walking past a camp is safe.
 - **Camp-wide aggro.** Hitting one creature makes every creature in that camp fight the attacker.
 - **Sticky targets.** A creature keeps attacking whoever hit it first. When that target dies or leaves the leash area, it switches to the closest other champion that damaged it in the last few seconds.
-- **Reset.** A creature resets when it is pulled more than `leashRange` from home, when it has no valid target, or when it is kited (no damage taken for 5s while its target is out of reach). It then walks home along a path around walls. It can't be damaged on the way and regains 30% of its health per second. It is back to full health when it arrives.
+- **Reset.** A creature resets when it is pulled more than `leashRange` from home, when it has no valid target, or when it is kited: its patience runs out (5 s with no blow either way, neither hitting nor being hit) while its target is out of reach. It then walks home along a path around walls. It can't be damaged on the way and regains 30% of its health per second. It is back to full health when it arrives.
 - **Ranged creatures** (thornspitter and dragon) attack with projectiles (`jungle_spit`, `dragon_fire`). The others hit instantly.
 - **Special attacks.** Buff monsters and the dragon have a telegraphed area attack, see below.
 - Minions and towers never attack jungle creatures.
 - **Side 2.** Creatures have side 2 (neutral) on the server and in their snapshot. The client's
   right-click targeting treats any side other than the player's as an enemy; without `side`
   in the snapshot, creatures could only be hit with abilities.
+
+## Leash and patience on screen
+
+The creature's snapshot carries its home (`homeX`, `homeY`) and, while it fights, how far it's pulled (`leash`: its distance from home over `leashRange`, so it resets past 1) and its patience (`patience`: 1 just after a blow, down to 0 five seconds later), both rounded to two decimals; `isReturning` while it walks home. The client warns before a reset:
+
+- **Tether** (`src/render/overlays/jungleLeash.ts`, on the ground under the units): from 45% of the leash, a line of moving dashes runs from the monster to a ring at its spot in the camp, faint amber at first, red and blinking near the end. From 65%, an arc of dashes on the leash's edge shows where it's heading, so a player can see how much further it follows.
+- **Patience bar**: a thin amber bar under the health bar, draining between blows; red and blinking below a third.
+- **Giving up**: the red "!" over a fighting monster turns into a bobbing amber "?" past 80% of the leash or below a third of its patience.
+- **Reset**: a pale puff with a ring closing in on it (`fx_creature_reset`) and a grumbling huff (`monster_reset`); while it walks home it's drawn pale and see-through (it can't be hurt) with a curling arrow over it.
 
 ## Special attacks
 

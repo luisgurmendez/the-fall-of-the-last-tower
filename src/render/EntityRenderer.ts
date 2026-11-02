@@ -54,6 +54,7 @@ import { renderGeneric } from "@/render/entities/generic";
 import { verticalFacing } from "@/render/entities/facing";
 import { renderAbilityEffects } from "@/render/overlays/abilityEffects";
 import { renderTowerRanges } from "@/render/overlays/towerRange";
+import { renderLeashTethers } from "@/render/overlays/jungleLeash";
 import { hitFlashFilter } from "@/render/hitFlash";
 import {
   renderDamageNumbers,
@@ -293,8 +294,10 @@ export class EntityRenderer implements GameObject {
       const localEntity = localEntityId ? this.stateManager.getEntity(localEntityId) : undefined;
       this.localChampionPosition = localEntity?.position ?? null;
 
-      // On the ground, under every unit: enemy tower ranges near the local champion
+      // On the ground, under every unit: enemy tower ranges near the local
+      // champion, and the tethers of jungle monsters pulled far from their camp
       renderTowerRanges(canvasRenderingContext, entities, localEntity, this.localSide);
+      renderLeashTethers(canvasRenderingContext, entities, this.renderContext.animationTime);
 
       // Effects on the GPU: the ground layer now, the rest after the units
       this.vfxManager.update(clientDt);

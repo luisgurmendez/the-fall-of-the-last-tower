@@ -43,6 +43,7 @@ played with the Web Audio API, heard from the camera.
 | A purchase | `item_buy` | `ShopUI.updateOnlineState` (gold down and inventory or control wards up) |
 | Deaths | `minion_death`, `champion_death`, `monster_death`, `tower_destroyed` (towers and the nexus), `inhibitor_destroyed` | the unit removed from state |
 | Kills, structures, the dragon, inhibitors rebuilding | `stinger_good` / `stinger_bad` (for our side or against it) | the announcement events |
+| A jungle monster gives up the fight (it resets and walks home) | `monster_reset` | the creature's `isReturning` |
 | Ward placed | `ward_place` | a ward added with `age` under 0.6 s |
 | Recall | `recall_channel` building up over the 8 s (stopped if cancelled), then `recall_depart` (the beam up, the "jiiiuuu") where it was and `recall_arrive` in the base | the champion's `isRecalling` |
 | Ambience | `amb_river` (full within 250 of the river's middle line, gone by 800), `amb_jungle` (in either jungle) | `updateAmbience` |

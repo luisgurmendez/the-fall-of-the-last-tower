@@ -65,6 +65,7 @@ export const SOUNDS = {
   minion_death: { prompt: `a small soldier grunting and falling with armor clatter, ${DRY}`, duration: 0.7, volume: 0.25, maxVoices: 2 },
   champion_death: { prompt: `a dramatic deep impact with a fading low choir hit, ${DRY}`, duration: 1.5, volume: 0.8, maxVoices: 2 },
   monster_death: { prompt: `a large beast's dying growl, short, ${DRY}`, duration: 1, volume: 0.6, maxVoices: 2 },
+  monster_reset: { prompt: `a wild creature giving up the chase with a short grumbling huff, then a soft rising magical shimmer, ${DRY}`, duration: 1, volume: 0.4, maxVoices: 2 },
   tower_destroyed: { prompt: `a stone tower crumbling and collapsing, rubble falling, ${DRY}`, duration: 2, volume: 0.9, maxVoices: 1 },
   inhibitor_destroyed: { prompt: `a large magic crystal shattering into pieces with a glassy ring, ${DRY}`, duration: 1.5, volume: 0.9, maxVoices: 1 },
 

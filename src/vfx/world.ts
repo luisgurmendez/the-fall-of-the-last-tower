@@ -44,6 +44,7 @@ export const WORLD_VFX = {
   RECALL_ARRIVE: 'fx_recall_arrive',
   TOWER_DESTROYED: 'fx_tower_destroyed',
   CREATURE_DEATH: 'fx_creature_death',
+  CREATURE_RESET: 'fx_creature_reset',
   DRAGON_DEATH: 'fx_dragon_death',
   ROOTWYRM_DEATH: 'fx_rootwyrm_death',
   LAST_HIT: 'fx_last_hit',
@@ -204,6 +205,19 @@ registerAbilityVFX({
       smoke('#4a4440', 8, [12, 20], [30, 90]),
       sparks('#ffe0b2', 8, [100, 220]),
       twinkles('#fff3e0', 3, [20, 50]),
+    ], 0.6),
+  ],
+});
+
+// A monster gives up the fight and heads home: a pale puff, a ring
+// closing in on it and a few motes of light (it heals on the way)
+registerAbilityVFX({
+  abilityId: WORLD_VFX.CREATURE_RESET,
+  phases: [
+    phase('reset', 0, 'caster', [
+      smoke('#cfd8dc', 6, [10, 18], [20, 60]),
+      ring('#e3f2fd', 46, 10, 0.4, 3),
+      twinkles('#b3e5fc', 6, [20, 60]),
     ], 0.6),
   ],
 });

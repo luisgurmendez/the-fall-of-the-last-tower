@@ -171,8 +171,9 @@ export function playDeathSound(entity: InterpolatedEntity, localEntityId?: strin
 }
 
 /**
- * A living unit changed: a tower turning on us, our level ups and abilities
- * learned, and recalls starting, cancelled or arriving
+ * A living unit changed: a tower turning on us, a jungle monster resetting,
+ * our level ups and abilities learned, and recalls starting, cancelled or
+ * arriving
  */
 export function playChangeSound(entity: InterpolatedEntity, data: any, localEntityId: string): void {
   if (!data) return;
@@ -181,6 +182,11 @@ export function playChangeSound(entity: InterpolatedEntity, data: any, localEnti
   if (entity.snapshot.entityType === EntityType.TOWER && data.targetEntityId === localEntityId &&
       (entity.snapshot as { targetEntityId?: string | null }).targetEntityId !== localEntityId) {
     audio.play("tower_alert");
+  }
+  // A jungle monster gives up the fight and heads home
+  if (entity.snapshot.entityType === EntityType.JUNGLE_CAMP && data.isReturning === true &&
+      !(entity.snapshot as { isReturning?: boolean }).isReturning) {
+    audio.play("monster_reset", at(entity));
   }
   if (entity.snapshot.entityType !== EntityType.CHAMPION) return;
   const previous = entity.snapshot as { entityId: string; level?: number; isRecalling?: boolean; skillPoints?: number };

@@ -500,6 +500,16 @@ export interface JungleCreatureSnapshot {
   health: number;
   maxHealth: number;
   isDead: boolean;
+
+  /** Where it stands while its camp is quiet, and walks back to when it resets */
+  homeX: number;
+  homeY: number;
+  /** While fighting: how far it's pulled from home, as a share of its leash range (it resets past 1); null otherwise */
+  leash?: number | null;
+  /** While fighting: patience left, 1 to 0 over the seconds since it last hit or was hit (out of reach at 0, it resets); null otherwise */
+  patience?: number | null;
+  /** Walking home after a reset (it can't be damaged) */
+  isReturning?: boolean;
 }
 
 /**

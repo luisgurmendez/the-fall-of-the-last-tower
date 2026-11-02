@@ -5,9 +5,11 @@
  * - Passive until attacked; hitting one creature aggros its whole camp
  * - Sticks to whoever attacked first; when that target dies or leaves,
  *   switches to the closest other recent attacker
- * - Resets when pulled past its leash or kited (no damage taken for a few
- *   seconds while its target is out of reach): walks home invulnerable,
- *   regenerating quickly, then heals to full
+ * - Resets when pulled past its leash or kited (its patience runs out: a few
+ *   seconds without hitting or being hit while its target is out of reach):
+ *   walks home invulnerable, regenerating quickly, then heals to full.
+ *   Its snapshot tells clients how far it's pulled and how much patience
+ *   it has left, so they can warn before it resets
  * - Ranged creatures (thornspitter, dragon) attack with projectiles
  * - Buff monsters and the dragon have a telegraphed area attack
  *   (JungleSpecialAttacks)
@@ -70,13 +72,16 @@ export class ServerJungleCreature extends ServerEntity {
   private returnPath: Vector[] = [];
   /** Champions that damaged this creature, with the game time they last did */
   private aggressors: Map<string, number> = new Map();
-  private lastDamagedAt = 0;
+  /** When it last hit or was hit: its patience runs out KITE_RESET_TIME after */
+  private lastEngagedAt = 0;
+  /** Game time, for the patience in snapshots */
+  private now = 0;
   /** Seconds until the special attack can be used (counts down while fighting) */
   private specialCooldownTimer = 0;
   /** The special attack being wound up: when it lands and where it's aimed */
   private windup: { landsAt: number; aim: Vector } | null = null;
 
-  /** Reset if not damaged for this long while the target is out of reach (seconds) */
+  /** Reset if it hasn't hit or been hit for this long while the target is out of reach (seconds) */
   private static readonly KITE_RESET_TIME = 5;
   /** Health regained per second while walking home, as a fraction of max health */
   private static readonly RETURN_REGEN = 0.3;
@@ -156,6 +161,7 @@ export class ServerJungleCreature extends ServerEntity {
    */
   update(dt: number, context: ServerGameContext): void {
     if (this.isDead) return;
+    this.now = context.getGameTime();
 
     // Update cooldowns
     if (this.attackCooldownTimer > 0) {
@@ -195,7 +201,7 @@ export class ServerJungleCreature extends ServerEntity {
     if (this.aiState === 'idle') {
       this.aiState = 'aggro';
       this.attackTarget = attackerId;
-      this.lastDamagedAt = context.getGameTime();
+      this.lastEngagedAt = context.getGameTime();
       this.specialCooldownTimer = this.getSpecialAttack()?.firstUseAfter ?? 0;
     }
   }
@@ -239,8 +245,8 @@ export class ServerJungleCreature extends ServerEntity {
 
     const inRange = this.isInAttackRange(target, this.attackRange);
 
-    // Kited: nobody has hit us for a while and we can't hit back
-    if (!inRange && context.getGameTime() - this.lastDamagedAt > ServerJungleCreature.KITE_RESET_TIME) {
+    // Kited: out of patience (no blows either way for a while) and we can't hit back
+    if (!inRange && context.getGameTime() - this.lastEngagedAt > ServerJungleCreature.KITE_RESET_TIME) {
       this.startReturning(context);
       return;
     }
@@ -256,6 +262,7 @@ export class ServerJungleCreature extends ServerEntity {
       if (this.attackCooldownTimer <= 0) {
         this.attack(target, context);
         this.attackCooldownTimer = this.attackCooldown;
+        this.lastEngagedAt = context.getGameTime();
       }
     } else {
       this.moveTarget = target.position.clone();
@@ -413,7 +420,7 @@ export class ServerJungleCreature extends ServerEntity {
     const actualDamage = super.takeDamage(amount, type, sourceId, context);
 
     if (actualDamage > 0 && sourceId && context && !this.isDead) {
-      this.lastDamagedAt = context.getGameTime();
+      this.lastEngagedAt = context.getGameTime();
       if (this.aiState === 'idle') {
         this.alertCamp(sourceId, context);
       } else {
@@ -457,6 +464,9 @@ export class ServerJungleCreature extends ServerEntity {
    * Create snapshot for network sync.
    */
   toSnapshot(): JungleCreatureSnapshot {
+    const fighting = this.aiState === 'aggro';
+    // Two decimals: enough for a bar, and fewer changes to send
+    const round = (value: number) => Math.round(value * 100) / 100;
     return {
       entityId: this.id,
       entityType: EntityType.JUNGLE_CAMP,
@@ -472,6 +482,11 @@ export class ServerJungleCreature extends ServerEntity {
       health: this.health,
       maxHealth: this.maxHealth,
       isDead: this.isDead,
+      homeX: this.homePosition.x,
+      homeY: this.homePosition.y,
+      leash: fighting ? round(this.position.distanceTo(this.homePosition) / this.leashRange) : null,
+      patience: fighting ? round(Math.max(0, 1 - (this.now - this.lastEngagedAt) / ServerJungleCreature.KITE_RESET_TIME)) : null,
+      isReturning: this.aiState === 'returning',
     };
   }
 }

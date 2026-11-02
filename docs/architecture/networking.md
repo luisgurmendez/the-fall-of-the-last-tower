@@ -187,7 +187,7 @@ enum EntityChangeMask {
   ABILITIES = 1 << 5,   // cooldowns, ranks
   ITEMS     = 1 << 6,   // inventory
   TARGET    = 1 << 7,   // current target
-  STATE     = 1 << 8,   // dead, recalling
+  STATE     = 1 << 8,   // dead, recalling; a jungle creature's leash, patience and isReturning
   TRINKET   = 1 << 9,
   GOLD      = 1 << 10,
   SHIELDS   = 1 << 11,

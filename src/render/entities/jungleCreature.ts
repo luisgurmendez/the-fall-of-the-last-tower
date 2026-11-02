@@ -24,6 +24,7 @@ import {
 import { getTrailHealth } from "@/render/overlays/damageTrail";
 import { renderAggroIndicator } from "@/render/overlays/statusIndicators";
 import { hitFlashFilter } from "@/render/hitFlash";
+import { BitmapFont } from "@/render/BitmapFont";
 
 /**
  * A creature's sprite strips. A strip's frames are as wide as it is tall,
@@ -237,7 +238,10 @@ export function renderJungleCamp(
       look.filter,
       windup > 0 ? `brightness(${1 + windup * 0.7})` : undefined,
       hitFlash > 0 ? hitFlashFilter(hitFlash) : undefined,
+      // Walking home after a reset: pale and see-through (it can't be hurt)
+      snapshot.isReturning ? "saturate(0.35) brightness(1.3)" : undefined,
     ].filter(Boolean);
+    if (snapshot.isReturning) ctx.globalAlpha *= 0.55;
     if (filters.length > 0) {
       ctx.filter = filters.join(" ");
     }
@@ -280,8 +284,75 @@ export function renderJungleCamp(
     ctx.fillText(look.name, 0, barY - 6);
   }
 
-  // Draw aggro indicator (red "!") when creature has a target
-  if (snapshot.targetEntityId) {
-    renderAggroIndicator(ctx, barY - (look.name ? 20 : 15), rc.animationTime);
+  // Patience left (JungleCreatureSnapshot.patience): drains while nobody
+  // lands a blow, blinking when it's about to give up
+  const patience = snapshot.patience as number | null | undefined;
+  if (patience != null && patience < 0.99) {
+    renderPatienceBar(ctx, patience, look.name ? 56 : 40, barY + 5, rc.animationTime);
   }
+
+  const iconY = barY - (look.name ? 20 : 15);
+  if (snapshot.isReturning) {
+    renderReturningIcon(ctx, iconY, rc.animationTime);
+  } else if (snapshot.targetEntityId) {
+    // Fighting: a red "!", or an amber "?" when it's about to give up (near
+    // the end of its leash or out of patience)
+    const givingUp = (snapshot.leash ?? 0) > 0.8 || (patience ?? 1) < 0.35;
+    if (givingUp) renderGivingUpIndicator(ctx, iconY, rc.animationTime);
+    else renderAggroIndicator(ctx, iconY, rc.animationTime);
+  }
+}
+
+/** A thin amber bar under the health bar; red and blinking below a third */
+function renderPatienceBar(ctx: CanvasRenderingContext2D, patience: number, width: number, y: number, time: number): void {
+  const low = patience < 0.35;
+  if (low && Math.sin(time * 16) < -0.3) return;
+  ctx.save();
+  ctx.filter = "none";
+  ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+  ctx.fillRect(-width / 2 - 1, y - 1, width + 2, 4);
+  ctx.fillStyle = low ? "#ff5a3c" : "#ffc440";
+  ctx.fillRect(-width / 2, y, Math.round(width * patience), 2);
+  ctx.restore();
+}
+
+/** An amber "?" bobbing over a monster about to give up */
+function renderGivingUpIndicator(ctx: CanvasRenderingContext2D, y: number, time: number): void {
+  ctx.save();
+  ctx.filter = "none";
+  ctx.translate(Math.sin(time * 20) * 1.5, y);
+  ctx.beginPath();
+  ctx.arc(0, 0, 10, 0, Math.PI * 2);
+  ctx.fillStyle = "#ffb020";
+  ctx.fill();
+  ctx.strokeStyle = "#8a4b00";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.fillStyle = "#ffffff";
+  ctx.font = BitmapFont.getFont(18);
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("?", 0, -2);
+  ctx.restore();
+}
+
+/** A pale arrow curling back over a monster walking home */
+function renderReturningIcon(ctx: CanvasRenderingContext2D, y: number, time: number): void {
+  ctx.save();
+  ctx.filter = "none";
+  ctx.translate(0, y + Math.sin(time * 4) * 2);
+  ctx.strokeStyle = "rgba(220, 240, 255, 0.95)";
+  ctx.fillStyle = "rgba(220, 240, 255, 0.95)";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(0, 0, 7, Math.PI * 1.15, Math.PI * 2.4);
+  ctx.stroke();
+  // The arrowhead, at the arc's start
+  ctx.beginPath();
+  ctx.moveTo(-10, 0);
+  ctx.lineTo(-3, -1);
+  ctx.lineTo(-8, -7);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
 }
