@@ -296,7 +296,7 @@ export class ServerAbilityExecutor {
     }
 
     // Execute recast as a dash to the hit position
-    executeRecastDash(champion, hitPosition);
+    executeRecastDash(champion, hitPosition, abilityId);
 
     // Consume the recast
     champion.consumeRecast(slot);

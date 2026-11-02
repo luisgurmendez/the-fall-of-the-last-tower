@@ -65,6 +65,7 @@ export class VexDashHandler extends BaseAbilityHandler {
       effectDuration: definition.effectDuration,
       hitEntities: new Set(),
     };
+    champion.dashAbilityId = definition.id;
 
     // Update facing direction
     champion.direction = normalizedDir;

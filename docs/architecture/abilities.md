@@ -213,7 +213,7 @@ Generic path details:
 | `Cone.ts` | Cones (`ground_target` with `shape: 'cone'` and `coneAngle`) |
 | `Line.ts` | Lines (`ground_target` with `shape: 'line'`): every enemy in a band toward the target |
 | `Trap.ts` | Trap placement (`ground_target` with `trap`). A trap (`ServerTrap`) arms a second after it's placed, and a champion it catches can't be caught by another trap for three seconds (`vile_trap_caught`), so traps dropped on someone don't chain into one long root |
-| `Movement.ts` | `dash` and `teleport`, run after the path or handler, and the generic recast dash. A dash puts its `appliesEffects` in the `buff` category on the caster and the rest on what it runs into |
+| `Movement.ts` | `dash` and `teleport`, run after the path or handler, and the generic recast dash. A dash puts its `appliesEffects` in the `buff` category on the caster and the rest on what it runs into. Every dash (generic or a handler's) sets `champion.dashAbilityId`, so the snapshot's `isDashing` is true and clients hold the ability's frame of motion and draw its afterimages (`DashSnapshot.test.ts`) |
 | `AbilityHelpers.ts` | Scaling stats and effect application shared by the paths |
 
 When a generic path learns a definition field, update its rule in the coverage contract's `GENERIC_SUPPORT`.

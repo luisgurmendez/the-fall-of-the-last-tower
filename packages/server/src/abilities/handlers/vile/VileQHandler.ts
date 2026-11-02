@@ -144,6 +144,7 @@ export class VileQHandler extends BaseAbilityHandler {
       type: 'dash',
       hitEntities: new Set(),
     };
+    champion.dashAbilityId = this.abilityId;
 
     champion.direction = normalizedDir;
     champion.consumeRecast('Q');

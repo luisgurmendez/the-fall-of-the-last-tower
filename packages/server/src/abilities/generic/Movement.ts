@@ -8,6 +8,7 @@
  *   the dash runs into
  * - A teleport is instant and clamped to the ability's range
  * - The generic recast dashes to where the ability's projectile hit
+ * - Every dash sets the champion's dashAbilityId, so clients draw it as one
  */
 
 import { calculateAbilityValue, type AbilityDefinition, type Vector } from "@siege/shared";
@@ -52,7 +53,7 @@ export function teleportToDestination(params: AbilityCastParams, definition: Abi
 /**
  * Execute the recast dash to the hit position (e.g., Vile's Q dash to hit location).
  */
-export function executeRecastDash(champion: ServerChampion, hitPosition: Vector): void {
+export function executeRecastDash(champion: ServerChampion, hitPosition: Vector, abilityId: string): void {
   const direction = hitPosition.subtracted(champion.position);
   const distance = direction.length();
 
@@ -71,6 +72,7 @@ export function executeRecastDash(champion: ServerChampion, hitPosition: Vector)
     type: "dash",
     hitEntities: new Set(),
   };
+  champion.dashAbilityId = abilityId;
 
   // Update facing direction
   champion.direction = normalizedDir;
@@ -143,6 +145,8 @@ function executeDash(
     effectDuration: definition.effectDuration,
     hitEntities: new Set(),
   };
+  // So clients show it as a dash (the ability's frame of motion, afterimages)
+  champion.dashAbilityId = definition.id;
 
   // Update facing direction
   champion.direction = normalizedDir;

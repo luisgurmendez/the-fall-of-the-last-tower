@@ -55,6 +55,7 @@ export const hopHooks: IChampionHooks = {
       elapsed: 0,
       type: 'dash',
     };
+    champion.dashAbilityId = 'hop_hop';
     champion.direction = toTarget.normalized();
   },
 
