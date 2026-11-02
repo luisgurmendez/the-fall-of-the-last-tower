@@ -462,7 +462,7 @@ export const MOBAConfig = {
 
   /**
    * Tunnels: burrows through the jungle's walls (siegeMap.ts). A champion
-   * ordered to walk to a mouth crawls through to the other one, hidden,
+   * sent into a mouth (right-clicked) crawls through to the other one, hidden,
    * in CRAWL_TIME seconds, and can't go back in for COOLDOWN seconds
    * (server: systems/JungleTunnels.ts).
    */
@@ -472,8 +472,12 @@ export const MOBAConfig = {
     ABILITY_ID: "jungle_tunnel",
     CRAWL_TIME: 0.9,
     COOLDOWN: 4,
-    /** An order to walk this close to a mouth is an order to go in */
-    ORDER_REACH: 70,
+    /**
+     * An order to walk this close to a mouth is an order to go in: the
+     * client sends the mouth's center when the player right-clicks its
+     * burrow, so walking near or over a mouth doesn't take a champion in
+     */
+    ORDER_REACH: 10,
   },
 
   /**

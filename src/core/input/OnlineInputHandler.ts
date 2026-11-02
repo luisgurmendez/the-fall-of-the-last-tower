@@ -16,7 +16,7 @@ import { InputManager, MouseButton } from "@/core/input/InputManager";
 import Vector from "@/physics/vector";
 import type { NetworkClient } from "@siege/client";
 import type { AbilitySlot } from "@siege/shared";
-import { GameConfig, getAbilityDefinition, getChampionDefinition, hasChargeBehavior, type WardType } from "@siege/shared";
+import { GameConfig, MOBAConfig, getAbilityDefinition, getChampionDefinition, hasChargeBehavior, type WardType } from "@siege/shared";
 import type {
   OnlineStateManager,
   InterpolatedEntity,
@@ -34,6 +34,16 @@ const SUMMONER_KEYS: [string, 0 | 1][] = [["d", 0], ["f", 1]];
 const WARD_KEYS: [string, WardType][] = [["4", "stealth"], ["5", "control"]];
 
 /** Entity types that can be attacked (for cursor hover) */
+/**
+ * A jungle tunnel's mouth answers the cursor within this ellipse around it
+ * (its burrow as drawn: the hole and its mound, seen a little from above)
+ */
+const TUNNEL_MOUTH_HALF_WIDTH = 30;
+const TUNNEL_MOUTH_HALF_HEIGHT = 22;
+
+/** The mouths of the jungle's tunnels */
+const TUNNEL_MOUTHS = MOBAConfig.TUNNELS.LIST.flatMap(({ a, b }) => [a, b]);
+
 const ATTACKABLE_ENTITY_TYPES: Set<number> = new Set([
   0, // EntityType.CHAMPION
   1, // EntityType.MINION
@@ -146,6 +156,9 @@ export class OnlineInputHandler implements GameObject {
 
   /** Currently hovered entity info for rendering */
   private hoveredEntityInfo: HoveredEntityInfo | null = null;
+
+  /** The jungle tunnel mouth under the cursor (when no unit is): a right-click goes in */
+  private hoveredTunnelMouth: { x: number; y: number } | null = null;
 
   /** Active move markers */
   private moveMarkers: MoveMarker[] = [];
@@ -282,6 +295,11 @@ export class OnlineInputHandler implements GameObject {
       // If hovering an enemy, send target attack instead of move
       if (this.hoveredEnemyId && !minimapTarget) {
         this.networkClient.sendTargetUnitInput(this.hoveredEnemyId);
+      } else if (this.hoveredTunnelMouth && !minimapTarget) {
+        // A tunnel's mouth: walk to its very center, which the server takes as going in
+        const mouth = this.hoveredTunnelMouth;
+        this.networkClient.sendMoveInput(mouth.x, mouth.y);
+        this.spawnMoveMarker(new Vector(mouth.x, mouth.y));
       } else {
         this.networkClient.sendMoveInput(worldPos.x, worldPos.y);
         // Spawn move marker at click position
@@ -497,6 +515,11 @@ export class OnlineInputHandler implements GameObject {
       cursorManager.setCursor(this.inputManager.isKeyDown("a") ? "attack" : "default");
     }
 
+    // A tunnel's mouth, when no unit is in the way
+    this.hoveredTunnelMouth = closestEnemy || closestAlly ? null : TUNNEL_MOUTHS.find(mouth =>
+      ((mouseWorldPos.x - mouth.x) / TUNNEL_MOUTH_HALF_WIDTH) ** 2 + ((mouseWorldPos.y - mouth.y) / TUNNEL_MOUTH_HALF_HEIGHT) ** 2 <= 1
+    ) ?? null;
+
     // Notify EntityRenderer of hover state change for sprite outlines
     if (this.onHoverStateChange &&
         (this.hoveredEnemyId !== prevEnemyId || this.hoveredAllyId !== prevAllyId)) {
@@ -671,6 +694,8 @@ export class OnlineInputHandler implements GameObject {
         if (this.inputManager.isKeyDown(key)) this.renderWardPlacement(canvasRenderingContext, wardType, ctx.camera);
       }
 
+      if (this.hoveredTunnelMouth) this.renderTunnelMouthHover(canvasRenderingContext, this.hoveredTunnelMouth);
+
       // Render move markers
       for (const marker of this.moveMarkers) {
         this.renderMoveMarker(canvasRenderingContext, marker);
@@ -752,6 +777,34 @@ export class OnlineInputHandler implements GameObject {
    * Render a move marker: a ring on the ground that closes in on the point,
    * with four arrows converging on it, fading out (red for attack-move).
    */
+  /**
+   * A jungle tunnel's mouth under the cursor: a thin ring round its burrow
+   * and an arrow bobbing over it, pointing in.
+   */
+  private renderTunnelMouthHover(ctx: CanvasRenderingContext2D, mouth: { x: number; y: number }): void {
+    const bob = Math.sin(performance.now() / 160) * 2;
+    ctx.save();
+    for (const [stroke, width] of [["rgba(0, 0, 0, 0.5)", 3], ["#ffe08a", 1.5]] as const) {
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = width;
+      ctx.beginPath();
+      ctx.ellipse(mouth.x, mouth.y, TUNNEL_MOUTH_HALF_WIDTH - 4, TUNNEL_MOUTH_HALF_HEIGHT - 4, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    const tip = mouth.y - TUNNEL_MOUTH_HALF_HEIGHT - 4 + bob;
+    ctx.beginPath();
+    ctx.moveTo(mouth.x, tip);
+    ctx.lineTo(mouth.x - 6, tip - 8);
+    ctx.lineTo(mouth.x + 6, tip - 8);
+    ctx.closePath();
+    ctx.fillStyle = "#ffe08a";
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";
+    ctx.lineWidth = 1.5;
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+
   private renderMoveMarker(
     ctx: CanvasRenderingContext2D,
     marker: MoveMarker,

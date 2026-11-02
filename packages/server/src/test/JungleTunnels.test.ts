@@ -72,6 +72,20 @@ describe('Jungle tunnels', () => {
     }
   });
 
+  test('walking to a spot beside a mouth, or over it, doesn\'t go in', () => {
+    const { sim, champion } = setup();
+    try {
+      // Just past the mouth, the way the champion walks: it walks over the burrow
+      const past = a.added(b.subtracted(a).normalized().scaled(25));
+      sim.move('p1', past.x, past.y);
+      sim.run(2);
+      expect(champion.dashAbilityId).toBeNull();
+      expect(champion.position.distanceTo(b)).toBeGreaterThan(200);
+    } finally {
+      sim.dispose();
+    }
+  });
+
   test('another order on the way calls it off', () => {
     const { sim, champion } = setup();
     try {

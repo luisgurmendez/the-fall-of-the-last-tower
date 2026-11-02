@@ -20,8 +20,8 @@ interface CachedOutline {
   timestamp: number;
 }
 
-/** Outline thickness in pixels */
-const OUTLINE_THICKNESS = 4;
+/** Outline thickness in sprite pixels (a round brush, so its corners stay thin) */
+const OUTLINE_THICKNESS = 2;
 
 /** Maximum cache size before cleanup */
 const MAX_CACHE_SIZE = 200;
@@ -143,6 +143,7 @@ function generateOutlinedSprite(
         for (let dy = -OUTLINE_THICKNESS; dy <= OUTLINE_THICKNESS; dy++) {
           for (let dx = -OUTLINE_THICKNESS; dx <= OUTLINE_THICKNESS; dx++) {
             if (dx === 0 && dy === 0) continue;
+            if (dx * dx + dy * dy > OUTLINE_THICKNESS * OUTLINE_THICKNESS) continue;
 
             const ox = x + dx;
             const oy = y + dy;

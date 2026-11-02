@@ -1,7 +1,8 @@
 /**
  * JungleTunnels - Burrows through the jungle's walls (MOBAConfig.TUNNELS).
  *
- * A champion ordered to walk to a tunnel's mouth goes in when it gets
+ * A champion ordered to walk to a tunnel's mouth (the player right-clicked
+ * its burrow; the client sends the mouth's center) goes in when it gets
  * there: it crawls under the forest to the other mouth (a dash that passes
  * walls, dashAbilityId MOBAConfig.TUNNELS.ABILITY_ID, so clients hide it
  * and kick up dust at both mouths) and comes out CRAWL_TIME later. It can't
