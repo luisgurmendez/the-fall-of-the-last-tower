@@ -396,8 +396,8 @@ export class OnlineInputHandler implements GameObject {
     for (const entity of entities) {
       const snapshot = entity.snapshot;
 
-      // Skip projectiles and zones (not selectable)
-      if (snapshot.entityType === 6 || snapshot.entityType === 8) continue;
+      // Skip projectiles, zones and healing blossoms (not selectable)
+      if (snapshot.entityType === 6 || snapshot.entityType === 8 || snapshot.entityType === 10) continue;
 
       // Skip dead entities
       if ("isDead" in snapshot && (snapshot as any).isDead) continue;

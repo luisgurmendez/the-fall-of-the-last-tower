@@ -12,7 +12,7 @@ import type { ServerGameContext } from '../game/ServerGameContext';
 
 export type SimEntityKind =
   | 'champion' | 'minion' | 'tower' | 'inhibitor' | 'nexus'
-  | 'jungle' | 'projectile' | 'ward' | 'zone' | 'orb';
+  | 'jungle' | 'projectile' | 'ward' | 'zone' | 'orb' | 'blossom';
 
 const KIND_BY_TYPE: Record<EntityType, SimEntityKind> = {
   [EntityType.CHAMPION]: 'champion',
@@ -25,6 +25,7 @@ const KIND_BY_TYPE: Record<EntityType, SimEntityKind> = {
   [EntityType.WARD]: 'ward',
   [EntityType.ZONE]: 'zone',
   [EntityType.LIGHT_ORB]: 'orb',
+  [EntityType.BLOSSOM]: 'blossom',
 };
 
 /**

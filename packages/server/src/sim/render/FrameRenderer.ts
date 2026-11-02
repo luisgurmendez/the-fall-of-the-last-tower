@@ -212,7 +212,7 @@ export class FrameRenderer {
 
   private drawEntities(raster: Raster, frame: SimFrame, detailed: boolean): void {
     const order: Record<SimEntity['kind'], number> = {
-      nexus: 0, tower: 1, inhibitor: 1, ward: 2, jungle: 3, minion: 4, orb: 5, champion: 6, projectile: 7, zone: 8,
+      nexus: 0, tower: 1, inhibitor: 1, blossom: 2, ward: 2, jungle: 3, minion: 4, orb: 5, champion: 6, projectile: 7, zone: 8,
     };
     const entities = [...frame.entities].sort((a, b) => order[a.kind] - order[b.kind]);
 
@@ -277,6 +277,9 @@ export class FrameRenderer {
           break;
         case 'orb':
           raster.fillCircle(x, y, 2.5, hexColor('#fff3a0'));
+          break;
+        case 'blossom':
+          raster.fillCircle(x, y, 3, hexColor('#ff8ad8'));
           break;
         case 'zone':
           break;

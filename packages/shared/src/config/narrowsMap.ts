@@ -51,6 +51,9 @@ const BASE = { center: along(-2200), radius: 560 };
 /** How round the open ground's corners are */
 const ROUNDING = 70;
 
+/** Healing blossoms on blue's half, at the lane's edges across from the pockets (red's mirror them) */
+export const NARROWS_BLUE_BLOSSOMS = [along(-560, -210), along(-1150, 220)];
+
 /** Tall grass on blue's half: in the pockets, and at the arena's edges */
 export const NARROWS_BLUE_BUSHES: BushSpot[] = [
   { at: POCKETS[0].center, count: 3, line: 'cluster' },

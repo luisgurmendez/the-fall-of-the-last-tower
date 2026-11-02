@@ -239,6 +239,20 @@ registerAbilityVFX({
   ],
 });
 
+// A champion picks a healing blossom (The Narrows): petals bursting off
+// it, a ring of pink light rising round it and motes of light
+registerAbilityVFX({
+  abilityId: 'blossom_heal',
+  phases: [
+    phase('bloom', 0, 'caster', [
+      sparks('#ff8fd0', 14, [80, 200]),
+      twinkles('#ffc4ea', 8, [30, 90]),
+      ring('#ff8fd0', 10, 50, 0.4, 3),
+      light('#ff9ad8', 70, 0.8, 0.5),
+    ], 0.7),
+  ],
+});
+
 // The dragon dies: a fiery blast and embers drifting up
 registerAbilityVFX({
   abilityId: WORLD_VFX.DRAGON_DEATH,

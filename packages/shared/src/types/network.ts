@@ -244,6 +244,8 @@ export enum EntityType {
   WARD = 7,
   ZONE = 8,
   LIGHT_ORB = 9,
+  /** A healing blossom on The Narrows' lane (map config BLOSSOMS) */
+  BLOSSOM = 10,
 }
 
 /**
@@ -624,6 +626,20 @@ export interface LightOrbSnapshot {
 /**
  * Union type for all entity snapshots.
  */
+/**
+ * Snapshot of a healing blossom: in bloom (the first champion to walk over
+ * it is healed), or regrowing until `regrowsAt` (game time).
+ */
+export interface BlossomSnapshot {
+  entityId: string;
+  entityType: EntityType.BLOSSOM;
+  side: Side;
+  x: number;
+  y: number;
+  /** When it blooms again; null while it's in bloom */
+  regrowsAt: number | null;
+}
+
 export type EntitySnapshot =
   | ChampionSnapshot
   | MinionSnapshot
@@ -635,7 +651,8 @@ export type EntitySnapshot =
   | WardSnapshot
   | TrapSnapshot
   | ZoneSnapshot
-  | LightOrbSnapshot;
+  | LightOrbSnapshot
+  | BlossomSnapshot;
 
 /**
  * Delta update for an entity (only changed fields).

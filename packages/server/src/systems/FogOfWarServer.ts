@@ -176,6 +176,11 @@ export class FogOfWarServer {
       return { isVisible: true };
     }
 
+    // So are healing blossoms, with their regrowth (everyone knows where they are)
+    if (entity.entityType === EntityType.BLOSSOM) {
+      return { isVisible: true };
+    }
+
     // Check cache first
     let entityCache = this.visibilityCache.get(entity.id);
     if (!entityCache) {

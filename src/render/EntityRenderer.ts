@@ -22,7 +22,7 @@ import type {
   InterpolatedEntity,
 } from "@/core/OnlineStateManager";
 
-import { EntityType, type InhibitorSnapshot } from "@siege/shared";
+import { EntityType, type BlossomSnapshot, type InhibitorSnapshot } from "@siege/shared";
 import { VFXManager, getVFXManager } from "@/vfx";
 import { getGPURenderer } from "@/gpu/GPURenderer";
 import { emitZone, type ZoneSnapshot } from "@/gpu/fx/zones";
@@ -55,6 +55,7 @@ import { verticalFacing } from "@/render/entities/facing";
 import { renderAbilityEffects } from "@/render/overlays/abilityEffects";
 import { renderTowerRanges } from "@/render/overlays/towerRange";
 import { renderLeashTethers } from "@/render/overlays/jungleLeash";
+import { renderBlossom } from "@/render/entities/blossom";
 import { hitFlashFilter } from "@/render/hitFlash";
 import {
   renderDamageNumbers,
@@ -542,6 +543,9 @@ export class EntityRenderer implements GameObject {
         break;
       case EntityType.LIGHT_ORB:
         this.lightOrbRenderer.render(ctx, snapshot, side);
+        break;
+      case EntityType.BLOSSOM:
+        renderBlossom(ctx, snapshot as BlossomSnapshot, this.renderContext);
         break;
       default:
         renderGeneric(

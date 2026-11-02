@@ -59,6 +59,8 @@ export type GameRoomState = 'waiting' | 'starting' | 'playing' | 'ended';
 
 export class GameRoom {
   readonly gameId: string;
+  /** The map it's played on */
+  readonly mapId: MapId;
   private state: GameRoomState = 'waiting';
 
   private game: ServerGame;
@@ -94,9 +96,10 @@ export class GameRoom {
     }
 
     // Create game context
+    this.mapId = config.mapId ?? 'wildcrown';
     this.context = new ServerGameContext({
       gameId: config.gameId,
-      mapConfig: MAPS[config.mapId ?? 'wildcrown'],
+      mapConfig: MAPS[this.mapId],
     });
 
     // Create input handler

@@ -408,6 +408,18 @@ export class OnlineMinimap extends ScreenEntity {
         case EntityType.WARD:
           this.renderWard(ctx, pos, isPlayerTeam, (snapshot as { wardType?: string }).wardType);
           break;
+        case EntityType.BLOSSOM:
+          // A healing blossom in bloom: a pink dot (nothing while it regrows)
+          if ((snapshot as { regrowsAt?: number | null }).regrowsAt == null) {
+            ctx.fillStyle = '#ff8fd0';
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+          }
+          break;
       }
     }
   }

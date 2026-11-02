@@ -27,6 +27,7 @@ import { ServerJungleCamp } from '../simulation/ServerJungleCamp';
 import { ServerWard } from '../simulation/ServerWard';
 import { FogOfWarServer } from '../systems/FogOfWarServer';
 import { Terrain } from '../navigation/Terrain';
+import { ServerBlossom } from '../simulation/ServerBlossom';
 import { JungleTunnels } from '../systems/JungleTunnels';
 import { PathFollower } from '../navigation/PathFollower';
 import { CollisionSystem } from '../systems/CollisionSystem';
@@ -103,6 +104,17 @@ export class ServerGameContext {
 
     // Initialize jungle camps
     this.initializeJungleCamps();
+    this.plantBlossoms();
+  }
+
+  /**
+   * The map's healing blossoms (ServerBlossom), in place from the start.
+   */
+  private plantBlossoms(): void {
+    const { BLOSSOMS } = this.mapConfig;
+    BLOSSOMS.SPOTS.forEach((spot, i) => {
+      this.addEntity(new ServerBlossom({ id: `blossom_${i}`, position: new Vector(spot.x, spot.y) }, BLOSSOMS));
+    });
   }
 
   /**

@@ -145,6 +145,7 @@ export type {
   ZoneSnapshot,
   LightOrbState,
   LightOrbSnapshot,
+  BlossomSnapshot,
   EntitySnapshot,
   EntityDelta,
   GameEvent,

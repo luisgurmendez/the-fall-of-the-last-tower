@@ -12,6 +12,7 @@
 import { Vector } from '../math/Vector';
 import { MOBAConfig } from './MOBAConfig';
 import {
+  NARROWS_BLUE_BLOSSOMS,
   NARROWS_BLUE_BUSHES,
   NARROWS_BLUE_INHIBITOR,
   NARROWS_BLUE_NEXUS,
@@ -42,6 +43,7 @@ const NARROWS: MapConfig = {
   RIVER: { points: [], width: 0, pits: [] },
   JUNGLE: { ...WILDCROWN.JUNGLE, CAMPS: [] },
   CHAMPION_SPAWN: { BLUE: vector(NARROWS_BLUE_SPAWN), RED: mirror(NARROWS_BLUE_SPAWN) },
+  BLOSSOMS: { ...WILDCROWN.BLOSSOMS, SPOTS: [...NARROWS_BLUE_BLOSSOMS, ...NARROWS_BLUE_BLOSSOMS.map(mirror)] },
   TRAILS: [],
   TUNNELS: { ...WILDCROWN.TUNNELS, LIST: [] },
   // Red's groups follow blue's in the same order (calculateIndividualBushPositions mirrors them)

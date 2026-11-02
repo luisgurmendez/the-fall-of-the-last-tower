@@ -58,6 +58,8 @@ const OTHER_CAST_EVENT_IDS = [
   ...Object.values(MOBAConfig.JUNGLE.SPECIAL_ATTACKS).map((attack) => attack.abilityId),
   // A champion crawling through a jungle tunnel (server: systems/JungleTunnels.ts)
   MOBAConfig.TUNNELS.ABILITY_ID,
+  // A champion picking a healing blossom (server: simulation/ServerBlossom.ts)
+  'blossom_heal',
 ];
 
 /** Basic attack projectiles other than <championId>_auto (EloraHooks.basicAttackProjectileType), which have impacts */

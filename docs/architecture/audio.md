@@ -43,6 +43,7 @@ played with the Web Audio API, heard from the camera.
 | A purchase | `item_buy` | `ShopUI.updateOnlineState` (gold down and inventory or control wards up) |
 | Deaths | `minion_death`, `champion_death`, `monster_death`, `tower_destroyed` (towers and the nexus), `inhibitor_destroyed` | the unit removed from state |
 | Kills, structures, the dragon, inhibitors rebuilding | `stinger_good` / `stinger_bad` (for our side or against it) | the announcement events |
+| A champion picks a healing blossom (The Narrows) | `blossom_heal` | `ABILITY_CAST` `blossom_heal` |
 | A champion crawls through a jungle tunnel | `jungle_tunnel` at the mouth it goes in by, then at the other as it comes out | `ABILITY_CAST` `jungle_tunnel` (`ABILITY_CUES`) |
 | A jungle monster gives up the fight (it resets and walks home) | `monster_reset` | the creature's `isReturning` |
 | Ward placed | `ward_place` | a ward added with `age` under 0.6 s |

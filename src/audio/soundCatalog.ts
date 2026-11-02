@@ -65,6 +65,8 @@ export const SOUNDS = {
   minion_death: { prompt: `a small soldier grunting and falling with armor clatter, ${DRY}`, duration: 0.7, volume: 0.25, maxVoices: 2 },
   champion_death: { prompt: `a dramatic deep impact with a fading low choir hit, ${DRY}`, duration: 1.5, volume: 0.8, maxVoices: 2 },
   monster_death: { prompt: `a large beast's dying growl, short, ${DRY}`, duration: 1, volume: 0.6, maxVoices: 2 },
+  // A champion picking a healing blossom on The Narrows
+  blossom_heal: { prompt: `a magical flower bursting open with a bright chime and a soft rising shimmer of healing, ${DRY}`, duration: 1.2, volume: 0.5, maxVoices: 2 },
   // A champion crawling through a jungle tunnel (the ability id of the crawl)
   jungle_tunnel: { prompt: `someone scrambling quickly into a burrow, scraping earth and roots, muffled crawling, ${DRY}`, duration: 1, volume: 0.5, maxVoices: 2 },
   monster_reset: { prompt: `a wild creature giving up the chase with a short grumbling huff, then a soft rising magical shimmer, ${DRY}`, duration: 1, volume: 0.4, maxVoices: 2 },

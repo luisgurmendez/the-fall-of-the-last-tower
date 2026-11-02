@@ -481,6 +481,20 @@ export const MOBAConfig = {
     REGEN_PER_SECOND: 0.12,
   },
 
+  /**
+   * Healing blossoms (The Narrows has them; this map doesn't): the first
+   * champion to walk within RADIUS of one in bloom regains HEAL of its max
+   * health and resource, and it regrows REGROW seconds later. The first
+   * bloom FIRST_BLOOM seconds into the match (server: ServerBlossom).
+   */
+  BLOSSOMS: {
+    SPOTS: list<{ x: number; y: number }>([]),
+    RADIUS: 45,
+    HEAL: 0.18,
+    REGROW: 40,
+    FIRST_BLOOM: 60,
+  },
+
   /** The jungle paths' centerlines, drawn as trodden trails on the ground (siegeMap.ts) */
   TRAILS: list(jungleTrails()),
 

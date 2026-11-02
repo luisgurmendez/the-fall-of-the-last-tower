@@ -210,6 +210,7 @@ function handleReadyMessage(connection: WebSocketConnection, data: ReadyMessageD
           gameTime: room.getGameTime(),
           yourSide: room.getPlayerSide(playerId),
           players: room.getPlayersWithEntityIds(),
+          mapId: room.mapId,
         },
       });
     }
