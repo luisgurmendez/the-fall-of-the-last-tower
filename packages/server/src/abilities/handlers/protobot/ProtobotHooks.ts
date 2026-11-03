@@ -2,8 +2,8 @@
  * Protobot's rules beyond his abilities' generic execution:
  * - Machine Learning (passive): each time an enemy champion damages him (at
  *   most once a second) he learns a lesson: a stack of protobot_learning
- *   (armor) and protobot_learning_mr (magic resist). The lessons are the
- *   passive's stacks
+ *   (armor and magic resist, one effect). The lessons are the passive's
+ *   stacks
  */
 
 import { EntityType, PROTOBOT_MACHINE } from '@siege/shared';
@@ -20,7 +20,6 @@ export const protobotHooks: IChampionHooks = {
     const lesson = champion.getEffect('protobot_learning');
     if (lesson && lesson.timeRemaining > PROTOBOT_MACHINE.lessonDuration - PROTOBOT_MACHINE.lessonEvery) return;
     champion.applyEffect('protobot_learning', PROTOBOT_MACHINE.lessonDuration, champion.id);
-    champion.applyEffect('protobot_learning_mr', PROTOBOT_MACHINE.lessonDuration, champion.id);
   },
 
   updatePassiveState(champion: ServerChampion): void {

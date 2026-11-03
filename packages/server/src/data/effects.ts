@@ -643,7 +643,7 @@ export const OitboilExhaustedDisarmEffect: ServerCCEffectDef = {
 };
 
 // Protobot's Machine Learning (passive): each lesson is a stack of armor and
-// magic resist (ProtobotHooks)
+// magic resist (ProtobotHooks; one effect, so one icon)
 export const ProtobotLearningEffect: ServerStatEffectDef = {
   id: 'protobot_learning',
   name: 'Machine Learning',
@@ -654,18 +654,7 @@ export const ProtobotLearningEffect: ServerStatEffectDef = {
   persistsThroughDeath: false,
   stat: 'armor',
   flatValue: PROTOBOT_MACHINE.resistsPerLesson,
-};
-
-export const ProtobotLearningMREffect: ServerStatEffectDef = {
-  id: 'protobot_learning_mr',
-  name: 'Machine Learning',
-  category: 'buff',
-  stackBehavior: 'stack',
-  maxStacks: PROTOBOT_MACHINE.maxLessons,
-  cleansable: false,
-  persistsThroughDeath: false,
-  stat: 'magic_resist',
-  flatValue: PROTOBOT_MACHINE.resistsPerLesson,
+  alsoModifies: [{ stat: 'magic_resist', flatValue: PROTOBOT_MACHINE.resistsPerLesson }],
 };
 
 // Hop-To-Eat's Carrot Break (W): it can't move while it eats...
@@ -1465,7 +1454,6 @@ export const ALL_SERVER_EFFECTS: AnyServerEffectDef[] = [
   OitboilExhaustedEffect,
   OitboilExhaustedDisarmEffect,
   ProtobotLearningEffect,
-  ProtobotLearningMREffect,
   HopEatingEffect,
   HopSugarRushEffect,
   ZhakrulVenomEffect,

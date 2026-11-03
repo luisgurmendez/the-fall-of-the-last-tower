@@ -38,8 +38,8 @@ const W = getAbilityDefinition('zhakrul_w')!;
 const E = getAbilityDefinition('zhakrul_e')!;
 const R = getAbilityDefinition('zhakrul_r')!;
 
-/** Open ground (the middle of the map has walls within 400): a base's clearing, away from its fountain */
-const O = new Vector(2200, -2200);
+/** Open ground (the middle of the map has walls within 400): red's base, clear of its nexus (an obstacle) */
+const O = new Vector(2075, -1950);
 const at = (x: number, y: number) => new Vector(O.x + x, O.y + y);
 
 /** Zhak'rul (blue, at O) and Magnus (red), both at `level`, healthy and with full mana */
@@ -105,7 +105,7 @@ function addChampion(arena: TestArena, id: string, side: Side, position: Vector,
 }
 
 function rankUp(champion: TestChampion, slot: 'Q' | 'W' | 'E' | 'R', rank: number): void {
-  champion.level = Math.max(champion.level, 16);
+  champion.setLevel(Math.max(champion.level, 16));
   while (champion.abilityStates[slot].rank < rank) {
     champion.skillPoints++;
     champion.levelUpAbility(slot);

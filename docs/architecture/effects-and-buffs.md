@@ -154,6 +154,10 @@ interface StatModificationEffectDef extends EffectDefinition {
 }
 ```
 
+One effect can change several stats the same way (`alsoModifies` on the server's definition): one
+effect, so one icon on the HUD, for Calamitus's Lavaborn and Protobot's Machine Learning (armor and
+magic resist each).
+
 ### Over-Time Effect
 
 ```typescript
