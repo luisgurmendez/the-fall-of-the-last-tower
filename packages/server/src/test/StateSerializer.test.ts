@@ -146,7 +146,7 @@ describe('StateSerializer', () => {
       expect(deltas[0].changeMask).toBe(0xFFFF); // All fields for new entity
     });
 
-    it('should send nothing for a dead champion and its full snapshot when it respawns', () => {
+    it('should send a dead champion only what changes (gold, kills) and its full snapshot when it respawns', () => {
       const playerId = 'player-1';
       serializer.createDeltaUpdates([createMockChampion('champ-1', { x: 100, y: 100 })] as any, playerId, 1);
 
@@ -155,14 +155,22 @@ describe('StateSerializer', () => {
         [createMockChampion('champ-1', { x: 100, y: 100, health: 0, isDead: true, respawnTimer: 10 })] as any, playerId, 2);
       expect((death[0].data as any).isDead).toBe(true);
 
-      // While dead its respawn timer counts down, but the client has no champion to update
+      // While dead its respawn timer counts down: the client counts it itself
       const whileDead = serializer.createDeltaUpdates(
         [createMockChampion('champ-1', { x: 100, y: 100, health: 0, isDead: true, respawnTimer: 9 })] as any, playerId, 3);
       expect(whileDead).toEqual([]);
 
+      // Its assist pays out while it's dead: the client keeps it aside for the HUD and scoreboard
+      const assist = serializer.createDeltaUpdates(
+        [createMockChampion('champ-1', { x: 100, y: 100, health: 0, isDead: true, respawnTimer: 8, gold: 650, assists: 1 })] as any, playerId, 4);
+      expect(assist).toHaveLength(1);
+      expect((assist[0].data as ChampionSnapshot).gold).toBe(650);
+      expect((assist[0].data as ChampionSnapshot).assists).toBe(1);
+      expect((assist[0].data as ChampionSnapshot).isDead).toBeUndefined();
+
       // Respawns at the fountain: the client rebuilds it, so it needs every field
       const respawn = serializer.createDeltaUpdates(
-        [createMockChampion('champ-1', { x: -1440, y: 1440, isDead: false })] as any, playerId, 4);
+        [createMockChampion('champ-1', { x: -1440, y: 1440, isDead: false })] as any, playerId, 5);
       expect(respawn[0].changeMask).toBe(0xFFFF);
       expect((respawn[0].data as ChampionSnapshot).championId).toBe('warrior');
       expect((respawn[0].data as ChampionSnapshot).level).toBe(1);

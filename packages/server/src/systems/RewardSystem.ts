@@ -35,13 +35,14 @@ export class RewardSystem {
   /**
    * Events for deaths players should hear about: champion kills (with first
    * blood), towers falling and inhibitors falling (with when they rebuild).
+   * Returns a champion kill's event data, for the caller to add to.
    */
-  static announceDeath(killedEntity: ServerEntity, killerId: string | undefined, context: ServerGameContext): void {
+  static announceDeath(killedEntity: ServerEntity, killerId: string | undefined, context: ServerGameContext): Record<string, unknown> | undefined {
     const killer = killerId ? context.getEntity(killerId) : undefined;
 
     if (killedEntity.entityType === EntityType.CHAMPION) {
       const killedByChampion = killer?.entityType === EntityType.CHAMPION && killer.side !== killedEntity.side;
-      context.addEvent(GameEventType.CHAMPION_KILL, {
+      const event: Record<string, unknown> = {
         victimId: killedEntity.id,
         victimSide: killedEntity.side,
         // Who, for the kill feed (the victim is gone from clients' state by then)
@@ -51,7 +52,9 @@ export class RewardSystem {
         killerType: killer?.entityType ?? null,
         killerChampionId: killer?.entityType === EntityType.CHAMPION ? (killer as ServerChampion).definition.id : null,
         firstBlood: killedByChampion && context.claimFirstBlood(),
-      });
+      };
+      context.addEvent(GameEventType.CHAMPION_KILL, event);
+      return event;
     } else if (killedEntity.entityType === EntityType.TOWER) {
       context.addEvent(GameEventType.TOWER_DESTROYED, {
         towerId: killedEntity.id,
@@ -67,20 +70,22 @@ export class RewardSystem {
         respawnAt: inhibitor.respawnAt,
       });
     }
+    return undefined;
   }
 
+  /** Returns a champion kill's event data (see announceDeath) */
   static awardKillRewards(
     killedEntity: ServerEntity,
     killerId: string | undefined,
     context: ServerGameContext
-  ): void {
-    RewardSystem.announceDeath(killedEntity, killerId, context);
+  ): Record<string, unknown> | undefined {
+    const announced = RewardSystem.announceDeath(killedEntity, killerId, context);
 
     // Get XP and gold values from the killed entity
     const { xp, gold } = RewardSystem.getRewardValues(killedEntity, context);
 
     if (xp <= 0 && gold <= 0) {
-      return; // No rewards to give
+      return announced; // No rewards to give
     }
 
     // Award gold to last-hitter only
@@ -125,6 +130,7 @@ export class RewardSystem {
     if (xp > 0) {
       RewardSystem.awardXPToNearbyAllies(killedEntity, killerId, xp, context);
     }
+    return announced;
   }
 
   /**

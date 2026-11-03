@@ -25,6 +25,11 @@ export interface EntityLifecycleHooks {
   onChanged(existing: InterpolatedEntity, data: any): void;
   /** A snapshot is about to be added (or replace an entity) at this rounded position. */
   onAdded(snapshot: EntitySnapshot, position: Vector): void;
+  /**
+   * A delta for an entity the client doesn't have: true if the hook took it
+   * (a dead champion, kept aside while it waits to respawn).
+   */
+  onAbsentDelta(entityId: string, data: any): boolean;
 }
 
 /**
@@ -44,6 +49,9 @@ export function applyEntityDelta(
     entities.delete(delta.entityId);
     return;
   }
+
+  // A dead champion still changes (gold, kills, cooldowns) until it respawns
+  if (!existing && data && hooks.onAbsentDelta(delta.entityId, data)) return;
 
   // Check if entity is being marked as dead/destroyed - remove it, except
   // an inhibitor: it stays as rubble until it rebuilds

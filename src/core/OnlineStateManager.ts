@@ -19,7 +19,7 @@
 import type Vector from '@/physics/vector';
 import type { MatchData } from '@/ui/matchmaking/MatchmakingUI';
 import { findLocalPlayer } from '@/ui/matchmaking/types';
-import type { StateUpdate, FullStateSnapshot, FinalPlayerStats } from '@siege/shared';
+import type { StateUpdate, FullStateSnapshot, FinalPlayerStats, ChampionSnapshot } from '@siege/shared';
 import { EntityType } from '@siege/shared';
 import { WORLD_VFX } from '@/vfx/world';
 import {
@@ -47,7 +47,7 @@ import { DamageTaken, type DeathRecap } from './state/damageTaken';
 import { Announcements, type Announcement } from './state/announcements';
 import { EntityVFX, spawnWorldVFX } from './state/entityVFX';
 import { addOrUpdateEntity, applyEntityDelta, type EntityLifecycleHooks } from './state/deltas';
-import { processGameEvent, type GameEventContext } from './state/gameEvents';
+import { processGameEvent, type ChampionScore, type GameEventContext } from './state/gameEvents';
 import { playChangeSound, playDeathSound, playWardPlacedSound } from '@/audio/gameSounds';
 
 export type { EntityAnimationState, InterpolatedEntity } from './state/entities';
@@ -108,6 +108,11 @@ export class OnlineStateManager {
   // Units that just died, falling and fading out
   private readonly corpses = new Corpses();
 
+  /** Dead champions the client saw, out of the entity map until they respawn, by entity id */
+  private readonly deadChampions = new Map<string, ChampionSnapshot>();
+  /** Champions' kills, deaths and assists from the kill events (enemies change out of sight too) */
+  private readonly scores = new Map<string, ChampionScore>();
+
   // Called by the delta merge: entity effects and the local respawn timer
   private readonly lifecycleHooks: EntityLifecycleHooks = {
     onRemoved: (entityId, existing, data) => {
@@ -119,6 +124,21 @@ export class OnlineStateManager {
       if (entityId === this.localEntityId && typeof data.respawnTimer === 'number') {
         this.localRespawnAt = this.gameTime + data.respawnTimer;
       }
+      // A champion waits to respawn: kept aside, its HUD and scoreboard line still change
+      if (!data.isDestroyed && (existing?.snapshot ?? data).entityType === EntityType.CHAMPION) {
+        this.deadChampions.set(entityId, { ...existing?.snapshot, ...data });
+      }
+    },
+    onAbsentDelta: (entityId, data) => {
+      const dead = this.deadChampions.get(entityId);
+      if (!dead) return false;
+      if (data.isDead === false) {
+        // Respawning: its full snapshot adds it back
+        this.deadChampions.delete(entityId);
+        return false;
+      }
+      this.deadChampions.set(entityId, { ...dead, ...data });
+      return true;
     },
     onChanged: (existing, data) => {
       this.entityVFX.spawnChangeVFX(existing, data);
@@ -136,6 +156,7 @@ export class OnlineStateManager {
       if (snapshot.entityId === this.localEntityId) {
         this.localRespawnAt = null;
       }
+      this.deadChampions.delete(snapshot.entityId);
     },
   };
 
@@ -161,6 +182,7 @@ export class OnlineStateManager {
       announcements: this.announcements,
       killFeed: this.killFeed,
       damageTaken: this.damageTaken,
+      scores: this.scores,
     };
   }
 
@@ -215,6 +237,26 @@ export class OnlineStateManager {
    */
   getEntity(entityId: string): InterpolatedEntity | undefined {
     return this.entities.get(entityId);
+  }
+
+  /**
+   * A champion's latest snapshot: in the entity map, or kept aside while it's
+   * dead (gold, kills and cooldowns still change)
+   */
+  getChampionSnapshot(entityId: string): ChampionSnapshot | undefined {
+    const snapshot = this.entities.get(entityId)?.snapshot;
+    if (snapshot?.entityType === EntityType.CHAMPION) return snapshot as ChampionSnapshot;
+    return this.deadChampions.get(entityId);
+  }
+
+  /** The dead champions kept aside until they respawn */
+  getDeadChampions(): ChampionSnapshot[] {
+    return Array.from(this.deadChampions.values());
+  }
+
+  /** A champion's kills, deaths and assists as of the last kill it took part in, if any */
+  getScore(entityId: string): ChampionScore | undefined {
+    return this.scores.get(entityId);
   }
 
   /**

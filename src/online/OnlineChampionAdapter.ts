@@ -404,30 +404,17 @@ export class OnlineChampionAdapter {
     this._fallbackChampionId = fallbackChampionId;
   }
 
-  /** Last snapshot seen for the local champion (used while it's dead) */
+  /** Last snapshot seen for the local champion */
   private lastSnapshot: ChampionSnapshot | null = null;
 
   /**
-   * Get the local player's champion snapshot from state manager.
+   * The local champion's snapshot: while it's dead the state manager keeps it
+   * aside (its gold, kills and cooldowns still change)
    */
   private getSnapshot(): ChampionSnapshot | null {
-    const entity = this.stateManager.getLocalPlayerEntity();
-    // While dead the champion is out of client state: keep showing the last known stats
-    if (!entity) {
-      return this.lastSnapshot;
-    }
-
-    const snapshot = entity.snapshot;
-    if (!snapshot) {
-      return this.lastSnapshot;
-    }
-
-    // EntityType.CHAMPION = 0
-    if (snapshot.entityType !== 0) {
-      return null;
-    }
-
-    this.lastSnapshot = snapshot as ChampionSnapshot;
+    const entityId = this.stateManager.getLocalEntityId();
+    const snapshot = entityId ? this.stateManager.getChampionSnapshot(entityId) : undefined;
+    if (snapshot) this.lastSnapshot = snapshot;
     return this.lastSnapshot;
   }
 

@@ -125,10 +125,12 @@ export class StateSerializer {
       const wasDead = (previousState?.snapshot as { isDead?: boolean } | undefined)?.isDead === true;
       const isDead = (currentSnapshot as { isDead?: boolean }).isDead === true;
 
-      if (wasDead && isDead) {
-        // The client removes an entity when told it died (an allied champion
-        // stays visible while dead), so there is nothing to update until it
-        // comes back. Keep the state fresh so it isn't dropped as stale.
+      if (wasDead && isDead && currentSnapshot.entityType !== EntityType.CHAMPION) {
+        // The client removes an entity when told it died, so there is nothing
+        // to update until it comes back. Keep the state fresh so it isn't
+        // dropped as stale. A dead champion (allies see theirs) still changes
+        // while it waits to respawn: gold, kills, assists, cooldowns, effects;
+        // the client keeps it aside for its HUD and scoreboard.
         playerStates.set(entity.id, { snapshot: currentSnapshot, tick });
         continue;
       }

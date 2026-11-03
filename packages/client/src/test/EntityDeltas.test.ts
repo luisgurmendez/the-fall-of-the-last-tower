@@ -15,6 +15,7 @@ function setup() {
     onRemoved: (entityId) => removed.push(entityId),
     onChanged: () => {},
     onAdded: () => {},
+    onAbsentDelta: () => false,
   };
   const wolf = {
     entityId: 'wolf-1', entityType: EntityType.JUNGLE_CAMP, side: 2, campId: 'wolves',

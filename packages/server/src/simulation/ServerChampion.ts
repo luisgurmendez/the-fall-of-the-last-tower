@@ -844,13 +844,20 @@ export class ServerChampion extends ServerEntity {
 
     // Award XP/gold to killer and nearby allies
     if (context) {
-      RewardSystem.awardKillRewards(this, killerId, context);
+      const announced = RewardSystem.awardKillRewards(this, killerId, context);
       const killer = killerId ? context.getEntity(killerId) : undefined;
       if (killer instanceof ServerChampion && killer.side !== this.side) {
         championHooksRegistry.get(killer.definition.id)?.onChampionKill?.(killer, this, context);
         killer.itemPassives.onTakedown(this, context);
       }
-      this.awardAssists(killer, context);
+      const assistants = this.awardAssists(killer, context);
+      // Every scoreboard gets the new totals, enemies out of sight included
+      if (announced) {
+        const involved = [this, ...(killer instanceof ServerChampion ? [killer] : []), ...assistants];
+        announced.scores = involved.map(champion => ({
+          entityId: champion.id, kills: champion.kills, deaths: champion.deaths, assists: champion.assists,
+        }));
+      }
     }
     this.recentAttackers.clear();
     this.itemPassives.onDeath();
@@ -1123,9 +1130,9 @@ export class ServerChampion extends ServerEntity {
   /**
    * Enemy champions that hurt it within the takedown window, other than the
    * killer, get an assist, a share of half the kill's gold, and their items'
-   * takedown (Soulbinder Tome...).
+   * takedown (Soulbinder Tome...). Returns them.
    */
-  private awardAssists(killer: ServerEntity | undefined, context: ServerGameContext): void {
+  private awardAssists(killer: ServerEntity | undefined, context: ServerGameContext): ServerChampion[] {
     const now = context.getGameTime();
     const assistants: ServerChampion[] = [];
     for (const [championId, at] of this.recentAttackers) {
@@ -1133,7 +1140,7 @@ export class ServerChampion extends ServerEntity {
       const champion = context.getEntity(championId);
       if (champion instanceof ServerChampion && champion.side !== this.side) assistants.push(champion);
     }
-    if (assistants.length === 0) return;
+    if (assistants.length === 0) return assistants;
     const gold = Math.round(GameConfig.ECONOMY.CHAMPION_KILL_GOLD_BASE * GameConfig.ECONOMY.ASSIST_GOLD_PERCENT / assistants.length);
     for (const assistant of assistants) {
       assistant.assists++;
@@ -1143,6 +1150,7 @@ export class ServerChampion extends ServerEntity {
       });
       assistant.itemPassives.onTakedown(this, context);
     }
+    return assistants;
   }
 
   /**

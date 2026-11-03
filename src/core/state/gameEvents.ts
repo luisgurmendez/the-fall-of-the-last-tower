@@ -38,6 +38,15 @@ export interface GameEventContext {
   readonly killFeed: KillFeed;
   /** Damage the local champion took recently (death recap) */
   readonly damageTaken: DamageTaken;
+  /** Champions' kills, deaths and assists, by entity id, from the kills they took part in */
+  readonly scores: Map<string, ChampionScore>;
+}
+
+/** A champion's kills, deaths and assists */
+export interface ChampionScore {
+  kills: number;
+  deaths: number;
+  assists: number;
 }
 
 /** Seconds a cast animation goes on after its ability takes effect */
@@ -301,6 +310,10 @@ export function processGameEvent(event: GameEvent, ctx: GameEventContext): void 
     }
     case GameEventType.CHAMPION_KILL: {
       announceChampionKill(event.data, now, ctx);
+      // The new totals of everyone in the kill, enemies out of sight included
+      for (const score of (event.data.scores ?? []) as (ChampionScore & { entityId: string })[]) {
+        ctx.scores.set(score.entityId, { kills: score.kills, deaths: score.deaths, assists: score.assists });
+      }
       // We took a champion down, or went down: the camera punches in
       if (event.data.killerId === ctx.localEntityId || event.data.victimId === ctx.localEntityId) {
         punchCamera(0.05, 0.4);
