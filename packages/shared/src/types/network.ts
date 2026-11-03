@@ -773,7 +773,51 @@ export enum ServerMessageType {
   GAME_END = 6,
   /** What the server thinks about the units in sight (DebugStateData), while the debug overlay is on */
   DEBUG_STATE = 7,
+  /** The room the player is in (LobbyState), after any change to it */
+  LOBBY_STATE = 8,
 }
+
+/** Most players a room's side holds */
+export const LOBBY_MAX_TEAM_SIZE = 5;
+
+/** A player in a room */
+export interface LobbyMember {
+  playerId: string;
+  /** The name they chose (up to 16 characters) */
+  name: string;
+  championId: string;
+  side: 0 | 1;
+}
+
+/**
+ * LOBBY_STATE data: the room the player is in. Empty slots up to teamSize
+ * on each side are played by bots when the host starts. A `code` of null
+ * means the player is in no room (left it, or it closed: `reason`).
+ */
+export type LobbyState =
+  | {
+      code: string;
+      hostId: string;
+      mapId: string;
+      /** Players per side, bots included: 1, 3 or 5 */
+      teamSize: number;
+      members: LobbyMember[];
+    }
+  | { code: null; reason?: string };
+
+/**
+ * A player's request about their room (ClientMessageType.LOBBY). Joining or
+ * creating one goes with READY (mode 'lobby').
+ */
+export type LobbyRequest =
+  /** Their champion or summoner spells changed */
+  | { action: 'update'; championId: string; summonerSpells?: string[] }
+  | { action: 'switch_side' }
+  /** The host changes the map or the players per side */
+  | { action: 'settings'; mapId?: string; teamSize?: number }
+  /** The host starts the match */
+  | { action: 'start' }
+  | { action: 'leave' };
 
 /**
  * What the server thinks about one unit, for the debug overlay.
@@ -853,6 +897,8 @@ export enum ClientMessageType {
   EVENT_ACK = 3,
   /** Turn the debug overlay's DEBUG_STATE messages on or off: { enabled: boolean } */
   DEBUG = 4,
+  /** Something about the player's room (LobbyRequest) */
+  LOBBY = 5,
 }
 
 /**

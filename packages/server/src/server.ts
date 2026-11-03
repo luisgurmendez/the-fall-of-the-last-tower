@@ -21,13 +21,15 @@ import {
   type SummonerSpellId,
   isMapId,
   type MapId,
+  type LobbyRequest,
 } from '@siege/shared';
 
 import { BunWebSocketServer } from './network/BunWebSocketServer';
 import { GameRoomManager } from './game/GameRoomManager';
 import { Matchmaker, type MatchResult } from './matchmaking/Matchmaker';
 import type { PlayerInfo } from './game/GameRoom';
-import { buildPracticeMatch, isPracticeTeamSize, type PracticeTeamSize } from './bots/practiceMatch';
+import { buildPracticeMatch, buildLobbyMatch, isPracticeTeamSize, type PracticeTeamSize } from './bots/practiceMatch';
+import { LobbyManager, sanitizeName, type Lobby } from './game/LobbyManager';
 import type { BotController } from './bots/BotController';
 import type { WebSocketConnection, ParsedMessage } from './network/WebSocketServer';
 import { Logger } from './utils/Logger';
@@ -62,6 +64,8 @@ if (CHAMPION_DEFINITIONS.size === 0) {
 let wsServer: BunWebSocketServer;
 let roomManager: GameRoomManager;
 let matchmaker: Matchmaker;
+/** Rooms where friends gather before a match */
+const lobbies = new LobbyManager();
 
 // Track connection to player mapping
 const connectionToPlayer: Map<string, string> = new Map();
@@ -98,6 +102,10 @@ function handleMessage(connection: WebSocketConnection, message: ParsedMessage):
       handleDebugMessage(connection, message.data as { enabled?: unknown });
       break;
 
+    case ClientMessageType.LOBBY:
+      handleLobbyMessage(connection, message.data as LobbyRequest);
+      break;
+
     default:
       Logger.server.warn(`Unknown message type: ${message.type}`);
   }
@@ -118,6 +126,62 @@ function handleEventAckMessage(connection: WebSocketConnection, data: { lastEven
   const playerId = connectionToPlayer.get(connection.id);
   if (!playerId || typeof data?.lastEventId !== 'number') return;
   roomManager.handleEventAck(playerId, data.lastEventId);
+}
+
+/**
+ * Something about the player's room: a new champion, the other side, the
+ * host's settings, starting the match, leaving.
+ */
+function handleLobbyMessage(connection: WebSocketConnection, request: LobbyRequest): void {
+  const playerId = connectionToPlayer.get(connection.id);
+  if (!playerId || typeof request !== 'object' || request === null) return;
+
+  switch (request.action) {
+    case 'update': {
+      if (typeof request.championId !== 'string' || !CHAMPION_DEFINITIONS.has(request.championId)) return;
+      const spells = request.summonerSpells ? parseSummonerSpells(request.summonerSpells) : undefined;
+      broadcastLobby(lobbies.update(playerId, request.championId, spells));
+      break;
+    }
+    case 'switch_side':
+      broadcastLobby(lobbies.switchSide(playerId));
+      break;
+    case 'settings':
+      broadcastLobby(lobbies.settings(playerId, { mapId: request.mapId, teamSize: request.teamSize }));
+      break;
+    case 'leave': {
+      const lobby = lobbies.leave(playerId);
+      wsServer.sendToPlayer(playerId, { type: ServerMessageType.LOBBY_STATE, data: { code: null } });
+      broadcastLobby(lobby);
+      break;
+    }
+    case 'start':
+      startLobbyMatch(playerId);
+      break;
+  }
+}
+
+/** Tell each player in the room its state */
+function broadcastLobby(lobby: Lobby | null): void {
+  if (!lobby) return;
+  const state = LobbyManager.stateOf(lobby);
+  for (const member of lobby.members) {
+    wsServer.sendToPlayer(member.playerId, { type: ServerMessageType.LOBBY_STATE, data: state });
+  }
+}
+
+/** The host starts their room's match: its players, and bots in the empty slots */
+function startLobbyMatch(hostId: string): void {
+  const lobby = lobbies.start(hostId);
+  if (!lobby) return;
+  const { players, bots } = buildLobbyMatch({
+    humans: lobby.members,
+    teamSize: lobby.teamSize,
+    champions: [...CHAMPION_DEFINITIONS.keys()],
+    matchId: lobby.code,
+  });
+  Logger.server.info(`Room ${lobby.code} starts on ${lobby.mapId}: ${players.map(p => `${p.playerId} (${p.championId})`).join(', ')}`);
+  startMatch(players, bots, lobby.mapId);
 }
 
 /** Turn the player's debug overlay on or off (practice matches only) */
@@ -148,13 +212,17 @@ interface ReadyMessageData {
   championId?: string;
   sessionToken?: string;
   /** 'practice' starts a match against a bot right away instead of queueing */
-  mode?: 'queue' | 'practice';
+  mode?: 'queue' | 'practice' | 'lobby';
   /** Champion for the practice bot (defaults to the player's champion) */
   botChampionId?: string;
   /** Players per team in practice: 1 (a bot in mid), 3 or 5 (bots in every role) */
   practiceSize?: number;
   /** The map for a practice match (maps.ts; default the main map). The Narrows is always 1v1 */
   mapId?: unknown;
+  /** 'lobby' mode: make a room, or join one by its code */
+  lobby?: { create?: boolean; code?: string };
+  /** The player's name, shown in rooms */
+  name?: unknown;
   /** Summoner spells picked in champion select (D, F) */
   summonerSpells?: unknown;
 }
@@ -226,6 +294,7 @@ function handleReadyMessage(connection: WebSocketConnection, data: ReadyMessageD
           tick: 0,
           gameTime: room.getGameTime(),
           yourSide: room.getPlayerSide(playerId),
+          yourPlayerId: playerId,
           players: room.getPlayersWithEntityIds(),
           mapId: room.mapId,
         },
@@ -242,6 +311,22 @@ function handleReadyMessage(connection: WebSocketConnection, data: ReadyMessageD
     }
     return;
   }
+
+  if (mode === 'lobby') {
+    const player = { playerId, name: sanitizeName(data.name), championId, summonerSpells };
+    const lobby = typeof data.lobby?.code === 'string' && !data.lobby.create
+      ? lobbies.join(data.lobby.code, player)
+      : lobbies.create(player);
+    if (typeof lobby === 'string') {
+      wsServer.sendToConnection(connection.id, { type: ServerMessageType.ERROR, data: { error: lobby } });
+      return;
+    }
+    broadcastLobby(lobby);
+    return;
+  }
+
+  // Any other mode leaves the room the player was in
+  broadcastLobby(lobbies.leave(playerId));
 
   if (mode === 'practice') {
     const map = isMapId(mapId) ? mapId : 'wildcrown';
@@ -277,8 +362,9 @@ function handleDisconnect(connection: WebSocketConnection, code: number, reason:
   const playerId = connectionToPlayer.get(connection.id);
 
   if (playerId) {
-    // Remove from matchmaking if queued
+    // Remove from matchmaking if queued, and from their room
     matchmaker.removeFromQueue(playerId);
+    broadcastLobby(lobbies.leave(playerId));
 
     // Notify game room of disconnect (but keep player in game for reconnect)
     roomManager.handleDisconnect(playerId);
@@ -369,6 +455,7 @@ function startMatch(
         tick: 0,
         gameTime: 0,
         yourSide: player.side,
+        yourPlayerId: player.playerId,
         players: playersWithEntityIds,
         mapId,
       },

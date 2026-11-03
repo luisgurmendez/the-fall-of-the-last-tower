@@ -135,6 +135,37 @@ the same on a team, and summoner spells by role (the junglers Reap). Each bot is
 state. The client's **PRACTICE** button on champion select uses this; the chip beside it cycles the match: 1V1, 3V3, 5V5 on
 Wildcrown Vale, and ARAM (1v1 on The Narrows), remembered in localStorage `siege-practice-mode`. See [simulation.md](simulation.md#bots).
 
+## Rooms (play with friends)
+
+Champion select's **ROOM** button opens the room screen (`src/ui/matchmaking/lobbyScreen.ts`):
+the player's name (kept in localStorage), **CREATE ROOM**, or a friend's code and **JOIN**.
+
+- The client connects and sends `READY` with `mode: 'lobby'`, `lobby: { create: true }` or
+  `{ code }` and `name`. The server (`server.ts`) keeps rooms in a `LobbyManager`
+  (`packages/server/src/game/LobbyManager.ts`): a 5-letter code (no 0/O or 1/I/L), the host
+  (its creator; the next player when the host leaves), the map, the players per side (1, 3
+  or 5, never fewer than the fuller side; joining past it grows it) and its players, each
+  with a side, champion, summoner spells and name (sanitized, up to 16 characters). A room
+  holds 10; a join goes to the side with fewer players. A failed join answers an `ERROR`
+  (`lobby_not_found`, `lobby_full`), shown on the room screen.
+- Every change sends each player the room's `LOBBY_STATE` (`LobbyState`: code, host, map,
+  size, players). The room screen shows the code (with a copy button), the host's map and
+  size selects, both sides with each player's portrait, name and champion, empty slots as
+  bots, and LEAVE, CHAMPION (back to champion select, whose button then reads BACK TO ROOM
+  and sends the new champion: `LOBBY { action: 'update' }`), SWITCH SIDE and, for the host,
+  START.
+- Requests: `ClientMessageType.LOBBY` (`LobbyRequest`: `update`, `switch_side`, `settings`
+  (host only), `start` (host only), `leave`). Disconnecting, or sending `READY` in another
+  mode, leaves the room; an empty room is gone.
+- `start` turns the room into a match: `buildLobbyMatch` (`bots/practiceMatch.ts`) keeps the
+  players on their sides and fills each side's empty slots with bots, the jungle and support
+  first, then top, bot and mid, on champions nobody on their side plays. No debug overlay
+  (it shows what the server sees).
+
+`GAME_START` carries `yourPlayerId`, so a client with teammates finds its own champion
+(`findLocalPlayer` in `src/ui/matchmaking/types.ts`; before, it took the first player on its
+side). Tests: `packages/server/src/test/Lobbies.test.ts`.
+
 ## Game End
 
 `GameRoom.checkWinConditions` ends the match when a nexus dies: it broadcasts the final state, then sends `GAME_END` (`GameEndData`) with the winning side, the match length and every champion's final stats (`GameRoom.getFinalStats`: level, K/D/A, CS, gold, items). The client shows VICTORY or DEFEAT for 3 seconds, then the final scoreboard (`TabScoreboard`, titled with the result) until the player clicks or presses a key (or 60 seconds pass), then returns to the menu.

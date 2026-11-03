@@ -96,6 +96,52 @@ export function buildPracticeMatch(options: PracticeMatchOptions): { players: Pl
   return { players, bots };
 }
 
+/** Roles bots take in a room with players, first to last (players most likely want the lanes) */
+const BOT_ROLE_ORDER: PracticeRole[] = ['jungle', 'support', 'top', 'bot', 'mid'];
+
+export interface LobbyMatchOptions {
+  /** The room's players, with their sides */
+  humans: Array<{ playerId: string; side: 0 | 1; championId: string; summonerSpells: SummonerSpellId[] }>;
+  teamSize: PracticeTeamSize;
+  /** Every champion bots may play */
+  champions: readonly string[];
+  /** Makes the bots' ids unique (the room's code) */
+  matchId: string;
+  /** For tests */
+  random?: () => number;
+}
+
+/**
+ * A room's match: its players, and bots in the empty slots of each side
+ * (the jungle and the support first, then top, bot and mid), on champions
+ * nobody on their side plays.
+ */
+export function buildLobbyMatch(options: LobbyMatchOptions): { players: PlayerInfo[]; bots: BotController[] } {
+  const { humans, teamSize, champions, matchId } = options;
+  const random = options.random ?? Math.random;
+  const players: PlayerInfo[] = humans.map(human => ({
+    playerId: human.playerId, side: human.side, championId: human.championId, connected: true, summonerSpells: human.summonerSpells,
+  }));
+  const bots: BotController[] = [];
+
+  for (const side of [0, 1] as const) {
+    const onSide = humans.filter(human => human.side === side);
+    const taken = new Set(onSide.map(human => human.championId));
+    const roles = BOT_ROLE_ORDER.filter(role => ROLES[teamSize].includes(role)).slice(0, Math.max(0, teamSize - onSide.length));
+    const botIdFor = (role: PracticeRole) => `bot-${matchId}-${side === 0 ? 'blue' : 'red'}-${role}`;
+    for (const role of roles) {
+      const botId = botIdFor(role);
+      const botChampion = pickChampion(role, champions, taken, random);
+      taken.add(botChampion);
+      players.push({ playerId: botId, side, championId: botChampion, connected: true, isBot: true, summonerSpells: ROLE_SPELLS[role] });
+      bots.push(role === 'jungle' ? new JungleBot({ playerId: botId })
+        : role === 'support' ? new SupportBot({ playerId: botId, lane: ROLE_LANES[role], carryPlayerId: roles.includes('bot') ? botIdFor('bot') : undefined })
+        : new LaneBot({ playerId: botId, lane: ROLE_LANES[role] }));
+    }
+  }
+  return { players, bots };
+}
+
 /** A champion for the role not yet on the team: one that suits it if free, else any */
 function pickChampion(role: PracticeRole, champions: readonly string[], taken: Set<string>, random: () => number): string {
   const free = champions.filter(id => !taken.has(id));

@@ -7,7 +7,7 @@
  */
 
 import { NetworkClient } from "../../../packages/client/src/network/NetworkClient";
-import type { MapId } from "@siege/shared";
+import type { LobbyRequest, LobbyState, MapId } from "@siege/shared";
 import type { ConnectionStatus } from "./types";
 
 /**
@@ -30,6 +30,8 @@ export interface MatchConnectionEvents {
   onGameStart(data: any): void;
   /** The server added the player to the queue */
   onQueueJoined(position: number, queueSize: number): void;
+  /** The player's room changed (lobby mode) */
+  onLobbyState?(state: LobbyState): void;
 }
 
 /**
@@ -69,10 +71,11 @@ export class MatchConnection {
    * Create the network client, set up its handlers and connect.
    */
   connect(
-    mode: "queue" | "practice",
+    mode: "queue" | "practice" | "lobby",
     botChampionId: string | undefined,
     events: MatchConnectionEvents,
     practice?: { size: number; map: MapId },
+    lobby?: { create?: boolean; code?: string; name: string },
   ): void {
     // Create network client
     this.networkClient = new NetworkClient({
@@ -97,6 +100,8 @@ export class MatchConnection {
         summonerSpells: events.getSummonerSpells(),
         practiceSize: practice?.size,
         mapId: practice?.map,
+        lobby: lobby ? { create: lobby.create, code: lobby.code } : undefined,
+        name: lobby?.name,
       });
       if (mode === "queue") {
         events.onQueueEntered();
@@ -116,6 +121,10 @@ export class MatchConnection {
     this.networkClient.onError = (error) => {
       console.error("[MatchmakingUI] Error:", error);
       events.onError(error);
+    };
+
+    this.networkClient.onLobbyState = (state) => {
+      events.onLobbyState?.(state);
     };
 
     this.networkClient.onGameStart = (data: any) => {
@@ -159,6 +168,18 @@ export class MatchConnection {
     // Connect to server. A failed connection also closes the socket, which
     // is reported through onDisconnect, so the rejection needs no handling.
     this.networkClient.connect().catch(() => {});
+  }
+
+  /** The player's ID (kept for the tab's session) */
+  getPlayerId(): string {
+    return this.playerId;
+  }
+
+  /**
+   * Ask something about the player's room (lobby mode).
+   */
+  sendLobby(request: LobbyRequest): void {
+    this.networkClient?.sendLobby(request);
   }
 
   /**

@@ -21,6 +21,8 @@ import {
   type WardType,
   type GameEndData,
   type DebugStateData,
+  type LobbyRequest,
+  type LobbyState,
 } from '@siege/shared';
 
 /**
@@ -69,6 +71,7 @@ export interface NetworkEventHandlers {
   onLatencyUpdate?: (latency: number) => void;
   onEvent?: (event: { event: string; [key: string]: any }) => void;
   onDebugState?: (data: DebugStateData) => void;
+  onLobbyState?: (state: LobbyState) => void;
 }
 
 /**
@@ -110,6 +113,8 @@ export class NetworkClient {
   onEvent?: (event: { event: string; [key: string]: any }) => void;
   /** What the server thinks about the units in sight, while the debug overlay is on (sendDebug) */
   onDebugState?: (data: DebugStateData) => void;
+  /** The room the player is in, after every change (a null code: none) */
+  onLobbyState?: (state: LobbyState) => void;
 
   constructor(config: NetworkClientConfig) {
     this.config = {
@@ -408,7 +413,17 @@ export class NetworkClient {
    */
   sendReady(
     championId: string = 'warrior',
-    options: { mode?: 'queue' | 'practice'; botChampionId?: string; summonerSpells?: string[]; practiceSize?: number; mapId?: string } = {}
+    options: {
+      mode?: 'queue' | 'practice' | 'lobby';
+      botChampionId?: string;
+      summonerSpells?: string[];
+      practiceSize?: number;
+      mapId?: string;
+      /** 'lobby' mode: make a room, or join one by its code */
+      lobby?: { create?: boolean; code?: string };
+      /** The player's name, shown in rooms */
+      name?: string;
+    } = {}
   ): void {
     console.log(`[NetworkClient] sendReady: playerId="${this.config.playerId}", championId="${championId}"`);
     this.sendMessage({
@@ -422,8 +437,18 @@ export class NetworkClient {
         summonerSpells: options.summonerSpells,
         practiceSize: options.practiceSize,
         mapId: options.mapId,
+        lobby: options.lobby,
+        name: options.name,
       },
     });
+  }
+
+  /**
+   * Ask something about the player's room: a new champion, the other side,
+   * the host's settings, starting, leaving.
+   */
+  sendLobby(request: LobbyRequest): void {
+    this.sendMessage({ type: ClientMessageType.LOBBY, data: request });
   }
 
   /**
@@ -482,6 +507,10 @@ export class NetworkClient {
 
         case ServerMessageType.ERROR:
           (this.onError || this.handlers.onError)?.((message.data as { error: string }).error);
+          break;
+
+        case ServerMessageType.LOBBY_STATE:
+          (this.onLobbyState || this.handlers.onLobbyState)?.(message.data as LobbyState);
           break;
 
         case ServerMessageType.DEBUG_STATE:

@@ -74,6 +74,7 @@ For detailed documentation on the multiplayer MOBA systems, see the following fi
 | **Simulation** | [docs/architecture/simulation.md](docs/architecture/simulation.md) | Headless scenarios, bots, PNG frames, HTTP sandbox for agents |
 | **Summoner Spells** | [docs/architecture/summoner-spells.md](docs/architecture/summoner-spells.md) | The D/F spells: picks, casting, HUD, icons and VFX |
 | **Audio** | [docs/architecture/audio.md](docs/architecture/audio.md) | Sound effects and ambience: generation (ElevenLabs), the engine, heard from the camera |
+| **Deploy** | [docs/architecture/deploy.md](docs/architecture/deploy.md) | Playing online: the server serving the built client, Docker, Fly.io |
 | **Debug mode** | [docs/architecture/debug.md](docs/architecture/debug.md) | F3 in practice: what the server thinks about each unit (paths, targets, ranges, states, bots' decisions) |
 
 ### Quick Reference
@@ -115,6 +116,7 @@ For detailed documentation on the multiplayer MOBA systems, see the following fi
 | Summoner spells | `summoner-spells.md` |
 | Sounds, the audio engine | `audio.md` |
 | The debug overlay, a unit's debug info | `debug.md` |
+| The Dockerfile, fly.toml, serving the client | `deploy.md` |
 
 **When adding new systems**, create a new doc file in `docs/architecture/` and add a reference here.
 
@@ -322,7 +324,7 @@ Look at `sheet.png` (frames over time) to see what happened, read `report.md` fo
 `packages/server/scenarios/` with `check()` assertions for new behavior; scenarios run in `bun test`.
 For step-by-step play there is an HTTP sandbox (`bun run sim:serve`). See [docs/architecture/simulation.md](docs/architecture/simulation.md).
 
-To play the real client alone, use the **PRACTICE** button on champion select (you vs bots; the chip beside it picks 1v1, 3v3, 5v5 or ARAM: 1v1 on The Narrows). In practice, **F3** (fn+F3 on a Mac, or the Escape menu) turns on the debug overlay: each unit's path, target, hitbox, ranges and state, and the bots' decisions ([docs/architecture/debug.md](docs/architecture/debug.md)).
+To play with friends, champion select's **ROOM** button makes a room (or joins one with its code); see [docs/architecture/matchmaking.md](docs/architecture/matchmaking.md#rooms-play-with-friends). To play the real client alone, use the **PRACTICE** button on champion select (you vs bots; the chip beside it picks 1v1, 3v3, 5v5 or ARAM: 1v1 on The Narrows). In practice, **F3** (fn+F3 on a Mac, or the Escape menu) turns on the debug overlay: each unit's path, target, hitbox, ranges and state, and the bots' decisions ([docs/architecture/debug.md](docs/architecture/debug.md)).
 
 ### Debug starting level
 

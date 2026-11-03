@@ -637,6 +637,29 @@
   cursor: not-allowed;
 }
 
+/* Rooms: play with friends (src/ui/matchmaking/lobbyScreen.ts) */
+#btn-room {
+  font-family: var(--pixel-font);
+  font-size: 36px;
+  padding: 12px 28px;
+  background: transparent;
+  border: 4px solid #7d5ba6;
+  color: #c9a8f0;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-shadow: 2px 2px 0 #000;
+}
+
+#btn-room:hover:not(:disabled) {
+  border-color: #b48cf0;
+  color: #e6d4ff;
+}
+
+#btn-room:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 /* Team size for practice, cycled 1v1 / 3v3 / 5v5, attached to the practice button */
 .practice-group {
   display: flex;

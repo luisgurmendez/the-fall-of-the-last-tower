@@ -41,9 +41,10 @@ import { QueueScreen } from "./queueScreen";
 import { SummonerPicker } from "./summonerPicker";
 import { startTipRotation, showRandomTip } from "./tips";
 import { TitleScreen } from "../title/TitleScreen";
+import { LobbyScreen } from "./lobbyScreen";
 
 /** The screens the title screen's valley shows behind (not champion select or the loading screen) */
-const TITLE_SCREENS: ReadonlySet<ScreenId> = new Set(["menu", "how-to-play", "connecting", "queue", "error"]);
+const TITLE_SCREENS: ReadonlySet<ScreenId> = new Set(["menu", "how-to-play", "connecting", "queue", "lobby", "error"]);
 
 /** Practice matches, in the order the chip beside the practice button cycles them */
 const PRACTICE_MODES = [
@@ -102,6 +103,7 @@ export class MatchmakingUI {
   // Champion select screen
   private championSelect: ChampionSelect;
   private summonerPicker: SummonerPicker;
+  private lobby: LobbyScreen;
 
   // Network client and the state buffered for OnlineGame
   private connection: MatchConnection;
@@ -132,6 +134,7 @@ export class MatchmakingUI {
     this.screens.set("queue", getEl("screen-queue"));
     this.screens.set("match-found", getEl("screen-match-found"));
     this.screens.set("how-to-play", getEl("screen-how-to-play"));
+    this.screens.set("lobby", getEl("screen-lobby"));
     this.screens.set("error", getEl("screen-error"));
 
     // Get status elements
@@ -152,6 +155,18 @@ export class MatchmakingUI {
     // Get champion select elements
     this.championSelect = new ChampionSelect(getEl);
     this.summonerPicker = new SummonerPicker(getEl("summoner-picker"));
+
+    // Rooms: play with friends
+    this.lobby = new LobbyScreen({
+      create: (name) => this.connectToRoom({ create: true, name }),
+      join: (code, name) => this.connectToRoom({ code, name }),
+      back: () => this.showScreen("champion-select"),
+      leave: () => this.leaveRoom(),
+      changeChampion: () => this.showScreen("champion-select"),
+      switchSide: () => this.connection.sendLobby({ action: "switch_side" }),
+      settings: (changes) => this.connection.sendLobby({ action: "settings", ...changes }),
+      start: () => this.connection.sendLobby({ action: "start" }),
+    }, () => this.connection.getPlayerId());
 
     // Warn if critical elements missing
     if (!this.overlay) {
@@ -245,6 +260,9 @@ export class MatchmakingUI {
     document.getElementById("btn-practice")?.addEventListener("click", () => {
       this.startPractice();
     });
+    // Rooms: from champion select to the room screen (back to the room, if in one)
+    document.getElementById("btn-room")?.addEventListener("click", () => this.openRoomScreen());
+
     document.getElementById("btn-practice-size")?.addEventListener("click", () => {
       this.cyclePracticeMode();
     });
@@ -379,6 +397,63 @@ export class MatchmakingUI {
       onQueueJoined: (position, queueSize) =>
         this.queue.updateInfo(position, queueSize),
     }, mode === "practice" ? { size: this.practiceMode.size, map: this.practiceMode.map } : undefined);
+  }
+
+  /**
+   * The room screen: the room the player is in (telling it their champion,
+   * which may have just changed), or the entry view to make or join one.
+   */
+  private openRoomScreen(): void {
+    if (this.lobby.inRoom()) {
+      this.connection.sendLobby({
+        action: "update",
+        championId: this.championSelect.getSelectedChampionId(),
+        summonerSpells: this.summonerPicker.getSpells(),
+      });
+    } else {
+      this.lobby.showEntry();
+    }
+    this.showScreen("lobby");
+  }
+
+  /** Connect to make or join a room; its state comes in LOBBY_STATE */
+  private connectToRoom(lobby: { create?: boolean; code?: string; name: string }): void {
+    if (!this.championSelect.getSelectedChampionId()) return;
+    this.connection.disconnect();
+    this.updateConnectionStatus("connecting");
+    this.connection.connect("lobby", undefined, {
+      getChampionId: () => this.championSelect.getSelectedChampionId(),
+      getSummonerSpells: () => this.summonerPicker.getSpells(),
+      onStatusChange: (status) => this.updateConnectionStatus(status),
+      onQueueEntered: () => {},
+      onDisconnect: () => {
+        if (this.currentScreen === "lobby") this.lobby.showEntry("Connection lost.");
+      },
+      onLatencyUpdate: (latency) => this.updatePing(latency),
+      // A failed join comes back as an error: shown on the room screen
+      onError: (error) => this.lobby.showEntry(error),
+      onGameStart: (data) => this.handleMatchFound(data),
+      onQueueJoined: () => {},
+      onLobbyState: (state) => {
+        this.lobby.showState(state);
+        this.updateRoomButton();
+      },
+    }, undefined, lobby);
+  }
+
+  /** Leave the room and go back to making or joining one */
+  private leaveRoom(): void {
+    this.connection.sendLobby({ action: "leave" });
+    this.connection.disconnect();
+    this.updateConnectionStatus("offline");
+    this.lobby.showEntry();
+    this.updateRoomButton();
+  }
+
+  /** Champion select's room button: back to the room while in one */
+  private updateRoomButton(): void {
+    const button = document.getElementById("btn-room");
+    if (button) button.textContent = this.lobby.inRoom() ? "BACK TO ROOM" : "ROOM";
   }
 
   /**

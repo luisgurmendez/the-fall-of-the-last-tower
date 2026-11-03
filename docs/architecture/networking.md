@@ -40,6 +40,7 @@ enum ClientMessageType {
   READY = 2,      // Join queue with champion
   EVENT_ACK = 3,  // Acknowledge received events
   DEBUG = 4,      // Debug overlay on/off: { enabled } (practice matches, see debug.md)
+  LOBBY = 5,      // Something about the player's room (LobbyRequest, see matchmaking.md)
 }
 ```
 
@@ -55,6 +56,7 @@ enum ServerMessageType {
   GAME_START = 5,     // Match begins
   GAME_END = 6,       // Match ends
   DEBUG_STATE = 7,    // What the server thinks about the units in sight (see debug.md)
+  LOBBY_STATE = 8,    // The player's room (LobbyState, see matchmaking.md)
 }
 ```
 

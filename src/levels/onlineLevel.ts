@@ -33,6 +33,7 @@ import { InputManager } from '@/core/input/InputManager';
 import type { OnlineStateManager } from '@/core/OnlineStateManager';
 import type { NetworkClient } from '@siege/client';
 import type { MatchData } from '@/ui/matchmaking/MatchmakingUI';
+import { findLocalPlayer } from '@/ui/matchmaking/types';
 import type { GameObject } from '@/core/GameObject';
 
 /**
@@ -64,7 +65,7 @@ export function generateOnlineLevel(config: OnlineLevelConfig): Level {
   const entityRenderer = new EntityRenderer(stateManager, matchData.yourSide);
 
   // Find local player's champion from match data
-  const localPlayer = matchData.players.find(p => p.side === matchData.yourSide);
+  const localPlayer = findLocalPlayer(matchData);
   const localChampionId = localPlayer?.championId || 'warrior';
 
   // Create online input handler (sends inputs to server, detects enemy hover for cursor)

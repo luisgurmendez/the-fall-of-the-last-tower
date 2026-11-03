@@ -919,3 +919,219 @@
 .how-to-play-action {
   color: var(--pixel-text);
 }
+
+
+/* Room screen: play with friends (src/ui/matchmaking/lobbyScreen.ts) */
+.lobby-title {
+  font-family: var(--pixel-font);
+  font-size: 44px;
+  color: var(--pixel-gold);
+  text-shadow: 2px 2px 0 var(--pixel-gold-darker), 4px 4px 0 #000;
+  margin-bottom: 18px;
+  letter-spacing: 3px;
+}
+
+.lobby-entry,
+.lobby-room {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.lobby-room[hidden],
+.lobby-entry[hidden] {
+  display: none;
+}
+
+.lobby-field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--pixel-font);
+  font-size: 22px;
+  color: var(--pixel-text-dim);
+}
+
+.lobby-field input,
+#lobby-code,
+.lobby-settings select {
+  font-family: var(--pixel-font);
+  font-size: 24px;
+  padding: 6px 10px;
+  background: var(--pixel-bg-darker);
+  border: 3px solid var(--pixel-border);
+  color: var(--pixel-text);
+}
+
+#lobby-code {
+  width: 150px;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 6px;
+}
+
+.lobby-or {
+  font-family: var(--pixel-font);
+  font-size: 18px;
+  color: var(--pixel-text-dim);
+}
+
+.lobby-join-row,
+.lobby-actions,
+.lobby-settings {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.lobby-settings label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-family: var(--pixel-font);
+  font-size: 20px;
+  color: var(--pixel-text-dim);
+}
+
+.lobby-error {
+  min-height: 24px;
+  font-family: var(--pixel-font);
+  font-size: 20px;
+  color: #ff8a65;
+}
+
+.lobby-code-row {
+  font-family: var(--pixel-font);
+  font-size: 26px;
+  color: var(--pixel-text-dim);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.lobby-code {
+  font-size: 46px;
+  color: var(--pixel-gold);
+  letter-spacing: 8px;
+  text-shadow: 2px 2px 0 #000;
+}
+
+.lobby-small {
+  font-size: 18px;
+  padding: 4px 10px;
+}
+
+.lobby-teams {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.lobby-team {
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lobby-team-label {
+  font-family: var(--pixel-font);
+  font-size: 24px;
+  text-align: center;
+}
+
+.lobby-team.blue .lobby-team-label { color: #5dade2; }
+.lobby-team.red .lobby-team-label { color: #ec7063; }
+
+.lobby-vs {
+  font-family: var(--pixel-font);
+  font-size: 30px;
+  color: var(--pixel-text-dim);
+  margin-top: 90px;
+}
+
+.lobby-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lobby-slot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 4px 10px;
+  background: var(--pixel-bg-darker);
+  border: 3px solid var(--pixel-border);
+  font-family: var(--pixel-font);
+}
+
+.lobby-team.blue .lobby-slot.player { border-color: #2e86c1; }
+.lobby-team.red .lobby-slot.player { border-color: #b03a2e; }
+.lobby-slot.you { box-shadow: 0 0 0 2px var(--pixel-gold) inset; }
+
+.lobby-slot-portrait {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+}
+
+.lobby-slot-portrait canvas {
+  width: 44px;
+  height: 44px;
+  image-rendering: pixelated;
+}
+
+.lobby-slot-name {
+  font-size: 22px;
+  color: var(--pixel-text);
+}
+
+.lobby-slot-champion {
+  font-size: 16px;
+  color: var(--pixel-text-dim);
+}
+
+.lobby-slot.bot .lobby-slot-name {
+  color: var(--pixel-text-dim);
+}
+
+.lobby-badge {
+  margin-left: auto;
+  font-size: 14px;
+  color: var(--pixel-gold);
+}
+
+.lobby-hint {
+  min-height: 22px;
+  font-family: var(--pixel-font);
+  font-size: 18px;
+  color: var(--pixel-text-dim);
+}
+
+/* The room screen's plain buttons: framed like the rest of the menus */
+#screen-lobby .pixel-button.secondary {
+  font-family: var(--pixel-font);
+  font-size: 26px;
+  padding: 8px 18px;
+  background: transparent;
+  border: 3px solid var(--pixel-border-highlight);
+  color: var(--pixel-text);
+  cursor: pointer;
+  text-shadow: 2px 2px 0 #000;
+}
+
+#screen-lobby .pixel-button.secondary:hover {
+  border-color: var(--pixel-gold);
+  color: var(--pixel-gold);
+}
+
+#screen-lobby .pixel-button.secondary.lobby-small {
+  font-size: 18px;
+  padding: 4px 10px;
+}

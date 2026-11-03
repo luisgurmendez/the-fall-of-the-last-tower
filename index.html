@@ -73,7 +73,46 @@
             <button class="pixel-button secondary" id="btn-practice" disabled title="Play right away against bots">PRACTICE</button>
             <button class="pixel-button secondary" id="btn-practice-size" title="Which practice match: players per team, or ARAM (1v1 on The Narrows)">1V1</button>
           </div>
+          <button class="pixel-button secondary" id="btn-room" disabled title="Play with friends: make a room or join one with its code">ROOM</button>
           <button class="pixel-button primary" id="btn-lock-in" disabled>LOCK IN</button>
+        </div>
+      </div>
+
+      <!-- Room Screen: play with friends (src/ui/matchmaking/lobbyScreen.ts) -->
+      <div class="mm-screen" id="screen-lobby">
+        <div class="lobby-title">PLAY WITH FRIENDS</div>
+        <div class="lobby-entry" id="lobby-entry">
+          <label class="lobby-field">YOUR NAME <input id="lobby-name" maxlength="16" autocomplete="off" spellcheck="false"></label>
+          <button class="pixel-button primary" id="btn-lobby-create">CREATE ROOM</button>
+          <div class="lobby-or">or join a friend's room</div>
+          <div class="lobby-join-row">
+            <input id="lobby-code" maxlength="5" placeholder="CODE" autocomplete="off" spellcheck="false">
+            <button class="pixel-button secondary" id="btn-lobby-join">JOIN</button>
+          </div>
+          <div class="lobby-error" id="lobby-error"></div>
+          <button class="pixel-button secondary" id="btn-lobby-back">BACK</button>
+        </div>
+        <div class="lobby-room" id="lobby-room" hidden>
+          <div class="lobby-code-row">
+            ROOM <span class="lobby-code" id="lobby-code-value"></span>
+            <button class="pixel-button secondary lobby-small" id="btn-lobby-copy" title="Copy the code to send it">COPY</button>
+          </div>
+          <div class="lobby-settings">
+            <label>MAP <select id="lobby-map"></select></label>
+            <label>PLAYERS <select id="lobby-size"><option value="1">1v1</option><option value="3">3v3</option><option value="5">5v5</option></select></label>
+          </div>
+          <div class="lobby-teams">
+            <div class="lobby-team blue"><div class="lobby-team-label">BLUE</div><div class="lobby-slots" id="lobby-blue"></div></div>
+            <div class="lobby-vs">VS</div>
+            <div class="lobby-team red"><div class="lobby-team-label">RED</div><div class="lobby-slots" id="lobby-red"></div></div>
+          </div>
+          <div class="lobby-hint" id="lobby-hint"></div>
+          <div class="lobby-actions">
+            <button class="pixel-button secondary" id="btn-lobby-leave">LEAVE</button>
+            <button class="pixel-button secondary" id="btn-lobby-champion">CHAMPION</button>
+            <button class="pixel-button secondary" id="btn-lobby-switch">SWITCH SIDE</button>
+            <button class="pixel-button primary" id="btn-lobby-start">START</button>
+          </div>
         </div>
       </div>
 

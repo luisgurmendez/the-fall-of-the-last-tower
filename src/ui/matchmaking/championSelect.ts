@@ -155,6 +155,7 @@ export class ChampionSelect {
     if (this.lockInButton) {
       this.lockInButton.disabled = false;
     }
+    (document.getElementById("btn-room") as HTMLButtonElement | null)?.removeAttribute("disabled");
   }
 
   /**

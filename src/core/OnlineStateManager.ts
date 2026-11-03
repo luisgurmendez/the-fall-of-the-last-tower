@@ -18,6 +18,7 @@
 
 import type Vector from '@/physics/vector';
 import type { MatchData } from '@/ui/matchmaking/MatchmakingUI';
+import { findLocalPlayer } from '@/ui/matchmaking/types';
 import type { StateUpdate, FullStateSnapshot, FinalPlayerStats } from '@siege/shared';
 import { EntityType } from '@siege/shared';
 import { WORLD_VFX } from '@/vfx/world';
@@ -146,7 +147,7 @@ export class OnlineStateManager {
     this.localSide = matchData.yourSide;
 
     // Find local player from match data (player on our side)
-    const localPlayer = matchData.players.find(p => p.side === matchData.yourSide);
+    const localPlayer = findLocalPlayer(matchData);
     this.localPlayerId = localPlayer?.playerId || '';
     this.localEntityId = localPlayer?.entityId || '';
 

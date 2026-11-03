@@ -161,6 +161,9 @@ export type {
   GameEndData,
   DebugUnit,
   DebugStateData,
+  LobbyMember,
+  LobbyState,
+  LobbyRequest,
 } from './network';
 export {
   InputType,
@@ -169,6 +172,7 @@ export {
   GameEventType,
   ServerMessageType,
   ClientMessageType,
+  LOBBY_MAX_TEAM_SIZE,
 } from './network';
 
 // Minion types
