@@ -65,6 +65,17 @@ export class ChampionBasicAttacks {
   }
 
   /**
+   * Drop a basic attack in its windup (its damage hasn't landed yet): the
+   * attack wasn't made, so the next one may start right away.
+   */
+  cancelPendingAttack(): void {
+    const pending = this.animationScheduler.getPendingForEntity(this.champion.id).some(action => action.actionType === 'damage');
+    if (!pending) return;
+    this.animationScheduler.cancelForEntity(this.champion.id, 'damage');
+    this.attackCooldown = 0;
+  }
+
+  /**
    * Attack the champion's target if it is in range and an attack is ready.
    */
   attackTargetIfReady(context: ServerGameContext): void {

@@ -300,7 +300,11 @@ export interface AbilityDefinition {
   /** Cooldown in seconds at each rank (active only) */
   cooldown?: number[];
 
-  /** Cast time in seconds (0 = instant) */
+  /**
+   * Cast time in seconds: the caster stands still, facing its aim, before
+   * the ability goes off, and stun or silence in it cancels the cast (nothing
+   * spent). Absent: the default for its kind (getCastTime).
+   */
   castTime?: number;
 
   /** Maximum cast range */
@@ -938,6 +942,29 @@ export function getAmmoBehavior(ability: AbilityDefinition): AmmoBehavior | unde
  */
 export function hasChannelBehavior(ability: AbilityDefinition): ability is AbilityDefinition & { channel: ChannelBehavior } {
   return ability.channel !== undefined;
+}
+
+/** The usual cast time, like most of LoL's aimed abilities */
+export const DEFAULT_CAST_TIME = 0.25;
+
+/**
+ * An ability's cast time (seconds the caster stands still before it goes
+ * off): its own castTime, or by its kind: aimed abilities (skillshots,
+ * ground targets, enemy targets) take DEFAULT_CAST_TIME; dashes, blinks,
+ * self casts, areas around the caster and casts on allies are instant
+ * (a dash is its own commitment, and buffs and saves should answer at once).
+ */
+export function getCastTime(ability: AbilityDefinition): number {
+  if (ability.castTime !== undefined) return ability.castTime;
+  if (ability.dash || ability.teleport) return 0;
+  switch (ability.targetType) {
+    case 'skillshot':
+    case 'ground_target':
+    case 'target_enemy':
+      return DEFAULT_CAST_TIME;
+    default:
+      return 0;
+  }
 }
 
 /**

@@ -227,8 +227,10 @@ export interface TestArena {
   tickAllFrames: (frames: number, dt?: number) => void;
 
   /**
-   * Cast ability from one champion. An area with a windup (aoeDelay) has
-   * landed when this returns, unless `windup` is true: then it's still pending.
+   * Cast ability from one champion. Its cast time (getCastTime) has passed and
+   * an area with a windup (aoeDelay) has landed when this returns, unless
+   * `windup` is true: then the area is still pending. With `casting`, it's
+   * still in its cast time (it goes off as the arena ticks).
    */
   castAbility: (
     caster: TestChampion,
@@ -237,6 +239,7 @@ export interface TestArena {
       targetPosition?: Vector;
       targetId?: string;
       windup?: boolean;
+      casting?: boolean;
     }
   ) => ReturnType<typeof abilityExecutor.castAbility>;
 
@@ -366,7 +369,7 @@ export function createTestArena(options: TestArenaOptions = {}): TestArena {
     },
 
     castAbility: (caster, slot, castOptions = {}) => {
-      const { targetPosition, targetId, windup = false } = castOptions;
+      const { targetPosition, targetId, windup = false, casting = false } = castOptions;
       const result = abilityExecutor.castAbility({
         champion: caster,
         slot,
@@ -374,6 +377,8 @@ export function createTestArena(options: TestArenaOptions = {}): TestArena {
         targetEntityId: targetId,
         context,
       });
+      // Let the cast time pass: the ability goes off
+      if (result.success && caster.isCasting() && !casting) caster.advanceCast(10, context);
       // Let the windup pass (game time only, so effects and cooldowns don't tick)
       const aoeDelay = getAbilityDefinition(caster.definition.abilities[slot])?.aoeDelay ?? 0;
       if (result.success && aoeDelay > 0 && !windup) context.advanceTime(aoeDelay + 1e-6);

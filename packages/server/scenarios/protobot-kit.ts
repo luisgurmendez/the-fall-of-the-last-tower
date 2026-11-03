@@ -48,7 +48,7 @@ export default defineScenario({
     } })),
     { at: 1.5, run: sim => { pulledTo = sim.champion('protobot').position.distanceTo(sim.champion('prey').position); } },
     { at: 2.0, note: 'E on Magnus', run: sim => { sim.cast('protobot', 'E', sim.champion('prey').id); } },
-    { at: 2.2, run: sim => { knockedUp = sim.champion('prey').hasEffect('knockup'); } },
+    { at: 2.4, run: sim => { knockedUp = sim.champion('prey').hasEffect('knockup'); } }, // after E's cast time
     { at: 3.0, note: 'Magnus fights back', run: sim => { sim.attack('prey', sim.champion('protobot').id); } },
     { at: 3.0, run: sim => { armorGain = -sim.champion('protobot').getStats().armor; } },
     { at: 6.4, run: sim => {

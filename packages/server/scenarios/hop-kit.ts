@@ -55,7 +55,7 @@ export default defineScenario({
       hopSpent = hop.passiveState.cooldownRemaining > 4;
     } },
     { at: 1.5, note: 'Q on the tank', run: sim => { sim.cast('hop', 'Q', sim.champion('tank').id); } },
-    { at: 1.6, run: sim => { shredded = sim.champion('tank').hasEffect('armor_reduction'); } },
+    { at: 1.9, run: sim => { shredded = sim.champion('tank').hasEffect('armor_reduction'); } }, // after Q's cast time
     { at: 2.5, note: 'hurt; W', run: sim => {
       sim.champion('hop').health = sim.champion('hop').maxHealth * 0.5;
       sim.cast('hop', 'W');

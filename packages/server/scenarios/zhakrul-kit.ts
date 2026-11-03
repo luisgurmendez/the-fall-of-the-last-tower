@@ -65,7 +65,7 @@ export default defineScenario({
       knockedUp ||= sim.champion('tank').hasEffect('knockup');
     } })),
     { at: 10.5, note: 'R on the tank', run: sim => { sim.cast('zhakrul', 'R', sim.champion('tank').id); } },
-    { at: 10.6, run: sim => {
+    { at: 10.9, run: sim => { // after R's cast time
       stunned = sim.champion('tank').hasEffect('stun');
       ancientAfterR = doses(sim) === 3 && sim.champion('tank').hasEffect('zhakrul_ancient_venom');
     } },

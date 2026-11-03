@@ -13,6 +13,7 @@ import {
   hasChargeBehavior,
   type AbilityDefinition,
   type DamageType,
+  getCastTime,
 } from "@siege/shared";
 import type { AbilityCastParams } from "../../simulation/ServerAbilityExecutor";
 import { ServerProjectile } from "../../simulation/ServerProjectile";
@@ -119,7 +120,8 @@ function getProjectileDelay(params: AbilityCastParams, definition: AbilityDefini
     }
   }
 
-  return projectileDelay;
+  // The cast time already waited out the start of the animation (it began with ABILITY_WINDUP)
+  return Math.max(0, projectileDelay - getCastTime(definition));
 }
 
 /**

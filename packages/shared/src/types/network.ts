@@ -710,6 +710,15 @@ export enum GameEventType {
   HEAL = 18,
   /** A summoner spell was cast ({ entityId, spellId, x, y, toX?, toY?, targetId? }; Blink's to is where it landed) */
   SUMMONER_CAST = 19,
+  /**
+   * A champion started casting an ability with a cast time ({ entityId,
+   * abilityId, slot, castTime, targetX?, targetY?, targetEntityId? }): it
+   * stands still and ABILITY_CAST follows when it goes off, or
+   * ABILITY_INTERRUPTED if stun or silence cancels it.
+   */
+  ABILITY_WINDUP = 20,
+  /** A cast in its cast time was cancelled ({ entityId, abilityId, slot }) */
+  ABILITY_INTERRUPTED = 21,
 }
 
 /**

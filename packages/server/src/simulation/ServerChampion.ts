@@ -170,6 +170,9 @@ export class ServerChampion extends ServerEntity {
   forcedMovement: ForcedMovement | null = null;
   dashAbilityId: string | null = null; // Track which ability caused the current dash
 
+  /** An ability in its cast time (startCast): it goes off when the time is up */
+  private cast: { slot: AbilitySlot; abilityId: string; remaining: number; finish: () => void } | null = null;
+
   // Direction facing
   direction: Vector = new Vector(1, 0);
 
@@ -281,10 +284,14 @@ export class ServerChampion extends ServerEntity {
       return;
     }
 
+    // An ability in its cast time goes off (a dash it starts moves this tick)
+    this.advanceCast(dt, context);
+
     // Update forced movement first
     if (this.forcedMovement) {
       updateForcedMovement(this, dt, context);
-    } else if (this.ccStatus.canMove) {
+    } else if (this.ccStatus.canMove && !this.cast) {
+      // (Standing still while casting; a move order waits for the cast to end)
       // Normal movement
       this.updateAttackMove(context);
       this.updateMovement(dt, context);
@@ -508,8 +515,69 @@ export class ServerChampion extends ServerEntity {
       }
     }
 
-    // Auto-attack target if in range and can attack
-    this.basicAttacks.attackTargetIfReady(context);
+    // Auto-attack target if in range and can attack (not while casting)
+    if (!this.cast) this.basicAttacks.attackTargetIfReady(context);
+  }
+
+  // =====================
+  // Cast time
+  // =====================
+
+  /** Whether the champion is in an ability's cast time */
+  isCasting(): boolean {
+    return this.cast !== null;
+  }
+
+  /**
+   * Start an ability's cast time (ServerAbilityExecutor): the champion stands
+   * still facing its aim (a move order waits for the end), can't attack or
+   * cast anything else, and `finish` casts it when the time is up. Stun,
+   * silence or death cancels it first (cancelCast). A basic attack in its
+   * windup is dropped, as casting does in LoL.
+   */
+  startCast(slot: AbilitySlot, abilityId: string, castTime: number, aim: Vector | null, finish: () => void): void {
+    this.cast = { slot, abilityId, remaining: castTime, finish };
+    if (aim) {
+      const direction = aim.subtracted(this.position);
+      if (direction.length() > 0.1) this.direction = direction.normalized();
+    }
+    const state = this.abilityStates[slot];
+    state.isCasting = true;
+    state.castTimeRemaining = castTime;
+    this.basicAttacks.cancelPendingAttack();
+  }
+
+  /** Cancel the ability in its cast time, if any: nothing was spent */
+  cancelCast(context?: ServerGameContext): void {
+    if (!this.cast) return;
+    const { slot, abilityId } = this.cast;
+    this.endCast();
+    context?.addEvent(GameEventType.ABILITY_INTERRUPTED, { entityId: this.id, abilityId, slot });
+  }
+
+  /**
+   * Count the cast time down (update() does every tick); the ability goes
+   * off at its end, unless stun or silence cancels it.
+   */
+  advanceCast(dt: number, context: ServerGameContext): void {
+    if (!this.cast) return;
+    if (!this.ccStatus.canCast) {
+      this.cancelCast(context);
+      return;
+    }
+    this.cast.remaining -= dt;
+    if (this.cast.remaining > 1e-6) return;
+    const { finish } = this.cast;
+    this.endCast();
+    finish();
+  }
+
+  private endCast(): void {
+    if (!this.cast) return;
+    const state = this.abilityStates[this.cast.slot];
+    state.isCasting = false;
+    state.castTimeRemaining = 0;
+    this.cast = null;
   }
 
   /**
@@ -770,6 +838,7 @@ export class ServerChampion extends ServerEntity {
    */
   protected override onDeath(killerId?: string, context?: ServerGameContext): void {
     super.onDeath(killerId, context);
+    this.cancelCast(context);
     this.deaths++;
 
     // Award XP/gold to killer and nearby allies

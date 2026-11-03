@@ -8,7 +8,8 @@ export default defineScenario({
   name: 'bot-plays-caelum',
   description: 'Caelum (LaneBot, level 9) fights a weaker Magnus',
   options: { minionWaves: false, jungle: false, structures: false },
-  duration: 15,
+  // (Cast times stand him still a moment per spell: the fight takes a little longer)
+  duration: 20,
   setup(sim) {
     sim.addChampion({ playerId: 'bot', championId: 'caelum', side: 'red', at: { x: 0, y: 0 }, bot: 'lane', level: 9 });
     const enemy = sim.addChampion({ playerId: 'enemy', championId: 'magnus', side: 'blue', at: { x: -150, y: 150 }, level: 7 });

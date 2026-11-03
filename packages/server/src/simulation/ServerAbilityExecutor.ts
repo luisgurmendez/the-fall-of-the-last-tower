@@ -3,6 +3,9 @@
  *
  * This class owns the cast flow:
  * - Validating cast conditions (rank, crowd control, cooldown, mana, target)
+ * - Cast time (getCastTime): the champion stands still for it
+ *   (ServerChampion.startCast, ABILITY_WINDUP), then the ability goes off;
+ *   stun or silence in it cancels the cast with nothing spent
  * - Recasts: handler-owned, or the generic recast dash
  * - Running the ability's handler, or else the generic path for its target
  *   type (abilities/generic/), then its dash or teleport
@@ -17,6 +20,7 @@ import {
   getAbilityDefinition,
   canAbilityAffectEntityType,
   hasRecastBehavior,
+  getCastTime,
   GameEventType,
   calculateEffectiveCooldown,
   GameConfig,
@@ -60,7 +64,8 @@ export interface AbilityCastResult {
     | "out_of_range"
     | "silenced"
     | "stunned"
-    | "rooted";
+    | "rooted"
+    | "casting";
   manaCost?: number;
   cooldown?: number;
 }
@@ -100,6 +105,11 @@ export class ServerAbilityExecutor {
       if (champion.ccStatus.isSilenced) {
         return { success: false, failReason: "silenced" };
       }
+    }
+
+    // Nothing else is cast during a cast time
+    if (champion.isCasting()) {
+      return { success: false, failReason: "casting" };
     }
 
     // Rooted or grounded champions can't dash or teleport
@@ -190,13 +200,58 @@ export class ServerAbilityExecutor {
     // Champion-specific cast rules (see IChampionHooks)
     const hooks = championHooksRegistry.get(champion.definition.id);
 
-    // Check for damage amplification (e.g., Magnus's Arcane Surge)
-    const damageMultiplier = hooks?.getAbilityDamageMultiplier?.(champion) ?? 1.0;
-
     // Break stealth when casting abilities (unless hooks exempt it, e.g. a stealth ability)
     if (hooks?.breaksStealthOnCast?.(abilityId) !== false && 'breakStealth' in champion) {
       (champion as any).breakStealth();
     }
+
+    // A cast time: stand still facing the aim, then it goes off (nothing is
+    // spent until then, and stun or silence in it cancels it)
+    const castTime = getCastTime(definition);
+    if (castTime > 0) {
+      const target = params.targetEntityId ? context.getEntity(params.targetEntityId) : undefined;
+      champion.startCast(slot, abilityId, castTime, params.targetPosition ?? target?.position ?? null, () => {
+        if (champion.resource < manaCost) return;
+        this.completeCast(params, definition, abilityId, manaCost);
+      });
+      context.addEvent(GameEventType.ABILITY_WINDUP, {
+        entityId: champion.id,
+        abilityId,
+        slot,
+        castTime,
+        targetX: params.targetPosition?.x,
+        targetY: params.targetPosition?.y,
+        targetEntityId: params.targetEntityId,
+      });
+      // The cooldown it will start (before any change its handler makes)
+      const baseCooldown = definition.cooldown?.[rank - 1] ?? 0;
+      return {
+        success: true,
+        manaCost,
+        cooldown: calculateEffectiveCooldown(baseCooldown, champion.getStats().abilityHaste, GameConfig.ABILITIES.MAX_CDR),
+      };
+    }
+
+    return this.completeCast(params, definition, abilityId, manaCost);
+  }
+
+  /**
+   * The ability goes off (at once, or at the end of its cast time): run it,
+   * then spend its mana, start its cooldown and announce it (ABILITY_CAST,
+   * on_ability_cast). A handler that refuses or fails it spends nothing.
+   */
+  private completeCast(
+    params: AbilityCastParams,
+    definition: AbilityDefinition,
+    abilityId: string,
+    manaCost: number,
+  ): AbilityCastResult {
+    const { champion, slot, context } = params;
+    const state = champion.abilityStates[slot];
+    const hooks = championHooksRegistry.get(champion.definition.id);
+
+    // Check for damage amplification (e.g., Magnus's Arcane Surge)
+    const damageMultiplier = hooks?.getAbilityDamageMultiplier?.(champion) ?? 1.0;
 
     // All checks passed - execute the ability
     const executionResult = this.executeAbility(params, definition, damageMultiplier);
@@ -217,7 +272,7 @@ export class ServerAbilityExecutor {
     }
 
     // Start cooldown with Ability Haste reduction
-    const baseCooldown = definition.cooldown?.[rank - 1] ?? 0;
+    const baseCooldown = definition.cooldown?.[state.rank - 1] ?? 0;
     const stats = champion.getStats();
 
     // Apply global ability haste (from items, runes, etc.)

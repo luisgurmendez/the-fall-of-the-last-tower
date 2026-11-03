@@ -29,6 +29,12 @@ export interface EntityAnimationState {
   abilityTargetX: number | null;
   abilityTargetY: number | null;
   abilityTargetId: string | null;
+  /**
+   * The ability in its cast time (ABILITY_WINDUP), and when that ends (ms):
+   * its animation started then, so ABILITY_CAST carries it on
+   */
+  windupAbilityId: string | null;
+  windupEndTime: number;
   /** When the entity last took damage (ms, performance.now), for the hit flash */
   hitTime: number;
   /** Which way that hit pushed it (a unit vector away from what hit it; 0, 0 if unknown) */
@@ -75,6 +81,8 @@ export function createDefaultAnimationState(): EntityAnimationState {
     abilityTargetX: null,
     abilityTargetY: null,
     abilityTargetId: null,
+    windupAbilityId: null,
+    windupEndTime: 0,
     hitTime: -Infinity,
     hitDirX: 0,
     hitDirY: 0,

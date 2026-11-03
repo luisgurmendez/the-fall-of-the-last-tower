@@ -54,7 +54,7 @@ export default defineScenario({
     { at: 2.1, run: sim => { attackDamageEmboldened = sim.champion('ally').getStats().attackDamage; } },
     { at: 3, note: 'E under the enemy', run: sim => { sim.cast('caelum', 'E', sim.champion('enemy').position); } },
     { at: 3.4, run: sim => { rootedEarly = sim.champion('enemy').hasEffect('root'); } },
-    { at: 4.0, run: sim => { rooted = sim.champion('enemy').hasEffect('root'); } },
+    { at: 4.3, run: sim => { rooted = sim.champion('enemy').hasEffect('root'); } }, // cast time, then the roots rise
     { at: 10, note: 'R on himself: refused', run: sim => { sim.cast('caelum', 'R', sim.champion('caelum').id); } },
     { at: 10.2, run: sim => {
       selfMartyrRefused = sim.champion('caelum').abilityStates.R.cooldownRemaining === 0;

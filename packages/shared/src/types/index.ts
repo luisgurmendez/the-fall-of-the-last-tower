@@ -92,6 +92,8 @@ export {
   canAbilityAffectEntityType,
   AbilityEntityType,
   hasRecastBehavior,
+  getCastTime,
+  DEFAULT_CAST_TIME,
   getRecastAbility,
   hasChargeBehavior,
 } from './abilities';

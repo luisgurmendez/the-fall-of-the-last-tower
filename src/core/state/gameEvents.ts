@@ -42,6 +42,8 @@ export interface GameEventContext {
 
 /** Seconds a cast animation goes on after its ability takes effect */
 const CAST_FOLLOW_THROUGH = 0.25;
+/** An ABILITY_CAST this long (ms) after its cast time's end still carries on its windup's animation */
+const WINDUP_GRACE_MS = 300;
 /**
  * A cast's point this close to the caster isn't where it's aimed but where
  * its effect is (Zhak'rul's cloud around him, his burst out of the ground):
@@ -86,6 +88,27 @@ function describeDamageSource(data: Record<string, unknown>, ctx: GameEventConte
   }
 }
 
+/** How long (ms) a cast's animation lasts: long enough to show the ability taking effect (an area landing late) */
+function castDuration(event: GameEvent, abilityId: string): number {
+  return Math.max((event.data.animationDuration as number) ?? 0.5, abilityImpactTime(abilityId) + CAST_FOLLOW_THROUGH) * 1000;
+}
+
+/** Start an entity's cast animation, facing where the event aims (a point or a unit) */
+function startCastAnimation(entity: InterpolatedEntity, event: GameEvent, abilityId: string, now: number, duration: number): void {
+  const targetX = event.data.targetX as number | undefined;
+  const targetY = event.data.targetY as number | undefined;
+  entity.animation.isCastingAbility = true;
+  entity.animation.abilityId = abilityId;
+  entity.animation.abilityStartTime = now;
+  entity.animation.abilityDuration = duration;
+  const aimsAway = targetX !== undefined && targetY !== undefined
+    && Math.hypot(targetX - entity.serverPosition.x, targetY - entity.serverPosition.y) >= AIM_MIN_DISTANCE;
+  entity.animation.abilityTargetX = aimsAway ? targetX : null;
+  entity.animation.abilityTargetY = aimsAway ? targetY : null;
+  const targetId = event.data.targetEntityId as string | undefined;
+  entity.animation.abilityTargetId = targetId && targetId !== event.data.entityId ? targetId : null;
+}
+
 /**
  * Process a game event.
  */
@@ -105,26 +128,47 @@ export function processGameEvent(event: GameEvent, ctx: GameEventContext): void 
       }
       break;
     }
+    case GameEventType.ABILITY_WINDUP: {
+      // The cast time: the caster plays its cast, facing its aim, standing
+      // still; the ability's effects come with ABILITY_CAST when it goes off
+      const entity = ctx.entities.get(event.data.entityId as string);
+      if (entity) {
+        const abilityId = event.data.abilityId as string;
+        const castTime = (event.data.castTime as number) * 1000;
+        startCastAnimation(entity, event, abilityId, now, castTime + castDuration(event, abilityId));
+        entity.animation.windupAbilityId = abilityId;
+        entity.animation.windupEndTime = now + castTime;
+      }
+      break;
+    }
+    case GameEventType.ABILITY_INTERRUPTED: {
+      // Stun or silence cancelled the cast in its cast time
+      const entity = ctx.entities.get(event.data.entityId as string);
+      if (entity && entity.animation.windupAbilityId === event.data.abilityId) {
+        entity.animation.isCastingAbility = false;
+        entity.animation.windupAbilityId = null;
+      }
+      break;
+    }
     case GameEventType.ABILITY_CAST: {
       const entityId = event.data.entityId as string;
       const abilityId = event.data.abilityId as string;
       const targetX = event.data.targetX as number | undefined;
       const targetY = event.data.targetY as number | undefined;
-      // Long enough to show the ability taking effect (an area landing late)
-      const duration = Math.max((event.data.animationDuration as number) ?? 0.5, abilityImpactTime(abilityId) + CAST_FOLLOW_THROUGH) * 1000;
       const entity = ctx.entities.get(entityId);
 
       if (entity) {
-        entity.animation.isCastingAbility = true;
-        entity.animation.abilityId = abilityId;
-        entity.animation.abilityStartTime = now;
-        entity.animation.abilityDuration = duration;
-        const aimsAway = targetX !== undefined && targetY !== undefined
-          && Math.hypot(targetX - entity.serverPosition.x, targetY - entity.serverPosition.y) >= AIM_MIN_DISTANCE;
-        entity.animation.abilityTargetX = aimsAway ? targetX : null;
-        entity.animation.abilityTargetY = aimsAway ? targetY : null;
-        const targetId = event.data.targetEntityId as string | undefined;
-        entity.animation.abilityTargetId = targetId && targetId !== entityId ? targetId : null;
+        // After a cast time its animation is already playing: it carries on
+        const fromWindup = entity.animation.windupAbilityId === abilityId
+          && entity.animation.isCastingAbility
+          && now <= entity.animation.windupEndTime + WINDUP_GRACE_MS;
+        entity.animation.windupAbilityId = null;
+        if (fromWindup) {
+          const elapsed = now - entity.animation.abilityStartTime;
+          entity.animation.abilityDuration = Math.max(entity.animation.abilityDuration, elapsed + castDuration(event, abilityId));
+        } else {
+          startCastAnimation(entity, event, abilityId, now, castDuration(event, abilityId));
+        }
 
         // Create visual effect for the ability (legacy system)
         ctx.abilityEffects.create(entity, abilityId, targetX, targetY, now);

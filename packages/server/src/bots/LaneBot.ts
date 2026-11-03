@@ -396,7 +396,8 @@ export class LaneBot implements BotController {
    * weakened target) or while escaping ('defense').
    */
   protected chooseAbility(champion: ServerChampion, target: ServerEntity, mode: 'offense' | 'defense', context: ServerGameContext): BotInput | null {
-    if (champion.ccStatus.isSilenced || champion.ccStatus.isStunned) return null;
+    // Silenced, stunned, or in a cast time (it goes off on its own)
+    if (champion.ccStatus.isSilenced || champion.ccStatus.isStunned || champion.isCasting()) return null;
 
     const distance = champion.position.distanceTo(target.position);
     const targetLow = target.health / target.maxHealth < 0.4;

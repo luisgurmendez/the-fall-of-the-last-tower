@@ -32,30 +32,29 @@ describe('Ability Animation Sync', () => {
   });
 
   describe('Skillshot Projectile Timing', () => {
-    test('projectile should not spawn immediately on cast', () => {
-      // Get initial projectile count
-      const initialProjectileCount = arena.context.getAllEntities().filter(
-        e => e.entityType === EntityType.PROJECTILE
-      ).length;
+    test('projectile spawns when the cast time ends, not before', () => {
+      const projectiles = () => arena.context.getAllEntities().filter(e => e.entityType === EntityType.PROJECTILE).length;
 
-      // Cast fireball (Q ability)
-      const result = arena.castAbility(caster, 'Q', {
-        targetPosition: target.position.clone(),
-      });
-
+      // Cast fireball (Q ability): an aimed ability has a cast time
+      const result = arena.castAbility(caster, 'Q', { targetPosition: target.position.clone(), casting: true });
       expect(result.success).toBe(true);
+      expect(caster.isCasting()).toBe(true);
 
-      // Update once - projectile should not spawn immediately
-      arena.tickAll(0.016);
+      // In the cast time: nothing yet, nothing spent, standing still
+      const mana = caster.resource;
+      const position = caster.position.clone();
+      caster.setMoveTarget(new Vector(position.x, position.y + 200));
+      arena.tickAll(0.1);
+      expect(projectiles()).toBe(0);
+      expect(caster.resource).toBeGreaterThanOrEqual(mana); // (regenerating)
+      expect(caster.position.distanceTo(position)).toBe(0);
 
-      // Check projectile count - should still be 0 if animation sync is working
-      const projectileCount = arena.context.getAllEntities().filter(
-        e => e.entityType === EntityType.PROJECTILE
-      ).length;
-
-      // Magnus Q animation has projectile at frame 3 of 5, 0.1s/frame = 0.3s
-      // At 0.016s, projectile should NOT have spawned yet
-      expect(projectileCount).toBe(initialProjectileCount);
+      // Its end: the fireball flies, and the cost and cooldown come
+      arena.tickAllFrames(10, 0.016);
+      expect(caster.isCasting()).toBe(false);
+      expect(projectiles()).toBe(1);
+      expect(caster.resource).toBeLessThan(mana - 50); // Fireball costs 60
+      expect(caster.abilityStates.Q.cooldownRemaining).toBeGreaterThan(0);
     });
 
     test('projectile should spawn after keyframe time', () => {
@@ -79,27 +78,22 @@ describe('Ability Animation Sync', () => {
       expect(projectiles.length).toBeGreaterThan(0);
     });
 
-    test('projectile should be cancelled if caster is stunned before spawn', () => {
-      // Cast fireball
-      arena.castAbility(caster, 'Q', {
-        targetPosition: target.position.clone(),
-      });
-
-      // Update to start cast
+    test('a stun in the cast time cancels it, with nothing spent', () => {
+      const mana = caster.resource;
+      arena.castAbility(caster, 'Q', { targetPosition: target.position.clone(), casting: true });
       arena.tickAll(0.016);
 
-      // Apply stun before projectile spawns
+      // Stunned before it goes off
       caster.applyEffect('stun', 2.0, 'external');
-
-      // Tick past when projectile would have spawned
       arena.tickAllFrames(25, 0.016);
 
-      // Projectile should NOT have spawned due to stun
       const projectiles = arena.context.getAllEntities().filter(
         e => e.entityType === EntityType.PROJECTILE
       );
-
       expect(projectiles.length).toBe(0);
+      expect(caster.isCasting()).toBe(false);
+      expect(caster.resource).toBeGreaterThanOrEqual(mana);
+      expect(caster.abilityStates.Q.cooldownRemaining).toBe(0);
     });
   });
 

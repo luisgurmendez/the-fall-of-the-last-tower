@@ -177,14 +177,41 @@ function calculateAbilityValue(
    - Sufficient mana
    - In range (if targeted)
    - Not crowd controlled (stunned/silenced)
-3. Deduct mana cost
+   - Not already in another ability's cast time
+3. Its cast time, if it has one (below): the champion stands still, then it goes off
 4. Apply ability effects
-5. Start cooldown
+5. Deduct mana cost and start cooldown
 6. Broadcast state update
+
+### Cast time
+
+Most aimed abilities have a cast time, as in the classic MOBA: for a moment the caster stands
+still, facing its aim, and then the ability goes off. It's the tell that makes skillshots
+dodgeable and a missed one a commitment: standing still, with nothing else castable and no
+basic attacks. `getCastTime()` (`packages/shared/src/types/abilities.ts`) gives an ability's
+own `castTime`, or by its kind: skillshots, ground targets and enemy targets take
+`DEFAULT_CAST_TIME` (0.25 s); dashes, blinks, self casts, areas around the caster and casts on
+allies are instant (a dash is its own commitment, and buffs and saves should answer at once).
+
+- `ServerAbilityExecutor` validates the cast, then `ServerChampion.startCast()` holds it: the
+  champion faces its aim, doesn't move (a move order waits for the end) or attack, and drops a
+  basic attack in its windup (which may then start again right away). `advanceCast()`, every
+  tick, casts it at the end (`completeCast`: the ability, then its mana and cooldown).
+- Stun, silence or death in the cast time cancels it (`cancelCast`): nothing is spent.
+- The cast's ability state has `isCasting` and `castTimeRemaining` while it lasts. Events:
+  `ABILITY_WINDUP` when it starts (`castTime`, the aim), then `ABILITY_CAST` when it goes off,
+  or `ABILITY_INTERRUPTED`. The client starts the cast animation, facing the aim, on
+  `ABILITY_WINDUP`, carries it on through `ABILITY_CAST` and spawns the ability's VFX then
+  (`src/core/state/gameEvents.ts`).
+- A skillshot's projectile keyframe delay counts from the cast's start: the cast time takes
+  it up (Magnus's fireball, at its 0.25 s keyframe, flies when the cast ends).
+- An area's `aoeDelay` comes after the cast time (Kael's cleave: 0.25 s still, then 0.2 s swing).
+- Bots wait out a cast (`isCasting()`); the test arena's `castAbility` lets it pass unless
+  given `casting: true`.
 
 ## Server Execution
 
-`ServerAbilityExecutor` is champion-agnostic. It validates the cast (rank, crowd control, cooldown, mana, target), applies cost and cooldown, then executes the ability one of two ways:
+`ServerAbilityExecutor` is champion-agnostic. It validates the cast (rank, crowd control, cooldown, mana, target), waits out its [cast time](#cast-time), executes the ability one of two ways, then applies cost and cooldown:
 
 1. **Ability handler**: if a handler is registered for the ability ID, it runs instead of the generic path. Handlers live in `packages/server/src/abilities/handlers/<championId>/` and implement `IAbilityHandler`, usually by extending `BaseAbilityHandler`. A handler that implements `canRecast`/`executeRecast` owns the ability's recast. If `canRecast` declines (for example, Lume's orb is already back), the leftover recast window is dropped and the key press is a normal cast. If `executeRecast` fails after `canRecast` accepted, the recast fails with `invalid_target`.
 2. **Generic path**: otherwise the executor runs the path for the ability's `targetType` (`self`, `no_target`, `target_enemy`, `target_ally`, `skillshot`, `ground_target`), driven by definition fields such as `damage`, `heal`, `shield`, `appliesEffects`, projectile fields, cones, zones, traps, `statTransform`, `dash` and `teleport`. The paths live in `packages/server/src/abilities/generic/` (see [Generic Paths](#generic-paths)).
@@ -192,7 +219,7 @@ function calculateAbilityValue(
 Generic path details:
 - **`no_target` areas:** effects are split by category. Buffs (`category: 'buff'`) go to the caster and allies in the area. Debuffs and crowd control go to enemies. Gorath's slam no longer slows Gorath, and Elara's speed boost no longer speeds up enemies.
 - **`aoeDelay`:** the windup of an area: `no_target` areas, `ground_target` circles, zones, cones and lines (and Lume's R, in its handler) land after the delay, while clients draw a warning filling up, so the area can be dodged. The generic paths use `ServerGameContext.schedule()`, which runs on game time; tests that update entities directly call `context.advanceTime()`, and the test arena's `castAbility` lets the windup pass unless given `windup: true`. A `no_target` area is centered where the caster stood when casting and doesn't land if the caster died; a cone comes from the caster's position when it lands, aimed where the cast was. The ability VFX read the delay (`landsAt()` in `src/vfx/recipes.ts`), so their impact matches.
-- **Dodging:** champions walk about 100 units a second and are 25 units in radius, so a skillshot of radius `r` takes `(r + 25) / 100` seconds to sidestep, plus a reaction. Skillshot speeds are set so a sidestep started a quarter second after the throw clears them from near max range (Magnus's fireball 430 over 440, Vex's shuriken 460 over 380, Vile's arrows 540 over 360-640; they're slowed along with walking, so the sidestep fits the same), and each has a short windup (its animation's projectile keyframe, 0.2-0.25 s) that the VFX show. Ranges and areas follow the map's scale ([map.md](map.md#scale)). The `skillshots-can-be-dodged` simulation scenario checks this.
+- **Dodging:** champions walk about 100 units a second and are 25 units in radius, so a skillshot of radius `r` takes `(r + 25) / 100` seconds to sidestep, plus a reaction. Skillshot speeds are set so a sidestep started a quarter second after the throw clears them from near max range (Magnus's fireball 430 over 440, Vex's shuriken 460 over 380, Vile's arrows 540 over 360-640; they're slowed along with walking, so the sidestep fits the same), and each has a cast time (0.25 s standing still, see [Cast time](#cast-time)) that the caster's animation shows. Ranges and areas follow the map's scale ([map.md](map.md#scale)). The `skillshots-can-be-dodged` simulation scenario checks this.
 - **Out of range:** a `ground_target` aimed past its range is cast at its range, toward where it was aimed (the client sends the cursor; a cone or a line only needs the aim). It used to fail with `out_of_range`, so Kael's cleave didn't go off when aimed far.
 - **Lines:** a `ground_target` with `shape: 'line'` hits every enemy in a band from the caster toward the target, `range` long and twice `aoeRadius` wide, after its `aoeDelay` (Urûk's Spear Thrust; `Line.ts`). `entitiesInBand()` there finds who touches any band; Lume's beams use it from her orb.
 - **Executes:** `damage.executeBonus` on a targeted ability adds up to that much more damage the less health the target has (0.5: +50% at 0 health, Urûk's Fatal Strike).

@@ -39,6 +39,8 @@ export class DuelBot implements BotController {
     this.untilDecision -= dt;
     if (this.untilDecision > 0 || champion.isDead) return [];
     this.untilDecision = DECISION_INTERVAL;
+    // In a cast time: wait for it to go off
+    if (champion.isCasting()) return [];
     if (this.lastCast && champion.abilityStates[this.lastCast].cooldownRemaining <= 0) {
       this.refusedUntil.set(this.lastCast, this.time + REFUSED_FOR);
     }
