@@ -486,16 +486,6 @@ export const VexStealthEffect: ServerEffectDefinition = {
   persistsThroughDeath: false,
 };
 
-// Vex's death mark (ultimate)
-export const VexDeathMarkEffect: ServerEffectDefinition = {
-  id: 'vex_death_mark',
-  name: 'Death Mark',
-  category: 'debuff',
-  stackBehavior: 'refresh',
-  cleansable: false, // Cannot be cleansed
-  persistsThroughDeath: false,
-};
-
 // Vex's empowered attack buff (from Shadow Step E)
 export const VexEmpoweredEffect: ServerEffectDefinition = {
   id: 'vex_empowered',
@@ -1428,7 +1418,6 @@ export const ALL_SERVER_EFFECTS: AnyServerEffectDef[] = [
   // Ability-specific markers - Vex
   VexMarkEffect,
   VexStealthEffect,
-  VexDeathMarkEffect,
   VexEmpoweredEffect,
   LumePrismEffect,
   EloraPoisonArrowEffect,

@@ -176,14 +176,6 @@ export const vexRenderer: ChampionRendererEntry = {
       showTimer: true,
       isDebuff: true,
     },
-    vex_death_mark: {
-      icon: "!",
-      bgColor: "rgba(44, 62, 80, 0.9)", // Dark
-      borderColor: "#e74c3c", // Red border (danger)
-      iconColor: "#e74c3c",
-      showTimer: true,
-      isDebuff: true,
-    },
     vex_stealth: {
       icon: "?",
       bgColor: "rgba(44, 62, 80, 0.8)",

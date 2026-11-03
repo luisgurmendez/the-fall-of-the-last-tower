@@ -275,8 +275,7 @@ describe('Elara', () => {
     });
 
     test('should affect allies near the cast location', () => {
-      // This test verifies E can buff allies
-      // Note: Current implementation may also affect enemies - this is game design choice
+      // This test verifies E can buff allies (enemies never get it)
       const allyBaseSpeed = arena.blue.getStats().movementSpeed;
 
       arena.castAbility(arena.blue, 'E');
@@ -349,17 +348,26 @@ describe('Elara', () => {
     });
 
     test('should cleanse debuffs from allies', () => {
-      // Apply debuffs
-      arena.blue.applyEffect('stun', 5.0);
-      arena.blue.applyEffect('slow_40', 5.0);
+      const ally = new TestChampion({
+        id: 'test-ally-cleanse',
+        position: new Vector(100, 0),
+        side: TEAM_BLUE,
+        definition: CHAMPION_DEFINITIONS['warrior'],
+        playerId: 'player-ally-cleanse',
+      });
+      arena.context.addChampion(ally, 'player-ally-cleanse');
 
-      expect(arena.blue.ccStatus.isStunned).toBe(true);
+      // Apply debuffs (with no source: an enemy's)
+      ally.applyEffect('stun', 5.0);
+      ally.applyEffect('slow_40', 5.0);
 
-      arena.castAbility(arena.blue, 'R');
-      arena.tick();
+      expect(ally.ccStatus.isStunned).toBe(true);
 
-      // Stun should be cleansed (if cleansable)
-      // Note: This depends on the effect being marked as cleansable
+      expect(arena.castAbility(arena.blue, 'R').success).toBe(true);
+
+      expect(ally.hasEffect('stun')).toBe(false);
+      expect(ally.hasEffect('slow_40')).toBe(false);
+      expect(ally.ccStatus.isStunned).toBe(false);
     });
 
     test('should have long cooldown (140s at rank 1)', () => {

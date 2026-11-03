@@ -60,7 +60,6 @@ export class VexDashHandler extends BaseAbilityHandler {
 
     // Update facing direction
     champion.direction = normalizedDir;
-    this.faceToward(champion, targetPosition);
 
     // Check for marked enemy - if found, signal cooldown reset
     const hasMarkedEnemy = this.checkForMarkedEnemy(params);

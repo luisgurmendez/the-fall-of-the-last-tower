@@ -163,7 +163,7 @@ function executeDash(
   const normalizedDir = direction.normalized();
   const dashDistance = Math.min(direction.length(), definition.dash.distance);
 
-  // Apply self-buff effects (like Vex's empowered attack)
+  // Apply self-buff effects (like Elora's quickened attacks after her roll)
   // Check for effects that should be applied to caster (buff effects)
   if (definition.appliesEffects) {
     for (const effectId of definition.appliesEffects) {
@@ -179,7 +179,7 @@ function executeDash(
   }
 
   // Calculate damage for collision if ability has damage (with passive multiplier)
-  // For Vex dash, damage is used for empowered attack, not dash collision
+  // (Without an aoeRadius the dash hits nothing on the way)
   let damageAmount = 0;
   const dashHasDamageOnCollision = definition.damage && definition.aoeRadius;
   if (dashHasDamageOnCollision) {

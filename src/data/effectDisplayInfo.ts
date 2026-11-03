@@ -771,13 +771,6 @@ const EFFECT_DISPLAY_INFO: Record<string, EffectDisplayInfo> = {
     icon: '?',
     color: '#2c3e50',
   },
-  vex_death_mark: {
-    name: 'Death Mark',
-    description: 'Will take bonus damage when mark detonates.',
-    category: 'debuff',
-    icon: '!',
-    color: '#2c3e50',
-  },
 
   // ===================
   // Warrior Effects
