@@ -4,8 +4,9 @@
  * He burrows and travels underground toward the spot, under walls too
  * (a forced movement that passes walls, ending where Terrain.landingSpot
  * finds open ground), drawn as zhakrul_e while it lasts. He bursts out
- * where he ends up: an ABILITY_CAST zhakrul_e_burst (for its VFX), damage
- * and a knock-up on the enemies around.
+ * where he ends up, once the burrow is over: an ABILITY_CAST
+ * zhakrul_e_burst (for its VFX), damage and a knock-up on the enemies
+ * around. Like the other dashes it has no cast time (getCastTime: movesCaster).
  */
 
 import { GameEventType, ZHAKRUL_KIT, canAbilityAffectEntityType } from '@siege/shared';
@@ -39,8 +40,13 @@ export class ZhakrulEHandler extends BaseAbilityHandler {
 
     const damage = this.calculateDamage(definition, rank, champion, damageMultiplier);
     const radius = definition.aoeRadius ?? 130;
-    context.schedule(duration, () => {
+    const burst = () => {
       if (champion.isDead) return;
+      // Delayed actions run before units move in a tick: still underground, come up next tick
+      if (champion.forcedMovement && champion.dashAbilityId === definition.id) {
+        context.schedule(0, burst);
+        return;
+      }
       context.addEvent(GameEventType.ABILITY_CAST, {
         entityId: champion.id,
         abilityId: 'zhakrul_e_burst',
@@ -53,7 +59,8 @@ export class ZhakrulEHandler extends BaseAbilityHandler {
         if (definition.damage) this.dealDamage(entity, damage, definition.damage.type, champion.id, context);
         if (!entity.isDead) applyEffectsToEntity(entity, definition.appliesEffects ?? [], definition.effectDuration ?? 0.75, champion.id);
       }
-    });
+    };
+    context.schedule(duration, burst);
     return { success: true };
   }
 }

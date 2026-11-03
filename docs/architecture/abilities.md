@@ -190,8 +190,8 @@ still, facing its aim, and then the ability goes off. It's the tell that makes s
 dodgeable and a missed one a commitment: standing still, with nothing else castable and no
 basic attacks. `getCastTime()` (`packages/shared/src/types/abilities.ts`) gives an ability's
 own `castTime`, or by its kind: skillshots, ground targets and enemy targets take
-`DEFAULT_CAST_TIME` (0.25 s); dashes, blinks, self casts, areas around the caster and casts on
-allies are instant (a dash is its own commitment, and buffs and saves should answer at once).
+`DEFAULT_CAST_TIME` (0.25 s); dashes, blinks (and `movesCaster` abilities: Zhak'rul's burrow), self
+casts, areas around the caster and casts on allies are instant (a dash is its own commitment, and buffs and saves should answer at once).
 
 - `ServerAbilityExecutor` validates the cast, then `ServerChampion.startCast()` holds it: the
   champion faces its aim, doesn't move (a move order waits for the end) or attack, and drops a

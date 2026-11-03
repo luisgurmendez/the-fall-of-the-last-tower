@@ -973,13 +973,14 @@ export const DEFAULT_CAST_TIME = 0.25;
 /**
  * An ability's cast time (seconds the caster stands still before it goes
  * off): its own castTime, or by its kind: aimed abilities (skillshots,
- * ground targets, enemy targets) take DEFAULT_CAST_TIME; dashes, blinks,
- * self casts, areas around the caster and casts on allies are instant
- * (a dash is its own commitment, and buffs and saves should answer at once).
+ * ground targets, enemy targets) take DEFAULT_CAST_TIME; dashes, blinks
+ * (and abilities that move the caster, movesCaster), self casts, areas
+ * around the caster and casts on allies are instant (a dash is its own
+ * commitment, and buffs and saves should answer at once).
  */
 export function getCastTime(ability: AbilityDefinition): number {
   if (ability.castTime !== undefined) return ability.castTime;
-  if (ability.dash || ability.teleport) return 0;
+  if (ability.dash || ability.teleport || ability.movesCaster) return 0;
   switch (ability.targetType) {
     case 'skillshot':
     case 'ground_target':
