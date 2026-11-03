@@ -18,7 +18,12 @@ import type { ServerGameContext } from '../../../game/ServerGameContext';
 /** Feral's speed lasts this long, refreshed every tick while he's hurt */
 const FERAL_REFRESH = 0.3;
 
-const isFeral = (champion: ServerChampion) => champion.health < champion.maxHealth * FENRIS_FERAL.health;
+/**
+ * Whether he's feral: under his share of health, now (his abilities' damage
+ * and Vicious Bite's heal go by this, not by fenris_feral, which lingers a
+ * moment for the speed)
+ */
+export const isFeral = (champion: ServerChampion) => champion.health < champion.maxHealth * FENRIS_FERAL.health;
 
 export const fenrisHooks: IChampionHooks = {
   championId: 'fenris',
