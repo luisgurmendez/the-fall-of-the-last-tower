@@ -94,7 +94,8 @@ export class SummonerPicker {
     button.type = "button";
     button.className = "summoner-spell";
     button.dataset.spell = id;
-    button.title = `${spell.name}: ${spell.description} (cooldown ${spell.cooldown}s)`;
+    button.setAttribute("aria-label", `${spell.name}: ${spell.description}`);
+    button.append(spellTooltip(id));
 
     const icon = document.createElement("img");
     icon.src = summonerIconUrl(id);
@@ -107,4 +108,24 @@ export class SummonerPicker {
     button.append(label);
     return button;
   }
+}
+
+/** What a spell does, shown above its button on hover (summoner-tooltip in champion-select.css) */
+function spellTooltip(id: SummonerSpellId): HTMLElement {
+  const spell = SUMMONER_SPELLS[id];
+  const tooltip = document.createElement("span");
+  tooltip.className = "summoner-tooltip";
+  tooltip.setAttribute("aria-hidden", "true");
+  const name = document.createElement("span");
+  name.className = "summoner-tooltip-name";
+  name.textContent = spell.name;
+  name.style.color = spell.color;
+  const description = document.createElement("span");
+  description.className = "summoner-tooltip-text";
+  description.textContent = spell.description;
+  const cooldown = document.createElement("span");
+  cooldown.className = "summoner-tooltip-cooldown";
+  cooldown.textContent = `Cooldown: ${spell.cooldown}s`;
+  tooltip.append(name, description, cooldown);
+  return tooltip;
 }

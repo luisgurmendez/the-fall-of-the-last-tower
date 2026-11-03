@@ -844,6 +844,7 @@
 }
 
 .summoner-spell {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -874,4 +875,43 @@
 .summoner-spell-label {
   font-size: 14px;
   color: var(--pixel-text);
+}
+
+/* What the spell does, above it on hover (summonerPicker.ts) */
+.summoner-tooltip {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  z-index: 20;
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  width: 260px;
+  padding: 10px 12px;
+  transform: translateX(-50%);
+  background: var(--pixel-bg-darker);
+  border: 3px solid var(--pixel-border-highlight);
+  box-shadow: 4px 4px 0 #000;
+  text-align: left;
+  pointer-events: none;
+}
+
+.summoner-spell:hover .summoner-tooltip {
+  display: flex;
+}
+
+.summoner-tooltip-name {
+  font-size: 22px;
+  text-shadow: 2px 2px 0 #000;
+}
+
+.summoner-tooltip-text {
+  font-size: 16px;
+  line-height: 1.25;
+  color: var(--pixel-text);
+}
+
+.summoner-tooltip-cooldown {
+  font-size: 15px;
+  color: var(--pixel-text-dim);
 }

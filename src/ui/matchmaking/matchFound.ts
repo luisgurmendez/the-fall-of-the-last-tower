@@ -2,6 +2,7 @@
  * Loading screen, from the match found until the game starts: a card per
  * player (portrait, champion, player name, summoner spells and loading
  * progress), blue team then red, with the map, the mode and a rotating tip.
+ * On a short window the cards shrink until it all fits.
  *
  * The progress is real: the screen preloads the match's art (matchAssets.ts)
  * and the bars follow it. They never run ahead of the loading, take at least
@@ -50,6 +51,8 @@ const READY_PAUSE_MS = 400;
 const TICK_MS = 50;
 /** How often the tip changes */
 const TIP_MS = 5000;
+/** On a short window the cards shrink to fit, down to this much */
+const MIN_CARD_ZOOM = 0.6;
 /** Teams this size or smaller face each other side by side, bigger ones in two rows */
 const SIDE_BY_SIDE_TEAM_SIZE = 2;
 
@@ -185,17 +188,22 @@ export class MatchFoundScreen {
     frame.appendChild(art);
     if (champion) frame.appendChild(createDiv("loading-card-class", champion.class));
 
-    // Summoner spells: a box per spell with its icon
+    // Summoner spells: each one's icon and name (what it does on hover)
     const spells = createDiv("loading-card-spells");
     const spellIds = Array.isArray(player.summonerSpells) ? player.summonerSpells.slice(0, 2) : [];
     for (const spellId of spellIds) {
+      const definition = SUMMONER_SPELLS[spellId as SummonerSpellId];
       const spell = createDiv("loading-card-spell");
       spell.dataset.spell = String(spellId);
+      if (definition) spell.title = `${definition.name}: ${definition.description}`;
+      const iconBox = createDiv("loading-card-spell-icon");
       const icon = document.createElement("img");
       icon.src = summonerIconUrl(String(spellId));
-      icon.alt = SUMMONER_SPELLS[spellId as SummonerSpellId]?.name ?? String(spellId);
-      icon.title = icon.alt;
-      spell.appendChild(icon);
+      icon.alt = "";
+      iconBox.appendChild(icon);
+      const name = createDiv("loading-card-spell-name", definition?.name ?? String(spellId));
+      if (definition) name.style.color = definition.color;
+      spell.append(iconBox, name);
       spells.appendChild(spell);
     }
     const playerName = player.name || (bot ? "Bot" : isLocal ? "You" : "Player");
@@ -233,6 +241,7 @@ export class MatchFoundScreen {
    */
   startLoading(onLoaded: () => void): void {
     this.stopLoading();
+    this.fitToWindow();
     const loadId = ++this.loadId;
     this.loaded = 0;
     this.total = 0;
@@ -266,6 +275,22 @@ export class MatchFoundScreen {
         onLoaded();
       }, READY_PAUSE_MS);
     }, TICK_MS);
+  }
+
+  /**
+   * On a short window the cards shrink until the whole screen (map to tip)
+   * fits, measured once it's showing
+   */
+  private fitToWindow(): void {
+    const teams = this.teams;
+    const container = teams?.closest<HTMLElement>(".matchmaking-container");
+    if (!teams || !container) return;
+    teams.style.zoom = "";
+    requestAnimationFrame(() => {
+      const overflow = container.scrollHeight - container.clientHeight;
+      const height = teams.getBoundingClientRect().height;
+      if (overflow > 0 && height > 0) teams.style.zoom = String(Math.max(MIN_CARD_ZOOM, (height - overflow) / height));
+    });
   }
 
   /**

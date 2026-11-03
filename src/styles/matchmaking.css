@@ -589,20 +589,20 @@
 /* Summoner spells and player name */
 .loading-card-player {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
   margin-top: 8px;
   padding-top: 8px;
   border-top: 3px solid var(--pixel-border);
 }
 
-/* Room for two 24px spell icons; hidden while there are none */
+/* Each spell's icon and name, one under the other; hidden while there are none */
 .loading-card-spells {
   display: flex;
-  gap: 4px;
-  flex-shrink: 0;
+  flex-direction: column;
+  gap: 3px;
 }
 
 .loading-card-spells:empty {
@@ -610,24 +610,32 @@
 }
 
 .loading-card-spell {
-  box-sizing: border-box;
-  width: 24px;
-  height: 24px;
-  font-family: var(--pixel-font);
-  font-size: 18px;
-  line-height: 20px;
-  text-align: center;
-  color: var(--pixel-text-dim);
-  background: var(--pixel-bg-darker);
-  border: 2px solid var(--pixel-border-highlight);
-  image-rendering: pixelated;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.loading-card-spell img {
+.loading-card-spell-icon {
+  box-sizing: border-box;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  background: var(--pixel-bg-darker);
+  border: 2px solid var(--pixel-border-highlight);
+}
+
+.loading-card-spell-icon img {
   display: block;
   width: 100%;
   height: 100%;
   image-rendering: pixelated;
+}
+
+.loading-card-spell-name {
+  font-family: var(--pixel-font);
+  font-size: 18px;
+  white-space: nowrap;
+  text-shadow: 1px 1px 0 #000;
 }
 
 .loading-card-player-name {
