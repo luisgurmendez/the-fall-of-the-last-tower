@@ -48,7 +48,7 @@ const WARRIOR_BASE_STATS: ChampionBaseStats = {
   attackDamage: 60,
   abilityPower: 0,
   attackSpeed: 0.65,
-  attackRange: 55, // Melee
+  attackRange: 40, // Melee
   armor: 35,
   magicResist: 32,
   movementSpeed: 103,

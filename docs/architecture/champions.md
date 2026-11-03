@@ -23,8 +23,8 @@ type ChampionClass =
 ```typescript
 type AttackType = 'melee' | 'ranged';
 
-// Melee: 40-50 attack range
-// Ranged: 325-400 attack range
+// Melee: 40-50 attack range (Uruk's spear 65)
+// Ranged: 150-240 attack range
 ```
 
 ### Attack range
@@ -37,8 +37,14 @@ measured center to center (`isInRange`).
 
 Ranges follow the map's scale (0.4 of the classic MOBA's, see [map.md](map.md#scale)):
 a melee unit hits with its body almost touching the target's, and a ranged champion's range
-is under two seconds of walking. Current values: Vex and Warrior 55, Gorath 60, Vile 180
-(55 during R), Hop-To-Eat 55 (250 when its hop is ready), Fenris 60, Protobot 65, Calamitus and Zhak'rul 70, Uruk 95, Oitboil 150 (short bursts of flame), Caelum 200, Elara 210, Magnus and Lume 220,
+is under two seconds of walking. Melee ranges are measured against walking speed rather than
+the map: champions walk about 100 (the classic MOBA's 340 would be 136 at our scale), so the
+classic 125-175 comes to 40-50 here; at 55-95 melee champions hit from too far, and Uruk's
+spear from twice Kael's sword. A basic attack lands if the target is still within its range
+plus 25 when the windup ends (about what it walks in a windup; it was 50). Current values:
+Kael, Vex, Hop-To-Eat and Fenris 40, Gorath and Protobot 45, Calamitus and Zhak'rul 50, Uruk 65
+(a spear: the longest melee), Vile 180 (45 during R), Hop-To-Eat 250 when its hop is ready,
+Oitboil 150 (short bursts of flame), Caelum 200, Elara 210, Magnus and Lume 220,
 Elora 240 (the longest bow). Minions: melee 44, super 70, siege 140,
 caster 220. Towers 300 (they see 440). Melee monsters 40-60, thornspitter 100, dragon 200.
 Champions walk 99-106 units a second (under the classic MOBA's at our scale, for a calmer pace with the closer camera) and see 560; minions walk 88.

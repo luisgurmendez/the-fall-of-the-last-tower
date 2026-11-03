@@ -54,7 +54,7 @@ const FENRIS_BASE_STATS: ChampionBaseStats = {
   attackDamage: 60,
   abilityPower: 0,
   attackSpeed: 0.67,
-  attackRange: 60, // Claws
+  attackRange: 40, // Claws
   armor: 30,
   magicResist: 32,
   movementSpeed: 103,

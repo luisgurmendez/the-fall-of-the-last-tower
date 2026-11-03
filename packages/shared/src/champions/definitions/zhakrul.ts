@@ -76,7 +76,7 @@ const ZHAKRUL_BASE_STATS: ChampionBaseStats = {
   attackDamage: 58,
   abilityPower: 0,
   attackSpeed: 0.65,
-  attackRange: 70, // Long pincers
+  attackRange: 50, // Long pincers
   armor: 33,
   magicResist: 32,
   movementSpeed: 100, // Heavy (only Gorath is slower): little mobility without his E

@@ -64,7 +64,7 @@ const CALAMITUS_BASE_STATS: ChampionBaseStats = {
   attackDamage: 56,
   abilityPower: 0,
   attackSpeed: 0.62,
-  attackRange: 70, // Molten fists, long arms
+  attackRange: 50, // Molten fists, long arms
   armor: 34,
   magicResist: 32,
   movementSpeed: 100,

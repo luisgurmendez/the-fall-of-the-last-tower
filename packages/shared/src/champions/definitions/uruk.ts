@@ -39,7 +39,7 @@ const URUK_BASE_STATS: ChampionBaseStats = {
   attackDamage: 60,
   abilityPower: 0,
   attackSpeed: 0.65,
-  attackRange: 95, // A spear: melee, with reach
+  attackRange: 65, // A spear: the longest melee reach
   armor: 30,
   magicResist: 30,
   movementSpeed: 103,

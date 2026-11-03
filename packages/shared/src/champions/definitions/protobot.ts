@@ -60,7 +60,7 @@ const PROTOBOT_BASE_STATS: ChampionBaseStats = {
   attackDamage: 56,
   abilityPower: 0,
   attackSpeed: 0.63,
-  attackRange: 65, // Big steel fists
+  attackRange: 45, // Big steel fists
   armor: 34,
   magicResist: 32,
   movementSpeed: 100,

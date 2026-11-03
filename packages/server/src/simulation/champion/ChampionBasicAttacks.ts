@@ -23,6 +23,9 @@ import type { ServerEntity } from '../ServerEntity';
 import type { ServerChampion } from '../ServerChampion';
 import type { ServerGameContext } from '../../game/ServerGameContext';
 
+/** How far past its range a target can walk during the windup and still be hit (a champion walks about 30 in a windup) */
+const ATTACK_HIT_LEEWAY = 25;
+
 export class ChampionBasicAttacks {
   /** Time until the next attack can start */
   private attackCooldown = 0;
@@ -155,9 +158,8 @@ export class ChampionBasicAttacks {
       return;
     }
 
-    // Check if target is still in range (leeway for movement during animation)
-    const leewayRange = champion.getAttackRange() + 50; // Small leeway for target movement
-    if (!champion.isInAttackRange(target, leewayRange)) {
+    // Check if target is still in range, with a little leeway: about what it walks during the windup
+    if (!champion.isInAttackRange(target, champion.getAttackRange() + ATTACK_HIT_LEEWAY)) {
       return;
     }
 

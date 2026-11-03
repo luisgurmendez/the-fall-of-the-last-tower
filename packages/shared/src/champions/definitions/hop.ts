@@ -64,7 +64,7 @@ const HOP_BASE_STATS: ChampionBaseStats = {
   attackDamage: 62,
   abilityPower: 0,
   attackSpeed: 0.68,
-  attackRange: 55, // Teeth and feet
+  attackRange: 40, // Teeth and feet
   armor: 27,
   magicResist: 30,
   movementSpeed: 106, // The quickest
