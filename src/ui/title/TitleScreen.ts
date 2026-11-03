@@ -56,6 +56,11 @@ export class TitleScreen {
     const heading = overlay.querySelector(".game-logo");
     heading?.append(this.logo.canvas);
     heading?.classList.add("has-logo");
+    // The logo's emblem is the tab's icon
+    const icon = document.createElement("link");
+    icon.rel = "icon";
+    icon.href = this.logo.iconURL();
+    document.head.append(icon);
 
     window.addEventListener("resize", () => this.resize());
     this.resize();

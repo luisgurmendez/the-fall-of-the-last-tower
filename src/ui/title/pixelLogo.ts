@@ -1,64 +1,117 @@
 /**
- * The title screen's logo: the game's name in chunky gold pixel letters
- * under a jeweled crown, drawn on a small canvas the page scales up with
- * crisp pixels. The letters are the 5x7 font (pixelFont.ts) doubled and
- * made bold, the crown doubled too, banded from pale to deep gold with a lit top edge, ringed in
- * two dark outlines over a drop shadow. The still logo is drawn once; every
- * frame it bobs a pixel, a shine sweeps across it now and then, and
- * sparkles twinkle on its edges.
+ * The title screen's logo: an emblem (a shield split blue and red, the two
+ * sides, over two crossed swords) beside the game's name, drawn on a small
+ * canvas the page scales up with crisp pixels. A two-word name takes two
+ * lines: the first word small in striped steel, the last big in gold. The
+ * letters are the 5x7 font (pixelFont.ts) scaled up and made bold, banded
+ * from light to dark with a lit top edge; everything is ringed in two dark
+ * outlines over a drop shadow. The still logo is drawn once; every frame it
+ * bobs a pixel, a shine sweeps across it now and then, and sparkles twinkle
+ * on its edges. The emblem alone is the page's icon (iconURL).
  */
 
 import { dilate, embolden, pad, textMask, type Mask } from "./pixelFont";
 
 type Rgba = readonly [number, number, number, number];
 
-/** The crown over the name: g/G emerald, r/R ruby, Y/y gold, d dark gold */
-const CROWN = [
-  "..g.......r.......g..",
-  ".gGg.....rRr.....gGg.",
-  "..G.......R.......G..",
-  "..Y.......Y.......Y..",
-  "..YY.....YYY.....YY..",
-  "..YyY...YyyyY...YyY..",
-  "..YyyY.YyyyyyY.YyyY..",
-  "..YyyyyyyyyyyyyyyyY..",
-  "..ddddddddddddddddd..",
-  "..YyRyYyGyYyGyYyRyY..",
-  "..ddddddddddddddddd..",
+/**
+ * The emblem: B/b blue and R/r red halves, a gold rim (Y/y/d) with a white
+ * diamond (W) on the seam, the swords' gold guards, grips (w) and pommels
+ * above and their blades' tips (s/S) below
+ */
+const EMBLEM = [
+  "Y.................Y",
+  ".w...d.......d...w.",
+  "..w.y.........y.w..",
+  "...Y...........Y...",
+  "..yYYYYYYYYYYYYyy..",
+  ".d.YBBBBByRRRRRy.d.",
+  "...YBBBBBYRRRRRy...",
+  "...YBBBBYWYRRRRy...",
+  "...YBBBYWWWYRRRy...",
+  "...YBBBBYWYRRRRy...",
+  "...YBBBBBYRRRRRy...",
+  "...YbBBBByRRRRry...",
+  "....YbBBByRRRry....",
+  "....YbbBByRRrry....",
+  "...SsYbbbyrrrysS...",
+  "..Ss..Ybbyrry..sS..",
+  ".Ss....Ybyry....sS.",
+  ".s.......d.......s.",
+  "...................",
 ];
 
-const CROWN_COLORS: Record<string, Rgba> = {
-  g: [157, 255, 200, 255],
-  G: [31, 191, 106, 255],
-  r: [255, 163, 181, 255],
-  R: [224, 40, 72, 255],
+const EMBLEM_COLORS: Record<string, Rgba> = {
+  B: [74, 144, 255, 255],
+  b: [36, 78, 178, 255],
+  R: [240, 72, 84, 255],
+  r: [156, 28, 48, 255],
   Y: [255, 216, 74, 255],
   y: [232, 163, 23, 255],
   d: [168, 98, 12, 255],
+  W: [255, 252, 236, 255],
+  s: [236, 244, 255, 255],
+  S: [140, 158, 190, 255],
+  w: [122, 68, 36, 255],
 };
 
-/** The letters' gold, top to bottom */
-const GOLD_BANDS: Rgba[] = [
-  [255, 243, 192, 255],
-  [255, 224, 112, 255],
-  [255, 204, 51, 255],
-  [245, 170, 34, 255],
-  [224, 132, 26, 255],
-  [192, 98, 15, 255],
-];
-const GOLD_LIGHT: Rgba = [255, 251, 232, 255];
-const GOLD_DARK: Rgba = [138, 63, 8, 255];
+/** How a line of the name is painted: bands top to bottom, its lit top and dark bottom edges */
+interface Paint {
+  bands: Rgba[];
+  light: Rgba;
+  dark: Rgba;
+  /** Dark stripes across the lower half, every this many rows (0: none) */
+  stripes: number;
+}
+
+/** The last word: gold */
+const GOLD: Paint = {
+  bands: [
+    [255, 243, 192, 255],
+    [255, 224, 112, 255],
+    [255, 204, 51, 255],
+    [245, 170, 34, 255],
+    [224, 132, 26, 255],
+    [192, 98, 15, 255],
+  ],
+  light: [255, 251, 232, 255],
+  dark: [138, 63, 8, 255],
+  stripes: 0,
+};
+
+/** The words before it: striped steel, like an old arcade cabinet's */
+const STEEL: Paint = {
+  bands: [
+    [240, 246, 255, 255],
+    [206, 222, 244, 255],
+    [168, 190, 224, 255],
+    [130, 152, 196, 255],
+    [98, 116, 164, 255],
+  ],
+  light: [255, 255, 255, 255],
+  dark: [56, 64, 108, 255],
+  stripes: 4,
+};
+
 const OUTLINE_INNER: Rgba = [58, 18, 32, 255];
 const OUTLINE_OUTER: Rgba = [14, 4, 18, 255];
 const SHADOW: Rgba = [8, 2, 20, 140];
 
-/** The letters and the crown are drawn this many logo pixels per pixel */
-const SCALE = 2;
+/** The emblem is drawn this many logo pixels per pixel */
+const EMBLEM_SCALE = 2;
+/** The first words' letters and the last word's, in logo pixels per font pixel */
+const SMALL_SCALE = 2;
+const BIG_SCALE = 3;
+/** Font pixels between the first words' letters (wider than the last word's) */
+const SMALL_SPACING = 2;
 /** Room around the logo for its outlines and sparkles */
 const MARGIN = 5;
-/** Rows between the crown and the name: the outlines join them */
-const CROWN_GAP = 2;
+/** Between the emblem and the name, and between the name's lines */
+const EMBLEM_GAP = 6;
+const LINE_GAP = 3;
 const SHADOW_DROP = 3;
+/** The page's icon is this many pixels square */
+const ICON_SIZE = 48;
 /** The shine crosses in this long, every this long */
 const SHINE_SECONDS = 1.1;
 const SHINE_EVERY = 4.5;
@@ -82,7 +135,9 @@ export class PixelLogo {
   private readonly ctx: CanvasRenderingContext2D;
   /** The still logo */
   private readonly still: HTMLCanvasElement;
-  /** The letters' and crown's pixels (x, y pairs), for the shine */
+  /** Where the emblem is on it (its top left; it's square) */
+  private readonly emblemAt: { x: number; y: number; size: number };
+  /** The emblem's and letters' pixels (x, y pairs), for the shine */
   private readonly body: Int16Array;
   /** Their edge pixels, where sparkles appear */
   private readonly edges: Int16Array;
@@ -90,44 +145,44 @@ export class PixelLogo {
   private lastSparkle = 0;
 
   constructor(name: string) {
-    const letters = embolden(pad(textMask(name, SCALE, 2), MARGIN));
-    const crownWidth = CROWN[0].length * SCALE;
-    const crownHeight = CROWN.length * SCALE;
-    const width = Math.max(letters.width, crownWidth + MARGIN * 2);
-    const top = MARGIN + crownHeight + CROWN_GAP;
-    const letterX = Math.floor((width - letters.width) / 2);
-    const letterY = top - MARGIN;
-    // One spare row at the bottom for the bob
-    const height = letterY + letters.height + SHADOW_DROP + 1;
+    const words = name.split(" ");
+    const last = words.pop() ?? "";
+    // Bold letters spill a pixel right and down: one pixel of room for it
+    const big = embolden(pad(textMask(last, BIG_SCALE), 1));
+    const small = words.length ? embolden(pad(textMask(words.join(" "), SMALL_SCALE, SMALL_SPACING), 1)) : null;
+    const nameWidth = Math.max(big.width, small?.width ?? 0);
+    const nameHeight = big.height + (small ? small.height + LINE_GAP : 0);
+    const emblemSize = EMBLEM.length * EMBLEM_SCALE;
+    const content = Math.max(emblemSize, nameHeight);
+
+    const width = MARGIN + emblemSize + EMBLEM_GAP + nameWidth + MARGIN;
+    // Room below for the shadow, and one spare row for the bob
+    const height = MARGIN + content + MARGIN + SHADOW_DROP + 1;
     this.width = width;
     this.height = height;
-
     const colors: (Rgba | null)[] = new Array(width * height).fill(null);
-    const isLetter = (x: number, y: number) => {
-      const lx = x - letterX;
-      const ly = y - letterY;
-      return lx >= 0 && ly >= 0 && lx < letters.width && ly < letters.height && letters.on[ly * letters.width + lx] === 1;
-    };
-    // The letters (bold, a pixel past the glyphs' bottom), banded
-    const letterTop = top;
-    const letterHeight = letters.height - MARGIN * 2 + 1;
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        if (!isLetter(x, y)) continue;
-        const band = Math.min(GOLD_BANDS.length - 1, Math.max(0, Math.floor(((y - letterTop) / letterHeight) * GOLD_BANDS.length)));
-        colors[y * width + x] = !isLetter(x, y - 1) ? GOLD_LIGHT : !isLetter(x, y + 1) ? GOLD_DARK : GOLD_BANDS[band];
-      }
-    }
-    // The crown, centered over them
-    const crownX = Math.floor((width - crownWidth) / 2);
-    for (let cy = 0; cy < crownHeight; cy++) {
-      for (let cx = 0; cx < crownWidth; cx++) {
-        const char = CROWN[Math.floor(cy / SCALE)][Math.floor(cx / SCALE)];
-        if (char !== ".") colors[(MARGIN + cy) * width + crownX + cx] = CROWN_COLORS[char];
+
+    // The emblem on the left, centered on the name
+    const emblemX = MARGIN;
+    const emblemY = MARGIN + Math.floor((content - emblemSize) / 2);
+    this.emblemAt = { x: emblemX, y: emblemY, size: emblemSize };
+    for (let ey = 0; ey < emblemSize; ey++) {
+      for (let ex = 0; ex < emblemSize; ex++) {
+        const char = EMBLEM[Math.floor(ey / EMBLEM_SCALE)][Math.floor(ex / EMBLEM_SCALE)];
+        if (char !== ".") colors[(emblemY + ey) * width + emblemX + ex] = EMBLEM_COLORS[char];
       }
     }
 
-    // Two outline rings around both, over a drop shadow
+    // The name on the right: the first words centered over the last
+    const nameX = emblemX + emblemSize + EMBLEM_GAP;
+    let lineY = MARGIN + Math.floor((content - nameHeight) / 2);
+    if (small) {
+      paintLine(colors, width, small, nameX + Math.floor((nameWidth - small.width) / 2), lineY, STEEL);
+      lineY += small.height + LINE_GAP;
+    }
+    paintLine(colors, width, big, nameX + Math.floor((nameWidth - big.width) / 2), lineY, GOLD);
+
+    // Two outline rings around it all, over a drop shadow
     const bodyMask: Mask = { width, height, on: Uint8Array.from(colors, color => (color ? 1 : 0)) };
     const ring1 = dilate(bodyMask);
     const ring2 = dilate(ring1);
@@ -166,6 +221,22 @@ export class PixelLogo {
     this.canvas.width = width;
     this.canvas.height = height;
     this.ctx = this.canvas.getContext("2d")!;
+  }
+
+  /** The emblem with its outlines, as an image URL for the page's icon */
+  iconURL(): string {
+    const icon = document.createElement("canvas");
+    icon.width = ICON_SIZE;
+    icon.height = ICON_SIZE;
+    const ctx = icon.getContext("2d")!;
+    // The outlines reach two pixels past the emblem
+    const { x, y, size } = this.emblemAt;
+    const from = size + 4;
+    const scale = Math.max(1, Math.floor(ICON_SIZE / from));
+    const at = Math.floor((ICON_SIZE - from * scale) / 2);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(this.still, x - 2, y - 2, from, from, at, at, from * scale, from * scale);
+    return icon.toDataURL("image/png");
   }
 
   /** Draw the logo `time` seconds into the title screen */
@@ -213,6 +284,24 @@ export class PixelLogo {
       }
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(sparkle.x, y, 1, 1);
+    }
+  }
+}
+
+/** Paint a line of letters (a mask) at (left, top) of the logo, banded, edged and maybe striped */
+function paintLine(colors: (Rgba | null)[], width: number, mask: Mask, left: number, top: number, paint: Paint): void {
+  const isOn = (x: number, y: number) => x >= 0 && y >= 0 && x < mask.width && y < mask.height && mask.on[y * mask.width + x] === 1;
+  // The letters span the mask but its one-pixel room above
+  const letterHeight = mask.height - 1;
+  const half = Math.floor(letterHeight / 2);
+  for (let y = 0; y < mask.height; y++) {
+    const row = y - 1;
+    if (paint.stripes && row > half && (row - half) % paint.stripes === 0) continue;
+    for (let x = 0; x < mask.width; x++) {
+      if (!isOn(x, y)) continue;
+      const band = Math.min(paint.bands.length - 1, Math.max(0, Math.floor((row / letterHeight) * paint.bands.length)));
+      const color = !isOn(x, y - 1) ? paint.light : !isOn(x, y + 1) ? paint.dark : paint.bands[band];
+      colors[(top + y) * width + left + x] = color;
     }
   }
 }
