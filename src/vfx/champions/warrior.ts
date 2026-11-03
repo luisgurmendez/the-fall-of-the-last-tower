@@ -91,8 +91,15 @@ registerAbilityVFX({
       { type: 'trail', color: AZURE, thickness: 12, duration: 0.5, fadeLength: 16 },
       embers(STEEL, 10, 30),
     ], 0.5),
-    phase('blade', 0.05, 'target', [meteor('blade', AZURE, 16, 300, STRIKE - 0.05, WHITE)], STRIKE - 0.05),
-    phase('strike', STRIKE, 'target', [
+    phase('blade', 0, 'target', [meteor('blade', AZURE, 16, 300, STRIKE, WHITE)], STRIKE),
+  ],
+});
+
+// ...and he slams down where he lands (the server's warrior_ultimate_land)
+registerAbilityVFX({
+  abilityId: 'warrior_ultimate_land',
+  phases: [
+    phase('strike', 0, 'target', [
       shockwave(AZURE, 20, 130, 0.45, 10),
       ring(WHITE, 10, 100, 0.25, 3),
       scorch(AZURE, 80, 2.0, 0.6),

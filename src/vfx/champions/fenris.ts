@@ -64,7 +64,14 @@ registerAbilityVFX({
       { type: 'trail', color: FUR, thickness: 12, duration: 0.45, fadeLength: 16 },
       smoke(FUR, 5, [10, 16], [20, 60]),
     ], 0.45),
-    phase('land', 0.4, 'target', [
+  ],
+});
+
+// ...and lands on it (the server's fenris_e_land)
+registerAbilityVFX({
+  abilityId: 'fenris_e_land',
+  phases: [
+    phase('land', 0, 'target', [
       ring(FUR, 10, 60, 0.3, 4),
       debris('#6a5a48', 10, [60, 160]),
       cuts(RED, 30, 4, 0.2, [0.6]),

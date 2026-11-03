@@ -95,7 +95,14 @@ registerAbilityVFX({
       { type: 'trail', color: SILVER, thickness: 12, duration: STRIKE + 0.1, fadeLength: 16 },
       embers(ICE, 10, 30),
     ], STRIKE + 0.1),
-    phase('strike', STRIKE, 'target', [
+  ],
+});
+
+// ...and runs it through where he lands (the server's uruk_r_land)
+registerAbilityVFX({
+  abilityId: 'uruk_r_land',
+  phases: [
+    phase('strike', 0, 'target', [
       spikes('crystal', ICE, 10, 90, 'lines', [28, 48], 1.0, FROST),
       shockwave(SILVER, 20, 120, 0.4, 10),
       sparks(FROST, 22, [200, 440]),

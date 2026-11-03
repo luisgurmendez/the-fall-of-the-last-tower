@@ -14,7 +14,7 @@
  * - Every dash sets the champion's dashAbilityId, so clients draw it as one
  */
 
-import { calculateAbilityValue, type AbilityDefinition, type Vector } from "@siege/shared";
+import { calculateAbilityValue, GameEventType, type AbilityDefinition, type Vector } from "@siege/shared";
 import type { AbilityCastParams } from "../../simulation/ServerAbilityExecutor";
 import type { ServerChampion } from "../../simulation/ServerChampion";
 import { getServerEffectById } from "../../data/effects";
@@ -50,8 +50,8 @@ const LEAP_CHASE = 120;
 /**
  * Leap at the target enemy: fly at it wherever it moves (over walls) and,
  * landing next to it, hit it with the ability (its damage and effects, on
- * it alone). Nothing happens at the cast; a target that dies or gets away
- * isn't hit.
+ * it alone) and tell clients (`<id>_land`, for its blow). Nothing happens at
+ * the cast; a target that dies or gets away isn't hit.
  */
 export function leapToTarget(
   params: AbilityCastParams,
@@ -81,7 +81,16 @@ export function leapToTarget(
       maxDistance: definition.dash.distance + LEAP_CHASE,
       flown: 0,
       gap,
-      land: () => executeTargetEnemyAbility(params, definition, rank, damageMultiplier),
+      land: () => {
+        executeTargetEnemyAbility(params, definition, rank, damageMultiplier);
+        context.addEvent(GameEventType.ABILITY_CAST, {
+          entityId: champion.id,
+          abilityId: `${definition.id}_land`,
+          targetEntityId: target.id,
+          targetX: target.position.x,
+          targetY: target.position.y,
+        });
+      },
     },
   };
   champion.dashAbilityId = definition.id;

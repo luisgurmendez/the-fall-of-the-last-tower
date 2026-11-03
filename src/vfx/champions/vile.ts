@@ -4,7 +4,7 @@
  * drawn by src/gpu/fx/projectiles.ts.
  */
 
-import { getAbilityDefinition } from '@siege/shared';
+import { getAbilityDefinition, getCastTime } from '@siege/shared';
 import { registerAbilityVFX } from '../VFXRegistryStore';
 import { abilityImpactTime } from '@/core/state/abilityTiming';
 import { gather, light, phase, ring, scorch, shake, sigil, smoke, sparks, spikes, wisps } from '../recipes';
@@ -17,21 +17,30 @@ const ROOT = '#4a2e48';
 
 /** Seconds from releasing the bow until the arrows fly (its animation's projectile keyframe) */
 const LOOSE = abilityImpactTime('vile_black_arrows');
+/** Her cast time after the charge: the souls gather at the bow */
+const DRAW = getCastTime(getAbilityDefinition('vile_black_arrows')!);
 
 const TRAP = getAbilityDefinition('vile_roots_of_vilix')?.trap;
 const TRAP_RADIUS = TRAP?.triggerRadius ?? 60;
 const TRAP_BLAST = TRAP?.explosionRadius ?? 140;
 const AURA_RADIUS = getAbilityDefinition('vile_restoration_of_vilix')?.aura?.radius ?? 140;
 
-// Q: souls gather at his bow...
+// Q: souls gather at his bow (in the cast time)...
+registerAbilityVFX({
+  abilityId: 'vile_black_arrows_windup',
+  phases: [
+    phase('draw', 0, 'caster', [
+      gather(SOUL, 6, 50, DRAW, 'wisp'),
+      smoke(VOID, 4, [10, 14], [10, 30]),
+      light(VIOLET, 60, 0.6, DRAW + 0.1),
+    ], DRAW),
+  ],
+});
+
+// ...the arrows fly...
 registerAbilityVFX({
   abilityId: 'vile_black_arrows',
   phases: [
-    phase('draw', 0, 'caster', [
-      gather(SOUL, 6, 50, LOOSE, 'wisp'),
-      smoke(VOID, 4, [10, 14], [10, 30]),
-      light(VIOLET, 60, 0.6, LOOSE + 0.1),
-    ], LOOSE),
     phase('loose', LOOSE, 'caster', [sparks(VIOLET, 8, [200, 380], Math.PI / 5)], 0.25),
   ],
 });

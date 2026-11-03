@@ -5,7 +5,7 @@
  * ./index.ts).
  */
 
-import { getAbilityDefinition } from '@siege/shared';
+import { getAbilityDefinition, getCastTime } from '@siege/shared';
 import { registerAbilityVFX } from '../VFXRegistryStore';
 import { landsAt } from '../recipes';
 import {
@@ -70,7 +70,16 @@ registerAbilityVFX({
   ],
 });
 
-// W: the bowstring snaps (the heavy arrow is the projectile)...
+// W: she draws the heavy arrow (in the cast time)...
+const DRAW = getCastTime(getAbilityDefinition('elora_w')!);
+registerAbilityVFX({
+  abilityId: 'elora_w_windup',
+  phases: [
+    phase('draw', 0, 'caster', [twinkles(STEEL, 2, [0, 10], { lifetime: { min: DRAW, max: DRAW } }), light(SHAFT, 30, 0.3, DRAW)], DRAW),
+  ],
+});
+
+// ...the bowstring snaps (the heavy arrow is the projectile)...
 registerAbilityVFX({
   abilityId: 'elora_w',
   phases: [

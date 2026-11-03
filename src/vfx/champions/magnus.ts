@@ -4,7 +4,7 @@
  * drawn by src/gpu/fx/projectiles.ts and his zones by src/gpu/fx/zones.ts.
  */
 
-import { getAbilityDefinition } from '@siege/shared';
+import { getAbilityDefinition, getCastTime } from '@siege/shared';
 import { registerAbilityVFX } from '../VFXRegistryStore';
 import { abilityImpactTime } from '@/core/state/abilityTiming';
 import {
@@ -35,20 +35,29 @@ const MUD = '#6a4a30';
 
 /** Seconds until the fireball leaves his staff (its animation's projectile keyframe) */
 const THROW = abilityImpactTime('magnus_fireball');
+/** His cast time: the fire gathers while he stands still */
+const GATHER = getCastTime(getAbilityDefinition('magnus_fireball')!);
 const MUD_LANDS = landsAt('magnus_mud');
 const MUD_RADIUS = getAbilityDefinition('magnus_mud')?.aoeRadius ?? 110;
 const METEOR_LANDS = landsAt('magnus_meteor');
 const METEOR_RADIUS = getAbilityDefinition('magnus_meteor')?.aoeRadius ?? 250;
 
-// Q: fire gathers at his staff, then bursts out with the fireball...
+// Q: fire gathers at his staff in the cast time...
+registerAbilityVFX({
+  abilityId: 'magnus_fireball_windup',
+  phases: [
+    phase('gather', 0, 'caster', [
+      gather(HOT, 10, 45, GATHER, 'ember'),
+      flames(FIRE, 3, [5, 8], [5, 20], { lifetime: { min: GATHER, max: GATHER + 0.1 } }),
+      light(FIRE, 60, 0.7, GATHER + 0.1),
+    ], GATHER),
+  ],
+});
+
+// ...then bursts out with the fireball...
 registerAbilityVFX({
   abilityId: 'magnus_fireball',
   phases: [
-    phase('gather', 0, 'caster', [
-      gather(HOT, 10, 45, THROW, 'ember'),
-      flames(FIRE, 3, [5, 8], [5, 20], { lifetime: { min: THROW, max: THROW + 0.1 } }),
-      light(FIRE, 60, 0.7, THROW + 0.1),
-    ], THROW),
     phase('throw', THROW, 'caster', [
       flames(HOT, 5, [7, 11], [60, 160], { spread: Math.PI / 3 }),
       sparks(HOT, 6, [120, 260], Math.PI / 3),

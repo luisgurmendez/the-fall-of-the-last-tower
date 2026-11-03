@@ -127,6 +127,11 @@ describe('Champion client contract', () => {
       ...ALL_ABILITY_IDS,
       ...ALL_ABILITY_IDS.map((abilityId) => `${abilityId}_recast`),
       ...OTHER_CAST_EVENT_IDS,
+      // Spawned on ABILITY_WINDUP, for the cast time (state/gameEvents.ts)
+      ...ALL_ABILITY_IDS.map((abilityId) => `${abilityId}_windup`),
+      // A targeted leap landing (server: generic/Movement.ts leapToTarget), Lume's orb arriving (LumeQHandler)
+      ...ALL_ABILITY_IDS.map((abilityId) => `${abilityId}_land`),
+      'lume_q_arrive',
       // Spawned where a skillshot's projectile is destroyed (state/entityVFX.ts)
       ...ALL_ABILITY_IDS.map((abilityId) => `${abilityId}_impact`),
       ...OTHER_ATTACK_PROJECTILES.map((projectile) => `${projectile}_impact`),

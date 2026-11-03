@@ -49,10 +49,9 @@ export const ABILITY_CUES: Record<string, AbilityCue[]> = {
     { sound: "jungle_tunnel", delay: MOBAConfig.TUNNELS.CRAWL_TIME - 0.15, at: "target" },
   ],
   warrior_slash: [{ sound: "warrior_slash", delay: landsAt("warrior_slash") }],
-  warrior_ultimate: [
-    { sound: "warrior_ultimate_leap" },
-    { sound: "warrior_ultimate_strike", delay: landsAt("warrior_ultimate"), at: "target" },
-  ],
+  // Leaps: the blow when the server says it landed (its trip takes as long as it's far)
+  warrior_ultimate: [{ sound: "warrior_ultimate_leap" }],
+  warrior_ultimate_land: [{ sound: "warrior_ultimate_strike", at: "target" }],
   magnus_fireball: [{ sound: "magnus_fireball", delay: landsAt("magnus_fireball") }],
   magnus_mud: [{ sound: "magnus_mud", delay: landsAt("magnus_mud"), at: "target" }],
   magnus_meteor: [
@@ -66,10 +65,8 @@ export const ABILITY_CUES: Record<string, AbilityCue[]> = {
     { sound: "gorath_earthquake_rumble" },
     { sound: "gorath_earthquake", delay: landsAt("gorath_earthquake") },
   ],
-  lume_q: [
-    { sound: "lume_q" },
-    { sound: "lume_q_arrive", delay: landsAt("lume_q"), at: "target" },
-  ],
+  lume_q: [{ sound: "lume_q" }],
+  lume_q_arrive: [{ sound: "lume_q_arrive", at: "target" }],
   // Eclipse fires from the orb by her: heard there, not at the beam's far end
   lume_r: [
     { sound: "lume_r_charge" },
@@ -80,10 +77,8 @@ export const ABILITY_CUES: Record<string, AbilityCue[]> = {
   vile_roots_of_vilix: [{ sound: "vile_roots_of_vilix", at: "target" }],
   vile_trap_trigger: [{ sound: "vile_trap_trigger", at: "target" }],
   uruk_q: [{ sound: "uruk_q", delay: landsAt("uruk_q") }],
-  uruk_r: [
-    { sound: "uruk_r_leap" },
-    { sound: "uruk_r", delay: landsAt("uruk_r"), at: "target" },
-  ],
+  uruk_r: [{ sound: "uruk_r_leap" }],
+  uruk_r_land: [{ sound: "uruk_r", at: "target" }],
   elora_w: [{ sound: "elora_w", delay: landsAt("elora_w") }],
   elora_r: [
     { sound: "elora_r" },
@@ -92,6 +87,7 @@ export const ABILITY_CUES: Record<string, AbilityCue[]> = {
   caelum_q: [{ sound: "caelum_q", delay: landsAt("caelum_q") }],
   caelum_w: [{ sound: "caelum_w", at: "target" }],
   caelum_e: [{ sound: "caelum_e", delay: landsAt("caelum_e"), at: "target" }],
+  // The whole pounce, whoosh to thud (about as long as its leap)
   fenris_e: [{ sound: "fenris_e" }],
   calamitus_r: [
     { sound: "calamitus_r_rumble" },

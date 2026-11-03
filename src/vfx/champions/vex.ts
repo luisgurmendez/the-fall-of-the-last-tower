@@ -5,6 +5,7 @@
  * src/gpu/fx/projectiles.ts.
  */
 
+import { getAbilityDefinition, getCastTime } from '@siege/shared';
 import { registerAbilityVFX } from '../VFXRegistryStore';
 import { abilityImpactTime } from '@/core/state/abilityTiming';
 import { cuts, embers, light, pathCut, petals, phase, rays, smoke, sparks, twinkles } from '../recipes';
@@ -16,12 +17,21 @@ const PETAL = '#ffb3c8';
 
 /** Seconds until the shuriken leaves her hand (its animation's projectile keyframe) */
 const THROW = abilityImpactTime('vex_shuriken');
+/** Her cast time: she draws the shuriken */
+const DRAW = getCastTime(getAbilityDefinition('vex_shuriken')!);
 
-// Q: a glint as she draws the shuriken, a flick as it leaves...
+// Q: a glint as she draws the shuriken (in the cast time)...
+registerAbilityVFX({
+  abilityId: 'vex_shuriken_windup',
+  phases: [
+    phase('draw', 0, 'caster', [twinkles(MOON, 1, [0, 0], { size: { min: 6, max: 7 }, lifetime: { min: DRAW, max: DRAW } })], DRAW),
+  ],
+});
+
+// ...a flick as it leaves...
 registerAbilityVFX({
   abilityId: 'vex_shuriken',
   phases: [
-    phase('draw', 0, 'caster', [twinkles(MOON, 1, [0, 0], { size: { min: 6, max: 7 }, lifetime: { min: THROW, max: THROW } })], THROW),
     phase('throw', THROW, 'caster', [sparks(MOON, 5, [200, 360], Math.PI / 5)], 0.25),
   ],
 });

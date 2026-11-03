@@ -9,7 +9,7 @@
  * trading hits elsewhere (minions in lane) show nothing over their bars.
  */
 
-import { EntityType, GameEventType, getAbilityDefinition, getChampionDefinition, type EmoteId, type GameEvent, type PingType } from '@siege/shared';
+import { CHAMPION_DEFINITIONS, EntityType, GameEventType, getAbilityDefinition, getChampionDefinition, type EmoteId, type GameEvent, type PingType } from '@siege/shared';
 import { getVFXManager } from '@/vfx';
 import { WORLD_VFX } from '@/vfx/world';
 import { punchCamera, shakeScreen } from '@/core/screenShake';
@@ -101,6 +101,24 @@ function describeDamageSource(data: Record<string, unknown>, ctx: GameEventConte
   }
 }
 
+/**
+ * Blows the server tells about when they land, after their ability's cast:
+ * a targeted leap's `<id>_land` (a target_enemy dash), Lume's orb arriving
+ */
+const FOLLOW_UPS = new Set([
+  ...Object.values(CHAMPION_DEFINITIONS).flatMap(champion => Object.values(champion.abilities))
+    .filter(abilityId => {
+      const definition = getAbilityDefinition(abilityId);
+      return definition?.targetType === 'target_enemy' && definition.dash !== undefined;
+    })
+    .map(abilityId => `${abilityId}_land`),
+  'lume_q_arrive',
+]);
+
+function isFollowUp(abilityId: string): boolean {
+  return FOLLOW_UPS.has(abilityId);
+}
+
 /** How long (ms) a cast's animation lasts: long enough to show the ability taking effect (an area landing late) */
 function castDuration(event: GameEvent, abilityId: string): number {
   return Math.max((event.data.animationDuration as number) ?? 0.5, abilityImpactTime(abilityId) + CAST_FOLLOW_THROUGH) * 1000;
@@ -151,6 +169,13 @@ export function processGameEvent(event: GameEvent, ctx: GameEventContext): void 
         startCastAnimation(entity, event, abilityId, now, castTime + castDuration(event, abilityId));
         entity.animation.windupAbilityId = abilityId;
         entity.animation.windupEndTime = now + castTime;
+        // What it gathers in the cast time (Magnus's fire at his staff), if it has a look for it
+        try {
+          getVFXManager().spawnAbilityVFX(`${abilityId}_windup`, entity.position.x, entity.position.y,
+            event.data.targetX as number | undefined, event.data.targetY as number | undefined, entity.snapshot.entityId);
+        } catch {
+          // VFXManager not initialized yet, skip
+        }
       }
       break;
     }
@@ -170,7 +195,15 @@ export function processGameEvent(event: GameEvent, ctx: GameEventContext): void 
       const targetY = event.data.targetY as number | undefined;
       const entity = ctx.entities.get(entityId);
 
-      if (entity) {
+      if (entity && isFollowUp(abilityId)) {
+        // A blow landing later (a leap, Lume's orb): its look only, no new cast
+        try {
+          getVFXManager().spawnAbilityVFX(abilityId, entity.position.x, entity.position.y, targetX, targetY, entityId,
+            (event.data.targetEntityId as string | undefined) ?? undefined);
+        } catch {
+          // VFXManager not initialized yet, skip
+        }
+      } else if (entity) {
         // After a cast time its animation is already playing: it carries on
         const fromWindup = entity.animation.windupAbilityId === abilityId
           && entity.animation.isCastingAbility

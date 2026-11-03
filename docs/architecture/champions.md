@@ -497,8 +497,10 @@ blow fill the time until just before it lands, the rest fill what's left. An att
 lands when its damage does (the shared `getBasicAttackDamageDelay` /
 `getBasicAttackDuration`, the same the server schedules it with); an ability's when it
 takes effect (`abilityImpactTime` in `src/core/state/abilityTiming.ts`: an area after its
-`aoeDelay`, a projectile as it's thrown, at once otherwise), which its VFX and sounds use
-too. A cast animation lasts at least 0.25 s past that moment. The walk cycle runs at 8 frames a
+`aoeDelay`, a projectile as the server throws it (at its cast, for one with a cast time), at
+once otherwise), which its VFX and sounds use too. A leap's blow and Lume's orb arriving take
+as long as their trip: their VFX and sounds wait for the server's `<id>_land` and
+`lume_q_arrive` events. A cast animation lasts at least 0.25 s past that moment. The walk cycle runs at 8 frames a
 second at the base pace (100 units a second) and follows the champion's movement speed (0.4x to
 1.8x), so a slowed champion's steps slow down and a hasted one's speed up instead of sliding. A champion's `visualHeight` places its
 health bar above its art. During Vile's R the server puts a `vile_transformed` marker effect

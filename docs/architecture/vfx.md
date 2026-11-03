@@ -79,6 +79,8 @@ How config types look on the GPU:
 
 **Tower shots** leave from the top of the tower and drop onto their target's body as they close in (`towerShotLift` in `src/render/entities/projectile.ts`); the server's shots fly at 500, so they're on screen for up to about 0.6 seconds. Drawn at the ground they stayed hidden under the tower, and a tower's shots on minions or enemies looked like nothing.
 
+**Cast times and later blows:** an ability with a cast time (`ABILITY_WINDUP`) plays the VFX registered as `<abilityId>_windup`, if any, while the caster stands still (Magnus's fire gathering at his staff, Vex drawing her shuriken); its throw plays with `ABILITY_CAST`, when the server throws the projectile. A targeted leap's blow is `<abilityId>_land` (Kael's slam, Urûk's strike, Fenris landing) and Lume's orb landing `lume_q_arrive`: the server sends those when they happen (`gameEvents.ts` plays only their look, no new cast animation).
+
 **Projectile impacts:** when a projectile is destroyed, `entityVFX.ts` spawns the VFX registered as `<projectile type>_impact` (e.g. `magnus_fireball_impact`) where it was, so explosions happen where the projectile actually hits.
 
 **Effects on an ally:** effects that follow an entity (shields, trails, orbits) follow the caster, or in a phase anchored on the target, the cast's `targetEntityId` (Elara's shield on an ally).

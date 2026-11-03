@@ -7,7 +7,6 @@
 
 import { getAbilityDefinition, LUME_ORB_CONFIG } from '@siege/shared';
 import { registerAbilityVFX } from '../VFXRegistryStore';
-import { abilityImpactTime } from '@/core/state/abilityTiming';
 import {
   embers,
   gather,
@@ -40,7 +39,14 @@ registerAbilityVFX({
   abilityId: 'lume_q',
   phases: [
     phase('send', 0, 'caster', [twinkles(LIGHT, 5), sparks(WARM, 8, [180, 340], Math.PI / 4), light(LIGHT, 60, 0.6, 0.25)], 0.3),
-    phase('arrive', abilityImpactTime('lume_q'), 'ground_target', [
+  ],
+});
+
+// ...when it gets there (the server's lume_q_arrive)
+registerAbilityVFX({
+  abilityId: 'lume_q_arrive',
+  phases: [
+    phase('arrive', 0, 'ground_target', [
       ring(WHITE, 5, LUME_ORB_CONFIG.qImpactRadius, 0.3, 3),
       crystals(CYAN, 5, [60, 140]),
       crystals(PINK, 4, [60, 140]),

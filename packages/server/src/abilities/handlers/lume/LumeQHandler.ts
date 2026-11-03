@@ -9,7 +9,7 @@
  * RECAST: Recall the orb early (while traveling or stationed).
  */
 
-import { Vector, canAbilityAffectEntityType } from '@siege/shared';
+import { Vector, canAbilityAffectEntityType, GameEventType } from '@siege/shared';
 import { BaseAbilityHandler } from '../../BaseAbilityHandler';
 import type {
   AbilityHandlerParams,
@@ -73,6 +73,14 @@ export class LumeQHandler extends BaseAbilityHandler {
       for (const entity of enemies) {
         this.dealDamage(entity, damageAmount, damageType, champion.id, context);
       }
+
+      // Clients play its landing now (the trip takes as long as it's far)
+      context.addEvent(GameEventType.ABILITY_CAST, {
+        entityId: champion.id,
+        abilityId: 'lume_q_arrive',
+        targetX: orb.position.x,
+        targetY: orb.position.y,
+      });
 
       Logger.debug('Ability', `Lume Q arrived - dealt ${damageAmount.toFixed(0)} damage`);
     });

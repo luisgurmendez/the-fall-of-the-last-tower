@@ -4,7 +4,7 @@
  * glow on an emboldened ally is drawn by src/gpu/fx/championAuras.ts.
  */
 
-import { CAELUM_LIGHT, getAbilityDefinition } from '@siege/shared';
+import { CAELUM_LIGHT, getAbilityDefinition, getCastTime } from '@siege/shared';
 import { registerAbilityVFX } from '../VFXRegistryStore';
 import {
   debris,
@@ -31,7 +31,16 @@ const BARK = '#6a4a2a';
 const ROOTS = landsAt('caelum_e');
 const ROOTS_RADIUS = getAbilityDefinition('caelum_e')?.aoeRadius ?? 100;
 
-// Q: the staff flares as the ray leaves (the ray is the projectile)...
+// Q: light gathers at his staff (in the cast time)...
+const GATHER = getCastTime(getAbilityDefinition('caelum_q')!);
+registerAbilityVFX({
+  abilityId: 'caelum_q_windup',
+  phases: [
+    phase('gather', 0, 'caster', [gather(GOLD, 8, 40, GATHER), light(GOLD, 40, 0.4, GATHER)], GATHER),
+  ],
+});
+
+// ...the staff flares as the ray leaves (the ray is the projectile)...
 registerAbilityVFX({
   abilityId: 'caelum_q',
   phases: [
