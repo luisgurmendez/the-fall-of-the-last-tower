@@ -322,18 +322,23 @@ A destroyed inhibitor stays in the game (it has no `isDead` field, so the serial
 
 ## Bandwidth Optimization
 
+Measured for one player in a 5v5 practice match (`GameRoom` driven headless, the JSON of each `STATE_UPDATE`):
+
+| Minute | Full snapshot of what they see | The delta sent | Delta per second (30 Hz) | On the wire, compressed |
+|---|---|---|---|---|
+| 1 | 21 KB | 5.3 KB | ~155 KB/s | ~30 KB/s |
+| 5 | 34 KB | 10-11 KB | ~300 KB/s | ~65 KB/s |
+| 15 | 32 KB | 8 KB (peaks of 48 KB) | ~240 KB/s | ~50 KB/s |
+
+Most of a delta at minute 5: minions (~5 KB, many and always moving), ability states (~1.9 KB: `cooldownRemaining` changes every tick, so every champion's abilities go out 30 times a second), `entityId`/`entityType`/`side` repeated in every delta (~2.2 KB) and positions with full float precision (~1.7 KB). Those are the places to look if it needs to get smaller.
+
+### WebSocket Compression
+
+The server turns on permessage-deflate (`perMessageDeflate` in `BunWebSocketServer`), which every browser supports: the browser decompresses natively, with nothing to change in the client. Messages of 256 bytes and up are compressed (`COMPRESS_MIN_BYTES`); smaller ones, like `PONG`, go as they are.
+
+It uses Bun's `'shared'` compressor (one for every socket, each message on its own). A 5v5 state update goes about 5x smaller on the wire (measured through a byte-counting proxy: 134 → 25 KB/s in the first minute). Bun's per-socket compressors (`'dedicated'`, `'32KB'`), which keep context across messages, compressed these less (3.6-3.9x) and take memory per socket. Compressing costs the server about 65 µs per message on an M-series Mac: with 10 players at 30 Hz, under 1 ms of each 33 ms tick.
+
 ### Delta Compression
-
-Only send changed fields (60-70% reduction):
-
-```typescript
-// Instead of full snapshot every tick...
-// Old: 80 bytes per champion × 10 champions = 800 bytes
-
-// With delta compression:
-// Typical: 15 bytes per champion (only position)
-// Result: ~150 bytes per tick
-```
 
 `StateSerializer.createDeltaUpdates` keeps the last snapshot sent to each player:
 
@@ -346,9 +351,9 @@ Only send changed fields (60-70% reduction):
 - **Minion move targets.** Following the lane moves a minion's `targetX/targetY` every tick. They are sent when the minion starts or stops moving, when its attack target changes, or when the target is more than 48 units from the one the client has (`MINION_TARGET_RESEND_DISTANCE`). The client uses them to play the walk animation (a `null` target means standing) and to face the right way.
 - **Dead entities.** The client removes an entity as soon as a delta marks it dead. Allied champions stay visible while dead, so the serializer sends nothing for them until they come back. A champion that respawns gets its full snapshot again, because the client rebuilds it from scratch; with only the changed fields, it came back without its `championId`.
 
-### Entity Prioritization
+### Entity Prioritization (not in use)
 
-Nearby entities update more frequently:
+`EntityPrioritizer` (`packages/server/src/network/EntityPrioritizer.ts`) can send distant entities less often, but matches don't use it: `GameRoom.broadcastState` sends every visible entity's changes every tick (simpler, and no entities left stale). It would send:
 
 ```typescript
 class EntityPrioritizer {

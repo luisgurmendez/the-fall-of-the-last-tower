@@ -177,5 +177,4 @@ Captures player input and sends to server:
 
 - Each GameRoom runs independently
 - GameRoomManager can spawn multiple concurrent games
-- State updates use delta compression (60-70% bandwidth reduction)
-- Entity prioritization sends nearby entities more frequently
+- State updates send only what changed (about a third of a full snapshot in a 5v5), and the WebSocket compresses them (permessage-deflate, about 5x smaller); see [networking.md](networking.md#bandwidth-optimization)

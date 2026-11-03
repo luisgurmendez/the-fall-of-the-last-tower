@@ -23,6 +23,13 @@ interface BunWebSocketData {
 }
 
 /**
+ * Messages from this size up are compressed (permessage-deflate, for clients
+ * that support it: every browser). Smaller ones, like PONG, go as they are:
+ * compressing them saves nothing and a pong should be quick.
+ */
+const COMPRESS_MIN_BYTES = 256;
+
+/**
  * Concrete implementation of WebSocketConnection for Bun.
  */
 class BunConnection implements WebSocketConnection {
@@ -30,7 +37,7 @@ class BunConnection implements WebSocketConnection {
   playerId: string | null = null;
   gameId: string | null = null;
 
-  private ws: { send: (data: string | ArrayBuffer) => void; close: (code?: number, reason?: string) => void };
+  private ws: { send: (data: string | ArrayBuffer, compress?: boolean) => void; close: (code?: number, reason?: string) => void };
   private open = true;
 
   constructor(id: string, ws: any) {
@@ -41,7 +48,8 @@ class BunConnection implements WebSocketConnection {
   send(data: ArrayBuffer | string): void {
     if (!this.open) return;
     try {
-      this.ws.send(data);
+      const size = typeof data === 'string' ? data.length : data.byteLength;
+      this.ws.send(data, size >= COMPRESS_MIN_BYTES);
     } catch (error) {
       console.error(`[BunConnection] Failed to send to ${this.id}:`, error);
     }
@@ -179,6 +187,11 @@ export class BunWebSocketServer extends WebSocketServer {
         idleTimeout: 120, // 2 minutes idle timeout
         backpressureLimit: 1024 * 1024, // 1MB backpressure limit
         closeOnBackpressureLimit: false,
+        // One compressor for every socket, each message on its own. A 5v5
+        // state update goes about 5x smaller. Bun's per-socket compressors
+        // ('dedicated', '32KB', ...), which keep context across messages,
+        // compressed these less (3.6-3.9x) and take memory per socket.
+        perMessageDeflate: { compress: 'shared', decompress: 'shared' },
       },
     });
 
