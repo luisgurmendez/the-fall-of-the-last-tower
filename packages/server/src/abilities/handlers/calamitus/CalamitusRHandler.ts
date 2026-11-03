@@ -2,9 +2,10 @@
  * CalamitusRHandler - Eruption
  *
  * After a moment every pool of his lava erupts, and so does the ground
- * around him: each enemy in any of them takes the damage once and is
- * stunned. Each pool's eruption is an ABILITY_CAST calamitus_lava_erupt
- * (for its VFX); his own is the R's cast.
+ * around where he cast it (where clients draw its warning, though he walks
+ * on): each enemy in any of them takes the damage once and is stunned.
+ * Each pool's eruption is an ABILITY_CAST calamitus_lava_erupt (for its
+ * VFX); his own is the R's cast.
  */
 
 import { CALAMITUS_LAVA, GameEventType, canAbilityAffectEntityType } from '@siege/shared';
@@ -21,11 +22,12 @@ export class CalamitusRHandler extends BaseAbilityHandler {
     const { champion, definition, rank, context, damageMultiplier } = params;
     const damage = this.calculateDamage(definition, rank, champion, damageMultiplier);
     const radius = definition.aoeRadius ?? 220;
+    const center = champion.position.clone();
 
     context.schedule(definition.aoeDelay ?? 0.6, () => {
       if (champion.isDead) return;
       const areas = [
-        { position: champion.position.clone(), radius },
+        { position: center, radius },
         ...lavaOf(champion, context).map(pool => ({ position: pool.position.clone(), radius: pool.radius })),
       ];
       const struck = new Set<string>();

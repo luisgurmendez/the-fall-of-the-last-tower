@@ -583,7 +583,8 @@ export const FenrisBloodthirstEffect: ServerStatEffectDef = {
   percentValue: 0.35,
 };
 
-// Calamitus's Lavaborn (passive): armor and magic resist while he stands in his lava
+// Calamitus's Lavaborn (passive): armor and magic resist while he stands in
+// his lava (one effect, so one icon)
 export const CalamitusLavabornEffect: ServerStatEffectDef = {
   id: 'calamitus_lavaborn',
   name: 'Lavaborn',
@@ -593,17 +594,7 @@ export const CalamitusLavabornEffect: ServerStatEffectDef = {
   persistsThroughDeath: false,
   stat: 'armor',
   flatValue: CALAMITUS_LAVA.resists,
-};
-
-export const CalamitusLavabornMREffect: ServerStatEffectDef = {
-  id: 'calamitus_lavaborn_mr',
-  name: 'Lavaborn',
-  category: 'buff',
-  stackBehavior: 'refresh',
-  cleansable: false,
-  persistsThroughDeath: false,
-  stat: 'magic_resist',
-  flatValue: CALAMITUS_LAVA.resists,
+  alsoModifies: [{ stat: 'magic_resist', flatValue: CALAMITUS_LAVA.resists }],
 };
 
 // Oitboil's Overheat (passive): 25% more damage (his attacks through attack
@@ -1469,7 +1460,6 @@ export const ALL_SERVER_EFFECTS: AnyServerEffectDef[] = [
   FenrisFeralEffect,
   FenrisBloodthirstEffect,
   CalamitusLavabornEffect,
-  CalamitusLavabornMREffect,
   OitboilOverheatedEffect,
   OitboilFlamethrowerEffect,
   OitboilExhaustedEffect,

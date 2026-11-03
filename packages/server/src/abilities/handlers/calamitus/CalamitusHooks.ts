@@ -1,8 +1,8 @@
 /**
  * Calamitus's rules beyond his abilities:
  * - Lavaborn (passive): standing in his own lava he gains armor and magic
- *   resist (calamitus_lavaborn and calamitus_lavaborn_mr, refreshed each
- *   tick); the passive shows as active meanwhile
+ *   resist (calamitus_lavaborn, one effect for both, refreshed each tick);
+ *   the passive shows as active meanwhile
  */
 
 import type { IChampionHooks } from '../../IChampionHooks';
@@ -21,6 +21,5 @@ export const calamitusHooks: IChampionHooks = {
     champion.passiveState.isActive = standing;
     if (!standing) return;
     champion.applyEffect('calamitus_lavaborn', LAVABORN_REFRESH, champion.id);
-    champion.applyEffect('calamitus_lavaborn_mr', LAVABORN_REFRESH, champion.id);
   },
 };
