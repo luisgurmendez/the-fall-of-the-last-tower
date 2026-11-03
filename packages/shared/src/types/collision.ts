@@ -413,13 +413,14 @@ export const DEFAULT_MINION_COLLISION: CircleCollision = {
 };
 
 /**
- * Default collision shape for towers.
- * Rectangle based on sprite collision area: 88x60 pixels at position (20, 165) in 128x256 sprite.
- * Scaled by 0.8 to world units: 70x48, with Y offset to align with sprite base.
+ * Default collision shape for towers: the tower's footprint, 70x48, centered
+ * on its position (the client draws the tower's base there). Not shifted up
+ * the screen: the map is point-symmetric, and a shift would give blue and
+ * red towers different footprints toward their lanes.
  */
 export const DEFAULT_TOWER_COLLISION: RectangleCollision = {
   type: 'rectangle',
   width: 70,
   height: 48,
-  offset: { x: 0, y: -19 },
+  offset: { x: 0, y: 0 },
 };

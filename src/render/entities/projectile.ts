@@ -100,7 +100,7 @@ const SPECIAL_PROJECTILES: Record<
 };
 
 /** Height above a tower's position its shots leave from (the top of the tower) */
-const TOWER_SHOT_TOP = 105;
+const TOWER_SHOT_TOP = 75;
 /** Height of a unit's body, where tower shots land */
 const TOWER_SHOT_BODY = 22;
 

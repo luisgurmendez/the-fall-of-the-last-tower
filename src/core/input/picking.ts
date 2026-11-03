@@ -37,7 +37,7 @@ function pickArea(snapshot: { entityType: number; minionType?: string; creatureT
     case EntityType.JUNGLE_CAMP:
       return CREATURE_AREAS[snapshot.creatureType ?? ""] ?? { radius: 34, lift: 0 };
     case EntityType.TOWER:
-      return { radius: 92, lift: 92 };
+      return { radius: 92, lift: 62 };
     case EntityType.NEXUS:
       return { radius: 105, lift: 100 };
     case EntityType.INHIBITOR:

@@ -26,8 +26,13 @@ const SPRITES = {
     HEIGHT: 256,
     /** Where the art starts, in sprite pixels from the top */
     ART_TOP: 46,
-    /** How far below the position the image's bottom edge is */
-    BASE_OFFSET: 30,
+    /**
+     * How far below the position the image's bottom edge is: the middle of
+     * the tower's footprint (sprite row ~199, where its base meets the
+     * ground) sits on the position, so its range (measured from the
+     * position, edge to edge) is centered on the tower as drawn
+     */
+    BASE_OFFSET: 60,
     /** Close to three champions tall, like the classic MOBA's towers */
     SCALE: 1.05,
   },
@@ -74,7 +79,7 @@ export function renderTower(
   }
 
   if (snapshot.isProtected) {
-    renderProtectionDome(ctx, 80, -55, rc.animationTime);
+    renderProtectionDome(ctx, 80, -25, rc.animationTime);
   }
 
   renderTargetLockOnLocalPlayer(ctx, snapshot, side, rc);
