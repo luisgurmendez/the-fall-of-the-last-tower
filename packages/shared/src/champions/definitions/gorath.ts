@@ -42,7 +42,7 @@ function scaling(
 
 const GORATH_BASE_STATS: ChampionBaseStats = {
   health: 650,
-  healthRegen: 9,
+  healthRegen: 1.8,
   resource: 320,
   resourceRegen: 2.7,
   attackDamage: 55,
@@ -58,7 +58,7 @@ const GORATH_BASE_STATS: ChampionBaseStats = {
 
 const GORATH_GROWTH_STATS: ChampionGrowthStats = {
   health: 110,
-  healthRegen: 1.0,
+  healthRegen: 0.2,
   resource: 45,
   resourceRegen: 0.2,
   attackDamage: 3.0,

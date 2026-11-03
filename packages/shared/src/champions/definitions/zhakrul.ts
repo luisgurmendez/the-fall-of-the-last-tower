@@ -70,7 +70,7 @@ export const ZHAKRUL_KIT = {
 
 const ZHAKRUL_BASE_STATS: ChampionBaseStats = {
   health: 570,
-  healthRegen: 8,
+  healthRegen: 1.6,
   resource: 300,
   resourceRegen: 2.3,
   attackDamage: 58,
@@ -86,7 +86,7 @@ const ZHAKRUL_BASE_STATS: ChampionBaseStats = {
 
 const ZHAKRUL_GROWTH_STATS: ChampionGrowthStats = {
   health: 90,
-  healthRegen: 0.8,
+  healthRegen: 0.16,
   resource: 40,
   resourceRegen: 0.2,
   attackDamage: 3,

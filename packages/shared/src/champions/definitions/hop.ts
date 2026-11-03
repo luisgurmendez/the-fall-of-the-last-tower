@@ -58,7 +58,7 @@ export const HOP_HOP = {
 
 const HOP_BASE_STATS: ChampionBaseStats = {
   health: 530,
-  healthRegen: 8,
+  healthRegen: 1.6,
   resource: 280,
   resourceRegen: 2.4,
   attackDamage: 62,
@@ -74,7 +74,7 @@ const HOP_BASE_STATS: ChampionBaseStats = {
 
 const HOP_GROWTH_STATS: ChampionGrowthStats = {
   health: 88,
-  healthRegen: 0.8,
+  healthRegen: 0.16,
   resource: 40,
   resourceRegen: 0.2,
   attackDamage: 3.3,

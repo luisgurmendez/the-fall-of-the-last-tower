@@ -48,6 +48,8 @@ const CHAMPION_STATS = [
   'attackSpeed',
   'movementSpeed',
   'attackRange',
+  'healthRegen',
+  'resourceRegen',
 ] as const satisfies readonly (keyof ChampionSnapshot)[];
 
 /**

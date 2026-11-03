@@ -140,6 +140,10 @@ export class Simulation {
     while (champion.level < level) {
       champion.gainExperience(champion.experienceToNextLevel - champion.experience);
     }
+    // A champion starting at a level starts full (levels add to the maximums, not the current)
+    const stats = champion.getStats();
+    champion.health = stats.maxHealth;
+    champion.resource = stats.maxResource;
     this.learnAbilities(champion, options.ranks);
 
     if (options.bot === 'lane') {

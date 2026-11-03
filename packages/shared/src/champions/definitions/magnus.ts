@@ -42,7 +42,7 @@ function scaling(
 
 const MAGNUS_BASE_STATS: ChampionBaseStats = {
   health: 500,
-  healthRegen: 5,
+  healthRegen: 1,
   resource: 375,
   resourceRegen: 4,
   attackDamage: 53,
@@ -58,7 +58,7 @@ const MAGNUS_BASE_STATS: ChampionBaseStats = {
 
 const MAGNUS_GROWTH_STATS: ChampionGrowthStats = {
   health: 85,
-  healthRegen: 0.5,
+  healthRegen: 0.1,
   resource: 40,
   resourceRegen: 0.27,
   attackDamage: 3.0,

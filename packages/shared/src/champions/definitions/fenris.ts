@@ -48,7 +48,7 @@ export const FENRIS_FERAL = {
 
 const FENRIS_BASE_STATS: ChampionBaseStats = {
   health: 560,
-  healthRegen: 8,
+  healthRegen: 1.6,
   resource: 280,
   resourceRegen: 2.2,
   attackDamage: 60,
@@ -64,7 +64,7 @@ const FENRIS_BASE_STATS: ChampionBaseStats = {
 
 const FENRIS_GROWTH_STATS: ChampionGrowthStats = {
   health: 95,
-  healthRegen: 0.85,
+  healthRegen: 0.17,
   resource: 40,
   resourceRegen: 0.2,
   attackDamage: 3.4,

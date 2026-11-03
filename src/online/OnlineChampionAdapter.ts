@@ -480,10 +480,10 @@ export class OnlineChampionAdapter {
       return {
         health: Number(snapshot.health) || 100,
         maxHealth: Number(snapshot.maxHealth) || 100,
-        healthRegen: 0, // Not sent in snapshot, use default
+        healthRegen: Number(snapshot.healthRegen) || 0,
         resource: Number(snapshot.resource) || 100,
         maxResource: Number(snapshot.maxResource) || 100,
-        resourceRegen: 0, // Not sent in snapshot, use default
+        resourceRegen: Number(snapshot.resourceRegen) || 0,
         attackDamage: Number(snapshot.attackDamage) || 50,
         abilityPower: Number(snapshot.abilityPower) || 0,
         attackSpeed: Number(snapshot.attackSpeed) || 1.0,

@@ -49,7 +49,7 @@ export const ELORA_HUNT = {
 
 const ELORA_BASE_STATS: ChampionBaseStats = {
   health: 540,
-  healthRegen: 6.5,
+  healthRegen: 1.3,
   resource: 300,
   resourceRegen: 2.8,
   attackDamage: 58,
@@ -65,7 +65,7 @@ const ELORA_BASE_STATS: ChampionBaseStats = {
 
 const ELORA_GROWTH_STATS: ChampionGrowthStats = {
   health: 88,
-  healthRegen: 0.6,
+  healthRegen: 0.12,
   resource: 35,
   resourceRegen: 0.2,
   attackDamage: 3.0,

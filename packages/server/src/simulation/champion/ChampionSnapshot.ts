@@ -15,6 +15,7 @@ import type { ServerChampion } from '../ServerChampion';
  */
 export function buildChampionSnapshot(champion: ServerChampion): ChampionSnapshot {
   const stats = champion.getStats();
+  const regen = champion.getRegeneration();
   const fm = champion.forcedMovement;
 
   return {
@@ -47,6 +48,9 @@ export function buildChampionSnapshot(champion: ServerChampion): ChampionSnapsho
     attackSpeed: stats.attackSpeed,
     movementSpeed: stats.movementSpeed,
     attackRange: champion.getAttackRange(),
+    // Per second, to a tenth (it changes in and out of combat)
+    healthRegen: Math.round(regen.health * 10) / 10,
+    resourceRegen: Math.round(regen.resource * 10) / 10,
 
     isDead: champion.isDead,
     respawnTimer: champion.respawnTimer,

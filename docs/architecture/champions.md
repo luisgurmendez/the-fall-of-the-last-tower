@@ -62,7 +62,7 @@ Stats at level 1:
 interface ChampionBaseStats {
   // Health
   health: number;        // Starting health pool
-  healthRegen: number;   // HP/5 seconds
+  healthRegen: number;   // Health per second (x2.5 out of combat); 1-1.8 (LoL lists it per 5 seconds: a LoL value / 5)
 
   // Resource
   resource: number;      // Starting mana/energy
@@ -87,6 +87,12 @@ interface ChampionBaseStats {
 }
 ```
 
+The HUD shows the health and resource regenerated per second right now on their bars (`+1.6`): the server
+sends them in the champion snapshot (`healthRegen`, `resourceRegen`, from `ServerChampion.getRegeneration()`:
+the stats, x2.5 out of combat). Health regen used to be LoL's per-5-seconds numbers read per second (8 a
+second at level 1, 20 out of combat), so trades healed back in seconds; items and buffs that add it
+(Mossweave Band +1, Oakbark Buckler +0.6, the red buff +1.5) are per second too.
+
 ## Growth Stats
 
 Stats gained per level:
@@ -94,7 +100,7 @@ Stats gained per level:
 ```typescript
 interface ChampionGrowthStats {
   health: number;        // +95 typical
-  healthRegen: number;   // +0.8 typical
+  healthRegen: number;   // +0.1-0.2 typical
   resource: number;      // +45 typical
   resourceRegen: number; // +0.7 typical
   attackDamage: number;  // +3.5 typical
@@ -193,7 +199,7 @@ const warriorDefinition: ChampionDefinition = {
 
   baseStats: {
     health: 580,
-    healthRegen: 8.5,
+    healthRegen: 1.6,
     resource: 280,
     resourceRegen: 7.5,
     attackDamage: 60,
@@ -209,7 +215,7 @@ const warriorDefinition: ChampionDefinition = {
 
   growthStats: {
     health: 95,
-    healthRegen: 0.8,
+    healthRegen: 0.16,
     resource: 45,
     resourceRegen: 0.7,
     attackDamage: 3.5,

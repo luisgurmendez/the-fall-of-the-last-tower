@@ -76,7 +76,7 @@ export const LUME_ORB_CONFIG = {
 
 const LUME_BASE_STATS: ChampionBaseStats = {
   health: 540,
-  healthRegen: 1.5,
+  healthRegen: 1.2,
   resource: 320,
   resourceRegen: 2.3,
   attackDamage: 52,
@@ -92,7 +92,7 @@ const LUME_BASE_STATS: ChampionBaseStats = {
 
 const LUME_GROWTH_STATS: ChampionGrowthStats = {
   health: 85,
-  healthRegen: 0.6,
+  healthRegen: 0.12,
   resource: 45,
   resourceRegen: 0.27,
   attackDamage: 3.2,

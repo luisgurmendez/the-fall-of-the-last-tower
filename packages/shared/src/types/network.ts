@@ -334,6 +334,10 @@ export interface ChampionSnapshot {
   movementSpeed: number;
   /** Basic attack range, edge to edge (transforms like Vile's R change it) */
   attackRange: number;
+  /** Health regenerated per second right now (faster out of combat) */
+  healthRegen: number;
+  /** Resource regenerated per second right now */
+  resourceRegen: number;
 
   // State
   isDead: boolean;

@@ -186,7 +186,7 @@ const KindlingWand = item({
 
 const OakbarkBuckler = item({
   id: 'oakbark_buckler', name: 'Oakbark Buckler', category: 'starter', tier: 'starter', group: 'starter',
-  cost: 250, stats: { health: 110, healthRegen: 2 },
+  cost: 250, stats: { health: 110, healthRegen: 0.6 },
   passives: [passive('bark', 'Bark',
     'Basic attacks from champions deal 6 less damage to you.',
     'damage_block', { amount: 6 })],
@@ -194,7 +194,7 @@ const OakbarkBuckler = item({
 
 const SeedlingSickle = item({
   id: 'seedling_sickle', name: 'Seedling Sickle', category: 'starter', tier: 'starter', group: 'starter',
-  cost: 250, stats: { healthRegen: 3 },
+  cost: 250, stats: { healthRegen: 0.8 },
   passives: [passive('harvest', 'Harvest',
     'Your attacks and abilities deal 30% more damage to monsters, and hitting one heals you for 6 health (twice a second at most). Every monster you kill grows it: at 20 it awakens, and your basic attacks also slow champions by 20% for 1 second.',
     'monster_hunter', { bonus: 0.3, heal: 6, awaken: 20 })],
@@ -263,7 +263,7 @@ const GleamingLens = item({ id: 'gleaming_lens', name: 'Gleaming Lens', category
 const PaddedVest = item({ id: 'padded_vest', name: 'Padded Vest', category: 'armor', tier: 'basic', cost: 300, stats: { armor: 15 } });
 const WardingCharm = item({ id: 'warding_charm', name: 'Warding Charm', category: 'magic_resist', tier: 'basic', cost: 450, stats: { magicResist: 25 } });
 const Heartstone = item({ id: 'heartstone', name: 'Heartstone', category: 'health', tier: 'basic', cost: 400, stats: { health: 150 } });
-const MossweaveBand = item({ id: 'mossweave_band', name: 'Mossweave Band', category: 'health', tier: 'basic', cost: 250, stats: { healthRegen: 3 } });
+const MossweaveBand = item({ id: 'mossweave_band', name: 'Mossweave Band', category: 'health', tier: 'basic', cost: 250, stats: { healthRegen: 1 } });
 const FocusRune = item({ id: 'focus_rune', name: 'Focus Rune', category: 'utility', tier: 'basic', cost: 400, stats: { abilityHaste: 10 } });
 const ManaPearl = item({ id: 'mana_pearl', name: 'Mana Pearl', category: 'mana', tier: 'basic', cost: 300, stats: { resource: 250 } });
 const GlowcapSpores = item({ id: 'glowcap_spores', name: 'Glowcap Spores', category: 'support', tier: 'basic', cost: 300, stats: { healShieldPower: 0.08 } });
@@ -688,7 +688,7 @@ const StormwardVeil = item({
 
 const GrovekeepersBark = item({
   id: 'grovekeepers_bark', name: "Grovekeeper's Bark", category: 'magic_resist', tier: 'legendary',
-  cost: 2900, buildsFrom: ['spellward_cloak', 'mossweave_band', 'heartstone'], stats: { health: 450, magicResist: 55, healthRegen: 5 },
+  cost: 2900, buildsFrom: ['spellward_cloak', 'mossweave_band', 'heartstone'], stats: { health: 450, magicResist: 55, healthRegen: 2 },
   passives: [passive('verdant', 'Verdant', 'Heals and shields you receive are 25% stronger.', 'heal_received', { percent: 0.25 })],
 });
 

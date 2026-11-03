@@ -54,7 +54,7 @@ export const PROTOBOT_MACHINE = {
 
 const PROTOBOT_BASE_STATS: ChampionBaseStats = {
   health: 600,
-  healthRegen: 7,
+  healthRegen: 1.4,
   resource: 300,
   resourceRegen: 2.4,
   attackDamage: 56,
@@ -70,7 +70,7 @@ const PROTOBOT_BASE_STATS: ChampionBaseStats = {
 
 const PROTOBOT_GROWTH_STATS: ChampionGrowthStats = {
   health: 98,
-  healthRegen: 0.8,
+  healthRegen: 0.16,
   resource: 40,
   resourceRegen: 0.2,
   attackDamage: 3,

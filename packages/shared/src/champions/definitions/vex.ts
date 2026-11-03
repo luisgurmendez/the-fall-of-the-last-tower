@@ -42,7 +42,7 @@ function scaling(
 
 const VEX_BASE_STATS: ChampionBaseStats = {
   health: 520,
-  healthRegen: 6,
+  healthRegen: 1.2,
   resource: 260,
   resourceRegen: 8,
   attackDamage: 65,
@@ -58,7 +58,7 @@ const VEX_BASE_STATS: ChampionBaseStats = {
 
 const VEX_GROWTH_STATS: ChampionGrowthStats = {
   health: 80,
-  healthRegen: 0.6,
+  healthRegen: 0.12,
   resource: 35,
   resourceRegen: 0.6,
   attackDamage: 4.0,

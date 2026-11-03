@@ -521,26 +521,30 @@ export class ServerChampion extends ServerEntity {
   }
 
   /**
+   * Health and resource regenerated per second right now: the stats, faster
+   * out of combat (GameConfig.COMBAT.OOC_REGEN_MULTIPLIER). The HUD shows them.
+   */
+  getRegeneration(): { health: number; resource: number } {
+    const stats = this.getStats();
+    const multiplier = this.inCombat ? 1 : GameConfig.COMBAT.OOC_REGEN_MULTIPLIER;
+    return { health: stats.healthRegen * multiplier, resource: stats.resourceRegen * multiplier };
+  }
+
+  /**
    * Update regeneration.
    */
   private updateRegeneration(dt: number): void {
     const stats = this.getStats();
-    const regenMultiplier = this.inCombat ? 1 : GameConfig.COMBAT.OOC_REGEN_MULTIPLIER;
+    const regen = this.getRegeneration();
 
     // Health regen
     if (this.health < stats.maxHealth) {
-      this.health = Math.min(
-        stats.maxHealth,
-        this.health + stats.healthRegen * regenMultiplier * dt
-      );
+      this.health = Math.min(stats.maxHealth, this.health + regen.health * dt);
     }
 
     // Resource regen
     if (this.resource < stats.maxResource) {
-      this.resource = Math.min(
-        stats.maxResource,
-        this.resource + stats.resourceRegen * regenMultiplier * dt
-      );
+      this.resource = Math.min(stats.maxResource, this.resource + regen.resource * dt);
     }
   }
 

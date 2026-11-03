@@ -958,7 +958,7 @@ export const CrestOfCindersEffect: ServerStatEffectDef = {
   cleansable: false,
   persistsThroughDeath: false,
   stat: 'health_regen',
-  flatValue: 4,
+  flatValue: 1.5,
 };
 
 /** Red buff on-hit burn */
@@ -1032,7 +1032,7 @@ export const HeartwoodPactSapEffect: ServerStatEffectDef = {
   cleansable: false,
   persistsThroughDeath: true,
   stat: 'health_regen',
-  flatValue: 5,
+  flatValue: 2,
 };
 
 // ===================

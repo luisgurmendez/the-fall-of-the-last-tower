@@ -82,9 +82,9 @@ The killer must be a champion. The effects live in `packages/server/src/data/eff
 | Kill | Effect | Duration |
 |------|--------|----------|
 | Blue buff | `crest_of_insight`: +15 ability haste; `crest_of_insight_regen`: +4 mana/energy per second | 90s |
-| Red buff | `crest_of_cinders`: +4 health per second. Basic attacks on champions and minions apply `cinders_burn` (true damage over 3s) and `slow_10` for 1.5s (`ChampionBasicAttacks.applyOnHitBuffs`) | 90s |
+| Red buff | `crest_of_cinders`: +1.5 health per second. Basic attacks on champions and minions apply `cinders_burn` (true damage over 3s) and `slow_10` for 1.5s (`ChampionBasicAttacks.applyOnHitBuffs`) | 90s |
 | Dragon | `dragons_might` / `dragons_might_power`: +8% attack damage and ability power for the killer's whole team, kept through death | 150s |
-| Rootwyrm | `heartwood_pact` / `heartwood_pact_ward` / `heartwood_pact_sap` (Heartwood Pact): +12 armor, +12 magic resist and +5 health per second for the killer's whole team, kept through death | 150s |
+| Rootwyrm | `heartwood_pact` / `heartwood_pact_ward` / `heartwood_pact_sap` (Heartwood Pact): +12 armor, +12 magic resist and +2 health per second for the killer's whole team, kept through death | 150s |
 
 Buff-camp buffs are lost on death.
 
