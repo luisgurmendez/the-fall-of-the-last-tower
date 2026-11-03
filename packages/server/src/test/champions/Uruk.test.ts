@@ -265,13 +265,17 @@ describe('Urûk', () => {
       expect(arena.red.health).toBeLessThan(health);
     });
 
-    test('it thrusts from where he is when it lands, aimed where he cast it', () => {
-      arena.red.position.setFrom(new Vector(100, 300));
+    test('it thrusts along the line where he cast it (its warning), even if he moved since', () => {
+      // An enemy on the cast line is hit; one on the line he moved to isn't
+      arena.red.position.setFrom(new Vector(100, 0));
+      const enemy = arena.addMinion(TEAM_RED, new Vector(100, 300));
       const health = arena.red.health;
+      const minionHealth = enemy.health;
       arena.castAbility(arena.blue, 'Q', { targetPosition: new Vector(200, 0), windup: true });
       arena.blue.position.setFrom(new Vector(0, 300));
       arena.context.advanceTime(THRUST.aoeDelay! + 1e-6);
       expect(arena.red.health).toBeLessThan(health);
+      expect(enemy.health).toBe(minionHealth);
     });
 
     test('allies and towers are untouched; monsters are hit', () => {
