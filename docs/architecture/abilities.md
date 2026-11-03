@@ -264,8 +264,8 @@ Rules that belong to a champion rather than to one ability implement `IChampionH
 | `onRangedAttackHit` | A ranged basic attack's projectile, on hit | Elora: every third arrow on the same target strikes a weak point; the poisoned arrow (both scale with her attack damage, which a crit doesn't raise) |
 | `basicAttackProjectileType` | A ranged basic attack about to be fired | Elora: the poisoned arrow and the weak point's arrow look different (their `<type>_impact` VFX play where they land) |
 | `onChampionKill` | `ServerChampion.onDeath`, for the killer (an enemy champion with the last hit) | Fenris: a kill in his Bloodthirst heals him to full |
-| `getAttackRange` | `ServerChampion.getAttackRange`, given the range it would have | Hop-To-Eat: 250 while its hop is ready |
-| `onBasicAttackStart` | A basic attack starting, before its blow | Hop-To-Eat: an attack from out of melee reach hops onto the target (a dash) |
+| `getAttackRange` | `ServerChampion.getAttackRange`, given the range it would have | Hop-To-Eat: 250 while its hop is ready (rooted or grounded, the hop waits: melee reach, nothing spent) |
+| `onBasicAttackStart` | A basic attack starting, before its blow | Hop-To-Eat: an attack from out of melee reach hops onto the target (a dash); its bonus is basic attack damage (`withDamageKind`), so Veil doesn't block it |
 | `onDamaged` | `ServerChampion.takeDamage`, after damage to its health or shields | Protobot: learns from the enemy champions that hit him |
 
 Two engine pieces serve handlers that move or react to other units: a `ServerProjectile` takes an

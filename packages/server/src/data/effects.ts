@@ -237,16 +237,16 @@ export const AttackDamageBuff: ServerStatEffectDef = {
 // Stat Debuff Effects
 // ===================
 
+// Hop-To-Eat's Rodent Fangs (Q): another bite refreshes it, it doesn't stack
 export const ArmorReduction: ServerStatEffectDef = {
   id: 'armor_reduction',
   name: 'Armor Reduced',
   category: 'debuff',
-  stackBehavior: 'stack',
-  maxStacks: 10,
+  stackBehavior: 'refresh',
   cleansable: true,
   persistsThroughDeath: false,
   stat: 'armor',
-  flatValue: -10, // -10 armor per stack
+  flatValue: -10,
 };
 
 export const MagicResistReduction: ServerStatEffectDef = {
