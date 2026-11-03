@@ -69,7 +69,7 @@ export const ZHAKRUL_KIT = {
 // =============================================================================
 
 const ZHAKRUL_BASE_STATS: ChampionBaseStats = {
-  health: 570,
+  health: 620,
   healthRegen: 1.6,
   resource: 300,
   resourceRegen: 2.3,

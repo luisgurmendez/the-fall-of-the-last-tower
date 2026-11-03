@@ -34,14 +34,14 @@ describe('Warrior (Kael)', () => {
   });
 
   describe('Base Stats', () => {
-    test('should have correct base health (580)', () => {
+    test('should have correct base health (630)', () => {
       // Create fresh champion without learnAllAbilities to test base stats
       const freshArena = createTestArena({
         blueChampion: 'warrior',
         redChampion: 'warrior',
         learnAbilities: false,
       });
-      expect(freshArena.blue.maxHealth).toBe(580);
+      expect(freshArena.blue.maxHealth).toBe(630);
     });
 
     test('should have melee attack range', () => {

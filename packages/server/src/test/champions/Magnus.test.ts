@@ -43,8 +43,8 @@ describe('Magnus', () => {
       });
     });
 
-    test('should have correct base health (500)', () => {
-      expect(level1Arena.blue.maxHealth).toBe(500);
+    test('should have correct base health (550)', () => {
+      expect(level1Arena.blue.maxHealth).toBe(550);
     });
 
     test('should have ranged attack range', () => {

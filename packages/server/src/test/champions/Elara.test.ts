@@ -45,8 +45,8 @@ describe('Elara', () => {
       });
     });
 
-    test('should have correct base health (480)', () => {
-      expect(level1Arena.blue.maxHealth).toBe(480);
+    test('should have correct base health (530)', () => {
+      expect(level1Arena.blue.maxHealth).toBe(530);
     });
 
     test('should have ranged attack range', () => {

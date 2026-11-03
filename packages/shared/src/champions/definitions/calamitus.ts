@@ -57,7 +57,7 @@ export const CALAMITUS_LAVA = {
 // =============================================================================
 
 const CALAMITUS_BASE_STATS: ChampionBaseStats = {
-  health: 640,
+  health: 690,
   healthRegen: 1.8,
   resource: 300,
   resourceRegen: 2.5,

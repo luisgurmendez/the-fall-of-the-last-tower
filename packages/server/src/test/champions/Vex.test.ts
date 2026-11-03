@@ -43,8 +43,8 @@ describe('Vex', () => {
       });
     });
 
-    test('should have correct base health (520)', () => {
-      expect(statsArena.blue.maxHealth).toBe(520);
+    test('should have correct base health (570)', () => {
+      expect(statsArena.blue.maxHealth).toBe(570);
     });
 
     test('should have melee attack range', () => {

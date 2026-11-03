@@ -48,8 +48,8 @@ describe('Vile', () => {
       });
     });
 
-    test('should have correct base health (580)', () => {
-      expect(level1Arena.blue.maxHealth).toBe(580);
+    test('should have correct base health (630)', () => {
+      expect(level1Arena.blue.maxHealth).toBe(630);
     });
 
     test('should have ranged attack range', () => {

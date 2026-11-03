@@ -41,7 +41,7 @@ function scaling(
 // =============================================================================
 
 const ELARA_BASE_STATS: ChampionBaseStats = {
-  health: 480,
+  health: 530,
   healthRegen: 1.2,
   resource: 400,
   resourceRegen: 4.7,

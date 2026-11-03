@@ -51,7 +51,7 @@ export const CAELUM_LIGHT = {
 // =============================================================================
 
 const CAELUM_BASE_STATS: ChampionBaseStats = {
-  health: 520,
+  health: 570,
   healthRegen: 1.2,
   resource: 380,
   resourceRegen: 4,

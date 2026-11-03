@@ -60,9 +60,9 @@ describe("Lume", () => {
       expect(arena.blue.definition.resourceType).toBe("mana");
     });
 
-    test("should have health scaling (base 540 + 85/level)", () => {
-      // At level 6: 540 + 85*5 = 965
-      expect(arena.blue.getStats().maxHealth).toBe(965);
+    test("should have health scaling (base 590 + 85/level)", () => {
+      // At level 6: 590 + 85*5 = 1015
+      expect(arena.blue.getStats().maxHealth).toBe(1015);
     });
 
     test("should have attack damage scaling (base 52 + 3.2/level)", () => {

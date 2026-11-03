@@ -32,7 +32,7 @@ function scaling(
 // =============================================================================
 
 const URUK_BASE_STATS: ChampionBaseStats = {
-  health: 545,
+  health: 595,
   healthRegen: 1.6,
   resource: 300,
   resourceRegen: 2.4,

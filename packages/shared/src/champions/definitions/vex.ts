@@ -41,7 +41,7 @@ function scaling(
 // =============================================================================
 
 const VEX_BASE_STATS: ChampionBaseStats = {
-  health: 520,
+  health: 570,
   healthRegen: 1.2,
   resource: 260,
   resourceRegen: 8,

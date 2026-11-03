@@ -99,6 +99,14 @@ the stats, x2.5 out of combat). Health regen used to be LoL's per-5-seconds numb
 second at level 1, 20 out of combat), so trades healed back in seconds; items and buffs that add it
 (Mossweave Band +1, Oakbark Buckler +0.6, the red buff +1.5) are per second too.
 
+**Against the classic MOBA** (its 173 champions' averages, from its wiki's base stats table): level 1
+health 617 (ours 612: everyone got +50), attack damage 59 (57), armor 30 (29), magic resist 31 (31),
+attack speed 0.65 (0.64). Ours grow linearly and theirs on a curve, so at level 6 both are about 1050
+health and at 18 ours have about 12% less. It takes about 15 basic attacks to kill an average level 1
+champion (14 there); a rank 1 damaging ability takes 9-18% of its health, and Q3 W1 E1 R1 at level 6
+about a quarter without items (a mage's a third), as there. `bun run duels` measures champions
+against each other.
+
 ## Growth Stats
 
 Stats gained per level:
@@ -141,8 +149,8 @@ function calculateStat(
 }
 
 // Example: Health at level 10
-// base=580, growth=95
-// 580 + 95 * (10-1) = 580 + 855 = 1435
+// base=630, growth=95
+// 630 + 95 * (10-1) = 630 + 855 = 1485
 ```
 
 ### Attack Speed Calculation
@@ -204,7 +212,7 @@ const warriorDefinition: ChampionDefinition = {
   resourceType: 'mana',
 
   baseStats: {
-    health: 580,
+    health: 630,
     healthRegen: 1.6,
     resource: 280,
     resourceRegen: 7.5,
@@ -242,10 +250,10 @@ const warriorDefinition: ChampionDefinition = {
 ## Warrior Stats at Level 18
 
 ```
-Health:      580 + 95 * 17 = 2,195
+Health:      630 + 95 * 17 = 2,245
 Mana:        280 + 45 * 17 = 1,045
 AD:          60 + 3.5 * 17 = 119.5
-Armor:       35 + 4.2 * 17 = 106.4
+Armor:       32 + 3.6 * 17 = 93.2
 Magic Resist: 32 + 2.05 * 17 = 66.85
 Attack Speed: 0.658 * (1 + 0.025 * 17) = 0.938
 ```

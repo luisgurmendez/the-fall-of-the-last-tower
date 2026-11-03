@@ -50,8 +50,8 @@ describe('Gorath', () => {
       });
     });
 
-    test('should have highest base health (650)', () => {
-      expect(level1Arena.blue.maxHealth).toBe(650);
+    test('should have highest base health (700)', () => {
+      expect(level1Arena.blue.maxHealth).toBe(700);
     });
 
     test('should have melee attack range', () => {

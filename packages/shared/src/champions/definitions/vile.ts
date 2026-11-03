@@ -42,7 +42,7 @@ function scaling(
 // =============================================================================
 
 const VILE_BASE_STATS: ChampionBaseStats = {
-  health: 580,
+  health: 630,
   healthRegen: 1.4,
   resource: 300, // Mana
   resourceRegen: 2.3,

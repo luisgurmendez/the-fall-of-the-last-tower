@@ -41,7 +41,7 @@ function scaling(
 // =============================================================================
 
 const WARRIOR_BASE_STATS: ChampionBaseStats = {
-  health: 580,
+  health: 630,
   healthRegen: 1.6,
   resource: 280,
   resourceRegen: 2.3,

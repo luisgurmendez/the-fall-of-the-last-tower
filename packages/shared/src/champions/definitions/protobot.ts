@@ -53,7 +53,7 @@ export const PROTOBOT_MACHINE = {
 // =============================================================================
 
 const PROTOBOT_BASE_STATS: ChampionBaseStats = {
-  health: 600,
+  health: 650,
   healthRegen: 1.4,
   resource: 300,
   resourceRegen: 2.4,

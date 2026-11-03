@@ -56,7 +56,7 @@ export const OITBOIL_HEAT = {
 // =============================================================================
 
 const OITBOIL_BASE_STATS: ChampionBaseStats = {
-  health: 640,
+  health: 690,
   healthRegen: 1.4,
   resource: 340,
   resourceRegen: 3.5,
