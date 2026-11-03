@@ -351,6 +351,8 @@ describe('ServerAbilityExecutor', () => {
       });
 
       expect(result.success).toBe(true);
+      // A leap: it lands when it reaches the target
+      for (let i = 0; i < 60 && blueChampion.forcedMovement; i++) blueChampion.update(1 / 60, context);
       expect(redChampion.health).toBeLessThan(initialHealth);
     });
 
@@ -419,6 +421,8 @@ describe('ServerAbilityExecutor', () => {
         targetEntityId: redChampion.id,
         context,
       });
+      // A leap: the stun lands when it reaches the target
+      for (let i = 0; i < 60 && blueChampion.forcedMovement; i++) blueChampion.update(1 / 60, context);
 
       // Target should be stunned
       expect(redChampion.hasEffect('stun')).toBe(true);

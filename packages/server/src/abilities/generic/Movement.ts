@@ -2,7 +2,10 @@
  * Generic movement: dashes, teleports and the generic recast dash.
  *
  * - Dashes and teleports go to the target position, or else to the target
- *   entity's position (for target_enemy, target_ally and target_unit)
+ *   entity's position (for target_ally and target_unit)
+ * - A target_enemy dash is a leap at the enemy (leapToTarget): it follows
+ *   it, over walls, and its damage and effects land when it reaches it,
+ *   on it alone
  * - A dash applies its self-buffs (effects in the 'buff' category) on cast;
  *   the other effects, and damage if the ability has an aoeRadius, hit what
  *   the dash runs into
@@ -16,6 +19,7 @@ import type { AbilityCastParams } from "../../simulation/ServerAbilityExecutor";
 import type { ServerChampion } from "../../simulation/ServerChampion";
 import { getServerEffectById } from "../../data/effects";
 import { getScalingStats } from "./AbilityHelpers";
+import { executeTargetEnemyAbility } from "./TargetedAbility";
 
 /** Whether an effect goes on the caster (a buff) rather than on what the dash hits */
 function isSelfBuff(effectId: string): boolean {
@@ -38,6 +42,50 @@ export function dashToDestination(
   if (destination) {
     executeDash({ ...params, targetPosition: destination }, definition, rank, damageMultiplier);
   }
+}
+
+/** A leap may fly this much farther than its dash distance, chasing a target that moves away */
+const LEAP_CHASE = 120;
+
+/**
+ * Leap at the target enemy: fly at it wherever it moves (over walls) and,
+ * landing next to it, hit it with the ability (its damage and effects, on
+ * it alone). Nothing happens at the cast; a target that dies or gets away
+ * isn't hit.
+ */
+export function leapToTarget(
+  params: AbilityCastParams,
+  definition: AbilityDefinition,
+  rank: number,
+  damageMultiplier: number
+): void {
+  const { champion, context, targetEntityId } = params;
+  const target = targetEntityId ? context.getEntity(targetEntityId) : undefined;
+  if (!target || !definition.dash) return;
+
+  const reach = champion.getRadius() + target.getRadius();
+  const offset = target.position.subtracted(champion.position);
+  const direction = offset.length() > 0.1 ? offset.normalized() : champion.direction.clone();
+  const gap = Math.max(0, offset.length() - reach);
+  champion.forcedMovement = {
+    direction,
+    distance: gap,
+    duration: gap / definition.dash.speed,
+    elapsed: 0,
+    type: "dash",
+    passesWalls: true,
+    follow: {
+      targetId: target.id,
+      reach,
+      speed: definition.dash.speed,
+      maxDistance: definition.dash.distance + LEAP_CHASE,
+      flown: 0,
+      gap,
+      land: () => executeTargetEnemyAbility(params, definition, rank, damageMultiplier),
+    },
+  };
+  champion.dashAbilityId = definition.id;
+  champion.direction = direction.clone();
 }
 
 /**

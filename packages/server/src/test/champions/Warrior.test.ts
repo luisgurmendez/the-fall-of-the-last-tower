@@ -251,7 +251,8 @@ describe('Warrior (Kael)', () => {
         targetId: arena.red.id,
       });
 
-      arena.tick();
+      // A leap: the stun lands when it reaches the target
+      arena.tickFrames(30);
 
       // Red should be stunned
       expect(arena.red.ccStatus.isStunned).toBe(true);
@@ -267,7 +268,8 @@ describe('Warrior (Kael)', () => {
         targetId: arena.red.id,
       });
 
-      arena.tick();
+      // A leap: the damage lands when it reaches the target
+      arena.tickFrames(30);
 
       // Should deal substantial damage (base 150 + AD scaling)
       const damageTaken = initialHealth - arena.red.health;

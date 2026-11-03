@@ -243,7 +243,7 @@ Generic path details:
 | `Cone.ts` | Cones (`ground_target` with `shape: 'cone'` and `coneAngle`) |
 | `Line.ts` | Lines (`ground_target` with `shape: 'line'`): every enemy in a band toward the target |
 | `Trap.ts` | Trap placement (`ground_target` with `trap`). A trap (`ServerTrap`) arms a second after it's placed, and a champion it catches can't be caught by another trap for three seconds (`vile_trap_caught`), so traps dropped on someone don't chain into one long root |
-| `Movement.ts` | `dash` and `teleport`, run after the path or handler, and the generic recast dash. A dash puts its `appliesEffects` in the `buff` category on the caster and the rest on what it runs into. A dash with a hitbox hits each enemy once, only what its ability affects (not towers or wards). Every dash (generic or a handler's) sets `champion.dashAbilityId`, so the snapshot's `isDashing` is true and clients hold the ability's frame of motion and draw its afterimages (`DashSnapshot.test.ts`) |
+| `Movement.ts` | `dash` and `teleport`, run after the path or handler, and the generic recast dash. A `target_enemy` with a `dash` is a leap at the enemy (`leapToTarget`: Kael's Heroic Strike, Urûk's Fatal Strike, Fenris's Pounce): nothing happens at the cast; it flies at the target (following it, over walls, for at most its dash distance and 120 more) and, next to it, the ability's damage and effects land on it alone (an execute reads its health then). A target that dies or gets away isn't hit. A dash puts its `appliesEffects` in the `buff` category on the caster and the rest on what it runs into. A dash with a hitbox hits each enemy once, only what its ability affects (not towers or wards). Every dash (generic or a handler's) sets `champion.dashAbilityId`, so the snapshot's `isDashing` is true and clients hold the ability's frame of motion and draw its afterimages (`DashSnapshot.test.ts`) |
 | `AbilityHelpers.ts` | Scaling stats and effect application shared by the paths |
 
 When a generic path learns a definition field, update its rule in the coverage contract's `GENERIC_SUPPORT`.
@@ -271,8 +271,11 @@ Two engine pieces serve handlers that move or react to other units: a `ServerPro
 `onHit(entity, context)` callback, called after its damage (Protobot's claw pulls the champion it
 caught), and a `ForcedMovement` (a dash or a knockback, `champion.forcedMovement`) takes `touches`,
 a callback for each unit it runs into on the way (the champions Hop-To-Eat's kick sends a champion
-flying into). A `ForcedMovement` with `passesWalls` isn't pushed out of walls while it runs (Zhak'rul
-burrowed); it should end where `Terrain.landingSpot` finds open ground, the spot Blink uses too. The
+flying into). A dash or knockback stops at a wall in its way (`advanceUntilWall`, checked every 4
+units): it never comes out on the far side. A `ForcedMovement` with `passesWalls` goes through them
+and isn't pushed out of walls while it runs (Zhak'rul burrowed); it should end where
+`Terrain.landingSpot` finds open ground, the spot Blink uses too. A `follow` one is a leap at a unit
+(`leapToTarget`): it flies at the target wherever it moves, over walls, and lands next to it. The
 generic cone (`executeConeAbility`) takes a `damageFor(entity, damage)` callback for damage that
 depends on the target (Zhak'rul's pincers on the poisoned).
 

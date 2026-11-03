@@ -184,7 +184,8 @@ describe('Warrior Abilities - Entity Targeting', () => {
         targetId: arena.red.id,
       });
 
-      arena.tick();
+      // A leap: the stun lands when it reaches the target
+      arena.tickFrames(30);
 
       expect(arena.red.ccStatus.isStunned).toBe(true);
     });

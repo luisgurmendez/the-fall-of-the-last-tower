@@ -32,7 +32,7 @@ import type { AbilityHandlerParams, AbilityExecutionResult } from "../abilities/
 import type { ServerChampion } from "./ServerChampion";
 import type { ServerGameContext } from "../game/ServerGameContext";
 import { Logger } from "../utils/Logger";
-import { dashToDestination, teleportToDestination, executeRecastDash } from "../abilities/generic/Movement";
+import { dashToDestination, teleportToDestination, executeRecastDash, leapToTarget } from "../abilities/generic/Movement";
 import { executeSelfAbility } from "../abilities/generic/SelfAbility";
 import { executeNoTargetAbility } from "../abilities/generic/NoTargetArea";
 import { executeTargetEnemyAbility, executeTargetAllyAbility } from "../abilities/generic/TargetedAbility";
@@ -568,7 +568,9 @@ export class ServerAbilityExecutor {
         break;
 
       case "target_enemy":
-        executeTargetEnemyAbility(params, definition, rank, damageMultiplier);
+        // A dash at an enemy is a leap: everything lands when it reaches it
+        if (definition.dash) leapToTarget(params, definition, rank, damageMultiplier);
+        else executeTargetEnemyAbility(params, definition, rank, damageMultiplier);
         break;
 
       case "target_ally":
@@ -585,8 +587,8 @@ export class ServerAbilityExecutor {
     }
 
     // Handle dash and teleport/blink. Targeted abilities (no target position)
-    // go to the target entity's position
-    if (definition.dash) {
+    // go to the target entity's position (a leap at an enemy is already off)
+    if (definition.dash && definition.targetType !== "target_enemy") {
       dashToDestination(params, definition, rank, damageMultiplier);
     }
     if (definition.teleport) {
