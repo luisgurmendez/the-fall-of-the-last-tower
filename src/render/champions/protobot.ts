@@ -30,6 +30,5 @@ export const protobotRenderer: ChampionRendererEntry = {
   projectiles: {},
   markVisuals: {
     protobot_learning: HIDDEN,
-    protobot_learning_mr: HIDDEN,
   },
 };

@@ -25,13 +25,15 @@ interface HeatState {
   lastUpdateAt: number;
   burnTimer: number;
   overheated: boolean;
+  /** His deaths when it last updated: he comes back cold */
+  deaths: number;
 }
 
 function heatOf(champion: ServerChampion, context: ServerGameContext): HeatState {
   const data = (champion.passiveState.customData ??= {});
   if (!data.heat) {
     const now = context.getGameTime();
-    data.heat = { heat: 0, lastCastAt: now, lastUpdateAt: now, burnTimer: 0, overheated: false } satisfies HeatState;
+    data.heat = { heat: 0, lastCastAt: now, lastUpdateAt: now, burnTimer: 0, overheated: false, deaths: champion.deaths } satisfies HeatState;
   }
   return data.heat as HeatState;
 }
@@ -68,7 +70,9 @@ export const oitboilHooks: IChampionHooks = {
     const dt = Math.max(0, now - state.lastUpdateAt);
     state.lastUpdateAt = now;
 
-    if (champion.isDead) {
+    // (Hooks don't run while he's dead: the first update after he's back)
+    if (state.deaths !== champion.deaths) {
+      state.deaths = champion.deaths;
       state.heat = 0;
       state.overheated = false;
     } else if (state.overheated) {

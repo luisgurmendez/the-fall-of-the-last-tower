@@ -30,6 +30,5 @@ export const calamitusRenderer: ChampionRendererEntry = {
   projectiles: {},
   markVisuals: {
     calamitus_lavaborn: HIDDEN,
-    calamitus_lavaborn_mr: HIDDEN,
   },
 };

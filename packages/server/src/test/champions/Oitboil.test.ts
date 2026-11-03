@@ -337,6 +337,16 @@ describe('Oitboil passive: Overheat', () => {
     castFresh(arena, 'Q');
     expect(heat(arena.blue)).toBe(20);
   });
+
+  test("back at once (a short respawn), he's still cold: death resets heat, not its decay", () => {
+    const arena = oitboilArena();
+    for (let i = 0; i < 4; i++) castFresh(arena, 'Q');
+    arena.blue.takeDamage(1e9, 'true', arena.red.id, arena.context);
+    arena.blue.respawnTimer = 0.05;
+    tickFor(arena, 0.2);
+    expect(arena.blue.isDead).toBe(false);
+    expect(heat(arena.blue)).toBe(0);
+  });
 });
 
 // =============================================================================

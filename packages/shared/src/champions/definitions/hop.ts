@@ -121,7 +121,7 @@ export const HopCarrotBreak: AbilityDefinition = {
   heal: {
     scaling: scaling([60, 95, 130, 165, 200], { adRatio: 0.4, missingHealthRatio: 0.06 }),
   },
-  appliesEffects: ["hop_eating", "hop_sugar_rush"],
+  // The sugar rush's; the handler applies hop_eating, then hop_sugar_rush
   effectDuration: 3,
 };
 
