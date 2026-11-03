@@ -1,0 +1,18 @@
+# Never in the image: API keys (.env.local holds PixelLab's and ElevenLabs'),
+# the old EC2 deploy's key, git and agent work
+.env*
+.envrc
+deploy
+.git
+.claude
+
+# Rebuilt in the image
+**/node_modules
+dist
+packages/*/dist
+**/*.tsbuildinfo
+
+# Not needed to run the game
+siege-artwork
+packages/server/sim-output
+scripts
