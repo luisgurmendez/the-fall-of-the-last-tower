@@ -111,7 +111,7 @@ export class GameRoom {
     }
 
     // Create game context
-    this.mapId = config.mapId ?? 'wildcrown';
+    this.mapId = config.mapId ?? 'vale';
     this.context = new ServerGameContext({
       gameId: config.gameId,
       mapConfig: MAPS[this.mapId],

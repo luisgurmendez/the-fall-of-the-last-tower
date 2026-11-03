@@ -14,9 +14,9 @@ import { MAPS, type MapId } from "@siege/shared";
 
 /** Practice matches, in the order of their chips */
 export const PRACTICE_MODES = [
-  { label: "1V1", size: 1, map: "wildcrown", detail: "You in mid on Wildcrown Vale" },
-  { label: "3V3", size: 3, map: "wildcrown", detail: "You in mid, bots in top and bot" },
-  { label: "5V5", size: 5, map: "wildcrown", detail: "You in mid, bots in every other role" },
+  { label: "1V1", size: 1, map: "vale", detail: "You in mid on The Vale" },
+  { label: "3V3", size: 3, map: "vale", detail: "You in mid, bots in top and bot" },
+  { label: "5V5", size: 5, map: "vale", detail: "You in mid, bots in every other role" },
   { label: "ARAM", size: 1, map: "narrows", detail: "1v1 on The Narrows: one lane, no jungle" },
 ] as const satisfies readonly { label: string; size: number; map: MapId; detail: string }[];
 export type PracticeMode = (typeof PRACTICE_MODES)[number];

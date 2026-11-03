@@ -6,9 +6,9 @@ Siege is a **multiplayer MOBA** (Multiplayer Online Battle Arena) game. The game
 
 > **Note**: This project was originally built for the js13kb game contest as a tower defense game. The legacy tower defense code and offline single-player mode have been **removed**. The game is now **online-only** with server-authoritative gameplay.
 
-> **Name**: players see the game as **Wildcrown** (`src/config/brand.ts`: the logo, the browser tab). "Siege" is only the codebase's name (packages, `@siege/shared`, storage keys).
+> **Name**: players see the game as **Retro League** (`src/config/brand.ts`: the logo, the browser tab). "Siege" is only the codebase's name (packages, `@siege/shared`, storage keys).
 
-> **Maps**: `packages/shared/src/config/maps.ts` lists them: Wildcrown Vale (5v5, the jungle) and The Narrows (one lane, 1v1, practice's ARAM). The server builds each match on its map (`ServerGameContext.mapConfig`: read the map from there, never from the global `MOBAConfig`, in server code); a client calls `useMap()` when a match is found, which swaps the map into `MOBAConfig`. See [docs/architecture/map.md](docs/architecture/map.md#maps).
+> **Maps**: `packages/shared/src/config/maps.ts` lists them: The Vale (5v5, the jungle) and The Narrows (one lane, 1v1, practice's ARAM). The server builds each match on its map (`ServerGameContext.mapConfig`: read the map from there, never from the global `MOBAConfig`, in server code); a client calls `useMap()` when a match is found, which swaps the map into `MOBAConfig`. See [docs/architecture/map.md](docs/architecture/map.md#maps).
 
 ---
 

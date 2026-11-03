@@ -83,7 +83,7 @@ export class GameRoomManager {
   createRoom(
     players: PlayerInfo[],
     bots: BotController[] = [],
-    mapId: MapId = 'wildcrown',
+    mapId: MapId = 'vale',
     options: { allowDebug?: boolean } = {},
   ): GameRoom {
     const gameId = `game-${Date.now()}-${this.gameIdCounter++}`;

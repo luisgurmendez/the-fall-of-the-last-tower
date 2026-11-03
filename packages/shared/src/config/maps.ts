@@ -1,6 +1,6 @@
 /**
  * The maps a match can be played on. Each is a whole map config, the shape
- * of MOBAConfig: the main map (Wildcrown Vale, 5v5 with the jungle) and
+ * of MOBAConfig: the main map (The Vale, 5v5 with the jungle) and
  * The Narrows (a one-lane duel map, narrowsMap.ts).
  *
  * The server builds each match on its map (GameRoom: ServerGameContext's
@@ -26,7 +26,7 @@ import {
 type MapConfig = typeof MOBAConfig;
 
 /** The main map, as MOBAConfig was built (a copy, so swapping maps in and out keeps it) */
-const WILDCROWN: MapConfig = { ...MOBAConfig };
+const VALE: MapConfig = { ...MOBAConfig };
 
 const mirror = (p: { x: number; y: number }) => new Vector(-p.x, -p.y);
 const vector = (p: { x: number; y: number }) => new Vector(p.x, p.y);
@@ -34,31 +34,31 @@ const vector = (p: { x: number; y: number }) => new Vector(p.x, p.y);
 const narrowsBushes = NARROWS_BLUE_BUSHES.map(spot => ({ center: vector(spot.at), bushCount: spot.count, spread: spot.line }));
 
 const NARROWS: MapConfig = {
-  ...WILDCROWN,
+  ...VALE,
   NAME: "The Narrows",
-  NEXUS: { ...WILDCROWN.NEXUS, BLUE: vector(NARROWS_BLUE_NEXUS), RED: mirror(NARROWS_BLUE_NEXUS) },
+  NEXUS: { ...VALE.NEXUS, BLUE: vector(NARROWS_BLUE_NEXUS), RED: mirror(NARROWS_BLUE_NEXUS) },
   LANES: {
-    MID: { id: "mid", waypoints: NARROWS_LANE.map(vector), width: WILDCROWN.LANES.MID!.width },
+    MID: { id: "mid", waypoints: NARROWS_LANE.map(vector), width: VALE.LANES.MID!.width },
   },
   RIVER: { points: [], width: 0, pits: [] },
-  JUNGLE: { ...WILDCROWN.JUNGLE, CAMPS: [] },
+  JUNGLE: { ...VALE.JUNGLE, CAMPS: [] },
   CHAMPION_SPAWN: { BLUE: vector(NARROWS_BLUE_SPAWN), RED: mirror(NARROWS_BLUE_SPAWN) },
-  BLOSSOMS: { ...WILDCROWN.BLOSSOMS, SPOTS: [...NARROWS_BLUE_BLOSSOMS, ...NARROWS_BLUE_BLOSSOMS.map(mirror)] },
+  BLOSSOMS: { ...VALE.BLOSSOMS, SPOTS: [...NARROWS_BLUE_BLOSSOMS, ...NARROWS_BLUE_BLOSSOMS.map(mirror)] },
   TRAILS: [],
-  TUNNELS: { ...WILDCROWN.TUNNELS, LIST: [] },
+  TUNNELS: { ...VALE.TUNNELS, LIST: [] },
   // Red's groups follow blue's in the same order (calculateIndividualBushPositions mirrors them)
   BUSH_GROUPS: [...narrowsBushes, ...narrowsBushes.map(group => ({ ...group, center: mirror(group.center) }))],
   WALL_FIELD: NARROWS_WALL_FIELD,
   WALLS: NARROWS_WALLS,
   TOWERS: {
-    ...WILDCROWN.TOWERS,
+    ...VALE.TOWERS,
     POSITIONS: [
       ...NARROWS_BLUE_TOWERS.map(at => ({ side: 0 as const, lane: "mid" as const, position: vector(at) })),
       ...NARROWS_BLUE_TOWERS.map(at => ({ side: 1 as const, lane: "mid" as const, position: mirror(at) })),
     ],
   },
   INHIBITORS: {
-    ...WILDCROWN.INHIBITORS,
+    ...VALE.INHIBITORS,
     POSITIONS: [
       { side: 0 as const, lane: "mid" as const, position: vector(NARROWS_BLUE_INHIBITOR) },
       { side: 1 as const, lane: "mid" as const, position: mirror(NARROWS_BLUE_INHIBITOR) },
@@ -68,7 +68,7 @@ const NARROWS: MapConfig = {
 };
 
 export const MAPS = {
-  wildcrown: WILDCROWN,
+  vale: VALE,
   narrows: NARROWS,
 } satisfies Record<string, MapConfig>;
 
@@ -88,5 +88,5 @@ export function useMap(id: MapId): void {
 
 /** Which map is active (the one MOBAConfig holds) */
 export function activeMapId(): MapId {
-  return (Object.keys(MAPS) as MapId[]).find(id => MAPS[id].WALL_FIELD === MOBAConfig.WALL_FIELD) ?? "wildcrown";
+  return (Object.keys(MAPS) as MapId[]).find(id => MAPS[id].WALL_FIELD === MOBAConfig.WALL_FIELD) ?? "vale";
 }

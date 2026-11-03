@@ -49,7 +49,7 @@ export class LobbyManager {
     const lobby: Lobby = {
       code: this.newCode(),
       hostId: player.playerId,
-      mapId: 'wildcrown',
+      mapId: 'vale',
       teamSize: 3,
       members: [{ ...player, side: 0 }],
     };

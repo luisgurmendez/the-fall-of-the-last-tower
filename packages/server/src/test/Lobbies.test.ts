@@ -21,7 +21,7 @@ describe('LobbyManager', () => {
     expect(lobby.code).toMatch(/^[A-Z2-9]{5}$/);
     expect(lobby.hostId).toBe('ana');
     expect(lobby.members.map(m => [m.playerId, m.side])).toEqual([['ana', 0]]);
-    expect(LobbyManager.stateOf(lobby)).toMatchObject({ code: lobby.code, hostId: 'ana', mapId: 'wildcrown', teamSize: 3 });
+    expect(LobbyManager.stateOf(lobby)).toMatchObject({ code: lobby.code, hostId: 'ana', mapId: 'vale', teamSize: 3 });
   });
 
   test('friends join by code (typed any way), on the side with fewer players', () => {
@@ -73,7 +73,7 @@ describe('LobbyManager', () => {
     lobbies.join(code, { ...player('bo'), summonerSpells: [] });
     lobbies.switchSide('bo');
     lobbies.settings('bo', { mapId: 'narrows' });
-    expect(lobbies.lobbyOf('ana')!.mapId).toBe('wildcrown');
+    expect(lobbies.lobbyOf('ana')!.mapId).toBe('vale');
     lobbies.settings('ana', { mapId: 'narrows', teamSize: 1 });
     expect(lobbies.lobbyOf('ana')!.mapId).toBe('narrows');
     expect(lobbies.lobbyOf('ana')!.teamSize).toBe(3);

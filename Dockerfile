@@ -1,4 +1,4 @@
-# Wildcrown on one machine: the Bun game server, serving the built client
+# Retro League on one machine: the Bun game server, serving the built client
 # (dist/) and its WebSocket (/ws) from the same address. See docs/architecture/deploy.md.
 
 FROM oven/bun:1 AS build

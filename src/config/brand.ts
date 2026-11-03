@@ -4,7 +4,7 @@
  * (on the loading screen) is its config's NAME (shared maps.ts).
  */
 
-export const GAME_NAME = "Wildcrown";
+export const GAME_NAME = "Retro League";
 
 /** Under the logo */
 export const GAME_TAGLINE = "5v5 pixel arena";

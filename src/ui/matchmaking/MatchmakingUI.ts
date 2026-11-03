@@ -226,7 +226,7 @@ export class MatchmakingUI {
       context.hidden = inRoom;
       context.textContent = this.selectFor.kind === "practice"
         ? describePracticeMode(this.selectFor.mode)
-        : `ONLINE 1V1 · ${MAPS.wildcrown.NAME.toUpperCase()}`;
+        : `ONLINE 1V1 · ${MAPS.vale.NAME.toUpperCase()}`;
     }
     if (back) back.textContent = inRoom ? "LEAVE" : "BACK";
     if (switchSide) switchSide.hidden = !inRoom;
@@ -505,7 +505,7 @@ export class MatchmakingUI {
     this.room.show(null);
     this.championSelect.setTaken(new Map());
     // The match's map becomes the active one before anything draws it
-    useMap(isMapId(data?.mapId) ? data.mapId : "wildcrown");
+    useMap(isMapId(data?.mapId) ? data.mapId : "vale");
 
     // Update team displays
     this.matchFound.showTeams(data);

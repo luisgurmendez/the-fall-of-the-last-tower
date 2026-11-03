@@ -122,7 +122,7 @@ When a match is found, the server:
 ## Practice Mode
 
 `READY` accepts `mode: 'practice'`, an optional `practiceSize` (players per team: 1, 3 or 5; default 1), an optional `mapId`
-(`'wildcrown'` by default, or `'narrows'`, always 1v1; see [map.md](map.md#maps)) and an optional `botChampionId` (the 1v1
+(`'vale'` by default, or `'narrows'`, always 1v1; see [map.md](map.md#maps)) and an optional `botChampionId` (the 1v1
 bot's champion). `GAME_START` carries the match's `mapId`. The server skips the queue and starts a match immediately (`buildPracticeMatch` in
 `packages/server/src/bots/practiceMatch.ts`): the player in mid on blue, and server-side bots in every other role on both sides:
 - **1v1**: a `LaneBot` in mid on red.
@@ -133,14 +133,14 @@ Bots pick champions that suit their role when free (a tank on top, a healer as s
 the same on a team, and summoner spells by role (the junglers Reap). Each bot is a `PlayerInfo` with `isBot: true` (ID
 `bot-<playerId>-<side>-<role>`); `GameRoom` runs it through `BotDriver` each tick before processing inputs, and never sends it
 state. The client's **PRACTICE** card uses this; its chips pick the match: 1V1, 3V3, 5V5 on
-Wildcrown Vale, and ARAM (1v1 on The Narrows), remembered in localStorage `siege-practice-mode`. See [simulation.md](simulation.md#bots).
+The Vale, and ARAM (1v1 on The Narrows), remembered in localStorage `siege-practice-mode`. See [simulation.md](simulation.md#bots).
 
 ## The client's flow: how to play, then the champion
 
 The menu's **PLAY** opens the mode screen (`src/ui/matchmaking/modeSelect.ts`), three cards:
 
 - **PRACTICE**: you against bots; chips pick 1V1, 3V3, 5V5 or ARAM. *Choose champion* opens
-  champion select for it, whose context line reads e.g. "PRACTICE · 5V5 · WILDCROWN VALE"
+  champion select for it, whose context line reads e.g. "PRACTICE · 5V5 · THE VALE"
   and whose **START** sends `READY` in practice mode.
 - **WITH FRIENDS**: the player's name (kept in localStorage `siege-player-name`), **CREATE
   ROOM**, or a friend's code and **JOIN**. Champion select opens once the room's first

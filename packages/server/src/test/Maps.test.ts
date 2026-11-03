@@ -85,16 +85,16 @@ describe('The Narrows', () => {
 
 describe('Swapping maps on a client', () => {
   test('useMap makes a map the active one, and back', () => {
-    expect(activeMapId()).toBe('wildcrown');
+    expect(activeMapId()).toBe('vale');
     useMap('narrows');
     try {
       expect(MOBAConfig.WALL_FIELD).toBe(MAPS.narrows.WALL_FIELD);
       expect(MOBAConfig.NAME).toBe('The Narrows');
       expect(activeMapId()).toBe('narrows');
     } finally {
-      useMap('wildcrown');
+      useMap('vale');
     }
-    expect(MOBAConfig.WALL_FIELD).toBe(MAPS.wildcrown.WALL_FIELD);
+    expect(MOBAConfig.WALL_FIELD).toBe(MAPS.vale.WALL_FIELD);
     expect(MOBAConfig.JUNGLE.CAMPS.length).toBeGreaterThan(0);
   });
 });

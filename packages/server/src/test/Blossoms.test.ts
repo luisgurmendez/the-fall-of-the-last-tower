@@ -21,7 +21,7 @@ describe('Healing blossoms', () => {
   test('The Narrows has them, on open ground; the main map has none', () => {
     expect(SPOTS.length).toBe(4);
     for (const spot of SPOTS) expect(MAPS.narrows.WALL_FIELD.distance(spot.x, spot.y)).toBeGreaterThan(40);
-    expect(MAPS.wildcrown.BLOSSOMS.SPOTS.length).toBe(0);
+    expect(MAPS.vale.BLOSSOMS.SPOTS.length).toBe(0);
   });
 
   test('a champion walking over one in bloom is healed, and it regrows later', () => {

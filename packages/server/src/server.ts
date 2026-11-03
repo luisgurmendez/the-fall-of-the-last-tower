@@ -329,7 +329,7 @@ function handleReadyMessage(connection: WebSocketConnection, data: ReadyMessageD
   broadcastLobby(lobbies.leave(playerId));
 
   if (mode === 'practice') {
-    const map = isMapId(mapId) ? mapId : 'wildcrown';
+    const map = isMapId(mapId) ? mapId : 'vale';
     // The Narrows has a single lane: always a duel
     const teamSize = map === 'narrows' ? 1 : isPracticeTeamSize(practiceSize) ? practiceSize : 1;
     startPracticeMatch(playerId, championId, summonerSpells, botChampionId, teamSize, map);
@@ -417,7 +417,7 @@ function startPracticeMatch(
 function startMatch(
   players: PlayerInfo[],
   bots: BotController[] = [],
-  mapId: MapId = 'wildcrown',
+  mapId: MapId = 'vale',
   options: { allowDebug?: boolean } = {},
 ): void {
   // Create the game room

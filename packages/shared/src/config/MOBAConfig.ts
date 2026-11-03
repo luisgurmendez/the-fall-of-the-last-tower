@@ -74,7 +74,7 @@ export interface LaneConfig {
  */
 export const MOBAConfig = {
   /** The map's name, on the loading screen */
-  NAME: "Wildcrown Vale" as string,
+  NAME: "The Vale" as string,
 
   /**
    * Map dimensions in world units.
