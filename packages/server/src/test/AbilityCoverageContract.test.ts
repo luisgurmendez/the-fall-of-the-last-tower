@@ -149,6 +149,9 @@ const GENERIC_SUPPORT: Record<keyof AbilityDefinition, FieldRule> = {
     DESTINATION_TARGET_TYPES.includes(d.targetType) || `dash needs a destination, which ${d.targetType} abilities lack`,
   teleport: (d) =>
     DESTINATION_TARGET_TYPES.includes(d.targetType) || `teleport needs a destination, which ${d.targetType} abilities lack`,
+  // Read by ServerAbilityExecutor's rooted check: the ability's handler moves the caster
+  movesCaster: always,
+  recastMovesCaster: (d) => d.recast !== undefined || 'recastMovesCaster needs a recast',
 
   // Composable behaviors (recast: ServerAbilityExecutor.handleRecast and generic/Movement;
   // charge: generic/Skillshot; statTransform: generic/StatTransform)

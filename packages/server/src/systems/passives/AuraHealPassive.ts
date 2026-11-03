@@ -1,10 +1,12 @@
 /**
  * Default handler for aura heal passives (like Elara's Blessed Presence):
- * heal allies around the champion by their max health.
+ * heal allied units around the champion by their max health (not
+ * structures).
  */
 
 import {
   calculateAbilityValue,
+  isUnitEntityType,
   type PassiveAbilityDefinition,
   type PassiveState,
 } from '@siege/shared';
@@ -30,6 +32,7 @@ export function handleAuraHeal(
   for (const entity of entities) {
     if (entity.side !== champion.side) continue;
     if (entity.isDead) continue;
+    if (!isUnitEntityType(entity.entityType)) continue;
     if (!('heal' in entity)) continue;
 
     const entityMaxHealth = entity.maxHealth;

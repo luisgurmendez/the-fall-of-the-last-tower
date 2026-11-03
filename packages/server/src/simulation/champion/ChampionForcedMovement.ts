@@ -5,10 +5,11 @@
  * that should animate, champion.dashAbilityId). While it runs it replaces
  * normal movement: the champion moves a fixed distance over a fixed
  * duration, and a dash with a hitbox damages and applies effects to each
- * enemy it touches once.
+ * enemy it touches once: only what its ability affects (units; never
+ * towers or wards unless the ability says so).
  */
 
-import type { Vector, DamageType } from '@siege/shared';
+import { canAbilityAffectEntityType, getAbilityDefinition, isUnitEntityType, type Vector, type DamageType } from '@siege/shared';
 import type { ServerChampion } from '../ServerChampion';
 import type { ServerEntity } from '../ServerEntity';
 import type { ServerGameContext } from '../../game/ServerGameContext';
@@ -89,12 +90,14 @@ function checkDashCollisions(champion: ServerChampion, context: ServerGameContex
   }
 
   const entities = context.getEntitiesInRadius(champion.position, fm.hitbox!);
+  const ability = champion.dashAbilityId ? getAbilityDefinition(champion.dashAbilityId) : undefined;
 
   for (const entity of entities) {
     if (entity.side === champion.side) continue;
     if (entity.isDead) continue;
     if (entity.id === champion.id) continue;
     if (fm.hitEntities.has(entity.id)) continue; // Already hit
+    if (ability ? !canAbilityAffectEntityType(ability, entity.entityType) : !isUnitEntityType(entity.entityType)) continue;
 
     // Mark as hit
     fm.hitEntities.add(entity.id);

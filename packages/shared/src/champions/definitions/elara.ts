@@ -93,6 +93,7 @@ export const ElaraBarrier: AbilityDefinition = {
     "Grant target ally a shield absorbing {shield} damage for 2.5 seconds.",
   type: "active",
   targetType: "target_ally",
+  affectsMinions: false, // Champions (with no allied champion under the cursor, Elara)
   maxRank: 5,
   manaCost: [60, 65, 70, 75, 80],
   cooldown: [12, 11, 10, 9, 8],

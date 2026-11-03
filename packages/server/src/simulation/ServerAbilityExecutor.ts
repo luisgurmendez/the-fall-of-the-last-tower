@@ -113,12 +113,14 @@ export class ServerAbilityExecutor {
     }
 
     // Rooted or grounded champions can't dash or teleport
-    if ((definition.dash || definition.teleport) && !champion.ccStatus.canUseMobilityAbilities) {
+    const recasting = hasRecastBehavior(definition) && champion.hasRecastAvailable(slot);
+    const moves = recasting ? definition.recastMovesCaster : definition.dash || definition.teleport || definition.movesCaster;
+    if (moves && !champion.ccStatus.canUseMobilityAbilities) {
       return { success: false, failReason: "rooted" };
     }
 
     // Check for recast - if available, handle recast flow instead of normal cast
-    if (hasRecastBehavior(definition) && champion.hasRecastAvailable(slot)) {
+    if (recasting) {
       // Abilities whose handler implements recast own the whole recast flow
       const handler = abilityHandlerRegistry.get(definition.id);
       if (handler?.canRecast && handler?.executeRecast) {
@@ -189,6 +191,16 @@ export class ServerAbilityExecutor {
       if (distance > definition.range) {
         params = { ...params, targetPosition: champion.position.added(offset.scaled(definition.range / distance)) };
       }
+    }
+
+    // An ally-targeted ability with no ally under the cursor that it affects
+    // (none, a minion for a champions-only one, a tower) goes on the caster;
+    // an enemy under the cursor is refused
+    if (definition.targetType === "target_ally" && !definition.excludesSelf) {
+      const target = params.targetEntityId ? context.getEntity(params.targetEntityId) : undefined;
+      const isEnemy = target !== undefined && target.side !== champion.side;
+      const affected = target !== undefined && !target.isDead && canAbilityAffectEntityType(definition, target.entityType);
+      if (!isEnemy && !affected) params = { ...params, targetEntityId: champion.id };
     }
 
     // Validate target based on ability type
@@ -431,6 +443,9 @@ export class ServerAbilityExecutor {
         if (definition.excludesSelf && target.id === champion.id) {
           return { valid: false, reason: "invalid_target" };
         }
+        if (!canAbilityAffectEntityType(definition, target.entityType)) {
+          return { valid: false, reason: "invalid_target" };
+        }
         // Check range
         if (definition.range) {
           if (!champion.isInRange(target, definition.range)) {
@@ -463,15 +478,9 @@ export class ServerAbilityExecutor {
 
       case "skillshot":
       case "ground_target": {
+        // (A ground target past the range was already brought to it: no range check)
         if (!targetPosition) {
           return { valid: false, reason: "invalid_target" };
-        }
-        // Check range for ground target
-        if (definition.range && definition.targetType === "ground_target") {
-          const distance = champion.position.distanceTo(targetPosition);
-          if (distance > definition.range) {
-            return { valid: false, reason: "out_of_range" };
-          }
         }
         return { valid: true };
       }

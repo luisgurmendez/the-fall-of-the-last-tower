@@ -99,8 +99,8 @@ function applyNoTargetArea(
     const isEnemy = entity.side !== champion.side;
     const isAlly = entity.side === champion.side;
 
-    // Check if ability can affect this entity type
-    if (isEnemy && !canAbilityAffectEntityType(definition, entity.entityType)) {
+    // Check if ability can affect this entity type (allies too: heals and buffs never reach structures)
+    if (!canAbilityAffectEntityType(definition, entity.entityType)) {
       continue;
     }
 

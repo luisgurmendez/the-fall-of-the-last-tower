@@ -109,6 +109,7 @@ export const VileBlackArrows: AbilityDefinition = {
   recastWindow: 3.0, // 3 seconds to recast after hit
   recastCondition: "on_hit", // Recast available when ability hits (or wall)
   recast: 1, // Can recast once (dash to hit location)
+  recastMovesCaster: true,
   stopsOnWall: true, // Projectile stops when hitting wall, enables recast
 };
 

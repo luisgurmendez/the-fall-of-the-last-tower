@@ -90,6 +90,7 @@ export {
   calculateAbilityValue,
   getPassiveLevelValue,
   canAbilityAffectEntityType,
+  isUnitEntityType,
   AbilityEntityType,
   hasRecastBehavior,
   getCastTime,

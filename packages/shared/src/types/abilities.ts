@@ -398,6 +398,16 @@ export interface AbilityDefinition {
   /** Whether this is a blink/teleport (instant reposition) */
   teleport?: boolean;
 
+  /**
+   * It moves the caster though it has no dash or teleport of its own (its
+   * handler does, e.g. Zhak'rul's burrow): like those, rooted or grounded
+   * it doesn't go off.
+   */
+  movesCaster?: boolean;
+
+  /** Its recast moves the caster (e.g., Vile's arrow: a dash to where it hit) */
+  recastMovesCaster?: boolean;
+
   // ===================
   // Effect application
   // ===================
@@ -871,6 +881,8 @@ export const AbilityEntityType = {
  * - Towers/Structures: false (most abilities don't damage towers)
  * - Jungle camps: true
  * - Wards: false
+ * - Anything else (projectiles, zones, Lume's orb, blossoms): never, so
+ *   they don't stop a skillshot or die to one
  */
 export function canAbilityAffectEntityType(
   ability: AbilityDefinition | undefined,
@@ -897,8 +909,19 @@ export function canAbilityAffectEntityType(
       return ability.affectsWards === true; // Default false
 
     default:
-      return true; // Unknown types: allow by default
+      return false; // Not a unit
   }
+}
+
+/**
+ * Whether an entity type is a unit: a champion, a minion or a monster (what
+ * heals, shields and buffs reach; never structures, wards, projectiles or
+ * zones).
+ */
+export function isUnitEntityType(entityType: number): boolean {
+  return entityType === AbilityEntityType.CHAMPION ||
+    entityType === AbilityEntityType.MINION ||
+    entityType === AbilityEntityType.JUNGLE_CAMP;
 }
 
 // =============================================================================

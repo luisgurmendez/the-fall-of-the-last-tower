@@ -13,6 +13,7 @@ import {
   Vector,
   calculateAbilityValue,
   canAbilityAffectEntityType,
+  isUnitEntityType,
   DamageType,
   type AbilityDefinition,
 } from '@siege/shared';
@@ -137,7 +138,8 @@ export abstract class BaseAbilityHandler implements IAbilityHandler {
   }
 
   /**
-   * Get allies in radius (including self if includeSelf is true).
+   * Get allied units in radius (including self if includeSelf is true): no
+   * structures, wards, projectiles or zones.
    */
   protected getAlliesInRadius(
     position: Vector,
@@ -150,6 +152,7 @@ export abstract class BaseAbilityHandler implements IAbilityHandler {
     return entities.filter(entity => {
       if (entity.side !== champion.side) return false;
       if (entity.isDead) return false;
+      if (!isUnitEntityType(entity.entityType)) return false;
       if (!includeSelf && entity.id === champion.id) return false;
       return true;
     });

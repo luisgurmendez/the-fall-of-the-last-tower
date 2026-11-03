@@ -112,6 +112,7 @@ export const CaelumEmbolden: AbilityDefinition = {
     "Embolden an ally or yourself for 4 seconds: 20% more attack damage and ability power, and 20% movement speed.",
   type: "active",
   targetType: "target_ally",
+  affectsMinions: false, // Champions (with no allied champion under the cursor, Caelum)
   maxRank: 5,
   manaCost: [60, 60, 60, 60, 60],
   cooldown: [16, 14.5, 13, 11.5, 10],

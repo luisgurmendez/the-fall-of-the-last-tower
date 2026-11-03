@@ -719,7 +719,7 @@ describe('Elara Abilities - Entity Targeting', () => {
   });
 
   describe('W - Sacred Shield (Ally Shield)', () => {
-    test('should shield ally minion', () => {
+    test('on an allied minion it shields Elara instead (it is for champions)', () => {
       const minion = arena.addMinion(TEAM_BLUE, new Vector(200, 0));
 
       const result = arena.castAbility(arena.blue, 'W', {
@@ -729,9 +729,8 @@ describe('Elara Abilities - Entity Targeting', () => {
 
       arena.tickAll();
 
-      // Note: Minions don't have shields in our current implementation
-      // This test verifies the ability executes successfully
       expect(result.success).toBe(true);
+      expect(arena.blue.getTotalShieldAmount()).toBeGreaterThan(0);
     });
   });
 

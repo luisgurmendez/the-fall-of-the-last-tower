@@ -153,6 +153,7 @@ export const ZhakrulBurrowedAmbush: AbilityDefinition = {
   manaCost: [60, 60, 60, 60, 60],
   cooldown: [16, 15, 14, 13, 12],
   range: 320,
+  movesCaster: true,
   aoeRadius: 130, // Where he bursts out
   shape: "circle",
   damage: {

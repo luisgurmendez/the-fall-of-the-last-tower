@@ -18,6 +18,7 @@ import { ServerLightOrb, LUME_ORB_CONFIG } from '../../../simulation/ServerLight
 import type { ServerChampion } from '../../../simulation/ServerChampion';
 import type { ServerGameContext } from '../../../game/ServerGameContext';
 import { Logger } from '../../../utils/Logger';
+import { canAbilityAffectEntityType } from '@siege/shared';
 
 export class LumeWHandler extends BaseAbilityHandler {
   readonly abilityId = 'lume_w';
@@ -53,6 +54,7 @@ export class LumeWHandler extends BaseAbilityHandler {
 
     for (const entity of entities) {
       if (entity.isDead) continue;
+      if (!canAbilityAffectEntityType(definition, entity.entityType)) continue;
 
       const isAlly = entity.side === champion.side;
 
