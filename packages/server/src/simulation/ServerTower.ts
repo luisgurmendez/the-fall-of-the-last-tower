@@ -304,14 +304,22 @@ export class ServerTower extends ServerEntity {
     return this.attackTarget;
   }
 
+  /** A shot's damage to a champion before warmup: it grows with game time, like the classic MOBA's turrets */
+  getChampionDamage(gameTime: number): number {
+    const { attackDamage, championDamagePerMinute, maxChampionDamage } = this.stats;
+    return Math.min(maxChampionDamage, attackDamage + championDamagePerMinute * (gameTime / 60));
+  }
+
   /**
    * Attack a target by firing a projectile.
    */
   private attack(target: ServerEntity, context: ServerGameContext): void {
-    // Calculate damage with warmup (damage is locked in when projectile is fired)
-    const baseDamage = this.stats.attackDamage;
-    const warmupBonus = this.warmupStacks * this.stats.warmupDamagePerStack;
-    const totalDamage = baseDamage + warmupBonus;
+    // Damage with warmup (locked in when the projectile is fired): against
+    // champions it grows with game time, minions always take the starting damage
+    const baseDamage = target.entityType === EntityType.CHAMPION
+      ? this.getChampionDamage(context.getGameTime())
+      : this.stats.attackDamage;
+    const totalDamage = baseDamage * (1 + this.warmupStacks * this.stats.warmupPercentPerStack);
 
     // Fire projectile at target
     const projectile = new ServerTargetedProjectile({

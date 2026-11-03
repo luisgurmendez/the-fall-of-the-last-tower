@@ -120,6 +120,48 @@ describe('ServerTower', () => {
     });
   });
 
+  describe('Shots', () => {
+    /** The damage of each shot the tower fires at the target over `seconds` */
+    function shotsAt(target: TestChampion | ServerMinion, seconds: number, startMinute = 0): number[] {
+      const tower = new ServerTower({ id: 'tower-1', position: new Vector(0, 0), side: 0, lane: 'mid', tier: 1 });
+      context.addEntity(tower);
+      context.addEntity(target);
+      context.advanceTime(startMinute * 60);
+      const damages: number[] = [];
+      const addEntity = context.addEntity.bind(context);
+      context.addEntity = ((entity: any) => {
+        if (entity.sourceId === tower.id && typeof entity.damage === 'number') damages.push(Math.round(entity.damage));
+        return addEntity(entity);
+      }) as typeof context.addEntity;
+      for (let t = 0; t < seconds; t += 0.05) {
+        tower.update(0.05, context);
+        target.health = target.maxHealth; // keep it alive
+      }
+      return damages;
+    }
+
+    const champion = () => new TestChampion({
+      id: 'champion-1', position: new Vector(100, 0), side: TEAM_RED, playerId: 'player-1', definition: CHAMPION_DEFINITIONS['warrior'],
+    });
+
+    it('shoots every 1.2 seconds, +30% for each shot in a row up to +120%', () => {
+      const shots = shotsAt(champion(), 7);
+      expect(shots.length).toBe(6); // at 0, 1.2, 2.4, 3.6, 4.8 and 6.0
+      const base = DEFAULT_TOWER_STATS[1].attackDamage;
+      expect(shots.slice(0, 6)).toEqual([1, 1.3, 1.6, 1.9, 2.2, 2.2].map(m => Math.round(base * m)));
+    });
+
+    it('hits champions harder as the game goes on, up to its cap; minions always take the starting damage', () => {
+      const stats = DEFAULT_TOWER_STATS[1];
+      expect(shotsAt(champion(), 0.1, 10)[0]).toBe(Math.round(stats.attackDamage + stats.championDamagePerMinute * 10));
+      context = new ServerGameContext({ gameId: 'test-game' });
+      expect(shotsAt(champion(), 0.1, 60)[0]).toBe(stats.maxChampionDamage);
+      context = new ServerGameContext({ gameId: 'test-game' });
+      const minion = new ServerMinion({ id: 'minion-1', position: new Vector(100, 0), side: 1, minionType: 'melee', lane: 'mid', waypoints: [] });
+      expect(shotsAt(minion, 0.1, 30)[0]).toBe(stats.attackDamage);
+    });
+  });
+
   describe('Targeting', () => {
     it('should not attack allies', () => {
       const tower = new ServerTower({

@@ -24,14 +24,19 @@ export interface TowerStats {
   maxHealth: number;
   armor: number;
   magicResist: number;
+  /** Damage per shot at the start (always, against minions) */
   attackDamage: number;
+  /** Against champions it grows this much a minute of game time, up to maxChampionDamage (like the classic MOBA's turrets) */
+  championDamagePerMinute: number;
+  maxChampionDamage: number;
   /** Gap between the tower's body and its target's (edge to edge) */
   attackRange: number;
   /** How far the tower sees, from its center */
   sightRange: number;
+  /** Seconds between shots */
   attackCooldown: number;
-  /** Damage ramp per consecutive hit on same target */
-  warmupDamagePerStack: number;
+  /** Each consecutive shot on the same target deals this much more (0.3: +30%), up to maxWarmupStacks shots */
+  warmupPercentPerStack: number;
   maxWarmupStacks: number;
   /** Collision shape for the tower */
   collision?: EntityCollision;
@@ -47,11 +52,13 @@ export const DEFAULT_TOWER_STATS: Record<TowerTier, TowerStats> = {
     armor: 40,
     magicResist: 40,
     attackDamage: 152,
+    championDamagePerMinute: 7.5,
+    maxChampionDamage: 302,
     attackRange: 300,
     sightRange: 440,
-    attackCooldown: 2,
-    warmupDamagePerStack: 40,
-    maxWarmupStacks: 5,
+    attackCooldown: 1.2,
+    warmupPercentPerStack: 0.3,
+    maxWarmupStacks: 4,
     collision: DEFAULT_TOWER_COLLISION,
   },
   2: {
@@ -60,11 +67,13 @@ export const DEFAULT_TOWER_STATS: Record<TowerTier, TowerStats> = {
     armor: 55,
     magicResist: 55,
     attackDamage: 170,
+    championDamagePerMinute: 8,
+    maxChampionDamage: 330,
     attackRange: 300,
     sightRange: 440,
-    attackCooldown: 2,
-    warmupDamagePerStack: 45,
-    maxWarmupStacks: 5,
+    attackCooldown: 1.2,
+    warmupPercentPerStack: 0.3,
+    maxWarmupStacks: 4,
     collision: DEFAULT_TOWER_COLLISION,
   },
   3: {
@@ -73,11 +82,13 @@ export const DEFAULT_TOWER_STATS: Record<TowerTier, TowerStats> = {
     armor: 70,
     magicResist: 70,
     attackDamage: 190,
+    championDamagePerMinute: 8.5,
+    maxChampionDamage: 360,
     attackRange: 300,
     sightRange: 440,
-    attackCooldown: 2,
-    warmupDamagePerStack: 50,
-    maxWarmupStacks: 5,
+    attackCooldown: 1.2,
+    warmupPercentPerStack: 0.3,
+    maxWarmupStacks: 4,
     collision: DEFAULT_TOWER_COLLISION,
   },
 };
