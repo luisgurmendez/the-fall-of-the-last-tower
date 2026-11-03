@@ -170,11 +170,13 @@ export class ServerTrap extends ServerEntity {
       Logger.debug('Trap', `Granted ${this.soulStacksOnTrigger} soul stacks to ${owner.playerId}`);
     }
 
-    // Emit trap trigger event
+    // Emit trap trigger event (with where it was: the enemy never had the trap itself)
     context.addEvent(GameEventType.ABILITY_CAST, {
       entityId: this.id,
       abilityId: 'vile_trap_trigger',
       targetEntityId: target.id,
+      x: this.position.x,
+      y: this.position.y,
     });
 
     // Mark for removal

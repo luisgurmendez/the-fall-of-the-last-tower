@@ -19,7 +19,7 @@
  */
 
 import { describe, test, expect, beforeEach } from "bun:test";
-import { Vector, EntityType, TEAM_BLUE, TEAM_RED, CHAMPION_DEFINITIONS, LUME_ORB_CONFIG, getAbilityDefinition, getCastTime } from "@siege/shared";
+import { Vector, EntityType, GameEventType, TEAM_BLUE, TEAM_RED, CHAMPION_DEFINITIONS, LUME_ORB_CONFIG, getAbilityDefinition, getCastTime, getPassiveDefinition } from "@siege/shared";
 import { createTestArena, calculateMagicDamage, TestArena, TestChampion } from "../ServerTestUtils";
 import { ServerLightOrb } from "../../simulation/ServerLightOrb";
 import { ServerWard } from "../../simulation/ServerWard";
@@ -590,6 +590,10 @@ function valueAt(scaling: { base: number[]; apRatio?: number }, rank: number, ab
 
 describe("Lume: kit edge cases", () => {
   describe("Passive - Guiding Glow", () => {
+    test("it has no cooldown (nothing for a tooltip to show)", () => {
+      expect(getPassiveDefinition("lume_passive")!.internalCooldown).toBeUndefined();
+    });
+
     test("an enemy near the orb takes 8% more magic damage from Lume", () => {
       const arena = lumeArena(new Vector(200, 0));
       const plain = recordDamage(arena.red);
@@ -937,6 +941,19 @@ describe("Lume: kit edge cases", () => {
         expect(getCastTime(W)).toBe(0);
       });
     }
+
+    test("its cast is reported from the orb (where its VFX and sound go), not from her", () => {
+      const arena = lumeArena();
+      addOrb(arena, new Vector(250, -120));
+      arena.context.flushEvents();
+      arena.castAbility(arena.blue, "W");
+      const cast = arena.context.flushEvents().find(e => e.type === GameEventType.ABILITY_CAST && e.data.abilityId === "lume_w")!;
+      expect(cast).toBeDefined();
+      expect(cast.data.originX).toBeCloseTo(250, 5);
+      expect(cast.data.originY).toBeCloseTo(-120, 5);
+      expect(cast.data.targetX).toBeCloseTo(250, 5);
+      expect(cast.data.targetY).toBeCloseTo(-120, 5);
+    });
 
     test("without her orb it fails, nothing spent", () => {
       const arena = lumeArena();

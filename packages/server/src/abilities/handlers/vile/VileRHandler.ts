@@ -5,10 +5,10 @@
  *
  * TRANSFORMATION:
  * - Gain massive stats (health, AD, AS, MS)
- * - Attack range becomes melee (100)
- * - Grants 100 soul stacks
- * - All existing traps explode
- * - Damage aura while transformed
+ * - Attack range becomes melee (45)
+ * - Grants 60 soul stacks
+ * - All existing traps explode, for this ability's rank
+ * - Damage aura while transformed (scaled with AP, on units only)
  */
 
 import { BaseAbilityHandler } from '../../BaseAbilityHandler';

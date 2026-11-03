@@ -74,13 +74,15 @@ const VILE_GROWTH_STATS: ChampionGrowthStats = {
 
 /**
  * Q - Black Arrows of Vilix
- * Charge-based skillshot that can be recast to dash to hit location
+ * Charge-based skillshot that can be recast to dash to hit location. The
+ * charge only adds range (he can't move while charging); the arrow stops at
+ * the first enemy (minions too) or wall.
  */
 export const VileBlackArrows: AbilityDefinition = {
   id: "vile_black_arrows",
   name: "Black Arrows of Vilix",
   description:
-    "Charge to fire an arrow that deals {damage} physical damage and slows by 50% for 2 seconds. Hit location can be dashed to by recasting.",
+    "Charge to fire an arrow, farther the longer you charge (you can't move meanwhile). It stops at the first enemy or wall it hits, dealing {damage} physical damage and slowing by 50% for 2 seconds. Recast within 3 seconds to dash to where it hit.",
   type: "active",
   targetType: "skillshot",
   maxRank: 5,
@@ -121,7 +123,7 @@ export const VileVeilOfDarkness: AbilityDefinition = {
   id: "vile_veil_of_darkness",
   name: "Veil of Darkness",
   description:
-    "Become invisible and invulnerable for 2 seconds but cannot move. After the veil ends, gain 50% movement speed and slow resistance for 2 seconds.",
+    "Become invisible and invulnerable for 2 seconds but cannot move. After the veil ends, gain 50% movement speed and 50% slow resistance for 2 seconds.",
   type: "active",
   targetType: "self",
   maxRank: 5,
@@ -129,7 +131,7 @@ export const VileVeilOfDarkness: AbilityDefinition = {
   cooldown: [22, 20, 18, 16, 14],
   appliesEffects: ["vile_invulnerable", "vile_rooted_self", "vile_stealth"],
   effectDuration: 2,
-  // Post-effect buffs applied after duration ends (handled by executor)
+  // Post-effect buffs applied when the veil ends (VileWHandler, on game time)
   postEffects: {
     effects: ["vile_post_veil_speed", "vile_slow_resist"],
     duration: 2,
@@ -139,13 +141,13 @@ export const VileVeilOfDarkness: AbilityDefinition = {
 /**
  * E - Roots of Vilix
  * Place an invisible trap that triggers on enemy champions
- * Uses charge system (max 5 charges)
+ * Uses charge system (max 5 charges, tracked by the ability executor)
  */
 export const VileRootsOfVilix: AbilityDefinition = {
   id: "vile_roots_of_vilix",
   name: "Roots of Vilix",
   description:
-    "Place an invisible trap that roots enemy champions for 1 second and grants Vile 5 soul stacks. Stores up to 5 charges.",
+    "Place an invisible trap that arms after a second and roots the first enemy champion to step on it for 1 second, granting Vile 5 soul stacks. Holds up to 5 traps; one comes back every 40 to 20 seconds.",
   type: "active",
   targetType: "ground_target",
   maxRank: 5,
@@ -166,7 +168,7 @@ export const VileRootsOfVilix: AbilityDefinition = {
     rootDuration: 1,
     soulStacksOnTrigger: 5,
     // Explosion properties (when R is cast)
-    explosionDamage: [80, 120, 160], // Based on R rank
+    explosionDamage: [80, 120, 160], // By R's rank when it's cast
     explosionRadius: 140,
     explosionRootDuration: 1,
   },
@@ -180,7 +182,7 @@ export const VileRestorationOfVilix: AbilityDefinition = {
   id: "vile_restoration_of_vilix",
   name: "Restoration of Vilix",
   description:
-    "Transform for 10 seconds, gaining massive stats, melee range, and an aura that damages nearby enemies. Grants 60 soul stacks and causes all traps to explode.",
+    "Transform for 10 seconds, gaining massive stats, melee range, and an aura that deals 25-55 (+20% ability power) magic damage a second to nearby enemies. Grants 60 soul stacks and blows up all your traps: 80-160 magic damage around each, rooting champions for 1 second.",
   type: "active",
   targetType: "self",
   maxRank: 3,
@@ -200,7 +202,7 @@ export const VileRestorationOfVilix: AbilityDefinition = {
     triggersTrapExplosion: true,
     canEndEarly: false,
   },
-  // Aura damage (per second to nearby enemies)
+  // Aura damage (per second to nearby enemy units, scaled with AP: ChampionTransform)
   aura: {
     radius: 140,
     damage: {

@@ -1619,6 +1619,18 @@ describe('Vile: kit edge cases', () => {
       expect(trap.isDead).toBe(true);
     });
 
+    test('springing, it reports where it was (the enemy never saw the trap itself)', () => {
+      const arena = createTestArena({ blueChampion: 'vile', redChampion: 'magnus', redPosition: new Vector(TRAP_AT, 10) });
+      placeTrap(arena, new Vector(TRAP_AT, 0));
+      arena.context.flushEvents();
+      arena.tickAllFrames(Math.ceil((ServerTrap.ARM_DELAY + 0.2) / DT));
+      const sprung = arena.context.flushEvents().find(e => e.data.abilityId === 'vile_trap_trigger')!;
+      expect(sprung).toBeDefined();
+      expect(sprung.data.targetEntityId).toBe(arena.red.id);
+      expect(sprung.data.x).toBeCloseTo(TRAP_AT, 5);
+      expect(sprung.data.y).toBeCloseTo(0, 5);
+    });
+
     test("the enemy team doesn't see it; his team does", () => {
       const arena = trapArena();
       placeTrap(arena, new Vector(TRAP_AT, 0));

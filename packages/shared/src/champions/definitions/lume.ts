@@ -127,7 +127,6 @@ export const LumePassive: PassiveAbilityDefinition = {
   description:
     "Lume is accompanied by a Light Orb. Allies near the orb gain 15% bonus movement speed. Enemies near the orb take 8% increased magic damage from Lume.",
   trigger: "always",
-  internalCooldown: 30, // Orb regeneration time
 };
 
 // =============================================================================
@@ -190,20 +189,19 @@ export const LumeQ: AbilityDefinition = {
  * Warmth
  *
  * The Light Orb pulses with warmth, affecting nearby units:
- * - Allied champions are healed
- * - Enemy champions take magic damage
- * - If orb is destroyed, pulses around Lume instead
+ * - Allies (Lume, champions, minions) are healed
+ * - Enemies (champions, minions, monsters) take magic damage
  *
  * IMPLEMENTATION NOTES:
- * - Effect centered on orb's current position (or Lume if orb destroyed)
- * - Affects champions only (not minions)
+ * - Effect centered on orb's current position (its VFX and sound too)
+ * - Units only: no structures, no wards
  * - Single pulse, not persistent
  */
 export const LumeW: AbilityDefinition = {
   id: "lume_w",
   name: "Warmth",
   description:
-    "The Light Orb pulses, healing allied champions for {heal} and dealing {damage} magic damage to enemy champions within range.",
+    "The Light Orb pulses, healing allies near it for {heal} and dealing {damage} magic damage to enemies near it.",
   type: "active",
   targetType: "self", // Activates at orb location
   maxRank: 5,

@@ -2,10 +2,12 @@
  * LumeWHandler - Warmth
  *
  * The Light Orb pulses with warmth:
- * - Allied champions are healed
- * - Enemy champions take magic damage
+ * - Allied units are healed (Lume too)
+ * - Enemy units take magic damage
+ * - Structures and wards aren't touched
  *
- * Effect centered on orb's current position.
+ * Effect centered on orb's current position, and reported from there (its
+ * VFX and sound come from the orb, not from Lume).
  */
 
 import { BaseAbilityHandler } from '../../BaseAbilityHandler';
@@ -71,7 +73,8 @@ export class LumeWHandler extends BaseAbilityHandler {
       `${champion.playerId} cast Warmth - healed ${healAmount.toFixed(0)}, dealt ${damageAmount.toFixed(0)}`
     );
 
-    return { success: true };
+    // Its VFX and sound come from the orb
+    return { success: true, vfxOrigin: orb.position.clone(), vfxPosition: orb.position.clone() };
   }
 
   // =============================================================================

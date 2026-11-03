@@ -173,7 +173,8 @@ the ability's definition ID (`champion.definition.abilities[slot]`, for example
 `lume_q`), and `OnlineStateManager` passes it unchanged to `spawnAbilityVFX`
 (the event handlers are in `src/core/state/gameEvents.ts`). The effect plays
 from the caster to the event's target, or from `originX`/`originY` when the
-handler returned a `vfxOrigin` (Lume's Eclipse fires from her orb).
+handler returned a `vfxOrigin` (Lume's Eclipse fires from her orb, and her
+Warmth pulses there).
 There is no alias table, so a definition's `abilityId` must be the ability ID
 from `CHAMPION_DEFINITIONS`; VFX registered under any other key never plays.
 `packages/client/src/test/ChampionClientContract.test.ts` checks every
@@ -554,7 +555,7 @@ Defined in `src/vfx/world.ts` (keys in `WORLD_VFX`). They use the same phase-bas
 | `fx_dragon_death` | The dragon dies: a large fiery shockwave, sparks and embers, and a light screen shake |
 | `fx_rootwyrm_death` | The Rootwyrm dies: a green shockwave, its thorny roots bursting up, leaves and spores drifting |
 | `jungle_slam_blue` / `jungle_slam_red` / `dragon_breath` / `rootwyrm_eruption` | An `ABILITY_CAST` from a monster's special attack: a warning filling up over the wind-up (a circle, or the dragon's cone), then the hit: cracks and dust for the slams, a jet of flame for the breath, thorny roots bursting out all over the Rootwyrm's circle (sizes from `MOBAConfig.JUNGLE.SPECIAL_ATTACKS`, see [jungle.md](jungle.md)) |
-| `vile_trap_trigger` / `vile_trap_explosion` | An `ABILITY_CAST` from one of Vile's traps snapping on someone, or blown up by his ultimate |
+| `vile_trap_trigger` / `vile_trap_explosion` | An `ABILITY_CAST` from one of Vile's traps snapping on someone, or blown up by his ultimate. Both carry the trap's `x`/`y`: the enemy team never has the (stealthed) trap, so it sees neither until the client draws them at that point |
 
 Drawn directly by renderers rather than as VFX definitions:
 - **Recall channel** (`src/gpu/fx/championAuras.ts`; 2D fallback `ChampionRenderer.renderRecallChannel`): a magic circle at the feet that draws itself in over the recall, a column of light growing with it and motes rising.
