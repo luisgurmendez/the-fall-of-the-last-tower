@@ -23,7 +23,7 @@ WebSocket from the same address, so players only need a link.
   `STATIC_DIR=/app/dist`.
 - `.dockerignore` keeps out **`.env*` (the PixelLab and ElevenLabs keys)**, `deploy/` (the old
   EC2 deploy and its private key), `.git`, `.claude`, node_modules and build output.
-- `fly.toml`: app `wildcrown` (the game's old name; renaming it means a new Fly app and address), region `gru` (São Paulo, close to the River Plate), one shared
+- `fly.toml`: app `retroleague` (https://retroleague.fly.dev; Fly can't rename an app: a new name is a new app), region `gru` (São Paulo, close to the River Plate), one shared
   CPU and 512 MB, HTTPS forced, `/health` checked. The machine stops when nobody's connected
   and starts on the next visit (a few seconds). **Run one machine only**: matches, rooms and
   the queue live in its memory, so two machines would split players apart.
@@ -31,7 +31,7 @@ WebSocket from the same address, so players only need a link.
 First deploy (needs a Fly.io account, logged in with `fly auth login`):
 
 ```bash
-fly launch --copy-config --no-deploy   # creates the app from fly.toml (pick another name if "wildcrown" is taken)
+fly launch --copy-config --no-deploy   # creates the app from fly.toml (pick another name if "retroleague" is taken)
 fly deploy --ha=false                  # builds on Fly's builders and starts one machine
 fly open                               # opens https://<app>.fly.dev
 ```

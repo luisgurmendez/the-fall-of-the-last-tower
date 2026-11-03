@@ -1,7 +1,7 @@
 # Retro League on Fly.io (see docs/architecture/deploy.md). One machine in
 # São Paulo: matches and rooms live in its memory, so it must not scale to two.
 
-app = "wildcrown"
+app = "retroleague"
 primary_region = "gru"
 
 [env]
