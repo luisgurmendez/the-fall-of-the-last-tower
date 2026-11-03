@@ -160,6 +160,7 @@ export type {
   StateUpdate,
   FullStateSnapshot,
   FinalPlayerStats,
+  ChampionMatchTotals,
   GameEndData,
   DebugUnit,
   DebugStateData,

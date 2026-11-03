@@ -870,6 +870,27 @@ export interface DebugStateData {
 }
 
 /**
+ * What a champion did over a match, for the post-match stats. Damage is
+ * after resistances (what a shield soaked counts too); healing is what it
+ * healed, itself or others.
+ */
+export interface ChampionMatchTotals {
+  damageToChampions: number;
+  /** To anything: champions, minions, monsters, structures */
+  damageDealt: number;
+  damageTaken: number;
+  healing: number;
+  /** To towers, inhibitors and the nexus */
+  damageToStructures: number;
+  /** Gold earned (selling items doesn't count) */
+  goldEarned: number;
+  wardsPlaced: number;
+  wardsDestroyed: number;
+  /** Most kills without dying in between */
+  largestKillingSpree: number;
+}
+
+/**
  * A champion's line on the final scoreboard.
  */
 export interface FinalPlayerStats {
@@ -884,6 +905,7 @@ export interface FinalPlayerStats {
   gold: number;
   /** Item ids by inventory slot (null for an empty slot) */
   items: (string | null)[];
+  totals: ChampionMatchTotals;
 }
 
 /**

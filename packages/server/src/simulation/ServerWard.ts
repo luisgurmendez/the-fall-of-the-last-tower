@@ -189,8 +189,9 @@ export class ServerWard extends ServerEntity {
   /**
    * Called when ward is destroyed by damage.
    */
-  protected override onDeath(killerId?: string): void {
-    super.onDeath(killerId);
+  protected override onDeath(killerId?: string, context?: ServerGameContext): void {
+    super.onDeath(killerId, context);
+    if (killerId) context?.getChampion(killerId)?.matchStats.destroyedWard();
     this.markForRemoval();
   }
 

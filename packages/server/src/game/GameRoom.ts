@@ -422,6 +422,7 @@ export class GameRoom {
       cs: champion.cs,
       gold: Math.floor(champion.gold),
       items: champion.items.map(item => item?.definitionId ?? null),
+      totals: champion.matchStats.toTotals(),
     }));
   }
 

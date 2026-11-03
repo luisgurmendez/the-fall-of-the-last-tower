@@ -97,6 +97,7 @@ export class RewardSystem {
 
         if (killedEntity.entityType === EntityType.CHAMPION) {
           killerChampion.kills++;
+          killerChampion.matchStats.killed();
         } else if (killedEntity.entityType === EntityType.MINION || killedEntity.entityType === EntityType.JUNGLE_CAMP) {
           killerChampion.cs++;
         }

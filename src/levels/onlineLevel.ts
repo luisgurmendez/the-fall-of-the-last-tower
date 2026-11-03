@@ -45,6 +45,8 @@ export interface OnlineLevelConfig {
   matchData: MatchData;
   /** F3's debug overlay (drawn over the units, under the HUD) */
   debugOverlay: DebugOverlay;
+  /** The player is done with the final scoreboard */
+  onLeaveResults?: () => void;
 }
 
 /**
@@ -138,8 +140,11 @@ export function generateOnlineLevel(config: OnlineLevelConfig): Level {
     localSide: matchData.yourSide,
   });
 
-  // Create tab scoreboard (shows full scoreboard when Tab is held)
-  const tabScoreboard = new TabScoreboard(stateManager, matchData.yourSide, matchData.players ?? []);
+  // Create tab scoreboard (shows full scoreboard when Tab is held, and the final one with the match's stats)
+  const tabScoreboard = new TabScoreboard(stateManager, matchData.yourSide, matchData.players ?? [], {
+    localPlayerId: localPlayer?.playerId,
+    onContinue: config.onLeaveResults,
+  });
 
   // Build objects list
   const objects: GameObject[] = [

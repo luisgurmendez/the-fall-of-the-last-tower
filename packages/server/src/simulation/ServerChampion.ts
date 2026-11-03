@@ -14,6 +14,7 @@
  * - ChampionRecall         recall channel
  * - ChampionTrinket        ward charges
  * - ChampionInventory      buying and selling items
+ * - ChampionMatchStats     what it did over the match (post-match stats)
  * - ChampionSnapshot       network snapshot
  *
  * State that other systems read or write directly (activeEffects, shields,
@@ -73,6 +74,7 @@ import { ChampionRecall } from './champion/ChampionRecall';
 import { ChampionTrinket } from './champion/ChampionTrinket';
 import { ChampionSummoners } from './champion/ChampionSummoners';
 import { ChampionInventory } from './champion/ChampionInventory';
+import { ChampionMatchStats } from './champion/ChampionMatchStats';
 import { ChampionItemPassives } from './champion/ChampionItemPassives';
 import { ChampionItemActives } from './champion/ChampionItemActives';
 import { buildChampionSnapshot } from './champion/ChampionSnapshot';
@@ -205,6 +207,8 @@ export class ServerChampion extends ServerEntity {
   readonly itemPassives = new ChampionItemPassives(this);
   /** Item actives (keys 1, 2, 3, 6, 7, 8) and consumables */
   readonly itemActives = new ChampionItemActives(this);
+  /** Damage, healing, gold, wards and sprees over the match */
+  readonly matchStats = new ChampionMatchStats();
 
   constructor(config: ServerChampionConfig) {
     super({
@@ -335,6 +339,7 @@ export class ServerChampion extends ServerEntity {
 
     // Passive gold income
     this.gold += GameConfig.ECONOMY.PASSIVE_GOLD_PER_SECOND * dt;
+    this.matchStats.earned(GameConfig.ECONOMY.PASSIVE_GOLD_PER_SECOND * dt);
 
     // Invalidate cached stats
     this.cachedStats = null;
@@ -719,6 +724,7 @@ export class ServerChampion extends ServerEntity {
     if (damage > 0) {
       this.health = Math.max(0, this.health - damage);
     }
+    this.matchStats.took(damage + shieldAbsorbed);
 
     // Emit damage event for client-side floating numbers
     if (context && (damage > 0 || shieldAbsorbed > 0)) {
@@ -813,6 +819,7 @@ export class ServerChampion extends ServerEntity {
 
   /** Its items react to damage it dealt (omnivamp, Wounds, burns, Tithe...) */
   override onDamageDealt(target: ServerEntity, dealt: number, type: DamageType, context: ServerGameContext): void {
+    this.matchStats.dealt(target, dealt);
     this.itemPassives.onDamageDealt(target, dealt, type, this.damageKind, context);
   }
 
@@ -841,6 +848,7 @@ export class ServerChampion extends ServerEntity {
     super.onDeath(killerId, context);
     this.cancelCast(context);
     this.deaths++;
+    this.matchStats.died();
 
     // Award XP/gold to killer and nearby allies
     if (context) {
@@ -946,6 +954,7 @@ export class ServerChampion extends ServerEntity {
   grantGold(amount: number): void {
     if (amount > 0) {
       this.gold += amount;
+      this.matchStats.earned(amount);
     }
   }
 

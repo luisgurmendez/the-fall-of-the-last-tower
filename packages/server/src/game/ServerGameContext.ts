@@ -265,6 +265,7 @@ export class ServerGameContext {
 
     this.wards.set(ward.id, ward);
     this.entities.set(ward.id, ward);
+    champion.matchStats.placedWard();
 
     return ward;
   }

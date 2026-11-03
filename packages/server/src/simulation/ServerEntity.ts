@@ -192,6 +192,8 @@ export abstract class ServerEntity {
     if (context && healed >= 1) {
       context.addEvent(GameEventType.HEAL, { entityId: this.id, amount: Math.round(healed), sourceId });
     }
+    // The healer's post-match healing
+    if (context && sourceId && healed > 0) context.getChampion(sourceId)?.matchStats.healed(healed);
     return healed;
   }
 

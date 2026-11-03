@@ -28,6 +28,8 @@ import type { GameApi } from './gameContext';
 export interface OnlineGameConfig {
   networkClient: NetworkClient;
   matchData: MatchData;
+  /** The player is done with the final scoreboard */
+  onLeaveResults?: () => void;
 }
 
 /**
@@ -74,6 +76,7 @@ class OnlineGame {
       stateManager: this.stateManager,
       matchData: this.matchData,
       debugOverlay: this.debugOverlay,
+      onLeaveResults: config.onLeaveResults,
     });
 
     // Initialize canvas rendering context

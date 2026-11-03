@@ -187,7 +187,21 @@ side). Tests: `packages/server/src/test/Lobbies.test.ts`.
 
 ## Game End
 
-`GameRoom.checkWinConditions` ends the match when a nexus dies: it broadcasts the final state, then sends `GAME_END` (`GameEndData`) with the winning side, the match length and every champion's final stats (`GameRoom.getFinalStats`: level, K/D/A, CS, gold, items). The client shows VICTORY or DEFEAT for 3 seconds, then the final scoreboard (`TabScoreboard`, titled with the result) until the player clicks or presses a key (or 60 seconds pass), then returns to the menu.
+`GameRoom.checkWinConditions` ends the match when a nexus dies: it broadcasts the final state, then sends `GAME_END` (`GameEndData`) with the winning side, the match length and every champion's final stats (`GameRoom.getFinalStats`: level, K/D/A, CS, gold, items, and its `totals` over the match). The client shows VICTORY or DEFEAT for 3 seconds, then the final scoreboard (`TabScoreboard`, titled with the result; its gold is the gold earned) until the player continues (its Continue button, Enter, Space or Escape, after 1.5 seconds so a click mid-fight doesn't skip it), then returns to the menu.
+
+### Post-match stats
+
+The final scoreboard has a second page, Stats (its header's buttons, or Tab, switch): a column per champion, blue team then red, and a line per stat, each cell with a bar against the line's best (the best in gold), the local player's column lit (`src/ui/matchStats.ts`). The stats are each champion's `ChampionMatchTotals`, kept on the server by `ChampionMatchStats` (`champion.matchStats`):
+
+| Stat | Counted |
+|------|---------|
+| Damage to champions, damage dealt, damage to structures | `ServerChampion.onDamageDealt`: after resistances, what a shield soaked included; dealt is to anything |
+| Damage taken | `ServerChampion.takeDamage`, shields included |
+| Healing | `ServerEntity.heal` credits its `sourceId`'s champion: itself (lifesteal, potions) or others |
+| Gold earned | `grantGold` and the passive income (not selling) |
+| Minions killed | the champion's CS |
+| Wards placed, wards destroyed | `ServerGameContext.placeWard`; a ward's death credits its killer |
+| Largest killing spree | kills (`RewardSystem`) without a death in between |
 
 A player can also surrender from the Escape menu (`src/ui/GameMenu.ts`, two clicks). The client sends a `SURRENDER` input, which `GameRoom.handleInput` handles itself instead of queueing it. Once every human on that side has surrendered (just them in 1v1 and practice), the other side wins through the same `endGame` as a destroyed nexus. Bots can't surrender.
 

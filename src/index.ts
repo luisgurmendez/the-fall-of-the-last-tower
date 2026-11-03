@@ -27,10 +27,6 @@ function getServerUrl(): string {
 
 /** How long the victory/defeat banner shows before the final scoreboard */
 const GAME_END_BANNER_MS = 3000;
-/** The final scoreboard ignores input this long, so a click mid-fight doesn't skip it */
-const GAME_END_INPUT_GRACE_MS = 1500;
-/** Back to the menu after this long even if the player is away */
-const GAME_END_SCREEN_MAX_MS = 60000;
 
 async function startOnlineGame(matchData: MatchData, matchmakingUI: MatchmakingUI) {
   console.log('[Game] Starting online game with match data:', matchData);
@@ -42,10 +38,15 @@ async function startOnlineGame(matchData: MatchData, matchmakingUI: MatchmakingU
     return;
   }
 
-  // Create online game with the existing network client
+  // Create online game with the existing network client; after the match,
+  // its final scoreboard stays up until the player continues to the menu
   const game = new OnlineGame({
     networkClient,
     matchData,
+    onLeaveResults: () => {
+      matchmakingUI.reset();
+      matchmakingUI.show();
+    },
   });
 
   (window as any).g = game;
@@ -90,23 +91,9 @@ async function startOnlineGame(matchData: MatchData, matchmakingUI: MatchmakingU
       duration: GAME_END_BANNER_MS,
     });
 
-    // Then the final scoreboard, until the player clicks or presses a key
+    // Then the final scoreboard and the match's stats, until the player continues
     setTimeout(() => {
       game.getStateManager().setMatchResult({ won, duration: data.duration ?? 0, players: data.players ?? [] });
-      let finished = false;
-      const backToMenu = () => {
-        if (finished) return;
-        finished = true;
-        window.removeEventListener('keydown', backToMenu);
-        window.removeEventListener('mousedown', backToMenu);
-        matchmakingUI.reset();
-        matchmakingUI.show();
-      };
-      setTimeout(() => {
-        window.addEventListener('keydown', backToMenu);
-        window.addEventListener('mousedown', backToMenu);
-      }, GAME_END_INPUT_GRACE_MS);
-      setTimeout(backToMenu, GAME_END_SCREEN_MAX_MS);
     }, GAME_END_BANNER_MS);
   };
 

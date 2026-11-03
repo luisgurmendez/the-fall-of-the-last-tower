@@ -13,14 +13,16 @@
  * but its kills, deaths and assists follow the kills it takes part in. Dead
  * champions' lines keep changing. Hovering an item or a summoner spell shows
  * its tooltip. When the match ends it stays up, titled with the result and
- * filled with the server's final stats, until the player moves on.
+ * filled with the server's final stats (gold is the gold earned), until the
+ * player continues (its button, Enter, Space or Escape). Then it has a second
+ * page, the match's stats (matchStats.ts): its buttons, or Tab, switch.
  */
 
 import { ScreenEntity } from '@/core/GameObject';
 import RenderElement from '@/render/renderElement';
 import RenderUtils from '@/render/utils';
 import GameContext from '@/core/gameContext';
-import { InputManager } from '@/core/input/InputManager';
+import { InputManager, MouseButton } from '@/core/input/InputManager';
 import type { OnlineStateManager, MatchResult } from '@/core/OnlineStateManager';
 import {
   EntityType,
@@ -37,6 +39,8 @@ import { Dimensions } from '@/core/canvas';
 import { getSummonerIcon } from '@/ui/summonerIcons';
 import { drawSummonerTooltip } from '@/ui/hud/summoners';
 import { drawItemTooltip } from '@/ui/hud/tooltips';
+import { SCOREBOARD_COLORS, SCOREBOARD_FONT } from '@/ui/scoreboardStyle';
+import { drawMatchStats, matchStatsHeight } from '@/ui/matchStats';
 
 /** One champion's line */
 interface ScoreboardRow {
@@ -68,6 +72,18 @@ export interface ScoreboardPlayer {
   /** Their summoner spells (D, F) */
   summonerSpells?: string[];
 }
+
+/** The final scoreboard's pages */
+type ResultPage = 'board' | 'stats';
+
+/** A button on the final scoreboard, as drawn */
+type ResultButton = { x: number; y: number; w: number; h: number } & (
+  | { kind: 'page'; page: ResultPage }
+  | { kind: 'continue' }
+);
+
+/** The final scoreboard ignores Continue this long, so a click mid-fight doesn't skip it */
+const CONTINUE_GRACE_MS = 1500;
 
 /** Something hovered on the scoreboard that has a tooltip */
 type HoverTarget =
@@ -101,33 +117,15 @@ const LAYOUT = {
   // Summoner spells: two stacked beside the portrait
   spellSize: 22,
   spellGap: 2,
+
+  // The final scoreboard's buttons, in the header
+  buttonHeight: 30,
+  pageButtonWidth: 130,
+  continueButtonWidth: 150,
 };
 
-/** Font sizes - MUCH BIGGER */
-const FONT = {
-  title: 26,
-  large: 22,
-  medium: 20,
-  normal: 18,
-  small: 16,
-};
-
-/** Colors */
-const COLORS = {
-  background: 'rgba(15, 15, 25, 0.96)',
-  headerBg: 'rgba(30, 30, 50, 0.96)',
-  teamBlue: 'rgba(52, 152, 219, 0.25)',
-  teamRed: 'rgba(231, 76, 60, 0.25)',
-  teamBlueBorder: '#3498db',
-  teamRedBorder: '#e74c3c',
-  rowHover: 'rgba(255, 255, 255, 0.05)',
-  rowAlt: 'rgba(255, 255, 255, 0.03)',
-  text: '#ffffff',
-  textDim: '#aaaaaa',
-  textGold: '#ffd700',
-  border: '#3a3a5c',
-  divider: '#2a2a4c',
-};
+const FONT = SCOREBOARD_FONT;
+const COLORS = SCOREBOARD_COLORS;
 
 export class TabScoreboard extends ScreenEntity {
   private stateManager: OnlineStateManager;
@@ -137,11 +135,22 @@ export class TabScoreboard extends ScreenEntity {
   private lastSeen = new Map<string, ScoreboardRow>();
   /** What's drawn this frame that has a tooltip */
   private hoverTargets: HoverTarget[] = [];
+  /** The final scoreboard's page, its buttons as drawn, and when it came up (performance.now()) */
+  private page: ResultPage = 'board';
+  private buttons: ResultButton[] = [];
+  private resultShownAt: number | null = null;
+  private continued = false;
 
   constructor(
     stateManager: OnlineStateManager,
     localSide: number,
     private readonly roster: ScoreboardPlayer[] = [],
+    private readonly final: {
+      /** The local player, lit on the stats page */
+      localPlayerId?: string;
+      /** The player is done with the final scoreboard */
+      onContinue?: () => void;
+    } = {},
   ) {
     super('tab-scoreboard');
     this.stateManager = stateManager;
@@ -169,6 +178,35 @@ export class TabScoreboard extends ScreenEntity {
         summoners: snapshot.summoners,
       });
     }
+
+    if (this.stateManager.getMatchResult()) this.handleResultInput();
+  }
+
+  /** The final scoreboard's page buttons (and Tab), and Continue (its button, Enter, Space, Escape) */
+  private handleResultInput(): void {
+    const input = this.inputManager;
+    this.resultShownAt ??= performance.now();
+    const ready = performance.now() - this.resultShownAt >= CONTINUE_GRACE_MS;
+
+    if (input.isKeyJustPressed('Tab')) this.page = this.page === 'board' ? 'stats' : 'board';
+    if (input.isMouseButtonJustPressed(MouseButton.LEFT)) {
+      const button = this.buttonAt(input.getMousePosition());
+      if (button?.kind === 'page') this.page = button.page;
+      else if (button?.kind === 'continue' && ready) this.continue();
+    }
+    if (ready && ['Enter', ' ', 'Escape'].some(key => input.isKeyJustPressed(key))) this.continue();
+  }
+
+  private continue(): void {
+    if (this.continued) return;
+    this.continued = true;
+    this.final.onContinue?.();
+  }
+
+  private buttonAt(point: { x: number; y: number } | null): ResultButton | undefined {
+    if (!point) return undefined;
+    return this.buttons.find(button =>
+      point.x >= button.x && point.x < button.x + button.w && point.y >= button.y && point.y < button.y + button.h);
   }
 
   /**
@@ -176,7 +214,9 @@ export class TabScoreboard extends ScreenEntity {
    * what's been seen.
    */
   private getRows(result: MatchResult | null): ScoreboardRow[] {
-    if (result && result.players.length > 0) return result.players;
+    if (result && result.players.length > 0) {
+      return result.players.map(player => ({ ...player, gold: player.totals.goldEarned }));
+    }
     const rows = this.roster.map(player => this.withScore(this.lastSeen.get(player.entityId) ?? {
       entityId: player.entityId,
       side: player.side,
@@ -236,16 +276,17 @@ export class TabScoreboard extends ScreenEntity {
       const blueTeam = rows.filter(row => row.side === 0);
       const redTeam = rows.filter(row => row.side === 1);
 
-      // Calculate total height
+      // The body: the teams, or the final scoreboard's stats page
+      const showStats = result !== null && this.page === 'stats';
       const numRows = Math.max(blueTeam.length, redTeam.length, 1);
-      const totalHeight = LAYOUT.headerHeight +
-        LAYOUT.teamHeaderHeight * 2 +
-        LAYOUT.rowHeight * numRows * 2 +
-        LAYOUT.padding * 5;
+      const boardHeight = LAYOUT.teamHeaderHeight * 2 + LAYOUT.rowHeight * numRows * 2 + LAYOUT.padding * 5;
+      const bodyHeight = showStats ? matchStatsHeight() : boardHeight;
+      const totalHeight = LAYOUT.headerHeight + bodyHeight;
 
-      // Center the scoreboard
+      // Center the scoreboard (both final pages from the same top, so switching doesn't jump)
+      const tallest = LAYOUT.headerHeight + (result ? Math.max(boardHeight, matchStatsHeight()) : boardHeight);
       const x = (canvasWidth - LAYOUT.width) / 2;
-      const y = (canvasHeight - totalHeight) / 2;
+      const y = (canvasHeight - tallest) / 2;
 
       // Draw main background
       c.fillStyle = COLORS.background;
@@ -260,22 +301,22 @@ export class TabScoreboard extends ScreenEntity {
       this.drawHeader(c, x, y, result);
 
       this.hoverTargets = [];
+      this.buttons = [];
 
-      // Draw blue team section
-      const blueY = y + LAYOUT.headerHeight + LAYOUT.padding;
-      this.drawTeamSection(c, x, blueY, blueTeam, 0, result !== null);
+      const bodyY = y + LAYOUT.headerHeight;
+      if (result && showStats) {
+        drawMatchStats(c, x, bodyY, LAYOUT.width, result.players, this.final.localPlayerId);
+      } else {
+        // Draw blue team section
+        const blueY = bodyY + LAYOUT.padding;
+        this.drawTeamSection(c, x, blueY, blueTeam, 0, result !== null);
 
-      // Draw red team section
-      const redY = blueY + LAYOUT.teamHeaderHeight + LAYOUT.rowHeight * Math.max(blueTeam.length, 1) + LAYOUT.padding * 2;
-      this.drawTeamSection(c, x, redY, redTeam, 1, result !== null);
-
-      if (result) {
-        RenderUtils.renderBitmapText(c, 'Click or press any key to continue',
-          canvasWidth / 2,
-          y + totalHeight + LAYOUT.padding,
-          { size: FONT.normal, color: COLORS.textDim, centered: true }
-        );
+        // Draw red team section
+        const redY = blueY + LAYOUT.teamHeaderHeight + LAYOUT.rowHeight * Math.max(blueTeam.length, 1) + LAYOUT.padding * 2;
+        this.drawTeamSection(c, x, redY, redTeam, 1, result !== null);
       }
+
+      if (result) this.drawResultButtons(c, x, y);
 
       this.drawHoverTooltip(c);
     });
@@ -324,16 +365,63 @@ export class TabScoreboard extends ScreenEntity {
       { size: FONT.title, color: titleColor, centered: true }
     );
 
-    // Game time (the match length once it's over)
+    // Game time (the match length once it's over, beside the result: Continue takes the right)
     const gameTime = result ? result.duration : this.stateManager.getGameTime();
     const minutes = Math.floor(gameTime / 60);
     const seconds = Math.floor(gameTime % 60);
     const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    if (result) {
+      const titleWidth = RenderUtils.measureBitmapText(c, title, FONT.title);
+      RenderUtils.renderBitmapText(c, timeStr,
+        x + LAYOUT.width / 2 + titleWidth / 2 + 16,
+        y + LAYOUT.headerHeight / 2 - 8,
+        { size: FONT.medium, color: COLORS.textDim }
+      );
+      return;
+    }
     RenderUtils.renderBitmapText(c, timeStr,
       x + LAYOUT.width - LAYOUT.padding,
       y + LAYOUT.headerHeight / 2 - 8,
       { size: FONT.medium, color: COLORS.textDim, rightAlign: true }
     );
+  }
+
+  /** The final scoreboard's buttons in the header: its pages on the left, Continue on the right */
+  private drawResultButtons(c: CanvasRenderingContext2D, x: number, y: number): void {
+    const buttonY = y + (LAYOUT.headerHeight - LAYOUT.buttonHeight) / 2;
+    const pages: { page: ResultPage; label: string }[] = [
+      { page: 'board', label: 'Scoreboard' },
+      { page: 'stats', label: 'Stats' },
+    ];
+    pages.forEach(({ page, label }, index) => {
+      const button: ResultButton = {
+        kind: 'page', page,
+        x: x + LAYOUT.padding + index * (LAYOUT.pageButtonWidth + 6), y: buttonY,
+        w: LAYOUT.pageButtonWidth, h: LAYOUT.buttonHeight,
+      };
+      this.drawButton(c, button, label, page === this.page);
+    });
+    const ready = this.resultShownAt !== null && performance.now() - this.resultShownAt >= CONTINUE_GRACE_MS;
+    this.drawButton(c, {
+      kind: 'continue',
+      x: x + LAYOUT.width - LAYOUT.padding - LAYOUT.continueButtonWidth, y: buttonY,
+      w: LAYOUT.continueButtonWidth, h: LAYOUT.buttonHeight,
+    }, 'Continue', false, !ready);
+  }
+
+  private drawButton(c: CanvasRenderingContext2D, button: ResultButton, label: string, active: boolean, disabled = false): void {
+    this.buttons.push(button);
+    const hovered = !disabled && this.buttonAt(this.inputManager.getMousePosition()) === button;
+    c.fillStyle = active ? COLORS.buttonActive : hovered ? COLORS.buttonHover : COLORS.button;
+    c.fillRect(button.x, button.y, button.w, button.h);
+    c.strokeStyle = active ? COLORS.textGold : COLORS.border;
+    c.lineWidth = 2;
+    c.strokeRect(button.x, button.y, button.w, button.h);
+    RenderUtils.renderBitmapText(c, label, button.x + button.w / 2, button.y + button.h / 2 - 8, {
+      size: FONT.small,
+      color: disabled ? COLORS.textDim : active ? COLORS.textGold : COLORS.text,
+      centered: true,
+    });
   }
 
   /**
