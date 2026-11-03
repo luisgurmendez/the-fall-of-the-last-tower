@@ -76,6 +76,14 @@ function hunt(champion: ServerChampion, context: ServerGameContext): void {
   champion.applyEffect('uruk_hunt_speed', HUNT_REFRESH, champion.id);
 }
 
+/**
+ * Silver Scales are up (UrukEHandler, as it grants them): they burst when
+ * they're gone, even broken before the next tick looks at them.
+ */
+export function scalesRaised(champion: ServerChampion, context: ServerGameContext): void {
+  (champion.passiveState.customData ??= {}).scalesSeenAt = context.getGameTime();
+}
+
 /** Silver Scales: the shield gone (broken or run out) bursts in frost */
 function burstScales(champion: ServerChampion, context: ServerGameContext): void {
   const data = (champion.passiveState.customData ??= {});

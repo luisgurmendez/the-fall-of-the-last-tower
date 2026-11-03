@@ -10,12 +10,13 @@ import { calculateAbilityValue } from '@siege/shared';
 import { BaseAbilityHandler } from '../../BaseAbilityHandler';
 import type { AbilityHandlerParams, AbilityExecutionResult } from '../../IAbilityHandler';
 import { getScalingStats } from '../../generic/AbilityHelpers';
+import { scalesRaised } from './UrukHooks';
 
 export class UrukEHandler extends BaseAbilityHandler {
   readonly abilityId = 'uruk_e';
 
   execute(params: AbilityHandlerParams): AbilityExecutionResult {
-    const { champion, definition, rank } = params;
+    const { champion, context, definition, rank } = params;
     if (!definition.shield) return { success: false };
 
     champion.grantShield(
@@ -23,6 +24,8 @@ export class UrukEHandler extends BaseAbilityHandler {
       definition.shield.duration,
       definition.id,
     );
+    // So a shield broken before the next tick still bursts
+    scalesRaised(champion, context);
     return { success: true };
   }
 }
