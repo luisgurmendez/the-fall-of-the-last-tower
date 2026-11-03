@@ -2,9 +2,9 @@
  * ChampionSummoners - The champion's two summoner spells (D and F): their
  * cooldowns, and casting them (definitions in @siege/shared summoners.ts).
  *
- * A cast is refused, keeping the spell ready, while the champion is dead or
- * stunned, when Blink is cast rooted or grounded, and when an aimed spell
- * has no valid target in range. A cast tells clients (SUMMONER_CAST) so they
+ * A cast is refused, keeping the spell ready, while the champion is dead,
+ * stunned or taunted, when Blink is cast rooted or grounded, and when an
+ * aimed spell has no valid target in range. A cast tells clients (SUMMONER_CAST) so they
  * play its effect.
  */
 
@@ -59,7 +59,7 @@ export class ChampionSummoners {
     const spell = this.spells[slot];
     const champion = this.champion;
     if (!spell || spell.cooldownRemaining > 0 || champion.isDead) return false;
-    if (champion.ccStatus.isStunned) return false;
+    if (champion.ccStatus.isStunned || champion.ccStatus.isTaunted) return false;
 
     const definition = SUMMONER_SPELLS[spell.id];
     const from = champion.position.clone();

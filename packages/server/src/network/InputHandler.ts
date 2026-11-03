@@ -155,6 +155,17 @@ export interface InputHandlerOptions {
 /** The inputs a dead champion still sends: the shop, and pings */
 const DEAD_CHAMPION_INPUTS: ReadonlySet<InputType> = new Set([InputType.BUY_ITEM, InputType.SELL_ITEM, InputType.PING]);
 
+/** What a taunted champion can't be ordered to do: it attacks its taunter, nothing else */
+const TAUNTED_IGNORED_INPUTS: ReadonlySet<InputType> = new Set([
+  InputType.MOVE,
+  InputType.ATTACK_MOVE,
+  InputType.TARGET_UNIT,
+  InputType.STOP,
+  InputType.RECALL,
+  InputType.ABILITY,
+  InputType.SUMMONER_SPELL,
+]);
+
 /**
  * Whether a champion may use the shop: at its fountain, or anywhere while
  * it's dead (unless the rule is off).
@@ -248,6 +259,9 @@ export class InputHandler {
     input: ClientInput,
     context: ServerGameContext
   ): void {
+    // Taunted: players' and bots' orders to move, attack something else, cast or recall are ignored
+    if (champion.ccStatus.isTaunted && TAUNTED_IGNORED_INPUTS.has(input.type)) return;
+
     // Any other order ends an attack-move
     if (input.type === InputType.MOVE || input.type === InputType.TARGET_UNIT ||
         input.type === InputType.STOP || input.type === InputType.RECALL) {

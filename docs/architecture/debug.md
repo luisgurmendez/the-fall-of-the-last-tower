@@ -26,8 +26,8 @@ The panel on the left turns the layers on and off and lists the selected
 unit's details (left-click a unit, as in the game; with nothing selected, the
 local champion): its state, target, health, path length, radius and ranges,
 and notes, such as a tower's warmup and which champions have aggro, a
-monster's leash, patience, special attack timer and who hit it, a champion's
-crowd control and effects.
+monster's leash, patience, special attack timer, who hit it and what holds
+it (stunned, rooted, slowed, taunted), a champion's crowd control and effects.
 
 ## How it works
 

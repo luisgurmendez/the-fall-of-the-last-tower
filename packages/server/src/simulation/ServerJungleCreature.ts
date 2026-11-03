@@ -13,6 +13,10 @@
  * - Ranged creatures (thornspitter, dragon) attack with projectiles
  * - Buff monsters and the dragon have a telegraphed area attack
  *   (JungleSpecialAttacks)
+ * - Crowd control holds it like a minion: stunned or knocked up it neither
+ *   moves nor attacks (a special attack winding up is interrupted), rooted
+ *   it stays put, slowed it walks slower, and taunted it fights the taunter
+ *   (taking aggro, as when hit). Walking home it can't be held
  * - Gold/XP rewards on death; buff camps and the dragon grant buffs
  */
 
@@ -21,11 +25,16 @@ import {
   EntityType,
   MOBAConfig,
   GameEventType,
+  defaultCCStatus,
+  type ActiveEffectState,
+  type CrowdControlStatus,
   type JungleCreatureSnapshot,
   type DamageType,
   type DebugUnit,
 } from '@siege/shared';
 import { ServerEntity, type ServerEntityConfig } from './ServerEntity';
+import { getServerEffectById, isStatEffect } from '../data/effects';
+import { calculateCCStatus, findTaunt } from './champion/ChampionEffects';
 import type { ServerGameContext } from '../game/ServerGameContext';
 import { RewardSystem } from '../systems/RewardSystem';
 import { grantJungleBuffs } from '../systems/JungleBuffs';
@@ -81,6 +90,10 @@ export class ServerJungleCreature extends ServerEntity {
   private specialCooldownTimer = 0;
   /** The special attack being wound up: when it lands and where it's aimed */
   private windup: { landsAt: number; aim: Vector } | null = null;
+
+  /** Effects on it (crowd control and slows from abilities), and the crowd control they add up to */
+  activeEffects: ActiveEffectState[] = [];
+  ccStatus: CrowdControlStatus = defaultCCStatus();
 
   /** Reset if it hasn't hit or been hit for this long while the target is out of reach (seconds) */
   private static readonly KITE_RESET_TIME = 5;
@@ -163,6 +176,7 @@ export class ServerJungleCreature extends ServerEntity {
   update(dt: number, context: ServerGameContext): void {
     if (this.isDead) return;
     this.now = context.getGameTime();
+    this.updateEffects(dt);
 
     // Update cooldowns
     if (this.attackCooldownTimer > 0) {
@@ -172,18 +186,98 @@ export class ServerJungleCreature extends ServerEntity {
       this.specialCooldownTimer -= dt;
     }
 
-    // State machine (idle creatures wait to be attacked)
+    // Stunned, knocked up or taunted, a special attack winding up doesn't land
+    if (this.windup && !this.ccStatus.canCast) this.interruptSpecialAttack(context);
+    this.followTaunt(context);
+
+    // State machine (idle creatures wait to be attacked; stunned ones do nothing)
     switch (this.aiState) {
       case 'aggro':
-        this.updateAggro(context);
+        if (!this.ccStatus.isStunned) this.updateAggro(context);
         break;
       case 'returning':
         this.updateReturning(dt);
         break;
     }
 
-    // Movement
-    this.updateMovement(dt);
+    // Movement (none while stunned or rooted)
+    if (this.ccStatus.canMove) {
+      this.updateMovement(dt);
+    } else {
+      this.moveTarget = null;
+    }
+  }
+
+  // =====================
+  // Effects (crowd control)
+  // =====================
+
+  /**
+   * Apply an effect (abilities call it on whatever they hit). Reapplying
+   * one keeps the longer of the two durations. Walking home, nothing holds it.
+   */
+  applyEffect(effectId: string, duration: number, sourceId?: string, stacks = 1): void {
+    const def = getServerEffectById(effectId);
+    if (!def || this.isDead || this.aiState === 'returning') return;
+
+    const existing = this.activeEffects.find(effect => effect.definitionId === effectId);
+    if (existing) {
+      existing.timeRemaining = Math.max(existing.timeRemaining, duration);
+      existing.totalDuration = Math.max(existing.totalDuration ?? 0, duration);
+      if (def.stackBehavior === 'stack') existing.stacks = Math.min(existing.stacks + stacks, def.maxStacks ?? Infinity);
+    } else {
+      this.activeEffects.push({
+        instanceId: `${this.id}_${effectId}_${Date.now()}`,
+        definitionId: effectId,
+        sourceId,
+        timeRemaining: duration,
+        totalDuration: duration,
+        stacks,
+      });
+    }
+    this.ccStatus = calculateCCStatus(this.activeEffects);
+  }
+
+  /** Effects run out */
+  private updateEffects(dt: number): void {
+    if (this.activeEffects.length === 0) return;
+    this.activeEffects = this.activeEffects.filter(effect => {
+      effect.timeRemaining -= dt;
+      return effect.timeRemaining > 0;
+    });
+    this.ccStatus = calculateCCStatus(this.activeEffects);
+  }
+
+  /** The strongest slow on it (0.4 = 40% slower); slows don't add up */
+  private slowPercent(): number {
+    let slow = 0;
+    for (const effect of this.activeEffects) {
+      const def = getServerEffectById(effect.definitionId);
+      if (def && isStatEffect(def) && def.stat === 'movement_speed' && (def.percentValue ?? 0) < 0) {
+        slow = Math.max(slow, -def.percentValue!);
+      }
+    }
+    return Math.min(1, slow);
+  }
+
+  /**
+   * A taunt makes it fight its taunter, as if the taunter had hit it (an
+   * idle camp turns on it), and keep fighting it after. A taunt whose
+   * taunter died or is past the leash ends.
+   */
+  private followTaunt(context: ServerGameContext): void {
+    const taunt = findTaunt(this.activeEffects);
+    if (!taunt) return;
+    const taunter = taunt.sourceId ? context.getEntity(taunt.sourceId) : undefined;
+    if (!taunter || taunter.isDead || !this.isWithinLeash(taunter)) {
+      this.activeEffects = this.activeEffects.filter(effect => effect !== taunt);
+      this.ccStatus = calculateCCStatus(this.activeEffects);
+      return;
+    }
+    if (this.aiState === 'idle') this.alertCamp(taunter.id, context);
+    this.aggressors.set(taunter.id, context.getGameTime());
+    this.attackTarget = taunter.id;
+    this.lastEngagedAt = context.getGameTime();
   }
 
   /**
@@ -253,14 +347,15 @@ export class ServerJungleCreature extends ServerEntity {
     }
 
     const special = this.getSpecialAttack();
-    if (special && this.specialCooldownTimer <= 0 && isInSpecialArea(special, this.position, target.position, target)) {
+    if (special && this.ccStatus.canCast && this.specialCooldownTimer <= 0 &&
+        isInSpecialArea(special, this.position, target.position, target)) {
       this.startSpecialAttack(special, target, context);
       return;
     }
 
     if (inRange) {
       this.moveTarget = null;
-      if (this.attackCooldownTimer <= 0) {
+      if (this.attackCooldownTimer <= 0 && this.ccStatus.canAttack) {
         this.attack(target, context);
         this.attackCooldownTimer = this.attackCooldown;
         this.lastEngagedAt = context.getGameTime();
@@ -345,6 +440,18 @@ export class ServerJungleCreature extends ServerEntity {
   }
 
   /**
+   * Crowd control cut the wind-up short: the attack doesn't land, and waits
+   * its cooldown as if it had.
+   */
+  private interruptSpecialAttack(context: ServerGameContext): void {
+    const special = this.getSpecialAttack();
+    this.windup = null;
+    if (!special) return;
+    this.specialCooldownTimer = special.cooldown;
+    context.addEvent(GameEventType.ABILITY_INTERRUPTED, { entityId: this.id, abilityId: special.abilityId });
+  }
+
+  /**
    * The special attack lands: hit every champion still in the area.
    */
   private landSpecialAttack(context: ServerGameContext): void {
@@ -369,6 +476,9 @@ export class ServerJungleCreature extends ServerEntity {
     this.attackTarget = null;
     this.windup = null;
     this.aggressors.clear();
+    // It shakes off what held it (walking home, nothing does)
+    this.activeEffects = [];
+    this.ccStatus = defaultCCStatus();
     this.returnPath = context.terrain.findPath(this.position, this.homePosition) ?? [this.homePosition.clone()];
     this.moveTarget = this.returnPath.shift() ?? null;
   }
@@ -400,7 +510,7 @@ export class ServerJungleCreature extends ServerEntity {
     if (!this.moveTarget) return;
 
     const distance = this.position.distanceTo(this.moveTarget);
-    const speed = this.movementSpeed * dt;
+    const speed = this.movementSpeed * (1 - this.slowPercent()) * dt;
 
     if (distance <= speed) {
       this.position.setFrom(this.moveTarget);
@@ -458,12 +568,17 @@ export class ServerJungleCreature extends ServerEntity {
     this.attackTarget = null;
     this.moveTarget = null;
     this.windup = null;
+    this.activeEffects = [];
     this.markForRemoval();
   }
 
-  /** For the debug overlay: its state, leash, patience and who hit it */
+  /** For the debug overlay: its state, crowd control, leash, patience and who hit it */
   override debugInfo(_context: ServerGameContext): DebugUnit {
     const notes: string[] = [];
+    const slow = this.slowPercent();
+    if (slow > 0) notes.push(`slowed ${Math.round(slow * 100)}%`);
+    const taunt = findTaunt(this.activeEffects);
+    if (taunt) notes.push(`taunted by ${taunt.sourceId}`);
     if (this.aiState === 'aggro') {
       const leash = this.position.distanceTo(this.homePosition) / this.leashRange;
       const patience = Math.max(0, 1 - (this.now - this.lastEngagedAt) / ServerJungleCreature.KITE_RESET_TIME);
@@ -483,7 +598,9 @@ export class ServerJungleCreature extends ServerEntity {
       sight: this.sightRange,
       targetId: this.attackTarget,
       path: path.map(point => ({ x: point.x, y: point.y })),
-      state: this.windup ? 'winding up its special' : this.aiState,
+      state: this.ccStatus.isStunned ? 'stunned'
+        : this.windup ? 'winding up its special'
+        : this.ccStatus.isRooted ? `${this.aiState} (rooted)` : this.aiState,
       notes,
       leash: { x: this.homePosition.x, y: this.homePosition.y, radius: this.leashRange },
     };

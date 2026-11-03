@@ -176,7 +176,7 @@ function calculateAbilityValue(
    - Cooldown ready
    - Sufficient mana
    - In range (if targeted)
-   - Not crowd controlled (stunned/silenced)
+   - Not crowd controlled (stunned, silenced or taunted: a taunted champion only attacks its taunter, see [effects-and-buffs.md](effects-and-buffs.md#effect-processing))
    - Not already in another ability's cast time
 3. Its cast time, if it has one (below): the champion stands still, then it goes off
 4. Apply ability effects
@@ -197,7 +197,7 @@ casts, areas around the caster and casts on allies are instant (a dash is its ow
   champion faces its aim, doesn't move (a move order waits for the end) or attack, and drops a
   basic attack in its windup (which may then start again right away). `advanceCast()`, every
   tick, casts it at the end (`completeCast`: the ability, then its mana and cooldown).
-- Stun, silence or death in the cast time cancels it (`cancelCast`): nothing is spent.
+- Stun, silence, a taunt or death in the cast time cancels it (`cancelCast`): nothing is spent.
 - The cast's ability state has `isCasting` and `castTimeRemaining` while it lasts. Events:
   `ABILITY_WINDUP` when it starts (`castTime`, the aim), then `ABILITY_CAST` when it goes off,
   or `ABILITY_INTERRUPTED`. The client starts the cast animation, facing the aim, on
@@ -303,6 +303,8 @@ as against a wall where he stopped).
 | `SoulStacksPassive.ts` | `soul_stacks` | `soulScaling` with `usesStacks` | Vile: Souls of Vilix |
 
 Any other passive gets the generic handler, which only marks it active.
+
+When a passive's stacks run out (`stackDuration` after the last one, in `updatePassiveState`), the stat bonus they gave (the `passive_<id>` modifier) goes with them: Gorath's armor drops back as Immovable's stacks expire.
 
 ### Adding a Champion (Server)
 

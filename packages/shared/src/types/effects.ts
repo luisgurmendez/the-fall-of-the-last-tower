@@ -203,6 +203,9 @@ export interface CrowdControlStatus {
   /** Cannot basic attack */
   isDisarmed: boolean;
 
+  /** Forced to attack its taunter (the taunt's source): no other orders, no casting */
+  isTaunted: boolean;
+
   /** Whether the unit can move */
   canMove: boolean;
 
@@ -226,6 +229,7 @@ export function computeCCStatus(effects: ActiveEffectState[], getDefinition: (id
     isGrounded: false,
     isRooted: false,
     isDisarmed: false,
+    isTaunted: false,
     canMove: true,
     canAttack: true,
     canCast: true,
@@ -256,13 +260,16 @@ export function computeCCStatus(effects: ActiveEffectState[], getDefinition: (id
       case 'blind':
         status.isDisarmed = true;
         break;
+      case 'taunt':
+        status.isTaunted = true;
+        break;
     }
   }
 
   // Compute ability to act
   status.canMove = !status.isStunned && !status.isRooted;
   status.canAttack = !status.isStunned && !status.isDisarmed;
-  status.canCast = !status.isStunned && !status.isSilenced;
+  status.canCast = !status.isStunned && !status.isSilenced && !status.isTaunted;
   status.canUseMobilityAbilities = status.canMove && status.canCast && !status.isGrounded;
 
   return status;
@@ -278,6 +285,7 @@ export function defaultCCStatus(): CrowdControlStatus {
     isGrounded: false,
     isRooted: false,
     isDisarmed: false,
+    isTaunted: false,
     canMove: true,
     canAttack: true,
     canCast: true,

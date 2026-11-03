@@ -65,6 +65,7 @@ export interface AbilityCastResult {
     | "silenced"
     | "stunned"
     | "rooted"
+    | "taunted"
     | "casting";
   manaCost?: number;
   cooldown?: number;
@@ -105,6 +106,8 @@ export class ServerAbilityExecutor {
       if (champion.ccStatus.isSilenced) {
         return { success: false, failReason: "silenced" };
       }
+      // Taunted: it can only attack its taunter
+      return { success: false, failReason: "taunted" };
     }
 
     // Nothing else is cast during a cast time

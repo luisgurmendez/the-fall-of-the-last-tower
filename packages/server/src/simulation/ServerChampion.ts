@@ -61,7 +61,7 @@ import { championHooksRegistry } from '../abilities/ChampionHooksRegistry';
 import { getServerEffectById, isStatEffect } from '../data/effects';
 import { Logger } from '../utils/Logger';
 import { calculateChampionStats, tickStatModifiers } from './champion/ChampionStats';
-import { ChampionEffects, type ActiveShield } from './champion/ChampionEffects';
+import { ChampionEffects, findTaunt, type ActiveShield } from './champion/ChampionEffects';
 import { ChampionBasicAttacks } from './champion/ChampionBasicAttacks';
 import {
   ChampionAbilities,
@@ -291,6 +291,9 @@ export class ServerChampion extends ServerEntity {
     // An ability in its cast time goes off (a dash it starts moves this tick)
     this.advanceCast(dt, context);
 
+    // Taunted: it goes for its taunter, whatever it was doing
+    this.followTaunt(context);
+
     // Update forced movement first
     if (this.forcedMovement) {
       updateForcedMovement(this, dt, context);
@@ -513,10 +516,11 @@ export class ServerChampion extends ServerEntity {
       }
     }
 
-    // Validate and clear target if not visible (entered bush/stealth)
+    // Validate and clear target if not visible (entered bush/stealth); its taunter stays, seen or not
     if (this.targetEntityId) {
       const target = context.getEntity(this.targetEntityId);
-      if (!target || target.isDead || !context.isVisibleTo(target, this.side)) {
+      const taunter = this.ccStatus.isTaunted && target !== undefined && findTaunt(this.activeEffects)?.sourceId === target.id;
+      if (!target || target.isDead || (!taunter && !context.isVisibleTo(target, this.side))) {
         this.targetEntityId = null;
       }
     }
@@ -640,6 +644,24 @@ export class ServerChampion extends ServerEntity {
 
     // Champion-specific passive state (e.g., Lume's passive follows the Light Orb)
     championHooksRegistry.get(this.definition.id)?.updatePassiveState?.(this, context);
+  }
+
+  /**
+   * A taunt holds it: it walks to its taunter and basic-attacks it (orders
+   * to do anything else are ignored, see InputHandler, and it can't cast).
+   * A taunt whose taunter died or is out of reach has ended (ChampionEffects.taunter).
+   */
+  private followTaunt(context: ServerGameContext): void {
+    const taunter = this.effects.taunter(context);
+    if (!taunter) return;
+    this.cancelRecall();
+    if (this.targetEntityId === taunter.id) return;
+    // An attack winding up on someone else is dropped
+    this.basicAttacks.cancelPendingAttack();
+    this.endAttackMove();
+    context.pathFollower.clear(this.id);
+    this.targetPosition = null;
+    this.setAttackTarget(taunter.id);
   }
 
   // =====================

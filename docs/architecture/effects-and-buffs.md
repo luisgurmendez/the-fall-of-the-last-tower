@@ -253,12 +253,13 @@ function computeCCStatus(activeEffects: ActiveEffectState[]): CCStatus {
   const silenced = ccTypes.has('silence');
   const grounded = ccTypes.has('grounded');
   const disarmed = ccTypes.has('disarm');
+  const taunted = ccTypes.has('taunt');  // isTaunted
 
   return {
     canMove: !stunned && !rooted,
     canAttack: !stunned && !disarmed,
-    canCast: !stunned && !silenced,
-    canUseMobilityAbilities: !stunned && !rooted && !silenced && !grounded,
+    canCast: !stunned && !silenced && !taunted,
+    canUseMobilityAbilities: !stunned && !rooted && !silenced && !grounded && !taunted,
     isAirborne: ccTypes.has('knockup') || ccTypes.has('knockback'),
   };
 }
@@ -274,6 +275,20 @@ combine). Displacements (knockup, knockback), suppression and stasis aren't shor
 
 **Healing reduction**: an effect's `healingReduction` cuts the heals its holder receives
 (Wounds 40%, from items; Scorch 40%); the strongest counts (`ChampionEffects.healingReduction`).
+
+**Taunt** (`ccType: 'taunt'`, effect `taunt`, Gorath's Defiant Roar): the taunter is the
+effect's `sourceId`. A taunted champion walks to its taunter and basic-attacks it, seen or
+not (a roar from a bush still pulls): `ServerChampion.followTaunt`, every tick, makes the
+taunter its target and drops an attack winding up on anyone else. It can't cast
+(`canCast` is false: the cast fails with `taunted`, and one in its cast time is
+interrupted), use summoner spells or dash items, and `InputHandler` ignores its orders to
+move, attack-move, attack something else, stop, recall, cast or use a summoner spell
+(players and practice bots alike). A taunt whose taunter dies, is gone or is farther than
+a champion's sight (560: it blinked or was carried away) ends (`ChampionEffects.taunter`).
+After it, the champion keeps attacking the taunter until ordered otherwise. Tenacity
+shortens it. A taunted jungle monster fights its taunter (an idle camp turns on it, as
+when hit) and keeps on after: a taunt takes a monster's aggro ([jungle.md](jungle.md)).
+Minions aren't taunted (the roar has `affectsMinions: false`).
 
 **Stasis** (`ccType: 'stasis'`, effect `item_stasis`, Hourglass of Stillness): the
 champion is frozen like a stun and invulnerable; clients draw a golden shell and the

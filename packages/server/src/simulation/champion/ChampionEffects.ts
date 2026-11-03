@@ -7,10 +7,12 @@
  * - Applying effects (stack behavior), removing and cleansing them
  * - Ticking durations and over-time effects (DoT/HoT, mana drain/restore)
  * - Deriving the crowd control status from active effects
+ * - Taunts: who taunts the champion (the taunt's source), ending the taunt
+ *   when its taunter is dead, gone or out of reach
  * - Shield decay and damage absorption
  */
 
-import type { ActiveEffectState, CrowdControlStatus } from '@siege/shared';
+import { GameConfig, type ActiveEffectState, type CrowdControlStatus } from '@siege/shared';
 import {
   getServerEffectById,
   isCCEffect,
@@ -20,6 +22,9 @@ import {
   type AnyServerEffectDef,
   type ServerOverTimeEffectDef,
 } from '../../data/effects';
+
+/** A taunter farther than this (a champion's sight) is out of reach: the taunt ends */
+const TAUNT_REACH = GameConfig.VISION.CHAMPION_SIGHT_RANGE;
 
 /** Crowd control tenacity doesn't shorten (LoL's rule: displacements and suppression) */
 const UNSHORTENED_CC = new Set(['knockup', 'knockback', 'suppress', 'stasis']);
@@ -38,6 +43,7 @@ function isShortenedByTenacity(def: AnyServerEffectDef): boolean {
 }
 import { Logger } from '../../utils/Logger';
 import type { ServerChampion } from '../ServerChampion';
+import type { ServerEntity } from '../ServerEntity';
 import type { ServerGameContext } from '../../game/ServerGameContext';
 
 export interface ActiveShield {
@@ -58,6 +64,7 @@ export function calculateCCStatus(activeEffects: readonly ActiveEffectState[]): 
     isGrounded: false,
     isRooted: false,
     isDisarmed: false,
+    isTaunted: false,
     canMove: true,
     canAttack: true,
     canCast: true,
@@ -89,6 +96,10 @@ export function calculateCCStatus(activeEffects: readonly ActiveEffectState[]): 
       case 'blind':
         status.isDisarmed = true;
         break;
+      case 'taunt':
+        // It walks (to its taunter) and attacks (its taunter), but casts nothing
+        status.isTaunted = true;
+        break;
       case 'slow':
         // Slow doesn't set a flag, it modifies movement speed via stat effect
         break;
@@ -98,10 +109,21 @@ export function calculateCCStatus(activeEffects: readonly ActiveEffectState[]): 
   // Compute ability to act
   status.canMove = !status.isStunned && !status.isRooted;
   status.canAttack = !status.isStunned && !status.isDisarmed;
-  status.canCast = !status.isStunned && !status.isSilenced;
+  status.canCast = !status.isStunned && !status.isSilenced && !status.isTaunted;
   status.canUseMobilityAbilities = status.canMove && status.canCast && !status.isGrounded;
 
   return status;
+}
+
+/**
+ * The taunt among a unit's effects, if one holds it (its sourceId is the
+ * taunter). Champions and jungle monsters read it.
+ */
+export function findTaunt(activeEffects: readonly ActiveEffectState[]): ActiveEffectState | undefined {
+  return activeEffects.find(effect => {
+    const def = getServerEffectById(effect.definitionId);
+    return def !== undefined && isCCEffect(def) && def.ccType === 'taunt';
+  });
 }
 
 export class ChampionEffects {
@@ -381,6 +403,23 @@ export class ChampionEffects {
     );
 
     return actualExtension;
+  }
+
+  /**
+   * Who taunts the champion, if a taunt holds it: the taunt's source, which
+   * it must walk to and attack, seen or not (a roar from a bush still pulls).
+   * A taunt whose taunter is dead, gone or out of reach (farther than a
+   * champion sees: it blinked or was carried away) ends here, as if it ran out.
+   */
+  taunter(context: ServerGameContext): ServerEntity | null {
+    const champion = this.champion;
+    const taunt = findTaunt(champion.activeEffects);
+    if (!taunt) return null;
+    const taunter = taunt.sourceId ? context.getEntity(taunt.sourceId) : undefined;
+    if (taunter && !taunter.isDead && taunter.position.distanceTo(champion.position) <= TAUNT_REACH) return taunter;
+    champion.activeEffects = champion.activeEffects.filter(effect => effect !== taunt);
+    this.refreshAfterRemoval();
+    return null;
   }
 
   // =====================

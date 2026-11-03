@@ -301,9 +301,10 @@ export class PassiveTriggerSystem {
     if (passiveState.stacks > 0 && passiveState.stackTimeRemaining > 0) {
       passiveState.stackTimeRemaining -= dt;
       if (passiveState.stackTimeRemaining <= 0) {
-        // Stacks expired
+        // Stacks expired, and the stat bonus they gave goes with them (Gorath's armor)
         passiveState.stacks = 0;
         passiveState.isActive = false;
+        champion.removeModifier(`passive_${champion.definition.passive}`);
       }
     }
   }

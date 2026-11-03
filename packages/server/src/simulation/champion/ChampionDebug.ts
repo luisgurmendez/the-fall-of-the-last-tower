@@ -30,6 +30,7 @@ export function describeChampion(champion: ServerChampion, context: ServerGameCo
     cc.isSilenced && 'silenced',
     cc.isGrounded && 'grounded',
     cc.isDisarmed && 'disarmed',
+    cc.isTaunted && 'taunted',
   ].filter((name): name is string => !!name);
   if (ccNames.length > 0) notes.push(ccNames.join(', '));
   if (champion.inCombat) notes.push('in combat');
