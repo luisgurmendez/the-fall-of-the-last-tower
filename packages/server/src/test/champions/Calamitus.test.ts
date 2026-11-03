@@ -22,6 +22,7 @@ import {
   TEAM_RED,
   calculateMagicDamage,
   getAbilityDefinition,
+  getPassiveDefinition,
   type ItemSlot,
   type Side,
 } from '@siege/shared';
@@ -666,5 +667,17 @@ describe('Calamitus base', () => {
     expect(arena.blue.maxHealth).toBe(BASE.health);
     expect(arena.blue.getStats().armor).toBe(BASE.armor);
     expect(arena.blue.getAttackRange()).toBe(BASE.attackRange);
+  });
+});
+
+describe('Calamitus descriptions', () => {
+  test("the lava's burn range is level 1 to 18's, and only Q and W leave it", () => {
+    const passive = getPassiveDefinition('calamitus_passive')!;
+    const at1 = CALAMITUS_LAVA.burnBase + CALAMITUS_LAVA.burnPerLevel;
+    const at18 = CALAMITUS_LAVA.burnBase + CALAMITUS_LAVA.burnPerLevel * 18;
+    expect(passive.description).toContain(`${at1}-${at18} (+5% ability power)`);
+    expect(passive.description).toContain('(Q)');
+    expect(passive.description).toContain('(W)');
+    expect(passive.description).not.toContain('Your abilities');
   });
 });

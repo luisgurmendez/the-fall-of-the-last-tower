@@ -195,7 +195,7 @@ export const ZhakrulPassive: PassiveAbilityDefinition = {
   id: "zhakrul_passive",
   name: "Ancient Venom",
   description:
-    "Your basic attacks, Toxic Cloud and Death Stinger poison for 3 seconds: magic damage every second, 3-11 (+3% ability power) per dose, up to 3 doses. At 3 doses the venom turns ancient and deals 40% more for as long as it lasts.",
+    "Your basic attacks, Toxic Cloud and Death Stinger poison for 3 seconds: magic damage every second, 2.5-11 (+3% ability power) per dose, up to 3 doses. At 3 doses the venom turns ancient and deals 40% more for as long as it lasts.",
   trigger: "always",
 };
 

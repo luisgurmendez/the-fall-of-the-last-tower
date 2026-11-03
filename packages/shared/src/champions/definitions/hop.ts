@@ -92,7 +92,7 @@ export const HopRodentFangs: AbilityDefinition = {
   id: "hop_q",
   name: "Rodent Fangs",
   description:
-    "Bite the target enemy through its armor: it loses 10 armor for 4 seconds, then takes {damage} physical damage.",
+    "Bite the target enemy through its armor: it loses 10 armor for 4 seconds (another bite refreshes it), then takes {damage} physical damage.",
   type: "active",
   targetType: "target_enemy",
   maxRank: 5,
@@ -112,7 +112,7 @@ export const HopCarrotBreak: AbilityDefinition = {
   id: "hop_w",
   name: "Carrot Break",
   description:
-    "Stop to eat a carrot: heal {heal} and attack 30% faster for 3 seconds, but you can't move for 0.75 seconds while you eat.",
+    "Stop to eat a carrot: heal {heal}, more the more health you're missing (6% of it), and attack 30% faster for 3 seconds, but you can't move for 0.75 seconds while you eat.",
   type: "active",
   targetType: "self",
   maxRank: 5,
@@ -172,7 +172,7 @@ export const HopPassive: PassiveAbilityDefinition = {
   id: "hop_passive",
   name: "Hop to It!",
   description:
-    "Every 6 seconds, your next basic attack hops onto its target from up to 250 away and deals 20-105 (+30% attack damage) bonus physical damage.",
+    "Every 6 seconds, your next basic attack hops onto its target from up to 250 away and deals 20-105 (+30% attack damage) bonus physical damage. Rooted or grounded, the hop waits.",
   trigger: "always",
 };
 

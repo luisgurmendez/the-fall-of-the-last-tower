@@ -22,6 +22,7 @@ import {
   ZHAKRUL_VENOM,
   calculateMagicDamage,
   getAbilityDefinition,
+  getPassiveDefinition,
   getCastTime,
   type ItemSlot,
   type Side,
@@ -731,5 +732,14 @@ describe("Zhak'rul R: Death Stinger", () => {
     const arena = zhakrulArena(at(100, 0));
     arena.blue.applyEffect('silence', 1, arena.red.id);
     expect(arena.castAbility(arena.blue, 'R', { targetId: arena.red.id }).failReason).toBe('silenced');
+  });
+});
+
+describe("Zhak'rul descriptions", () => {
+  test("the venom's per-dose range is level 1 to 18's", () => {
+    const passive = getPassiveDefinition('zhakrul_passive')!;
+    const at1 = ZHAKRUL_VENOM.perStackBase + ZHAKRUL_VENOM.perStackPerLevel;
+    const at18 = ZHAKRUL_VENOM.perStackBase + ZHAKRUL_VENOM.perStackPerLevel * 18;
+    expect(passive.description).toContain(`${at1}-${at18} (+3% ability power) per dose`);
   });
 });

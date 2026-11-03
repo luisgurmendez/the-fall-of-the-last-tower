@@ -1,7 +1,7 @@
 /**
  * Calamitus - The Flowing Magma
  * A tank of black rock and molten cracks who floods the ground with lava:
- * his abilities leave pools of it that burn enemies, and standing in them
+ * his Q and W leave pools of it that burn enemies, and standing in them
  * he's harder to break (passive). He bursts lava around him (Q), sends a
  * landslide of magma ahead (W), hardens into obsidian (E), and makes all
  * his lava erupt at once (R).
@@ -145,12 +145,12 @@ export const CalamitusObsidianSkin: AbilityDefinition = {
   },
 };
 
-/** R: all his lava erupts, and the ground around him (CalamitusRHandler) */
+/** R: all his lava erupts, and the ground around where he cast it (CalamitusRHandler) */
 export const CalamitusEruption: AbilityDefinition = {
   id: "calamitus_r",
   name: "Eruption",
   description:
-    "After a moment, every pool of your lava erupts, and so does the ground around you: enemies there take {damage} magic damage and are stunned for 1.25 seconds.",
+    "After a moment, every pool of your lava erupts, and so does the ground around where you cast it: enemies there take {damage} magic damage and are stunned for 1.25 seconds.",
   type: "active",
   targetType: "no_target",
   maxRank: 3,
@@ -168,12 +168,12 @@ export const CalamitusEruption: AbilityDefinition = {
 // Passive
 // =============================================================================
 
-/** Lavaborn - his lava burns enemies, and hardens him (CalamitusHooks) */
+/** Lavaborn - the lava his Q and W leave burns enemies, and hardens him (CalamitusHooks) */
 export const CalamitusPassive: PassiveAbilityDefinition = {
   id: "calamitus_passive",
   name: "Lavaborn",
   description:
-    "Your abilities leave pools of lava that burn enemies in them for 8-33 (+5% ability power) magic damage a second. Standing in your lava you gain 15 armor and magic resist.",
+    "Lava Flow (Q) and Magma Landslide (W) leave pools of lava that burn enemies in them for 7.5-33 (+5% ability power) magic damage a second. Standing in your lava you gain 15 armor and magic resist.",
   trigger: "always",
 };
 

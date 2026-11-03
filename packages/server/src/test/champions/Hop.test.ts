@@ -21,6 +21,7 @@ import {
   TEAM_RED,
   calculatePhysicalDamage,
   getAbilityDefinition,
+  getPassiveDefinition,
   type ItemSlot,
   type Side,
 } from '@siege/shared';
@@ -874,5 +875,18 @@ describe('Hop-To-Eat R: Savage Kick', () => {
   test('unlearned (rank 0) it fails', () => {
     const arena = createTestArena({ blueChampion: 'hop', redChampion: 'magnus', bluePosition: O, redPosition: at(80, 0), learnAbilities: false });
     expect(arena.castAbility(arena.blue, 'R', { targetId: arena.red.id }).failReason).toBe('not_learned');
+  });
+});
+
+describe('Hop-To-Eat descriptions', () => {
+  test("the passive's bonus range is level 1 to 18's", () => {
+    const passive = getPassiveDefinition('hop_passive')!;
+    const at1 = HOP_HOP.bonusBase + HOP_HOP.bonusPerLevel;
+    const at18 = HOP_HOP.bonusBase + HOP_HOP.bonusPerLevel * 18;
+    expect(passive.description).toContain(`${at1}-${at18} (+30% attack damage)`);
+  });
+
+  test("Carrot Break's says the heal grows with missing health", () => {
+    expect(W.description).toContain('missing');
   });
 });

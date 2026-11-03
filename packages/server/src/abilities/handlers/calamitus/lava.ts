@@ -1,5 +1,5 @@
 /**
- * Calamitus's lava: the pools his abilities leave (zones carrying the id of
+ * Calamitus's lava: the pools his Q and W leave (zones carrying the id of
  * the ability that left them, which also says what they may burn; clients
  * draw both as molten ground). They burn enemies in them by his level and
  * ability power (CALAMITUS_LAVA), and the passive and his Eruption look for

@@ -97,7 +97,8 @@ export const OitboilSparkSpray: AbilityDefinition = {
   maxRank: 5,
   manaCost: [20, 20, 20, 20, 20],
   cooldown: [3, 3, 3, 3, 3],
-  aoeRadius: 190, // Reaches what he's attacking from his full range (areas count from the center)
+  // Areas count from the center: from his full attack range (150) it reaches a target no bigger than he is (19 + 150 + 21)
+  aoeRadius: 190,
   damage: {
     type: "magic",
     scaling: scaling([50, 75, 100, 125, 150], { apRatio: 0.35 }),
