@@ -280,6 +280,16 @@ export function getSpriteFeet(src: string, scale: number): { y: number; halfWidt
 }
 
 /**
+ * How far above its center the top of a character drawn from `src` at
+ * `scale` is (negative), in world units. Null until loaded.
+ */
+export function getSpriteTop(src: string, scale: number): number | null {
+  const image = imageCache.get(src);
+  if (!image || !image.complete || image.naturalWidth === 0) return null;
+  return getSpriteBounds(image).top * scale;
+}
+
+/**
  * A soft shadow on the ground under a unit's feet.
  */
 export function drawGroundShadow(ctx: CanvasRenderingContext2D, feetY: number, halfWidth: number): void {

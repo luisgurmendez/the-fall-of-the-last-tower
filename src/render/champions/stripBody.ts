@@ -25,7 +25,7 @@ import type {
   EntityRenderContext,
   EntityRenderState,
 } from "@/render/entities/types";
-import { drawSpriteFrame, getSpriteFeet, imageCache } from "@/render/entities/shared";
+import { drawSpriteFrame, getSpriteFeet, getSpriteTop, imageCache } from "@/render/entities/shared";
 import type { VerticalFacing } from "@/render/entities/facing";
 import type { ChampionBodyRenderer } from "./types";
 
@@ -151,6 +151,7 @@ export function createStripBodyRenderer(
 ): ChampionBodyRenderer {
   return {
     getFeet: () => getSpriteFeet(strips.idle, scale),
+    getTop: () => getSpriteTop(strips.idle, scale),
     render(ctx: CanvasRenderingContext2D, snapshot: any, state: EntityRenderState): boolean {
       const entityId = snapshot.entityId;
       const cast = rc.stateManager.isEntityCastingAbility(entityId);

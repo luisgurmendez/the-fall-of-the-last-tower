@@ -104,6 +104,13 @@ interface ChampionGrowthStats {
 }
 ```
 
+## Health bar
+
+A champion's health bar goes above the top of its art: the visible part of its idle
+strip's first frame (`getTop` on its body renderer, `getSpriteTop` in
+`src/render/entities/shared.ts`), or above `visualHeight` when that's higher. A staff or a
+hood that reaches above the height the definition gives no longer sits under the bar.
+
 ## Stat Calculation
 
 Items add stats of their own: penetration, crit, life steal, omnivamp, heal and shield

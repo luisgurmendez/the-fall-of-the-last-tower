@@ -28,6 +28,12 @@ export interface ChampionBodyRenderer {
    * for its shadow; null until its art has loaded.
    */
   getFeet?(): { y: number; halfWidth: number } | null;
+
+  /**
+   * How far above its center the top of its art is (negative), for its
+   * health bar; null until its art has loaded.
+   */
+  getTop?(): number | null;
 }
 
 /**

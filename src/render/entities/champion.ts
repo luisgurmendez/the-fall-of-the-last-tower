@@ -274,6 +274,10 @@ export class ChampionRenderer {
     const body = this.bodies.get(championId);
     const feet = body?.getFeet?.();
     if (feet) drawGroundShadow(ctx, feet.y, feet.halfWidth);
+    // The bar goes above the top of its art (a staff or a hood may stand above
+    // the height its definition gives)
+    const artTop = body?.getTop?.();
+    if (artTop != null) healthBarYOffset = Math.min(healthBarYOffset, artTop - HEALTH_BAR_PADDING);
 
     if (body) {
       renderedWithSprite = body.render(ctx, snapshot, state);
