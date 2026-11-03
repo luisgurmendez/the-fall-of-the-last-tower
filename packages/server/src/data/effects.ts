@@ -430,8 +430,7 @@ export const TauntEffect: ServerCCEffectDef = {
   ccType: 'taunt',
 };
 
-// Gorath's Fortify buff (armor + MR)
-// This is a special composite effect, we'll handle it as a stat effect
+// Gorath's Stone Skin (W): +30% armor (gorath_fortify_mr_buff is its magic resist)
 export const GorathFortifyBuff: ServerStatEffectDef = {
   id: 'gorath_fortify_buff',
   name: 'Stone Skin',
@@ -439,9 +438,8 @@ export const GorathFortifyBuff: ServerStatEffectDef = {
   stackBehavior: 'refresh',
   cleansable: false,
   persistsThroughDeath: false,
-  stat: 'armor', // Primary stat
+  stat: 'armor',
   percentValue: 0.30, // +30% armor
-  // Note: For MR, we'll need to apply a separate effect or handle in code
 };
 
 // Gorath's Fortify buff - Magic Resist portion

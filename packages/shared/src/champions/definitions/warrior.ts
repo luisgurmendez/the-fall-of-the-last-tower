@@ -157,6 +157,9 @@ export const WarriorUltimate: AbilityDefinition = {
 // Passive Ability
 // =============================================================================
 
+/** Undying Resolve's base shield from levels 1, 6, 11 and 16 (getPassiveLevelValue) */
+const UNDYING_RESOLVE_SHIELD = { levels: [1, 6, 11, 16], values: [80, 120, 160, 200] };
+
 /**
  * Undying Resolve - When below 30% health, gain a shield and bonus armor.
  * 60 second internal cooldown.
@@ -170,15 +173,13 @@ export const WarriorPassive: PassiveAbilityDefinition = {
   healthThreshold: 0.3,
   internalCooldown: 60,
   shield: {
-    scaling: scaling([80, 120, 160, 200], { bonusHealthRatio: 0.1 }),
+    // Its base by level, plus 10% bonus health
+    scaling: scaling(UNDYING_RESOLVE_SHIELD.values, { bonusHealthRatio: 0.1 }),
     duration: 5,
   },
-  statModifiers: [{ stat: "armor", percentValue: 0.2 }],
-  scalesWithLevel: true,
-  levelScaling: {
-    levels: [1, 6, 11, 16],
-    values: [80, 120, 160, 200],
-  },
+  // 20% bonus armor, while the shield lasts
+  appliesEffects: ["warrior_undying_resolve"],
+  levelScaling: UNDYING_RESOLVE_SHIELD,
 };
 
 // =============================================================================

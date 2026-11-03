@@ -732,10 +732,7 @@ export interface PassiveAbilityDefinition {
   // Level scaling
   // ===================
 
-  /** Whether this passive scales with champion level (not ability ranks) */
-  scalesWithLevel?: boolean;
-
-  /** Level scaling configuration: values at specific levels */
+  /** Values by champion level (not ability ranks), from each of `levels` on (getPassiveLevelValue) */
   levelScaling?: {
     levels: number[];
     values: number[];

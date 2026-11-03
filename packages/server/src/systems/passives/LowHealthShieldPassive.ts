@@ -1,11 +1,13 @@
 /**
  * Default handler for on_low_health shield passives (like Warrior's Undying
- * Resolve): below the health threshold, gain a shield (optionally scaled by
- * level) and stat bonuses, then go on the passive's internal cooldown.
+ * Resolve): below the health threshold, gain a shield (its base by level,
+ * getPassiveLevelValue) and the passive's effects (Undying Resolve's armor)
+ * for the shield's duration, then go on the passive's internal cooldown.
  */
 
 import {
   calculateAbilityValue,
+  getPassiveLevelValue,
   type PassiveAbilityDefinition,
   type PassiveState,
 } from '@siege/shared';
@@ -32,12 +34,8 @@ export function handleLowHealthShield(
   // Apply shield
   if (definition.shield) {
     const stats = champion.getStats();
-    const baseShieldValue = definition.scalesWithLevel
-      ? getLevelScaledValue(definition, champion.level)
-      : definition.shield.scaling.base[0];
-
     const shieldAmount = calculateAbilityValue(
-      { ...definition.shield.scaling, base: [baseShieldValue] },
+      { ...definition.shield.scaling, base: [getPassiveLevelValue(definition, champion.level)] },
       1,
       {
         bonusHealth: stats.maxHealth - champion.definition.baseStats.health,
@@ -48,24 +46,19 @@ export function handleLowHealthShield(
     champion.grantShield(shieldAmount, definition.shield.duration, `passive_${definition.id}`);
   }
 
-  // Apply stat modifiers via effects (so they show in HUD)
-  if (definition.statModifiers) {
-    const effectDuration = definition.shield?.duration ?? 5;
-    for (const mod of definition.statModifiers) {
-      // For warrior passive, apply the undying resolve effect
-      if (definition.id === 'warrior_passive' && mod.stat === 'armor') {
-        champion.applyEffect('warrior_undying_resolve', effectDuration, `passive_${definition.id}`);
-      } else {
-        // Fallback to direct modifier for other passives
-        champion.addModifier({
-          source: `passive_${definition.id}`,
-          flat: mod.flatValue ? { [mod.stat]: mod.flatValue } as any : undefined,
-          percent: mod.percentValue ? { [mod.stat]: 1 + mod.percentValue } as any : undefined,
-          duration: effectDuration,
-          timeRemaining: effectDuration,
-        });
-      }
-    }
+  // Its effects (so they show in the HUD) and stat modifiers, as long as the shield
+  const effectDuration = definition.effectDuration ?? definition.shield?.duration ?? 5;
+  for (const effectId of definition.appliesEffects ?? []) {
+    champion.applyEffect(effectId, effectDuration, `passive_${definition.id}`);
+  }
+  for (const mod of definition.statModifiers ?? []) {
+    champion.addModifier({
+      source: `passive_${definition.id}`,
+      flat: mod.flatValue ? { [mod.stat]: mod.flatValue } as any : undefined,
+      percent: mod.percentValue ? { [mod.stat]: 1 + mod.percentValue } as any : undefined,
+      duration: effectDuration,
+      timeRemaining: effectDuration,
+    });
   }
 
   // Set cooldown
@@ -73,23 +66,4 @@ export function handleLowHealthShield(
   passiveState.isActive = true;
 
   Logger.champion.info(`${champion.playerId} triggered ${definition.name}`);
-}
-
-/**
- * Get level-scaled value for a passive.
- */
-function getLevelScaledValue(definition: PassiveAbilityDefinition, level: number): number {
-  if (!definition.levelScaling) {
-    return definition.shield?.scaling.base[0] ?? 0;
-  }
-
-  const { levels, values } = definition.levelScaling;
-
-  for (let i = levels.length - 1; i >= 0; i--) {
-    if (level >= levels[i]) {
-      return values[i];
-    }
-  }
-
-  return values[0];
 }

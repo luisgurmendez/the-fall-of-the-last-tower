@@ -301,7 +301,7 @@ as against a wall where he stopped).
 
 | Module | Default handler | Picked for | Example |
 |--------|-----------------|------------|---------|
-| `LowHealthShieldPassive.ts` | `on_low_health_shield` | `on_low_health` with a `shield` | Warrior: Undying Resolve |
+| `LowHealthShieldPassive.ts` | `on_low_health_shield` | `on_low_health` with a `shield` | Warrior: Undying Resolve (the shield's base by level is `levelScaling`, read with `getPassiveLevelValue`; its armor is the effect in `appliesEffects`) |
 | `StackPassives.ts` | `stack_accumulation` | `usesStacks` on `on_ability_cast` | Magnus: Arcane Surge |
 | `StackPassives.ts` | `on_hit_damage` | `usesStacks` on `on_hit` with `damage` | Vex: Assassin's Mark |
 | `StackPassives.ts` | `on_take_damage_stack` | `usesStacks` on `on_take_damage` | Gorath: Immovable |
