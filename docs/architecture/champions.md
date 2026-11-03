@@ -354,10 +354,16 @@ interface StatModifier {
   // Percentage bonuses (1.1 = +10%)
   percent?: Partial<ChampionBaseStats>;
 
-  // Duration (-1 = permanent)
+  // Duration in seconds, and the time it has left (no timeRemaining = permanent)
   duration?: number;
+  timeRemaining?: number;
 }
 ```
+
+A modifier with a `timeRemaining` counts down every tick and is dropped when it runs out
+(`tickStatModifiers` in `champion/ChampionStats.ts`): Vex's Ninja Mode attack speed, a stat
+transform's stats. Extending the effect that goes with one (`extendEffectDuration`, Ninja Mode on
+a kill) extends the modifier too.
 
 ## Effective Stats Calculation
 
@@ -579,7 +585,7 @@ Collaborators clear it with `invalidateStats()`. Code that changes `items`, `lev
 5. Scheduled basic attack damage (cancelled if the champion can't attack)
 6. Scheduled ability projectiles (cancelled if the champion can't cast)
 7. Ability cooldowns, cast times and recast windows
-8. Effects: over-time ticks, durations, CC status
+8. Effects: over-time ticks, durations, CC status; then timed stat modifiers count down
 9. Transform aura damage
 10. Shield decay
 11. Recall progress (if recalling)

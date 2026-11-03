@@ -91,6 +91,13 @@ export interface IChampionHooks {
   getArmorPenetration?(champion: ServerChampion): number;
 
   /**
+   * Damage the champion is about to deal to `target`, before resistances
+   * (and before its items raise it): return it raised or unchanged (e.g.,
+   * +10% to an enemy Vex marked with her Shadow Shuriken).
+   */
+  amplifyDamageTo?(champion: ServerChampion, target: ServerEntity, amount: number): number;
+
+  /**
    * The champion's basic attack range, given the range it would have
    * otherwise (e.g., Hop-To-Eat reaching further while its hop is ready).
    */

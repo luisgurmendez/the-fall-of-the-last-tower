@@ -60,7 +60,7 @@ import { passiveTriggerSystem } from '../systems/PassiveTriggerSystem';
 import { championHooksRegistry } from '../abilities/ChampionHooksRegistry';
 import { getServerEffectById, isStatEffect } from '../data/effects';
 import { Logger } from '../utils/Logger';
-import { calculateChampionStats } from './champion/ChampionStats';
+import { calculateChampionStats, tickStatModifiers } from './champion/ChampionStats';
 import { ChampionEffects, type ActiveShield } from './champion/ChampionEffects';
 import { ChampionBasicAttacks } from './champion/ChampionBasicAttacks';
 import {
@@ -313,8 +313,9 @@ export class ServerChampion extends ServerEntity {
     // Update abilities
     this.abilities.update(dt);
 
-    // Update effects
+    // Update effects, and timed stat modifiers (Ninja Mode's attack speed)
     this.updateEffects(dt, context);
+    this.statModifiers = tickStatModifiers(this.statModifiers, dt);
 
     // Update transform aura (Vile's R)
     this.updateTransformAura(context);
@@ -812,9 +813,10 @@ export class ServerChampion extends ServerEntity {
     };
   }
 
-  /** Its items raise damage it deals (executes, Giantslayer, structure damage) */
+  /** Its champion's rules (Vex's mark) and its items (executes, Giantslayer, structure damage) raise damage it deals */
   override amplifyDamageTo(target: ServerEntity, amount: number, context: ServerGameContext): number {
-    return this.itemPassives.amplifyDamage(target, amount, context);
+    const raised = championHooksRegistry.get(this.definition.id)?.amplifyDamageTo?.(this, target, amount) ?? amount;
+    return this.itemPassives.amplifyDamage(target, raised, context);
   }
 
   /** Its items react to damage it dealt (omnivamp, Wounds, burns, Tithe...) */

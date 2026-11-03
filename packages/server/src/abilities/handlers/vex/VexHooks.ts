@@ -12,9 +12,13 @@
  * EMPOWERED ATTACK (E):
  * - Shadow Step applies vex_empowered; the next melee attack deals Shadow
  *   Step's damage as bonus damage and consumes it
+ *
+ * MARK (Q):
+ * - An enemy her Shadow Shuriken marked (vex_mark, from her) takes 10% more
+ *   of her damage while the mark lasts: abilities, attacks and her passive
  */
 
-import { calculateAbilityValue, getAbilityDefinition, type AbilitySlot } from '@siege/shared';
+import { calculateAbilityValue, getAbilityDefinition, type AbilitySlot, type ActiveEffectState } from '@siege/shared';
 import type { IChampionHooks } from '../../IChampionHooks';
 import type { ServerChampion } from '../../../simulation/ServerChampion';
 import type { ServerEntity } from '../../../simulation/ServerEntity';
@@ -24,11 +28,24 @@ import { Logger } from '../../../utils/Logger';
 /** Cooldown multiplier for Q and E cast during Ninja Mode */
 const NINJA_MODE_COOLDOWN_MULTIPLIER = 0.5;
 
+/** Damage multiplier on an enemy she marked */
+const MARK_DAMAGE_MULTIPLIER = 1.1;
+
+/** Whether a unit holds her mark (champions and minions hold effects) */
+function isMarkedBy(target: ServerEntity, champion: ServerChampion): boolean {
+  const effects = (target as Partial<{ activeEffects: ActiveEffectState[] }>).activeEffects;
+  return effects?.some(effect => effect.definitionId === 'vex_mark' && effect.sourceId === champion.id) ?? false;
+}
+
 export const vexHooks: IChampionHooks = {
   championId: 'vex',
 
   breaksStealthOnCast(abilityId: string): boolean {
     return abilityId !== 'vex_shroud';
+  },
+
+  amplifyDamageTo(champion: ServerChampion, target: ServerEntity, amount: number): number {
+    return isMarkedBy(target, champion) ? amount * MARK_DAMAGE_MULTIPLIER : amount;
   },
 
   modifyAbilityCooldown(champion: ServerChampion, slot: AbilitySlot, cooldown: number): number {

@@ -258,6 +258,7 @@ Rules that belong to a champion rather than to one ability implement `IChampionH
 | `breaksStealthOnCast` | Executor, every cast | Vex: Shadow Shroud keeps stealth |
 | `modifyAbilityCooldown` | Executor, after ability haste | Vex: Ninja Mode halves Q/E cooldowns |
 | `onAbilityCast` | Executor, after a cast is paid for (not recasts) | Oitboil: his abilities heat him up, Blue Fire vents heat |
+| `amplifyDamageTo` | `ServerChampion.amplifyDamageTo`, any damage it deals, before resistances and its items | Vex: +10% to an enemy her Shadow Shuriken marked |
 | `updatePassiveState` | `ServerChampion`, every tick | Lume: passive follows the Light Orb, and the Prismatic Beam (E) hits along the line from her to it; Oitboil: heat falls, the overheat burns him; Caelum: Lightweaving's pulse; Fenris: feral under 40% health; Calamitus: tougher in his lava |
 | `onMeleeAttackHit` | `ServerChampion`, melee hits (with the damage dealt) | Vex: empowered attack after Shadow Step; Fenris: Bloodthirst's life steal |
 | `onRangedAttackHit` | A ranged basic attack's projectile, on hit | Elora: every third arrow on the same target strikes a weak point; the poisoned arrow |

@@ -6,6 +6,7 @@
  *
  * SPECIAL MECHANICS:
  * - Applies 'vex_empowered' buff to self (not to enemies)
+ * - The dash hits nothing: the ability's damage is the empowered attack's
  * - Checks for marked enemies to reset cooldown
  */
 
@@ -20,7 +21,7 @@ export class VexDashHandler extends BaseAbilityHandler {
   readonly abilityId = 'vex_dash';
 
   execute(params: AbilityHandlerParams): AbilityExecutionResult {
-    const { champion, targetPosition, context, definition, rank, damageMultiplier } = params;
+    const { champion, targetPosition, definition } = params;
 
     if (!targetPosition || !definition.dash) {
       return { success: false };
@@ -46,24 +47,14 @@ export class VexDashHandler extends BaseAbilityHandler {
       );
     }
 
-    // Set up the dash (damage applies on collision)
-    const damageAmount = this.calculateDamage(definition, rank, champion, damageMultiplier);
-
+    // Set up the dash. It hits nothing on the way: the ability's damage is
+    // the empowered attack's (VexHooks), dealt once when it lands
     champion.forcedMovement = {
       direction: normalizedDir,
       distance: dashDistance,
       duration: dashDistance / definition.dash.speed,
       elapsed: 0,
       type: 'dash',
-      hitbox: definition.aoeRadius ?? 60,
-      damage: damageAmount,
-      damageType: definition.damage?.type,
-      // Only pass debuff effects to be applied on collision
-      appliesEffects: definition.appliesEffects?.filter(
-        e => !e.includes('_empowered') && !e.includes('_buff')
-      ),
-      effectDuration: definition.effectDuration,
-      hitEntities: new Set(),
     };
     champion.dashAbilityId = definition.id;
 

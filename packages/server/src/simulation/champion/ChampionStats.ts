@@ -12,6 +12,7 @@
  *
  * This is a pure calculation. ServerChampion.getStats() caches the result
  * and copies maxHealth, maxResource and movementSpeed back onto the champion.
+ * Timed stat modifiers run out in tickStatModifiers, every tick.
  */
 
 import {
@@ -124,6 +125,22 @@ export function calculateChampionStats(
 
   applyItemScaling(stats, items);
   return stats;
+}
+
+/**
+ * Count down the timed stat modifiers (Ninja Mode's attack speed, a
+ * transform's stats): the ones whose time ran out are dropped. Modifiers
+ * without a timeRemaining are permanent.
+ * @returns The modifiers that still apply
+ */
+export function tickStatModifiers(modifiers: StatModifier[], dt: number): StatModifier[] {
+  let expired = false;
+  for (const modifier of modifiers) {
+    if (modifier.timeRemaining === undefined) continue;
+    modifier.timeRemaining -= dt;
+    if (modifier.timeRemaining <= 0) expired = true;
+  }
+  return expired ? modifiers.filter(modifier => modifier.timeRemaining === undefined || modifier.timeRemaining > 0) : modifiers;
 }
 
 /** Item passives that scale other stats (once each, whatever holds them) */
