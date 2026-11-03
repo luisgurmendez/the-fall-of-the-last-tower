@@ -12,6 +12,7 @@ import type {
 import {
   formatPassiveTrigger,
   interpolateAbilityDescription,
+  interpolatePassiveDescription,
   getAbilityScalingInfo,
 } from "./abilityText";
 
@@ -152,7 +153,7 @@ export function createPassiveCard(passive: PassiveAbilityDefinition, championId:
   // Description
   const description = document.createElement("div");
   description.className = "passive-dialog-description";
-  description.textContent = passive.description;
+  description.innerHTML = interpolatePassiveDescription(passive);
   dialog.appendChild(description);
 
   // Stats row (cooldown, stacks)

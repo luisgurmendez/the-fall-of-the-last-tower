@@ -366,6 +366,10 @@ class OnlinePassiveAdapter implements HUDPassive {
       maxStacks: passiveDef?.maxStacks,
       usesStacks: passiveDef?.usesStacks,
       stackName: passiveDef?.stackName,
+      damage: passiveDef?.damage,
+      heal: passiveDef?.heal,
+      shield: passiveDef?.shield,
+      levelScaling: passiveDef?.levelScaling,
     };
     this._maxStacks = passiveDef?.maxStacks ?? 0;
   }
@@ -679,6 +683,11 @@ export class OnlineChampionAdapter {
    */
   getLevel(): number {
     return this.getSnapshot()?.level ?? 1;
+  }
+
+  getBaseHealth(): number {
+    const championId = this.getSnapshot()?.championId || this._fallbackChampionId;
+    return getChampionDefinition(championId)?.baseStats.health ?? this.getStats().maxHealth;
   }
 
   /**

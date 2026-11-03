@@ -110,6 +110,11 @@ export interface HUDPassiveDefinition {
   usesStacks?: boolean;
   /** What the stacks are called in the tooltip ("Heat") */
   stackName?: string;
+  /** Its values, for {damage}, {heal} and {shield} in the description */
+  damage?: { scaling: AbilityScaling };
+  heal?: { scaling: AbilityScaling };
+  shield?: { scaling: AbilityScaling; duration: number };
+  levelScaling?: { levels: number[]; values: number[] };
 }
 
 /**
@@ -144,6 +149,8 @@ export interface HUDChampionData {
   getSummoners(): SummonerSpellState[];
   getPosition(): Vector;
   getLevel(): number;
+  /** The champion's base health: tooltips count bonus health over it, as the server does */
+  getBaseHealth(): number;
   getExperience(): number;
   getExperienceToNextLevel(): number;
   getSkillPoints(): number;

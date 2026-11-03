@@ -389,7 +389,7 @@ export class ChampionHUD extends ScreenEntity {
       if (this.hud.hoverState.passive && this.hud.passiveBox && this.champion) {
         const passive = this.champion.getPassive();
         if (passive) {
-          drawPassiveTooltip(ctx, this.hud.passiveBox.x, this.hud.passiveBox.y, passive);
+          drawPassiveTooltip(ctx, this.hud.passiveBox.x, this.hud.passiveBox.y, passive, this.champion);
         }
       }
 

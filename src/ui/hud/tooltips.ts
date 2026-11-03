@@ -13,7 +13,7 @@ import { drawItemIcon, ITEM_ICON_SIZE } from '@/ui/itemIcons';
 import { getItemActive, listItemStats } from '@/data/itemStats';
 import { ITEM_KEYS } from '@/core/input/itemKeys';
 import { getItemPassive } from '@/data/items';
-import { wrapText, interpolateAbilityDescription, formatTriggerType, formatBuffName } from '@/ui/hud/tooltipText';
+import { wrapText, interpolateAbilityDescription, interpolatePassiveDescription, formatTriggerType, formatBuffName } from '@/ui/hud/tooltipText';
 import type { EquippedItem, HUDActiveEffect, HUDChampionData, HUDPassive } from '@/ui/hud/types';
 
 /** Draw ability tooltip above the ability box */
@@ -39,7 +39,8 @@ export function drawAbilityTooltip(
     rawDescription,
     ability.definition,
     rank,
-    stats
+    stats,
+    champion.getBaseHealth()
   );
 
   // Get cost info
@@ -156,7 +157,8 @@ export function drawPassiveTooltip(
   ctx: CanvasRenderingContext2D,
   passiveX: number,
   passiveY: number,
-  passive: HUDPassive
+  passive: HUDPassive,
+  champion: HUDChampionData
 ): void {
   const padding = PANEL.tooltipPadding;
   const lineHeight = 18;
@@ -164,8 +166,15 @@ export function drawPassiveTooltip(
   // Tooltip dimensions
   const tooltipWidth = PANEL.tooltipWidth;
 
-  // Calculate tooltip height based on content
-  const descriptionLines = wrapText(passive.definition.description, tooltipWidth - padding * 2, 14);
+  // Calculate tooltip height based on content (its values at the champion's level)
+  const description = interpolatePassiveDescription(
+    passive.definition.description,
+    passive.definition,
+    champion.getLevel(),
+    champion.getStats(),
+    champion.getBaseHealth()
+  );
+  const descriptionLines = wrapText(description, tooltipWidth - padding * 2, 14);
   const headerHeight = lineHeight + 4;
   const triggerHeight = lineHeight;
   const descHeight = descriptionLines.length * lineHeight;

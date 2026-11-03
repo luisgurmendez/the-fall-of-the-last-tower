@@ -1,10 +1,10 @@
 /**
- * Text helpers for the HUD tooltips: word wrapping, ability description
- * interpolation with scaling breakdowns, and display names for passive
- * triggers and buff sources.
+ * Text helpers for the HUD tooltips: word wrapping, ability and passive
+ * description interpolation with scaling breakdowns, and display names for
+ * passive triggers and buff sources.
  */
 
-import { type ChampionStats, type AbilityScaling, calculateAbilityValue } from '@siege/shared';
+import { type ChampionStats, type AbilityScaling, calculateAbilityValue, getPassiveLevelValue, type PassiveAbilityDefinition } from '@siege/shared';
 import type { HUDAbilityDefinition } from '@/ui/hud/types';
 
 /** Format trigger type for display */
@@ -61,68 +61,101 @@ export function wrapText(text: string, maxWidth: number, fontSize: number, charW
  * Replaces {damage}, {heal}, {shield} with actual values including scaling breakdown,
  * and {effectDuration} and {attackSpeedBonus}. An ability not learned yet shows its
  * first rank's values. A placeholder with nothing to fill it shows "?".
+ * @param baseHealth The champion's base health: bonus health is max health over it,
+ *   as the server counts it
  */
 export function interpolateAbilityDescription(
   description: string,
   definition: HUDAbilityDefinition | null | undefined,
   rank: number,
-  stats: ChampionStats
+  stats: ChampionStats,
+  baseHealth = stats.maxHealth
 ): string {
   if (!definition) {
     return description.replace(/\{[a-zA-Z]+\}/g, '?');
   }
   rank = Math.max(1, rank);
 
-  let result = description;
-
-  // Calculate bonus health (current max - base at level 1)
-  // Approximation: assume base health is around 500-600
-  const bonusHealth = Math.max(0, stats.maxHealth - 580);
-  const missingHealth = stats.maxHealth - stats.health;
-
-  const statValues = {
-    attackDamage: stats.attackDamage,
-    abilityPower: stats.abilityPower,
-    bonusHealth,
-    maxHealth: stats.maxHealth,
-    missingHealth,
-    armor: stats.armor,
-    magicResist: stats.magicResist,
-  };
-
-  // Replace {damage} placeholder
-  if (definition.damage?.scaling) {
-    const value = calculateAbilityValue(definition.damage.scaling, rank, statValues);
-    const formatted = formatScalingValue(value, definition.damage.scaling, statValues);
-    result = result.replace('{damage}', formatted);
-  }
-
-  // Replace {heal} placeholder
-  if (definition.heal?.scaling) {
-    const value = calculateAbilityValue(definition.heal.scaling, rank, statValues);
-    const formatted = formatScalingValue(value, definition.heal.scaling, statValues);
-    result = result.replace('{heal}', formatted);
-  }
-
-  // Replace {shield} placeholder
-  if (definition.shield?.scaling) {
-    const value = calculateAbilityValue(definition.shield.scaling, rank, statValues);
-    const formatted = formatScalingValue(value, definition.shield.scaling, statValues);
-    result = result.replace('{shield}', formatted);
-  }
-
-  if (definition.effectDuration !== undefined) {
-    result = result.replace('{effectDuration}', String(definition.effectDuration));
-  }
-
-  const attackSpeedBonus = definition.statTransform?.statModifiers?.attackSpeed;
-  if (attackSpeedBonus) {
-    const bonus = attackSpeedBonus[Math.min(rank, attackSpeedBonus.length) - 1];
-    result = result.replace('{attackSpeedBonus}', String(Math.round(bonus * 100)));
-  }
+  let result = fillScaledValues(description, definition, rank, scalingStats(stats, baseHealth));
+  result = fillDurationAndBonus(result, definition, rank);
 
   // Nothing to fill it: better a "?" than raw braces
   return result.replace(/\{[a-zA-Z]+\}/g, '?');
+}
+
+/**
+ * Interpolate a passive's description: {damage}, {heal} and {shield} at the
+ * champion's level (its level bracket, for a passive that grows with it).
+ */
+export function interpolatePassiveDescription(
+  description: string,
+  passive: {
+    damage?: { scaling: AbilityScaling };
+    heal?: { scaling: AbilityScaling };
+    shield?: { scaling: AbilityScaling };
+    levelScaling?: PassiveAbilityDefinition['levelScaling'];
+  },
+  level: number,
+  stats: ChampionStats,
+  baseHealth = stats.maxHealth
+): string {
+  const atLevel = (scaling: AbilityScaling | undefined) => scaling && {
+    scaling: { ...scaling, base: [passive.levelScaling ? getPassiveLevelValue(passive as PassiveAbilityDefinition, level) : scaling.base[0]] },
+  };
+  const result = fillScaledValues(description, {
+    damage: atLevel(passive.damage?.scaling),
+    heal: atLevel(passive.heal?.scaling),
+    shield: atLevel(passive.shield?.scaling),
+  }, 1, scalingStats(stats, baseHealth));
+  return result.replace(/\{[a-zA-Z]+\}/g, '?');
+}
+
+/** The stats abilities scale with: bonus health is max health over the champion's base */
+function scalingStats(stats: ChampionStats, baseHealth: number) {
+  return {
+    attackDamage: stats.attackDamage,
+    abilityPower: stats.abilityPower,
+    bonusHealth: Math.max(0, stats.maxHealth - baseHealth),
+    maxHealth: stats.maxHealth,
+    missingHealth: stats.maxHealth - stats.health,
+    armor: stats.armor,
+    magicResist: stats.magicResist,
+  };
+}
+
+/** Replace {damage}, {heal} and {shield} with their values at a rank, and what they scale with */
+function fillScaledValues(
+  description: string,
+  values: { damage?: { scaling: AbilityScaling }; heal?: { scaling: AbilityScaling }; shield?: { scaling: AbilityScaling } },
+  rank: number,
+  stats: ReturnType<typeof scalingStats>
+): string {
+  let result = description;
+  for (const key of ['damage', 'heal', 'shield'] as const) {
+    const scaling = values[key]?.scaling;
+    if (!scaling) continue;
+    const value = calculateAbilityValue(scaling, rank, stats);
+    result = result.replace(`{${key}}`, formatScalingValue(value, scaling, stats));
+  }
+  return result;
+}
+
+/** Replace {effectDuration} and {attackSpeedBonus} (a stat transform's, at a rank) */
+export function fillDurationAndBonus(
+  description: string,
+  definition: Pick<HUDAbilityDefinition, 'effectDuration' | 'statTransform'>,
+  rank: number
+): string {
+  let result = description;
+  if (definition.effectDuration !== undefined) {
+    result = result.replace('{effectDuration}', String(definition.effectDuration));
+  }
+  const attackSpeedBonus = definition.statTransform?.statModifiers?.attackSpeed;
+  if (attackSpeedBonus) {
+    const bonus = attackSpeedBonus[Math.min(Math.max(1, rank), attackSpeedBonus.length) - 1];
+    result = result.replace('{attackSpeedBonus}', String(Math.round(bonus * 100)));
+  }
+  return result;
 }
 
 /**

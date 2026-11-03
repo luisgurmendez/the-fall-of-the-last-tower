@@ -1,14 +1,18 @@
 /**
  * Text for the champion select ability and passive tooltips: passive trigger
- * labels, ability descriptions with their values filled in, and scaling
- * previews ("60/95/130 (+70% AD)").
+ * labels, ability and passive descriptions with their values filled in, and
+ * scaling previews ("60/95/130 (+70% AD)"). A placeholder with nothing to
+ * fill it shows "?".
  */
 
-import type {
-  ChampionDefinition,
-  AbilityDefinition,
-  AbilityScaling,
+import {
+  getPassiveLevelValue,
+  type ChampionDefinition,
+  type AbilityDefinition,
+  type AbilityScaling,
+  type PassiveAbilityDefinition,
 } from "@siege/shared";
+import { fillDurationAndBonus } from "@/ui/hud/tooltipText";
 
 /**
  * Format passive trigger type for display.
@@ -86,7 +90,24 @@ export function interpolateAbilityDescription(
     description = description.replace("{shield}", formatted);
   }
 
-  return description;
+  description = fillDurationAndBonus(description, ability, rank);
+  return description.replace(/\{[a-zA-Z]+\}/g, "?");
+}
+
+/**
+ * Interpolate a passive's description: {damage}, {heal} and {shield} with
+ * each of its level brackets' values ("80/120/160/200 (+10% Bonus HP)").
+ */
+export function interpolatePassiveDescription(passive: PassiveAbilityDefinition): string {
+  let description = passive.description;
+  const levels = passive.levelScaling?.levels ?? [1];
+  for (const key of ["damage", "heal", "shield"] as const) {
+    const scaling = passive[key]?.scaling;
+    if (!scaling) continue;
+    const base = passive.levelScaling ? levels.map(level => getPassiveLevelValue(passive, level)) : scaling.base;
+    description = description.replace(`{${key}}`, formatScalingPreview(base[0], { ...scaling, base }));
+  }
+  return description.replace(/\{[a-zA-Z]+\}/g, "?");
 }
 
 /**
