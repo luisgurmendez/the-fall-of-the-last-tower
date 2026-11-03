@@ -101,7 +101,7 @@ export function drawActiveEffects(
 }
 
 /** Draw a single effect icon with radial cooldown-style timer */
-function drawEffectIcon(
+export function drawEffectIcon(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,

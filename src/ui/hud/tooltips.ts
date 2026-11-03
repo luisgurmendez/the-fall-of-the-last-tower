@@ -492,6 +492,9 @@ export function drawBuffTooltip(
   ctx.restore();
 }
 
+/** How wide an item's tooltip is */
+export const ITEM_TOOLTIP_WIDTH = 340;
+
 /** Draw item tooltip above the item slot */
 export function drawItemTooltip(
   ctx: CanvasRenderingContext2D,
@@ -507,7 +510,7 @@ export function drawItemTooltip(
   const statLines = listItemStats(item.stats).map(({ info, value }) => ({ label: info.label, value, color: info.color }));
 
   // Calculate tooltip dimensions
-  const tooltipWidth = 340;
+  const tooltipWidth = ITEM_TOOLTIP_WIDTH;
   const headerHeight = ITEM_ICON_SIZE + 8;
   const statsHeight = statLines.length * lineHeight;
   const sellHeight = lineHeight + 4;

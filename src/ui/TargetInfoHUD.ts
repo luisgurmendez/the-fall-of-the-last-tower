@@ -2,8 +2,10 @@
  * TargetInfoHUD - Displays information about the currently selected entity.
  *
  * Shows in the top-left corner when an entity is selected via left-click:
- * - Champion: Full panel with portrait, stats, abilities, items, buffs (not
- *   for your own champion: the HUD at the bottom already shows all that)
+ * - Champion: Full panel with portrait, stats, abilities, items and the
+ *   effects on it (buffs and debuffs, with their time left); hovering an
+ *   item or an effect shows its tooltip. Not for your own champion: the HUD
+ *   at the bottom already shows all that.
  * - Minion: Simple panel with type and health bar
  * - Tower: Simple panel with tier/lane and health bar
  * - Jungle: Simple panel with creature name and health bar
@@ -22,18 +24,27 @@ import {
   type MinionSnapshot,
   type TowerSnapshot,
   type JungleCreatureSnapshot,
+  type ActiveEffectState,
+  type ItemSlot,
   getChampionDefinition,
 } from '@siege/shared';
 import { drawPixelArt } from '@/render/pixelArt';
+import AbilityIconLoader from '@/ui/AbilityIconLoader';
+import { InputManager } from '@/core/input/InputManager';
+import { getItemDefinition } from '@/data/items';
+import { drawItemIcon, ITEM_ICON_SIZE } from '@/ui/itemIcons';
+import { drawEffectIcon } from '@/ui/hud/effectIcons';
+import { drawEffectTooltip, drawItemTooltip, ITEM_TOOLTIP_WIDTH } from '@/ui/hud/tooltips';
+import { PANEL as HUD_PANEL } from '@/ui/hud/layout';
+import type { HUDActiveEffect } from '@/ui/hud/types';
 
 /** Panel configuration - LARGER sizes for better readability */
 const PANEL = {
   margin: 12,
   padding: 12,
   borderRadius: 6,
-  // Champion panel - much bigger
+  // Champion panel (its height fits what it shows)
   championWidth: 420,
-  championHeight: 240,
   // Simple panel (minion, tower, jungle)
   simpleWidth: 240,
   simpleHeight: 80,
@@ -47,9 +58,17 @@ const PANEL = {
   statLineHeight: 22,
   portraitSize: 72,
   // Items
-  itemSize: 32,
+  itemSize: ITEM_ICON_SIZE + 2,
   itemGap: 4,
+  // Effects on the champion, a row under the abilities
+  effectSize: 32,
+  effectGap: 4,
 };
+
+/** Something on the panel with a tooltip */
+type HoverTarget =
+  | { kind: 'item'; x: number; y: number; size: number; itemId: string; slot: number }
+  | { kind: 'effect'; x: number; y: number; size: number; effect: HUDActiveEffect };
 
 /** Font sizes - MUCH BIGGER */
 const FONT = {
@@ -92,6 +111,9 @@ export class TargetInfoHUD extends ScreenEntity {
   private stateManager: OnlineStateManager;
   private inputHandler: OnlineInputHandler;
   private localSide: number;
+  private readonly iconLoader = AbilityIconLoader.getInstance();
+  /** What's drawn this frame that has a tooltip */
+  private hoverTargets: HoverTarget[] = [];
 
   constructor(config: TargetInfoHUDConfig) {
     super('target-info-hud');
@@ -146,7 +168,20 @@ export class TargetInfoHUD extends ScreenEntity {
     const x = PANEL.margin;
     const y = PANEL.margin;
     const width = PANEL.championWidth;
-    const height = PANEL.championHeight;
+
+    // Layout top to bottom: portrait and bars, three stat lines, abilities
+    // beside the items, then the effects (as many rows as they need)
+    const abilityY = y + PANEL.padding + PANEL.portraitSize + 12 + PANEL.statLineHeight * 3 + 8;
+    const rowBottom = abilityY + Math.max(PANEL.abilityIconSize, PANEL.itemSize * 2 + PANEL.itemGap);
+    const effects = snapshot.activeEffects ?? [];
+    const effectsPerRow = Math.floor((width - PANEL.padding * 2 + PANEL.effectGap) / (PANEL.effectSize + PANEL.effectGap));
+    const effectRows = Math.ceil(effects.length / effectsPerRow);
+    const effectsY = rowBottom + 10;
+    const contentBottom = effectRows > 0
+      ? effectsY + effectRows * (PANEL.effectSize + PANEL.effectGap) - PANEL.effectGap
+      : rowBottom;
+    const height = contentBottom + PANEL.padding - y;
+    this.hoverTargets = [];
 
     // Draw background panel
     this.drawPanelBackground(c, x, y, width, height, accentColor);
@@ -262,7 +297,6 @@ export class TargetInfoHUD extends ScreenEntity {
     }
 
     // === ABILITIES ROW ===
-    const abilityY = statsY3 + PANEL.statLineHeight + 8;
     const abilityStartX = x + PANEL.padding;
     const slots: ('Q' | 'W' | 'E' | 'R')[] = ['Q', 'W', 'E', 'R'];
 
@@ -270,94 +304,71 @@ export class TargetInfoHUD extends ScreenEntity {
       const slot = slots[i];
       const ability = snapshot.abilities[slot];
       const iconX = abilityStartX + i * (PANEL.abilityIconSize + PANEL.abilityIconGap);
+      const size = PANEL.abilityIconSize;
 
-      // Ability box
-      const isReady = ability.cooldownRemaining === 0 && ability.rank > 0;
-      c.fillStyle = isReady ? '#333355' : '#222233';
-      c.fillRect(iconX, abilityY, PANEL.abilityIconSize, PANEL.abilityIconSize);
-      c.strokeStyle = ability.rank > 0 ? accentColor : '#444466';
-      c.lineWidth = 2;
-      c.strokeRect(iconX, abilityY, PANEL.abilityIconSize, PANEL.abilityIconSize);
-
-      // Ability letter
-      RenderUtils.renderBitmapText(c, slot,
-        iconX + PANEL.abilityIconSize / 2,
-        abilityY + PANEL.abilityIconSize / 2 - 8,
-        { size: FONT.large, color: ability.rank > 0 ? COLORS.text : COLORS.textDim, centered: true }
-      );
-
-      // Rank indicator
-      if (ability.rank > 0) {
-        RenderUtils.renderBitmapText(c, `${ability.rank}`,
-          iconX + PANEL.abilityIconSize - 6,
-          abilityY + PANEL.abilityIconSize - 16,
-          { size: FONT.small, color: accentColor, rightAlign: true }
-        );
+      // Its icon (dimmed until learned), or its letter until the art loads
+      c.fillStyle = '#222233';
+      c.fillRect(iconX, abilityY, size, size);
+      const drawn = this.iconLoader.drawIcon(c, snapshot.championId, slot.toLowerCase() as 'q', iconX, abilityY, size);
+      if (!drawn) {
+        RenderUtils.renderBitmapText(c, slot, iconX + size / 2, abilityY + size / 2 - 8,
+          { size: FONT.large, color: ability.rank > 0 ? COLORS.text : COLORS.textDim, centered: true });
+      }
+      if (ability.rank === 0) {
+        c.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        c.fillRect(iconX, abilityY, size, size);
       }
 
       // Cooldown overlay (only show for allies)
       if (isAlly && ability.cooldownRemaining > 0 && ability.rank > 0) {
-        c.fillStyle = 'rgba(0, 0, 0, 0.75)';
-        c.fillRect(iconX, abilityY, PANEL.abilityIconSize, PANEL.abilityIconSize);
+        c.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        c.fillRect(iconX, abilityY, size, size);
         RenderUtils.renderBitmapText(c, Math.ceil(ability.cooldownRemaining).toString(),
-          iconX + PANEL.abilityIconSize / 2,
-          abilityY + PANEL.abilityIconSize / 2 - 8,
-          { size: FONT.large, color: '#ffffff', centered: true }
-        );
+          iconX + size / 2, abilityY + size / 2 - 8,
+          { size: FONT.large, color: '#ffffff', centered: true, shadow: true });
+      }
+
+      c.strokeStyle = ability.rank > 0 ? accentColor : '#444466';
+      c.lineWidth = 2;
+      c.strokeRect(iconX, abilityY, size, size);
+
+      // Rank
+      if (ability.rank > 0) {
+        RenderUtils.renderBitmapText(c, `${ability.rank}`, iconX + size - 4, abilityY + size - 16,
+          { size: FONT.small, color: '#ffffff', rightAlign: true, shadow: true });
       }
     }
 
-    // === ITEMS ROW (to the right of abilities) ===
+    // === ITEMS (to the right of abilities) ===
     const itemsX = abilityStartX + (PANEL.abilityIconSize + PANEL.abilityIconGap) * 4 + 16;
-    const itemsY = abilityY;
-
     for (let i = 0; i < 6; i++) {
-      const row = Math.floor(i / 3);
-      const col = i % 3;
-      const itemX = itemsX + col * (PANEL.itemSize + PANEL.itemGap);
-      const itemY = itemsY + row * (PANEL.itemSize + PANEL.itemGap);
+      const itemX = itemsX + (i % 3) * (PANEL.itemSize + PANEL.itemGap);
+      const itemY = abilityY + Math.floor(i / 3) * (PANEL.itemSize + PANEL.itemGap);
       const item = snapshot.items?.[i];
+      const definition = item ? getItemDefinition(item.definitionId) : undefined;
 
-      // Item slot background
-      c.fillStyle = item ? '#333355' : '#1a1a2e';
+      c.fillStyle = definition ? '#333355' : '#1a1a2e';
       c.fillRect(itemX, itemY, PANEL.itemSize, PANEL.itemSize);
+      if (definition) {
+        drawItemIcon(c, definition, itemX + 1, itemY + 1, 1, () => {
+          c.fillStyle = this.getItemColor(definition.id);
+          c.fillRect(itemX + 3, itemY + 3, PANEL.itemSize - 6, PANEL.itemSize - 6);
+        });
+        this.hoverTargets.push({ kind: 'item', x: itemX, y: itemY, size: PANEL.itemSize, itemId: definition.id, slot: i });
+      }
       c.strokeStyle = COLORS.border;
       c.lineWidth = 1;
       c.strokeRect(itemX, itemY, PANEL.itemSize, PANEL.itemSize);
-
-      if (item) {
-        // Item indicator
-        c.fillStyle = this.getItemColor(item.definitionId);
-        c.fillRect(itemX + 3, itemY + 3, PANEL.itemSize - 6, PANEL.itemSize - 6);
-      }
     }
 
-    // === ACTIVE EFFECTS (bottom) ===
-    if (snapshot.activeEffects && snapshot.activeEffects.length > 0) {
-      const effectY = y + height - PANEL.padding - 24;
-      const effectSize = 22;
-      const effectGap = 4;
-      let effectX = x + PANEL.padding;
-
-      for (let i = 0; i < Math.min(snapshot.activeEffects.length, 10); i++) {
-        const effect = snapshot.activeEffects[i];
-
-        c.fillStyle = this.getEffectColor(effect.definitionId);
-        c.fillRect(effectX, effectY, effectSize, effectSize);
-        c.strokeStyle = COLORS.border;
-        c.lineWidth = 1;
-        c.strokeRect(effectX, effectY, effectSize, effectSize);
-
-        if (effect.stacks > 1) {
-          RenderUtils.renderBitmapText(c, effect.stacks.toString(),
-            effectX + effectSize - 2, effectY + effectSize - 14,
-            { size: FONT.small, color: '#ffffff', rightAlign: true }
-          );
-        }
-
-        effectX += effectSize + effectGap;
-      }
-    }
+    // === EFFECTS ON IT (buffs and debuffs, with their time left) ===
+    effects.forEach((state, i) => {
+      const effectX = x + PANEL.padding + (i % effectsPerRow) * (PANEL.effectSize + PANEL.effectGap);
+      const effectY = effectsY + Math.floor(i / effectsPerRow) * (PANEL.effectSize + PANEL.effectGap);
+      const effect = toHUDEffect(state);
+      drawEffectIcon(c, effectX, effectY, PANEL.effectSize, effect);
+      this.hoverTargets.push({ kind: 'effect', x: effectX, y: effectY, size: PANEL.effectSize, effect });
+    });
 
     // === SHIELDS (if any) ===
     if (snapshot.shields && snapshot.shields.length > 0) {
@@ -368,6 +379,34 @@ export class TargetInfoHUD extends ScreenEntity {
           barX, shieldY, { size: FONT.normal, color: '#66aaff' });
       }
     }
+
+    this.drawHoverTooltip(c);
+  }
+
+  /** The tooltip of the item or effect under the mouse, if any */
+  private drawHoverTooltip(c: CanvasRenderingContext2D): void {
+    const mouse = InputManager.getInstance().getMousePosition();
+    if (!mouse) return;
+    const hovered = this.hoverTargets.find(target =>
+      mouse.x >= target.x && mouse.x < target.x + target.size && mouse.y >= target.y && mouse.y < target.y + target.size);
+    if (!hovered) return;
+    c.strokeStyle = '#ffffff';
+    c.lineWidth = 2;
+    c.strokeRect(hovered.x, hovered.y, hovered.size, hovered.size);
+    if (hovered.kind === 'effect') {
+      drawEffectTooltip(c, hovered.x, hovered.y, hovered.effect);
+      return;
+    }
+    const definition = getItemDefinition(hovered.itemId);
+    if (!definition) return;
+    // Beside the panel, from the screen's top: above the item it would cover the panel
+    const left = PANEL.margin + PANEL.championWidth + 8;
+    drawItemTooltip(c, left + ITEM_TOOLTIP_WIDTH / 2 - HUD_PANEL.itemBoxSize / 2, 0, {
+      definition,
+      slot: hovered.slot as ItemSlot,
+      passiveCooldowns: new Map(),
+      nextIntervalTick: new Map(),
+    });
   }
 
   /**
@@ -606,3 +645,14 @@ export class TargetInfoHUD extends ScreenEntity {
 }
 
 export default TargetInfoHUD;
+
+/** An effect on a champion as the HUD's effect icons and tooltips take it */
+function toHUDEffect(effect: ActiveEffectState): HUDActiveEffect {
+  return {
+    definitionId: effect.definitionId,
+    timeRemaining: effect.timeRemaining,
+    totalDuration: effect.totalDuration,
+    stacks: effect.stacks,
+    shieldRemaining: effect.shieldRemaining,
+  };
+}
