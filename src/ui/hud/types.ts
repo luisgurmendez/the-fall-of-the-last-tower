@@ -3,7 +3,7 @@
  * public ones, so other code keeps importing them from '@/ui/ChampionHUD'.
  */
 
-import type { StatModifier, ChampionStats, ItemSlot, ItemDefinition, AbilitySlot, AbilityScaling, DamageType, SummonerSpellState } from '@siege/shared';
+import type { StatModifier, ChampionStats, ItemSlot, ItemDefinition, AbilitySlot, AbilityScaling, AbilityDefinition, DamageType, SummonerSpellState } from '@siege/shared';
 import type Vector from '@/physics/vector';
 import type AbilityIconLoader from '@/ui/AbilityIconLoader';
 
@@ -87,15 +87,12 @@ export interface HUDAbility {
   readonly cooldownRemaining: number;
   /** Time remaining in recast window (> 0 means recast is available) */
   readonly recastWindowRemaining?: number;
-  getTargetDescription?(): {
-    range?: number;
-    targetType?: string;
-    shape?: string;
-    aoeRadius?: number;
-    coneAngle?: number;
-    width?: number;
-  } | null;
+  getTargetDescription?(): HUDTargetDescription | null;
 }
+
+/** What an ability's preview needs (src/ui/hud/abilityPreview.ts) */
+export type HUDTargetDescription = Pick<AbilityDefinition,
+  'id' | 'range' | 'targetType' | 'shape' | 'aoeRadius' | 'coneAngle' | 'projectileRadius' | 'dash'>;
 
 /**
  * Passive ability definition interface for HUD display.
@@ -151,6 +148,8 @@ export interface HUDChampionData {
   getLevel(): number;
   /** The champion's base health: tooltips count bonus health over it, as the server does */
   getBaseHealth(): number;
+  /** Where its Light Orb is (Lume), for previews of the abilities that start there */
+  getOrbPosition?(): Vector | null;
   getExperience(): number;
   getExperienceToNextLevel(): number;
   getSkillPoints(): number;

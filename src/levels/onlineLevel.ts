@@ -27,10 +27,8 @@ import { OnlineInputHandler } from '@/core/input/OnlineInputHandler';
 import { EntityRenderer } from '@/render/EntityRenderer';
 import { OnlineChampionAdapter } from '@/online/OnlineChampionAdapter';
 import { OnlineFogProvider } from '@/online/OnlineFogProvider';
-import { AbilityRangeIndicator } from '@/ui/AbilityRangeIndicator';
 import type { DebugOverlay } from '@/debug/DebugOverlay';
 import { getChampionDefinition } from '@siege/shared';
-import { InputManager } from '@/core/input/InputManager';
 import type { OnlineStateManager } from '@/core/OnlineStateManager';
 import type { NetworkClient } from '@siege/client';
 import type { MatchData } from '@/ui/matchmaking/MatchmakingUI';
@@ -130,10 +128,6 @@ export function generateOnlineLevel(config: OnlineLevelConfig): Level {
     entityRenderer.setHoveredEntities(enemyId, allyId);
   });
 
-  // Create ability range indicator (shows range/AOE when hovering abilities)
-  const inputManager = InputManager.getInstance();
-  const abilityRangeIndicator = new AbilityRangeIndicator(stateManager, championHUD, inputManager);
-
   // Create target info HUD (shows selected entity info in top-left corner)
   const targetInfoHUD = new TargetInfoHUD({
     stateManager,
@@ -156,7 +150,6 @@ export function generateOnlineLevel(config: OnlineLevelConfig): Level {
     // Fog of war provider (updates fog based on server entities)
     fogProvider,
     // Ability range indicator (renders under entities)
-    abilityRangeIndicator,
     // Entity renderer (renders all server entities)
     entityRenderer,
     // Input handler (captures and sends inputs)

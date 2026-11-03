@@ -1,7 +1,7 @@
 /**
- * Range preview shown while an ability box is hovered: the cast range circle
- * around the champion, plus the AoE circle, cone or skillshot/dash rectangle
- * toward the cursor. Drawn in screen space, before the HUD panels.
+ * Range preview shown while an ability box is hovered: the shapes
+ * abilityPreview gives (its cast range, the area, band, cone or landing spot
+ * it will hit), drawn in screen space, before the HUD panels.
  */
 
 import { Dimensions } from '@/core/canvas';
@@ -10,6 +10,19 @@ import type { InputManager } from '@/core/input/InputManager';
 import RenderUtils from '@/render/utils';
 import type { AbilitySlot } from '@siege/shared';
 import type { HUDChampionData } from '@/ui/hud/types';
+import { abilityPreview, type PreviewShape } from '@/ui/hud/abilityPreview';
+import Vector from '@/physics/vector';
+
+const COLORS = {
+  range: 'rgba(0, 206, 209, 0.6)',
+  rangeLabel: '#00CED1',
+  areaFill: 'rgba(255, 165, 0, 0.2)',
+  area: 'rgba(255, 165, 0, 0.8)',
+  areaLabel: '#FFA500',
+  /** Dashes, then projectiles and lines */
+  dash: 'rgba(255, 200, 50',
+  band: 'rgba(255, 100, 100',
+};
 
 /** Draw ability range circles around champion (in screen space) */
 export function drawAbilityRangeCircles(
@@ -19,145 +32,92 @@ export function drawAbilityRangeCircles(
   slot: AbilitySlot,
   inputManager: InputManager
 ): void {
-  const ability = champion.getAbility(slot);
-  if (!ability) return;
-
-  // Get target description for range info
-  const targetDesc = ability.getTargetDescription?.();
+  const targetDesc = champion.getAbility(slot)?.getTargetDescription?.();
   if (!targetDesc) return;
 
-  const championPos = champion.getPosition();
   const camera = gctx.camera;
-
-  // Transform world position to screen position
-  const screenX = (championPos.x - camera.position.x) * camera.zoom + Dimensions.w / 2;
-  const screenY = (championPos.y - camera.position.y) * camera.zoom + Dimensions.h / 2;
+  const toScreen = (point: Vector) => new Vector(
+    (point.x - camera.position.x) * camera.zoom + Dimensions.w / 2,
+    (point.y - camera.position.y) * camera.zoom + Dimensions.h / 2,
+  );
+  const cursor = inputManager.getMouseWorldPosition(camera.position, camera.zoom);
+  const shapes = abilityPreview(targetDesc, champion.getPosition(), cursor, champion.getOrbPosition?.() ?? null);
 
   ctx.save();
+  ctx.lineWidth = 2;
+  for (const shape of shapes) drawShape(ctx, shape, toScreen, camera.zoom);
+  ctx.restore();
+}
 
-  // Get shape info early so we can skip range circle for cones
-  const aoeRadius = (targetDesc as any).aoeRadius;
-  const shape = (targetDesc as any).shape;
-
-  // Draw cast range circle (skip for cone abilities - the cone itself shows the range)
-  if (targetDesc.range && targetDesc.range > 0 && shape !== 'cone') {
-    const rangeScreenRadius = targetDesc.range * camera.zoom;
-
-    // Cast range (dashed cyan circle)
-    ctx.strokeStyle = 'rgba(0, 206, 209, 0.6)';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([10, 5]);
-    ctx.beginPath();
-    ctx.arc(screenX, screenY, rangeScreenRadius, 0, Math.PI * 2);
-    ctx.stroke();
-
-    // Range label
-    ctx.setLineDash([]);
-    RenderUtils.renderBitmapText(
-      ctx,
-      `Range: ${targetDesc.range}`,
-      screenX,
-      screenY - rangeScreenRadius - 20,
-      { color: '#00CED1', size: 20, centered: true }
-    );
-  }
-  // Check if this is a dash ability (aoeRadius is the dash hitbox, not AoE)
-  const hasDash = !!(targetDesc as any).dash;
-
-  // Draw AoE circle for ground target abilities (skip for cone and dash - they have their own indicators)
-  if (aoeRadius && aoeRadius > 0 && shape !== 'cone' && !hasDash) {
-    const aoeScreenRadius = aoeRadius * camera.zoom;
-
-    // Get mouse position to show AoE preview at cursor
-    const mousePos = inputManager.getMousePosition();
-    if (mousePos) {
-      // AoE preview circle (solid orange)
-      ctx.fillStyle = 'rgba(255, 165, 0, 0.2)';
-      ctx.strokeStyle = 'rgba(255, 165, 0, 0.8)';
-      ctx.lineWidth = 2;
-      ctx.setLineDash([]);
+function drawShape(ctx: CanvasRenderingContext2D, shape: PreviewShape, toScreen: (point: Vector) => Vector, zoom: number): void {
+  switch (shape.kind) {
+    case 'range': {
+      const center = toScreen(shape.center);
+      const radius = shape.radius * zoom;
+      ctx.strokeStyle = COLORS.range;
+      ctx.setLineDash([10, 5]);
       ctx.beginPath();
-      ctx.arc(mousePos.x, mousePos.y, aoeScreenRadius, 0, Math.PI * 2);
+      ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      RenderUtils.renderBitmapText(ctx, `Range: ${shape.radius}`, center.x, center.y - radius - 20, { color: COLORS.rangeLabel, size: 20, centered: true });
+      return;
+    }
+    case 'area': {
+      const center = toScreen(shape.center);
+      const radius = shape.radius * zoom;
+      ctx.fillStyle = COLORS.areaFill;
+      ctx.strokeStyle = COLORS.area;
+      ctx.beginPath();
+      ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
-
-      // AoE label
-      RenderUtils.renderBitmapText(
-        ctx,
-        `AoE: ${aoeRadius}`,
-        mousePos.x,
-        mousePos.y - aoeScreenRadius - 15,
-        { color: '#FFA500', size: 20, centered: true }
-      );
+      RenderUtils.renderBitmapText(ctx, `AoE: ${shape.radius}`, center.x, center.y - radius - 15, { color: COLORS.areaLabel, size: 20, centered: true });
+      return;
     }
-  }
-
-  // Draw cone for cone-shaped abilities
-  // Note: For cones, aoeRadius is the actual damage range, not the cast range
-  const coneAngle = (targetDesc as any).coneAngle;
-  const coneRadius = aoeRadius || targetDesc.range;  // Use aoeRadius if available
-  if (shape === 'cone' && coneAngle && coneRadius) {
-    const rangeScreenRadius = coneRadius * camera.zoom;
-
-    // Get mouse position for direction
-    const mousePos = inputManager.getMousePosition();
-    if (mousePos) {
-      const dx = mousePos.x - screenX;
-      const dy = mousePos.y - screenY;
-      const baseAngle = Math.atan2(dy, dx);
-      const halfAngle = coneAngle / 2;
-
-      // Draw cone indicator
+    case 'cone': {
+      const center = toScreen(shape.center);
+      const angle = Math.atan2(shape.direction.y, shape.direction.x);
       ctx.fillStyle = 'rgba(255, 165, 0, 0.25)';
-      ctx.strokeStyle = 'rgba(255, 165, 0, 0.8)';
-      ctx.lineWidth = 2;
-      ctx.setLineDash([]);
+      ctx.strokeStyle = COLORS.area;
       ctx.beginPath();
-      ctx.moveTo(screenX, screenY);
-      ctx.arc(screenX, screenY, rangeScreenRadius, baseAngle - halfAngle, baseAngle + halfAngle);
+      ctx.moveTo(center.x, center.y);
+      ctx.arc(center.x, center.y, shape.radius * zoom, angle - shape.angle / 2, angle + shape.angle / 2);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
+      return;
     }
-  }
-
-  // Draw skillshot/dash line indicator
-  // For dash abilities, use aoeRadius as the width (it's the dash hitbox)
-  // For regular skillshots, use width property
-  // Skip rectangle for vex_dash - it's a simple point-and-click dash
-  const abilityId = ability.definition?.id;
-  const skipDashRectangle = abilityId === 'vex_dash';
-  const skillshotWidth = (targetDesc as any).width || (hasDash && !skipDashRectangle ? aoeRadius : 0);
-  const dashDistance = hasDash ? (targetDesc as any).dash?.distance : 0;
-  const skillshotRange = dashDistance || targetDesc.range;
-
-  if (skillshotWidth && skillshotWidth > 0 && skillshotRange && !skipDashRectangle) {
-    const widthScreen = skillshotWidth * camera.zoom;
-    const rangeScreen = skillshotRange * camera.zoom;
-
-    // Get mouse position for direction
-    const mousePos = inputManager.getMousePosition();
-    if (mousePos) {
-      const dx = mousePos.x - screenX;
-      const dy = mousePos.y - screenY;
-      const angle = Math.atan2(dy, dx);
-
-      // Draw skillshot/dash rectangle preview
+    case 'band': {
+      const from = toScreen(shape.from);
+      const width = shape.width * zoom;
+      const color = shape.dash ? COLORS.dash : COLORS.band;
       ctx.save();
-      ctx.translate(screenX, screenY);
-      ctx.rotate(angle);
-
-      // Use different color for dash vs skillshot
-      const color = hasDash ? 'rgba(255, 200, 50' : 'rgba(255, 100, 100';
+      ctx.translate(from.x, from.y);
+      ctx.rotate(Math.atan2(shape.direction.y, shape.direction.x));
       ctx.fillStyle = color + ', 0.2)';
       ctx.strokeStyle = color + ', 0.8)';
-      ctx.lineWidth = 2;
-      ctx.fillRect(0, -widthScreen / 2, rangeScreen, widthScreen);
-      ctx.strokeRect(0, -widthScreen / 2, rangeScreen, widthScreen);
-
+      ctx.fillRect(0, -width / 2, shape.length * zoom, width);
+      ctx.strokeRect(0, -width / 2, shape.length * zoom, width);
       ctx.restore();
+      return;
+    }
+    case 'landing': {
+      const from = toScreen(shape.from);
+      const at = toScreen(shape.at);
+      ctx.strokeStyle = COLORS.dash + ', 0.8)';
+      ctx.setLineDash([6, 6]);
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(at.x, at.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = COLORS.dash + ', 0.25)';
+      ctx.beginPath();
+      ctx.arc(at.x, at.y, 22 * zoom, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      return;
     }
   }
-
-  ctx.restore();
 }

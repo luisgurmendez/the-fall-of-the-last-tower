@@ -23,8 +23,10 @@ import {
   getPassiveDefinition,
   getItemCatalogEntry,
   type SummonerSpellState,
+  EntityType,
 } from '@siege/shared';
 import type { HUDTrinket, HUDActiveEffect, HUDPassive, HUDPassiveDefinition } from '@/ui/ChampionHUD';
+import type { HUDTargetDescription } from '@/ui/hud/types';
 import { getItemDefinition } from '@/data/items';
 
 /**
@@ -200,24 +202,8 @@ class OnlineAbilityAdapter {
     return this.state.recastWindowRemaining ?? 0;
   }
 
-  getTargetDescription(): {
-    range: number;
-    targetType: string;
-    shape?: string;
-    aoeRadius?: number;
-    coneAngle?: number;
-    width?: number;
-    dash?: { speed: number; distance: number };
-  } | null {
-    return {
-      range: this.abilityDef.range,
-      targetType: this.abilityDef.targetType,
-      shape: this.abilityDef.shape,
-      aoeRadius: this.abilityDef.aoeRadius,
-      coneAngle: this.abilityDef.coneAngle,
-      width: this.abilityDef.width,
-      dash: this.abilityDef.dash,
-    };
+  getTargetDescription(): HUDTargetDescription | null {
+    return this.abilityDef.id ? getSharedAbilityDefinition(this.abilityDef.id) ?? null : null;
   }
 }
 
@@ -683,6 +669,14 @@ export class OnlineChampionAdapter {
    */
   getLevel(): number {
     return this.getSnapshot()?.level ?? 1;
+  }
+
+  getOrbPosition(): Vector | null {
+    const championId = this.getSnapshot()?.entityId;
+    if (!championId) return null;
+    const orb = this.stateManager.getEntities().find(entity =>
+      entity.snapshot.entityType === EntityType.LIGHT_ORB && (entity.snapshot as { ownerId?: string }).ownerId === championId);
+    return orb ? new Vector(orb.position.x, orb.position.y) : null;
   }
 
   getBaseHealth(): number {
