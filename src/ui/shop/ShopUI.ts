@@ -186,10 +186,13 @@ export class ShopUI {
       );
     });
 
-    // Close on backdrop click (Escape closes it in OnlineGame, which opens the
-    // menu instead when the shop is closed)
-    const backdrop = document.querySelector(".shop-backdrop");
-    backdrop?.addEventListener("click", () => this.close());
+    // Clicks around the shop reach the game (shop.css), so a right-click there
+    // moves; a left-click there closes it. Escape closes it too, in OnlineGame
+    // (which opens the menu instead when the shop is closed).
+    const container = this.overlay?.querySelector(".shop-container");
+    document.addEventListener("mousedown", (event) => {
+      if (event.button === 0 && this.state.isOpen && !container?.contains(event.target as Node)) this.close();
+    });
   }
 
   /**

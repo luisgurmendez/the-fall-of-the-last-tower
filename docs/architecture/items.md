@@ -186,7 +186,9 @@ that suit the local champion's class have a star (`isRecommendedFor` in `src/dat
 Buying keeps the shop open; gold, inventory, affordability and the buttons refresh from
 each server state update (`updateOnlineState`). Buying and selling only work at the
 fountain. Beside the inventory, the control ward button buys a control ward (75 gold) to
-carry, up to 2, outside the six slots (see [map.md](map.md), Wards).
+carry, up to 2, outside the six slots (see [map.md](map.md), Wards). Clicks around the
+shop reach the game: a right-click there moves the champion with the shop open, and a
+left-click there closes it (so do Escape, P and its X).
 
 ## Icons
 
