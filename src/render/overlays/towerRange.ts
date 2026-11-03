@@ -1,7 +1,13 @@
 /**
- * The range of enemy towers near the local champion, drawn on the ground:
- * how close it can walk before the tower can shoot it. The ring fades in as
- * the champion approaches and turns red while the tower is aiming at it.
+ * Tower ranges drawn on the ground.
+ *
+ * Enemy towers near the local champion: how close it can walk before the
+ * tower can shoot it. The ring fades in as the champion approaches and turns
+ * red while the tower is aiming at it.
+ *
+ * Allied towers with an enemy champion near them: where that champion can be
+ * shot (its center inside the ring: range is edge to edge). The ring turns
+ * red while the tower is shooting a champion.
  */
 
 import {
@@ -24,6 +30,8 @@ function championRadius(snapshot: ChampionSnapshot): number {
 }
 /** The ring starts fading in this far outside it */
 const FADE_DISTANCE = 250;
+/** Champion radius for allied towers' rings (most champions are 18-20) */
+const TYPICAL_CHAMPION_RADIUS = 20;
 
 /**
  * Draw the range rings of the enemy towers the local champion is near.
@@ -37,10 +45,15 @@ export function renderTowerRanges(
   if (!local || (local.snapshot as { isDead?: boolean }).isDead) return;
   const ownRadius = local.snapshot.entityType === EntityType.CHAMPION ? championRadius(local.snapshot) : 25;
 
-  for (const entity of entities) {
+  const all = [...entities];
+  for (const entity of all) {
     if (entity.snapshot.entityType !== EntityType.TOWER) continue;
     const tower = entity.snapshot as TowerSnapshot;
-    if (tower.side === localSide || tower.isDestroyed) continue;
+    if (tower.isDestroyed) continue;
+    if (tower.side === localSide) {
+      renderAlliedTowerRange(ctx, entity, tower, all, localSide);
+      continue;
+    }
 
     const stats = DEFAULT_TOWER_STATS[tower.tier];
     if (!stats) continue;
@@ -64,4 +77,39 @@ export function renderTowerRanges(
     ctx.stroke();
     ctx.restore();
   }
+}
+
+/** An allied tower's ring, while an enemy champion is near it */
+function renderAlliedTowerRange(
+  ctx: CanvasRenderingContext2D,
+  entity: InterpolatedEntity,
+  tower: TowerSnapshot,
+  entities: InterpolatedEntity[],
+  localSide: number,
+): void {
+  const stats = DEFAULT_TOWER_STATS[tower.tier];
+  if (!stats) return;
+  const towerRadius = stats.collision ? getEffectiveRadius(stats.collision) : 50;
+  const reach = stats.attackRange + towerRadius + TYPICAL_CHAMPION_RADIUS;
+
+  let nearest = Infinity;
+  let shootingChampion = false;
+  for (const other of entities) {
+    const snapshot = other.snapshot;
+    if (snapshot.entityType !== EntityType.CHAMPION || snapshot.side === localSide || (snapshot as { isDead?: boolean }).isDead) continue;
+    nearest = Math.min(nearest, Math.hypot(other.position.x - entity.position.x, other.position.y - entity.position.y));
+    if (tower.targetEntityId === snapshot.entityId) shootingChampion = true;
+  }
+  const visibility = Math.min(1, (reach + FADE_DISTANCE - nearest) / FADE_DISTANCE);
+  if (visibility <= 0) return;
+
+  ctx.save();
+  ctx.globalAlpha = visibility;
+  ctx.beginPath();
+  ctx.arc(entity.position.x, entity.position.y, reach, 0, Math.PI * 2);
+  ctx.setLineDash([12, 8]);
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = shootingChampion ? "rgba(231, 76, 60, 0.75)" : "rgba(93, 173, 226, 0.5)";
+  ctx.stroke();
+  ctx.restore();
 }
