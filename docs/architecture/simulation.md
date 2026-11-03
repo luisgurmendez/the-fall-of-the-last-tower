@@ -110,7 +110,7 @@ Command actions: `move`, `attack` (`targetId`), `stop`, `cast` (`slot`, plus `x,
 
 `BotController` (`packages/server/src/bots/`) is the interface for anything that plays a champion without a connection. Bots return client inputs. `BotDriver` stamps them with sequence numbers and queues them through the `InputHandler`, so bots follow the same validation and rate limits as players. The same bots run in:
 
-- **Practice mode.** The client's PRACTICE button sends `READY` with `mode: 'practice'` and a team size. The server starts a match right away, with the player in mid on blue and bots in every other role (see [matchmaking.md](matchmaking.md#practice-mode)).
+- **Practice mode.** The client's PRACTICE card sends `READY` with `mode: 'practice'` and a team size. The server starts a match right away, with the player in mid on blue and bots in every other role (see [matchmaking.md](matchmaking.md#practice-mode)).
 - **Simulations.** Use `addChampion({ bot: 'lane' })` or `addBot()`.
 
 `LaneBot` follows these rules, in priority order:

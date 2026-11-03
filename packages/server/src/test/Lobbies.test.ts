@@ -53,6 +53,20 @@ describe('LobbyManager', () => {
     expect(lobby.teamSize).toBe(3);
   });
 
+  test("a champion a teammate plays can't be picked; an enemy's can", () => {
+    const lobbies = new LobbyManager(seeded());
+    const { code } = lobbies.create({ ...player('ana', 'lume'), summonerSpells: [] });
+    lobbies.join(code, { ...player('bo', 'vex'), summonerSpells: [] });
+    lobbies.join(code, { ...player('cy', 'elara'), summonerSpells: [] });
+    // cy is on blue with ana
+    lobbies.update('cy', 'lume');
+    expect(lobbies.lobbyOf('cy')!.members.find(m => m.playerId === 'cy')!.championId).toBe('elara');
+    lobbies.update('cy', 'vex', ['blink', 'mend']);
+    const cy = lobbies.lobbyOf('cy')!.members.find(m => m.playerId === 'cy')!;
+    expect(cy.championId).toBe('vex');
+    expect(cy.summonerSpells).toEqual(['blink', 'mend']);
+  });
+
   test('only the host changes settings; the size never drops below a side', () => {
     const lobbies = new LobbyManager(seeded());
     const { code } = lobbies.create({ ...player('ana'), summonerSpells: [] });

@@ -132,13 +132,28 @@ bot's champion). `GAME_START` carries the match's `mapId`. The server skips the 
 Bots pick champions that suit their role when free (a tank on top, a healer as support, a fighter in the jungle), never two of
 the same on a team, and summoner spells by role (the junglers Reap). Each bot is a `PlayerInfo` with `isBot: true` (ID
 `bot-<playerId>-<side>-<role>`); `GameRoom` runs it through `BotDriver` each tick before processing inputs, and never sends it
-state. The client's **PRACTICE** button on champion select uses this; the chip beside it cycles the match: 1V1, 3V3, 5V5 on
+state. The client's **PRACTICE** card uses this; its chips pick the match: 1V1, 3V3, 5V5 on
 Wildcrown Vale, and ARAM (1v1 on The Narrows), remembered in localStorage `siege-practice-mode`. See [simulation.md](simulation.md#bots).
+
+## The client's flow: how to play, then the champion
+
+The menu's **PLAY** opens the mode screen (`src/ui/matchmaking/modeSelect.ts`), three cards:
+
+- **PRACTICE**: you against bots; chips pick 1V1, 3V3, 5V5 or ARAM. *Choose champion* opens
+  champion select for it, whose context line reads e.g. "PRACTICE · 5V5 · WILDCROWN VALE"
+  and whose **START** sends `READY` in practice mode.
+- **WITH FRIENDS**: the player's name (kept in localStorage `siege-player-name`), **CREATE
+  ROOM**, or a friend's code and **JOIN**. Champion select opens once the room's first
+  `LOBBY_STATE` arrives; a failed join (`lobby_not_found`, `lobby_full`, the server
+  unreachable) shows its error on the card.
+- **ONLINE 1V1**: champion select, then **FIND MATCH** joins the queue.
+
+Champion select (`championSelect.ts`) remembers the last champion picked (localStorage
+`siege-champion`), which is also the one a room starts with. BACK goes to the mode screen.
 
 ## Rooms (play with friends)
 
-Champion select's **ROOM** button opens the room screen (`src/ui/matchmaking/lobbyScreen.ts`):
-the player's name (kept in localStorage), **CREATE ROOM**, or a friend's code and **JOIN**.
+Made or joined from the mode screen's WITH FRIENDS card (above).
 
 - The client connects and sends `READY` with `mode: 'lobby'`, `lobby: { create: true }` or
   `{ code }` and `name`. The server (`server.ts`) keeps rooms in a `LobbyManager`
@@ -147,13 +162,17 @@ the player's name (kept in localStorage), **CREATE ROOM**, or a friend's code an
   or 5, never fewer than the fuller side; joining past it grows it) and its players, each
   with a side, champion, summoner spells and name (sanitized, up to 16 characters). A room
   holds 10; a join goes to the side with fewer players. A failed join answers an `ERROR`
-  (`lobby_not_found`, `lobby_full`), shown on the room screen.
+  (`lobby_not_found`, `lobby_full`), shown on the mode screen.
 - Every change sends each player the room's `LOBBY_STATE` (`LobbyState`: code, host, map,
-  size, players). The room screen shows the code (with a copy button), the host's map and
-  size selects, both sides with each player's portrait, name and champion, empty slots as
-  bots, and LEAVE, CHAMPION (back to champion select, whose button then reads BACK TO ROOM
-  and sends the new champion: `LOBBY { action: 'update' }`), SWITCH SIDE and, for the host,
-  START.
+  size, players). Champion select shows the room around the champions (`roomPanel.ts`): the
+  code (with a copy button) and the host's map and size selects in place of the title, blue's
+  players on the left of the detail panel and red's on the right (portrait, name, champion;
+  empty slots are bots), and LEAVE, SWITCH SIDE and, for the host, START.
+- Picks go to the room as they're made: picking a champion or a summoner spell sends
+  `LOBBY { action: 'update' }`, so everyone sees it. A champion a teammate plays is grayed
+  out and can't be picked; the server (`LobbyManager.update`) keeps the player's champion if
+  a teammate has it, and the client shows whatever champion the room says it has. Switching
+  sides can still put two of a champion on a side.
 - Requests: `ClientMessageType.LOBBY` (`LobbyRequest`: `update`, `switch_side`, `settings`
   (host only), `start` (host only), `leave`). Disconnecting, or sending `READY` in another
   mode, leaves the room; an empty room is gone.
@@ -288,7 +307,9 @@ getStats(): { queueSize: number; matchReady: boolean } {
 | `packages/server/src/server.ts` | Integration with server |
 | `src/ui/matchmaking/MatchmakingUI.ts` | Client UI for queue (coordinates the screens below) |
 | `src/ui/matchmaking/matchConnection.ts` | Client connection: sends READY with the champion and mode, buffers state during loading |
+| `src/ui/matchmaking/modeSelect.ts` | The mode screen: practice (and which match), rooms (name, create, join by code), the online queue |
 | `src/ui/matchmaking/championSelect.ts`, `queueScreen.ts` | Champion select and queue screens |
+| `src/ui/matchmaking/roomPanel.ts` | A room on champion select: code, settings, both sides' players |
 | `src/ui/matchmaking/matchFound.ts`, `matchAssets.ts` | Loading screen: a card per player (portrait, champion, player or "Bot", summoner spells, loading bar) and a rotating tip, while `preloadMatchAssets` loads the match's champions, structures, minions, monsters, map art and item icons; the bar follows what's loaded, takes at least 1.5s and gives up waiting at 15s |
 
 ## Future Improvements

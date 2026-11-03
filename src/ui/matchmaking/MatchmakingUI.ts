@@ -3,17 +3,25 @@
  *
  * Manages:
  * - Main menu
- * - Champion select
+ * - How to play (practice, a room with friends, the online queue)
+ * - Champion select (with the room around it, in a room)
  * - Connecting to server
  * - Queue status
  * - Match found display
  * - Loading progress
  * - Error handling
  *
+ * The flow: the menu's PLAY opens the mode screen (practice, a room with
+ * friends or the online queue), then champion select for that mode. In a
+ * room, champion select shows the room around the champions, and picks go
+ * to the room as they're made.
+ *
  * MatchmakingUI is the coordinator: it switches screens, wires the buttons,
  * shows the connection status, ping and errors, and starts the game when
  * loading ends. The screens and the network wiring live next to it:
+ * - modeSelect.ts: the mode screen (practice matches, rooms, the queue)
  * - championSelect.ts: champion grid, detail panel and the selected champion
+ * - roomPanel.ts: the room on champion select (code, settings, both sides)
  * - abilityCards.ts, abilityText.ts: ability and passive cards; their
  *   tooltip text and scaling previews
  * - queueScreen.ts: queue timer, position and size
@@ -33,7 +41,7 @@ import type {
   MatchData,
   MatchmakingUICallbacks,
 } from "./types";
-import { isMapId, useMap, type MapId } from "@siege/shared";
+import { MAPS, isMapId, useMap, type LobbyState } from "@siege/shared";
 import { ChampionSelect, ENABLED_CHAMPIONS } from "./championSelect";
 import { MatchConnection } from "./matchConnection";
 import { MatchFoundScreen } from "./matchFound";
@@ -41,29 +49,17 @@ import { QueueScreen } from "./queueScreen";
 import { SummonerPicker } from "./summonerPicker";
 import { startTipRotation, showRandomTip } from "./tips";
 import { TitleScreen } from "../title/TitleScreen";
-import { LobbyScreen } from "./lobbyScreen";
+import { ModeSelect, describePracticeMode, type PracticeMode } from "./modeSelect";
+import { RoomPanel, type Room } from "./roomPanel";
 
 /** The screens the title screen's valley shows behind (not champion select or the loading screen) */
-const TITLE_SCREENS: ReadonlySet<ScreenId> = new Set(["menu", "how-to-play", "connecting", "queue", "lobby", "error"]);
+const TITLE_SCREENS: ReadonlySet<ScreenId> = new Set(["menu", "modes", "how-to-play", "connecting", "queue", "error"]);
 
-/** Practice matches, in the order the chip beside the practice button cycles them */
-const PRACTICE_MODES = [
-  { label: "1V1", size: 1, map: "wildcrown", title: "1v1 in mid on Wildcrown Vale" },
-  { label: "3V3", size: 3, map: "wildcrown", title: "3v3 on Wildcrown Vale: you in mid, bots in top and bot" },
-  { label: "5V5", size: 5, map: "wildcrown", title: "5v5 on Wildcrown Vale: you in mid, bots in every other role" },
-  { label: "ARAM", size: 1, map: "narrows", title: "1v1 on The Narrows: one lane, no jungle" },
-] as const satisfies readonly { label: string; size: number; map: MapId; title: string }[];
-type PracticeMode = (typeof PRACTICE_MODES)[number];
-const PRACTICE_MODE_KEY = "siege-practice-mode";
-
-function loadPracticeMode(): PracticeMode {
-  try {
-    const saved = localStorage.getItem(PRACTICE_MODE_KEY);
-    return PRACTICE_MODES.find(mode => mode.label === saved) ?? PRACTICE_MODES[0];
-  } catch {
-    return PRACTICE_MODES[0];
-  }
-}
+/** What champion select is for: the mode picked on the mode screen */
+type SelectFor =
+  | { kind: "practice"; mode: PracticeMode }
+  | { kind: "queue" }
+  | { kind: "room" };
 
 // Re-export for external use
 export type {
@@ -82,8 +78,8 @@ export class MatchmakingUI {
   private screens: Map<ScreenId, HTMLElement> = new Map();
   private titleScreen: TitleScreen | null = null;
 
-  /** The practice match the chip is on: players per team and map */
-  private practiceMode: PracticeMode = loadPracticeMode();
+  /** What champion select is for */
+  private selectFor: SelectFor = { kind: "queue" };
 
   // Status elements
   private statusDot: HTMLElement;
@@ -103,7 +99,8 @@ export class MatchmakingUI {
   // Champion select screen
   private championSelect: ChampionSelect;
   private summonerPicker: SummonerPicker;
-  private lobby: LobbyScreen;
+  private modes: ModeSelect;
+  private room: RoomPanel;
 
   // Network client and the state buffered for OnlineGame
   private connection: MatchConnection;
@@ -129,12 +126,12 @@ export class MatchmakingUI {
 
     // Get screens
     this.screens.set("menu", getEl("screen-menu"));
+    this.screens.set("modes", getEl("screen-modes"));
     this.screens.set("champion-select", getEl("screen-champion-select"));
     this.screens.set("connecting", getEl("screen-connecting"));
     this.screens.set("queue", getEl("screen-queue"));
     this.screens.set("match-found", getEl("screen-match-found"));
     this.screens.set("how-to-play", getEl("screen-how-to-play"));
-    this.screens.set("lobby", getEl("screen-lobby"));
     this.screens.set("error", getEl("screen-error"));
 
     // Get status elements
@@ -156,17 +153,31 @@ export class MatchmakingUI {
     this.championSelect = new ChampionSelect(getEl);
     this.summonerPicker = new SummonerPicker(getEl("summoner-picker"));
 
-    // Rooms: play with friends
-    this.lobby = new LobbyScreen({
-      create: (name) => this.connectToRoom({ create: true, name }),
-      join: (code, name) => this.connectToRoom({ code, name }),
-      back: () => this.showScreen("champion-select"),
-      leave: () => this.leaveRoom(),
-      changeChampion: () => this.showScreen("champion-select"),
-      switchSide: () => this.connection.sendLobby({ action: "switch_side" }),
-      settings: (changes) => this.connection.sendLobby({ action: "settings", ...changes }),
-      start: () => this.connection.sendLobby({ action: "start" }),
-    }, () => this.connection.getPlayerId());
+    // How to play: picked before the champion
+    this.modes = new ModeSelect({
+      practice: (mode) => this.openChampionSelect({ kind: "practice", mode }),
+      createRoom: (name) => this.connectToRoom({ create: true, name }),
+      joinRoom: (code, name) => this.connectToRoom({ code, name }),
+      online: () => this.openChampionSelect({ kind: "queue" }),
+      back: () => this.showScreen("menu"),
+    });
+
+    // Rooms: play with friends, shown on champion select
+    this.room = new RoomPanel(
+      (changes) => this.connection.sendLobby({ action: "settings", ...changes }),
+      () => this.connection.getPlayerId(),
+    );
+    // In a room, picks go to the room as they're made
+    const sendPicks = () => {
+      if (this.selectFor.kind !== "room") return;
+      this.connection.sendLobby({
+        action: "update",
+        championId: this.championSelect.getSelectedChampionId(),
+        summonerSpells: this.summonerPicker.getSpells(),
+      });
+    };
+    this.championSelect.onPick = sendPicks;
+    this.summonerPicker.onChange = sendPicks;
 
     // Warn if critical elements missing
     if (!this.overlay) {
@@ -194,79 +205,76 @@ export class MatchmakingUI {
   }
 
   /**
-   * Lock in the selected champion and proceed to matchmaking.
+   * Champion select for a mode: its context line and buttons, and the room
+   * around the champions when it's for a room.
    */
-  private lockInChampion(): void {
-    if (!this.championSelect.getSelectedChampionId()) return;
-
-    // Start matchmaking with selected champion
-    this.startMatchmaking("queue");
+  private openChampionSelect(selectFor: SelectFor): void {
+    this.selectFor = selectFor;
+    this.showChampionSelectMode();
+    this.showScreen("champion-select");
   }
 
-  /**
-   * Start a practice match against bots with the selected champion: 1v1 in
-   * mid, or 3v3 / 5v5 with bots in every other role (the server picks theirs).
-   */
-  private startPractice(): void {
-    if (!this.championSelect.getSelectedChampionId()) return;
+  /** Champion select's context line and buttons for what it's for */
+  private showChampionSelectMode(): void {
+    const context = document.getElementById("champion-select-context");
+    const back = document.getElementById("btn-back-menu");
+    const go = document.getElementById("btn-lock-in");
+    const switchSide = document.getElementById("btn-switch-side");
+    const inRoom = this.selectFor.kind === "room";
 
-    // The 1v1 bot plays a random enabled champion
-    const botChampionId =
-      ENABLED_CHAMPIONS[
-        Math.floor(Math.random() * ENABLED_CHAMPIONS.length)
-      ];
-    this.startMatchmaking("practice", botChampionId);
-  }
-
-  /** Cycle the practice match (1v1, 3v3, 5v5, ARAM), remembered across visits */
-  private cyclePracticeMode(): void {
-    const modes: readonly PracticeMode[] = PRACTICE_MODES;
-    this.practiceMode = modes[(modes.indexOf(this.practiceMode) + 1) % modes.length];
-    try {
-      localStorage.setItem(PRACTICE_MODE_KEY, this.practiceMode.label);
-    } catch {
-      // Storage unavailable: it lasts until the page reloads
+    if (context) {
+      context.hidden = inRoom;
+      context.textContent = this.selectFor.kind === "practice"
+        ? describePracticeMode(this.selectFor.mode)
+        : `ONLINE 1V1 · ${MAPS.wildcrown.NAME.toUpperCase()}`;
     }
-    this.showPracticeMode();
+    if (back) back.textContent = inRoom ? "LEAVE" : "BACK";
+    if (switchSide) switchSide.hidden = !inRoom;
+    if (go) {
+      go.textContent = this.selectFor.kind === "queue" ? "FIND MATCH" : "START";
+      // In a room only the host starts
+      go.hidden = inRoom && !this.room.isHost();
+    }
   }
 
-  private showPracticeMode(): void {
-    const button = document.getElementById("btn-practice-size");
-    if (!button) return;
-    button.textContent = this.practiceMode.label;
-    button.title = this.practiceMode.title;
+  /** Champion select's main button: start practice, queue, or start the room's match */
+  private go(): void {
+    switch (this.selectFor.kind) {
+      case "practice": {
+        // The 1v1 bot plays a random enabled champion
+        const botChampionId = ENABLED_CHAMPIONS[Math.floor(Math.random() * ENABLED_CHAMPIONS.length)];
+        this.startMatchmaking("practice", botChampionId);
+        break;
+      }
+      case "queue":
+        this.startMatchmaking("queue");
+        break;
+      case "room":
+        this.connection.sendLobby({ action: "start" });
+        break;
+    }
   }
 
   /**
    * Setup button event listeners.
    */
   private setupEventListeners(): void {
-    // Play button - go to champion select
+    // Play button - pick how to play
     document.getElementById("btn-play")?.addEventListener("click", () => {
-      this.showScreen("champion-select");
+      this.showScreen("modes");
     });
 
-    // Back button - return to menu
+    // Back to the modes (leaving the room, in one)
     document.getElementById("btn-back-menu")?.addEventListener("click", () => {
-      this.showScreen("menu");
+      if (this.selectFor.kind === "room") this.leaveRoom();
+      else this.showScreen("modes");
     });
 
-    // Lock-in button - proceed to matchmaking
-    document.getElementById("btn-lock-in")?.addEventListener("click", () => {
-      this.lockInChampion();
+    // Start, find a match, or (the room's host) start the room's match
+    document.getElementById("btn-lock-in")?.addEventListener("click", () => this.go());
+    document.getElementById("btn-switch-side")?.addEventListener("click", () => {
+      this.connection.sendLobby({ action: "switch_side" });
     });
-
-    // Practice button - start a match against bots, as many as the size chip says
-    document.getElementById("btn-practice")?.addEventListener("click", () => {
-      this.startPractice();
-    });
-    // Rooms: from champion select to the room screen (back to the room, if in one)
-    document.getElementById("btn-room")?.addEventListener("click", () => this.openRoomScreen());
-
-    document.getElementById("btn-practice-size")?.addEventListener("click", () => {
-      this.cyclePracticeMode();
-    });
-    this.showPracticeMode();
 
     // Cancel connect button
     document
@@ -396,30 +404,17 @@ export class MatchmakingUI {
       onGameStart: (data) => this.handleMatchFound(data),
       onQueueJoined: (position, queueSize) =>
         this.queue.updateInfo(position, queueSize),
-    }, mode === "practice" ? { size: this.practiceMode.size, map: this.practiceMode.map } : undefined);
+    }, this.selectFor.kind === "practice" ? { size: this.selectFor.mode.size, map: this.selectFor.mode.map } : undefined);
   }
 
   /**
-   * The room screen: the room the player is in (telling it their champion,
-   * which may have just changed), or the entry view to make or join one.
+   * Connect to make or join a room, with the champion picked last time
+   * (changed in the room). Champion select opens on the room's first
+   * LOBBY_STATE; a failed join shows its error on the mode screen.
    */
-  private openRoomScreen(): void {
-    if (this.lobby.inRoom()) {
-      this.connection.sendLobby({
-        action: "update",
-        championId: this.championSelect.getSelectedChampionId(),
-        summonerSpells: this.summonerPicker.getSpells(),
-      });
-    } else {
-      this.lobby.showEntry();
-    }
-    this.showScreen("lobby");
-  }
-
-  /** Connect to make or join a room; its state comes in LOBBY_STATE */
   private connectToRoom(lobby: { create?: boolean; code?: string; name: string }): void {
-    if (!this.championSelect.getSelectedChampionId()) return;
     this.connection.disconnect();
+    this.modes.setConnecting(true);
     this.updateConnectionStatus("connecting");
     this.connection.connect("lobby", undefined, {
       getChampionId: () => this.championSelect.getSelectedChampionId(),
@@ -427,33 +422,58 @@ export class MatchmakingUI {
       onStatusChange: (status) => this.updateConnectionStatus(status),
       onQueueEntered: () => {},
       onDisconnect: () => {
-        if (this.currentScreen === "lobby") this.lobby.showEntry("Connection lost.");
+        if (this.currentScreen === "modes" || this.currentScreen === "champion-select") {
+          this.closeRoom(this.room.getRoom() ? "Connection lost." : "Couldn't reach the server.");
+        }
       },
       onLatencyUpdate: (latency) => this.updatePing(latency),
-      // A failed join comes back as an error: shown on the room screen
-      onError: (error) => this.lobby.showEntry(error),
+      onError: (error) => this.closeRoom(error),
       onGameStart: (data) => this.handleMatchFound(data),
       onQueueJoined: () => {},
-      onLobbyState: (state) => {
-        this.lobby.showState(state);
-        this.updateRoomButton();
-      },
+      onLobbyState: (state) => this.showRoom(state),
     }, undefined, lobby);
   }
 
-  /** Leave the room and go back to making or joining one */
-  private leaveRoom(): void {
-    this.connection.sendLobby({ action: "leave" });
-    this.connection.disconnect();
-    this.updateConnectionStatus("offline");
-    this.lobby.showEntry();
-    this.updateRoomButton();
+  /** The room's state from the server: champion select shows it */
+  private showRoom(state: LobbyState): void {
+    if (state.code === null) {
+      this.closeRoom(state.reason);
+      return;
+    }
+    const room: Room = state;
+    const opening = this.room.getRoom() === null;
+    this.room.show(room);
+    this.championSelect.setTaken(this.room.takenByTeammates());
+    // The server has the player's champion (it keeps them off a teammate's)
+    const me = this.room.me();
+    if (me && me.championId !== this.championSelect.getSelectedChampionId()) {
+      this.championSelect.select(me.championId);
+    }
+    if (opening) {
+      this.modes.setConnecting(false);
+      this.openChampionSelect({ kind: "room" });
+    } else {
+      // The host may have changed
+      this.showChampionSelectMode();
+    }
   }
 
-  /** Champion select's room button: back to the room while in one */
-  private updateRoomButton(): void {
-    const button = document.getElementById("btn-room");
-    if (button) button.textContent = this.lobby.inRoom() ? "BACK TO ROOM" : "ROOM";
+  /** Out of the room (or never in it): back to the mode screen, with why */
+  private closeRoom(error?: string): void {
+    this.room.show(null);
+    this.championSelect.setTaken(new Map());
+    this.connection.disconnect();
+    this.updateConnectionStatus("offline");
+    if (error) this.modes.showError(error);
+    else this.modes.setConnecting(false);
+    if (this.currentScreen === "champion-select" && this.selectFor.kind === "room") this.showScreen("modes");
+  }
+
+  /** Leave the room and go back to the modes */
+  private leaveRoom(): void {
+    this.connection.sendLobby({ action: "leave" });
+    this.closeRoom();
+    this.showScreen("modes");
   }
 
   /**
@@ -481,6 +501,9 @@ export class MatchmakingUI {
   private handleMatchFound(data: any): void {
     this.queue.stopTimer();
     this.matchData = data;
+    // A room becomes the match
+    this.room.show(null);
+    this.championSelect.setTaken(new Map());
     // The match's map becomes the active one before anything draws it
     useMap(isMapId(data?.mapId) ? data.mapId : "wildcrown");
 

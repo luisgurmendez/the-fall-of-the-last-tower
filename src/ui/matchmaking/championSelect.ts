@@ -1,6 +1,8 @@
 /**
  * Champion select screen: the grid of champion cards and the detail panel
  * (portrait, stats, passive and ability cards) for the selected champion.
+ * The champion picked is remembered for next time (localStorage); in a room,
+ * champions teammates play are marked and can't be picked (setTaken).
  */
 
 import {
@@ -19,6 +21,8 @@ import { showPortrait } from "./portraits";
  */
 export const ENABLED_CHAMPIONS = ['vex', 'lume', 'vile', 'warrior', 'magnus', 'elara', 'gorath', 'uruk', 'oitboil', 'elora', 'caelum', 'fenris', 'calamitus', 'protobot', 'hop', 'zhakrul'];
 
+const CHAMPION_KEY = "siege-champion";
+
 /**
  * Champion select elements and the selected champion, which MatchmakingUI
  * sends to the server when it connects.
@@ -33,11 +37,14 @@ export class ChampionSelect {
   private detailStats: HTMLElement;
   private detailPassive: HTMLElement;
   private detailAbilities: HTMLElement;
-  private lockInButton: HTMLButtonElement;
-  private practiceButton: HTMLButtonElement;
 
   // State
   private selectedChampionId: string = "lume";
+  /** Champions a teammate plays, with who (in a room) */
+  private taken = new Map<string, string>();
+
+  /** The player picked a champion (not called for select()) */
+  onPick: ((championId: string) => void) | null = null;
 
   constructor(getEl: (id: string) => HTMLElement) {
     this.championGrid = getEl("champion-grid");
@@ -48,8 +55,6 @@ export class ChampionSelect {
     this.detailStats = getEl("detail-stats");
     this.detailPassive = getEl("detail-passive");
     this.detailAbilities = getEl("detail-abilities");
-    this.lockInButton = getEl("btn-lock-in") as HTMLButtonElement;
-    this.practiceButton = getEl("btn-practice") as HTMLButtonElement;
 
     if (!this.detailAbilities) {
       console.error("[MatchmakingUI] detail-abilities element not found in DOM");
@@ -89,10 +94,23 @@ export class ChampionSelect {
       this.championGrid.appendChild(card);
     }
 
-    // Select first champion by default
-    if (champions.length > 0) {
-      this.selectChampion(champions[0].id);
-    }
+    // The champion picked last time, or the first
+    const saved = readSavedChampion();
+    const initial = champions.find(c => c.id === saved) ?? champions[0];
+    if (initial) this.select(initial.id);
+  }
+
+  /**
+   * Mark the champions teammates play: they can't be picked. Keeps the
+   * selection; the server keeps the player off a taken champion.
+   */
+  setTaken(taken: Map<string, string>): void {
+    this.taken = taken;
+    this.championGrid?.querySelectorAll<HTMLElement>(".champion-card").forEach((card) => {
+      const by = taken.get(card.dataset.championId ?? "");
+      card.classList.toggle("taken", by !== undefined);
+      card.title = by !== undefined ? `${by} plays this champion` : "";
+    });
   }
 
   /**
@@ -122,16 +140,20 @@ export class ChampionSelect {
 
     // Click handler
     card.addEventListener("click", () => {
-      this.selectChampion(champion.id);
+      if (this.taken.has(champion.id) || champion.id === this.selectedChampionId) return;
+      this.select(champion.id);
+      saveChampion(champion.id);
+      this.onPick?.(champion.id);
     });
 
     return card;
   }
 
   /**
-   * Select a champion.
+   * Show a champion as selected (a click, or the server's word in a room).
    */
-  private selectChampion(championId: string): void {
+  select(championId: string): void {
+    if (!CHAMPION_DEFINITIONS[championId]) return;
     this.selectedChampionId = championId;
 
     // Update card selection state
@@ -147,15 +169,6 @@ export class ChampionSelect {
 
     // Update details panel
     this.updateChampionDetails(championId);
-
-    // Enable lock-in and practice buttons
-    if (this.practiceButton) {
-      this.practiceButton.disabled = false;
-    }
-    if (this.lockInButton) {
-      this.lockInButton.disabled = false;
-    }
-    (document.getElementById("btn-room") as HTMLButtonElement | null)?.removeAttribute("disabled");
   }
 
   /**
@@ -254,5 +267,21 @@ export class ChampionSelect {
    */
   private formatResourceName(resourceType: string): string {
     return resourceType.charAt(0).toUpperCase() + resourceType.slice(1);
+  }
+}
+
+function readSavedChampion(): string | null {
+  try {
+    return localStorage.getItem(CHAMPION_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function saveChampion(championId: string): void {
+  try {
+    localStorage.setItem(CHAMPION_KEY, championId);
+  } catch {
+    // Storage unavailable: the first champion next visit
   }
 }

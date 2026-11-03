@@ -92,12 +92,17 @@ export class LobbyManager {
     return lobby;
   }
 
-  /** The player's champion or summoner spells changed */
+  /**
+   * The player's champion or summoner spells changed. A champion a teammate
+   * plays isn't taken (the room comes back as it was, so the player's
+   * screen goes back to their champion).
+   */
   update(playerId: string, championId: string, summonerSpells?: SummonerSpellId[]): Lobby | null {
     const lobby = this.lobbyOf(playerId);
     const member = lobby?.members.find(m => m.playerId === playerId);
     if (!lobby || !member) return null;
-    member.championId = championId;
+    const taken = lobby.members.some(m => m !== member && m.side === member.side && m.championId === championId);
+    if (!taken) member.championId = championId;
     if (summonerSpells) member.summonerSpells = summonerSpells;
     return lobby;
   }

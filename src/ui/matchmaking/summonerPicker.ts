@@ -24,6 +24,9 @@ export class SummonerPicker {
   private readonly slots: HTMLElement;
   private readonly options: HTMLElement;
 
+  /** The player changed a spell */
+  onChange: (() => void) | null = null;
+
   constructor(private readonly root: HTMLElement) {
     this.spells = this.load();
     this.slots = root.querySelector<HTMLElement>(".summoner-picker-slots")!;
@@ -55,6 +58,7 @@ export class SummonerPicker {
       // Storage unavailable: the pick lasts until the page reloads
     }
     this.render();
+    this.onChange?.();
   }
 
   private render(): void {

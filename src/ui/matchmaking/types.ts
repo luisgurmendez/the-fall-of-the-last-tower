@@ -8,12 +8,12 @@
  */
 export type ScreenId =
   | "menu"
+  | "modes"
   | "champion-select"
   | "connecting"
   | "queue"
   | "match-found"
   | "how-to-play"
-  | "lobby"
   | "error";
 
 /**

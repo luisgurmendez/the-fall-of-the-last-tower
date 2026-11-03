@@ -11,7 +11,7 @@ Server: `packages/server/src/navigation/` (`Terrain`, `PathFollower`, `ServerNav
 | Map | Id | For | Layout |
 |-----|----|-----|--------|
 | Wildcrown Vale | `wildcrown` | 5v5 (and every practice size) | Three lanes, the river and the jungle (`siegeMap.ts`, below) |
-| The Narrows | `narrows` | 1v1 (the practice chip's ARAM) | One lane through a forest gorge (`narrowsMap.ts`) |
+| The Narrows | `narrows` | 1v1 (practice's ARAM) | One lane through a forest gorge (`narrowsMap.ts`) |
 
 - **Server:** each match is built on its map: `GameRoom` takes a `mapId` and gives `ServerGameContext` its config (`mapConfig`); terrain, vision, bushes, camps, tunnels, towers, waves (one per lane the map has, `mapLanes`), spawns and recall all read it. Server code must read the map from the context, never from the global `MOBAConfig` (which stays Wildcrown Vale on the server; several matches on different maps run side by side). A practice `READY` can carry a `mapId`; The Narrows is always 1v1. `GAME_START` tells the client the `mapId` (when it reconnects to a match too).
 - **Client:** when a match is found, `useMap(mapId)` swaps the map's fields into `MOBAConfig`, so everything that reads it sees the match's map. What's worked out from the map once is worked out again when it changes: the ground's field (`GroundPass`), the minimap's walls, the brush rectangles; the rest is built per match.

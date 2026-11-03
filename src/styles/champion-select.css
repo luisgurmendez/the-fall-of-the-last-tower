@@ -30,6 +30,28 @@
   margin-bottom: 16px;
 }
 
+/* What it's for: "PRACTICE · 5V5 · WILDCROWN VALE" (MatchmakingUI) */
+.champion-select-context {
+  font-family: var(--pixel-font);
+  font-size: 26px;
+  color: #7fd6d6;
+  letter-spacing: 4px;
+  text-shadow: 2px 2px 0 #000;
+  margin: -10px 0 14px;
+}
+
+.champion-select-context[hidden] {
+  display: none;
+}
+
+/* The details panel, with a room's teams on either side (roomPanel.ts) */
+.champion-select-body {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 16px;
+}
+
 /* ============================================ */
 /* Champion Grid                               */
 /* ============================================ */
@@ -76,6 +98,17 @@
     inset 4px 4px 0 0 #ffe066,
     0 0 20px rgba(201, 162, 39, 0.4);
   transform: translateY(-4px);
+}
+
+/* A teammate plays it (rooms): can't be picked */
+.champion-card.taken {
+  opacity: 0.35;
+  filter: grayscale(1);
+  cursor: not-allowed;
+}
+
+.champion-card.taken:hover {
+  transform: none;
 }
 
 .champion-card.locked {
@@ -614,34 +647,11 @@
   color: var(--pixel-gold);
 }
 
-/* Practice button: same frame as Back, teal to stand apart from Lock In */
-#btn-practice {
+/* Switch side, in a room: same frame as Back, purple like the rooms' card */
+#btn-switch-side {
   font-family: var(--pixel-font);
-  font-size: 36px;
-  padding: 12px 32px;
-  background: transparent;
-  border: 4px solid #2a8a8a;
-  color: #7fd6d6;
-  cursor: pointer;
-  transition: all 0.2s;
-  text-shadow: 2px 2px 0 #000;
-}
-
-#btn-practice:hover:not(:disabled) {
-  border-color: #5fe0e0;
-  color: #b5f5f5;
-}
-
-#btn-practice:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-/* Rooms: play with friends (src/ui/matchmaking/lobbyScreen.ts) */
-#btn-room {
-  font-family: var(--pixel-font);
-  font-size: 36px;
-  padding: 12px 28px;
+  font-size: 32px;
+  padding: 12px 24px;
   background: transparent;
   border: 4px solid #7d5ba6;
   color: #c9a8f0;
@@ -650,37 +660,13 @@
   text-shadow: 2px 2px 0 #000;
 }
 
-#btn-room:hover:not(:disabled) {
+#btn-switch-side:hover {
   border-color: #b48cf0;
   color: #e6d4ff;
 }
 
-#btn-room:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-/* Team size for practice, cycled 1v1 / 3v3 / 5v5, attached to the practice button */
-.practice-group {
-  display: flex;
-}
-
-#btn-practice-size {
-  font-family: var(--pixel-font);
-  font-size: 28px;
-  padding: 12px 14px;
-  margin-left: -4px;
-  min-width: 84px;
-  background: rgba(42, 138, 138, 0.18);
-  border: 4px solid #2a8a8a;
-  color: #b5f5f5;
-  cursor: pointer;
-  text-shadow: 2px 2px 0 #000;
-}
-
-#btn-practice-size:hover {
-  border-color: #5fe0e0;
-  background: rgba(95, 224, 224, 0.22);
+.champion-select-actions [hidden] {
+  display: none;
 }
 
 /* Lock-in button */
