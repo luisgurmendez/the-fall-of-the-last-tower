@@ -380,8 +380,14 @@ Particles that orbit around an entity.
   orbitRadius: 40,
   orbitSpeed: 2,
   duration: 4.0,
+  // Optional: once this effect shows up on the entity, the orbit lasts while
+  // it does (duration at most): Vex's Ninja Mode (extended by kills), Urûk's
+  // charged spear (spent by the attack), Vile transformed
+  whileEffect: 'vex_ninja_mode',
 }
 ```
+
+A shield bubble likewise ends when the shield it's for breaks (`ShieldSnapshot.sourceId`, the ability's id). Looks that last exactly as long as an effect and follow the champion can also be drawn from its effects in `src/gpu/fx/championAuras.ts` (Vile transformed: a sigil as wide as his aura reaches).
 
 ## Phase Configuration
 

@@ -88,8 +88,9 @@ registerAbilityVFX({
       embers(CRIMSON, 12, 40),
       light(CRIMSON, 110, 0.8, 0.6),
     ], 0.9),
+    // Blades circle her while it lasts (kills extend it)
     phase('aura', 0.3, 'caster', [
-      { type: 'orbiting_particles', color: CRIMSON, count: 3, size: 7, orbitRadius: 46, orbitSpeed: 4, duration: 15.0, style: 'blade' },
-    ], 15.0),
+      { type: 'orbiting_particles', color: CRIMSON, count: 3, size: 7, orbitRadius: 46, orbitSpeed: 4, duration: 120, style: 'blade', whileEffect: 'vex_ninja_mode' },
+    ], 120),
   ],
 });

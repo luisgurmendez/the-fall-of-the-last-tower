@@ -11,7 +11,7 @@
  */
 
 import { recallElapsed } from "@/core/state/recallClock";
-import { GameConfig } from "@siege/shared";
+import { GameConfig, getAbilityDefinition } from "@siege/shared";
 import { fxColor, type FXBatch } from "./FXBatch";
 
 const RECALL = fxColor("#4fc3f7");
@@ -30,6 +30,9 @@ const SUGAR = fxColor("#ff8ab8");
 const VENOM = fxColor("#8be04a");
 const VENOM_LIGHT = fxColor("#d4ff8a");
 const VENOM_DARK = fxColor("#3f8a1e");
+const VILE_AURA = fxColor("#9b4dff");
+/** How far Vile's transformed aura reaches (his R's aura, as the server hits with it) */
+const VILE_AURA_RADIUS = getAbilityDefinition("vile_restoration_of_vilix")?.aura?.radius ?? 140;
 
 /** Feet are a little below a champion's position */
 const FEET = 18;
@@ -107,6 +110,10 @@ export function emitChampionAuras(ground: FXBatch, top: FXBatch, champion: Champ
       const phase = (time * 0.9 + i / wisps) % 1;
       top.glow(x + Math.sin(i * 2.1 + time * 2.5) * 22, feetY - 8 - phase * 60, 5, i % 2 ? RAGE : BLOOD, 1.4 * (1 - phase), 0.4, 0.3, 0.6, i);
     }
+  }
+  if (effects.some((effect) => effect.definitionId === "vile_transformed")) {
+    // Transformed: his aura's reach, a slow violet sigil under him wherever he goes
+    ground.sigil(x, feetY, VILE_AURA_RADIUS, VILE_AURA, 0.7 + 0.15 * Math.sin(time * 3), 1, 0.25, 20, 1, 0.8, 0.7);
   }
   if (effects.some((effect) => effect.definitionId === "caelum_embolden")) {
     // Blessed: a soft green-gold glow and leaves of light circling up

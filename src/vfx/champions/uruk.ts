@@ -54,7 +54,8 @@ registerAbilityVFX({
     phase('charge', 0, 'caster', [
       ring(SILVER, 40, 10, 0.25, 3),
       twinkles(FROST, 5, [30, 90]),
-      { type: 'orbiting_particles', color: ICE, count: 3, size: 4, orbitRadius: 28, orbitSpeed: 4, duration: 4, style: 'blade' },
+      // Until the charged attack is spent (or its 4 s run out)
+      { type: 'orbiting_particles', color: ICE, count: 3, size: 4, orbitRadius: 28, orbitSpeed: 4, duration: 4, style: 'blade', whileEffect: 'uruk_spear_charge' },
       light(ICE, 50, 0.6, 0.4),
     ], 4),
   ],

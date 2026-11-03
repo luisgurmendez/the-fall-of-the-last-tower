@@ -121,9 +121,9 @@ registerAbilityVFX({
       light(VIOLET, 140, 1.1, 0.8),
       shake(3, 0.25),
     ], 1.0),
+    // Souls circle him while he's transformed (his aura's ring follows him: gpu/fx/championAuras.ts)
     phase('aura', 0.4, 'caster', [
-      sigil(VIOLET, AURA_RADIUS * 0.6, 10.0),
-      { type: 'orbiting_particles', color: SOUL, count: 4, size: 7, orbitRadius: 62, orbitSpeed: 2.2, duration: 10.0, style: 'wisp' },
-    ], 10.0),
+      { type: 'orbiting_particles', color: SOUL, count: 4, size: 7, orbitRadius: 62, orbitSpeed: 2.2, duration: 10.5, style: 'wisp', whileEffect: 'vile_transformed' },
+    ], 10.5),
   ],
 });

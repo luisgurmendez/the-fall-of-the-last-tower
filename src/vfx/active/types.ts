@@ -96,6 +96,9 @@ export interface ActiveOrbitingParticles {
   startTime: number;
   style?: 'mote' | 'rock' | 'blade' | 'wisp';
   particles: Array<{ angle: number }>;
+  /** The effect it lasts while (OrbitingParticlesConfig.whileEffect), and whether it has shown up */
+  whileEffect?: string;
+  effectSeen: boolean;
 }
 
 /**

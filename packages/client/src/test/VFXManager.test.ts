@@ -136,4 +136,39 @@ describe('VFXManager', () => {
       expect(manager.getStats().activeShields).toBe(1);
     });
   });
+
+  describe('looks that last while an effect does', () => {
+    /** A state manager whose champion has the effects given */
+    function withEffects(effects: { current: string[] }) {
+      return {
+        getEntity: (id: string) => id === 'hero'
+          ? { position: { x: 0, y: 0 }, snapshot: { entityId: 'hero', shields: [], activeEffects: effects.current.map(definitionId => ({ definitionId, timeRemaining: 1, stacks: 1 })) } }
+          : undefined,
+      } as unknown as OnlineStateManager;
+    }
+
+    // (Only Ninja Mode is ever extended: by kills)
+    for (const [abilityId, effectId, extends_] of [['vex_ninja_mode', 'vex_ninja_mode', true], ['uruk_w', 'uruk_spear_charge', false], ['vile_restoration_of_vilix', 'vile_transformed', false]] as const) {
+      it(`${abilityId}'s orbit lasts while ${effectId} does${extends_ ? ', longer when it is extended' : ''}, shorter when it ends early`, () => {
+        const effects = { current: [effectId as string] };
+        const manager = new VFXManager(withEffects(effects));
+        manager.spawnAbilityVFX(abilityId, 0, 0, undefined, undefined, 'hero');
+        clock += 1000;
+        manager.update(1);
+        expect(manager.getStats().activeOrbits).toBe(1);
+
+        if (extends_) {
+          // Past its old fixed time, the effect still on: it stays
+          clock += 20000;
+          manager.update(20);
+          expect(manager.getStats().activeOrbits).toBe(1);
+        }
+
+        effects.current = [];
+        clock += 100;
+        manager.update(0.1);
+        expect(manager.getStats().activeOrbits).toBe(0);
+      });
+    }
+  });
 });

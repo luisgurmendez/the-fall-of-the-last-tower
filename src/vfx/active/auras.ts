@@ -163,6 +163,8 @@ export function createOrbitingParticles(
     orbitSpeed: config.orbitSpeed,
     count: config.count,
     style: config.style,
+    whileEffect: config.whileEffect,
+    effectSeen: false,
     duration: config.duration * 1000,
     startTime,
     particles,
@@ -176,7 +178,8 @@ export function createOrbitingParticles(
 export function updateOrbitingParticles(
   orbits: ActiveOrbitingParticles[],
   dt: number,
-  now: number
+  now: number,
+  stateManager: OnlineStateManager
 ): ActiveOrbitingParticles[] {
   for (const orbit of orbits) {
     for (const particle of orbit.particles) {
@@ -185,7 +188,13 @@ export function updateOrbitingParticles(
   }
   return orbits.filter((orbit) => {
     const elapsed = now - orbit.startTime;
-    return elapsed < orbit.duration;
+    if (elapsed >= orbit.duration) return false;
+    if (!orbit.whileEffect) return true;
+    // Once its effect has shown up, it lasts while the effect does
+    const snapshot = stateManager.getEntity(orbit.entityId)?.snapshot as { activeEffects?: { definitionId: string }[] } | undefined;
+    const on = snapshot?.activeEffects?.some(effect => effect.definitionId === orbit.whileEffect) ?? false;
+    if (on) orbit.effectSeen = true;
+    return on || !orbit.effectSeen;
   });
 }
 

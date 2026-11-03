@@ -100,6 +100,7 @@ export interface VFXStats {
   activeParticles: number;
   activeTrails: number;
   activeShields: number;
+  activeOrbits: number;
   poolStats: { active: number; total: number; maxSize: number };
 }
 
@@ -328,7 +329,7 @@ export class VFXManager {
     this.activeShields = updateShields(this.activeShields, now, this.stateManager);
 
     // Update orbiting particles
-    this.activeOrbits = updateOrbitingParticles(this.activeOrbits, dt, now);
+    this.activeOrbits = updateOrbitingParticles(this.activeOrbits, dt, now, this.stateManager);
 
     // Update dash afterimages
     this.activeDashAfterimages = updateDashAfterimages(
@@ -422,6 +423,7 @@ export class VFXManager {
       activeParticles: this.particlePool.getStats().active,
       activeTrails: this.activeTrails.length,
       activeShields: this.activeShields.length,
+      activeOrbits: this.activeOrbits.length,
       poolStats: this.particlePool.getStats(),
     };
   }

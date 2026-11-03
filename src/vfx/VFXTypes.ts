@@ -212,6 +212,12 @@ export interface OrbitingParticlesConfig {
   duration: number;
   /** On the GPU: motes of light (default), rocks, spinning blades or soul flames */
   style?: 'mote' | 'rock' | 'blade' | 'wisp';
+  /**
+   * An effect on the entity it circles: once it has shown up in its state,
+   * the orbit lasts while it does (Vex's Ninja Mode, extended by kills),
+   * `duration` at most
+   */
+  whileEffect?: string;
 }
 
 /**
