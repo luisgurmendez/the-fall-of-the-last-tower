@@ -259,7 +259,7 @@ Rules that belong to a champion rather than to one ability implement `IChampionH
 | `modifyAbilityCooldown` | Executor, after ability haste | Vex: Ninja Mode halves Q/E cooldowns |
 | `onAbilityCast` | Executor, after a cast is paid for (not recasts) | Oitboil: his abilities heat him up, Blue Fire vents heat |
 | `amplifyDamageTo` | `ServerChampion.amplifyDamageTo`, any damage it deals, before resistances and its items | Vex: +10% to an enemy her Shadow Shuriken marked |
-| `updatePassiveState` | `ServerChampion`, every tick | Lume: passive follows the Light Orb, and the Prismatic Beam (E) hits along the line from her to it; Oitboil: heat falls, the overheat burns him; Caelum: Lightweaving's pulse; Fenris: feral under 40% health; Calamitus: tougher in his lava |
+| `updatePassiveState` | `ServerChampion`, every tick | Lume: passive follows the Light Orb, and the Prismatic Beam (E) hits along the line from her to it; Oitboil: heat falls, the overheat burns him (damage with no source: not his, for his stats, omnivamp or items); Caelum: Lightweaving's pulse; Fenris: feral under 40% health; Calamitus: tougher in his lava |
 | `onMeleeAttackHit` | `ServerChampion`, melee hits (with the damage dealt) | Vex: empowered attack after Shadow Step; Fenris: Bloodthirst's life steal |
 | `onRangedAttackHit` | A ranged basic attack's projectile, on hit | Elora: every third arrow on the same target strikes a weak point; the poisoned arrow (both scale with her attack damage, which a crit doesn't raise) |
 | `basicAttackProjectileType` | A ranged basic attack about to be fired | Elora: the poisoned arrow and the weak point's arrow look different (their `<type>_impact` VFX play where they land) |
@@ -278,7 +278,10 @@ and isn't pushed out of walls while it runs (Zhak'rul burrowed); it should end w
 `Terrain.landingSpot` finds open ground, the spot Blink uses too. A `follow` one is a leap at a unit
 (`leapToTarget`): it flies at the target wherever it moves, over walls, and lands next to it. The
 generic cone (`executeConeAbility`) takes a `damageFor(entity, damage)` callback for damage that
-depends on the target (Zhak'rul's pincers on the poisoned).
+depends on the target (Zhak'rul's pincers on the poisoned). Zones given the same `ZoneHitGroup`
+(`ServerZone.ts`) burn as one: a unit standing in several takes one tick's damage per tick interval,
+not one from each (the patches of Oitboil's trail of fire, which also never drops a patch on another,
+as against a wall where he stopped).
 
 `initializeAbilityHandlers()` (called at server startup) registers both handlers and hooks.
 

@@ -3,6 +3,8 @@
  *
  * Zones are created by abilities and persist for a duration.
  * They can apply effects (damage, slow, heal) to entities inside.
+ * Zones sharing a ZoneHitGroup burn as one: a unit in several of them takes
+ * one tick's damage, not one from each (Oitboil's trail of fire).
  */
 
 import {
@@ -18,6 +20,22 @@ import { ServerEntity, ServerEntityConfig } from './ServerEntity';
 import type { ServerGameContext } from '../game/ServerGameContext';
 
 export type ZoneEffectType = 'damage' | 'slow' | 'heal' | 'buff';
+
+/**
+ * Zones that burn as one (the patches of one cast): each unit takes their
+ * damage at most once per tick interval, however many of them it stands in.
+ */
+export class ZoneHitGroup {
+  private readonly lastHitAt = new Map<string, number>();
+
+  /** Whether the group may hurt the unit now (if so, that's its tick) */
+  claim(entityId: string, now: number, interval: number): boolean {
+    const last = this.lastHitAt.get(entityId);
+    if (last !== undefined && now - last < interval - 1e-6) return false;
+    this.lastHitAt.set(entityId, now);
+    return true;
+  }
+}
 
 export interface ServerZoneConfig extends Omit<ServerEntityConfig, 'entityType'> {
   /** Radius of the zone effect */
@@ -42,6 +60,8 @@ export interface ServerZoneConfig extends Omit<ServerEntityConfig, 'entityType'>
   effectDuration?: number;
   /** Interval between ticks in seconds (default: continuous) */
   tickRate?: number;
+  /** Other zones it burns as one with (a unit in several takes one tick) */
+  hitGroup?: ZoneHitGroup;
 }
 
 export class ServerZone extends ServerEntity {
@@ -56,6 +76,7 @@ export class ServerZone extends ServerEntity {
   readonly appliesEffects: string[];
   readonly effectDuration: number;
   readonly tickRate: number;
+  private readonly hitGroup?: ZoneHitGroup;
 
   private remainingDuration: number;
   private timeSinceLastTick: number;
@@ -82,6 +103,7 @@ export class ServerZone extends ServerEntity {
     this.appliesEffects = config.appliesEffects ?? [];
     this.effectDuration = config.effectDuration ?? 0;
     this.tickRate = config.tickRate ?? 0; // 0 = continuous effect application
+    this.hitGroup = config.hitGroup;
     // Start at tickRate so first tick happens immediately
     this.timeSinceLastTick = this.tickRate;
   }
@@ -151,8 +173,8 @@ export class ServerZone extends ServerEntity {
       // Mark as affected this tick
       this.tickedEntityIds.add(entity.id);
 
-      // Deal damage if applicable
-      if (dealDamage && this.damage > 0) {
+      // Deal damage if applicable (once per tick across its hit group)
+      if (dealDamage && this.damage > 0 && (!this.hitGroup || this.hitGroup.claim(entity.id, context.getGameTime(), this.tickRate))) {
         entity.takeDamage(this.damage, this.damageType, this.sourceId, context);
       }
 

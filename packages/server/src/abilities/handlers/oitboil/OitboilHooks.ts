@@ -5,7 +5,8 @@
  * casting, heat falls. At full heat he overheats for a few seconds
  * (oitboil_overheated): his abilities deal more damage here, his attacks
  * through the effect's attack damage, and the fire burns a share of his
- * maximum health each second, never below 1 health. Blue Fire (W) vents
+ * maximum health each second, never below 1 health (damage from no one:
+ * not his own, for his stats, omnivamp or items). Blue Fire (W) vents
  * heat and ends an overheat. Heat is the passive's stacks, so the HUD
  * shows it; the passive is active while he's overheated.
  */
@@ -80,7 +81,8 @@ export const oitboilHooks: IChampionHooks = {
         if (state.burnTimer >= BURN_INTERVAL) {
           state.burnTimer -= BURN_INTERVAL;
           const burn = Math.min(champion.maxHealth * OITBOIL_HEAT.overheatBurnPerSecond * BURN_INTERVAL, champion.health - 1);
-          if (burn > 0) champion.takeDamage(burn, 'true', champion.id, context);
+          // No source: it isn't damage he dealt (his stats, his omnivamp, his items' amplifiers)
+          if (burn > 0) champion.takeDamage(burn, 'true', undefined, context);
         }
       }
     } else if (now - state.lastCastAt >= OITBOIL_HEAT.decayDelay) {
