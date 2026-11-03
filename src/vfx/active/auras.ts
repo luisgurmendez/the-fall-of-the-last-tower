@@ -12,6 +12,7 @@ import type { ActiveShieldBubble, ActiveOrbitingParticles } from './types';
 
 /**
  * Create a shield bubble effect attached to an entity.
+ * @param sourceId The ability it's for (a shield from it ends the bubble when it breaks)
  */
 export function createShieldBubble(
   id: string,
@@ -19,11 +20,14 @@ export function createShieldBubble(
   entityId: string,
   x: number,
   y: number,
-  startTime: number
+  startTime: number,
+  sourceId: string
 ): ActiveShieldBubble {
   return {
     id,
     entityId,
+    sourceId,
+    shieldSeen: false,
     color: config.color,
     radius: config.radius,
     duration: config.duration * 1000,
@@ -36,15 +40,23 @@ export function createShieldBubble(
 }
 
 /**
- * Update shields. Returns the shields still running.
+ * Update shields. Returns the shields still running: until their time is up
+ * or, for a bubble whose shield has shown up in the entity's state, until
+ * that shield breaks (a bubble for something else, like Gorath's armor,
+ * lasts its time).
  */
 export function updateShields(
   shields: ActiveShieldBubble[],
-  now: number
+  now: number,
+  stateManager: OnlineStateManager
 ): ActiveShieldBubble[] {
   return shields.filter((shield) => {
     const elapsed = now - shield.startTime;
-    return elapsed < shield.duration;
+    if (elapsed >= shield.duration) return false;
+    const snapshot = stateManager.getEntity(shield.entityId)?.snapshot as { shields?: { sourceId: string }[] } | undefined;
+    const holds = snapshot?.shields?.some(held => held.sourceId === shield.sourceId) ?? false;
+    if (holds) shield.shieldSeen = true;
+    return holds || !shield.shieldSeen;
   });
 }
 

@@ -262,7 +262,7 @@ export class VFXManager {
       );
     } else if (config.type === 'shield_bubble' && casterId) {
       this.activeShields.push(
-        createShieldBubble(this.generateId(), config as ShieldBubbleConfig, casterId, x, y, startTime)
+        createShieldBubble(this.generateId(), config as ShieldBubbleConfig, casterId, x, y, startTime, effect.abilityId)
       );
     } else if (config.type === 'orbiting_particles' && casterId) {
       this.activeOrbits.push(
@@ -325,7 +325,7 @@ export class VFXManager {
     this.activeTrails = updateTrails(this.activeTrails, this.stateManager, now);
 
     // Update shields
-    this.activeShields = updateShields(this.activeShields, now);
+    this.activeShields = updateShields(this.activeShields, now, this.stateManager);
 
     // Update orbiting particles
     this.activeOrbits = updateOrbitingParticles(this.activeOrbits, dt, now);

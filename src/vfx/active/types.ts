@@ -67,6 +67,10 @@ export interface ActiveTrail {
 export interface ActiveShieldBubble {
   id: string;
   entityId: string;
+  /** The ability it's for: once the entity has a shield from it, the bubble ends with that shield */
+  sourceId: string;
+  /** Whether that shield has shown up in the entity's state */
+  shieldSeen: boolean;
   color: string;
   radius: number;
   duration: number;
