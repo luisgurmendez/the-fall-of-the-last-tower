@@ -87,7 +87,7 @@ export const MagnusFireball: AbilityDefinition = {
   shape: "line",
   damage: {
     type: "magic",
-    scaling: scaling([80, 120, 160, 200, 240], { apRatio: 0.75 }),
+    scaling: scaling([95, 140, 190, 235, 285], { apRatio: 0.75 }),
   },
 };
 

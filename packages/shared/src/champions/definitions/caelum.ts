@@ -98,7 +98,7 @@ export const CaelumRayOfLight: AbilityDefinition = {
   shape: "line",
   damage: {
     type: "magic",
-    scaling: scaling([70, 110, 150, 190, 230], { apRatio: 0.6 }),
+    scaling: scaling([85, 130, 175, 225, 270], { apRatio: 0.6 }),
   },
   appliesEffects: ["slow_20"],
   effectDuration: 1.5,
@@ -137,7 +137,7 @@ export const CaelumWhisperingRoots: AbilityDefinition = {
   shape: "circle",
   damage: {
     type: "magic",
-    scaling: scaling([50, 85, 120, 155, 190], { apRatio: 0.4 }),
+    scaling: scaling([60, 100, 140, 185, 225], { apRatio: 0.4 }),
   },
   appliesEffects: ["root"],
   effectDuration: 1.5,

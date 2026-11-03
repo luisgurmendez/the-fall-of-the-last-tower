@@ -165,7 +165,7 @@ export const LumeQ: AbilityDefinition = {
   range: 360,
   damage: {
     type: "magic",
-    scaling: scaling([60, 95, 130, 165, 200], { apRatio: 0.6 }),
+    scaling: scaling([70, 110, 155, 195, 235], { apRatio: 0.6 }),
   },
   aoeRadius: LUME_ORB_CONFIG.qImpactRadius,
   recast: {
@@ -212,7 +212,7 @@ export const LumeW: AbilityDefinition = {
   range: 0, // Centered on orb
   damage: {
     type: "magic",
-    scaling: scaling([50, 80, 110, 140, 170], { apRatio: 0.5 }),
+    scaling: scaling([60, 95, 130, 165, 200], { apRatio: 0.5 }),
   },
   heal: {
     scaling: scaling([60, 90, 120, 150, 180], { apRatio: 0.45 }),
@@ -249,7 +249,7 @@ export const LumeE: AbilityDefinition = {
   range: 0,
   damage: {
     type: "magic",
-    scaling: scaling([60, 90, 120, 150, 180], { apRatio: 0.4 }),
+    scaling: scaling([70, 105, 140, 175, 210], { apRatio: 0.4 }),
   },
   appliesEffects: ["slow_30"],
   effectDuration: 2.5, // How long the beam lasts
