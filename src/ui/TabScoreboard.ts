@@ -2,16 +2,18 @@
  * TabScoreboard - Full scoreboard overlay shown when Tab key is held.
  *
  * Shows League-style scoreboard with both teams:
- * - Champion icon, name, level
+ * - Champion icon, summoner spells (allies' with their cooldowns), name, level
  * - K/D/A stats
  * - CS (creep score)
  * - Items (6 slots)
  * - Gold (hidden for enemies)
  *
  * Every champion in the match is listed from the start; one not seen yet
- * shows dashes, and one out of sight keeps the line it had when last seen.
- * When the match ends it stays up, titled with the result and filled with
- * the server's final stats, until the player moves on.
+ * shows dashes, and one out of sight keeps the line it had when last seen,
+ * but its kills, deaths and assists follow the kills it takes part in. Dead
+ * champions' lines keep changing. Hovering an item or a summoner spell shows
+ * its tooltip. When the match ends it stays up, titled with the result and
+ * filled with the server's final stats, until the player moves on.
  */
 
 import { ScreenEntity } from '@/core/GameObject';
@@ -23,6 +25,8 @@ import type { OnlineStateManager, MatchResult } from '@/core/OnlineStateManager'
 import {
   EntityType,
   type ChampionSnapshot,
+  type ItemSlot,
+  type SummonerSpellState,
   getChampionDefinition,
 } from '@siege/shared';
 import { getItemDefinition } from '@/data/items';
@@ -30,9 +34,15 @@ import { drawItemIcon } from '@/ui/itemIcons';
 import { getPortraitCanvas } from '@/ui/matchmaking/portraits';
 import { drawPixelArt } from '@/render/pixelArt';
 import { Dimensions } from '@/core/canvas';
+import { getSummonerIcon } from '@/ui/summonerIcons';
+import { drawSummonerTooltip } from '@/ui/hud/summoners';
+import { drawItemTooltip } from '@/ui/hud/tooltips';
 
 /** One champion's line */
 interface ScoreboardRow {
+  /** Its champion's entity id, or its player id (the final stats) */
+  entityId?: string;
+  playerId?: string;
   side: number;
   championId: string;
   level: number;
@@ -43,21 +53,31 @@ interface ScoreboardRow {
   gold: number;
   /** Item ids by slot */
   items: (string | null)[];
+  /** Its summoner spells (D, F), with their cooldowns when seen */
+  summoners?: SummonerSpellState[];
   /** False for a champion not seen yet: its stats are unknown */
   known?: boolean;
 }
 
 /** A champion in the match, from the match data */
 export interface ScoreboardPlayer {
+  playerId?: string;
   entityId: string;
   championId: string;
   side: number;
+  /** Their summoner spells (D, F) */
+  summonerSpells?: string[];
 }
+
+/** Something hovered on the scoreboard that has a tooltip */
+type HoverTarget =
+  | { kind: 'item'; x: number; y: number; size: number; itemId: string; slot: number }
+  | { kind: 'summoner'; x: number; y: number; size: number; spellId: string; slot: number };
 
 /** Scoreboard layout configuration - BIGGER sizes */
 const LAYOUT = {
   // Overall dimensions
-  width: 950,
+  width: 990,
   headerHeight: 50,
   teamHeaderHeight: 40,
   rowHeight: 56,
@@ -66,6 +86,7 @@ const LAYOUT = {
 
   // Column widths
   iconCol: 48,
+  spellsCol: 40,
   nameCol: 160,
   levelCol: 50,
   kdaCol: 100,
@@ -76,6 +97,10 @@ const LAYOUT = {
   // Item display
   itemSize: 34,
   itemGap: 4,
+
+  // Summoner spells: two stacked beside the portrait
+  spellSize: 22,
+  spellGap: 2,
 };
 
 /** Font sizes - MUCH BIGGER */
@@ -110,6 +135,8 @@ export class TabScoreboard extends ScreenEntity {
   private inputManager: InputManager;
   /** Each champion's line when last seen, by entity id */
   private lastSeen = new Map<string, ScoreboardRow>();
+  /** What's drawn this frame that has a tooltip */
+  private hoverTargets: HoverTarget[] = [];
 
   constructor(
     stateManager: OnlineStateManager,
@@ -123,11 +150,13 @@ export class TabScoreboard extends ScreenEntity {
   }
 
   step(_ctx: GameContext): void {
-    // Remember every champion in sight, for when it leaves
-    for (const entity of this.stateManager.getEntities()) {
-      if (entity.snapshot.entityType !== EntityType.CHAMPION) continue;
-      const snapshot = entity.snapshot as ChampionSnapshot;
+    // Remember every champion in sight (and the dead ones kept aside), for when it leaves
+    const champions = this.stateManager.getEntities()
+      .filter(entity => entity.snapshot.entityType === EntityType.CHAMPION)
+      .map(entity => entity.snapshot as ChampionSnapshot);
+    for (const snapshot of [...champions, ...this.stateManager.getDeadChampions()]) {
       this.lastSeen.set(snapshot.entityId, {
+        entityId: snapshot.entityId,
         side: snapshot.side,
         championId: snapshot.championId,
         level: snapshot.level,
@@ -137,6 +166,7 @@ export class TabScoreboard extends ScreenEntity {
         cs: snapshot.cs,
         gold: snapshot.gold,
         items: (snapshot.items ?? []).map(item => item?.definitionId ?? null),
+        summoners: snapshot.summoners,
       });
     }
   }
@@ -147,7 +177,8 @@ export class TabScoreboard extends ScreenEntity {
    */
   private getRows(result: MatchResult | null): ScoreboardRow[] {
     if (result && result.players.length > 0) return result.players;
-    const rows = this.roster.map(player => this.lastSeen.get(player.entityId) ?? {
+    const rows = this.roster.map(player => this.withScore(this.lastSeen.get(player.entityId) ?? {
+      entityId: player.entityId,
       side: player.side,
       championId: player.championId,
       level: 0,
@@ -158,12 +189,36 @@ export class TabScoreboard extends ScreenEntity {
       gold: 0,
       items: [],
       known: false,
-    });
+    }));
     // Anyone seen who isn't in the roster (no match data)
     for (const [entityId, row] of this.lastSeen) {
       if (!this.roster.some(player => player.entityId === entityId)) rows.push(row);
     }
     return rows;
+  }
+
+  /**
+   * A line with its kills, deaths and assists brought up to the kills its
+   * champion took part in since it was last seen
+   */
+  private withScore(row: ScoreboardRow): ScoreboardRow {
+    const score = row.entityId ? this.stateManager.getScore(row.entityId) : undefined;
+    if (!score) return row;
+    return {
+      ...row,
+      kills: Math.max(row.kills, score.kills),
+      deaths: Math.max(row.deaths, score.deaths),
+      assists: Math.max(row.assists, score.assists),
+      known: true,
+    };
+  }
+
+  /** A line's summoner spells: as last seen, or the ones it picked (no cooldowns) */
+  private summonersOf(row: ScoreboardRow): SummonerSpellState[] {
+    if (row.summoners?.length) return row.summoners;
+    const player = this.roster.find(player =>
+      row.entityId ? player.entityId === row.entityId : player.playerId === row.playerId);
+    return (player?.summonerSpells ?? []).map(id => ({ id, cooldownRemaining: 0, cooldown: 0 }));
   }
 
   render(): RenderElement {
@@ -204,6 +259,8 @@ export class TabScoreboard extends ScreenEntity {
       // Draw header
       this.drawHeader(c, x, y, result);
 
+      this.hoverTargets = [];
+
       // Draw blue team section
       const blueY = y + LAYOUT.headerHeight + LAYOUT.padding;
       this.drawTeamSection(c, x, blueY, blueTeam, 0, result !== null);
@@ -219,6 +276,32 @@ export class TabScoreboard extends ScreenEntity {
           { size: FONT.normal, color: COLORS.textDim, centered: true }
         );
       }
+
+      this.drawHoverTooltip(c);
+    });
+  }
+
+  /** The tooltip of the item or summoner spell under the mouse, if any */
+  private drawHoverTooltip(c: CanvasRenderingContext2D): void {
+    const mouse = this.inputManager.getMousePosition();
+    if (!mouse) return;
+    const hovered = this.hoverTargets.find(target =>
+      mouse.x >= target.x && mouse.x < target.x + target.size && mouse.y >= target.y && mouse.y < target.y + target.size);
+    if (!hovered) return;
+    c.strokeStyle = COLORS.textGold;
+    c.lineWidth = 2;
+    c.strokeRect(hovered.x, hovered.y, hovered.size, hovered.size);
+    if (hovered.kind === 'summoner') {
+      drawSummonerTooltip(c, hovered.x, hovered.y, hovered.slot, hovered.spellId);
+      return;
+    }
+    const definition = getItemDefinition(hovered.itemId);
+    if (!definition) return;
+    drawItemTooltip(c, hovered.x, hovered.y, {
+      definition,
+      slot: hovered.slot as ItemSlot,
+      passiveCooldowns: new Map(),
+      nextIntervalTick: new Map(),
     });
   }
 
@@ -320,8 +403,8 @@ export class TabScoreboard extends ScreenEntity {
   private drawColumnHeaders(c: CanvasRenderingContext2D, x: number, y: number): void {
     let colX = x + LAYOUT.padding;
 
-    // Skip icon column for header
-    colX += LAYOUT.iconCol + 10;
+    // Skip the icon and summoner spell columns for header
+    colX += LAYOUT.iconCol + LAYOUT.spellsCol + 10;
 
     RenderUtils.renderBitmapText(c, 'Champion', colX, y, { size: FONT.small, color: COLORS.textDim });
     colX += LAYOUT.nameCol;
@@ -380,7 +463,15 @@ export class TabScoreboard extends ScreenEntity {
     c.strokeStyle = COLORS.border;
     c.lineWidth = 2;
     c.strokeRect(colX, iconY, iconSize, iconSize);
-    colX += LAYOUT.iconCol + 10;
+    colX += LAYOUT.iconCol;
+
+    // Summoner spells, D over F; allies' show their cooldowns
+    const spellsTop = y + (LAYOUT.rowHeight - LAYOUT.spellSize * 2 - LAYOUT.spellGap) / 2;
+    this.summonersOf(row).slice(0, 2).forEach((spell, slot) => {
+      const spellY = spellsTop + slot * (LAYOUT.spellSize + LAYOUT.spellGap);
+      this.drawSummonerSpell(c, colX, spellY, spell, isAlly && !matchOver, slot);
+    });
+    colX += LAYOUT.spellsCol + 10;
 
     // Champion name
     const champDef = getChampionDefinition(row.championId);
@@ -434,6 +525,7 @@ export class TabScoreboard extends ScreenEntity {
           c.fillStyle = this.getItemColor(item.id);
           c.fillRect(itemX + 3, itemY + 3, LAYOUT.itemSize - 6, LAYOUT.itemSize - 6);
         });
+        this.hoverTargets.push({ kind: 'item', x: itemX, y: itemY, size: LAYOUT.itemSize, itemId: item.id, slot: i });
       }
     }
     colX += LAYOUT.itemsCol;
@@ -451,6 +543,35 @@ export class TabScoreboard extends ScreenEntity {
         color: COLORS.textDim,
       });
     }
+  }
+
+  /** A summoner spell's icon, with the seconds left on its cooldown when they're shown */
+  private drawSummonerSpell(
+    c: CanvasRenderingContext2D,
+    x: number, y: number,
+    spell: SummonerSpellState,
+    showCooldown: boolean,
+    slot: number
+  ): void {
+    const size = LAYOUT.spellSize;
+    c.fillStyle = '#1a1a2e';
+    c.fillRect(x, y, size, size);
+    const icon = getSummonerIcon(spell.id);
+    if (icon) drawPixelArt(c, icon, x, y, size, size);
+    if (showCooldown && spell.cooldownRemaining > 0) {
+      c.fillStyle = 'rgba(0, 0, 0, 0.65)';
+      c.fillRect(x, y, size, size * Math.min(1, spell.cooldownRemaining / Math.max(1, spell.cooldown)));
+      RenderUtils.renderBitmapText(c, `${Math.ceil(spell.cooldownRemaining)}`, x + size / 2, y + size / 2 - 7, {
+        size: 14,
+        color: COLORS.text,
+        centered: true,
+        shadow: true,
+      });
+    }
+    c.strokeStyle = COLORS.border;
+    c.lineWidth = 1;
+    c.strokeRect(x, y, size, size);
+    this.hoverTargets.push({ kind: 'summoner', x, y, size, spellId: spell.id, slot });
   }
 
   /**

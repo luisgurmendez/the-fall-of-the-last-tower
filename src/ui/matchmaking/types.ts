@@ -36,6 +36,8 @@ export interface MatchData {
     championId: string;
     side: number;
     entityId: string;
+    /** Their summoner spells (D, F) */
+    summonerSpells?: string[];
   }>;
 }
 
