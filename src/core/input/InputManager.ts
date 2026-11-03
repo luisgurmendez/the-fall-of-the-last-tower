@@ -305,6 +305,14 @@ export class InputManager {
   }
 
   /**
+   * Pass a mouse event from UI laid over the game (the shop) on to the
+   * canvas, as if it got there: the cursor moves, a button is pressed
+   */
+  forwardMouseEvent(event: MouseEvent): void {
+    this.canvas?.dispatchEvent(new MouseEvent(event.type, event));
+  }
+
+  /**
    * Get the current mouse position in world coordinates.
    */
   getMouseWorldPosition(cameraPos: Vector, zoom: number): Vector {

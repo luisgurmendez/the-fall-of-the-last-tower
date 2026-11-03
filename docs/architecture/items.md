@@ -183,12 +183,14 @@ bought (a second pair of boots...: the details say why). The details panel shows
 item's build tree with owned parts outlined in green, its stats, active and passives, and
 what it builds into (`src/ui/shop/itemTree.ts`); clicking an item there selects it. Items
 that suit the local champion's class have a star (`isRecommendedFor` in `src/data/items.ts`).
+Closing the shop keeps the item picked in the list and where the list was scrolled.
 Buying keeps the shop open; gold, inventory, affordability and the buttons refresh from
 each server state update (`updateOnlineState`). Buying and selling only work at the
 fountain. Beside the inventory, the control ward button buys a control ward (75 gold) to
-carry, up to 2, outside the six slots (see [map.md](map.md), Wards). Clicks around the
-shop reach the game: a right-click there moves the champion with the shop open, and a
-left-click there closes it (so do Escape, P and its X).
+carry, up to 2, outside the six slots (see [map.md](map.md), Wards). A right-click moves
+the champion with the shop open: around it (clicks there reach the game) and on it too
+(`InputManager.forwardMouseEvent`), except on an item, which a right-click buys. A left-click
+around it closes it (so do Escape, P and its X).
 
 ## Icons
 

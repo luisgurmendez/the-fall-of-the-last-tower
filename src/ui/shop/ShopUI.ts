@@ -10,6 +10,7 @@ import { createItemIconElement } from "@/ui/itemIcons";
 import { SHOP_ITEMS, getItemDefinition, getItemPassive, isRecommendedFor } from "@/data/items";
 import { describeConsumable, getItemActive, listItemStats } from "@/data/itemStats";
 import { ITEM_KEYS } from "@/core/input/itemKeys";
+import { InputManager } from "@/core/input/InputManager";
 import { renderItemTree, renderBuildsInto } from "@/ui/shop/itemTree";
 import { getAudio } from "@/audio/AudioManager";
 import {
@@ -85,6 +86,8 @@ export class ShopUI {
   private overlay: HTMLElement | null = null;
   private goldDisplay: HTMLElement | null = null;
   private itemsGrid: HTMLElement | null = null;
+  /** Where the item list was scrolled when the shop closed */
+  private listScroll = 0;
   private detailsPanel: HTMLElement | null = null;
   private buyButton: HTMLButtonElement | null = null;
   /** Whether the local champion is where it can shop (its fountain) */
@@ -193,6 +196,18 @@ export class ShopUI {
     document.addEventListener("mousedown", (event) => {
       if (event.button === 0 && this.state.isOpen && !container?.contains(event.target as Node)) this.close();
     });
+    // On the shop itself a right-click moves too, to the ground under the
+    // cursor as if the shop weren't there (except on an item: that buys it)
+    const input = InputManager.getInstance();
+    container?.addEventListener("mousemove", (event) => input.forwardMouseEvent(event as MouseEvent));
+    container?.addEventListener("mousedown", (event) => {
+      const mouse = event as MouseEvent;
+      if (mouse.button === 2 && !(mouse.target as Element).closest(".shop-item")) input.forwardMouseEvent(mouse);
+    });
+    container?.addEventListener("mouseup", (event) => {
+      if ((event as MouseEvent).button === 2) input.forwardMouseEvent(event as MouseEvent);
+    });
+    container?.addEventListener("contextmenu", (event) => event.preventDefault());
   }
 
   /**
@@ -696,6 +711,11 @@ export class ShopUI {
 
     // Refresh UI
     this.refreshUI();
+
+    // As it was left: the item picked and where the list was scrolled
+    if (this.state.selectedItem) this.selectItem(this.state.selectedItem);
+    const list = this.itemsGrid?.closest(".shop-items-panel");
+    if (list) list.scrollTop = this.listScroll;
   }
 
   /**
@@ -707,9 +727,13 @@ export class ShopUI {
     this.state.isOpen = false;
     this.overlay?.classList.add("hidden");
 
-    // Clear selection
-    this.state.selectedItem = null;
-    this.state.selectedInventorySlot = null;
+    // The item picked in the list stays picked for next time; one picked in
+    // the inventory doesn't (the inventory may change)
+    if (this.state.selectedInventorySlot !== null) {
+      this.state.selectedItem = null;
+      this.state.selectedInventorySlot = null;
+    }
+    this.listScroll = this.itemsGrid?.closest(".shop-items-panel")?.scrollTop ?? 0;
   }
 
   /**
