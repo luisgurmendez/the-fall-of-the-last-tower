@@ -3,6 +3,10 @@
  *
  * - Leveling: skill points, max ranks, R unlocks at levels 6/11/16
  * - Ticking cooldowns, cast times and recast windows
+ * - Ammo: an ability with charges (its definition's ammo, Vile's traps)
+ *   starts with its startingCharges when learned, spends one per cast and
+ *   gets one back every rechargeTime[rank], one at a time, up to maxCharges
+ *   (state.charges, state.chargeRegenRemaining)
  * - Recasts: abilities whose projectile hit opens a recast at the hit position
  * - Ability projectiles scheduled at an animation keyframe; they are
  *   cancelled when the champion can no longer cast
@@ -15,8 +19,10 @@
 import {
   Vector,
   getAbilityDefinition,
+  getAmmoBehavior,
   type AbilitySlot,
   type AbilityState,
+  type AmmoBehavior,
   type DamageType,
 } from '@siege/shared';
 import { AnimationScheduler, type ScheduledAction } from '../../systems/AnimationScheduler';
@@ -40,6 +46,12 @@ export interface ScheduledAbilityProjectile {
   piercing: boolean;
   appliesEffects?: string[];
   effectDuration?: number;
+}
+
+/** Seconds for a charge to come back at a rank */
+function rechargeTime(ammo: AmmoBehavior, rank: number): number {
+  const times = ammo.rechargeTime;
+  return times[Math.min(Math.max(rank, 1), times.length) - 1] ?? 0;
 }
 
 export function createDefaultAbilityState(): AbilityState {
@@ -82,6 +94,8 @@ export class ChampionAbilities {
           state.isCasting = false;
         }
       }
+      // Charges come back
+      if (state.charges !== undefined) this.rechargeAmmo(slot, dt);
       // Update recast window
       if (state.recastWindowRemaining !== undefined && state.recastWindowRemaining > 0) {
         state.recastWindowRemaining = Math.max(0, state.recastWindowRemaining - dt);
@@ -126,7 +140,72 @@ export class ChampionAbilities {
     champion.abilityStates[slot].rank = champion.abilityRanks[slot];
     champion.skillPoints--;
 
+    // Learned: an ability with charges starts with its starting charges
+    const ammo = this.ammoOf(slot);
+    if (ammo && champion.abilityStates[slot].rank === 1) this.fillAmmo(slot, ammo);
+
     return true;
+  }
+
+  // =====================
+  // Ammo (charges)
+  // =====================
+
+  /**
+   * Whether the slot's ability has a charge to cast with (always true for
+   * one without ammo).
+   */
+  hasCharge(slot: AbilitySlot): boolean {
+    const ammo = this.ammoOf(slot);
+    if (!ammo) return true;
+    const state = this.champion.abilityStates[slot];
+    // (Learned some other way than levelUp)
+    if (state.charges === undefined) this.fillAmmo(slot, ammo);
+    return (state.charges ?? 0) > 0;
+  }
+
+  /**
+   * Spend a charge of the slot's ability (nothing without ammo); the next
+   * one starts coming back if it was full.
+   */
+  spendCharge(slot: AbilitySlot): void {
+    const ammo = this.ammoOf(slot);
+    if (!ammo) return;
+    const state = this.champion.abilityStates[slot];
+    if (state.charges === undefined) this.fillAmmo(slot, ammo);
+    state.charges = Math.max(0, (state.charges ?? 0) - 1);
+    if (!((state.chargeRegenRemaining ?? 0) > 0)) state.chargeRegenRemaining = rechargeTime(ammo, state.rank);
+  }
+
+  /** The slot's ability's ammo, if it has charges */
+  private ammoOf(slot: AbilitySlot): AmmoBehavior | undefined {
+    const definition = getAbilityDefinition(this.champion.definition.abilities[slot]);
+    return definition ? getAmmoBehavior(definition) : undefined;
+  }
+
+  /** Its starting charges (recharging toward the maximum if fewer) */
+  private fillAmmo(slot: AbilitySlot, ammo: AmmoBehavior): void {
+    const state = this.champion.abilityStates[slot];
+    state.charges = Math.min(ammo.maxCharges, ammo.startingCharges ?? ammo.maxCharges);
+    state.chargeRegenRemaining = state.charges < ammo.maxCharges ? rechargeTime(ammo, state.rank) : 0;
+  }
+
+  /** A charge comes back every rechargeTime, one at a time, up to the maximum */
+  private rechargeAmmo(slot: AbilitySlot, dt: number): void {
+    const ammo = this.ammoOf(slot);
+    const state = this.champion.abilityStates[slot];
+    if (!ammo || state.charges === undefined) return;
+    if (state.charges >= ammo.maxCharges) {
+      state.chargeRegenRemaining = 0;
+      return;
+    }
+    state.chargeRegenRemaining = (state.chargeRegenRemaining ?? 0) - dt;
+    if (state.chargeRegenRemaining <= 0) {
+      state.charges++;
+      state.chargeRegenRemaining = state.charges < ammo.maxCharges
+        ? state.chargeRegenRemaining + rechargeTime(ammo, state.rank)
+        : 0;
+    }
   }
 
   // =====================

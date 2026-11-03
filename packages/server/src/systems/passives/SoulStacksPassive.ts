@@ -8,6 +8,7 @@ import {
   EntityType,
   type PassiveAbilityDefinition,
   type PassiveState,
+  type PassiveTrigger,
 } from '@siege/shared';
 import type { ServerChampion } from '../../simulation/ServerChampion';
 import type { ServerGameContext } from '../../game/ServerGameContext';
@@ -19,29 +20,24 @@ import { Logger } from '../../utils/Logger';
  * Dual-trigger:
  * - on_kill: Gain soul stacks based on target type and champion level
  * - on_hit: Consume all stacks to deal bonus physical damage to champions
+ *   (a basic attack that kills gives its souls once, through on_kill)
  */
 export function handleSoulStacks(
   champion: ServerChampion,
   passiveState: PassiveState,
   definition: PassiveAbilityDefinition,
   context: ServerGameContext,
-  data?: PassiveTriggerData
+  data?: PassiveTriggerData,
+  trigger?: PassiveTrigger
 ): void {
   if (!definition.soulScaling) return;
-
-  // Determine which trigger this is
-  // on_kill data will have target (the killed entity)
-  // on_hit data will have target (the attacked entity) and will be a champion
-
   if (!data?.target) return;
 
   const target = data.target;
 
-  // Check if this is an on_hit trigger (target is a champion, not dead)
-  // If target is alive and is a champion, this is an on_hit (basic attack)
-  if (target.entityType === EntityType.CHAMPION && !target.isDead) {
-    // on_hit: Consume stacks to deal damage
-    if (passiveState.stacks > 0) {
+  if (trigger === 'on_hit') {
+    // on_hit: a basic attack on a champion it didn't kill consumes the stacks as damage
+    if (target.entityType === EntityType.CHAMPION && !target.isDead && passiveState.stacks > 0) {
       const bonusDamage = passiveState.stacks;
       target.takeDamage(bonusDamage, 'physical', champion.id, context);
 
@@ -57,8 +53,7 @@ export function handleSoulStacks(
   }
 
   // on_kill: Gain stacks based on target type
-  // This triggers when target is dead
-  if (!target.isDead) return;
+  if (trigger !== 'on_kill' || !target.isDead) return;
 
   const level = champion.level;
   let stacksToGain = 0;

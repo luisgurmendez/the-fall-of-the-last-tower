@@ -20,23 +20,18 @@ export function executeTrapPlacement(
 
   if (!targetPosition || !definition.trap) return;
 
-  // Get R rank for explosion damage scaling
-  const rState = champion.abilityStates.R;
-  const rRank = Math.max(1, rState.rank); // Default to rank 1 if R not learned
-  const explosionDamage = definition.trap.explosionDamage?.[rRank - 1] ?? 0;
-
   // Create the trap
   const trap = new ServerTrap({
     id: context.generateEntityId(),
     position: targetPosition.clone(),
     side: champion.side,
     ownerId: champion.id,
+    abilityId: definition.id,
     triggerRadius: definition.trap.triggerRadius,
     duration: definition.trap.duration,
     isStealthed: definition.trap.isStealthed,
     rootDuration: definition.trap.rootDuration,
     soulStacksOnTrigger: definition.trap.soulStacksOnTrigger ?? 0,
-    explosionDamage: explosionDamage,
     explosionRadius: definition.trap.explosionRadius ?? 300,
     explosionRootDuration: definition.trap.explosionRootDuration ?? 1,
   });

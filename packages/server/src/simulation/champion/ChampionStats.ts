@@ -6,7 +6,8 @@
  * 2. Stat modifiers from abilities and passives (flat, then percent)
  * 3. Item stats: flat, attack speed bonuses added together, stacking
  *    passives' stacks; tenacity from several sources combines (1 - product)
- * 4. Stat effects (buffs/debuffs), scaled by stacks
+ * 4. Stat effects (buffs/debuffs), scaled by stacks; an effect's slowResist
+ *    (Vile's Dark Resilience) shrinks the slows by that share
  * 5. Item passives that scale stats: ability power from max mana, then the
  *    ability power multiplier; crit chance capped at 100%
  *
@@ -115,11 +116,15 @@ export function calculateChampionStats(
   }
   stats.attackSpeed *= 1 + bonusAttackSpeed;
 
-  // Apply effect stat modifiers (buffs/debuffs)
+  // Apply effect stat modifiers (buffs/debuffs), slows less what resists them
+  let slowResist = 0;
+  for (const effect of champion.activeEffects) {
+    slowResist = Math.max(slowResist, getServerEffectById(effect.definitionId)?.slowResist ?? 0);
+  }
   for (const effect of champion.activeEffects) {
     const effectDef = getServerEffectById(effect.definitionId);
     if (effectDef && isStatEffect(effectDef)) {
-      applyEffectStatModifier(stats, effectDef, effect.stacks);
+      applyEffectStatModifier(stats, effectDef, effect.stacks, slowResist);
     }
   }
 
@@ -206,27 +211,30 @@ function combineTenacity(a: number, b: number): number {
 }
 
 /**
- * Apply effect stat modifier to champion stats.
+ * Apply effect stat modifier to champion stats. A slow (less movement speed)
+ * is shrunk by `slowResist`.
  */
 function applyEffectStatModifier(
   stats: FullChampionStats,
   effectDef: ServerStatEffectDef,
-  stacks: number
+  stacks: number,
+  slowResist = 0
 ): void {
   for (const change of [effectDef, ...(effectDef.alsoModifies ?? [])]) {
     const statKey = EFFECT_STAT_KEYS[change.stat];
     if (!statKey || !(statKey in stats)) continue;
     const record = stats as unknown as Record<string, number>;
+    const resisted = (value: number) => (statKey === 'movementSpeed' && value < 0 ? value * (1 - slowResist) : value);
 
     // Apply flat value (multiplied by stacks)
     if (change.flatValue !== undefined) {
       if (statKey === 'tenacity') stats.tenacity = combineTenacity(stats.tenacity, change.flatValue);
-      else record[statKey] += change.flatValue * stacks;
+      else record[statKey] += resisted(change.flatValue) * stacks;
     }
 
     // Apply percent value (compounded by stacks)
     if (change.percentValue !== undefined) {
-      record[statKey] *= Math.pow(1 + change.percentValue, stacks);
+      record[statKey] *= Math.pow(1 + resisted(change.percentValue), stacks);
     }
   }
 }

@@ -16,12 +16,12 @@ function createTrap(position: Vector, isStealthed: boolean): ServerTrap {
     position,
     side: TEAM_RED,
     ownerId: 'test-red',
+    abilityId: 'vile_roots_of_vilix',
     triggerRadius: 50,
     duration: 60,
     isStealthed,
     rootDuration: 1,
     soulStacksOnTrigger: 0,
-    explosionDamage: 0,
     explosionRadius: 300,
     explosionRootDuration: 1,
   });

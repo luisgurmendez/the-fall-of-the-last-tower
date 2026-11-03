@@ -1022,6 +1022,16 @@ export class ServerChampion extends ServerEntity {
     return this.abilities.levelUp(slot);
   }
 
+  /** Whether an ability with charges (ammo) has one to cast with; always for others */
+  hasAbilityCharge(slot: AbilitySlot): boolean {
+    return this.abilities.hasCharge(slot);
+  }
+
+  /** Spend a charge of an ability with ammo (nothing for others) */
+  spendAbilityCharge(slot: AbilitySlot): void {
+    this.abilities.spendCharge(slot);
+  }
+
   /**
    * Schedule an ability projectile to spawn at the animation keyframe time.
    * Called by the generic skillshot path (abilities/generic/Skillshot.ts) for skillshots with animations.

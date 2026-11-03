@@ -290,6 +290,10 @@ shortens it. A taunted jungle monster fights its taunter (an idle camp turns on 
 when hit) and keeps on after: a taunt takes a monster's aggro ([jungle.md](jungle.md)).
 Minions aren't taunted (the roar has `affectsMinions: false`).
 
+**Slow resistance**: an effect's `slowResist` shrinks every slow on its holder (a movement
+speed effect with a negative value) by that share while it lasts: Vile's Dark Resilience,
+after his Veil, halves them. The strongest counts (`ChampionStats`).
+
 **Stasis** (`ccType: 'stasis'`, effect `item_stasis`, Hourglass of Stillness): the
 champion is frozen like a stun and invulnerable; clients draw a golden shell and the
 label STASIS. See [items.md](items.md) for the item effects.

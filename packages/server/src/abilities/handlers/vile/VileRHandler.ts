@@ -116,7 +116,7 @@ export class VileRHandler extends BaseAbilityHandler {
     if (transform.triggersTrapExplosion) {
       const traps = getPlayerTraps(champion.id, context);
       for (const trap of traps) {
-        trap.explode(context);
+        trap.explode(context, rank);
       }
       if (traps.length > 0) {
         Logger.champion.debug(
@@ -127,16 +127,7 @@ export class VileRHandler extends BaseAbilityHandler {
 
     // Start transform aura
     if (definition.aura) {
-      // Cast aura damage type to expected format
-      const aura = {
-        radius: definition.aura.radius,
-        damage: {
-          type: definition.aura.damage.type as 'physical' | 'magic' | 'true',
-          scaling: definition.aura.damage.scaling as { base: number[] },
-        },
-        tickRate: definition.aura.tickRate,
-      };
-      champion.startTransformAura(definition.id, aura, rank, duration);
+      champion.startTransformAura(definition.id, definition.aura, rank, duration);
     }
 
     Logger.champion.info(

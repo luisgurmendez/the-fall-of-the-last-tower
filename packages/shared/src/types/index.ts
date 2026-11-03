@@ -79,6 +79,7 @@ export type {
   PassiveTrigger,
   AbilityScaling,
   AbilityDefinition,
+  AmmoBehavior,
   AbilityState,
   AbilityCastResult,
   AbilityAIConditions,
@@ -97,6 +98,7 @@ export {
   DEFAULT_CAST_TIME,
   getRecastAbility,
   hasChargeBehavior,
+  getAmmoBehavior,
 } from './abilities';
 
 // Item types

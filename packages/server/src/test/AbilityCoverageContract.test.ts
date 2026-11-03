@@ -18,6 +18,7 @@ import { describe, test, expect } from 'bun:test';
 import {
   CHAMPION_DEFINITIONS,
   getAbilityDefinition,
+  getAmmoBehavior,
   type AbilityDefinition,
   type AbilitySlot,
   type AbilityTargetType,
@@ -120,7 +121,8 @@ const GENERIC_SUPPORT: Record<keyof AbilityDefinition, FieldRule> = {
   projectileSpeed: projectileField('projectileSpeed'),
   projectileRadius: projectileField('projectileRadius'),
   piercing: projectileField('piercing'),
-  stopsOnWall: never('stopsOnWall is not read by the server'),
+  // Read by ServerProjectile: it stops at the first wall (a recast opens there)
+  stopsOnWall: projectileField('stopsOnWall'),
 
   // Areas and zones (generic/NoTargetArea, GroundTarget, Cone, Trap; aura: StatTransform)
   shape: (d) =>
@@ -174,7 +176,8 @@ const GENERIC_SUPPORT: Record<keyof AbilityDefinition, FieldRule> = {
     if (d.targetType !== 'self') return 'statTransform is only executed for self abilities';
     return d.statTransform!.canEndEarly === undefined || 'statTransform.canEndEarly is not implemented';
   },
-  ammo: never('ammo charges are not tracked by the executor'),
+  // Tracked by ServerAbilityExecutor and ChampionAbilities (charges, recharge)
+  ammo: (d) => !getAmmoBehavior(d)?.consumeAllOnCast || 'ammo.consumeAllOnCast is not implemented',
   channel: never('channels are not implemented by the executor'),
   toggle: never('toggles are not implemented by the executor'),
   transform: never('form transforms are not implemented by the executor'),

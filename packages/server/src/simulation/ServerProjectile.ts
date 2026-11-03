@@ -3,6 +3,10 @@
  *
  * Projectiles travel in a direction and can collide with enemies.
  * Used for abilities like fireballs, shurikens, etc.
+ *
+ * Projectiles fly over walls, except those of an ability with stopsOnWall
+ * (Vile's arrow): it stops at the first wall in its way, and an ability that
+ * recasts on a hit can recast to where it stopped, as to a unit it hit.
  */
 
 import {
@@ -48,6 +52,9 @@ export interface ServerProjectileConfig extends Omit<ServerEntityConfig, 'entity
   onHit?: (entity: ServerEntity, context: ServerGameContext) => void;
 }
 
+/** A projectile that stops at walls checks for one every this many units of its way */
+const WALL_STEP = 4;
+
 export class ServerProjectile extends ServerEntity {
   readonly direction: Vector;
   readonly speed: number;
@@ -60,6 +67,8 @@ export class ServerProjectile extends ServerEntity {
   readonly piercing: boolean;
   readonly appliesEffects: string[];
   readonly effectDuration: number;
+  /** Its ability's stopsOnWall: it stops at the first wall in its way */
+  readonly stopsOnWall: boolean;
   private readonly onHit?: (entity: ServerEntity, context: ServerGameContext) => void;
 
   private distanceTraveled = 0;
@@ -85,6 +94,7 @@ export class ServerProjectile extends ServerEntity {
     this.appliesEffects = config.appliesEffects ?? [];
     this.effectDuration = config.effectDuration ?? 0;
     this.onHit = config.onHit;
+    this.stopsOnWall = getAbilityDefinition(config.abilityId)?.stopsOnWall === true;
 
     // Set movement speed for visual interpolation
     this.movementSpeed = config.speed;
@@ -96,10 +106,13 @@ export class ServerProjectile extends ServerEntity {
   update(dt: number, context: ServerGameContext): void {
     if (this.isDead) return;
 
-    // Move projectile
+    // Move projectile (one that stops at walls, up to the first one)
     const movement = this.direction.clone().scalar(this.speed * dt);
-    this.position.add(movement);
-    this.distanceTraveled += movement.length();
+    const from = this.position.clone();
+    let atWall = false;
+    if (this.stopsOnWall) atWall = this.moveUntilWall(movement, context);
+    else this.position.add(movement);
+    this.distanceTraveled += this.position.distanceTo(from);
 
     // Check max distance
     if (this.distanceTraveled >= this.maxDistance) {
@@ -110,6 +123,30 @@ export class ServerProjectile extends ServerEntity {
 
     // Check collisions with enemies
     this.checkCollisions(context);
+
+    // Against a wall with nothing hit: it stops there
+    if (atWall && !this.isDead) {
+      this.notifyRecastOnHit(context);
+      this.isDead = true;
+      this.markForRemoval();
+    }
+  }
+
+  /**
+   * Move by `movement`, stopping short of the first wall (or the water) on
+   * the way.
+   * @returns true if a wall stopped it
+   */
+  private moveUntilWall(movement: Vector, context: ServerGameContext): boolean {
+    const steps = Math.max(1, Math.ceil(movement.length() / WALL_STEP));
+    for (let i = 0; i < steps; i++) {
+      const x = this.position.x + movement.x / steps;
+      const y = this.position.y + movement.y / steps;
+      if (context.terrain?.isBlocked(x, y)) return true;
+      this.position.x = x;
+      this.position.y = y;
+    }
+    return false;
   }
 
   /**
@@ -181,7 +218,8 @@ export class ServerProjectile extends ServerEntity {
   }
 
   /**
-   * Notify source champion of hit for abilities with recast behavior.
+   * Notify source champion of hit (a unit, or a wall it stopped at) for
+   * abilities with recast behavior.
    */
   private notifyRecastOnHit(context: ServerGameContext): void {
     const abilityDef = getAbilityDefinition(this.abilityId);

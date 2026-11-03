@@ -46,14 +46,16 @@ export interface PassiveTriggerData {
 }
 
 /**
- * Passive handler function signature.
+ * Passive handler function signature. `trigger` is the event that fired it
+ * (dispatchTrigger), for passives registered under several.
  */
 export type PassiveHandler = (
   champion: ServerChampion,
   passiveState: PassiveState,
   definition: PassiveAbilityDefinition,
   context: ServerGameContext,
-  data?: PassiveTriggerData
+  data?: PassiveTriggerData,
+  trigger?: PassiveTrigger
 ) => void;
 
 /**
@@ -205,7 +207,7 @@ export class PassiveTriggerSystem {
       if (passiveState.cooldownRemaining > 0) continue;
 
       // Execute handler
-      handler(champion, passiveState, definition, context, data);
+      handler(champion, passiveState, definition, context, data, trigger);
     }
   }
 

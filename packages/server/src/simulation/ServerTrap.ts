@@ -8,7 +8,9 @@
  *   once), on a champion not caught by another trap in the last 3 seconds
  *   (traps can't be chained into one long root)
  * - Apply effects (root) and grant owner stacks
- * - Can be exploded by owner's ultimate
+ * - Can be exploded by owner's ultimate: magic damage for its rank (the
+ *   ability's trap.explosionDamage) to the units the ability affects
+ *   (not towers or wards), and a root on champions
  */
 
 import {
@@ -17,6 +19,8 @@ import {
   EntityType,
   DamageType,
   GameEventType,
+  canAbilityAffectEntityType,
+  getAbilityDefinition,
   type TrapSnapshot,
 } from '@siege/shared';
 import { ServerEntity, type ServerEntityConfig } from './ServerEntity';
@@ -29,13 +33,14 @@ import { Logger } from '../utils/Logger';
  */
 export interface ServerTrapConfig extends Omit<ServerEntityConfig, 'entityType'> {
   ownerId: string;
+  /** The ability that placed it (its trap config and what it affects) */
+  abilityId: string;
   triggerRadius: number;
   duration: number;
   isStealthed: boolean;
   rootDuration: number;
   soulStacksOnTrigger: number;
   // Explosion properties (when owner casts R)
-  explosionDamage: number;
   explosionRadius: number;
   explosionRootDuration: number;
 }
@@ -45,12 +50,12 @@ export interface ServerTrapConfig extends Omit<ServerEntityConfig, 'entityType'>
  */
 export class ServerTrap extends ServerEntity {
   readonly ownerId: string;
+  readonly abilityId: string;
   readonly triggerRadius: number;
   readonly duration: number;
   readonly isStealthed: boolean;
   readonly rootDuration: number;
   readonly soulStacksOnTrigger: number;
-  readonly explosionDamage: number;
   readonly explosionRadius: number;
   readonly explosionRootDuration: number;
 
@@ -72,12 +77,12 @@ export class ServerTrap extends ServerEntity {
     });
 
     this.ownerId = config.ownerId;
+    this.abilityId = config.abilityId;
     this.triggerRadius = config.triggerRadius;
     this.duration = config.duration;
     this.isStealthed = config.isStealthed;
     this.rootDuration = config.rootDuration;
     this.soulStacksOnTrigger = config.soulStacksOnTrigger;
-    this.explosionDamage = config.explosionDamage;
     this.explosionRadius = config.explosionRadius;
     this.explosionRootDuration = config.explosionRootDuration;
 
@@ -178,26 +183,32 @@ export class ServerTrap extends ServerEntity {
   }
 
   /**
-   * Explode the trap (called when owner casts R).
-   * Deals magic damage in a radius and roots all enemies.
+   * Explode the trap (called when owner casts R, at that ultimate's rank).
+   * Deals magic damage in a radius to the units its ability affects and
+   * roots the champions.
    */
-  explode(context: ServerGameContext): void {
+  explode(context: ServerGameContext, ultimateRank: number): void {
     if (this.isDead || this.hasTriggered) return;
     this.hasTriggered = true;
 
     Logger.debug('Trap', `Trap exploded at (${this.position.x}, ${this.position.y})`);
 
+    const ability = getAbilityDefinition(this.abilityId);
+    const damages = ability?.trap?.explosionDamage ?? [];
+    const damage = damages[Math.min(Math.max(ultimateRank, 1), damages.length) - 1] ?? 0;
+
     // Get all enemies in explosion radius
     const entities = context.getEntitiesInRadius(this.position, this.explosionRadius);
 
     for (const entity of entities) {
-      // Only affect enemies
+      // Only affect enemy units the ability affects (not towers or wards)
       if (entity.side === this.side) continue;
       if (entity.isDead) continue;
+      if (!canAbilityAffectEntityType(ability, entity.entityType)) continue;
 
       // Deal magic damage
-      if (this.explosionDamage > 0) {
-        entity.takeDamage(this.explosionDamage, 'magic', this.ownerId, context);
+      if (damage > 0) {
+        entity.takeDamage(damage, 'magic', this.ownerId, context);
       }
 
       // Apply root to champions

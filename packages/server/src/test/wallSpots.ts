@@ -36,3 +36,24 @@ export function findWallCrossing(minThickness: number, maxThickness: number, ope
   }
   throw new Error(`no wall ${minThickness}-${maxThickness} thick with open ground around it`);
 }
+
+/**
+ * The first stretch of a row (scanning from the top of the map) `length`
+ * long with no wall within `clearance` of any point of it: room for a
+ * skillshot's whole range.
+ */
+export function findOpenStretch(length: number, clearance = 80): { y: number; left: number; right: number } {
+  const field = MOBAConfig.WALL_FIELD;
+  for (let y = -1600; y <= 1600; y += 16) {
+    let left: number | null = null;
+    for (let x = -1600; x <= 1600; x += 8) {
+      if (field.distance(x, y) < clearance) {
+        left = null;
+        continue;
+      }
+      left ??= x;
+      if (x - left >= length) return { y, left, right: x };
+    }
+  }
+  throw new Error(`no open stretch ${length} long`);
+}

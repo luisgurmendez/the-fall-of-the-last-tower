@@ -3,7 +3,9 @@
  *
  * Handles:
  * - Right-click: Move to position
- * - Q/W/E/R: Ability cast
+ * - Q/W/E/R: Ability cast (a charge ability charges while held; one that
+ *   can't move while charging stops the champion and holds move orders, see
+ *   charging.ts)
  * - S: Stop
  * - Click on enemy: Target unit
  * - Cursor icons: Attack cursor when hovering enemies
@@ -17,7 +19,7 @@ import Vector from "@/physics/vector";
 import type { NetworkClient } from "@siege/client";
 import { isPingModifierDown } from "@/ui/SignalWheel";
 import type { AbilitySlot } from "@siege/shared";
-import { EntityType, GameConfig, MOBAConfig, getAbilityDefinition, getChampionDefinition, hasChargeBehavior, type WardType } from "@siege/shared";
+import { EntityType, GameConfig, MOBAConfig, getAbilityDefinition, getChampionDefinition, hasChargeBehavior, type AbilityState, type WardType } from "@siege/shared";
 import type {
   OnlineStateManager,
   InterpolatedEntity,
@@ -28,6 +30,7 @@ import RenderElement from "@/render/renderElement";
 import { renderWardPreview } from "@/render/entities/ward";
 import { Dimensions } from "@/core/canvas";
 import { ITEM_KEYS } from "@/core/input/itemKeys";
+import { blocksMovement, chargeProgress, chargeTime, startCharge, type ChargeState } from "@/core/input/charging";
 
 /** Summoner spell keys and their slots */
 const SUMMONER_KEYS: [string, 0 | 1][] = [["d", 0], ["f", 1]];
@@ -135,14 +138,6 @@ function getEntityCollisionRadius(entity: InterpolatedEntity): number {
 /**
  * OnlineInputHandler captures input and sends commands to server.
  */
-/** Charge state for ability being charged */
-interface ChargeState {
-  slot: AbilitySlot;
-  startTime: number;
-  minChargeTime: number;
-  maxChargeTime: number;
-}
-
 export class OnlineInputHandler implements GameObject {
   readonly id = "online-input-handler";
   shouldInitialize = true;
@@ -255,12 +250,7 @@ export class OnlineInputHandler implements GameObject {
    */
   getChargeProgress(): { slot: AbilitySlot; progress: number } | null {
     if (!this.chargeState) return null;
-    const elapsed = (performance.now() / 1000) - this.chargeState.startTime;
-    const progress = Math.min(1, Math.max(0,
-      (elapsed - this.chargeState.minChargeTime) /
-      (this.chargeState.maxChargeTime - this.chargeState.minChargeTime)
-    ));
-    return { slot: this.chargeState.slot, progress };
+    return { slot: this.chargeState.slot, progress: chargeProgress(this.chargeState, performance.now() / 1000) };
   }
 
   /**
@@ -294,8 +284,11 @@ export class OnlineInputHandler implements GameObject {
     const mousePosition = this.inputManager.getMousePosition();
     const minimapTarget = this.minimapLocator?.(mousePosition.x, mousePosition.y) ?? null;
 
+    // A charge that can't move holds move and attack orders until it's let go
+    const holdingStill = blocksMovement(this.chargeState);
+
     // Handle right-click movement or attack
-    if (this.inputManager.isMouseButtonJustPressed(MouseButton.RIGHT)) {
+    if (!holdingStill && this.inputManager.isMouseButtonJustPressed(MouseButton.RIGHT)) {
       const worldPos = minimapTarget ?? this.screenToWorld(mousePosition, camera);
 
       // If hovering an enemy, send target attack instead of move
@@ -329,6 +322,7 @@ export class OnlineInputHandler implements GameObject {
     // Handle attack-move (A + left-click, on the map or the minimap)
     if (
       !pinging &&
+      !holdingStill &&
       this.inputManager.isKeyDown("a") &&
       this.inputManager.isMouseButtonJustPressed(MouseButton.LEFT)
     ) {
@@ -582,15 +576,10 @@ export class OnlineInputHandler implements GameObject {
     const abilityDef = this.getAbilityDefinition(slot);
     const isChargeAbility = abilityDef && hasChargeBehavior(abilityDef);
 
-    // Handle charge ability key press (start charging)
+    // Handle charge ability key press (start charging; one that can't move stops the champion)
     if (isChargeAbility && this.inputManager.isKeyJustPressed(key)) {
-      // Start charging
-      this.chargeState = {
-        slot,
-        startTime: performance.now() / 1000,
-        minChargeTime: abilityDef.charge!.minChargeTime,
-        maxChargeTime: abilityDef.charge!.maxChargeTime,
-      };
+      this.chargeState = startCharge(slot, abilityDef, this.localAbilityState(slot), performance.now() / 1000);
+      if (this.chargeState?.holdsStill) this.networkClient.sendStopInput();
       return;
     }
 
@@ -601,20 +590,14 @@ export class OnlineInputHandler implements GameObject {
         camera,
       );
 
-      // Calculate charge time
-      const chargeTime = Math.min(
-        this.chargeState.maxChargeTime,
-        Math.max(
-          this.chargeState.minChargeTime,
-          (performance.now() / 1000) - this.chargeState.startTime
-        )
-      );
+      // How long it charged
+      const charged = chargeTime(this.chargeState, performance.now() / 1000);
 
       // Clear charge state
       this.chargeState = null;
 
       // Send ability with charge time
-      this.sendAbilityWithTarget(slot, worldPos, chargeTime);
+      this.sendAbilityWithTarget(slot, worldPos, charged);
       return;
     }
 
@@ -626,6 +609,14 @@ export class OnlineInputHandler implements GameObject {
       );
       this.sendAbilityWithTarget(slot, worldPos);
     }
+  }
+
+  /**
+   * The local champion's state of the ability in a slot (its snapshot's).
+   */
+  private localAbilityState(slot: AbilitySlot): Partial<AbilityState> | undefined {
+    const snapshot = this.stateManager.getLocalPlayerEntity()?.snapshot as { abilities?: Partial<Record<AbilitySlot, AbilityState>> } | undefined;
+    return snapshot?.abilities?.[slot];
   }
 
   /**

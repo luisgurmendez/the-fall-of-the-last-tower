@@ -102,7 +102,7 @@ export function executeStatTransform(
   if (transform.triggersTrapExplosion) {
     const traps = getPlayerTraps(champion.id, context);
     for (const trap of traps) {
-      trap.explode(context);
+      trap.explode(context, rank);
     }
     if (traps.length > 0) {
       Logger.debug("Ability", `${champion.playerId} triggered ${traps.length} trap explosions`);

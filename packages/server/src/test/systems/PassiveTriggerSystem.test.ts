@@ -225,7 +225,8 @@ describe('PassiveTriggerSystem', () => {
         champion.passiveState,
         definition,
         context,
-        triggerData
+        triggerData,
+        'on_hit'
       );
     });
   });

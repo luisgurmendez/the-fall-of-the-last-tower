@@ -9,8 +9,9 @@
  * - Recasts: handler-owned, or the generic recast dash
  * - Running the ability's handler, or else the generic path for its target
  *   type (abilities/generic/), then its dash or teleport
- * - Mana cost, cooldown, combat state, the ABILITY_CAST event and the
- *   on_ability_cast passive trigger
+ * - Mana cost, cooldown, an ammo charge (abilities with ammo: none left,
+ *   no cast), combat state, the ABILITY_CAST event and the on_ability_cast
+ *   passive trigger
  */
 
 import {
@@ -66,7 +67,8 @@ export interface AbilityCastResult {
     | "stunned"
     | "rooted"
     | "taunted"
-    | "casting";
+    | "casting"
+    | "no_ammo";
   manaCost?: number;
   cooldown?: number;
 }
@@ -177,6 +179,11 @@ export class ServerAbilityExecutor {
       return { success: false, failReason: "on_cooldown" };
     }
 
+    // An ability with charges (ammo) needs one left
+    if (!champion.hasAbilityCharge(slot)) {
+      return { success: false, failReason: "no_ammo" };
+    }
+
     // Calculate mana cost
     const rank = state.rank;
     const manaCost = definition.manaCost?.[rank - 1] ?? 0;
@@ -281,10 +288,11 @@ export class ServerAbilityExecutor {
       hooks?.consumeAbilityDamageMultiplier?.(champion);
     }
 
-    // Deduct mana
+    // Deduct mana, and a charge if it has ammo
     if (!executionResult?.skipManaCost) {
       champion.resource -= manaCost;
     }
+    champion.spendAbilityCharge(slot);
 
     // Start cooldown with Ability Haste reduction
     const baseCooldown = definition.cooldown?.[state.rank - 1] ?? 0;

@@ -8,9 +8,9 @@
  * - Invulnerable
  * - Cannot move (rooted)
  *
- * AFTER EFFECT:
+ * AFTER EFFECT (when the veil ends, on game time):
  * - 50% movement speed for 2 seconds
- * - Slow resistance for 2 seconds
+ * - Slow resistance for 2 seconds (slows on him are halved)
  */
 
 import { BaseAbilityHandler } from '../../BaseAbilityHandler';
@@ -24,7 +24,7 @@ export class VileWHandler extends BaseAbilityHandler {
   readonly abilityId = 'vile_veil_of_darkness';
 
   execute(params: AbilityHandlerParams): AbilityExecutionResult {
-    const { champion, definition } = params;
+    const { champion, definition, context } = params;
 
     const veilDuration = Array.isArray(definition.effectDuration)
       ? definition.effectDuration[params.rank - 1]
@@ -40,10 +40,10 @@ export class VileWHandler extends BaseAbilityHandler {
       );
     }
 
-    // Schedule post-veil effects
+    // Post-veil effects, when the veil ends
     if (definition.postEffects) {
       const postEffects = definition.postEffects;
-      setTimeout(() => {
+      context.schedule(veilDuration, () => {
         // Check if champion is still alive
         if (!champion.isDead) {
           this.applyEffects(
@@ -56,7 +56,7 @@ export class VileWHandler extends BaseAbilityHandler {
             `${champion.playerId} Veil ended - gained speed and slow resistance`
           );
         }
-      }, veilDuration * 1000);
+      });
     }
 
     Logger.champion.debug(

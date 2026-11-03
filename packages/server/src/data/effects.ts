@@ -25,6 +25,8 @@ export interface ServerEffectDefinition {
   persistsThroughDeath: boolean;
   /** Share less healing the holder receives while it lasts (Wounds) */
   healingReduction?: number;
+  /** Share of every slow on the holder it shrugs off while it lasts (ChampionStats) */
+  slowResist?: number;
 }
 
 /**
@@ -825,16 +827,15 @@ export const VilePostVeilSpeedEffect: ServerStatEffectDef = {
   percentValue: 0.50, // +50% movement speed
 };
 
-// Vile W - Post-veil slow resistance (reduces incoming slows by 50%)
-export const VileSlowResistEffect: ServerStatEffectDef = {
+// Vile W - Post-veil slow resistance: slows on him are halved
+export const VileSlowResistEffect: ServerEffectDefinition = {
   id: 'vile_slow_resist',
   name: 'Dark Resilience',
   category: 'buff',
   stackBehavior: 'refresh',
   cleansable: false,
   persistsThroughDeath: false,
-  stat: 'movement_speed', // Note: slow resist is tracked separately in effect processing
-  flatValue: 0, // Marker effect - slow resist handled in CC calculation
+  slowResist: 0.5,
 };
 
 // Vile E - Root effect from trap trigger

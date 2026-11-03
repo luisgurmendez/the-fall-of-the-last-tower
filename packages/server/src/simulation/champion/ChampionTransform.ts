@@ -2,25 +2,34 @@
  * ChampionTransform - Timed transforms (e.g., Vile's R).
  *
  * A transform can override the champion's attack range and run an aura
- * that damages nearby enemies on a fixed tick rate. Timing uses the
- * champion's accumulated game time instead of Date.now() for testability.
+ * that damages nearby enemies on a fixed tick rate: each tick its damage
+ * for the rank and the champion's stats then (ability power), on the units
+ * its ability affects (not towers or wards). Timing uses the champion's
+ * accumulated game time instead of Date.now() for testability.
  */
 
-import type { DamageType } from '@siege/shared';
+import {
+  calculateAbilityValue,
+  canAbilityAffectEntityType,
+  getAbilityDefinition,
+  type AbilityScaling,
+  type DamageType,
+} from '@siege/shared';
 import type { ServerChampion } from '../ServerChampion';
 import type { ServerGameContext } from '../../game/ServerGameContext';
 
 /** Aura definition as given by the ability (damage scales by rank) */
 export interface TransformAuraConfig {
   radius: number;
-  damage: { type: DamageType; scaling: { base: number[] } };
+  damage: { type: DamageType; scaling: AbilityScaling };
   tickRate: number;
 }
 
 interface ActiveTransformAura {
   abilityId: string;
   radius: number;
-  damage: number;
+  scaling: AbilityScaling;
+  rank: number;
   damageType: DamageType;
   tickRate: number;
   lastTickTime: number; // Game time of last tick
@@ -55,12 +64,11 @@ export class ChampionTransform {
    * Start transform aura that deals damage to nearby enemies.
    */
   startAura(abilityId: string, aura: TransformAuraConfig, rank: number, duration: number): void {
-    const damagePerTick = aura.damage.scaling.base[rank - 1] ?? 0;
-
     this.aura = {
       abilityId,
       radius: aura.radius,
-      damage: damagePerTick,
+      scaling: aura.damage.scaling,
+      rank,
       damageType: aura.damage.type,
       tickRate: aura.tickRate,
       lastTickTime: this.gameTimeElapsed,
@@ -108,15 +116,24 @@ export class ChampionTransform {
 
     this.aura.lastTickTime = this.gameTimeElapsed;
 
-    // Deal damage to all nearby enemies
+    // Deal damage to nearby enemy units, for its rank and his stats now
     const champion = this.champion;
+    const stats = champion.getStats();
+    const damage = calculateAbilityValue(this.aura.scaling, this.aura.rank, {
+      attackDamage: stats.attackDamage,
+      abilityPower: stats.abilityPower,
+      bonusHealth: stats.maxHealth - champion.definition.baseStats.health,
+      maxHealth: stats.maxHealth,
+    });
+    const ability = getAbilityDefinition(this.aura.abilityId);
     const entities = context.getEntitiesInRadius(champion.position, this.aura.radius);
     for (const entity of entities) {
       if (entity.side === champion.side) continue;
       if (entity.isDead) continue;
       if (entity.id === champion.id) continue;
+      if (!canAbilityAffectEntityType(ability, entity.entityType)) continue;
 
-      entity.takeDamage(this.aura.damage, this.aura.damageType, champion.id, context);
+      entity.takeDamage(damage, this.aura.damageType, champion.id, context);
     }
   }
 }
