@@ -182,7 +182,7 @@ class OnlineGame {
 
     shopUI.updateOnlineState(championSnapshot.gold, items, atShop, championSnapshot.controlWards ?? 0);
     const championClass = getChampionDefinition(championSnapshot.championId)?.class;
-    if (championClass) shopUI.setChampionClass(championClass);
+    if (championClass) shopUI.setChampion(championSnapshot.championId, championClass);
   }
 
   /**

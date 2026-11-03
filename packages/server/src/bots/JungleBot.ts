@@ -12,9 +12,9 @@
  * 3. With nothing up, help in mid like a LaneBot until a camp respawns
  */
 
-import { EntityType, type Side } from '@siege/shared';
+import { EntityType, withStarter, type Side } from '@siege/shared';
 import type { BotInput } from './BotController';
-import { LaneBot, withStarter, type LaneBotConfig } from './LaneBot';
+import { LaneBot, type LaneBotConfig } from './LaneBot';
 import type { ServerChampion } from '../simulation/ServerChampion';
 import type { ServerEntity } from '../simulation/ServerEntity';
 import type { ServerGameContext } from '../game/ServerGameContext';

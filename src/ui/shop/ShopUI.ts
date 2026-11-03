@@ -16,9 +16,12 @@ import { getAudio } from "@/audio/AudioManager";
 import {
   CONTROL_WARD_ITEM_ID,
   GameConfig,
+  getChampionDefinition,
   getItemCatalogEntry,
+  isBuildItemDone,
   planItemPurchase,
   purchaseBlockReason,
+  recommendedBuild,
   type ItemTier,
   type PurchaseBlock,
 } from "@siege/shared";
@@ -74,6 +77,7 @@ interface ShopState {
 export class ShopUI {
   /** The local champion's class, to star the items that suit it */
   private championClass: ChampionClass | null = null;
+  private championId: string | null = null;
 
   private state: ShopState = {
     isOpen: false,
@@ -222,6 +226,21 @@ export class ShopUI {
     this.itemsGrid.innerHTML = "";
 
     const items = getItemsByCategory(this.state.selectedCategory);
+
+    // The "All" tab starts with the champion's recommended build, in order
+    const build = this.state.selectedCategory === "all" ? this.recommendedItems() : [];
+    if (build.length > 0) {
+      const heading = document.createElement("div");
+      heading.className = "shop-tier-heading shop-build-heading";
+      heading.textContent = `Recommended for ${getChampionDefinition(this.championId ?? "")?.name ?? "you"}`;
+      this.itemsGrid.appendChild(heading);
+      for (const item of build) {
+        const itemEl = this.createItemElement(item);
+        itemEl.classList.add("build-item");
+        this.itemsGrid.appendChild(itemEl);
+      }
+      this.markBuild();
+    }
 
     // The "All" tab heads each tier
     let tier: ItemTier | null = null;
@@ -662,12 +681,42 @@ export class ShopUI {
   }
 
   /**
-   * Set the local champion's class: the items that suit it are starred.
+   * Set the local champion: the items that suit its class are starred, and
+   * its recommended build heads the All tab.
    */
-  setChampionClass(championClass: ChampionClass): void {
-    if (championClass === this.championClass) return;
+  setChampion(championId: string, championClass: ChampionClass): void {
+    if (championId === this.championId && championClass === this.championClass) return;
+    this.championId = championId;
     this.championClass = championClass;
     if (this.state.isOpen) this.refreshUI();
+  }
+
+  /** The local champion's recommended build (shared builds.ts), once it's known */
+  private recommendedItems(): ItemDefinition[] {
+    if (!this.championId || !this.championClass) return [];
+    return recommendedBuild(this.championId, this.championClass)
+      .map(id => getItemDefinition(id))
+      .filter((item): item is ItemDefinition => !!item);
+  }
+
+  /**
+   * Mark the recommended build's items: the ones done (owned, or built into
+   * one owned; the starter and potion once past the start) and the next to get.
+   */
+  private markBuild(): void {
+    const inventory = this.getInventoryIds();
+    const tierOfId = (id: string | null) => (id ? getItemCatalogEntry(id)?.tier : undefined);
+    const pastStart = inventory.some(id => id && tierOfId(id) !== "starter" && tierOfId(id) !== "consumable");
+    let nextFound = false;
+    this.itemsGrid?.querySelectorAll<HTMLElement>(".shop-item.build-item").forEach((el) => {
+      const id = el.dataset.itemId ?? "";
+      const early = tierOfId(id) === "starter" || tierOfId(id) === "consumable";
+      const done = isBuildItemDone(id, inventory) || (early && pastStart);
+      const next = !nextFound && !done && purchaseBlockReason(id, this.onlineItems) === null;
+      if (next) nextFound = true;
+      el.classList.toggle("owned", done);
+      el.classList.toggle("next", next);
+    });
   }
 
   /**
@@ -690,10 +739,11 @@ export class ShopUI {
       this.updateInventorySlots();
       this.updateItemAffordability();
       this.updateButtons();
-      // Owned parts changed: the selected item's price and tree did too
+      // Owned parts changed: the selected item's price and tree did too, and the build's progress
       if (inventoryChanged && this.state.selectedItem && this.state.selectedInventorySlot === null) {
         this.showItemDetails(this.state.selectedItem);
       }
+      if (inventoryChanged) this.markBuild();
     }
   }
 

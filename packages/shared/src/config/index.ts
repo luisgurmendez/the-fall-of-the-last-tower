@@ -29,3 +29,4 @@ export {
   purchaseBlockReason, consumableStackSlot,
 } from './itemTrees';
 export type { ItemTreeNode, PurchasePlan, InventoryEntry, PurchaseBlock } from './itemTrees';
+export { recommendedBuild, withStarter, isBuildItemDone } from './builds';

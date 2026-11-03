@@ -38,13 +38,13 @@ import {
   getAbilityDefinition,
   calculateAbilityValue,
   planItemPurchase,
-  isItemPartOf,
   getItemCatalogEntry,
   purchaseBlockReason,
   consumableStackSlot,
+  recommendedBuild,
+  isBuildItemDone,
   type AbilitySlot,
   type AbilityDefinition,
-  type ChampionClass,
   type LaneId,
   getLane,
   type Side,
@@ -110,35 +110,6 @@ const ABILITY_ROLES: Partial<Record<string, 'offense' | 'defense' | 'engage' | '
 /** Health ratio under which a target is worth an execute */
 const EXECUTE_HEALTH = 0.5;
 
-/**
- * What bots buy, in order: a starter and a potion with the starting gold,
- * boots, then parts on the way to their legendary items (an item it owns,
- * or built into one it owns, is done)
- */
-const BUILDS: Record<ChampionClass, string[]> = {
-  warrior: ['forager_blade', 'healing_draught', 'wanderers_boots', 'leechfang', 'ironshod_boots', 'siege_cleaver',
-    'crimson_fang', 'huntsmans_edge', 'sundering_axe', 'mountain_maul', 'spiked_bastion'],
-  assassin: ['forager_blade', 'healing_draught', 'wanderers_boots', 'duskhook_dagger', 'nightglass_edge',
-    'swiftstride_greaves', 'huntsmans_edge', 'shadowstep_cloak', 'bramblehook', 'wolfsbane_fang'],
-  marksman: ['forager_blade', 'healing_draught', 'wanderers_boots', 'gleaming_lens', 'siege_cleaver', 'kingsglass_bow',
-    'fleetfoot_spurs', 'hawkeye_scope', 'stormstring', 'wyrmslayer_arbalest', 'freeblade_scimitar'],
-  mage: ['kindling_wand', 'healing_draught', 'wanderers_boots', 'ember_shard', 'cinder_rod', 'lunar_prism', 'starfall_diadem',
-    'spellwalker_sandals', 'sandglass_bracer', 'hourglass_of_stillness', 'voidpierce_staff', 'archmage_crown'],
-  support: ['pilgrim_lantern', 'healing_draught', 'wanderers_boots', 'glowcap_spores', 'moonpetal_charm', 'dawnsong_censer',
-    'dreamwalker_slippers', 'tidemother_chalice', 'wardens_standard', 'shepherds_crook'],
-  tank: ['oakbark_buckler', 'healing_draught', 'wanderers_boots', 'heartstone', 'ember_mantle', 'mystic_treads',
-    'magmaheart_aegis', 'bulwark_belt', 'spiked_bastion', 'stormward_veil', 'frostguard_plate'],
-};
-/** A build with another starter (the jungle's sickle, the support's lantern) */
-export function withStarter(build: string[], starter: string): string[] {
-  return build.map(itemId => getItemCatalogEntry(itemId)?.tier === 'starter' ? starter : itemId);
-}
-
-/** Champions their class doesn't describe: Zhak'rul fights up close on ability power */
-const CHAMPION_BUILDS: Partial<Record<string, string[]>> = {
-  zhakrul: ['kindling_wand', 'healing_draught', 'wanderers_boots', 'ember_shard', 'bulwark_belt', 'frostwyrm_scepter',
-    'mystic_treads', 'emberheart_codex', 'spiked_bastion', 'stormward_veil'],
-};
 const R_REQUIRED_LEVELS = [6, 11, 16];
 
 /** Health ratio under which an ally gets the bot's heals and shields */
@@ -237,11 +208,12 @@ export class LaneBot implements BotController {
   }
 
   /**
-   * What it buys, in order (see BUILDS). A bot with a job changes its
-   * starter: the jungle's sickle, the support's lantern.
+   * What it buys, in order: its champion's recommended build (shared
+   * builds.ts, the shop shows it too). A bot with a job changes its starter:
+   * the jungle's sickle, the support's lantern.
    */
   protected getBuild(champion: ServerChampion): string[] {
-    return CHAMPION_BUILDS[champion.definition.id] ?? BUILDS[champion.definition.class] ?? BUILDS.warrior;
+    return recommendedBuild(champion.definition.id, champion.definition.class);
   }
 
   // ===========================================================================
@@ -468,7 +440,7 @@ export class LaneBot implements BotController {
   private chooseItemToBuy(champion: ServerChampion): BotInput | null {
     const inventory = champion.items.map(item => item?.definitionId);
     const build = this.getBuild(champion);
-    const done = (id: string) => inventory.some(owned => owned && (owned === id || isItemPartOf(id, owned)));
+    const done = (id: string) => isBuildItemDone(id, inventory);
     // A starter is for the start (not again once it has a legendary); potions only with a free slot
     const tierOf = (id: string | undefined) => (id ? getItemCatalogEntry(id)?.tier : undefined);
     const hasLegendary = inventory.some(owned => tierOf(owned) === 'legendary');

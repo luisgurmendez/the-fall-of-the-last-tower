@@ -783,6 +783,44 @@
   text-shadow: 1px 1px 0 #000;
 }
 
+/* The champion's recommended build, atop the All tab (ShopUI.markBuild) */
+.shop-item.build-item.recommended::before {
+  content: none;
+}
+
+.shop-item.build-item.owned {
+  opacity: 0.4;
+}
+
+.shop-item.build-item.owned::after {
+  content: "\2713";
+  position: absolute;
+  top: 0;
+  right: 4px;
+  color: #5dff8f;
+  font-size: 18px;
+  text-shadow: 1px 1px 0 #000;
+}
+
+.shop-item.build-item.next {
+  border-color: #5dff8f;
+  box-shadow: 0 0 0 2px #5dff8f;
+}
+
+.shop-item.build-item.next::after {
+  content: "NEXT";
+  position: absolute;
+  top: -9px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0 4px;
+  background: #1b4d2c;
+  border: 1px solid #5dff8f;
+  color: #5dff8f;
+  font-size: 13px;
+  line-height: 14px;
+}
+
 /* Control ward: bought apart from the six slots */
 .control-ward-btn {
   display: flex;

@@ -11,9 +11,9 @@
  * nearest allied champion.
  */
 
-import { getAbilityDefinition, InputType, Vector, type AbilitySlot } from '@siege/shared';
+import { getAbilityDefinition, InputType, Vector, withStarter, type AbilitySlot } from '@siege/shared';
 import type { BotInput } from './BotController';
-import { LaneBot, withStarter, type LaneBotConfig } from './LaneBot';
+import { LaneBot, type LaneBotConfig } from './LaneBot';
 import type { ServerChampion } from '../simulation/ServerChampion';
 import type { ServerGameContext } from '../game/ServerGameContext';
 

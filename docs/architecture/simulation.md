@@ -115,7 +115,7 @@ Command actions: `move`, `attack` (`targetId`), `stop`, `cast` (`slot`, plus `x,
 
 `LaneBot` follows these rules, in priority order:
 1. Spend skill points.
-2. Shop at base. The build depends on the champion's class (or the champion, when the class doesn't fit: `CHAMPION_BUILDS`, Zhak'rul's ability power) and follows item trees.
+2. Shop at base. The build is the champion's recommended one (shared `builds.ts`: by class, or by champion when the class doesn't fit, Zhak'rul's ability power; the shop shows it too) and follows item trees.
 3. Retreat and recall when low, using defensive abilities if the enemy is close. It walks off until it's out of combat and out of enemy tower range first, since damage cancels a recall.
    Also recall to shop with 1100+ gold and an affordable next item, when no enemy champion is within 900, it's out of combat and it's out of enemy tower range.
 4. Leave enemy tower range unless allied minions are tanking the tower. "Tanking" means at least two allied minions are under it, and at the rate they're losing health (the tower plus half the enemy minions' damage) they'll last 1.5 s longer than the bot needs to walk back out of range.

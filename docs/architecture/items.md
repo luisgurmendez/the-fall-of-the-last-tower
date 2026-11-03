@@ -163,7 +163,9 @@ in `src/audio/abilitySounds.ts` (new ones `item_potion`, `item_elixir`, `item_st
 
 ## Bots
 
-Bots (`LaneBot`) buy their class's build (`BUILDS`) in order: a starter and a potion, boots,
+Bots (`LaneBot`) buy their champion's recommended build (`recommendedBuild` in
+`packages/shared/src/config/builds.ts`: by class, or by champion when the class doesn't fit;
+the shop shows the same build) in order: a starter and a potion, boots,
 then each item, buying one of its missing parts when gold doesn't cover it yet (so a later
 item doesn't use up the parts it's saving). A jungle bot starts with the Seedling Sickle and
 a support bot with the Pilgrim's Lantern (`getBuild`). With no room for the next item they
@@ -183,7 +185,10 @@ bought (a second pair of boots...: the details say why). The details panel shows
 item's build tree with owned parts outlined in green, its stats, active and passives, and
 what it builds into (`src/ui/shop/itemTree.ts`); clicking an item there selects it. Items
 that suit the local champion's class have a star (`isRecommendedFor` in `src/data/items.ts`).
-Closing the shop keeps the item picked in the list and where the list was scrolled.
+The All tab starts with the champion's recommended build in order (`ShopUI.markBuild`): what
+the inventory has done (the item, or one built from it; the starter and potion once past the
+start) is checked off, and the next item to get is outlined as NEXT. Closing the shop keeps
+the item picked in the list and where the list was scrolled.
 Buying keeps the shop open; gold, inventory, affordability and the buttons refresh from
 each server state update (`updateOnlineState`). Buying and selling only work at the
 fountain. Beside the inventory, the control ward button buys a control ward (75 gold) to
