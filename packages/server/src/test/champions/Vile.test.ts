@@ -1808,8 +1808,7 @@ describe('Vile: kit edge cases', () => {
       });
     }
 
-    // needs timed modifiers to expire (fixed in another branch)
-    test.skip(`after ${TRANSFORM.duration} s every bonus is gone`, () => {
+    test(`after ${TRANSFORM.duration} s every bonus is gone`, () => {
       const arena = auraArena(new Vector(3000, 3000));
       const before = arena.blue.getStats();
       arena.castAbility(arena.blue, 'R');
