@@ -70,6 +70,11 @@ export interface WebSocketServerConfig {
   onDisconnect?: DisconnectHandler;
   heartbeatInterval?: number;
   getMetrics?: () => unknown;
+  /**
+   * A folder of files to serve over HTTP (the built client, `dist/`), so
+   * one address serves the game and its WebSocket. Absent: no files.
+   */
+  staticDir?: string;
 }
 
 /**

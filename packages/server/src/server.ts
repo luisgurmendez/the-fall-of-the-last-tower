@@ -461,6 +461,8 @@ async function startServer(): Promise<void> {
     onConnect: handleConnect,
     onDisconnect: handleDisconnect,
     getMetrics: getServerMetrics,
+    // The built client (vite build's dist/), served from the same address in production
+    staticDir: process.env.STATIC_DIR,
   });
 
   // Initialize game room manager

@@ -12,9 +12,14 @@ function getServerUrl(): string {
   if (serverParam) return serverParam;
 
   // Check for Vite environment variable (set at build time)
-  // @ts-ignore - Vite injects this at build time
   const envUrl = import.meta.env?.VITE_WS_URL;
   if (envUrl) return envUrl;
+
+  // Served by the game server itself (production): its socket is at the same address
+  if (import.meta.env?.PROD) {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${protocol}//${window.location.host}/ws`;
+  }
 
   // Default to localhost for development
   return 'ws://localhost:8080/ws';

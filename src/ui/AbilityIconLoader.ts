@@ -1,13 +1,27 @@
 /**
  * AbilityIconLoader - Loads and caches ability icons for HUD display.
  *
- * Icons are loaded from: src/assets/abilities/{championId}/{slot}.png
- * Where slot is: passive, q, w, e, r
+ * Icons are src/assets/abilities/{championId}/{slot}.png, where slot is:
+ * passive, q, w, e, r. Vite bundles them (abilityIconUrl), so they load in
+ * a production build too, not only from the dev server's /src.
  */
 
 import { drawPixelArtInBox } from '@/render/pixelArt';
 
 export type AbilityIconSlot = 'passive' | 'q' | 'w' | 'e' | 'r';
+
+/** Every ability icon's URL, by its path under src/assets/abilities */
+const ICON_URLS = import.meta.glob('/src/assets/abilities/*/*.png', {
+  eager: true,
+  query: '?url',
+  import: 'default',
+}) as Record<string, string>;
+
+/** An ability icon's URL (a path that won't load if the icon doesn't exist) */
+export function abilityIconUrl(championId: string, slot: AbilityIconSlot): string {
+  const path = `/src/assets/abilities/${championId}/${slot}.png`;
+  return ICON_URLS[path] ?? path;
+}
 
 interface CachedIcon {
   image: HTMLImageElement;
@@ -20,9 +34,6 @@ class AbilityIconLoader {
 
   /** Cache of loaded icons: championId -> slot -> CachedIcon */
   private iconCache: Map<string, Map<AbilityIconSlot, CachedIcon>> = new Map();
-
-  /** Base path for ability icons */
-  private basePath = '/src/assets/abilities';
 
   private constructor() {}
 
@@ -105,7 +116,7 @@ class AbilityIconLoader {
       };
 
       // Start loading
-      image.src = `${this.basePath}/${champLower}/${slot}.png`;
+      image.src = abilityIconUrl(champLower, slot);
     }
   }
 

@@ -3,6 +3,7 @@
  * with a tooltip dialog that shows the name, description, costs and scaling.
  */
 
+import { abilityIconUrl, type AbilityIconSlot } from "@/ui/AbilityIconLoader";
 import type {
   ChampionDefinition,
   AbilityDefinition,
@@ -33,8 +34,7 @@ export function createAbilityCard(
   header.className = "ability-card-header";
 
   // Add ability icon
-  const iconSlot = slot.toLowerCase();
-  const iconPath = `/src/assets/abilities/${championId}/${iconSlot}.png`;
+  const iconPath = abilityIconUrl(championId, slot.toLowerCase() as AbilityIconSlot);
   const icon = document.createElement("img");
   icon.className = "ability-icon";
   icon.src = iconPath;
@@ -118,7 +118,7 @@ export function createPassiveCard(passive: PassiveAbilityDefinition, championId:
   header.className = "passive-card-header";
 
   // Add passive icon
-  const iconPath = `/src/assets/abilities/${championId}/passive.png`;
+  const iconPath = abilityIconUrl(championId, "passive");
   const icon = document.createElement("img");
   icon.className = "passive-icon";
   icon.src = iconPath;

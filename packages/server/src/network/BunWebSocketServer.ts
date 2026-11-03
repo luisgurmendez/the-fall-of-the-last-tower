@@ -6,6 +6,7 @@
  * Handles connection management, message routing, and broadcasting.
  */
 
+import { join, resolve, sep } from 'node:path';
 import {
   WebSocketServer,
   type WebSocketConnection,
@@ -72,8 +73,11 @@ export class BunWebSocketServer extends WebSocketServer {
   private connectionMap: Map<any, BunConnection> = new Map();
   private idCounter = 0;
 
+  private readonly staticDir?: string;
+
   constructor(config: WebSocketServerConfig = {}) {
     super(config);
+    this.staticDir = config.staticDir;
   }
 
   /**
@@ -81,14 +85,16 @@ export class BunWebSocketServer extends WebSocketServer {
    */
   async start(port: number): Promise<void> {
     const self = this;
+    const staticDir = this.staticDir ? resolve(this.staticDir) : null;
 
     this.server = Bun.serve({
       port,
-      fetch(req, server) {
+      async fetch(req, server) {
         // Handle WebSocket upgrade
         const url = new URL(req.url);
 
-        if (url.pathname === '/ws' || url.pathname === '/') {
+        // The game's socket; '/' too when no client is served here (local development)
+        if (url.pathname === '/ws' || (url.pathname === '/' && !staticDir)) {
           const upgraded = server.upgrade(req, {
             data: {
               connectionId: `conn-${self.idCounter++}`,
@@ -122,6 +128,8 @@ export class BunWebSocketServer extends WebSocketServer {
             headers: { 'Content-Type': 'application/json' },
           });
         }
+
+        if (staticDir) return serveStatic(staticDir, url.pathname);
 
         return new Response('Siege Game Server', { status: 200 });
       },
@@ -205,4 +213,20 @@ export class BunWebSocketServer extends WebSocketServer {
   getPort(): number | null {
     return this.server?.port ?? null;
   }
+}
+
+/**
+ * A file of the built client: `/` is index.html; paths can't leave the
+ * folder. Vite's hashed assets are cached for a long time, the pages not.
+ */
+async function serveStatic(root: string, pathname: string): Promise<Response> {
+  const relative = decodeURIComponent(pathname === '/' ? '/index.html' : pathname);
+  const path = resolve(join(root, relative));
+  if (path !== root && !path.startsWith(root + sep)) return new Response('Not found', { status: 404 });
+  const file = Bun.file(path);
+  if (!(await file.exists())) return new Response('Not found', { status: 404 });
+  const hashed = relative.startsWith('/assets/') && /-[A-Za-z0-9_-]{8,}\.(js|css)$/.test(relative);
+  return new Response(file, {
+    headers: { 'Cache-Control': hashed ? 'public, max-age=31536000, immutable' : 'no-cache' },
+  });
 }
