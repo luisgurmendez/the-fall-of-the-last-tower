@@ -21,6 +21,7 @@ import {
   TEAM_RED,
   calculateMagicDamage,
   getAbilityDefinition,
+  getPassiveDefinition,
   type ItemSlot,
   type Side,
 } from '@siege/shared';
@@ -615,5 +616,14 @@ describe('Protobot R: Overload', () => {
       expect(arena.castAbility(arena.blue, 'R').success).toBe(false);
       expect(arena.blue.resource).toBe(mana);
     }
+  });
+});
+
+describe('Protobot passive in the HUD', () => {
+  test('Machine Learning counts its lessons, up to its max, so the HUD shows them', () => {
+    const passive = getPassiveDefinition(CHAMPION_DEFINITIONS.protobot.passive)!;
+    expect(passive.usesStacks).toBe(true);
+    expect(passive.maxStacks).toBe(PROTOBOT_MACHINE.maxLessons);
+    expect(passive.stackName).toBe('Lessons');
   });
 });

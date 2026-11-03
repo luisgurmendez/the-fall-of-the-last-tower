@@ -180,6 +180,10 @@ export const ProtobotPassive: PassiveAbilityDefinition = {
   description:
     "Each time an enemy champion damages you (at most once a second) you learn from it: 3 armor and magic resist for 6 seconds, up to 6 times.",
   trigger: "always",
+  // The lessons it holds (ProtobotHooks keeps passiveState.stacks), shown on the HUD's passive
+  usesStacks: true,
+  maxStacks: PROTOBOT_MACHINE.maxLessons,
+  stackName: "Lessons",
 };
 
 // =============================================================================
