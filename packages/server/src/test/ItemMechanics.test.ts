@@ -310,7 +310,7 @@ describe('Stacking items and assists', () => {
     expect(blue.items[0]?.stacks).toBe(1);
   });
 
-  test('an ally that hurt the victim in the last 10 seconds gets an assist and gold', () => {
+  test('an ally that hurt the victim in the last 15 seconds gets an assist and gold', () => {
     const { blue, red, context } = meleeArena();
     const ally = addAlly(context, 'ally', new Vector(0, 50));
     give(ally, 'soulbinder_tome');
@@ -322,6 +322,24 @@ describe('Stacking items and assists', () => {
     expect(ally.assists).toBe(1);
     expect(ally.gold - gold).toBe(150);
     expect(ally.items[0]?.stacks).toBe(1);
+  });
+
+  test('a tower finishing a champion hurt in the last 15 seconds gives the kill to the one who hurt it', () => {
+    const { blue, red, context } = meleeArena();
+    red.takeDamage(10, 'true', blue.id, context);
+    for (let i = 0; i < 14 * 30; i++) context.advanceTime(1 / 30);
+    red.takeDamage(red.health + 10, 'true', 'tower-red-mid-1', context);
+    expect(red.isDead).toBe(true);
+    expect(blue.kills).toBe(1);
+  });
+
+  test('after 15 seconds the tower keeps the kill', () => {
+    const { blue, red, context } = meleeArena();
+    red.takeDamage(10, 'true', blue.id, context);
+    for (let i = 0; i < 16 * 30; i++) context.advanceTime(1 / 30);
+    red.takeDamage(red.health + 10, 'true', 'tower-red-mid-1', context);
+    expect(red.isDead).toBe(true);
+    expect(blue.kills).toBe(0);
   });
 });
 

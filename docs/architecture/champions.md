@@ -135,9 +135,10 @@ hood that reaches above the height the definition gives no longer sits under the
 
 Items add stats of their own: penetration, crit, life steal, omnivamp, heal and shield
 power and tenacity (`ItemCombatStats`; see [items.md](items.md#stats)). Basic attacks
-crit with `critChance` for `critDamage` times their damage. A champion's kills award
-assists to the enemies that hurt it in the last 10 seconds (and half the kill gold among
-them).
+crit with `critChance` for `critDamage` times their damage. A champion's death counts
+the enemy champions that hurt it in the last 15 seconds: if a tower, minion or monster
+lands the last hit, the kill goes to the one of them that hurt it last (so nothing steals
+it), and the others get assists (and half the kill gold among them).
 
 ```typescript
 function calculateStat(

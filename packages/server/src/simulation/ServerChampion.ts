@@ -136,10 +136,10 @@ export class ServerChampion extends ServerEntity {
   damageKind: DamageKind = 'ability';
   /** The basic attack it's dealing is a critical strike */
   dealingCrit = false;
-  /** Enemy champions that hurt it, with the game time they last did (for assists) */
+  /** Enemy champions that hurt it, with the game time they last did (for kills and assists) */
   private readonly recentAttackers = new Map<string, number>();
-  /** How long a hit counts toward an assist (seconds) */
-  private static readonly ASSIST_WINDOW = 10;
+  /** How long a hit counts toward the kill or an assist (seconds) */
+  private static readonly TAKEDOWN_WINDOW = 15;
 
   // Abilities
   abilityRanks: Record<AbilitySlot, number> = { Q: 0, W: 0, E: 0, R: 0 };
@@ -836,7 +836,8 @@ export class ServerChampion extends ServerEntity {
   /**
    * Handle death.
    */
-  protected override onDeath(killerId?: string, context?: ServerGameContext): void {
+  protected override onDeath(lastHitterId?: string, context?: ServerGameContext): void {
+    const killerId = context ? this.creditedKiller(lastHitterId, context) : lastHitterId;
     super.onDeath(killerId, context);
     this.cancelCast(context);
     this.deaths++;
@@ -1099,7 +1100,28 @@ export class ServerChampion extends ServerEntity {
   }
 
   /**
-   * Enemy champions that hurt it within the assist window, other than the
+   * Who gets the kill: the last hitter if it's an enemy champion; otherwise
+   * (a tower, a minion, a monster) the enemy champion that hurt it last
+   * within the takedown window, so they don't steal it; else the last hitter.
+   */
+  private creditedKiller(lastHitterId: string | undefined, context: ServerGameContext): string | undefined {
+    const lastHitter = lastHitterId ? context.getEntity(lastHitterId) : undefined;
+    if (lastHitter instanceof ServerChampion && lastHitter.side !== this.side) return lastHitterId;
+    const now = context.getGameTime();
+    let credited: string | undefined;
+    let latest = -Infinity;
+    for (const [championId, at] of this.recentAttackers) {
+      if (now - at > ServerChampion.TAKEDOWN_WINDOW || at <= latest) continue;
+      const champion = context.getEntity(championId);
+      if (!(champion instanceof ServerChampion) || champion.side === this.side) continue;
+      credited = championId;
+      latest = at;
+    }
+    return credited ?? lastHitterId;
+  }
+
+  /**
+   * Enemy champions that hurt it within the takedown window, other than the
    * killer, get an assist, a share of half the kill's gold, and their items'
    * takedown (Soulbinder Tome...).
    */
@@ -1107,7 +1129,7 @@ export class ServerChampion extends ServerEntity {
     const now = context.getGameTime();
     const assistants: ServerChampion[] = [];
     for (const [championId, at] of this.recentAttackers) {
-      if (championId === killer?.id || now - at > ServerChampion.ASSIST_WINDOW) continue;
+      if (championId === killer?.id || now - at > ServerChampion.TAKEDOWN_WINDOW) continue;
       const champion = context.getEntity(championId);
       if (champion instanceof ServerChampion && champion.side !== this.side) assistants.push(champion);
     }
