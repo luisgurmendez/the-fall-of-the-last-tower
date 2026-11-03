@@ -27,6 +27,8 @@ export interface ServerEffectDefinition {
   healingReduction?: number;
   /** Share of every slow on the holder it shrugs off while it lasts (ChampionStats) */
   slowResist?: number;
+  /** Share more magic damage the holder takes from the effect's source while it lasts (ChampionEffects) */
+  damageAmpMagic?: number;
 }
 
 /**
@@ -885,10 +887,9 @@ export const LumeGuidingGlowSpeedEffect: ServerStatEffectDef = {
   percentValue: 0.15, // +15% movement speed
 };
 
-// Lume Passive - Damage amplification debuff for enemies near orb
-// Note: This effect marks enemies for increased magic damage from Lume
-// The actual damage amp is calculated in damage calculation
-export const LumeGuidingGlowAmpEffect: ServerEffectDefinition & { damageAmpMagic: number } = {
+// Lume Passive - Damage amplification debuff for enemies near orb: they take
+// more magic damage from Lume (its source), in ServerChampion.takeDamage
+export const LumeGuidingGlowAmpEffect: ServerEffectDefinition = {
   id: 'lume_guiding_glow_amp',
   name: 'Exposed by Light',
   category: 'debuff',

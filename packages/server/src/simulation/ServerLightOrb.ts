@@ -169,10 +169,11 @@ export class ServerLightOrb extends ServerEntity {
       return;
     }
 
-    // If owner is dead, destroy the orb
-    if (owner.isDead && this._state !== 'destroyed') {
-      this.destroy();
+    // While its owner is dead the orb is gone (however long that is), and nothing more
+    if (owner.isDead) {
+      if (this._state !== 'destroyed') this.destroy();
       this.ownerWasDead = true;
+      return;
     }
 
     // If owner just respawned (was dead, now alive), respawn the orb immediately

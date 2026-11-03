@@ -294,6 +294,11 @@ Minions aren't taunted (the roar has `affectsMinions: false`).
 speed effect with a negative value) by that share while it lasts: Vile's Dark Resilience,
 after his Veil, halves them. The strongest counts (`ChampionStats`).
 
+**Damage amplification**: an effect's `damageAmpMagic` makes its holder take that share
+more magic damage from the effect's source (its `sourceId`) while it lasts: Lume's Guiding
+Glow, on enemy champions near her orb, adds 8% to hers. The strongest counts
+(`ChampionEffects.damageAmpFrom`, applied in `ServerChampion.takeDamage` before resistances).
+
 **Stasis** (`ccType: 'stasis'`, effect `item_stasis`, Hourglass of Stillness): the
 champion is frozen like a stun and invulnerable; clients draw a golden shell and the
 label STASIS. See [items.md](items.md) for the item effects.

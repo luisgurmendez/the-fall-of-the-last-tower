@@ -12,7 +12,7 @@
  * - Shield decay and damage absorption
  */
 
-import { GameConfig, type ActiveEffectState, type CrowdControlStatus } from '@siege/shared';
+import { GameConfig, type ActiveEffectState, type CrowdControlStatus, type DamageType } from '@siege/shared';
 import {
   getServerEffectById,
   isCCEffect,
@@ -450,6 +450,21 @@ export class ChampionEffects {
       reduction = Math.max(reduction, getServerEffectById(effect.definitionId)?.healingReduction ?? 0);
     }
     return reduction;
+  }
+
+  /**
+   * How much more damage of `type` the champion takes from `sourceId`: the
+   * strongest of the effects that source put on it that amplify that damage
+   * (Lume's Guiding Glow: her magic damage).
+   */
+  damageAmpFrom(sourceId: string, type: DamageType): number {
+    if (type !== 'magic') return 0;
+    let amp = 0;
+    for (const effect of this.champion.activeEffects) {
+      if (effect.sourceId !== sourceId) continue;
+      amp = Math.max(amp, getServerEffectById(effect.definitionId)?.damageAmpMagic ?? 0);
+    }
+    return amp;
   }
 
   /**

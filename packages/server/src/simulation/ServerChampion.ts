@@ -721,8 +721,10 @@ export class ServerChampion extends ServerEntity {
 
     const source = sourceId && context ? context.getEntity(sourceId) : undefined;
     if (context && source) {
-      // The source's items may raise it; this champion's may block or lower it (Veil, Bark...)
-      amount = this.itemPassives.reduceIncomingDamage(source.amplifyDamageTo(this, amount, context), source, context);
+      // The source's items may raise it, and so may its effects on this champion (Lume's
+      // Guiding Glow); this champion's items may block or lower it (Veil, Bark...)
+      const raised = source.amplifyDamageTo(this, amount, context) * (1 + this.effects.damageAmpFrom(source.id, type));
+      amount = this.itemPassives.reduceIncomingDamage(raised, source, context);
       if (amount <= 0) return 0;
       if (source instanceof ServerChampion && source.side !== this.side) {
         this.recentAttackers.set(source.id, context.getGameTime());
