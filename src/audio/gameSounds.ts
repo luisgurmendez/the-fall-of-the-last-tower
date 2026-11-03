@@ -47,7 +47,9 @@ function playAbilitySound(data: Record<string, unknown>, ctx: SoundContext): voi
   const abilityId = data.abilityId as string;
   const cues: AbilityCue[] = ABILITY_CUES[abilityId] ?? (abilityId in SOUNDS ? [{ sound: abilityId as SoundKey }] : []);
   if (cues.length === 0) return;
-  const caster = at(ctx.entities.get(data.entityId as string));
+  // Where it was, from something this client never had (an enemy's stealthed trap): the server says
+  const place = typeof data.x === "number" && typeof data.y === "number" ? { x: data.x, y: data.y } : undefined;
+  const caster = at(ctx.entities.get(data.entityId as string)) ?? place;
   const unit = typeof data.targetEntityId === "string" ? at(ctx.entities.get(data.targetEntityId)) : undefined;
   if (!caster && !unit) return;
   const aimed = typeof data.targetX === "number" && typeof data.targetY === "number" ? { x: data.targetX, y: data.targetY } : undefined;

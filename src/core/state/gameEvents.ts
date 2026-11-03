@@ -238,6 +238,15 @@ export function processGameEvent(event: GameEvent, ctx: GameEventContext): void 
         } catch {
           // VFXManager not initialized yet, skip
         }
+      } else if (typeof event.data.x === 'number' && typeof event.data.y === 'number') {
+        // From something this client never had (an enemy's stealthed trap
+        // springing or bursting): its look where the server says it was
+        try {
+          getVFXManager().spawnAbilityVFX(abilityId, event.data.x, event.data.y, targetX, targetY, undefined,
+            (event.data.targetEntityId as string | undefined) ?? undefined);
+        } catch {
+          // VFXManager not initialized yet, skip
+        }
       }
       break;
     }
