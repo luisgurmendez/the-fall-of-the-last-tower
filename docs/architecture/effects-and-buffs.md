@@ -469,6 +469,15 @@ export const RootEffect: CrowdControlEffectDef = {
 
 ## Cleansing Effects
 
+A cleanse goes by what an effect is (its `category`, `cleansable` and `ccType` in
+`packages/server/src/data/effects.ts`), never by its id. Knockups and suppression are
+`cleansable: false`. Elara's Divine Intervention (`ElaraRHandler`) takes off her allies the
+cleansable debuffs an enemy put on them (an effect with no known source counts as an
+enemy's): crowd control, slows, poisons (Elora's, Zhak'rul's), armor shred, summoners' and
+items' debuffs; never airborne (knockup, knockback) or suppression, buffs (Elora's poisoned
+arrow, Vile's slow resist), or what her team put on itself. The Cleanse summoner spell and
+item actives call `ServerChampion.cleanse()`:
+
 ```typescript
 function cleanseEffects(champion: ServerChampion): void {
   champion.activeEffects = champion.activeEffects.filter(effect => {

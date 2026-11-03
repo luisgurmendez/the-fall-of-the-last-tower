@@ -1,20 +1,31 @@
 /**
  * ElaraRHandler - Divine Intervention
  *
- * Heal all allies in range and cleanse all debuffs.
+ * Heal all allies in range and cleanse their debuffs.
  *
  * SPECIAL MECHANICS:
- * - AoE heal centered on Elara
- * - Removes all debuffs (CC, slows, etc.) from affected allies
+ * - AoE heal centered on Elara (allied units: champions and minions)
+ * - Cleanses what an effect is, not what it's called: the cleansable
+ *   debuffs (effects.ts) an enemy put on them, crowd control, slows,
+ *   poisons, armor shred, summoners' and items' debuffs. Airborne
+ *   (knockups, knockbacks) and suppression stay, as do buffs and what her
+ *   team put on itself
  */
 
+import type { ActiveEffectState } from '@siege/shared';
 import { BaseAbilityHandler } from '../../BaseAbilityHandler';
 import type {
   AbilityHandlerParams,
   AbilityExecutionResult,
 } from '../../IAbilityHandler';
 import type { ServerChampion } from '../../../simulation/ServerChampion';
+import type { ServerEntity } from '../../../simulation/ServerEntity';
+import type { ServerGameContext } from '../../../game/ServerGameContext';
+import { getServerEffectById, isCCEffect } from '../../../data/effects';
 import { Logger } from '../../../utils/Logger';
+
+/** Crowd control a cleanse doesn't remove: airborne and suppression */
+const UNCLEANSED_CC = new Set(['knockup', 'knockback', 'suppress']);
 
 export class ElaraRHandler extends BaseAbilityHandler {
   readonly abilityId = 'elara_resurrection';
@@ -44,10 +55,9 @@ export class ElaraRHandler extends BaseAbilityHandler {
         alliesHealed++;
       }
 
-      // Cleanse all debuffs
+      // Cleanse the debuffs enemies put on it
       if ('activeEffects' in entity) {
-        const cleansedCount = this.cleanseDebuffs(entity as ServerChampion);
-        debuffsCleansed += cleansedCount;
+        debuffsCleansed += this.cleanseDebuffs(entity as ServerChampion, context);
       }
     }
 
@@ -59,57 +69,35 @@ export class ElaraRHandler extends BaseAbilityHandler {
   }
 
   /**
-   * Remove all debuff effects from a champion.
+   * Remove the debuffs a cleanse takes off a unit.
    * Returns the number of effects cleansed.
    */
-  private cleanseDebuffs(champion: ServerChampion): number {
-    if (!champion.activeEffects) return 0;
+  private cleanseDebuffs(unit: ServerChampion, context: ServerGameContext): number {
+    if (!unit.activeEffects) return 0;
 
-    const initialCount = champion.activeEffects.length;
-
-    // Remove all negative effects (stuns, slows, roots, etc.)
-    champion.activeEffects = champion.activeEffects.filter(effect => {
-      // Keep buff effects, remove debuffs
-      const isDebuff = this.isDebuffEffect(effect.definitionId);
-      return !isDebuff;
-    });
+    const initialCount = unit.activeEffects.length;
+    unit.activeEffects = unit.activeEffects.filter(effect => !isCleansed(effect, unit, context));
 
     // Champions reset CC status and stats right away, so a cleansed stun ends
     // this tick (minions pick it up on their next effects update)
-    if (typeof (champion as Partial<ServerChampion>).refreshEffectState === 'function') {
-      champion.refreshEffectState();
+    if (typeof (unit as Partial<ServerChampion>).refreshEffectState === 'function') {
+      unit.refreshEffectState();
     }
 
-    return initialCount - champion.activeEffects.length;
+    return initialCount - unit.activeEffects.length;
   }
+}
 
-  /**
-   * Check if an effect ID represents a debuff.
-   */
-  private isDebuffEffect(effectId: string): boolean {
-    // Debuff patterns
-    const debuffPatterns = [
-      'stun',
-      'slow',
-      'root',
-      'silence',
-      'blind',
-      'taunt',
-      'knockup',
-      'airborne',
-      'ground',
-      'charm',
-      'fear',
-      'suppress',
-      'poison',
-      'burn',
-      'bleed',
-      'wound',
-      '_mark',
-      '_debuff',
-    ];
-
-    const lowerEffectId = effectId.toLowerCase();
-    return debuffPatterns.some(pattern => lowerEffectId.includes(pattern));
-  }
+/**
+ * Whether Divine Intervention takes an effect off a unit: a cleansable
+ * debuff, not airborne or suppression, that an enemy put on it (one with no
+ * known source counts as an enemy's).
+ */
+function isCleansed(effect: ActiveEffectState, holder: ServerEntity, context: ServerGameContext): boolean {
+  const def = getServerEffectById(effect.definitionId);
+  if (!def || def.category !== 'debuff' || !def.cleansable) return false;
+  if (isCCEffect(def) && UNCLEANSED_CC.has(def.ccType)) return false;
+  if (effect.sourceId === holder.id) return false;
+  const source = effect.sourceId ? context.getEntity(effect.sourceId) : undefined;
+  return source?.side !== holder.side;
 }
