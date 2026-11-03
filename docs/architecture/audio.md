@@ -47,6 +47,7 @@ played with the Web Audio API, heard from the camera.
 | A champion crawls through a jungle tunnel | `jungle_tunnel` at the mouth it goes in by, then at the other as it comes out | `ABILITY_CAST` `jungle_tunnel` (`ABILITY_CUES`) |
 | A jungle monster gives up the fight (it resets and walks home) | `monster_reset` | the creature's `isReturning` |
 | Ward placed | `ward_place` | a ward added with `age` under 0.6 s |
+| A teammate's (or our) ping, an emote | `ping_<type>` (`ui`: heard wherever the camera is), `emote_pop` at the champion | `PING`, `EMOTE` ([signals.md](signals.md)) |
 | Recall | `recall_channel` building up over the 8 s (stopped if cancelled), then `recall_depart` (the beam up, the "jiiiuuu") where it was and `recall_arrive` in the base | the champion's `isRecalling` |
 | Ambience | `amb_river` (full within 250 of the river's middle line, gone by 800), `amb_jungle` (in either jungle) | `updateAmbience` |
 

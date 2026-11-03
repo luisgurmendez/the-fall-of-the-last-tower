@@ -128,6 +128,15 @@ export function playEventSound(event: GameEvent, ctx: SoundContext): void {
     case GameEventType.INHIBITOR_RESPAWNED:
       audio.play(data.side === ctx.localSide ? "stinger_good" : "stinger_bad");
       break;
+    case GameEventType.PING:
+      // Only the team gets pings: heard wherever the camera is
+      audio.play(`ping_${data.pingType as string}` as SoundKey);
+      break;
+    case GameEventType.EMOTE: {
+      const entity = ctx.entities.get(data.entityId as string);
+      if (entity) audio.play("emote_pop", at(entity));
+      break;
+    }
   }
 }
 

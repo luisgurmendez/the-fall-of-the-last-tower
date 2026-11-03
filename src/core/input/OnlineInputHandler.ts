@@ -15,6 +15,7 @@ import type GameContext from "@/core/gameContext";
 import { InputManager, MouseButton } from "@/core/input/InputManager";
 import Vector from "@/physics/vector";
 import type { NetworkClient } from "@siege/client";
+import { isPingModifierDown } from "@/ui/SignalWheel";
 import type { AbilitySlot } from "@siege/shared";
 import { EntityType, GameConfig, MOBAConfig, getAbilityDefinition, getChampionDefinition, hasChargeBehavior, type WardType } from "@siege/shared";
 import type {
@@ -312,9 +313,13 @@ export class OnlineInputHandler implements GameObject {
       }
     }
 
+    // A left-click with the ping key held pings (SignalWheel)
+    const pinging = isPingModifierDown(this.inputManager);
+
     // Handle entity selection (left-click when NOT holding A)
     if (
       !minimapTarget &&
+      !pinging &&
       !this.inputManager.isKeyDown("a") &&
       this.inputManager.isMouseButtonJustPressed(MouseButton.LEFT)
     ) {
@@ -323,6 +328,7 @@ export class OnlineInputHandler implements GameObject {
 
     // Handle attack-move (A + left-click, on the map or the minimap)
     if (
+      !pinging &&
       this.inputManager.isKeyDown("a") &&
       this.inputManager.isMouseButtonJustPressed(MouseButton.LEFT)
     ) {

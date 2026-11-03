@@ -19,6 +19,8 @@ import {
   type GameEvent,
   type AbilitySlot,
   type WardType,
+  type PingType,
+  type EmoteId,
   type GameEndData,
   type DebugStateData,
   type LobbyRequest,
@@ -362,6 +364,28 @@ export class NetworkClient {
       seq: ++this.inputSeq,
       clientTime: Date.now(),
       type: InputType.RECALL,
+    });
+  }
+
+  /** Ping the map for the team */
+  sendPingInput(pingType: PingType, x: number, y: number): void {
+    this.sendInput({
+      seq: ++this.inputSeq,
+      clientTime: Date.now(),
+      type: InputType.PING,
+      pingType,
+      x,
+      y,
+    });
+  }
+
+  /** Show an emote over the champion */
+  sendEmoteInput(emote: EmoteId): void {
+    this.sendInput({
+      seq: ++this.inputSeq,
+      clientTime: Date.now(),
+      type: InputType.EMOTE,
+      emote,
     });
   }
 

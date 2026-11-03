@@ -36,6 +36,7 @@ import {
 import { AbilityEffects, type AbilityEffect } from './state/abilityEffects';
 import { Corpses, type Corpse } from './state/corpses';
 import { KillFeed, type KillRecord } from './state/killFeed';
+import { Signals } from './state/signals';
 import {
   FloatingNumbers,
   type DamageNumber,
@@ -93,6 +94,8 @@ export class OnlineStateManager {
   // Big moments to announce on screen (dragon slain, ...)
   private readonly announcements = new Announcements();
   private readonly killFeed = new KillFeed();
+  /** Pings and emotes */
+  private readonly signals = new Signals();
 
   // Death, respawn, level up and recall effects
   private readonly entityVFX = new EntityVFX();
@@ -181,6 +184,7 @@ export class OnlineStateManager {
       campTimers: this.campTimers,
       announcements: this.announcements,
       killFeed: this.killFeed,
+      signals: this.signals,
       damageTaken: this.damageTaken,
       scores: this.scores,
     };
@@ -343,6 +347,11 @@ export class OnlineStateManager {
   }
 
   /** The latest champion kills, for the kill feed */
+  /** The pings on the map and the emotes over champions */
+  getSignals(): Signals {
+    return this.signals;
+  }
+
   getKillFeed(now = Date.now()): readonly KillRecord[] {
     return this.killFeed.getActive(now);
   }

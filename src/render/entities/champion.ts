@@ -278,6 +278,7 @@ export class ChampionRenderer {
     // the height its definition gives)
     const artTop = body?.getTop?.();
     if (artTop != null) healthBarYOffset = Math.min(healthBarYOffset, artTop - HEALTH_BAR_PADDING);
+    this.rc.championHeads.set(snapshot.entityId, healthBarYOffset);
 
     if (body) {
       renderedWithSprite = body.render(ctx, snapshot, state);

@@ -71,7 +71,7 @@ export enum InputType {
   SELL_ITEM = 7,
   /** Recall to base */
   RECALL = 8,
-  /** Ping map */
+  /** Ping the map for the team (PingInput) */
   PING = 9,
   /** Chat message */
   CHAT = 10,
@@ -83,6 +83,8 @@ export enum InputType {
   SUMMONER_SPELL = 13,
   /** Use the item in a slot: its active or a consumable (keys 1, 2, 3, 6, 7, 8) */
   USE_ITEM = 14,
+  /** Show an emote over the champion (EmoteInput) */
+  EMOTE = 15,
 }
 
 /**
@@ -169,14 +171,30 @@ export interface RecallInput extends InputMessage {
   type: InputType.RECALL;
 }
 
+/** The pings: a plain one (look here) and the ping wheel's four */
+export const PING_TYPES = ['look', 'danger', 'on_my_way', 'missing', 'assist'] as const;
+export type PingType = typeof PING_TYPES[number];
+
 /**
- * Ping input.
+ * A ping: a mark on the map (and the minimap) for the team.
  */
 export interface PingInput extends InputMessage {
   type: InputType.PING;
-  pingType: 'missing' | 'danger' | 'assist' | 'on_my_way' | 'enemy_vision' | 'retreat';
+  pingType: PingType;
   x: number;
   y: number;
+}
+
+/** The emotes (the emote wheel) */
+export const EMOTES = ['laugh', 'cool', 'angry', 'cry', 'shock', 'heart', 'thumbs_up', 'gg'] as const;
+export type EmoteId = typeof EMOTES[number];
+
+/**
+ * An emote: shown over the champion for a moment, to whoever sees it.
+ */
+export interface EmoteInput extends InputMessage {
+  type: InputType.EMOTE;
+  emote: EmoteId;
 }
 
 /**
@@ -237,6 +255,7 @@ export type ClientInput =
   | SellItemInput
   | RecallInput
   | PingInput
+  | EmoteInput
   | PlaceWardInput
   | SummonerSpellInput
   | UseItemInput
@@ -719,6 +738,10 @@ export enum GameEventType {
   ABILITY_WINDUP = 20,
   /** A cast in its cast time was cancelled ({ entityId, abilityId, slot }) */
   ABILITY_INTERRUPTED = 21,
+  /** A champion pinged ({ entityId, side, championId, pingType, x, y }); only its team gets it */
+  PING = 22,
+  /** A champion's emote ({ entityId, side, emote }); only its team and who sees it get it */
+  EMOTE = 23,
 }
 
 /**

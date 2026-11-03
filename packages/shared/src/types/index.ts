@@ -131,6 +131,9 @@ export type {
   SellItemInput,
   RecallInput,
   PingInput,
+  PingType,
+  EmoteInput,
+  EmoteId,
   PlaceWardInput,
   SummonerSpellInput,
   UseItemInput,
@@ -176,6 +179,8 @@ export {
   ServerMessageType,
   ClientMessageType,
   LOBBY_MAX_TEAM_SIZE,
+  PING_TYPES,
+  EMOTES,
 } from './network';
 
 // Minion types

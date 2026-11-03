@@ -76,6 +76,7 @@ For detailed documentation on the multiplayer MOBA systems, see the following fi
 | **Audio** | [docs/architecture/audio.md](docs/architecture/audio.md) | Sound effects and ambience: generation (ElevenLabs), the engine, heard from the camera |
 | **Deploy** | [docs/architecture/deploy.md](docs/architecture/deploy.md) | Playing online: the server serving the built client, Docker, Fly.io |
 | **Debug mode** | [docs/architecture/debug.md](docs/architecture/debug.md) | F3 in practice: what the server thinks about each unit (paths, targets, ranges, states, bots' decisions) |
+| **Pings & Emotes** | [docs/architecture/signals.md](docs/architecture/signals.md) | The ping wheel (Alt/G + click), the emote wheel (T), who gets them, how they're drawn |
 
 ### Quick Reference
 
@@ -116,6 +117,7 @@ For detailed documentation on the multiplayer MOBA systems, see the following fi
 | Summoner spells | `summoner-spells.md` |
 | Sounds, the audio engine | `audio.md` |
 | The debug overlay, a unit's debug info | `debug.md` |
+| Pings, emotes | `signals.md` |
 | The Dockerfile, fly.toml, serving the client | `deploy.md` |
 
 **When adding new systems**, create a new doc file in `docs/architecture/` and add a reference here.
@@ -218,6 +220,7 @@ Captures player input and sends to server:
 - D / F → Summoner spells
 - 1 / 2 / 3 / 6 / 7 / 8 → Use the item in each inventory slot (actives, potions; see docs/architecture/items.md)
 - 4 / 5 → Hold to aim a ward / control ward (bought in the shop), release to place it
+- Alt (or G) + left-click → Ping (drag for the ping wheel); hold T → the emote wheel (`src/ui/SignalWheel.ts`, see docs/architecture/signals.md)
 
 Escape opens the in-match menu (`src/ui/GameMenu.ts`: resume, surrender).
 

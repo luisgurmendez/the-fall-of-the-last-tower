@@ -23,6 +23,9 @@ import { EntityType } from '@siege/shared';
 import type { OnlineStateManager, InterpolatedEntity } from '@/core/OnlineStateManager';
 import { getPortraitCanvas } from '@/ui/matchmaking/portraits';
 import { drawPixelArt } from '@/render/pixelArt';
+import { pingIcon, PING_STYLE } from '@/ui/signalIcons';
+import { isPingModifierDown } from '@/ui/SignalWheel';
+import { PING_DURATION } from '@/core/state/signals';
 import { Dimensions } from '@/core/canvas';
 
 /** Radius of a champion's portrait on the minimap */
@@ -172,8 +175,8 @@ export class OnlineMinimap extends ScreenEntity {
     const mousePos = this.inputManager.getMousePosition();
     this.isHovering = this.isInsideMinimap(mousePos.x, mousePos.y);
 
-    // Handle click to move camera
-    const justPressed = this.isHovering && this.inputManager.isLeftMouseJustPressed();
+    // Handle click to move camera (not a ping: Alt/G + click, SignalWheel)
+    const justPressed = this.isHovering && this.inputManager.isLeftMouseJustPressed() && !isPingModifierDown(this.inputManager);
     if (justPressed) {
       this.isDragging = true;
     }
@@ -210,6 +213,9 @@ export class OnlineMinimap extends ScreenEntity {
 
       // Draw respawn timers of cleared jungle camps
       this.renderCampTimers(ctx);
+
+      // Draw the team's pings
+      this.renderPings(ctx);
 
       // Draw player movement path
       this.renderPlayerPath(ctx);
@@ -360,6 +366,30 @@ export class OnlineMinimap extends ScreenEntity {
       ctx.fillRect(pos.x - 9, pos.y - 5, 18, 10);
       ctx.fillStyle = epic ? '#f5b041' : '#d5d8dc';
       ctx.fillText(String(seconds), pos.x, pos.y + 0.5);
+    }
+  }
+
+  /** The team's pings: their icon, with rings spreading in their color */
+  private renderPings(ctx: CanvasRenderingContext2D): void {
+    const now = Date.now();
+    for (const ping of this.stateManager.getSignals().getPings(now)) {
+      const pos = this.worldToMinimap(ping.x, ping.y);
+      const age = now - ping.time;
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, Math.min(1, (PING_DURATION - age) / 500));
+      ctx.strokeStyle = PING_STYLE[ping.pingType].color;
+      ctx.lineWidth = 2;
+      for (let start = 0; start <= age; start += 700) {
+        const t = (age - start) / 700;
+        if (t >= 1) continue;
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, 4 + 14 * t, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      const icon = pingIcon(ping.pingType);
+      const size = icon.width * 1.5;
+      drawPixelArt(ctx, icon, pos.x - size / 2, pos.y - size / 2, size, size);
+      ctx.restore();
     }
   }
 

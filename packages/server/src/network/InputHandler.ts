@@ -22,8 +22,13 @@ import {
   PlaceWardInput,
   SummonerSpellInput,
   UseItemInput,
+  PingInput,
+  EmoteInput,
   AbilitySlot,
   GameConfig,
+  GameEventType,
+  PING_TYPES,
+  EMOTES,
 } from '@siege/shared';
 import type { ServerChampion } from '../simulation/ServerChampion';
 import type { ServerGameContext } from '../game/ServerGameContext';
@@ -59,11 +64,19 @@ const RATE_LIMITS: Record<InputType, number> = {
   [InputType.PLACE_WARD]: 3,      // 3 per second
   [InputType.SUMMONER_SPELL]: 4,
   [InputType.USE_ITEM]: 8,
+  [InputType.EMOTE]: 2,
   [InputType.SURRENDER]: 1,       // Handled by GameRoom before queueing
 };
 
+/** Pings: at most this many in this many seconds, so a team can't be spammed */
+const PING_BURST = { count: 5, seconds: 6 };
+/** Seconds between a player's emotes */
+const EMOTE_COOLDOWN = 2;
+
 const ABILITY_SLOTS: ReadonlySet<unknown> = new Set<AbilitySlot>(['Q', 'W', 'E', 'R']);
 const WARD_TYPES: ReadonlySet<unknown> = new Set(['stealth', 'control', 'farsight']);
+const PING_TYPE_SET: ReadonlySet<unknown> = new Set(PING_TYPES);
+const EMOTE_SET: ReadonlySet<unknown> = new Set(EMOTES);
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);
@@ -124,7 +137,10 @@ function hasValidPayload(input: ClientInput): boolean {
         isOptionalFiniteNumber(data.targetY);
 
     case InputType.PING:
-      return isFiniteNumber(data.x) && isFiniteNumber(data.y);
+      return PING_TYPE_SET.has(data.pingType) && isFiniteNumber(data.x) && isFiniteNumber(data.y);
+
+    case InputType.EMOTE:
+      return EMOTE_SET.has(data.emote);
 
     default:
       return true;
@@ -136,8 +152,8 @@ export interface InputHandlerOptions {
   now?: () => number;
 }
 
-/** The inputs a dead champion still sends: the shop */
-const DEAD_CHAMPION_INPUTS: ReadonlySet<InputType> = new Set([InputType.BUY_ITEM, InputType.SELL_ITEM]);
+/** The inputs a dead champion still sends: the shop, and pings */
+const DEAD_CHAMPION_INPUTS: ReadonlySet<InputType> = new Set([InputType.BUY_ITEM, InputType.SELL_ITEM, InputType.PING]);
 
 /**
  * Whether a champion may use the shop: at its fountain, or anywhere while
@@ -160,6 +176,10 @@ export class InputHandler {
 
   // Last acknowledged sequence per player
   private lastAckedSeq: Map<string, number> = new Map();
+
+  // Each player's recent pings and last emote (game time), for their limits
+  private recentPings: Map<string, number[]> = new Map();
+  private lastEmoteAt: Map<string, number> = new Map();
 
   constructor(options: InputHandlerOptions = {}) {
     this.now = options.now ?? Date.now;
@@ -209,7 +229,7 @@ export class InputHandler {
 
       // Process inputs in order
       for (const pending of queue) {
-        // A dead champion can still shop, nothing else
+        // A dead champion can still shop and ping, nothing else
         if (champion.isDead && !DEAD_CHAMPION_INPUTS.has(pending.input.type)) continue;
         this.processInput(champion, pending.input, context);
         this.lastAckedSeq.set(playerId, pending.input.seq);
@@ -284,7 +304,49 @@ export class InputHandler {
         champion.itemActives.use(slot, target, context);
         break;
       }
+
+      case InputType.PING:
+        this.handlePingInput(champion, input as PingInput, context);
+        break;
+
+      case InputType.EMOTE:
+        this.handleEmoteInput(champion, input as EmoteInput, context);
+        break;
     }
+  }
+
+  /**
+   * A ping, for the champion's team (GameRoom sends PING events to its side
+   * only), unless it pinged too much lately.
+   */
+  private handlePingInput(champion: ServerChampion, input: PingInput, context: ServerGameContext): void {
+    const now = context.getGameTime();
+    const recent = (this.recentPings.get(champion.playerId) ?? []).filter(time => now - time < PING_BURST.seconds);
+    this.recentPings.set(champion.playerId, recent);
+    if (recent.length >= PING_BURST.count) return;
+    recent.push(now);
+
+    const half = context.mapConfig.MAP_SIZE.width / 2;
+    context.addEvent(GameEventType.PING, {
+      entityId: champion.id,
+      side: champion.side,
+      championId: champion.definition.id,
+      pingType: input.pingType,
+      x: Math.max(-half, Math.min(half, input.x)),
+      y: Math.max(-half, Math.min(half, input.y)),
+    });
+  }
+
+  /**
+   * An emote over the champion (GameRoom sends EMOTE events to its team and
+   * to whoever sees it), at most one every EMOTE_COOLDOWN seconds.
+   */
+  private handleEmoteInput(champion: ServerChampion, input: EmoteInput, context: ServerGameContext): void {
+    const now = context.getGameTime();
+    const last = this.lastEmoteAt.get(champion.playerId);
+    if (last !== undefined && now - last < EMOTE_COOLDOWN) return;
+    this.lastEmoteAt.set(champion.playerId, now);
+    context.addEvent(GameEventType.EMOTE, { entityId: champion.id, side: champion.side, emote: input.emote });
   }
 
   /**
@@ -540,5 +602,7 @@ export class InputHandler {
     this.inputQueues.delete(playerId);
     this.rateLimitTracking.delete(playerId);
     this.lastAckedSeq.delete(playerId);
+    this.recentPings.delete(playerId);
+    this.lastEmoteAt.delete(playerId);
   }
 }

@@ -93,6 +93,9 @@ export class InputManager {
         e.preventDefault();
       }
 
+      // Alt (with a click) pings: left to the browser, a lone Alt would focus its menu bar
+      if (e.key === 'Alt') e.preventDefault();
+
       if (!this.keysDown.has(e.key)) {
         this.keysJustPressed.add(e.key);
       }
@@ -100,9 +103,15 @@ export class InputManager {
     };
 
     const onKeyUp = (e: KeyboardEvent) => {
-      if (e.key === 'Tab') e.preventDefault();
+      if (e.key === 'Tab' || e.key === 'Alt') e.preventDefault();
       this.keysDown.delete(e.key);
       this.keysJustReleased.add(e.key);
+    };
+
+    // Alt (pings) as the mouse says: right even when its key went up outside the window
+    const syncAlt = (e: MouseEvent) => {
+      if (e.altKey) this.keysDown.add('Alt');
+      else this.keysDown.delete('Alt');
     };
 
     // Mouse events
@@ -110,9 +119,11 @@ export class InputManager {
       const rect = canvas.getBoundingClientRect();
       this.mousePosition.x = e.clientX - rect.left;
       this.mousePosition.y = e.clientY - rect.top;
+      syncAlt(e);
     };
 
     const onMouseDown = (e: MouseEvent) => {
+      syncAlt(e);
       if (!this.mouseButtons.has(e.button)) {
         this.mouseButtonsJustPressed.add(e.button);
       }

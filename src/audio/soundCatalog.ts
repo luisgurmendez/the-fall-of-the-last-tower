@@ -223,6 +223,14 @@ export const SOUNDS = {
   stinger_good: { prompt: `a short triumphant brass fanfare hit, game notification`, duration: 1.5, bus: "ui", volume: 0.5, maxVoices: 1 },
   stinger_bad: { prompt: `a short ominous low brass hit, game notification`, duration: 1.5, bus: "ui", volume: 0.5, maxVoices: 1 },
 
+  // Pings (heard by the team wherever the camera is) and emotes
+  ping_look: { prompt: `a short soft bright blip, a single clean notification tone, ${DRY}`, duration: 0.5, bus: "ui", volume: 0.5, maxVoices: 2 },
+  ping_danger: { prompt: `a short sharp warning ping, two quick high alarm beeps, ${DRY}`, duration: 0.6, bus: "ui", volume: 0.55, maxVoices: 2 },
+  ping_on_my_way: { prompt: `a short upbeat rising whoosh with a bright chime, ${DRY}`, duration: 0.6, bus: "ui", volume: 0.5, maxVoices: 2 },
+  ping_missing: { prompt: `a short questioning two-note chime going up, curious, ${DRY}`, duration: 0.6, bus: "ui", volume: 0.5, maxVoices: 2 },
+  ping_assist: { prompt: `a short urgent bell, two quick metallic rings, ${DRY}`, duration: 0.6, bus: "ui", volume: 0.5, maxVoices: 2 },
+  emote_pop: { prompt: `a short soft cartoon bubble pop, ${DRY}`, duration: 0.5, volume: 0.45, maxVoices: 2 },
+
   // Ambience, faded in and out by where the camera is
   amb_river: { prompt: "gentle flowing river water, calm, no music", duration: 6, loop: true, bus: "ambience", volume: 0.22, maxVoices: 1 },
   amb_jungle: { prompt: "calm forest ambience with distant birds and insects, no music", duration: 8, loop: true, bus: "ambience", volume: 0.25, maxVoices: 1 },

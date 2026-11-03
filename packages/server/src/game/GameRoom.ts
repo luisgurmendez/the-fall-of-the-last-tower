@@ -29,6 +29,7 @@ import { BotDriver } from '../bots/BotDriver';
 import type { BotController } from '../bots/BotController';
 import { StateSerializer } from '../network/StateSerializer';
 import { ReliableEventQueue, shouldSendReliably } from '../network/ReliableEventQueue';
+import { reachesSide } from '../network/eventAudience';
 import type { ClientInput, DebugStateData, FinalPlayerStats } from '@siege/shared';
 import { buildDebugState } from './DebugReport';
 import { Logger } from '../utils/Logger';
@@ -251,8 +252,13 @@ export class GameRoom {
       // Get reliable events to send (new + retries)
       const reliableEventsToSend = this.reliableEventQueue.getEventsToSend(playerId, tick);
 
-      // Combine reliable events with unreliable ones
-      const eventsForPlayer = [...reliableEventsToSend, ...unreliableEvents];
+      // Combine reliable events with the unreliable ones this player gets (pings only for its team...)
+      let visibleIds: Set<string> | undefined;
+      const sees = (id: string) => (visibleIds ??= new Set(visibleEntities.map(entity => entity.id))).has(id);
+      const eventsForPlayer = [
+        ...reliableEventsToSend,
+        ...unreliableEvents.filter(event => reachesSide(event, playerInfo.side, sees)),
+      ];
 
       // Use StateSerializer for delta compression
       const update = this.stateSerializer.createStateUpdate(

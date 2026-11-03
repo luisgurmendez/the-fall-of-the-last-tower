@@ -22,6 +22,7 @@ import { LowHealthVignette } from '@/ui/LowHealthVignette';
 import { DeathOverlay } from '@/ui/DeathOverlay';
 import { TargetInfoHUD } from '@/ui/TargetInfoHUD';
 import { TabScoreboard } from '@/ui/TabScoreboard';
+import { SignalWheel } from '@/ui/SignalWheel';
 import { OnlineInputHandler } from '@/core/input/OnlineInputHandler';
 import { EntityRenderer } from '@/render/EntityRenderer';
 import { OnlineChampionAdapter } from '@/online/OnlineChampionAdapter';
@@ -180,6 +181,8 @@ export function generateOnlineLevel(config: OnlineLevelConfig): Level {
     new AnnouncementBanner(stateManager),
     // Who took down whom, in the top right
     new KillFeed(stateManager),
+    // The ping wheel (Alt/G + click) and the emote wheel (T)
+    new SignalWheel(networkClient, stateManager, (x, y) => minimap.screenToWorldIfInside(x, y)),
     // Tab scoreboard (full scoreboard overlay when Tab is held)
     tabScoreboard,
   ];

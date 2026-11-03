@@ -1,14 +1,15 @@
 /**
  * Game events from state updates, turned into client-side effects: attack and
  * cast animations, ability effects and VFX, hit sparks, screen shake,
- * floating damage/gold/XP numbers, camp timers and announcements.
+ * floating damage/gold/XP numbers, camp timers, announcements, pings and
+ * emotes.
  *
  * Floating numbers are only for the local champion, as in the classic MOBA:
  * the damage it deals or takes, and its own gold, XP and heals. Units
  * trading hits elsewhere (minions in lane) show nothing over their bars.
  */
 
-import { EntityType, GameEventType, getAbilityDefinition, getChampionDefinition, type GameEvent } from '@siege/shared';
+import { EntityType, GameEventType, getAbilityDefinition, getChampionDefinition, type EmoteId, type GameEvent, type PingType } from '@siege/shared';
 import { getVFXManager } from '@/vfx';
 import { WORLD_VFX } from '@/vfx/world';
 import { punchCamera, shakeScreen } from '@/core/screenShake';
@@ -20,6 +21,7 @@ import type { FloatingNumbers } from './floatingNumbers';
 import type { CampTimers } from './campTimers';
 import { ANNOUNCEMENT_DURATION, type Announcements } from './announcements';
 import type { DamageTaken } from './damageTaken';
+import type { Signals } from './signals';
 import { spawnWorldVFX } from './entityVFX';
 import { playEventSound } from '@/audio/gameSounds';
 
@@ -40,6 +42,8 @@ export interface GameEventContext {
   readonly damageTaken: DamageTaken;
   /** Champions' kills, deaths and assists, by entity id, from the kills they took part in */
   readonly scores: Map<string, ChampionScore>;
+  /** Pings and emotes */
+  readonly signals: Signals;
 }
 
 /** A champion's kills, deaths and assists */
@@ -392,6 +396,24 @@ export function processGameEvent(event: GameEvent, ctx: GameEventContext): void 
           startTime: now,
         });
       }
+      break;
+    }
+
+    case GameEventType.PING: {
+      // The server sends a ping to its team only
+      ctx.signals.addPing({
+        pingType: event.data.pingType as PingType,
+        x: event.data.x as number,
+        y: event.data.y as number,
+        entityId: event.data.entityId as string,
+        championId: event.data.championId as string,
+        time: now,
+      });
+      break;
+    }
+
+    case GameEventType.EMOTE: {
+      ctx.signals.addEmote(event.data.entityId as string, event.data.emote as EmoteId, now);
       break;
     }
   }

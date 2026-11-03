@@ -63,6 +63,7 @@ import {
   renderXpNumbers,
   renderHealNumbers,
 } from "@/render/overlays/floatingNumbers";
+import { renderSignals } from "@/render/overlays/signals";
 import { getChampionImages } from "@/render/champions";
 
 /**
@@ -121,6 +122,7 @@ export class EntityRenderer implements GameObject {
       localSide,
       animationTime: 0,
       getOutlineColor: (entityId) => this.getEntityOutlineColor(entityId),
+      championHeads: new Map(),
     };
     this.championRenderer = new ChampionRenderer(this.renderContext);
     this.lightOrbRenderer = new LightOrbRenderer(this.renderContext);
@@ -407,6 +409,9 @@ export class EntityRenderer implements GameObject {
 
       // Render floating heal numbers
       renderHealNumbers(canvasRenderingContext, this.stateManager);
+
+      // Pings on the map and emotes over champions, over everything
+      renderSignals(canvasRenderingContext, this.stateManager, this.renderContext.championHeads);
     }, true);
 
     element.positionType = "normal";

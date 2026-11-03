@@ -35,4 +35,9 @@ export interface EntityRenderContext {
   animationTime: number;
   /** Hover outline color for an entity, or null when it isn't hovered. */
   getOutlineColor(entityId: string): string | null;
+  /**
+   * Each champion's head as last drawn: how far above its position (negative
+   * y) its health bar is, for what's drawn over it (emotes).
+   */
+  readonly championHeads: Map<string, number>;
 }
