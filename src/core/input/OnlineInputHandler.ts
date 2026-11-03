@@ -16,7 +16,7 @@ import { InputManager, MouseButton } from "@/core/input/InputManager";
 import Vector from "@/physics/vector";
 import type { NetworkClient } from "@siege/client";
 import type { AbilitySlot } from "@siege/shared";
-import { GameConfig, MOBAConfig, getAbilityDefinition, getChampionDefinition, hasChargeBehavior, type WardType } from "@siege/shared";
+import { EntityType, GameConfig, MOBAConfig, getAbilityDefinition, getChampionDefinition, hasChargeBehavior, type WardType } from "@siege/shared";
 import type {
   OnlineStateManager,
   InterpolatedEntity,
@@ -48,10 +48,12 @@ function tunnelMouths(): { x: number; y: number }[] {
 }
 
 const ATTACKABLE_ENTITY_TYPES: Set<number> = new Set([
-  0, // EntityType.CHAMPION
-  1, // EntityType.MINION
-  2, // EntityType.TOWER
-  5, // EntityType.JUNGLE_CAMP
+  EntityType.CHAMPION,
+  EntityType.MINION,
+  EntityType.TOWER,
+  EntityType.INHIBITOR,
+  EntityType.NEXUS,
+  EntityType.JUNGLE_CAMP,
 ]);
 
 /** Entity types that can be targeted as allies */

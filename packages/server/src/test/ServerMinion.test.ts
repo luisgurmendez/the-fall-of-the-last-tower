@@ -6,7 +6,9 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
 import { ServerMinion } from '../simulation/ServerMinion';
 import { ServerGameContext } from '../game/ServerGameContext';
-import { Vector, EntityType, Side } from '@siege/shared';
+import { ServerTower } from '../simulation/ServerTower';
+import { Vector, EntityType, Side, CHAMPION_DEFINITIONS, TEAM_BLUE, TEAM_RED } from '@siege/shared';
+import { TestChampion } from './ServerTestUtils';
 
 describe('ServerMinion', () => {
   let context: ServerGameContext;
@@ -155,6 +157,47 @@ describe('ServerMinion', () => {
       minion.takeDamage(100, 'true');
 
       expect(minion.health).toBe(initialHealth - 100);
+    });
+  });
+
+  describe('Targeting structures', () => {
+    /** A blue melee minion at a red tower, with a red champion standing by */
+    function siege() {
+      const tower = new ServerTower({ id: 'red-tower', position: new Vector(0, 0), side: 1, lane: 'mid', tier: 1 });
+      const minion = new ServerMinion({ id: 'blue-minion', position: new Vector(0, 80), side: 0, minionType: 'melee', lane: 'mid', waypoints: [] });
+      const enemy = new TestChampion({ id: 'red-champion', position: new Vector(90, 90), side: TEAM_RED, playerId: 'red', definition: CHAMPION_DEFINITIONS['warrior'] });
+      const ally = new TestChampion({ id: 'blue-champion', position: new Vector(-60, 120), side: TEAM_BLUE, playerId: 'blue', definition: CHAMPION_DEFINITIONS['warrior'] });
+      context.addEntity(tower);
+      context.addEntity(minion);
+      context.addChampion(enemy, 'red');
+      context.addChampion(ally, 'blue');
+      const think = () => {
+        context.getFogOfWar().updateVision(context, 1);
+        minion.update(0.6, context);
+      };
+      return { tower, minion, enemy, ally, think };
+    }
+
+    it('hits a tower rather than a champion standing by', () => {
+      const { minion, think } = siege();
+      think();
+      expect(minion.getAttackTargetId()).toBe('red-tower');
+    });
+
+    it('keeps hitting the tower when an enemy minion walks up', () => {
+      const { minion, think } = siege();
+      think();
+      context.addEntity(new ServerMinion({ id: 'red-minion', position: new Vector(-40, 80), side: 1, minionType: 'melee', lane: 'mid', waypoints: [] }));
+      think();
+      expect(minion.getAttackTargetId()).toBe('red-tower');
+    });
+
+    it('leaves the tower for a champion that hits an allied champion (call for help)', () => {
+      const { minion, enemy, ally, think } = siege();
+      think();
+      ally.takeDamage(10, 'true', enemy.id, context);
+      think();
+      expect(minion.getAttackTargetId()).toBe('red-champion');
     });
   });
 

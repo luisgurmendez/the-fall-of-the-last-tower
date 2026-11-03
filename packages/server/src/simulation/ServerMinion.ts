@@ -65,8 +65,9 @@ export interface ServerMinionConfig extends Omit<ServerEntityConfig, 'entityType
  * Target priorities (higher wins; ties go to the closest).
  */
 const enum MinionTargetPriority {
-  STRUCTURE = 10,
   CHAMPION = 30,
+  /** Above champions: a wave at a tower hits the tower, not a champion standing by */
+  STRUCTURE = 40,
   MINION = 50,
   /** Enemy champion that just damaged an allied champion near this minion */
   CALL_FOR_HELP = 100,
@@ -446,7 +447,9 @@ export class ServerMinion extends ServerEntity {
   }
 
   /**
-   * Whether a newly found target beats the current one.
+   * Whether a newly found target beats the current one. A structure it's
+   * hitting holds it until it falls (or it's out of reach): only a call for
+   * help pulls it off, not minions or champions walking by.
    */
   private shouldSwitchTo(best: { id: string; priority: number; distance: number }, context: ServerGameContext): boolean {
     if (!this.attackTarget) return true;
@@ -454,6 +457,9 @@ export class ServerMinion extends ServerEntity {
     if (!current) return true;
 
     const currentPriority = this.getPriority(current, context) ?? 0;
+    if (currentPriority === MinionTargetPriority.STRUCTURE && this.isInAttackRange(current, this.stats.attackRange)) {
+      return best.priority === MinionTargetPriority.CALL_FOR_HELP;
+    }
     if (best.priority !== currentPriority) return best.priority > currentPriority;
 
     // Same priority: stay on a target in range; otherwise take a clearly closer one
@@ -482,7 +488,7 @@ export class ServerMinion extends ServerEntity {
 
   /**
    * Find the best target in acquisition range.
-   * Priority: champion calling for help > minions > champions > structures,
+   * Priority: champion calling for help > minions > structures > champions,
    * closest first within a priority.
    * Note: Minions do NOT attack jungle creatures - they only fight lane units.
    */
