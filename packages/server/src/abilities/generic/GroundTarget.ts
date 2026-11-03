@@ -4,6 +4,7 @@
  * - A trap places a ServerTrap (Trap.ts)
  * - A cone hits enemies in front of the caster (Cone.ts)
  * - A line hits enemies along a band toward the target (Line.ts)
+ * - A dash with no aoeRadius is only the dash (run after this path)
  * - Otherwise a circle at the target position: damage and effects on enemies,
  *   or a persistent ServerZone when the ability has a zoneDuration
  * - With aoeDelay the circle, zone or cone lands later (scheduled on game time)
@@ -51,6 +52,10 @@ export function executeGroundTarget(
     executeLineAbility(params, definition, rank, damageMultiplier);
     return;
   }
+
+  // A dash to a point with no area is just the dash (Movement.ts), its
+  // buffs on the caster: no circle lands at the point (Elora's roll)
+  if (definition.dash && !definition.aoeRadius) return;
 
   // Delayed AoE (like meteor): lands at the target point after aoeDelay
   if (definition.aoeDelay && definition.aoeDelay > 0) {

@@ -123,6 +123,7 @@ export interface IChampionHooks {
   onRangedAttackHit?(
     champion: ServerChampion,
     target: ServerEntity,
+    /** attackDamage: the champion's when it attacked (a crit doesn't raise it) */
     attack: { attackDamage: number; abilityPower: number },
     context: ServerGameContext
   ): void;

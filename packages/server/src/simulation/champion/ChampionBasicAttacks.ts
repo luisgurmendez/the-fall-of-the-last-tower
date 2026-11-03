@@ -187,7 +187,7 @@ export class ChampionBasicAttacks {
 
     if (isRanged) {
       // Ranged champions fire a projectile that deals damage on hit
-      this.fireBasicAttackProjectile(target, damage, crit, context);
+      this.fireBasicAttackProjectile(target, damage, crit, attackDamage, context);
     } else {
       // Melee champions deal damage instantly
       this.applyMeleeAttackDamage(target, damage, crit, attackDamage, abilityPower, context);
@@ -196,11 +196,14 @@ export class ChampionBasicAttacks {
 
   /**
    * Fire a basic attack projectile for ranged champions.
+   * @param damage - What it deals (a crit's included)
+   * @param attackDamage - The attacker's attack damage, which on-hit rules scale with (not the crit)
    */
   private fireBasicAttackProjectile(
     target: ServerEntity,
     damage: number,
     crit: boolean,
+    attackDamage: number,
     context: ServerGameContext
   ): void {
     const champion = this.champion;
@@ -216,7 +219,7 @@ export class ChampionBasicAttacks {
     // Create callback to handle on-hit effects when projectile lands
     const onHitCallback = (hitTarget: ServerEntity, hitDamage: number, hitContext: ServerGameContext, dealt: number) => {
       this.applyOnHitBuffs(hitTarget);
-      hooks?.onRangedAttackHit?.(champion, hitTarget, { attackDamage: hitDamage, abilityPower }, hitContext);
+      hooks?.onRangedAttackHit?.(champion, hitTarget, { attackDamage, abilityPower }, hitContext);
       champion.itemPassives.onBasicAttackHit(hitTarget, dealt, hitContext);
 
       // Dispatch on_hit trigger for passives

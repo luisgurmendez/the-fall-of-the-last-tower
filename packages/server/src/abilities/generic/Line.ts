@@ -2,7 +2,8 @@
  * Generic line (a `ground_target` with shape 'line'): damage and effects on
  * every enemy in a straight band from the caster toward the target, `range`
  * long and twice `aoeRadius` wide (a spear thrust). With aoeDelay it lands
- * later, from wherever the caster is then, still aimed where the cast was.
+ * later, on the band where the cast was (where clients draw its warning),
+ * even if the caster moved since (Elora's barrage after a roll or a Flash).
  */
 
 import {
@@ -34,7 +35,8 @@ export function executeLineAbility(
     damageAmount = calculateAbilityValue(definition.damage.scaling, rank, getScalingStats(champion, champion.getStats())) * damageMultiplier;
   }
 
-  const applyLine = () => applyLineArea(params, definition, direction, damageAmount);
+  const from = champion.position.clone();
+  const applyLine = () => applyLineArea(params, definition, from, direction, damageAmount);
   if (definition.aoeDelay && definition.aoeDelay > 0) {
     context.schedule(definition.aoeDelay, applyLine);
   } else {
@@ -43,18 +45,20 @@ export function executeLineAbility(
 }
 
 /**
- * Damage and effects on enemies in the band from the caster along `direction`.
+ * Damage and effects on enemies in the band from `from` (where the caster
+ * stood at the cast) along `direction`.
  */
 function applyLineArea(
   params: AbilityCastParams,
   definition: AbilityDefinition,
+  from: Vector,
   direction: Vector,
   damageAmount: number
 ): void {
   const { champion, context } = params;
   if (champion.isDead) return;
 
-  const band = { from: champion.position, direction, length: definition.range ?? 300, halfWidth: definition.aoeRadius ?? 30 };
+  const band = { from, direction, length: definition.range ?? 300, halfWidth: definition.aoeRadius ?? 30 };
   for (const entity of entitiesInBand(context, band)) {
     if (entity.side === champion.side || entity.isDead || entity.id === champion.id) continue;
     if (!canAbilityAffectEntityType(definition, entity.entityType)) continue;
