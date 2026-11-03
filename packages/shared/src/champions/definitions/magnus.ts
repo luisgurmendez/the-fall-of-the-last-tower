@@ -204,9 +204,7 @@ const MAGNUS_ANIMATIONS: ChampionAnimations = {
     baseFrameDuration: 0.1, // ~600ms total at 1.0 AS
     loop: false,
     keyframes: [
-      { frame: 0, trigger: { type: "sound", soundId: "staff_charge" } },
       { frame: 3, trigger: { type: "projectile" } }, // Ranged attack spawns projectile
-      { frame: 3, trigger: { type: "sound", soundId: "staff_fire" } },
     ],
   },
   death: {
@@ -223,9 +221,7 @@ const MAGNUS_ANIMATIONS: ChampionAnimations = {
       baseFrameDuration: 0.0625, // 500ms total
       loop: false,
       keyframes: [
-        { frame: 0, trigger: { type: "sound", soundId: "fireball_charge" } },
         { frame: 4, trigger: { type: "projectile" } },
-        { frame: 4, trigger: { type: "vfx", vfxId: "fireball_cast" } },
       ],
     },
     magnus_shield: {
@@ -234,8 +230,6 @@ const MAGNUS_ANIMATIONS: ChampionAnimations = {
       baseFrameDuration: 0.075, // 300ms total
       loop: false,
       keyframes: [
-        { frame: 1, trigger: { type: "effect", effectId: "shield" } },
-        { frame: 1, trigger: { type: "vfx", vfxId: "arcane_barrier" } },
       ],
     },
     magnus_mud: {
@@ -244,9 +238,6 @@ const MAGNUS_ANIMATIONS: ChampionAnimations = {
       baseFrameDuration: 0.083, // 500ms total
       loop: false,
       keyframes: [
-        { frame: 0, trigger: { type: "sound", soundId: "mud_cast" } },
-        { frame: 3, trigger: { type: "effect", effectId: "zone" } },
-        { frame: 3, trigger: { type: "vfx", vfxId: "mud_pool" } },
       ],
     },
     magnus_meteor: {
@@ -255,9 +246,6 @@ const MAGNUS_ANIMATIONS: ChampionAnimations = {
       baseFrameDuration: 0.08, // 800ms total
       loop: false,
       keyframes: [
-        { frame: 0, trigger: { type: "sound", soundId: "meteor_summon" } },
-        { frame: 6, trigger: { type: "effect", effectId: "zone" } },
-        { frame: 6, trigger: { type: "vfx", vfxId: "inferno_zone" } },
       ],
     },
   },

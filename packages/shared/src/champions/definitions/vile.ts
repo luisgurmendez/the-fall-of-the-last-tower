@@ -279,9 +279,7 @@ const VILE_ANIMATIONS: ChampionAnimations = {
     baseFrameDuration: 0.1, // Scales with attack speed
     loop: false,
     keyframes: [
-      { frame: 0, trigger: { type: "sound", soundId: "vile_attack" } },
       { frame: 3, trigger: { type: "damage" } },
-      { frame: 3, trigger: { type: "sound", soundId: "vile_hit" } },
     ],
   },
   death: {
@@ -298,9 +296,7 @@ const VILE_ANIMATIONS: ChampionAnimations = {
       baseFrameDuration: 0.05,
       loop: false,
       keyframes: [
-        { frame: 0, trigger: { type: "sound", soundId: "vile_charge" } },
         { frame: 4, trigger: { type: "projectile" } },
-        { frame: 4, trigger: { type: "vfx", vfxId: "black_arrow" } },
       ],
     },
     vile_veil_of_darkness: {
@@ -309,9 +305,6 @@ const VILE_ANIMATIONS: ChampionAnimations = {
       baseFrameDuration: 0.08,
       loop: false,
       keyframes: [
-        { frame: 0, trigger: { type: "sound", soundId: "vile_veil" } },
-        { frame: 2, trigger: { type: "effect", effectId: "veil" } },
-        { frame: 2, trigger: { type: "vfx", vfxId: "dark_veil" } },
       ],
     },
     vile_roots_of_vilix: {
@@ -320,8 +313,6 @@ const VILE_ANIMATIONS: ChampionAnimations = {
       baseFrameDuration: 0.06,
       loop: false,
       keyframes: [
-        { frame: 0, trigger: { type: "sound", soundId: "vile_trap_place" } },
-        { frame: 3, trigger: { type: "vfx", vfxId: "root_trap" } },
       ],
     },
     vile_restoration_of_vilix: {
@@ -330,9 +321,6 @@ const VILE_ANIMATIONS: ChampionAnimations = {
       baseFrameDuration: 0.08,
       loop: false,
       keyframes: [
-        { frame: 0, trigger: { type: "sound", soundId: "vile_transform" } },
-        { frame: 5, trigger: { type: "effect", effectId: "transform" } },
-        { frame: 5, trigger: { type: "vfx", vfxId: "soul_restoration" } },
       ],
     },
   },

@@ -213,9 +213,7 @@ const WARRIOR_ANIMATIONS: ChampionAnimations = {
     baseFrameDuration: 0.083, // ~500ms total at 1.0 AS
     loop: false,
     keyframes: [
-      { frame: 0, trigger: { type: "sound", soundId: "sword_swing" } },
       { frame: 3, trigger: { type: "damage" } }, // Damage at frame 3 (50%)
-      { frame: 3, trigger: { type: "sound", soundId: "sword_hit" } },
     ],
   },
   death: {
@@ -232,8 +230,6 @@ const WARRIOR_ANIMATIONS: ChampionAnimations = {
       baseFrameDuration: 0.05, // 400ms total
       loop: false,
       keyframes: [
-        { frame: 4, trigger: { type: "damage" } },
-        { frame: 4, trigger: { type: "vfx", vfxId: "slash_arc" } },
       ],
     },
     warrior_shield: {
@@ -242,7 +238,6 @@ const WARRIOR_ANIMATIONS: ChampionAnimations = {
       baseFrameDuration: 0.075, // 300ms total
       loop: false,
       keyframes: [
-        { frame: 1, trigger: { type: "effect", effectId: "shield" } },
       ],
     },
     warrior_charge: {
@@ -251,8 +246,6 @@ const WARRIOR_ANIMATIONS: ChampionAnimations = {
       baseFrameDuration: 0.067, // 400ms total
       loop: false,
       keyframes: [
-        { frame: 0, trigger: { type: "sound", soundId: "charge_start" } },
-        { frame: 5, trigger: { type: "damage" } }, // (Not read: the dash hits what it runs into on the way)
       ],
     },
     warrior_ultimate: {
@@ -261,10 +254,6 @@ const WARRIOR_ANIMATIONS: ChampionAnimations = {
       baseFrameDuration: 0.06, // 600ms total
       loop: false,
       keyframes: [
-        { frame: 0, trigger: { type: "sound", soundId: "leap_start" } },
-        { frame: 7, trigger: { type: "damage" } }, // Damage on landing
-        { frame: 7, trigger: { type: "effect", effectId: "stun" } },
-        { frame: 7, trigger: { type: "vfx", vfxId: "slam_impact" } },
       ],
     },
   },

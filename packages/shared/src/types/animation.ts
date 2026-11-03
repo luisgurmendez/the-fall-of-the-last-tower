@@ -30,6 +30,14 @@ export interface VfxTrigger {
   vfxId: string;
 }
 
+/**
+ * What happens at a keyframe. The game reads two: `damage` on a champion's
+ * basic attack animation (when its hit lands, getBasicAttackDamageDelay)
+ * and `projectile` on a skillshot's ability animation (when the projectile
+ * leaves, the server's generic Skillshot). Sounds and VFX are timed by the
+ * client (src/audio/abilitySounds.ts, src/vfx/champions/), effects by the
+ * abilities' handlers.
+ */
 export type KeyframeTrigger =
   | DamageTrigger
   | ProjectileTrigger

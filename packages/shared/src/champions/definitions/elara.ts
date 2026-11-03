@@ -188,9 +188,7 @@ const ELARA_ANIMATIONS: ChampionAnimations = {
     baseFrameDuration: 0.1, // ~600ms total at 1.0 AS
     loop: false,
     keyframes: [
-      { frame: 0, trigger: { type: "sound", soundId: "light_cast" } },
       { frame: 3, trigger: { type: "projectile" } }, // Ranged attack spawns projectile
-      { frame: 3, trigger: { type: "sound", soundId: "light_release" } },
     ],
   },
   death: {
@@ -207,9 +205,6 @@ const ELARA_ANIMATIONS: ChampionAnimations = {
       baseFrameDuration: 0.083, // 500ms total
       loop: false,
       keyframes: [
-        { frame: 0, trigger: { type: "sound", soundId: "heal_charge" } },
-        { frame: 3, trigger: { type: "effect", effectId: "heal" } },
-        { frame: 3, trigger: { type: "vfx", vfxId: "radiant_blessing" } },
       ],
     },
     elara_barrier: {
@@ -218,9 +213,6 @@ const ELARA_ANIMATIONS: ChampionAnimations = {
       baseFrameDuration: 0.08, // 400ms total
       loop: false,
       keyframes: [
-        { frame: 0, trigger: { type: "sound", soundId: "shield_cast" } },
-        { frame: 2, trigger: { type: "effect", effectId: "shield" } },
-        { frame: 2, trigger: { type: "vfx", vfxId: "sacred_shield" } },
       ],
     },
     elara_speed: {
@@ -229,9 +221,6 @@ const ELARA_ANIMATIONS: ChampionAnimations = {
       baseFrameDuration: 0.075, // 300ms total
       loop: false,
       keyframes: [
-        { frame: 0, trigger: { type: "sound", soundId: "speed_cast" } },
-        { frame: 2, trigger: { type: "effect", effectId: "speed_buff" } },
-        { frame: 2, trigger: { type: "vfx", vfxId: "swift_grace" } },
       ],
     },
     elara_resurrection: {
@@ -240,10 +229,6 @@ const ELARA_ANIMATIONS: ChampionAnimations = {
       baseFrameDuration: 0.083, // 1000ms total (long cast)
       loop: false,
       keyframes: [
-        { frame: 0, trigger: { type: "sound", soundId: "divine_charge" } },
-        { frame: 8, trigger: { type: "effect", effectId: "heal" } },
-        { frame: 8, trigger: { type: "effect", effectId: "cleanse" } },
-        { frame: 8, trigger: { type: "vfx", vfxId: "divine_intervention" } },
       ],
     },
   },

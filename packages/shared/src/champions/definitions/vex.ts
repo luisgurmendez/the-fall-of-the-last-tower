@@ -217,9 +217,7 @@ const VEX_ANIMATIONS: ChampionAnimations = {
     baseFrameDuration: 0.08, // ~400ms total, fast melee attacks
     loop: false,
     keyframes: [
-      { frame: 0, trigger: { type: "sound", soundId: "blade_slash" } },
       { frame: 2, trigger: { type: "damage" } }, // Fast damage frame
-      { frame: 2, trigger: { type: "sound", soundId: "blade_hit" } },
     ],
   },
   death: {
@@ -236,9 +234,7 @@ const VEX_ANIMATIONS: ChampionAnimations = {
       baseFrameDuration: 0.05, // 300ms total, fast throw
       loop: false,
       keyframes: [
-        { frame: 0, trigger: { type: "sound", soundId: "shuriken_throw" } },
         { frame: 4, trigger: { type: "projectile" } },
-        { frame: 4, trigger: { type: "vfx", vfxId: "shadow_shuriken" } },
       ],
     },
     vex_shroud: {
@@ -247,9 +243,6 @@ const VEX_ANIMATIONS: ChampionAnimations = {
       baseFrameDuration: 0.075, // 300ms total
       loop: false,
       keyframes: [
-        { frame: 0, trigger: { type: "sound", soundId: "shroud_activate" } },
-        { frame: 1, trigger: { type: "effect", effectId: "stealth" } },
-        { frame: 1, trigger: { type: "vfx", vfxId: "shadow_shroud" } },
       ],
     },
     vex_dash: {
@@ -258,9 +251,6 @@ const VEX_ANIMATIONS: ChampionAnimations = {
       baseFrameDuration: 0.06, // 300ms total
       loop: false,
       keyframes: [
-        { frame: 0, trigger: { type: "sound", soundId: "dash_start" } },
-        { frame: 4, trigger: { type: "effect", effectId: "empower" } },
-        { frame: 4, trigger: { type: "vfx", vfxId: "shadow_step" } },
       ],
     },
     vex_ninja_mode: {
@@ -269,9 +259,6 @@ const VEX_ANIMATIONS: ChampionAnimations = {
       baseFrameDuration: 0.0625, // 500ms total
       loop: false,
       keyframes: [
-        { frame: 0, trigger: { type: "sound", soundId: "ninja_mode_activate" } },
-        { frame: 3, trigger: { type: "effect", effectId: "ninja_mode" } },
-        { frame: 3, trigger: { type: "vfx", vfxId: "vex_ninja_mode" } },
       ],
     },
   },

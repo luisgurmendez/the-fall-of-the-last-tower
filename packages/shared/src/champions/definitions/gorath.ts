@@ -200,9 +200,7 @@ const GORATH_ANIMATIONS: ChampionAnimations = {
     baseFrameDuration: 0.1, // ~700ms total, slower heavy attacks
     loop: false,
     keyframes: [
-      { frame: 0, trigger: { type: "sound", soundId: "rock_swing" } },
       { frame: 4, trigger: { type: "damage" } }, // Damage later in animation
-      { frame: 4, trigger: { type: "sound", soundId: "rock_impact" } },
     ],
   },
   death: {
@@ -219,10 +217,6 @@ const GORATH_ANIMATIONS: ChampionAnimations = {
       baseFrameDuration: 0.075, // 600ms total
       loop: false,
       keyframes: [
-        { frame: 0, trigger: { type: "sound", soundId: "slam_windup" } },
-        { frame: 5, trigger: { type: "damage" } },
-        { frame: 5, trigger: { type: "effect", effectId: "slow" } },
-        { frame: 5, trigger: { type: "vfx", vfxId: "ground_slam" } },
       ],
     },
     gorath_fortify: {
@@ -231,9 +225,6 @@ const GORATH_ANIMATIONS: ChampionAnimations = {
       baseFrameDuration: 0.08, // 400ms total
       loop: false,
       keyframes: [
-        { frame: 0, trigger: { type: "sound", soundId: "stone_armor" } },
-        { frame: 2, trigger: { type: "effect", effectId: "fortify" } },
-        { frame: 2, trigger: { type: "vfx", vfxId: "stone_skin" } },
       ],
     },
     gorath_taunt: {
@@ -242,9 +233,6 @@ const GORATH_ANIMATIONS: ChampionAnimations = {
       baseFrameDuration: 0.0875, // 700ms total
       loop: false,
       keyframes: [
-        { frame: 0, trigger: { type: "sound", soundId: "roar_start" } },
-        { frame: 4, trigger: { type: "effect", effectId: "taunt" } },
-        { frame: 4, trigger: { type: "vfx", vfxId: "defiant_roar" } },
       ],
     },
     gorath_earthquake: {
@@ -253,11 +241,6 @@ const GORATH_ANIMATIONS: ChampionAnimations = {
       baseFrameDuration: 0.083, // 1000ms total (includes wind-up)
       loop: false,
       keyframes: [
-        { frame: 0, trigger: { type: "sound", soundId: "earthquake_charge" } },
-        { frame: 6, trigger: { type: "vfx", vfxId: "earthquake_warning" } }, // Visual warning
-        { frame: 9, trigger: { type: "damage" } },
-        { frame: 9, trigger: { type: "effect", effectId: "knockup" } },
-        { frame: 9, trigger: { type: "vfx", vfxId: "earthquake_impact" } },
       ],
     },
   },

@@ -317,7 +317,7 @@ const LUME_ANIMATIONS: ChampionAnimations = {
     totalFrames: 10, // Updated for new attack animation
     baseFrameDuration: 0.08,
     loop: false,
-    keyframes: [{ frame: 4, trigger: { type: "damage" } }], // Projectile fires at frame 7
+    keyframes: [{ frame: 4, trigger: { type: "damage" } }], // The bolt leaves at frame 4
   },
   death: {
     id: "death",

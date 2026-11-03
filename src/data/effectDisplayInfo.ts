@@ -640,21 +640,7 @@ const EFFECT_DISPLAY_INFO: Record<string, EffectDisplayInfo> = {
     icon: 'L',
     color: '#ff7a1a',
   },
-  calamitus_lavaborn_mr: {
-    name: 'Lavaborn',
-    description: 'Standing in your lava: +15 armor and magic resist.',
-    category: 'buff',
-    icon: 'L',
-    color: '#ff7a1a',
-  },
   protobot_learning: {
-    name: 'Machine Learning',
-    description: '+3 armor and magic resist per lesson, learned from the enemy champions that hit you.',
-    category: 'buff',
-    icon: 'M',
-    color: '#4ae0ff',
-  },
-  protobot_learning_mr: {
     name: 'Machine Learning',
     description: '+3 armor and magic resist per lesson, learned from the enemy champions that hit you.',
     category: 'buff',
