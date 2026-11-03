@@ -119,4 +119,16 @@ describe('ability previews', () => {
     expect(shapes(ability('warrior', 'W'), new Vector(0, 0))).toHaveLength(0);
     expect(shapes(ability('vex', 'R'), new Vector(0, 0))).toHaveLength(0);
   });
+
+  it("Vile's charged arrow: its band and range circle grow with the charge, as on the server", () => {
+    const arrows = ability('vile', 'Q');
+    const bonus = arrows.charge!.maxChargeRangeBonus!;
+    for (const charge of [0, 0.5, 1]) {
+      const list = abilityPreview(arrows, FROM, new Vector(100, 900), null, charge);
+      expect(only(list, 'band')[0].length).toBeCloseTo(arrows.range! + bonus * charge);
+      expect(only(list, 'range')[0].radius).toBeCloseTo(arrows.range! + bonus * charge);
+    }
+    // Not charging: its base range
+    expect(only(shapes(arrows, new Vector(100, 900)), 'band')[0].length).toBe(arrows.range);
+  });
 });

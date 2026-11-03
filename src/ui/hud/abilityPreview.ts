@@ -11,6 +11,8 @@
  *   distance), Lume's beam from her orb
  * - `cone`: a cone toward the cursor
  * - `landing`: where a dash with no hitbox lands (the cursor, up to its distance)
+ *
+ * A charging ability (Vile's arrows) reaches as far as its charge so far.
  */
 
 import Vector from '@/physics/vector';
@@ -27,20 +29,22 @@ export type PreviewShape =
 const FROM_ORB = new Set(['lume_w', 'lume_e', 'lume_r']);
 
 type PreviewDefinition = Pick<AbilityDefinition,
-  'id' | 'targetType' | 'shape' | 'range' | 'aoeRadius' | 'coneAngle' | 'projectileRadius' | 'dash'>;
+  'id' | 'targetType' | 'shape' | 'range' | 'aoeRadius' | 'coneAngle' | 'projectileRadius' | 'dash' | 'charge'>;
 
 /**
  * The shapes to preview for an ability cast from `from` toward `cursor`.
  * @param orb Lume's Light Orb, for her abilities that start there (none without it)
+ * @param charge How charged it is (0 to 1, as the server counts it), while charging
  */
 export function abilityPreview(
   definition: PreviewDefinition,
   from: Vector,
   cursor: Vector,
   orb: Vector | null = null,
+  charge?: number,
 ): PreviewShape[] {
   const shapes: PreviewShape[] = [];
-  const range = definition.range ?? 0;
+  const range = (definition.range ?? 0) + (charge !== undefined ? (definition.charge?.maxChargeRangeBonus ?? 0) * charge : 0);
   const aoe = definition.aoeRadius ?? 0;
   const toward = (origin: Vector) => {
     const offset = cursor.clone().sub(origin);

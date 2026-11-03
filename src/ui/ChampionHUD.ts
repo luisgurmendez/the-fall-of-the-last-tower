@@ -304,8 +304,11 @@ export class ChampionHUD extends ScreenEntity {
 
       const ctx = gctx.canvasRenderingContext;
 
-      // Draw ability range circles in world space (before HUD overlay)
-      if (this.hud.hoverState.ability) {
+      // Draw ability range circles in world space (before HUD overlay): the
+      // hovered ability's, or the charging one's as far as it reaches so far
+      if (this.hud.chargeState) {
+        drawAbilityRangeCircles(ctx, gctx, this.champion, this.hud.chargeState.slot, this.inputManager, this.hud.chargeState.progress);
+      } else if (this.hud.hoverState.ability) {
         drawAbilityRangeCircles(ctx, gctx, this.champion, this.hud.hoverState.ability, this.inputManager);
       }
 

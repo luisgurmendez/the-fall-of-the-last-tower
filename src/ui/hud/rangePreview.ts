@@ -1,5 +1,6 @@
 /**
- * Range preview shown while an ability box is hovered: the shapes
+ * Range preview shown while an ability box is hovered, or while an ability
+ * charges (Vile's arrows, as far as they reach so far): the shapes
  * abilityPreview gives (its cast range, the area, band, cone or landing spot
  * it will hit), drawn in screen space, before the HUD panels.
  */
@@ -30,7 +31,8 @@ export function drawAbilityRangeCircles(
   gctx: GameContext,
   champion: HUDChampionData,
   slot: AbilitySlot,
-  inputManager: InputManager
+  inputManager: InputManager,
+  charge?: number
 ): void {
   const targetDesc = champion.getAbility(slot)?.getTargetDescription?.();
   if (!targetDesc) return;
@@ -41,7 +43,7 @@ export function drawAbilityRangeCircles(
     (point.y - camera.position.y) * camera.zoom + Dimensions.h / 2,
   );
   const cursor = inputManager.getMouseWorldPosition(camera.position, camera.zoom);
-  const shapes = abilityPreview(targetDesc, champion.getPosition(), cursor, champion.getOrbPosition?.() ?? null);
+  const shapes = abilityPreview(targetDesc, champion.getPosition(), cursor, champion.getOrbPosition?.() ?? null, charge);
 
   ctx.save();
   ctx.lineWidth = 2;
