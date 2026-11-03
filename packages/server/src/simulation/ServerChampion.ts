@@ -1250,7 +1250,7 @@ export class ServerChampion extends ServerEntity {
 
   /**
    * Extend an effect's duration by the specified amount, with optional max cap.
-   * Used for abilities that extend buffs on certain triggers (e.g., takedowns).
+   * Used for abilities that extend buffs on certain triggers (e.g., Ninja Mode on a kill).
    * @param effectId - The effect to extend
    * @param amount - Duration to add in seconds
    * @param maxDuration - Optional maximum total duration cap

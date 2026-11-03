@@ -6,7 +6,7 @@
  * WHILE IN NINJA MODE:
  * - Gains bonus attack speed (30% / 45% / 60% by rank)
  * - Q (Shadow Shuriken) and E (Shadow Step) cooldowns are reduced by 50%
- * - Champion takedowns extend duration by 2 seconds (max 20 seconds total)
+ * - Champion kills extend duration by 2 seconds (max 20 seconds total)
  */
 
 import { BaseAbilityHandler } from '../../BaseAbilityHandler';
@@ -46,7 +46,7 @@ export class VexNinjaModeHandler extends BaseAbilityHandler {
 
     // Apply the ninja mode effect for state tracking and CDR
     // The effect drives all Ninja Mode behavior (CDR applied by VexHooks,
-    // takedown extension via extendEffectDuration in RewardSystem)
+    // kill extension via extendEffectDuration in RewardSystem)
     if (definition.appliesEffects) {
       for (const effectId of definition.appliesEffects) {
         champion.applyEffect(effectId, duration, champion.id);

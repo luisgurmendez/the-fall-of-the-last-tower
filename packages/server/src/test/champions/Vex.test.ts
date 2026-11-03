@@ -1120,3 +1120,33 @@ describe('Vex R - Ninja Mode', () => {
     }
   });
 });
+
+// =============================================================================
+// Descriptions
+// =============================================================================
+
+describe('Vex descriptions say what her abilities do', () => {
+  test("the passive's: every 3rd attack, 4% max health, structures too, the count shared and fading after 5 s", () => {
+    expect(PASSIVE.description).toContain('Every 3rd basic attack');
+    expect(PASSIVE.description).toContain('4%');
+    expect(PASSIVE.description).toContain('structures');
+    expect(PASSIVE.description).toContain('any target');
+    expect(PASSIVE.description).toContain(`${PASSIVE.stackDuration} seconds`);
+  });
+
+  test("Q's: it stops at the first enemy, minions included; the mark lasts 4 s and adds 10%", () => {
+    expect(Q.description).toContain('first enemy');
+    expect(Q.description).toContain('minions');
+    expect(Q.description).toContain(`${Q.effectDuration} seconds`);
+    expect(Q.description).toContain('10%');
+  });
+
+  test("E's: the empowered attack, within its 4 s", () => {
+    expect(E.description).toContain(`within ${E.effectDuration} seconds`);
+  });
+
+  test("R's: kills extend it (assists don't)", () => {
+    expect(R.description).toContain('kills extend');
+    expect(R.description).not.toContain('takedown');
+  });
+});

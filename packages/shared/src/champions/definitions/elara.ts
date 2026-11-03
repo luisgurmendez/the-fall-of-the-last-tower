@@ -74,7 +74,7 @@ const ELARA_GROWTH_STATS: ChampionGrowthStats = {
 export const ElaraHeal: AbilityDefinition = {
   id: "elara_heal",
   name: "Radiant Blessing",
-  description: "Heal target ally for {heal} health.",
+  description: "Heal target ally for {heal} health (yourself, with no ally targeted).",
   type: "active",
   targetType: "target_ally",
   maxRank: 5,
@@ -90,7 +90,7 @@ export const ElaraBarrier: AbilityDefinition = {
   id: "elara_barrier",
   name: "Sacred Shield",
   description:
-    "Grant target ally a shield absorbing {shield} damage for 2.5 seconds.",
+    "Grant target allied champion (yourself, with none targeted) a shield absorbing {shield} damage for 2.5 seconds.",
   type: "active",
   targetType: "target_ally",
   affectsMinions: false, // Champions (with no allied champion under the cursor, Elara)
@@ -124,7 +124,7 @@ export const ElaraResurrection: AbilityDefinition = {
   id: "elara_resurrection",
   name: "Divine Intervention",
   description:
-    "Heal all allies in range for {heal} health and cleanse all debuffs.",
+    "Heal yourself and allies within 280 units for {heal} health and cleanse the debuffs enemies put on them (not knockups or suppression).",
   type: "active",
   targetType: "no_target",
   maxRank: 3,
@@ -142,13 +142,13 @@ export const ElaraResurrection: AbilityDefinition = {
 // =============================================================================
 
 /**
- * Blessed Presence - Allies within 600 units passively heal 1% max HP per second.
+ * Blessed Presence - Allies within 280 units passively heal 1% max HP per second.
  */
 export const ElaraPassive: PassiveAbilityDefinition = {
   id: "elara_passive",
   name: "Blessed Presence",
   description:
-    "Nearby allies within 600 units heal 1% of their max health per second.",
+    "Nearby allies within 280 units heal 1% of their max health per second.",
   trigger: "always",
   auraRadius: 280,
   heal: {

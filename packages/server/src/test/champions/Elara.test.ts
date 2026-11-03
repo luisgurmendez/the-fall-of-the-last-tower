@@ -828,3 +828,24 @@ describe('Elara R - Divine Intervention', () => {
     }
   });
 });
+
+// =============================================================================
+// Descriptions
+// =============================================================================
+
+describe('Elara descriptions say what her abilities do', () => {
+  test("the passive's radius is the real one", () => {
+    expect(PASSIVE.description).toContain(`${PASSIVE.auraRadius} units`);
+  });
+
+  test("Q's and W's self-cast", () => {
+    expect(Q.description).toContain('yourself');
+    expect(W.description).toContain('yourself');
+  });
+
+  test("R's radius, and what it does not cleanse", () => {
+    expect(R.description).toContain(`${R.aoeRadius} units`);
+    expect(R.description).toContain('enemies');
+    expect(R.description).toContain('not knockups or suppression');
+  });
+});

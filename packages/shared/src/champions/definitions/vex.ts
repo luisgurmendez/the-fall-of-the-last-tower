@@ -75,7 +75,7 @@ export const VexShuriken: AbilityDefinition = {
   id: "vex_shuriken",
   name: "Shadow Shuriken",
   description:
-    "Throw a shuriken that deals {damage} physical damage and marks the target for 4 seconds. Marked enemies take 10% increased damage from Vex.",
+    "Throw a shuriken that stops at the first enemy it hits, minions included, dealing {damage} physical damage and marking it for 4 seconds. Marked enemies take 10% increased damage from Vex.",
   type: "active",
   targetType: "skillshot",
   maxRank: 5,
@@ -111,7 +111,7 @@ export const VexDash: AbilityDefinition = {
   id: "vex_dash",
   name: "Shadow Step",
   description:
-    "Dash to target location and empower your next basic attack to deal {damage} bonus physical damage. If an enemy is marked, dash resets its cooldown.",
+    "Dash toward a point and empower your next basic attack within 4 seconds to deal {damage} bonus physical damage. If a marked enemy is near, Shadow Step's cooldown resets.",
   type: "active",
   targetType: "ground_target",
   maxRank: 5,
@@ -135,13 +135,13 @@ export const VexDash: AbilityDefinition = {
  * R - Ninja Mode
  * Enter a heightened combat state for 15 seconds.
  * Gains bonus attack speed and 50% cooldown reduction on Q and E.
- * Champion takedowns extend the duration by 2 seconds (max 20s).
+ * Champion kills extend the duration by 2 seconds (max 20s).
  */
 export const VexNinjaMode: AbilityDefinition = {
   id: "vex_ninja_mode",
   name: "Ninja Mode",
   description:
-    "Enter Ninja Mode for 15 seconds, gaining {attackSpeedBonus}% bonus attack speed. Q and E cooldowns are reduced by 50%. Champion takedowns extend the duration by 2 seconds (max 20 seconds).",
+    "Enter Ninja Mode for 15 seconds, gaining {attackSpeedBonus}% bonus attack speed. Q and E cooldowns are reduced by 50%. Champion kills extend the duration by 2 seconds (max 20 seconds).",
   type: "active",
   targetType: "self",
   maxRank: 3,
@@ -165,13 +165,14 @@ export const VexNinjaMode: AbilityDefinition = {
 
 /**
  * Assassin's Mark - Every 3rd basic attack deals bonus true damage
- * based on target's max health.
+ * based on target's max health. The count is one for every target (and
+ * structures), and fades 5 s after the last hit.
  */
 export const VexPassive: PassiveAbilityDefinition = {
   id: "vex_passive",
   name: "Assassin's Mark",
   description:
-    "Every 3rd basic attack deals bonus true damage equal to 4% of the target's max health.",
+    "Every 3rd basic attack deals bonus true damage equal to 4% of the target's max health, structures included. Hits on any target add to the count, which fades 5 seconds after your last hit.",
   trigger: "on_hit",
   usesStacks: true,
   maxStacks: 3,
