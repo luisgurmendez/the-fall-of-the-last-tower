@@ -47,6 +47,7 @@ import { CampTimers, type CampTimer } from './state/campTimers';
 import { DamageTaken, type DeathRecap } from './state/damageTaken';
 import { Announcements, type Announcement } from './state/announcements';
 import { EntityVFX, spawnWorldVFX } from './state/entityVFX';
+import { projectileHit } from './state/projectileHits';
 import { addOrUpdateEntity, applyEntityDelta, type EntityLifecycleHooks } from './state/deltas';
 import { processGameEvent, type ChampionScore, type GameEventContext } from './state/gameEvents';
 import { playChangeSound, playDeathSound, playWardPlacedSound } from '@/audio/gameSounds';
@@ -119,7 +120,9 @@ export class OnlineStateManager {
   // Called by the delta merge: entity effects and the local respawn timer
   private readonly lifecycleHooks: EntityLifecycleHooks = {
     onRemoved: (entityId, existing, data) => {
-      if (existing) {
+      // A projectile that ran its range out just goes: only a hit shows its impact
+      const missed = existing?.snapshot.entityType === EntityType.PROJECTILE && !projectileHit(existing, this.entities.values());
+      if (existing && !missed) {
         this.entityVFX.spawnDeathVFX(existing);
         playDeathSound(existing, this.localEntityId);
         this.corpses.add(existing);

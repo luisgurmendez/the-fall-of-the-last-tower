@@ -36,7 +36,7 @@ played with the Web Audio API, heard from the camera.
 | Our champion under 30% health | `low_health`, a heartbeat loop louder the lower it gets (with the red vignette, `LowHealthVignette`) | every frame |
 | An ability cast (and recast: `<abilityId>_recast`; Vile's traps springing and bursting) | its cues in `ABILITY_CUES`, or else the sound with its id, at the caster | `ABILITY_CAST` |
 | A leap landing, Lume's orb arriving | `warrior_ultimate_strike`, `uruk_r`, `lume_q_arrive` at the target (cues `<abilityId>_land`, `lume_q_arrive`) | `ABILITY_CAST` sent when it happens |
-| A projectile bursting (where it hit or ran out) | `<abilityId>_impact`, if there's one (Magnus' fireball) | the projectile removed from state |
+| A projectile bursting where it hit (not one that ran its range out: `projectileHit`) | `<abilityId>_impact`, if there's one (Magnus' fireball) | the projectile removed from state |
 | Damage taken | `hit_physical` or `hit_magic` | `DAMAGE` |
 | Summoner spell | `summoner_<id>` | `SUMMONER_CAST` |
 | Gold (ours), level up and a learned ability (ours) | `gold`, `level_up`, `ability_level_up` | `GOLD_EARNED`, the champion's `level` and `skillPoints` |

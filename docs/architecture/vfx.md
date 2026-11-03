@@ -81,7 +81,7 @@ How config types look on the GPU:
 
 **Cast times and later blows:** an ability with a cast time (`ABILITY_WINDUP`) plays the VFX registered as `<abilityId>_windup`, if any, while the caster stands still (Magnus's fire gathering at his staff, Vex drawing her shuriken); its throw plays with `ABILITY_CAST`, when the server throws the projectile. A targeted leap's blow is `<abilityId>_land` (Kael's slam, Urûk's strike, Fenris landing) and Lume's orb landing `lume_q_arrive`: the server sends those when they happen (`gameEvents.ts` plays only their look, no new cast animation).
 
-**Projectile impacts:** when a projectile is destroyed, `entityVFX.ts` spawns the VFX registered as `<projectile type>_impact` (e.g. `magnus_fireball_impact`) where it was, so explosions happen where the projectile actually hits.
+**Projectile impacts:** when a projectile is destroyed, `entityVFX.ts` spawns the VFX registered as `<projectile type>_impact` (e.g. `magnus_fireball_impact`) where it was, so explosions happen where the projectile actually hits. Only if it hit: one that ran its range out just goes (`projectileHit` in `src/core/state/projectileHits.ts`: an enemy unit right where it went), so Elora's arrow doesn't pin empty ground.
 
 **Effects on an ally:** effects that follow an entity (shields, trails, orbits) follow the caster, or in a phase anchored on the target, the cast's `targetEntityId` (Elara's shield on an ally).
 
