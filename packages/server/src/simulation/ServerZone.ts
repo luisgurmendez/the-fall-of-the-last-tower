@@ -78,6 +78,9 @@ export class ServerZone extends ServerEntity {
   readonly tickRate: number;
   private readonly hitGroup?: ZoneHitGroup;
 
+  /** Rounding slack on its clock (seconds), so how often it ticks doesn't depend on the server's tick rate */
+  private static readonly TIME_SLACK = 1e-6;
+
   private remainingDuration: number;
   private timeSinceLastTick: number;
   /** Track which entities have been affected in the current tick */
@@ -114,9 +117,10 @@ export class ServerZone extends ServerEntity {
   update(dt: number, context: ServerGameContext): void {
     if (this.isDead) return;
 
-    // Update duration
+    // Update duration (with a little slack for rounding: a zone lasting D seconds
+    // that ticks every T ticks D / T times, at 0, T, 2T... and not again at D)
     this.remainingDuration -= dt;
-    if (this.remainingDuration <= 0) {
+    if (this.remainingDuration <= ServerZone.TIME_SLACK) {
       this.isDead = true;
       this.markForRemoval();
       return;
@@ -125,7 +129,7 @@ export class ServerZone extends ServerEntity {
     // Handle tick-based zones (like Inferno Zone with damage every second)
     if (this.tickRate > 0) {
       this.timeSinceLastTick += dt;
-      if (this.timeSinceLastTick >= this.tickRate) {
+      if (this.timeSinceLastTick >= this.tickRate - ServerZone.TIME_SLACK) {
         this.timeSinceLastTick -= this.tickRate;
         this.tickedEntityIds.clear(); // Reset for new tick
         this.applyEffectsToEntitiesInside(context, true);

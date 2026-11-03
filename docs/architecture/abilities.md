@@ -226,6 +226,7 @@ Generic path details:
 - **Rooted or grounded:** nothing that moves the caster goes off (`failReason: 'rooted'`, nothing spent): a `dash`, a `teleport`, an ability whose handler moves the caster (`movesCaster`: Zhak'rul's burrow) or a recast that does (`recastMovesCaster`: Vile's arrow); the recast stays for when the root ends.
 - **Lines:** a `ground_target` with `shape: 'line'` hits every enemy in a band from the caster toward the target, `range` long and twice `aoeRadius` wide, after its `aoeDelay`, from where the caster stood at the cast (Urûk's Spear Thrust, Elora's Arrow Barrage; `Line.ts`). `entitiesInBand()` there finds who touches any band; Lume's beams use it from her orb.
 - **Executes:** `damage.executeBonus` on a targeted ability adds up to that much more damage the less health the target has (0.5: +50% at 0 health, Urûk's Fatal Strike).
+- **Zone ticks:** a zone (`zoneDuration` D) with a `zoneTickRate` T hits D / T times, at 0, T, 2T... and not again as it ends (`ServerZone` keeps a little slack on its clock: at 60 Hz rounding gave Magnus's Inferno Zone a sixth burn), whatever the server's tick rate. A zone without a tick rate applies its effects every tick while units are inside.
 - **Handler results:** if a handler's `validate` or `execute` fails, the cast fails and costs nothing (no mana, no cooldown). `cooldownOverride`, `skipCooldown` and `skipManaCost` are applied after the standard cooldown; this is how Vex's Shadow Step resets on a marked enemy.
 
 ### Generic Paths
