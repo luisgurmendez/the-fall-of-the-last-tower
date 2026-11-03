@@ -6,13 +6,13 @@
  * - Low-complexity kit centered around a single unique mechanic (the Light Orb)
  * - Rewards strategic orb positioning rather than mechanical execution
  * - Team-oriented with ally buffs and zone control
- * - High risk/reward ultimate that sacrifices the orb for burst damage
+ * - An ultimate fired from the orb: where it is decides where the beam goes
  *
  * LIGHT ORB STATES:
  * - ORBITING: Circles Lume at 60 unit radius, 2 rad/s
- * - TRAVELING: Moving to/from target at 1200 units/s
- * - STATIONED: Fixed at location for 5s before auto-returning
- * - DESTROYED: Gone for 30s after R cast, abilities have reduced functionality
+ * - TRAVELING: Moving to/from target at 700 units/s
+ * - STATIONED: Fixed at location for 4s before auto-returning
+ * - DESTROYED: Gone while Lume is dead; back orbiting her when she respawns
  */
 
 import type {
@@ -57,7 +57,6 @@ export const LUME_ORB_CONFIG = {
   passiveAuraRadius: 160, // Radius for passive effects
   allySpeedBonus: 0.15, // 15% movement speed
   enemyDamageAmp: 0.08, // 8% increased magic damage from Lume
-  respawnTime: 30.0, // Seconds to respawn after R
   qImpactRadius: 80, // Damage radius on Q arrival
   wPulseRadius: 150, // W heal/damage radius
   eBeamHalfWidth: 20, // E: half the width of the beam between Lume and the orb
@@ -137,10 +136,9 @@ export const LumePassive: PassiveAbilityDefinition = {
  * Send the Light
  *
  * FIRST CAST: Send the Light Orb to a target location.
- * - Orb travels at 1200 units/s
+ * - Orb travels at 700 units/s
  * - Deals magic damage to enemies in a small area on arrival
- * - Orb stays stationed at location for 5 seconds before auto-returning
- * - If orb is destroyed, casting Q will respawn it at target location
+ * - Orb stays stationed at location for 4 seconds before auto-returning
  *
  * RECAST: Recall the orb early (while traveling or stationed).
  * - Orb returns to orbiting state
@@ -178,7 +176,7 @@ export const LumeQ: AbilityDefinition = {
     cooldown: [0, 0, 0, 0, 0],
   },
   recastCondition: "always",
-  recastWindow: 6,
+  recastWindow: 10, // While the orb is away (out, stationed, back): LumeQHandler
 };
 
 // =============================================================================

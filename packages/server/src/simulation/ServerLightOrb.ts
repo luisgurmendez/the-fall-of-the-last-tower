@@ -2,12 +2,12 @@
  * ServerLightOrb - Lume's Light Orb entity.
  *
  * A persistent entity that orbits Lume and serves as the anchor point
- * for his abilities. The orb has four states:
+ * for her abilities. The orb has four states:
  *
  * - ORBITING: Circles around Lume at a fixed radius
  * - TRAVELING: Moving to a target position or back to Lume
  * - STATIONED: Fixed at a location for a duration
- * - DESTROYED: Gone, respawning after a timer
+ * - DESTROYED: Gone while Lume is dead; it's back orbiting her when she respawns
  */
 
 import {
@@ -54,10 +54,6 @@ export class ServerLightOrb extends ServerEntity {
 
   // Timers
   private stationedTimeRemaining: number = 0;
-  private respawnTimeRemaining: number = 0;
-
-  // Track owner's previous death state to detect respawn
-  private ownerWasDead: boolean = false;
 
   // Callbacks (for ability effects on arrival)
   private onArrivalCallback: (() => void) | null = null;
@@ -132,25 +128,22 @@ export class ServerLightOrb extends ServerEntity {
   }
 
   /**
-   * Destroy the orb (called by R ability).
-   * Starts the respawn timer.
+   * The orb goes (its owner died).
    */
   destroy(): void {
     if (this._state === 'destroyed') return;
 
     this._state = 'destroyed';
-    this.respawnTimeRemaining = LUME_ORB_CONFIG.respawnTime;
     this.stationedTimeRemaining = 0;
     this.targetPosition = null;
     this.onArrivalCallback = null;
   }
 
   /**
-   * Force respawn the orb (e.g., when Lume respawns).
+   * The orb comes back, orbiting its owner (she respawned).
    */
   forceRespawn(): void {
     this._state = 'orbiting';
-    this.respawnTimeRemaining = 0;
     this.stationedTimeRemaining = 0;
     this.orbitAngle = 0;
     this.targetPosition = null;
@@ -171,15 +164,13 @@ export class ServerLightOrb extends ServerEntity {
 
     // While its owner is dead the orb is gone (however long that is), and nothing more
     if (owner.isDead) {
-      if (this._state !== 'destroyed') this.destroy();
-      this.ownerWasDead = true;
+      this.destroy();
       return;
     }
 
-    // If owner just respawned (was dead, now alive), respawn the orb immediately
-    if (this.ownerWasDead && !owner.isDead) {
+    // She's alive: it's back with her
+    if (this._state === 'destroyed') {
       this.forceRespawn();
-      this.ownerWasDead = false;
     }
 
     switch (this._state) {
@@ -192,15 +183,10 @@ export class ServerLightOrb extends ServerEntity {
       case 'stationed':
         this.updateStationed(dt, owner);
         break;
-      case 'destroyed':
-        this.updateDestroyed(dt, owner);
-        break;
     }
 
-    // Update passive aura effects (only if not destroyed)
-    if (this._state !== 'destroyed') {
-      this.updatePassiveEffects(context, owner);
-    }
+    // Update passive aura effects
+    this.updatePassiveEffects(context, owner);
   }
 
   private updateOrbiting(dt: number, owner: ServerChampion): void {
@@ -300,22 +286,6 @@ export class ServerLightOrb extends ServerEntity {
     }
   }
 
-  private updateDestroyed(dt: number, owner: ServerChampion): void {
-    // Decrement respawn timer
-    this.respawnTimeRemaining -= dt;
-
-    if (this.respawnTimeRemaining <= 0) {
-      // Respawn in orbiting state
-      this._state = 'orbiting';
-      this.respawnTimeRemaining = 0;
-      this.orbitAngle = 0;
-
-      // Position at orbit location
-      this.position.x = owner.position.x + LUME_ORB_CONFIG.orbitRadius;
-      this.position.y = owner.position.y;
-    }
-  }
-
   // =============================================================================
   // Passive Aura Effects
   // =============================================================================
@@ -346,25 +316,6 @@ export class ServerLightOrb extends ServerEntity {
   }
 
   // =============================================================================
-  // Utility Methods
-  // =============================================================================
-
-  /**
-   * Get the current position of the orb for ability targeting.
-   */
-  getPosition(): Vector {
-    return this.position.clone();
-  }
-
-  /**
-   * Check if a champion is within the orb's passive aura.
-   */
-  isInAura(entity: ServerEntity): boolean {
-    if (this._state === 'destroyed') return false;
-    return this.position.distanceTo(entity.position) <= LUME_ORB_CONFIG.passiveAuraRadius;
-  }
-
-  // =============================================================================
   // Collision Interface
   // =============================================================================
 
@@ -388,10 +339,6 @@ export class ServerLightOrb extends ServerEntity {
       x: this.position.x,
       y: this.position.y,
       state: this._state,
-      orbitAngle: this.orbitAngle,
-      stationedTimeRemaining: this.stationedTimeRemaining,
-      respawnTimeRemaining: this.respawnTimeRemaining,
-      auraRadius: LUME_ORB_CONFIG.passiveAuraRadius,
       isDead: this._state === 'destroyed',
     };
   }

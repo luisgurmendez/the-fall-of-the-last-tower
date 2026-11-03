@@ -202,7 +202,7 @@ describe('Lume - orb abilities', () => {
     expect(arena.blue.getAbilityCooldown('Q')).toBeGreaterThan(0);
   });
 
-  test('R (Eclipse) fires from the orb and keeps it and the orb abilities', () => {
+  test('R (Eclipse) fires from the orb and keeps it', () => {
     // Q creates the orb
     arena.castAbility(arena.blue, 'Q', { targetPosition: new Vector(300, 0) });
     const orb = getOrb();
@@ -210,9 +210,6 @@ describe('Lume - orb abilities', () => {
     expect(arena.castAbility(arena.blue, 'R', { targetPosition: new Vector(800, 0) }).success).toBe(true);
 
     expect(orb.isDestroyed).toBe(false);
-    expect(arena.blue.abilityStates.Q.isDisabled).toBeFalsy();
-    expect(arena.blue.abilityStates.W.isDisabled).toBeFalsy();
-    expect(arena.blue.abilityStates.E.isDisabled).toBeFalsy();
   });
 });
 

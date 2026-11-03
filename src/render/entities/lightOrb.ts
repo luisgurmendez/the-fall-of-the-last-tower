@@ -1,7 +1,7 @@
 /**
  * Light Orb renderer (EntityType.LIGHT_ORB): on the GPU, light with bloom
  * (src/gpu/fx/lightOrb.ts); without it, Lume's pixelated orb, its light
- * rays and comet-tail particles, and the ghost shown while it respawns.
+ * rays and comet-tail particles (nothing while it's gone: she's dead).
  */
 
 import PixelArtDrawUtils from "@/utils/pixelartDrawUtils";
@@ -47,8 +47,6 @@ const LIGHT_ORB_VISUALS = {
   PARTICLE_LIFETIME: 0.6, // Seconds particles live
   PARTICLE_DRIFT_SPEED: 40, // How fast particles drift away
   PARTICLE_SPREAD: 10, // Random spread perpendicular to movement
-  AURA_COLOR: "rgba(255, 240, 180, 0.08)", // Passive aura indicator
-  DESTROYED_ALPHA: 0.3, // Alpha when destroyed
 } as const;
 
 /**
@@ -91,14 +89,8 @@ export class LightOrbRenderer {
       return;
     }
 
-    // Don't render if destroyed (except for a faint ghost)
-    if (state === "destroyed") {
-      // Optionally render a faint silhouette to show respawn progress
-      if (snapshot.respawnTimeRemaining > 0) {
-        this.renderDestroyedOrbGhost(ctx, snapshot);
-      }
-      return;
-    }
+    // Gone while she's dead
+    if (state === "destroyed") return;
 
     // Update and render particles (comet tail follows movement)
     this.updateLightOrbParticles(orbId, state, snapshot.x, snapshot.y);
@@ -138,34 +130,6 @@ export class LightOrbRenderer {
   }
 
   /**
-   * Render the passive aura indicator (subtle ground circle).
-   */
-  private renderLightOrbAura(
-    ctx: CanvasRenderingContext2D,
-    radius: number,
-    side: number,
-  ): void {
-    if (radius <= 0) return;
-
-    const auraColor =
-      side === 0 ? "rgba(255, 240, 180, 0.06)" : "rgba(255, 200, 150, 0.06)";
-
-    ctx.fillStyle = auraColor;
-    ctx.beginPath();
-    ctx.arc(0, 0, radius, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Subtle pulsing border
-    const borderAlpha = 0.1 + Math.sin(this.rc.animationTime * 2) * 0.05;
-    ctx.strokeStyle = `rgba(255, 240, 180, ${borderAlpha})`;
-    ctx.lineWidth = 1;
-    ctx.setLineDash([8, 8]);
-    ctx.lineDashOffset = -this.rc.animationTime * 20;
-    ctx.stroke();
-    ctx.setLineDash([]);
-  }
-
-  /**
    * Render rotating light rays from the orb.
    */
   private renderLightRays(
@@ -193,46 +157,6 @@ export class LightOrbRenderer {
       ctx.lineTo(Math.cos(angle) * rayLength, Math.sin(angle) * rayLength);
       ctx.stroke();
     }
-
-    ctx.restore();
-  }
-
-  /**
-   * Render a faint ghost of destroyed orb showing respawn progress.
-   */
-  private renderDestroyedOrbGhost(
-    ctx: CanvasRenderingContext2D,
-    snapshot: any,
-  ): void {
-    const respawnProgress = 1 - snapshot.respawnTimeRemaining / 60; // 60s respawn time
-    const alpha = LIGHT_ORB_VISUALS.DESTROYED_ALPHA * respawnProgress;
-
-    if (alpha <= 0) return;
-
-    ctx.save();
-    ctx.globalAlpha = alpha;
-
-    // Faint outline
-    const pixelSize = LIGHT_ORB_VISUALS.PIXEL_SIZE;
-    const ghostDrawer = new PixelArtDrawUtils(
-      ctx,
-      "rgba(200, 200, 200, 0.5)",
-      pixelSize,
-    );
-    ghostDrawer.drawPixelatedCircle(0, 0, LIGHT_ORB_VISUALS.CORE_RADIUS);
-
-    // Respawn progress arc
-    ctx.strokeStyle = "#FFE566";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(
-      0,
-      0,
-      LIGHT_ORB_VISUALS.CORE_RADIUS + 4,
-      -Math.PI / 2,
-      -Math.PI / 2 + respawnProgress * Math.PI * 2,
-    );
-    ctx.stroke();
 
     ctx.restore();
   }

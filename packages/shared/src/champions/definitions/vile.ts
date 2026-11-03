@@ -218,9 +218,10 @@ export const VileRestorationOfVilix: AbilityDefinition = {
 // =============================================================================
 
 /**
- * Souls of Vilix - Dual-trigger passive
- * on_kill: Gain soul stacks based on target type and level
- * on_hit: Consume all stacks to deal bonus damage to champions
+ * Souls of Vilix - Dual-trigger passive (SoulStacksPassive)
+ * on_kill: Gain soul stacks based on target type and level (no cap, no decay)
+ * on_hit: Consume all stacks to deal bonus physical damage to champions,
+ * one per stack
  */
 export const VilePassive: PassiveAbilityDefinition = {
   id: "vile_passive",
@@ -230,10 +231,7 @@ export const VilePassive: PassiveAbilityDefinition = {
   trigger: "on_kill", // Primary trigger
   additionalTriggers: ["on_hit"], // Secondary trigger for consumption
   usesStacks: true,
-  maxStacks: 0, // No cap
-  stackDuration: 0, // No decay
   // Soul stack scaling by level and target type
-  // Handled by custom handler in PassiveTriggerSystem
   soulScaling: {
     minion: {
       levels: [1, 6, 11, 16],
@@ -248,12 +246,6 @@ export const VilePassive: PassiveAbilityDefinition = {
       stacks: [7, 9, 11, 15],
     },
   },
-  // Damage on consume (basic attack vs champion)
-  damage: {
-    type: "physical",
-    scaling: scaling([0]), // Base 0, damage = stacks consumed
-  },
-  consumeStacksOnActivation: true,
 };
 
 // =============================================================================

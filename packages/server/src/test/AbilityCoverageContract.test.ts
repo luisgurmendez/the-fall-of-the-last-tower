@@ -47,8 +47,13 @@ const DESTINATION_TARGET_TYPES: AbilityTargetType[] = [
   'skillshot', 'ground_target', 'target_enemy', 'target_ally', 'target_unit',
 ];
 
-/** Charge fields read by the generic skillshot path (generic/Skillshot) */
-const GENERIC_CHARGE_FIELDS = ['minChargeTime', 'maxChargeTime', 'maxChargeRangeBonus'];
+/**
+ * Charge fields read by the generic skillshot path (generic/Skillshot), and
+ * canMoveWhileCharging, which the client carries out (it holds the champion still)
+ */
+const GENERIC_CHARGE_FIELDS = [
+  'minChargeTime', 'maxChargeTime', 'maxChargeRangeBonus', 'minChargeMultiplier', 'maxChargeMultiplier', 'canMoveWhileCharging',
+];
 
 const always: FieldRule = () => true;
 
@@ -63,9 +68,9 @@ const isProjectileSkillshot = (d: AbilityDefinition) => d.targetType === 'skills
 const projectileField = (field: string): FieldRule => (d) =>
   isProjectileSkillshot(d) || `${field} is only used by skillshots that fire a projectile`;
 
-/** Circular ground_target areas: not traps, not cones */
+/** Circular ground_target areas: not cones */
 const isCircleArea = (d: AbilityDefinition) =>
-  d.targetType === 'ground_target' && !d.trap && !(d.shape === 'cone' && d.coneAngle);
+  d.targetType === 'ground_target' && !(d.shape === 'cone' && d.coneAngle);
 
 const zoneField = (field: string): FieldRule => (d) =>
   isCircleArea(d) || `${field} is only used by circular ground_target areas`;
@@ -94,7 +99,6 @@ const GENERIC_SUPPORT: Record<keyof AbilityDefinition, FieldRule> = {
     if (d.targetType === 'self' || d.targetType === 'target_ally') {
       return `damage is not applied by ${d.targetType} abilities`;
     }
-    if (d.trap) return 'traps deal trap.explosionDamage, not damage';
     if (d.targetType === 'skillshot' && d.dash && !d.aoeRadius) {
       return 'dash skillshots only deal damage on dash collision, which needs aoeRadius';
     }
@@ -107,7 +111,6 @@ const GENERIC_SUPPORT: Record<keyof AbilityDefinition, FieldRule> = {
   },
   appliesEffects: (d) => {
     if (d.targetType === 'self' && d.statTransform) return 'self abilities with statTransform skip appliesEffects';
-    if (d.trap) return 'traps ignore appliesEffects';
     return true;
   },
   effectDuration: always,
@@ -124,7 +127,7 @@ const GENERIC_SUPPORT: Record<keyof AbilityDefinition, FieldRule> = {
   // Read by ServerProjectile: it stops at the first wall (a recast opens there)
   stopsOnWall: projectileField('stopsOnWall'),
 
-  // Areas and zones (generic/NoTargetArea, GroundTarget, Cone, Trap; aura: StatTransform)
+  // Areas and zones (generic/NoTargetArea, GroundTarget, Cone; aura: StatTransform)
   shape: (d) =>
     d.shape !== 'cone' || (d.targetType === 'ground_target' && d.coneAngle !== undefined) ||
     'cone shape is only executed for ground_target abilities with coneAngle',
@@ -142,7 +145,7 @@ const GENERIC_SUPPORT: Record<keyof AbilityDefinition, FieldRule> = {
   'width': never('width is not read by the executor'),
   zoneDuration: zoneField('zoneDuration'),
   zoneTickRate: zoneField('zoneTickRate'),
-  trap: onlyFor(['ground_target'], 'trap'),
+  trap: never('traps are placed by their ability handler (VileEHandler)'),
   aura: (d) =>
     (d.targetType === 'self' && d.statTransform !== undefined) || 'aura is only started by self statTransform abilities',
 

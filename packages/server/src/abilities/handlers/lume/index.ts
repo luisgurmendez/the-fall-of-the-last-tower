@@ -5,7 +5,7 @@
  * Utility mage focused on positioning a persistent Light Orb.
  *
  * Champion hooks (LumeHooks):
- * - Passive (Guiding Glow) and Q/W/E follow the Light Orb's state
+ * - The Prismatic Beam (E), from her to the orb every tick while it lasts
  */
 
 import { abilityHandlerRegistry } from '../../AbilityHandlerRegistry';

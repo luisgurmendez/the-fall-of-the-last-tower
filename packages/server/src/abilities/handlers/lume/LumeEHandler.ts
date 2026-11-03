@@ -22,10 +22,7 @@ export class LumeEHandler extends BaseAbilityHandler {
   readonly abilityId = 'lume_e';
 
   validate(params: AbilityHandlerParams): AbilityValidationResult {
-    const orb = findOrb(params.champion, params.context);
-    if (!orb || orb.isDestroyed) {
-      return { valid: false, reason: 'orb_destroyed', customMessage: 'Light Orb is destroyed' };
-    }
+    if (!findOrb(params.champion, params.context)) return { valid: false, reason: 'invalid_target', customMessage: 'No Light Orb' };
     return { valid: true };
   }
 

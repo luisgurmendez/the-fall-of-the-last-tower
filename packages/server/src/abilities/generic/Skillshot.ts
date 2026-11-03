@@ -3,7 +3,8 @@
  *
  * - The projectile spawns at the ability animation's projectile keyframe
  *   (scheduled on the champion), or right away without one
- * - Charge abilities gain range with charge time
+ * - Charge abilities gain range with charge time, and their damage goes from
+ *   minChargeMultiplier to maxChargeMultiplier (1 when not given)
  * - Skillshots with a dash fire nothing; the dash carries the ability
  * - A projectile hit can enable a recast (see ServerProjectile)
  */
@@ -59,6 +60,7 @@ export function executeSkillshot(
 
   const projectileDelay = getProjectileDelay(params, definition);
   const effectiveRange = getEffectiveRange(params, definition);
+  damageAmount *= getChargeDamageMultiplier(params, definition);
 
   // Prepare projectile config
   const projectileConfig = {
@@ -125,27 +127,44 @@ function getProjectileDelay(params: AbilityCastParams, definition: AbilityDefini
 }
 
 /**
+ * How far along its charge the cast is (0 to 1), or null for one that
+ * doesn't charge.
+ */
+function getChargeProgress(params: AbilityCastParams, definition: AbilityDefinition): number | null {
+  if (!hasChargeBehavior(definition) || params.chargeTime === undefined) return null;
+  const { minChargeTime, maxChargeTime } = definition.charge;
+  if (maxChargeTime <= minChargeTime) return 1;
+  return Math.max(0, Math.min(1, (params.chargeTime - minChargeTime) / (maxChargeTime - minChargeTime)));
+}
+
+/**
+ * The charge's damage multiplier, from its minChargeMultiplier to its
+ * maxChargeMultiplier (1 without a charge).
+ */
+function getChargeDamageMultiplier(params: AbilityCastParams, definition: AbilityDefinition): number {
+  const chargeProgress = getChargeProgress(params, definition);
+  if (chargeProgress === null) return 1;
+  const min = definition.charge!.minChargeMultiplier ?? 1;
+  const max = definition.charge!.maxChargeMultiplier ?? 1;
+  return min + (max - min) * chargeProgress;
+}
+
+/**
  * Projectile range, with the charge bonus if applicable.
  */
 function getEffectiveRange(params: AbilityCastParams, definition: AbilityDefinition): number {
   const { champion } = params;
   let effectiveRange = definition.range ?? 800;
 
-  if (hasChargeBehavior(definition) && params.chargeTime !== undefined) {
+  const chargeProgress = getChargeProgress(params, definition);
+  if (chargeProgress !== null) {
     const charge = definition.charge!;
-    const minCharge = charge.minChargeTime;
-    const maxCharge = charge.maxChargeTime;
-
-    // Calculate charge progress (0 to 1)
-    const chargeProgress = Math.max(0, Math.min(1,
-      (params.chargeTime - minCharge) / (maxCharge - minCharge)
-    ));
 
     // Apply range bonus based on charge progress
     if (charge.maxChargeRangeBonus) {
       effectiveRange += charge.maxChargeRangeBonus * chargeProgress;
       Logger.champion.debug(
-        `${champion.playerId} charged ${definition.id} for ${params.chargeTime.toFixed(2)}s ` +
+        `${champion.playerId} charged ${definition.id} for ${params.chargeTime!.toFixed(2)}s ` +
         `(${(chargeProgress * 100).toFixed(0)}%), range: ${effectiveRange.toFixed(0)}`
       );
     }

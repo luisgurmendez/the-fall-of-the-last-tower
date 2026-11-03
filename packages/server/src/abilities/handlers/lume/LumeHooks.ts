@@ -1,10 +1,8 @@
 /**
- * LumeHooks - Guiding Glow follows the Light Orb, and the Prismatic Beam
+ * LumeHooks - the Prismatic Beam
  *
- * Lume's passive and orb abilities depend on the Light Orb being alive (it
- * goes when she dies and comes back with her):
- * - Orb alive: passive active, Q/W/E enabled
- * - Orb destroyed: passive shows the orb respawn timer, Q/W/E disabled
+ * (Guiding Glow is the orb's own aura, ServerLightOrb; the orb is gone only
+ * while Lume is dead, when none of this runs.)
  *
  * While she has lume_prism (Prismatic Beam, E) a beam runs from her to the
  * orb: enemies it touches take the E's damage once per cast and are slowed
@@ -27,27 +25,9 @@ export const lumeHooks: IChampionHooks = {
   championId: 'lume',
 
   updatePassiveState(champion: ServerChampion, context: ServerGameContext): void {
+    if (!champion.hasEffect('lume_prism')) return;
     const orb = findOrb(champion, context);
-    if (!orb) return;
-
-    if (orb.isDestroyed) {
-      // Orb is destroyed - show respawn cooldown, disable abilities
-      champion.passiveState.isActive = false;
-      champion.passiveState.cooldownRemaining = (orb.toSnapshot() as { respawnTimeRemaining?: number }).respawnTimeRemaining ?? 0;
-      champion.abilityStates.Q.isDisabled = true;
-      champion.abilityStates.W.isDisabled = true;
-      champion.abilityStates.E.isDisabled = true;
-      return;
-    }
-
-    // Orb is alive - passive is active, enable abilities
-    champion.passiveState.isActive = true;
-    champion.passiveState.cooldownRemaining = 0;
-    champion.abilityStates.Q.isDisabled = false;
-    champion.abilityStates.W.isDisabled = false;
-    champion.abilityStates.E.isDisabled = false;
-
-    if (champion.hasEffect('lume_prism')) prismaticBeam(champion, orb.position, context);
+    if (orb) prismaticBeam(champion, orb.position, context);
   },
 };
 

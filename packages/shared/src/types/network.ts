@@ -644,16 +644,8 @@ export interface LightOrbSnapshot {
   x: number;
   y: number;
 
-  // State machine
+  // State machine ('destroyed' while Lume is dead)
   state: LightOrbState;
-  orbitAngle: number;  // Current orbit angle in radians (for smooth client rendering)
-
-  // Timers
-  stationedTimeRemaining: number;  // Time left when stationed (0 if not stationed)
-  respawnTimeRemaining: number;    // Time until respawn when destroyed (0 if not destroyed)
-
-  // Passive aura info
-  auraRadius: number;
 
   isDead: boolean;
 }

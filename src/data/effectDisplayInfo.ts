@@ -331,13 +331,6 @@ const EFFECT_DISPLAY_INFO: Record<string, EffectDisplayInfo> = {
     icon: 'V',
     color: '#7e22ce',
   },
-  vile_transform_aura: {
-    name: 'Restoration of Vilix',
-    description: 'Damages nearby enemies.',
-    category: 'buff',
-    icon: 'V',
-    color: '#a855f7',
-  },
 
   // ===================
   // Item Passives

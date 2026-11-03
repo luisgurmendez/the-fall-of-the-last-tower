@@ -60,7 +60,6 @@ export class ServerTrap extends ServerEntity {
   readonly explosionRootDuration: number;
 
   private remainingDuration: number;
-  private placedAt: number;
   private hasTriggered: boolean = false;
   /** Seconds until it can trigger */
   private armingTime = ServerTrap.ARM_DELAY;
@@ -87,7 +86,6 @@ export class ServerTrap extends ServerEntity {
     this.explosionRootDuration = config.explosionRootDuration;
 
     this.remainingDuration = config.duration;
-    this.placedAt = Date.now();
 
     // Traps don't have health - they're instant effects
     this.health = 1;

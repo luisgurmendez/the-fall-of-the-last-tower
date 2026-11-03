@@ -1,7 +1,7 @@
 /**
- * Generic `ground_target` path, in order of precedence:
+ * Generic `ground_target` path, in order of precedence (traps are placed by
+ * their ability's handler, VileEHandler):
  *
- * - A trap places a ServerTrap (Trap.ts)
  * - A cone hits enemies in front of the caster (Cone.ts)
  * - A line hits enemies along a band toward the target (Line.ts)
  * - A dash with no aoeRadius is only the dash (run after this path)
@@ -20,7 +20,6 @@ import { ServerZone, type ZoneEffectType } from "../../simulation/ServerZone";
 import { getScalingStats, applyEffectsToEntity } from "./AbilityHelpers";
 import { executeConeAbility } from "./Cone";
 import { executeLineAbility } from "./Line";
-import { executeTrapPlacement } from "./Trap";
 
 /**
  * Execute a ground-targeted ability.
@@ -34,12 +33,6 @@ export function executeGroundTarget(
   const { targetPosition, context } = params;
 
   if (!targetPosition) return;
-
-  // Handle trap placement (like Vile's E)
-  if (definition.trap) {
-    executeTrapPlacement(params, definition, rank);
-    return;
-  }
 
   // Handle cone-shaped abilities
   if (definition.shape === "cone" && definition.coneAngle) {

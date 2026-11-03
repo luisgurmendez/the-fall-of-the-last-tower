@@ -13,7 +13,6 @@
 import { BaseAbilityHandler } from '../../BaseAbilityHandler';
 import type {
   AbilityHandlerParams,
-  AbilityValidationResult,
   AbilityExecutionResult,
 } from '../../IAbilityHandler';
 import { ServerLightOrb, LUME_ORB_CONFIG } from '../../../simulation/ServerLightOrb';
@@ -25,23 +24,12 @@ import { canAbilityAffectEntityType } from '@siege/shared';
 export class LumeWHandler extends BaseAbilityHandler {
   readonly abilityId = 'lume_w';
 
-  validate(params: AbilityHandlerParams): AbilityValidationResult {
-    const { champion, context } = params;
-
-    const orb = this.getOrb(champion, context);
-    if (!orb || orb.isDestroyed) {
-      return { valid: false, reason: 'orb_destroyed', customMessage: 'Light Orb is destroyed' };
-    }
-
-    return { valid: true };
-  }
-
   execute(params: AbilityHandlerParams): AbilityExecutionResult {
     const { champion, context, definition, rank, damageMultiplier } = params;
 
     const orb = this.getOrb(champion, context);
-    if (!orb || orb.isDestroyed) {
-      Logger.debug('Ability', 'Lume W failed - orb is destroyed');
+    if (!orb) {
+      Logger.debug('Ability', 'Lume W failed - no Light Orb');
       return { success: false };
     }
 

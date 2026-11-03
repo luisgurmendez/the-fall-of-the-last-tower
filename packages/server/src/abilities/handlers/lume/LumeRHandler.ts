@@ -20,17 +20,14 @@ export class LumeRHandler extends BaseAbilityHandler {
   readonly abilityId = 'lume_r';
 
   validate(params: AbilityHandlerParams): AbilityValidationResult {
-    const orb = findOrb(params.champion, params.context);
-    if (!orb || orb.isDestroyed) {
-      return { valid: false, reason: 'orb_destroyed', customMessage: 'Light Orb is destroyed' };
-    }
+    if (!findOrb(params.champion, params.context)) return { valid: false, reason: 'invalid_target', customMessage: 'No Light Orb' };
     return { valid: true };
   }
 
   execute(params: AbilityHandlerParams): AbilityExecutionResult {
     const { champion, context, definition, rank, damageMultiplier, targetPosition } = params;
     const orb = findOrb(champion, context);
-    if (!orb || orb.isDestroyed || !targetPosition) return { success: false };
+    if (!orb || !targetPosition) return { success: false };
 
     // From the orb toward the aim (from Lume's aim when it's on the orb itself)
     const origin = orb.position.clone();

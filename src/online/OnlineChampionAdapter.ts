@@ -178,11 +178,7 @@ class OnlineAbilityAdapter {
   }
 
   get isReady(): boolean {
-    return this.state.cooldownRemaining <= 0 && this.state.rank > 0 && !this.state.isDisabled;
-  }
-
-  get isDisabled(): boolean {
-    return this.state.isDisabled ?? false;
+    return this.state.cooldownRemaining <= 0 && this.state.rank > 0;
   }
 
   get cooldownProgress(): number {

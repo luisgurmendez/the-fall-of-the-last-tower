@@ -859,16 +859,6 @@ export const VileTrapCaughtEffect: ServerEffectDefinition = {
   persistsThroughDeath: false,
 };
 
-// Vile R - Transform aura damage marker (actual damage handled separately)
-export const VileTransformAuraEffect: ServerEffectDefinition = {
-  id: 'vile_transform_aura',
-  name: 'Restoration of Vilix',
-  category: 'buff',
-  stackBehavior: 'refresh',
-  cleansable: false,
-  persistsThroughDeath: false,
-};
-
 // ===================
 // Lume Effects
 // ===================
@@ -1472,7 +1462,6 @@ export const ALL_SERVER_EFFECTS: AnyServerEffectDef[] = [
   VileSlowResistEffect,
   VileRootEffect,
   VileTrapCaughtEffect,
-  VileTransformAuraEffect,
   // Ability-specific - Lume
   LumeGuidingGlowSpeedEffect,
   LumeGuidingGlowAmpEffect,

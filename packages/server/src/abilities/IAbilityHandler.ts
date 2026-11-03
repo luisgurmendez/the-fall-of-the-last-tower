@@ -12,7 +12,7 @@
  * - AbilityExecutor dispatches to handlers, doesn't know specifics
  */
 
-import type { Vector, AbilityDefinition, AbilitySlot, DamageType } from '@siege/shared';
+import type { Vector, AbilityDefinition, AbilitySlot } from '@siege/shared';
 import type { ServerChampion } from '../simulation/ServerChampion';
 import type { ServerEntity } from '../simulation/ServerEntity';
 import type { ServerGameContext } from '../game/ServerGameContext';
@@ -50,7 +50,7 @@ export interface AbilityHandlerParams {
  */
 export interface AbilityValidationResult {
   valid: boolean;
-  reason?: 'not_learned' | 'on_cooldown' | 'not_enough_mana' | 'invalid_target' | 'out_of_range' | 'silenced' | 'stunned' | 'orb_destroyed' | 'no_ammo' | 'custom';
+  reason?: 'not_learned' | 'on_cooldown' | 'not_enough_mana' | 'invalid_target' | 'out_of_range' | 'silenced' | 'stunned' | 'custom';
   customMessage?: string;
 }
 
@@ -71,19 +71,6 @@ export interface AbilityExecutionResult {
   vfxPosition?: Vector;
   /** Where the effect starts, when not at the caster (Lume's Eclipse fires from her orb) */
   vfxOrigin?: Vector;
-}
-
-/**
- * Context for projectile hit callbacks.
- */
-export interface ProjectileHitContext {
-  target: ServerEntity;
-  projectilePosition: Vector;
-  /** Position where the projectile hit (for recast abilities) */
-  hitPosition: Vector;
-  context: ServerGameContext;
-  damage: number;
-  damageType: DamageType;
 }
 
 /**
@@ -143,12 +130,6 @@ export interface IAbilityHandler {
   canRecast?(params: AbilityHandlerParams): boolean;
 
   /**
-   * Called when a projectile spawned by this ability hits a target.
-   * Allows custom on-hit logic beyond standard damage.
-   */
-  onProjectileHit?(hitContext: ProjectileHitContext, params: AbilityHandlerParams): void;
-
-  /**
    * Called when the champion collides with an entity during a dash.
    * Allows custom collision logic beyond standard damage.
    */
@@ -171,10 +152,6 @@ export function hasValidate(handler: IAbilityHandler): handler is IAbilityHandle
 
 export function hasRecast(handler: IAbilityHandler): handler is IAbilityHandler & { executeRecast: NonNullable<IAbilityHandler['executeRecast']>; canRecast: NonNullable<IAbilityHandler['canRecast']> } {
   return typeof handler.executeRecast === 'function' && typeof handler.canRecast === 'function';
-}
-
-export function hasProjectileHit(handler: IAbilityHandler): handler is IAbilityHandler & { onProjectileHit: NonNullable<IAbilityHandler['onProjectileHit']> } {
-  return typeof handler.onProjectileHit === 'function';
 }
 
 export function hasDashCollision(handler: IAbilityHandler): handler is IAbilityHandler & { onDashCollision: NonNullable<IAbilityHandler['onDashCollision']> } {

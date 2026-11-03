@@ -144,7 +144,7 @@ describe("Lume", () => {
       expect(orb.isDestroyed).toBe(true);
     });
 
-    test("should respawn after respawn time when destroyed", () => {
+    test("should come back orbiting when its owner is alive (she respawned)", () => {
       const orb = new ServerLightOrb({
         id: "test-orb",
         position: new Vector(0, 0),
@@ -157,9 +157,7 @@ describe("Lume", () => {
 
       expect(orb.isDestroyed).toBe(true);
 
-      // Note: Full respawn timer is 60s, but we need to mock the update
-      // For now, test forceRespawn
-      orb.forceRespawn();
+      orb.update(1 / 60, arena.context);
 
       expect(orb.state).toBe("orbiting");
       expect(orb.isDestroyed).toBe(false);
@@ -453,14 +451,14 @@ describe("Lume", () => {
       // Send orb near enemy (red is at 400,0)
       orb.sendTo(new Vector(350, 0));
 
-      // Tick until orb arrives and becomes stationed (350 units at 1200 u/s = ~18 frames)
-      arena.tickAllFrames(25);
+      // Tick until orb arrives and becomes stationed (350 units at 700 u/s = 30 frames)
+      arena.tickAllFrames(40);
 
       // Red champion should have the damage amp debuff
       expect(arena.red.hasEffect("lume_guiding_glow_amp")).toBe(true);
     });
 
-    test("passive effects should not apply when orb is destroyed", () => {
+    test("passive effects should not apply while the orb is gone (Lume is dead)", () => {
       const orb = new ServerLightOrb({
         id: "test-orb",
         position: new Vector(350, 0),
@@ -469,11 +467,12 @@ describe("Lume", () => {
       });
       arena.context.addEntity(orb);
 
-      // Destroy the orb
-      orb.destroy();
+      // Lume dies: the orb goes
+      arena.blue.takeDamage(99999, "true", arena.red.id, arena.context);
 
       // Tick
       arena.tickAllFrames(5);
+      expect(orb.isDestroyed).toBe(true);
 
       // Effects should not be applied
       expect(arena.red.hasEffect("lume_guiding_glow_amp")).toBe(false);

@@ -2,18 +2,18 @@
  * LumeQHandler - Send the Light
  *
  * Send the Light Orb to a target location.
- * - Orb travels at 1200 units/s
+ * - Orb travels at 700 units/s
  * - Deals magic damage to enemies in a small area on arrival
  * - Orb stays stationed at location for 4 seconds
  *
- * RECAST: Recall the orb early (while traveling or stationed).
+ * RECAST: Recall the orb early (while traveling or stationed), within the
+ * definition's recastWindow.
  */
 
 import { Vector, canAbilityAffectEntityType, GameEventType } from '@siege/shared';
 import { BaseAbilityHandler } from '../../BaseAbilityHandler';
 import type {
   AbilityHandlerParams,
-  AbilityValidationResult,
   AbilityExecutionResult,
 } from '../../IAbilityHandler';
 import { ServerLightOrb, LUME_ORB_CONFIG } from '../../../simulation/ServerLightOrb';
@@ -24,23 +24,6 @@ import { Logger } from '../../../utils/Logger';
 export class LumeQHandler extends BaseAbilityHandler {
   readonly abilityId = 'lume_q';
 
-  validate(params: AbilityHandlerParams): AbilityValidationResult {
-    const { champion, context } = params;
-
-    // Check if we're recasting (orb is away)
-    if (champion.hasRecastAvailable('Q')) {
-      return { valid: true };
-    }
-
-    // For initial cast, orb must exist and not be destroyed
-    const orb = this.getOrb(champion, context);
-    if (orb && orb.isDestroyed) {
-      return { valid: false, reason: 'orb_destroyed', customMessage: 'Light Orb is destroyed' };
-    }
-
-    return { valid: true };
-  }
-
   execute(params: AbilityHandlerParams): AbilityExecutionResult {
     const { champion, targetPosition, context, definition, rank, damageMultiplier } = params;
 
@@ -50,10 +33,6 @@ export class LumeQHandler extends BaseAbilityHandler {
 
     // Get or create orb
     const orb = this.getOrCreateOrb(champion, context);
-    if (!orb || orb.isDestroyed) {
-      Logger.debug('Ability', 'Lume Q failed - orb is destroyed');
-      return { success: false };
-    }
 
     // Calculate damage
     const damageAmount = this.calculateDamage(definition, rank, champion, damageMultiplier);
@@ -86,7 +65,7 @@ export class LumeQHandler extends BaseAbilityHandler {
     });
 
     // Enable recast for recall
-    champion.abilityStates.Q.recastWindowRemaining = 10;
+    champion.abilityStates.Q.recastWindowRemaining = definition.recastWindow ?? 10;
     champion.abilityStates.Q.recastCount = 1;
 
     // Update facing direction
@@ -103,7 +82,7 @@ export class LumeQHandler extends BaseAbilityHandler {
     const { champion, context } = params;
 
     const orb = this.getOrb(champion, context);
-    if (!orb || orb.isDestroyed || orb.isOrbiting) {
+    if (!orb || orb.isOrbiting) {
       return false;
     }
 
@@ -114,7 +93,7 @@ export class LumeQHandler extends BaseAbilityHandler {
     const { champion, context } = params;
 
     const orb = this.getOrb(champion, context);
-    if (!orb || orb.isDestroyed || orb.isOrbiting) {
+    if (!orb || orb.isOrbiting) {
       return { success: false };
     }
 
@@ -139,7 +118,7 @@ export class LumeQHandler extends BaseAbilityHandler {
     return null;
   }
 
-  private getOrCreateOrb(champion: ServerChampion, context: ServerGameContext): ServerLightOrb | null {
+  private getOrCreateOrb(champion: ServerChampion, context: ServerGameContext): ServerLightOrb {
     let orb = this.getOrb(champion, context);
     if (!orb) {
       orb = new ServerLightOrb({
