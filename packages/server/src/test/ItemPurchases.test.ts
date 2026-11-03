@@ -1,11 +1,14 @@
 /**
  * Buying items through a champion: owned parts are used up and taken off
- * the price (item trees, @siege/shared itemTrees.ts).
+ * the price (item trees, @siege/shared itemTrees.ts). The shop is at the
+ * fountain, or anywhere while dead.
  */
 
 import { describe, test, expect } from 'bun:test';
+import { InputType } from '@siege/shared';
 import { createTestArena } from './ServerTestUtils';
 import { getServerItemById } from '../data/items';
+import { Simulation } from '../sim';
 
 const cost = (id: string) => getServerItemById(id)!.cost;
 const inventory = (items: ({ definitionId: string } | null)[]) => items.map(item => item?.definitionId ?? null);
@@ -46,5 +49,38 @@ describe('Item purchases', () => {
 
     expect(champion.buyItem('bulwark_belt')).toBe(true);
     expect(champion.gold).toBe(0);
+  });
+});
+
+describe('Shopping while dead', () => {
+  test('away from the fountain a champion buys nothing, but dead it buys and sells where it fell', () => {
+    const sim = new Simulation({ seed: 1, minionWaves: false, jungle: false, structures: false });
+    sim.addChampion({ playerId: 'p1', championId: 'warrior', side: 'blue', at: { x: 0, y: 0 } });
+    const champion = sim.champion('p1');
+    champion.gold = 1000;
+    const buy = () => {
+      sim.input('p1', { type: InputType.BUY_ITEM, itemId: 'notched_blade' });
+      sim.run(0.05);
+    };
+
+    buy();
+    expect(champion.hasItem('notched_blade')).toBe(false);
+
+    champion.takeDamage(100000, 'true', undefined, sim.context);
+    expect(champion.isDead).toBe(true);
+    buy();
+    expect(champion.hasItem('notched_blade')).toBe(true);
+    expect(champion.gold).toBeLessThan(1000);
+
+    sim.input('p1', { type: InputType.SELL_ITEM, slot: 0 });
+    sim.run(0.05);
+    expect(champion.hasItem('notched_blade')).toBe(false);
+
+    // Nothing else goes through while dead
+    sim.input('p1', { type: InputType.MOVE, targetX: 300, targetY: 0 });
+    sim.run(0.05);
+    expect(champion.isDead).toBe(true);
+    expect(champion.targetPosition).toBeNull();
+    sim.dispose();
   });
 });

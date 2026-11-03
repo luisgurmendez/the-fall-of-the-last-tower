@@ -1,6 +1,6 @@
 # Items and Shop
 
-Items are bought at the fountain, in the shop (P). The server validates every purchase.
+Items are bought at the fountain, or anywhere while dead, in the shop (P). The server validates every purchase.
 
 ## Catalog
 
@@ -190,8 +190,10 @@ the inventory has done (the item, or one built from it; the starter and potion o
 start) is checked off, and the next item to get is outlined as NEXT. Closing the shop keeps
 the item picked in the list and where the list was scrolled.
 Buying keeps the shop open; gold, inventory, affordability and the buttons refresh from
-each server state update (`updateOnlineState`). Buying and selling only work at the
-fountain. Beside the inventory, the control ward button buys a control ward (75 gold) to
+each server state update (`updateOnlineState`; while dead, from the snapshot the state
+manager keeps aside). Buying and selling only work at the fountain, or anywhere while dead
+(`canShop`: buying and selling are the only inputs the server takes from a dead champion).
+Beside the inventory, the control ward button buys a control ward (75 gold) to
 carry, up to 2, outside the six slots (see [map.md](map.md), Wards). A right-click moves
 the champion with the shop open: around it (clicks there reach the game) and on it too
 (`InputManager.forwardMouseEvent`), except on an item, which a right-click buys. A left-click

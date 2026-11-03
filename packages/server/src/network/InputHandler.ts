@@ -136,11 +136,15 @@ export interface InputHandlerOptions {
   now?: () => number;
 }
 
+/** The inputs a dead champion still sends: the shop */
+const DEAD_CHAMPION_INPUTS: ReadonlySet<InputType> = new Set([InputType.BUY_ITEM, InputType.SELL_ITEM]);
+
 /**
- * Whether a champion may use the shop: only at its fountain (unless the rule is off).
+ * Whether a champion may use the shop: at its fountain, or anywhere while
+ * it's dead (unless the rule is off).
  */
 export function canShop(champion: ServerChampion, context: ServerGameContext): boolean {
-  if (!GameConfig.ECONOMY.SHOP_ONLY_AT_BASE) return true;
+  if (!GameConfig.ECONOMY.SHOP_ONLY_AT_BASE || champion.isDead) return true;
   const fountain = champion.side === 0 ? context.mapConfig.CHAMPION_SPAWN.BLUE : context.mapConfig.CHAMPION_SPAWN.RED;
   return champion.position.distanceTo(fountain) <= context.mapConfig.FOUNTAIN.RADIUS;
 }
@@ -198,13 +202,15 @@ export class InputHandler {
   processInputs(context: ServerGameContext): void {
     for (const [playerId, queue] of this.inputQueues) {
       const champion = context.getChampionByPlayerId(playerId);
-      if (!champion || champion.isDead) {
-        queue.length = 0; // Clear queue for dead champions
+      if (!champion) {
+        queue.length = 0;
         continue;
       }
 
       // Process inputs in order
       for (const pending of queue) {
+        // A dead champion can still shop, nothing else
+        if (champion.isDead && !DEAD_CHAMPION_INPUTS.has(pending.input.type)) continue;
         this.processInput(champion, pending.input, context);
         this.lastAckedSeq.set(playerId, pending.input.seq);
       }

@@ -15,7 +15,7 @@ import { getShopUI } from '@/ui/shop/ShopUI';
 import { profiler } from '@/debug/PerformanceProfiler';
 import { getCursorManager } from './CursorManager';
 import { OnlineStateManager } from './OnlineStateManager';
-import { EntityType, GameConfig, MOBAConfig, getChampionDefinition, type ChampionSnapshot } from '@siege/shared';
+import { GameConfig, MOBAConfig, getChampionDefinition } from '@siege/shared';
 import { GameMenu } from '@/ui/GameMenu';
 import { DebugOverlay } from '@/debug/DebugOverlay';
 import type { NetworkClient } from '@siege/client';
@@ -161,23 +161,18 @@ class OnlineGame {
     // Only update if shop is open (optimization)
     if (!shopUI.isOpen()) return;
 
-    // Get local player's champion snapshot
-    const localEntity = this.stateManager.getLocalPlayerEntity();
-    if (!localEntity?.snapshot) return;
-
-    // Only champions have gold and items
-    if (localEntity.snapshot.entityType !== EntityType.CHAMPION) return;
-
-    const championSnapshot = localEntity.snapshot as ChampionSnapshot;
+    // The local champion's snapshot, kept aside while it's dead (it can still shop)
+    const championSnapshot = this.stateManager.getChampionSnapshot(this.stateManager.getLocalEntityId());
+    if (!championSnapshot) return;
 
     // Update shop with gold and items from server
     const items = championSnapshot.items.map(item =>
       item ? { definitionId: item.definitionId, charges: item.charges } : null
     );
 
-    // The server only sells at the fountain
+    // The server only sells at the fountain, or anywhere while dead
     const fountain = championSnapshot.side === 0 ? MOBAConfig.CHAMPION_SPAWN.BLUE : MOBAConfig.CHAMPION_SPAWN.RED;
-    const atShop = !GameConfig.ECONOMY.SHOP_ONLY_AT_BASE ||
+    const atShop = !GameConfig.ECONOMY.SHOP_ONLY_AT_BASE || championSnapshot.isDead ||
       Math.hypot(championSnapshot.x - fountain.x, championSnapshot.y - fountain.y) <= MOBAConfig.FOUNTAIN.RADIUS;
 
     shopUI.updateOnlineState(championSnapshot.gold, items, atShop, championSnapshot.controlWards ?? 0);
