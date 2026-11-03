@@ -111,7 +111,7 @@ export const MagnusMudGround: AbilityDefinition = {
   id: "magnus_mud",
   name: "Quagmire",
   description:
-    "Create a pool of mud at target location, slowing enemies inside by 20% for 2 seconds.",
+    "Create a pool of mud at target location for 2 seconds, slowing enemies in it by 20% (the slow lingers 2 seconds after they leave).",
   type: "active",
   targetType: "ground_target",
   maxRank: 5,
@@ -155,14 +155,15 @@ export const MagnusMeteor: AbilityDefinition = {
 // =============================================================================
 
 /**
- * Arcane Surge - Gain stacks on ability casts. At 4 stacks, next ability
- * deals 30% bonus damage and consumes all stacks.
+ * Arcane Surge - Gain a stack per ability cast; they fade 10 seconds after
+ * the last cast. At 4 stacks, the next ability deals 30% bonus damage and
+ * consumes them, and as a cast it's the first stack again.
  */
 export const MagnusPassive: PassiveAbilityDefinition = {
   id: "magnus_passive",
   name: "Arcane Surge",
   description:
-    "After casting 4 abilities, your next ability deals 30% bonus damage.",
+    "Each ability you cast adds a stack (they fade 10 seconds after your last cast). At 4 stacks, your next ability deals 30% bonus damage, and the count starts again from it.",
   trigger: "on_ability_cast",
   usesStacks: true,
   maxStacks: 4,

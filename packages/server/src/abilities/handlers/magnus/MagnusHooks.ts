@@ -6,7 +6,9 @@
  *
  * At 4 stacks the passive is active:
  * - The next ability deals 30% bonus damage
- * - Casting it consumes all stacks, even if it deals no damage
+ * - Casting it consumes all stacks, even if it deals no damage; then, as a
+ *   cast, it gives the first stack again
+ * - The stacks (a ready surge too) fade 10 s after the last cast
  */
 
 import type { IChampionHooks } from '../../IChampionHooks';

@@ -90,7 +90,7 @@ export const UrukSpearCharge: AbilityDefinition = {
   id: "uruk_w",
   name: "Spear Charge",
   description:
-    "Your next basic attack within 4 seconds reaches 40 further and deals {damage} bonus physical damage. For 4 seconds your physical damage ignores 10/14/18/22/26 armor.",
+    "Your next basic attack within 4 seconds is ready at once, reaches 40 further and deals {damage} bonus physical damage. For 4 seconds your physical damage ignores 10/14/18/22/26 armor.",
   type: "active",
   targetType: "self",
   maxRank: 5,

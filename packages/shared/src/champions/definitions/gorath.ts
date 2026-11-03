@@ -109,7 +109,7 @@ export const GorathTaunt: AbilityDefinition = {
   id: "gorath_taunt",
   name: "Defiant Roar",
   description:
-    "Taunt all nearby enemies, forcing them to attack you for 1.5 seconds.",
+    "Taunt nearby enemy champions and monsters, forcing them to walk to you and attack you, and nothing else, for 1.5 seconds.",
   type: "active",
   targetType: "no_target",
   maxRank: 5,
@@ -150,14 +150,14 @@ export const GorathEarthquake: AbilityDefinition = {
 // =============================================================================
 
 /**
- * Immovable - Gain armor stacks when taking damage. Stacks decay after
- * being out of combat for 4 seconds.
+ * Immovable - Gain armor stacks when taking damage (at most one every half
+ * second). They all fall off 4 seconds after the last one.
  */
 export const GorathPassive: PassiveAbilityDefinition = {
   id: "gorath_passive",
   name: "Immovable",
   description:
-    "When taking damage, gain 5 armor (max 10 stacks). Stacks decay after 4 seconds out of combat.",
+    "Taking damage grants 5 armor, at most once every 0.5 seconds (max 10 stacks). The stacks fall off 4 seconds after the last one.",
   trigger: "on_take_damage",
   usesStacks: true,
   maxStacks: 10,

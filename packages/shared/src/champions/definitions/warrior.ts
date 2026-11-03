@@ -121,7 +121,7 @@ export const WarriorCharge: AbilityDefinition = {
     speed: 650,
     distance: 260,
   },
-  aoeRadius: 45, // Hitbox width during dash
+  aoeRadius: 45, // Hitbox radius during the dash (a band about 90 wide)
   damage: {
     type: "physical",
     scaling: scaling([50, 85, 120, 155, 190], { adRatio: 0.6 }),
@@ -251,7 +251,7 @@ const WARRIOR_ANIMATIONS: ChampionAnimations = {
       loop: false,
       keyframes: [
         { frame: 0, trigger: { type: "sound", soundId: "charge_start" } },
-        { frame: 5, trigger: { type: "damage" } }, // Damage at end of dash
+        { frame: 5, trigger: { type: "damage" } }, // (Not read: the dash hits what it runs into on the way)
       ],
     },
     warrior_ultimate: {

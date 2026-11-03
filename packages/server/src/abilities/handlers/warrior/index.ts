@@ -5,10 +5,10 @@
  * Melee bruiser with engage and durability.
  *
  * NOTE: All Warrior abilities use generic execution.
- * - Q (Cleaving Strike): Cone AoE damage + slow
+ * - Q (Cleaving Strike): Cone AoE damage (no slow)
  * - W (Iron Will): Self shield
- * - E (Valiant Charge): Dash with damage + slow
- * - R (Heroic Strike): Targeted dash + stun
+ * - E (Valiant Charge): Dash with damage + slow on what it runs into
+ * - R (Heroic Strike): Leap at the target (Movement.leapToTarget) + stun on landing
  *
  * No custom handlers needed.
  */
