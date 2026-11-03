@@ -49,7 +49,7 @@ export const CALAMITUS_LAVA = {
   /** Obsidian Skin is this much stronger cast on his lava */
   skinOnLavaBonus: 0.5,
   /** Eruption stuns this long */
-  eruptionStun: 1,
+  eruptionStun: 1.25,
 } as const;
 
 // =============================================================================
@@ -150,7 +150,7 @@ export const CalamitusEruption: AbilityDefinition = {
   id: "calamitus_r",
   name: "Eruption",
   description:
-    "After a moment, every pool of your lava erupts, and so does the ground around you: enemies there take {damage} magic damage and are stunned for 1 second.",
+    "After a moment, every pool of your lava erupts, and so does the ground around you: enemies there take {damage} magic damage and are stunned for 1.25 seconds.",
   type: "active",
   targetType: "no_target",
   maxRank: 3,

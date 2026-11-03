@@ -103,7 +103,7 @@ export const FenrisSavageClaw: AbilityDefinition = {
   id: "fenris_w",
   name: "Savage Claw",
   description:
-    "Rake your claws in front of you, dealing {damage} physical damage to every enemy there and slowing them by 30% for 1 second.",
+    "Rake your claws in front of you, dealing {damage} physical damage to every enemy there and slowing them by 30% for 1.5 seconds.",
   type: "active",
   targetType: "ground_target",
   shape: "cone",
@@ -118,7 +118,7 @@ export const FenrisSavageClaw: AbilityDefinition = {
     scaling: scaling([55, 90, 125, 160, 195], { adRatio: 0.8 }),
   },
   appliesEffects: ["slow_30"],
-  effectDuration: 1,
+  effectDuration: 1.5,
 };
 
 /** E: he pounces on an enemy (generic targeted leap) */
@@ -126,7 +126,7 @@ export const FenrisPounce: AbilityDefinition = {
   id: "fenris_e",
   name: "Pounce",
   description:
-    "Pounce on the target enemy, dealing {damage} physical damage and slowing it by 40% for 1 second.",
+    "Pounce on the target enemy, dealing {damage} physical damage and slowing it by 40% for 1.25 seconds.",
   type: "active",
   targetType: "target_enemy",
   maxRank: 5,
@@ -142,7 +142,7 @@ export const FenrisPounce: AbilityDefinition = {
     scaling: scaling([40, 70, 100, 130, 160], { adRatio: 0.5 }),
   },
   appliesEffects: ["slow_40"],
-  effectDuration: 1,
+  effectDuration: 1.25,
 };
 
 /** R: bloodthirst: faster attacks that feed him, a kill restores him (FenrisHooks) */

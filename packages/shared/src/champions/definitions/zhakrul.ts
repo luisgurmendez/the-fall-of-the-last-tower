@@ -138,7 +138,7 @@ export const ZhakrulToxicCloud: AbilityDefinition = {
     scaling: scaling([10, 18, 26, 34, 42], { apRatio: 0.1 }),
   },
   appliesEffects: ["slow_30"],
-  effectDuration: 0.5,
+  effectDuration: 1, // The slow lingers a second after leaving the cloud
 };
 
 /** E: he travels underground, under walls too, and bursts out (ZhakrulEHandler) */
@@ -146,7 +146,7 @@ export const ZhakrulBurrowedAmbush: AbilityDefinition = {
   id: "zhakrul_e",
   name: "Burrowed Ambush",
   description:
-    "Burrow and travel underground to a spot, under walls too. You burst out snapping your pincers: enemies around take {damage} magic damage and are knocked up for 0.75 seconds.",
+    "Burrow and travel underground to a spot, under walls too. You burst out snapping your pincers: enemies around take {damage} magic damage and are knocked up for 1 second.",
   type: "active",
   targetType: "ground_target",
   maxRank: 5,
@@ -160,7 +160,7 @@ export const ZhakrulBurrowedAmbush: AbilityDefinition = {
     scaling: scaling([60, 95, 130, 165, 200], { apRatio: 0.5 }),
   },
   appliesEffects: ["knockup"],
-  effectDuration: 0.75,
+  effectDuration: 1,
 };
 
 /** R: his stinger stuns a champion and injects a deadly dose (ZhakrulRHandler) */
@@ -168,7 +168,7 @@ export const ZhakrulDeathStinger: AbilityDefinition = {
   id: "zhakrul_r",
   name: "Death Stinger",
   description:
-    "Drive your stinger into the target enemy champion: it's stunned for 1 second and takes {damage} magic damage over 3 seconds, 15% more for each dose of Ancient Venom it had. Then it has three doses: the venom turns ancient.",
+    "Drive your stinger into the target enemy champion: it's stunned for 1.25 seconds and takes {damage} magic damage over 3 seconds, 15% more for each dose of Ancient Venom it had. Then it has three doses: the venom turns ancient.",
   type: "active",
   targetType: "target_enemy",
   maxRank: 3,
@@ -182,7 +182,7 @@ export const ZhakrulDeathStinger: AbilityDefinition = {
     scaling: scaling([150, 250, 350], { apRatio: 0.8 }),
   },
   appliesEffects: ["stun"],
-  effectDuration: 1,
+  effectDuration: 1.25,
 };
 
 // =============================================================================

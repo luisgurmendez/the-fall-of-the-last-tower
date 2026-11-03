@@ -75,7 +75,7 @@ export const GorathSlam: AbilityDefinition = {
   id: "gorath_slam",
   name: "Ground Slam",
   description:
-    "Slam the ground, dealing {damage} magic damage and slowing enemies by 40% for 1 second.",
+    "Slam the ground, dealing {damage} magic damage and slowing enemies by 40% for 1.5 seconds.",
   type: "active",
   targetType: "no_target",
   maxRank: 5,
@@ -89,7 +89,7 @@ export const GorathSlam: AbilityDefinition = {
     scaling: scaling([60, 100, 140, 180, 220], { bonusHealthRatio: 0.04 }),
   },
   appliesEffects: ["slow_40"],
-  effectDuration: 1,
+  effectDuration: 1.5,
 };
 
 export const GorathFortify: AbilityDefinition = {
@@ -128,7 +128,7 @@ export const GorathEarthquake: AbilityDefinition = {
   id: "gorath_earthquake",
   name: "Earthquake",
   description:
-    "Create a massive earthquake dealing {damage} magic damage and knocking up all enemies for 1 second.",
+    "Create a massive earthquake dealing {damage} magic damage and knocking up all enemies for 1.25 seconds.",
   type: "active",
   targetType: "no_target",
   maxRank: 3,
@@ -142,7 +142,7 @@ export const GorathEarthquake: AbilityDefinition = {
     scaling: scaling([150, 275, 400], { bonusHealthRatio: 0.06 }),
   },
   appliesEffects: ["knockup"],
-  effectDuration: 1,
+  effectDuration: 1.25,
 };
 
 // =============================================================================

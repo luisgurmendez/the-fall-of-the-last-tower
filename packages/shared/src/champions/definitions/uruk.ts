@@ -112,7 +112,7 @@ export const UrukSilverScales: AbilityDefinition = {
   id: "uruk_e",
   name: "Silver Scales",
   description:
-    "Harden your scales into a shield absorbing {shield} damage for 2.5 seconds. When it breaks or ends it bursts in frost, dealing {damage} magic damage around you and slowing by 30% for 1 second.",
+    "Harden your scales into a shield absorbing {shield} damage for 2.5 seconds. When it breaks or ends it bursts in frost, dealing {damage} magic damage around you and slowing by 30% for 1.5 seconds.",
   type: "active",
   targetType: "self",
   maxRank: 5,
@@ -129,7 +129,7 @@ export const UrukSilverScales: AbilityDefinition = {
     scaling: scaling([50, 75, 100, 125, 150], { apRatio: 0.5 }),
   },
   appliesEffects: ["slow_30"],
-  effectDuration: 1,
+  effectDuration: 1.5,
 };
 
 /** R: leap to an enemy and run it through, harder the lower its health */

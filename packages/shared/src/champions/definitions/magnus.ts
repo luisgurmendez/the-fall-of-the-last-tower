@@ -130,7 +130,7 @@ export const MagnusMeteor: AbilityDefinition = {
   id: "magnus_meteor",
   name: "Inferno Zone",
   description:
-    "Create a burning zone at target location that deals {damage} magic damage every second for 5 seconds and slows enemies by 10%.",
+    "Create a burning zone at target location that deals {damage} magic damage every second for 5 seconds and slows enemies by 20%.",
   type: "active",
   targetType: "ground_target",
   maxRank: 3,
@@ -144,7 +144,7 @@ export const MagnusMeteor: AbilityDefinition = {
     type: "magic",
     scaling: scaling([60, 100, 140], { apRatio: 0.25 }), // Per tick damage (5 ticks = 300/500/700 + 125% AP total)
   },
-  appliesEffects: ["slow_10"],
+  appliesEffects: ["slow_20"],
   effectDuration: 1, // Slow refreshes each tick
   zoneDuration: 5, // Zone persists for 5 seconds
   zoneTickRate: 1, // Damage every 1 second

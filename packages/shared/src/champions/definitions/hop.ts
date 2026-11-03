@@ -47,7 +47,7 @@ export const HOP_HOP = {
   kickDistance: 380,
   kickSpeed: 1000,
   /** An enemy champion it flies into is knocked up this long */
-  crashKnockup: 0.75,
+  crashKnockup: 1,
   /** How close the flying champion has to pass to crash into another */
   crashRadius: 55,
 } as const;
@@ -148,7 +148,7 @@ export const HopSavageKick: AbilityDefinition = {
   id: "hop_r",
   name: "Savage Kick",
   description:
-    "Kick the target enemy champion away: {damage} physical damage, and it flies back, stunned. Enemy champions it crashes into take the same damage and are knocked up for 0.75 seconds.",
+    "Kick the target enemy champion away: {damage} physical damage, and it flies back, stunned. Enemy champions it crashes into take the same damage and are knocked up for 1 second.",
   type: "active",
   targetType: "target_enemy",
   maxRank: 3,

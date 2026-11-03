@@ -128,7 +128,7 @@ export const ProtobotRocketPunch: AbilityDefinition = {
   id: "protobot_e",
   name: "Rocket Punch",
   description:
-    "Fire your fist at the target enemy: {damage} magic damage and knocked up for 0.75 seconds. You gain a shield of {shield} for 2 seconds.",
+    "Fire your fist at the target enemy: {damage} magic damage and knocked up for 1 second. You gain a shield of {shield} for 2 seconds.",
   type: "active",
   targetType: "target_enemy",
   maxRank: 5,
@@ -144,7 +144,7 @@ export const ProtobotRocketPunch: AbilityDefinition = {
     duration: 2,
   },
   appliesEffects: ["knockup"],
-  effectDuration: 0.75,
+  effectDuration: 1,
 };
 
 /** R: an electromagnetic pulse around him (ProtobotRHandler) */

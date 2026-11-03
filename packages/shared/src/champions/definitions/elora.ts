@@ -105,7 +105,7 @@ export const EloraPinningArrow: AbilityDefinition = {
   id: "elora_w",
   name: "Pinning Arrow",
   description:
-    "Loose a heavy arrow that deals {damage} physical damage to the first enemy hit and pins it to the ground (rooted) for 1.2 seconds.",
+    "Loose a heavy arrow that deals {damage} physical damage to the first enemy hit and pins it to the ground (rooted) for 1.75 seconds.",
   type: "active",
   targetType: "skillshot",
   maxRank: 5,
@@ -120,7 +120,7 @@ export const EloraPinningArrow: AbilityDefinition = {
     scaling: scaling([60, 100, 140, 180, 220], { adRatio: 0.7 }),
   },
   appliesEffects: ["root"],
-  effectDuration: 1.2,
+  effectDuration: 1.75,
 };
 
 /** E: a roll; her attacks quicken for a moment (generic dash with a self-buff) */
@@ -148,7 +148,7 @@ export const EloraArrowBarrage: AbilityDefinition = {
   id: "elora_r",
   name: "Arrow Barrage",
   description:
-    "After a moment, a barrage of arrows sweeps a long lane ahead, dealing {damage} physical damage to every enemy in it and slowing by 30% for 1.5 seconds.",
+    "After a moment, a barrage of arrows sweeps a long lane ahead, dealing {damage} physical damage to every enemy in it and slowing by 30% for 2 seconds.",
   type: "active",
   targetType: "ground_target",
   shape: "line",
@@ -163,7 +163,7 @@ export const EloraArrowBarrage: AbilityDefinition = {
     scaling: scaling([180, 300, 420], { adRatio: 0.9 }),
   },
   appliesEffects: ["slow_30"],
-  effectDuration: 1.5,
+  effectDuration: 2,
 };
 
 // =============================================================================

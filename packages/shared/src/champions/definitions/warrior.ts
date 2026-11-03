@@ -134,7 +134,7 @@ export const WarriorUltimate: AbilityDefinition = {
   id: "warrior_ultimate",
   name: "Heroic Strike",
   description:
-    "Leap to target enemy and slam down, dealing {damage} physical damage and stunning them for 1 second.",
+    "Leap to target enemy and slam down, dealing {damage} physical damage and stunning them for 1.25 seconds.",
   type: "active",
   targetType: "target_enemy",
   maxRank: 3,
@@ -150,7 +150,7 @@ export const WarriorUltimate: AbilityDefinition = {
     scaling: scaling([150, 250, 350], { adRatio: 1.0 }),
   },
   appliesEffects: ["stun"],
-  effectDuration: 1,
+  effectDuration: 1.25,
 };
 
 // =============================================================================

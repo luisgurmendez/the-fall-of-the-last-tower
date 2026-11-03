@@ -86,7 +86,7 @@ export const CaelumRayOfLight: AbilityDefinition = {
   id: "caelum_q",
   name: "Ray of Light",
   description:
-    "Send a ray of light that deals {damage} magic damage to the first enemy hit and slows it by 20% for 1 second.",
+    "Send a ray of light that deals {damage} magic damage to the first enemy hit and slows it by 20% for 1.5 seconds.",
   type: "active",
   targetType: "skillshot",
   maxRank: 5,
@@ -101,7 +101,7 @@ export const CaelumRayOfLight: AbilityDefinition = {
     scaling: scaling([70, 110, 150, 190, 230], { apRatio: 0.6 }),
   },
   appliesEffects: ["slow_20"],
-  effectDuration: 1,
+  effectDuration: 1.5,
 };
 
 /** W: an ally (or himself) emboldened (generic ally target with effects) */
@@ -125,7 +125,7 @@ export const CaelumWhisperingRoots: AbilityDefinition = {
   id: "caelum_e",
   name: "Whispering Roots",
   description:
-    "Call roots up out of the ground: after a moment, enemies there take {damage} magic damage and are rooted for 1.25 seconds.",
+    "Call roots up out of the ground: after a moment, enemies there take {damage} magic damage and are rooted for 1.5 seconds.",
   type: "active",
   targetType: "ground_target",
   maxRank: 5,
@@ -140,7 +140,7 @@ export const CaelumWhisperingRoots: AbilityDefinition = {
     scaling: scaling([50, 85, 120, 155, 190], { apRatio: 0.4 }),
   },
   appliesEffects: ["root"],
-  effectDuration: 1.25,
+  effectDuration: 1.5,
 };
 
 /** R: he gives a quarter of his health; an ally heals a lot more (CaelumRHandler) */

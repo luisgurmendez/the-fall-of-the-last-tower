@@ -38,6 +38,14 @@ type CrowdControlType =
   | 'suppress'; // Complete disable, can't be cleansed
 ```
 
+**How long crowd control lasts.** Against the classic MOBA's: a slow from an ability 1.25-2 s (a
+zone's while inside, lingering 1 s after; Zhak'rul's cloud lingered 0.5 s), a root 1.5-1.75 s,
+a stun 1.25 s, a knockup 1 s (it's also the airtime), a taunt 1.5 s, a silence 1.5 s. Shorter
+ones read as a flicker, too brief to punish with: Kael's charge slows 30% for 1.5 s and his
+leap stuns 1.25 s, Elora's arrow roots 1.75 s, Caelum's roots 1.5 s, Gorath's slam slows 40%
+for 1.5 s, Magnus's meteor zone slows 20%. Cheap, spammable control stays short (Vile's traps
+root 1 s, the red buff's on-hit slow 10% for 1.5 s). Tenacity shortens them (below).
+
 On the client, crowd control is drawn on the champion it holds (`src/render/overlays/crowdControl.ts`). Stun, suppress and knockup get stars circling the head; root gets vines at the feet (violet for Vile's `vile_root`); silence gets a crossed-out speech bubble; taunt a red "!"; blind a dark cloud. Under the feet, a label names the strongest one (STUNNED, ROOTED, ...) over a bar of its time left. A new CC effect id needs an entry in `CC_EFFECTS` there.
 
 ### Stat Modifications
