@@ -49,7 +49,7 @@ const WARRIOR_BASE_STATS: ChampionBaseStats = {
   abilityPower: 0,
   attackSpeed: 0.65,
   attackRange: 40, // Melee
-  armor: 35,
+  armor: 32,
   magicResist: 32,
   movementSpeed: 103,
   critChance: 0,
@@ -63,7 +63,7 @@ const WARRIOR_GROWTH_STATS: ChampionGrowthStats = {
   resourceRegen: 0.17,
   attackDamage: 3.5,
   attackSpeed: 2.5,
-  armor: 4.0,
+  armor: 3.6,
   magicResist: 1.5,
 };
 
@@ -79,15 +79,15 @@ export const WarriorSlash: AbilityDefinition = {
   targetType: "ground_target",
   maxRank: 5,
   manaCost: [40, 45, 50, 55, 60],
-  cooldown: [6, 5.5, 5, 4.5, 4],
-  range: 170,
-  aoeRadius: 170,
+  cooldown: [7, 6.5, 6, 5.5, 5],
+  range: 130,
+  aoeRadius: 130,
   aoeDelay: 0.2, // The swing
   coneAngle: Math.PI / 2, // 90 degrees
   shape: "cone",
   damage: {
     type: "physical",
-    scaling: scaling([60, 95, 130, 165, 200], { adRatio: 0.8 }),
+    scaling: scaling([50, 80, 110, 140, 170], { adRatio: 0.8 }),
   },
 };
 
@@ -101,7 +101,7 @@ export const WarriorShield: AbilityDefinition = {
   manaCost: [60, 65, 70, 75, 80],
   cooldown: [14, 13, 12, 11, 10],
   shield: {
-    scaling: scaling([80, 120, 160, 200, 240], { bonusHealthRatio: 0.08 }),
+    scaling: scaling([60, 90, 120, 150, 180], { bonusHealthRatio: 0.08 }),
     duration: 3,
   },
 };
@@ -147,7 +147,7 @@ export const WarriorUltimate: AbilityDefinition = {
   },
   damage: {
     type: "physical",
-    scaling: scaling([150, 250, 350], { adRatio: 1.0 }),
+    scaling: scaling([125, 225, 325], { adRatio: 0.8 }),
   },
   appliesEffects: ["stun"],
   effectDuration: 1.25,

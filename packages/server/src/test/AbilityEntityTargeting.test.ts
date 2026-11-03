@@ -45,11 +45,11 @@ describe('Warrior Abilities - Entity Targeting', () => {
 
   describe('Q - Cleaving Strike (Cone AoE)', () => {
     test('should damage enemy minions in cone', () => {
-      const minion = arena.addMinion(TEAM_RED, new Vector(150, 0));
+      const minion = arena.addMinion(TEAM_RED, new Vector(100, 0));
       const initialHealth = minion.health;
 
       arena.castAbility(arena.blue, 'Q', {
-        targetPosition: new Vector(150, 0),
+        targetPosition: new Vector(100, 0),
       });
 
       arena.tickAll();
@@ -58,11 +58,11 @@ describe('Warrior Abilities - Entity Targeting', () => {
     });
 
     test('should NOT damage ally minions', () => {
-      const minion = arena.addMinion(TEAM_BLUE, new Vector(150, 0));
+      const minion = arena.addMinion(TEAM_BLUE, new Vector(100, 0));
       const initialHealth = minion.health;
 
       arena.castAbility(arena.blue, 'Q', {
-        targetPosition: new Vector(150, 0),
+        targetPosition: new Vector(100, 0),
       });
 
       arena.tickAll();
@@ -71,11 +71,11 @@ describe('Warrior Abilities - Entity Targeting', () => {
     });
 
     test('should damage jungle creatures', () => {
-      const creature = arena.addJungleCreature(new Vector(150, 0), 'thornspitter');
+      const creature = arena.addJungleCreature(new Vector(100, 0), 'thornspitter');
       const initialHealth = creature.health;
 
       arena.castAbility(arena.blue, 'Q', {
-        targetPosition: new Vector(150, 0),
+        targetPosition: new Vector(100, 0),
       });
 
       arena.tickAll();
@@ -84,11 +84,11 @@ describe('Warrior Abilities - Entity Targeting', () => {
     });
 
     test('should NOT damage towers', () => {
-      const tower = arena.addTower(TEAM_RED, new Vector(150, 0));
+      const tower = arena.addTower(TEAM_RED, new Vector(100, 0));
       const initialHealth = tower.health;
 
       arena.castAbility(arena.blue, 'Q', {
-        targetPosition: new Vector(150, 0),
+        targetPosition: new Vector(100, 0),
       });
 
       arena.tickAll();

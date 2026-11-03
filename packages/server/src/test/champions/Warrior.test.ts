@@ -49,14 +49,14 @@ describe('Warrior (Kael)', () => {
       expect(BASE_STATS.attackRange).toBeLessThan(100);
     });
 
-    test('should have correct base armor (35)', () => {
+    test('should have correct base armor (32)', () => {
       // Create fresh champion without learnAllAbilities to test base stats
       const freshArena = createTestArena({
         blueChampion: 'warrior',
         redChampion: 'warrior',
         learnAbilities: false,
       });
-      expect(freshArena.blue.getStats().armor).toBe(35);
+      expect(freshArena.blue.getStats().armor).toBe(32);
     });
 
     test('should have correct base movement speed', () => {
@@ -78,12 +78,12 @@ describe('Warrior (Kael)', () => {
     test('should deal physical damage in a cone', () => {
       const initialHealth = arena.red.health;
 
-      // Position red champion in front of blue (within cone range)
-      arena.red.position.x = 150;
+      // Position red champion in front of blue (within the cone's 130)
+      arena.red.position.x = 100;
       arena.red.position.y = 0;
 
       const result = arena.castAbility(arena.blue, 'Q', {
-        targetPosition: new Vector(150, 0),
+        targetPosition: new Vector(100, 0),
       });
 
       expect(result.success).toBe(true);
