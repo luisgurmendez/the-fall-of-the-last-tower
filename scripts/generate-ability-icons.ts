@@ -2,7 +2,8 @@
  * Generates champion ability icons with PixelLab: 32x32 pixel art on a
  * transparent background (simple enough to read at the HUD's size), in
  * src/assets/abilities/<championId>/<slot>.png (slot is passive, q, w, e or
- * r; AbilityIconLoader reads them from there).
+ * r, or another name for an ability that replaces one, like Nocthar's
+ * colossus_w; AbilityIconLoader reads them from there).
  *
  * Each champion has a color theme so its five icons look like a set; the
  * prompts describe what each icon shows. ICONS keeps the seed of the
@@ -12,6 +13,8 @@
  *   bun scripts/generate-ability-icons.ts --only magnus          # one champion
  *   bun scripts/generate-ability-icons.ts --only magnus --variants 3 --out /tmp/review
  *     # seeds to pick from, saved as <championId>.<slot>.<seed>.png
+ *   bun scripts/generate-ability-icons.ts --only nocthar --slots e,colossus_e --variants 3 --seed 10 --out /tmp/review
+ *     # only some icons, from another seed
  *   bun scripts/generate-ability-icons.ts --install /tmp/review   # copy the ICONS seeds in
  */
 
@@ -24,10 +27,16 @@ const STYLE = 'simple bold pixel art ability icon readable at small size: one bi
 const SLOTS = ['passive', 'q', 'w', 'e', 'r'] as const;
 type Slot = typeof SLOTS[number];
 
+interface Icon {
+  prompt: string;
+  seed: number;
+}
+
 interface ChampionIcons {
   /** Colors shared by the champion's icons */
   theme: string;
-  icons: Record<Slot, { prompt: string; seed: number }>;
+  /** The five slots, and any other icons the champion's abilities need */
+  icons: Record<Slot, Icon> & Record<string, Icon>;
 }
 
 export const ICONS: Record<string, ChampionIcons> = {
@@ -181,6 +190,20 @@ export const ICONS: Record<string, ChampionIcons> = {
       r: { seed: 7, prompt: 'a spear plunging down cracking the ground in ice' },
     },
   },
+  // Not violet (Vile's) nor poison green (Zhak'rul's). colossus_w and
+  // colossus_e are his W and E while the colossus lives
+  nocthar: {
+    theme: 'bone white, earthy brown, cold grey-green and a touch of pale spirit cyan',
+    icons: {
+      passive: { seed: 7, prompt: 'a bony skeletal hand clawing up out of brown dirt' },
+      q: { seed: 9, prompt: 'skeletal hands grasping up from a cracked circle of ground' },
+      w: { seed: 7, prompt: 'a wailing ghoul face with its mouth wide open and pale cyan sound waves' },
+      e: { seed: 11, prompt: 'a grey-green clawed hand seen from the side pointing to the right with one very long bony index finger, the other fingers curled into the palm' },
+      r: { seed: 9, prompt: 'a giant bone colossus skull rising out of the ground' },
+      colossus_w: { seed: 8, prompt: 'a big bone hurled through the air with motion streaks' },
+      colossus_e: { seed: 12, prompt: 'a hulking colossus made of bones and brown dirt seen from the side, charging to the right with its giant skull head lowered, a trail of dust behind it' },
+    },
+  },
   vile: {
     theme: 'dark purple, black and sickly green',
     icons: {
@@ -205,15 +228,21 @@ export const ICONS: Record<string, ChampionIcons> = {
 
 interface Options {
   only: string[] | null;
+  /** Only these icons (default: all of each champion's) */
+  slots: string[] | null;
+  /** First seed of the variants (default: each icon's) */
+  seed: number | null;
   variants: number;
   outDir: string | null;
   installFrom: string | null;
 }
 
 function parseArgs(argv: string[]): Options {
-  const options: Options = { only: null, variants: 1, outDir: null, installFrom: null };
+  const options: Options = { only: null, slots: null, seed: null, variants: 1, outDir: null, installFrom: null };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--only') options.only = argv[++i].split(',');
+    else if (argv[i] === '--slots') options.slots = argv[++i].split(',');
+    else if (argv[i] === '--seed') options.seed = Number(argv[++i]);
     else if (argv[i] === '--variants') options.variants = Number(argv[++i]);
     else if (argv[i] === '--out') options.outDir = argv[++i];
     else if (argv[i] === '--install') options.installFrom = argv[++i];
@@ -224,7 +253,7 @@ function parseArgs(argv: string[]): Options {
 /** Copy the take with each icon's seed from a --out directory into src/assets/abilities */
 function install(fromDir: string, championIds: string[]): void {
   for (const championId of championIds) {
-    for (const slot of SLOTS) {
+    for (const slot of Object.keys(ICONS[championId].icons)) {
       const from = join(fromDir, `${championId}.${slot}.${ICONS[championId].icons[slot].seed}.png`);
       if (!existsSync(from)) throw new Error(`missing ${from}`);
       const dir = join('src/assets/abilities', championId);
@@ -248,11 +277,12 @@ async function main(): Promise<void> {
   const jobs = championIds.flatMap(championId => {
     const champion = ICONS[championId];
     if (!champion) throw new Error(`No icons for champion "${championId}"`);
-    return SLOTS.flatMap(slot => Array.from({ length: options.variants }, (_, i) => ({
+    const slots = Object.keys(champion.icons).filter(slot => !options.slots || options.slots.includes(slot));
+    return slots.flatMap(slot => Array.from({ length: options.variants }, (_, i) => ({
       championId,
       slot,
       description: `${STYLE}, ${champion.theme} colors: ${champion.icons[slot].prompt}`,
-      seed: champion.icons[slot].seed + i,
+      seed: (options.seed ?? champion.icons[slot].seed) + i,
     })));
   });
 
