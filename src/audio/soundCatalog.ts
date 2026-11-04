@@ -223,6 +223,25 @@ export const SOUNDS = {
   zhakrul_e_burst: { prompt: `a giant scorpion bursting up out of the ground, an explosive burst of sand and rocks with a chitin clack, ${DRY}`, duration: 0.8, volume: 1, maxVoices: 2 },
   zhakrul_r: { prompt: `a huge scorpion stinger stabbing into flesh and injecting venom, a sharp stab and a sinister squelch with a hiss, ${DRY}`, duration: 0.9, volume: 0.55, maxVoices: 2 },
   elora_r_rain:{ prompt: `a rain of arrows striking the ground, many rapid thuds and whistles, ${DRY}`, duration: 0.9, volume: 1, maxVoices: 2 },
+  // Nocthar: a rotting undead, bone, grave dirt and cold spectral air; his Hollows and the bone colossus.
+  // Leveled to about -19 LUFS (emerge -16, the colossus -16.5 to -20, attack -22, Hollows -24 to -28)
+  nocthar_attack: { prompt: `a clawed hand flicking a small sharp bone shard, a quick dry flick and a spinning bony whirr, ${DRY}`, duration: 0.5, volume: 0.85, maxVoices: 3 },
+  nocthar_q: { prompt: `two huge clawed hands slamming wetly into packed earth, a muddy thud and dirt crunching, ${DRY}`, duration: 0.7, volume: 0.95, maxVoices: 2 },
+  nocthar_q_burst: { prompt: `a sudden loud burst of earth erupting with cracking ground and spraying dirt, then many skeletal bone hands snapping shut together with a loud dry clatter of bones, ${DRY}`, duration: 0.9, volume: 0.9, maxVoices: 2 },
+  nocthar_w: { prompt: "an eerie hoarse undead wail, a ghostly moaning lament from the grave with a cold hollow echo, video game sound effect, no music", duration: 1.1, volume: 0.45, maxVoices: 2 },
+  nocthar_e: { prompt: "a raspy guttural zombie growl barking a short command, wordless, a rotten throaty snarl, video game sound effect, no music", duration: 0.8, volume: 0.6, maxVoices: 2 },
+  nocthar_e_charge: { prompt: `a swarm of small bony feet skittering and rushing forward over dirt, many rapid clicking footsteps, ${DRY}`, duration: 1.0, volume: 1.05, maxVoices: 2 },
+  nocthar_r: { prompt: `a deep rumble building up from underground, the earth groaning and trembling louder and louder with bones grinding below, ${DRY}`, duration: 1.6, volume: 0.6, maxVoices: 2, rise: 0.4 },
+  nocthar_r_emerge: { prompt: "the earth erupting as a huge bone colossus bursts out of the ground, exploding dirt and cracking bones, with a monstrous deep roar, video game sound effect, no music", duration: 1.6, volume: 0.7, maxVoices: 2 },
+  nocthar_colossus_attack: { prompt: `a giant fist of bone slamming into the ground, a very heavy deep thud with dry bones cracking and dirt, ${DRY}`, duration: 0.8, volume: 0.9, maxVoices: 3 },
+  nocthar_colossus_w: { prompt: `a loud wet crack of a huge bone being ripped off a body, then a heavy whoosh of it being thrown, ${DRY}`, duration: 0.9, volume: 0.5, maxVoices: 2 },
+  nocthar_colossus_w_impact: { prompt: `heavy bones crashing onto the ground and splintering, a loud clattering crunch of shattering bone, ${DRY}`, duration: 0.9, volume: 1.5, maxVoices: 2 },
+  nocthar_colossus_e: { prompt: `a giant creature charging, thundering heavy stomps in quick succession shaking the ground, bones rattling, ${DRY}`, duration: 1.2, volume: 0.8, maxVoices: 2 },
+  nocthar_colossus_e_end: { prompt: `a giant body crashing into something at the end of a charge, a huge heavy crash with crunching bone and dirt, ${DRY}`, duration: 0.9, volume: 1.05, maxVoices: 2 },
+  nocthar_hollow_rise: { prompt: `dirt shifting and a small skeleton clawing its way out of the ground, scraping earth and a light bony rattle, ${DRY}`, duration: 1.0, volume: 0.75, maxVoices: 3 },
+  nocthar_hollow_attack: { prompt: `a light quick scratch of small bony claws, a short dry scrape, ${DRY}`, duration: 0.5, variants: 2, volume: 0.2, maxVoices: 3 },
+  nocthar_hollow_crumble: { prompt: `a small skeleton collapsing into a pile of bones, a light dry clatter of bones falling, ${DRY}`, duration: 0.8, volume: 0.65, maxVoices: 3 },
+  nocthar_colossus_crumble: { prompt: `a huge pile of bones collapsing with a deep rumble, a long cascading clatter of heavy bones and falling dirt, ${DRY}`, duration: 1.5, volume: 0.7, maxVoices: 1 },
 
   // Announcements (a tower, an inhibitor or the dragon falls, a champion kill)
   stinger_good: { prompt: `a short triumphant brass fanfare hit, game notification`, duration: 1.5, bus: "ui", volume: 0.5, maxVoices: 1 },
