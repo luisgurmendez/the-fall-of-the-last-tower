@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { getAbilityDefinition } from '@siege/shared';
-import { risingPose, risingSpritesNow, spawnRisingSprites } from './risingSprites';
+import { risingPose, risingSpritesNow, spawnRisingSprites, takeRisingMoments } from './risingSprites';
 
 const Q = getAbilityDefinition('nocthar_q')!;
 
@@ -44,5 +44,25 @@ describe('rising sprites (Nocthar\'s Grasping Hands)', () => {
     const sinking = at(set.lands + set.shut + set.hold + set.sink / 2);
     expect(sinking.out).toBeCloseTo(0.5, 5);
     expect(sinking.shut).toBe(1);
+  });
+
+  it('each hand bursts out of its own patch of earth, and kicks up dust as it sinks: once each', () => {
+    const now = 5_000_000;
+    takeRisingMoments(now - 1);
+    spawnRisingSprites('nocthar_q', 100, 100, now);
+    const set = risingSpritesNow(now)[0].set;
+    // Through the warning: nothing yet
+    expect(takeRisingMoments(now + 100)).toEqual([]);
+    // Climbing out: a burst of earth at each hand
+    const bursts = takeRisingMoments(now + set.lands);
+    expect(bursts.length).toBe(6);
+    expect(new Set(bursts.map(m => m.vfx))).toEqual(new Set(['nocthar_q_hand']));
+    for (const moment of bursts) expect(Math.hypot(moment.x - 100, moment.y - 100)).toBeLessThanOrEqual(set.radius);
+    expect(takeRisingMoments(now + set.lands + 10)).toEqual([]);
+    // Sinking back: dust at each
+    // (each hand starts up to 70 ms after the cast)
+    const sinks = takeRisingMoments(now + set.lands + set.shut + set.hold + 80);
+    expect(sinks.length).toBe(6);
+    expect(new Set(sinks.map(m => m.vfx))).toEqual(new Set(['nocthar_q_hand_sink']));
   });
 });

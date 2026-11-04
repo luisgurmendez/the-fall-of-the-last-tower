@@ -8,6 +8,9 @@
  * they climb out open, snap shut as the hands land, hold their grip, then
  * sink back. The hand is a generated strip (scripts/generate-sprites.ts,
  * open to shut, then the shut claw held); without it, a plain drawn hand.
+ * Each hand bursts out of its own patch of earth and kicks up dust as it
+ * sinks: their VFX (`emergeVFX`, `sinkVFX`), taken by the renderer each frame
+ * (takeRisingMoments).
  */
 
 import { getAbilityDefinition } from "@siege/shared";
@@ -30,6 +33,9 @@ export interface RisingSpriteSet {
   sink: number;
   /** The strip's frame where the fingers are shut (the rest hold it) */
   shutFrame: number;
+  /** VFX where each one climbs out, and where it sinks back */
+  emergeVFX?: string;
+  sinkVFX?: string;
 }
 
 const GRASPING_HANDS = getAbilityDefinition("nocthar_q");
@@ -47,6 +53,8 @@ const SETS: Record<string, RisingSpriteSet> = {
     hold: 320,
     sink: 300,
     shutFrame: 4,
+    emergeVFX: "nocthar_q_hand",
+    sinkVFX: "nocthar_q_hand_sink",
   },
 };
 
@@ -60,6 +68,9 @@ export interface RisingSprite {
   /** ms (Date.now) */
   start: number;
   flip: boolean;
+  /** Its VFX already played */
+  emerged: boolean;
+  sank: boolean;
 }
 
 let active: RisingSprite[] = [];
@@ -92,6 +103,8 @@ export function spawnRisingSprites(abilityId: string, x: number, y: number, now:
       y: y + Math.sin(angle) * distance * 0.8,
       start: now + next() * 70,
       flip: next() < 0.5,
+      emerged: false,
+      sank: false,
     });
   }
 }
@@ -100,6 +113,31 @@ export function spawnRisingSprites(abilityId: string, x: number, y: number, now:
 export function risingSpritesNow(now: number): RisingSprite[] {
   active = active.filter(({ set, start }) => now < start + set.lands + set.shut + set.hold + set.sink);
   return [...active].sort((a, b) => a.y - b.y);
+}
+
+/** A sprite's moment worth a VFX (climbing out, sinking back), where it is */
+export interface RisingMoment {
+  vfx: string;
+  x: number;
+  y: number;
+}
+
+/** The moments that began since last asked (each once): their VFX to play */
+export function takeRisingMoments(now: number): RisingMoment[] {
+  const moments: RisingMoment[] = [];
+  for (const sprite of active) {
+    const { set } = sprite;
+    const t = now - sprite.start;
+    if (!sprite.emerged && t >= set.lands - set.emerge) {
+      sprite.emerged = true;
+      if (set.emergeVFX) moments.push({ vfx: set.emergeVFX, x: sprite.x, y: sprite.y });
+    }
+    if (!sprite.sank && t >= set.lands + set.shut + set.hold) {
+      sprite.sank = true;
+      if (set.sinkVFX) moments.push({ vfx: set.sinkVFX, x: sprite.x, y: sprite.y });
+    }
+  }
+  return moments;
 }
 
 /**

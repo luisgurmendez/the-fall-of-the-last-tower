@@ -53,7 +53,7 @@ import { LightOrbRenderer } from "@/render/entities/lightOrb";
 import { renderGeneric } from "@/render/entities/generic";
 import { verticalFacing } from "@/render/entities/facing";
 import { renderAbilityEffects } from "@/render/overlays/abilityEffects";
-import { drawRisingSprite, risingSpritesNow, RISING_SPRITE_IMAGES } from "@/render/overlays/risingSprites";
+import { drawRisingSprite, risingSpritesNow, takeRisingMoments, RISING_SPRITE_IMAGES } from "@/render/overlays/risingSprites";
 import { renderTowerRanges } from "@/render/overlays/towerRange";
 import { renderLeashTethers } from "@/render/overlays/jungleLeash";
 import { renderBlossom } from "@/render/entities/blossom";
@@ -328,6 +328,10 @@ export class EntityRenderer implements GameObject {
       const wallClock = Date.now();
       const risingSprites = risingSpritesNow(wallClock);
       let nextRising = 0;
+      // Each one's earth bursting as it climbs out, its dust as it sinks
+      for (const moment of takeRisingMoments(wallClock)) {
+        this.vfxManager.spawnAbilityVFX(moment.vfx, moment.x, moment.y);
+      }
 
       for (const entity of sortedEntities) {
         while (nextRising < risingSprites.length && risingSprites[nextRising].y <= entity.position.y) {

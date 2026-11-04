@@ -68,6 +68,9 @@ const OTHER_CAST_EVENT_IDS = [
   'nocthar_colossus_w_impact',
   'nocthar_colossus_e_trample',
   'nocthar_colossus_e_end',
+  // Not cast events: each of Grasping Hands's hands climbing out and sinking (src/render/overlays/risingSprites.ts)
+  'nocthar_q_hand',
+  'nocthar_q_hand_sink',
   ...Object.values(MOBAConfig.JUNGLE.SPECIAL_ATTACKS).map((attack) => attack.abilityId),
   // A champion crawling through a jungle tunnel (server: systems/JungleTunnels.ts)
   MOBAConfig.TUNNELS.ABILITY_ID,

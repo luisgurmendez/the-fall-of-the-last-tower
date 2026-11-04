@@ -96,6 +96,27 @@ registerAbilityVFX({
   ],
 });
 
+// Each hand bursts out of its own patch of earth (src/render/overlays/risingSprites.ts)...
+registerAbilityVFX({
+  abilityId: 'nocthar_q_hand',
+  phases: [
+    phase('earth', 0, 'caster', [
+      scorch(CRACKED, 16, 1.4, 0, 0.85),
+      rocks(DIRT, 7, [50, 140], [2, 5]),
+      debris(DIRT, 10, [40, 120]),
+      smoke(DUST, 3, [8, 13], [10, 40]),
+    ], 0.6),
+  ],
+});
+
+// ...and kicks up a little dust as it sinks back
+registerAbilityVFX({
+  abilityId: 'nocthar_q_hand_sink',
+  phases: [
+    phase('dust', 0, 'caster', [smoke(DUST, 3, [8, 12], [10, 30]), debris(DIRT, 5, [20, 60])], 0.5),
+  ],
+});
+
 // W: he draws a rattling breath...
 registerAbilityVFX({
   abilityId: 'nocthar_w_windup',
