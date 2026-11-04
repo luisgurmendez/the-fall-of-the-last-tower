@@ -97,6 +97,7 @@ import {
   KipRunThemDown,
   KipGrandEntrance,
   KipShowThemAll,
+  NoctharAbilities,
 } from '../champions/definitions';
 
 // Re-export individual abilities for backward compatibility
@@ -213,6 +214,7 @@ export const ABILITY_DEFINITIONS: Record<string, AbilityDefinition> = {
   ...HopAbilities,
   ...ZhakrulAbilities,
   ...KipAbilities,
+  ...NoctharAbilities,
 };
 
 /**

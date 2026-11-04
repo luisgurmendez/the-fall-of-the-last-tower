@@ -41,6 +41,7 @@ import { registerProtobotHandlers } from './handlers/protobot';
 import { registerHopHandlers } from './handlers/hop';
 import { registerZhakrulHandlers } from './handlers/zhakrul';
 import { registerKipHandlers } from './handlers/kip';
+import { registerNoctharHandlers } from './handlers/nocthar';
 
 /**
  * Initialize all ability handlers and champion hooks.
@@ -64,4 +65,5 @@ export function initializeAbilityHandlers(): void {
   registerHopHandlers();
   registerZhakrulHandlers();
   registerKipHandlers();
+  registerNoctharHandlers();
 }

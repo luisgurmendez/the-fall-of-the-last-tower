@@ -167,6 +167,12 @@ export interface ChampionDefinition {
   /** Ability IDs for each slot */
   abilities: Record<AbilitySlot, string>;
 
+  /**
+   * Abilities its slots hold for a while instead of their own (Nocthar's
+   * while his colossus lives; the server's swapSlotAbility): part of its kit
+   */
+  swapAbilities?: Partial<Record<AbilitySlot, string>>;
+
   /** Passive ability ID (slot "P") */
   passive: string;
 

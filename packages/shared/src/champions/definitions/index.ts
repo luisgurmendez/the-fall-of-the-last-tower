@@ -194,6 +194,26 @@ export {
   kipPopDamage,
 } from './kip';
 
+// Nocthar
+export {
+  NoctharDefinition,
+  NoctharGraspingHands,
+  NoctharLament,
+  NoctharHeedMe,
+  NoctharColossusOfBones,
+  NoctharBoneVolley,
+  NoctharTrample,
+  NoctharCommandColossus,
+  NoctharAbilities,
+  NoctharPassive,
+  NOCTHAR_KIT,
+  NOCTHAR_COLOSSUS_SLOTS,
+  noctharRaiseCooldown,
+  hollowStats,
+  colossusStats,
+  colossusScale,
+} from './nocthar';
+
 // Lume
 export {
   LumeDefinition,

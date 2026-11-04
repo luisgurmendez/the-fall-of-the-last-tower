@@ -29,6 +29,7 @@ import {
   HopDefinition,
   ZhakrulDefinition,
   KipDefinition,
+  NoctharDefinition,
 } from './definitions';
 
 // Re-export individual definitions for backward compatibility
@@ -77,6 +78,7 @@ export const CHAMPION_DEFINITIONS: Record<string, ChampionDefinition> = {
   hop: HopDefinition,
   zhakrul: ZhakrulDefinition,
   kip: KipDefinition,
+  nocthar: NoctharDefinition,
 };
 
 /**

@@ -222,16 +222,20 @@ const KNOWN_GAPS: Record<string, Partial<Record<keyof AbilityDefinition, string>
 // Contract
 // =============================================================================
 
+/** A champion's abilities: its slots', and those its slots hold for a while (swapAbilities) */
+const kitAbilities = (champion: (typeof CHAMPION_DEFINITIONS)[string]): [string, string][] => [
+  ...SLOTS.map((slot): [string, string] => [slot, champion.abilities[slot]]),
+  ...Object.entries(champion.swapAbilities ?? {}).map(([slot, abilityId]): [string, string] => [`${slot} swapped`, abilityId!]),
+];
+
 const allChampionAbilityIds = Object.values(CHAMPION_DEFINITIONS).flatMap((champion) =>
-  SLOTS.map((slot) => champion.abilities[slot])
+  kitAbilities(champion).map(([, abilityId]) => abilityId)
 );
 
 describe('Ability coverage contract', () => {
   for (const [championId, champion] of Object.entries(CHAMPION_DEFINITIONS)) {
     describe(championId, () => {
-      for (const slot of SLOTS) {
-        const abilityId = champion.abilities[slot];
-
+      for (const [slot, abilityId] of kitAbilities(champion)) {
         test(`${slot} (${abilityId}) has a handler or full generic support`, () => {
           const definition = getAbilityDefinition(abilityId);
           expect(definition).toBeDefined();

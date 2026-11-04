@@ -29,6 +29,7 @@ import {
   HopPassive,
   ZhakrulPassive,
   KipPassive,
+  NoctharPassive,
 } from '../champions/definitions';
 
 // Re-export individual passives for convenience
@@ -77,6 +78,7 @@ export const PASSIVE_DEFINITIONS: Record<string, PassiveAbilityDefinition> = {
   hop_passive: HopPassive,
   zhakrul_passive: ZhakrulPassive,
   kip_passive: KipPassive,
+  nocthar_passive: NoctharPassive,
 };
 
 /**
