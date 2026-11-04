@@ -30,30 +30,37 @@ interface SummonLook {
   fallback: { radius: number; color: string };
 }
 
-function summonStrips(type: SummonType, abilities: Record<string, string> = {}): ChampionStrips {
+function summonStrips(type: SummonType, timing: ChampionStrips["timing"], abilities: Record<string, string> = {}): ChampionStrips {
   const dir = `/assets/sprites/summons/${type}`;
   return {
     idle: `${dir}/idle.png`,
     walk: `${dir}/walk.png`,
     attack: `${dir}/attack.png`,
     abilities: Object.fromEntries(Object.entries(abilities).map(([abilityId, strip]) => [abilityId, `${dir}/${strip}.png`])),
-    timing: {},
+    timing,
     directions: ["south", "north"],
   };
 }
 
 const LOOKS: Record<SummonType, SummonLook> = {
   hollow: {
-    strips: summonStrips("hollow"),
-    scale: 0.69,
+    // Its claw lands on frame 5 of 9; 36px tall, a lane minion's size
+    strips: summonStrips("hollow", { attackBlow: 5 }),
+    scale: 1.15,
     bar: { width: 22, y: -26, height: 3 },
     riseTime: NOCTHAR_KIT.riseTime,
     fallback: { radius: 10, color: "#d9d2bf" },
   },
   colossus: {
-    // Bone Volley and Trample: its events (ABILITY_CAST from it) play its strips
-    strips: summonStrips("colossus", { nocthar_colossus_w_throw: "w", nocthar_colossus_e_trample: "e" }),
-    scale: 1.05,
+    // Bone Volley and Trample: its events (ABILITY_CAST from it) play its
+    // strips, the bone let go on frame 6, the lunge from 7; 77px tall, 1.5
+    // times Nocthar
+    strips: summonStrips(
+      "colossus",
+      { attackBlow: 4, abilityBlows: { nocthar_colossus_w_throw: 6, nocthar_colossus_e_trample: 7 } },
+      { nocthar_colossus_w_throw: "w", nocthar_colossus_e_trample: "e" },
+    ),
+    scale: 1.55,
     bar: { width: 48, y: -70, height: 5 },
     riseTime: 0.4,
     fallback: { radius: 24, color: "#b9b29c" },

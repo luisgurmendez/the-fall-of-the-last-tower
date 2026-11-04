@@ -17,10 +17,11 @@ const NOCTHAR_STRIPS = generatedStrips("nocthar", {
   e: "nocthar_e",
   r: "nocthar_r",
 }, {
-  // The frames where the blow lands: the shard flicked, the claws in the
-  // ground, the wail at its loudest, the point, the arms sunk in
-  attackBlow: 4,
-  abilityBlows: { nocthar_q: 4, nocthar_w: 3, nocthar_e: 3, nocthar_r: 3 },
+  // The frames where the blow lands (of 9; frame 0 stands): the shard
+  // flicked, the claws in the ground, the wail at its loudest, the point,
+  // the arms sunk in (then held through his ultimate's cast)
+  attackBlow: 3,
+  abilityBlows: { nocthar_q: 6, nocthar_w: 4, nocthar_e: 3, nocthar_r: 1 },
 }, ["south", "north"]);
 
 // Commanding the colossus, he points
