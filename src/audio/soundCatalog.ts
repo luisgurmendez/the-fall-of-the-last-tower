@@ -256,7 +256,7 @@ export const SOUNDS = {
   emote_pop: { prompt: `a short soft cartoon bubble pop, ${DRY}`, duration: 0.5, volume: 0.45, maxVoices: 2 },
 
   // Ambience, faded in and out by where the camera is
-  amb_river: { prompt: "gentle flowing river water, calm, no music", duration: 6, loop: true, bus: "ambience", volume: 0.22, maxVoices: 1 },
+  amb_river: { prompt: "gentle flowing river water, calm, no music", duration: 6, loop: true, bus: "ambience", volume: 0.1, maxVoices: 1 },
   amb_jungle: { prompt: "calm forest ambience with distant birds and insects, no music", duration: 8, loop: true, bus: "ambience", volume: 0.25, maxVoices: 1 },
 } satisfies Record<string, SoundDef>;
 
