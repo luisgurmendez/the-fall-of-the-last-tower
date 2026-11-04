@@ -81,6 +81,8 @@ enum InputType {
   SURRENDER = 12,     // Concede the match
   SUMMONER_SPELL = 13,// Cast a summoner spell (D or F)
   USE_ITEM = 14,      // Use the item in a slot { slot, targetX, targetY } (items.md, Actives)
+  EMOTE = 15,         // An emote over the champion
+  PRACTICE_TOOL = 16, // A practice tool { tool, x?, y? } (practice matches only; practice.md)
 }
 ```
 
@@ -441,6 +443,7 @@ Events requiring reliable delivery (`shouldSendReliably`):
 - Inhibitors destroyed and rebuilt (`INHIBITOR_DESTROYED`, `INHIBITOR_RESPAWNED`)
 - Epic monsters slain, camps cleared (`DRAGON_KILLED`, `CAMP_CLEARED`)
 - Level ups, the nexus destroyed
+- Practice tools used, and which toggles are on (`PRACTICE_TOOLS`; [practice.md](practice.md))
 
 Most events go to every player; `GameRoom` filters the unreliable ones per player with
 `reachesSide` (`network/eventAudience.ts`): a `PING` only to its team, an `EMOTE` to its team and
