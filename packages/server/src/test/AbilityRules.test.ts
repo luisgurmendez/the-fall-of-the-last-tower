@@ -306,6 +306,7 @@ const MOBILITY: { championId: string; slot: AbilitySlot; aimAtEnemy?: boolean }[
   { championId: 'fenris', slot: 'E', aimAtEnemy: true },
   { championId: 'hop', slot: 'E' },
   { championId: 'zhakrul', slot: 'E' },
+  { championId: 'kip', slot: 'E' },
 ];
 
 describe('Rooted or grounded, nothing moves the caster', () => {
