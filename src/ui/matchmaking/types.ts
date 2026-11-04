@@ -33,6 +33,8 @@ export interface MatchData {
   yourPlayerId?: string;
   /** The map it's played on (shared maps.ts) */
   mapId?: string;
+  /** A practice match: its tools (F2) and the debug overlay (F3) work */
+  practice?: boolean;
   players: Array<{
     playerId: string;
     championId: string;

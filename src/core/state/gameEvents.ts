@@ -23,6 +23,7 @@ import { ANNOUNCEMENT_DURATION, type Announcements } from './announcements';
 import type { DamageTaken } from './damageTaken';
 import type { Signals } from './signals';
 import type { ChatLog } from './chat';
+import { togglesFromEvent, type PracticeTogglesStore } from './practiceTools';
 import { spawnWorldVFX } from './entityVFX';
 import { spawnRisingSprites } from '@/render/overlays/risingSprites';
 import { playEventSound } from '@/audio/gameSounds';
@@ -50,6 +51,8 @@ export interface GameEventContext {
   readonly signals: Signals;
   /** The match's chat */
   readonly chat: ChatLog;
+  /** Which practice tools are on (practice matches) */
+  readonly practiceToggles: PracticeTogglesStore;
 }
 
 /** A champion's kills, deaths and assists */
@@ -523,6 +526,12 @@ export function processGameEvent(event: GameEvent, ctx: GameEventContext): void 
         time: now,
         system: true,
       });
+      break;
+    }
+
+    case GameEventType.PRACTICE_TOOLS: {
+      // Which toggles are on, for the practice panel
+      if (event.data.entityId === ctx.localEntityId) ctx.practiceToggles.set(togglesFromEvent(event.data));
       break;
     }
   }

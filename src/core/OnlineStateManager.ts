@@ -38,6 +38,7 @@ import { Corpses, type Corpse } from './state/corpses';
 import { KillFeed, type KillRecord } from './state/killFeed';
 import { Signals } from './state/signals';
 import { ChatLog } from './state/chat';
+import { PracticeTogglesStore } from './state/practiceTools';
 import {
   FloatingNumbers,
   type DamageNumber,
@@ -103,6 +104,8 @@ export class OnlineStateManager {
   private readonly signals = new Signals();
   /** The match's chat */
   private readonly chat = new ChatLog();
+  /** Which practice tools are on (practice matches) */
+  private readonly practiceToggles = new PracticeTogglesStore();
 
   // Death, respawn, level up and recall effects
   private readonly entityVFX = new EntityVFX();
@@ -196,6 +199,7 @@ export class OnlineStateManager {
       killFeed: this.killFeed,
       signals: this.signals,
       chat: this.chat,
+      practiceToggles: this.practiceToggles,
       damageTaken: this.damageTaken,
       scores: this.scores,
     };
@@ -387,6 +391,11 @@ export class OnlineStateManager {
   /** The match's chat */
   getChat(): ChatLog {
     return this.chat;
+  }
+
+  /** Which practice tools are on (practice matches) */
+  getPracticeToggles(): PracticeTogglesStore {
+    return this.practiceToggles;
   }
 
   getKillFeed(now = Date.now()): readonly KillRecord[] {

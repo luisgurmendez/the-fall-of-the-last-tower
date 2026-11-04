@@ -18,6 +18,7 @@ import { OnlineStateManager } from './OnlineStateManager';
 import { GameConfig, MOBAConfig, getChampionDefinition } from '@siege/shared';
 import { GameMenu } from '@/ui/GameMenu';
 import { DebugOverlay } from '@/debug/DebugOverlay';
+import { PracticePanel } from '@/ui/PracticePanel';
 import type { NetworkClient } from '@siege/client';
 import type { MatchData } from '@/ui/matchmaking/MatchmakingUI';
 import type { GameApi } from './gameContext';
@@ -47,6 +48,8 @@ class OnlineGame {
   private chatBox!: ChatBox;
   /** F3: what the server thinks about the units in sight (practice matches) */
   private readonly debugOverlay: DebugOverlay;
+  /** F2: the practice tools (practice matches only) */
+  private readonly practicePanel: PracticePanel | null;
   private clock: Clock;
   private canvasRenderingContext: CanvasRenderingContext2D;
   private canvas: HTMLCanvasElement;
@@ -78,6 +81,9 @@ class OnlineGame {
 
     this.debugOverlay = new DebugOverlay(this.networkClient, this.stateManager);
     this.networkClient.onDebugState = (data) => this.debugOverlay.receive(data);
+    this.practicePanel = this.matchData.practice
+      ? new PracticePanel(this.networkClient, this.stateManager.getPracticeToggles())
+      : null;
 
     // Initialize level for online play
     this.level = generateOnlineLevel({
@@ -85,6 +91,7 @@ class OnlineGame {
       stateManager: this.stateManager,
       matchData: this.matchData,
       debugOverlay: this.debugOverlay,
+      practicePanel: this.practicePanel,
       onLeaveResults: config.onLeaveResults,
     });
 
@@ -104,7 +111,7 @@ class OnlineGame {
   init() {
     // Note: No pause on blur/focus - online games continue running on server
 
-    this.gameMenu = new GameMenu(() => this.networkClient.sendSurrender(), this.debugOverlay);
+    this.gameMenu = new GameMenu(() => this.networkClient.sendSurrender(), this.debugOverlay, this.practicePanel ?? undefined);
     this.chatBox = new ChatBox(this.stateManager.getChat(), this.networkClient);
 
     // Wire up shop to network client for online buy/sell
@@ -220,12 +227,14 @@ class OnlineGame {
   }
 
   /**
-   * The match is over: the in-match menu, the chat and the debug overlay go away.
+   * The match is over: the in-match menu, the chat, the debug overlay and the
+   * practice tools go away.
    */
   onMatchEnd(): void {
     this.gameMenu.dispose();
     this.chatBox.dispose();
     this.debugOverlay.dispose();
+    this.practicePanel?.dispose();
   }
 
   /**

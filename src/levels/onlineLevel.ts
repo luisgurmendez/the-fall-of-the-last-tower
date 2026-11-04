@@ -27,6 +27,7 @@ import { EntityRenderer } from '@/render/EntityRenderer';
 import { OnlineChampionAdapter } from '@/online/OnlineChampionAdapter';
 import { OnlineFogProvider } from '@/online/OnlineFogProvider';
 import type { DebugOverlay } from '@/debug/DebugOverlay';
+import type { PracticePanel } from '@/ui/PracticePanel';
 import { getChampionDefinition } from '@siege/shared';
 import type { OnlineStateManager } from '@/core/OnlineStateManager';
 import type { NetworkClient } from '@siege/client';
@@ -44,6 +45,8 @@ export interface OnlineLevelConfig {
   matchData: MatchData;
   /** F3's debug overlay (drawn over the units, under the HUD) */
   debugOverlay: DebugOverlay;
+  /** F2's practice tools (practice matches; null in others) */
+  practicePanel?: PracticePanel | null;
   /** The player is done with the final scoreboard */
   onLeaveResults?: () => void;
 }
@@ -111,6 +114,13 @@ export function generateOnlineLevel(config: OnlineLevelConfig): Level {
 
   // The debug overlay shows the unit selected with a left click
   debugOverlay.setSelectionSource(() => inputHandler.getSelectedEntityId());
+
+  // Practice's teleport goes where the cursor is (Shift+T), or to the next click (its button)
+  const { practicePanel } = config;
+  if (practicePanel) {
+    practicePanel.setCursorSource(() => inputHandler.getCursorWorldPosition());
+    inputHandler.setWorldClickHandler((at) => practicePanel.takeClick(at));
+  }
 
   // Create champion HUD and wire up level-up handler
   const championHUD = new ChampionHUD(hudConfig, championAdapter);
