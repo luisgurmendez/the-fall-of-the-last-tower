@@ -486,6 +486,7 @@ Ping sent every 5 seconds to maintain connection and measure latency.
 | Server Tick Rate | 30 Hz | 33.3ms per tick |
 | Snapshot Rate | 30 Hz | State sent every tick |
 | Client Render Rate | The screen's (60-120 Hz) | Positions eased over ~1.2 ticks (infrastructure.md) |
+| Playout delay | 20-100 ms | Updates are applied at the pace they were sent, as far behind as the connection's jitter needs (infrastructure.md, `src/core/state/playout.ts`) |
 | Input Send Rate | 60 Hz | Responsive input capture |
 
 ## Key Files
@@ -525,6 +526,19 @@ Ping sent every 5 seconds to maintain connection and measure latency.
 5. Server checks for active game
 6. If in game: Send FULL_STATE snapshot
 7. Resume game with current state
+
+**One socket per player.** `NetworkClient` has one socket at a time: `connect()`
+while one is opening waits for it, reconnect attempts follow one another (a failed
+attempt's close schedules the next), and a socket it let go of (`disconnect()`)
+is ignored, so its late close doesn't cut the new one off. `MatchConnection`
+disconnects its previous client before making a new one. If a player's READY
+still comes from a second connection (another tab with the same `sessionStorage`,
+a socket a reconnect left), the newer one takes the player over
+(`packages/server/src/network/playerConnections.ts`): the old one stops getting
+state and its inputs are dropped, and the server closes it with
+`CONNECTION_REPLACED_CODE` (4000). The client doesn't reconnect on that code
+(it would take the player back) and goes to the menu with "This match is open
+in another tab or window."
 
 The client keeps the token in `NetworkClient` and `MatchmakingUI` persists it in
 `sessionStorage` (in `src/ui/matchmaking/matchConnection.ts`), so rejoining after a

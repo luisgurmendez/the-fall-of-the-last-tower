@@ -183,6 +183,7 @@ export {
   GameEventType,
   ServerMessageType,
   ClientMessageType,
+  CONNECTION_REPLACED_CODE,
   LOBBY_MAX_TEAM_SIZE,
   PING_TYPES,
   CHAT_SCOPES,

@@ -974,6 +974,13 @@ export interface GameEndData {
 }
 
 /**
+ * The close code of a connection the server replaced with a newer one of the
+ * same player (a second tab with the same session, a socket a reconnect
+ * left): the client doesn't reconnect, which would take the player back.
+ */
+export const CONNECTION_REPLACED_CODE = 4000;
+
+/**
  * Client message types.
  */
 export enum ClientMessageType {

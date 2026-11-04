@@ -51,6 +51,7 @@ import { EntityVFX, spawnWorldVFX } from './state/entityVFX';
 import { projectileHit } from './state/projectileHits';
 import { addOrUpdateEntity, applyEntityDelta, type EntityLifecycleHooks } from './state/deltas';
 import { processGameEvent, type ChampionScore, type GameEventContext } from './state/gameEvents';
+import { StatePlayout } from './state/playout';
 import { playChangeSound, playDeathSound, playWardPlacedSound } from '@/audio/gameSounds';
 
 export type { EntityAnimationState, InterpolatedEntity } from './state/entities';
@@ -85,6 +86,8 @@ export class OnlineStateManager {
   private currentTick = 0;
   private gameTime = 0;
   private lastUpdateTimestamp = 0;
+  /** The server's updates, applied at the pace it sent them (receiveStateUpdate) */
+  private readonly playout = new StatePlayout<StateUpdate>();
 
   // Floating damage, gold and XP numbers
   private readonly floatingNumbers = new FloatingNumbers();
@@ -208,6 +211,9 @@ export class OnlineStateManager {
     this.gameTime = snapshot.gameTime;
     this.lastUpdateTimestamp = Date.now();
 
+    // It covers the updates still waiting to be played
+    this.playout.dropThrough(snapshot.tick);
+
     // Clear existing entities and add all from snapshot
     this.entities.clear();
 
@@ -217,7 +223,17 @@ export class OnlineStateManager {
   }
 
   /**
-   * Process a delta state update.
+   * An update from the server, as it arrives: applied by advance() at the
+   * pace the server sent them, a little behind (state/playout.ts), so units
+   * don't stall and jump when the connection is uneven.
+   */
+  receiveStateUpdate(update: StateUpdate, now = Date.now()): void {
+    // More waiting than a second's worth (no frames: a hidden tab): the oldest now
+    for (const due of this.playout.receive(update, now)) this.processStateUpdate(due);
+  }
+
+  /**
+   * Process a delta state update right away.
    */
   processStateUpdate(update: StateUpdate): void {
     this.currentTick = update.tick;
@@ -288,12 +304,20 @@ export class OnlineStateManager {
   }
 
   /**
-   * Ease every entity toward the server's latest position (once a frame,
-   * before drawing).
+   * Apply the server's updates whose time has come, then ease every entity
+   * toward its latest position (once a frame, before drawing). Returns how
+   * many updates it applied.
    */
-  advance(): void {
-    const now = Date.now();
+  advance(now = Date.now()): number {
+    const due = this.playout.due(now);
+    for (const update of due) this.processStateUpdate(update);
     for (const entity of this.entities.values()) advanceEntity(entity, now);
+    return due.length;
+  }
+
+  /** How far behind the earliest arrivals the server's updates are played now (ms) */
+  getPlayoutDelay(): number {
+    return this.playout.delay();
   }
 
   /**

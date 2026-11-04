@@ -75,10 +75,15 @@ export class InputManager {
   /**
    * Initialize the input manager with event listeners.
    * @param canvas - The canvas element for mouse coordinate conversion
+   *
+   * Each match makes its own canvas: a new one takes the input over from the
+   * last (which its match removes when it stops), so its clicks reach the
+   * game and right-clicks don't open the browser's menu.
    */
   init(canvas: HTMLCanvasElement): void {
     if (this.initialized) {
-      return;
+      if (this.canvas === canvas) return;
+      this.dispose();
     }
 
     this.canvas = canvas;
@@ -379,6 +384,14 @@ export class InputManager {
     this.mouseButtonsJustReleased.clear();
     this.canvas = null;
     this.initialized = false;
+  }
+
+  /**
+   * A match that's done lets go of its canvas's input, if the input is still
+   * on it (not if the next match's canvas has taken it over).
+   */
+  release(canvas: HTMLCanvasElement): void {
+    if (this.canvas === canvas) this.dispose();
   }
 
   /**

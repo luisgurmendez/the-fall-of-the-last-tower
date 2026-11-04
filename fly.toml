@@ -37,7 +37,10 @@ primary_region = "gru"
     path = "/health"
     timeout = "5s"
 
+# A dedicated CPU: a shared one guarantees 6.25% and lends more from a
+# credit that a 5v5 (~17% CPU) used up in about 11 minutes; after that the
+# server is held back and the match slows down. performance-1x comes with 2 GB.
 [[vm]]
-  memory = "512mb"
-  cpu_kind = "shared"
+  memory = "2gb"
+  cpu_kind = "performance"
   cpus = 1

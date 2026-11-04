@@ -552,9 +552,9 @@ export class MatchmakingUI {
   }
 
   /**
-   * Show error screen.
+   * Show error screen (also from a match: why it was left).
    */
-  private showError(message: string): void {
+  showError(message: string): void {
     if (this.errorMessage) {
       this.errorMessage.textContent = message;
     }

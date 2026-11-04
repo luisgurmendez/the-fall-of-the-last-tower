@@ -22,6 +22,7 @@ import {
   isMapId,
   type MapId,
   type LobbyRequest,
+  CONNECTION_REPLACED_CODE,
 } from '@siege/shared';
 
 import { BunWebSocketServer } from './network/BunWebSocketServer';
@@ -32,6 +33,7 @@ import { buildPracticeMatch, buildLobbyMatch, isPracticeTeamSize, type PracticeT
 import { LobbyManager, sanitizeName, type Lobby } from './game/LobbyManager';
 import type { BotController } from './bots/BotController';
 import type { WebSocketConnection, ParsedMessage } from './network/WebSocketServer';
+import { PlayerConnections } from './network/playerConnections';
 import { Logger } from './utils/Logger';
 import { initializeAbilityHandlers } from './abilities';
 import { mkdirSync } from 'node:fs';
@@ -73,9 +75,8 @@ let matchmaker: Matchmaker;
 /** Rooms where friends gather before a match */
 const lobbies = new LobbyManager();
 
-// Track connection to player mapping
-const connectionToPlayer: Map<string, string> = new Map();
-const playerToConnection: Map<string, WebSocketConnection> = new Map();
+// Which connection plays each player (a newer one takes the player over)
+const playerConnections = new PlayerConnections();
 
 // Session token issued to each player on their first READY. Player IDs are
 // visible to everyone in a match, so resuming a player ID (reconnect) requires
@@ -123,7 +124,7 @@ function handleMessage(connection: WebSocketConnection, message: ParsedMessage):
 }
 
 function handleInputMessage(connection: WebSocketConnection, input: ClientInput): void {
-  const playerId = connectionToPlayer.get(connection.id);
+  const playerId = playerConnections.playerOf(connection.id);
   if (!playerId) {
     Logger.server.warn(`Input from unregistered connection: ${connection.id}`);
     return;
@@ -134,7 +135,7 @@ function handleInputMessage(connection: WebSocketConnection, input: ClientInput)
 
 /** The client got reliable events up to this ID: stop resending them */
 function handleEventAckMessage(connection: WebSocketConnection, data: { lastEventId?: unknown }): void {
-  const playerId = connectionToPlayer.get(connection.id);
+  const playerId = playerConnections.playerOf(connection.id);
   if (!playerId || typeof data?.lastEventId !== 'number') return;
   roomManager.handleEventAck(playerId, data.lastEventId);
 }
@@ -144,7 +145,7 @@ function handleEventAckMessage(connection: WebSocketConnection, data: { lastEven
  * host's settings, starting the match, leaving.
  */
 function handleLobbyMessage(connection: WebSocketConnection, request: LobbyRequest): void {
-  const playerId = connectionToPlayer.get(connection.id);
+  const playerId = playerConnections.playerOf(connection.id);
   if (!playerId || typeof request !== 'object' || request === null) return;
 
   switch (request.action) {
@@ -197,7 +198,7 @@ function startLobbyMatch(hostId: string): void {
 
 /** Turn the player's debug overlay on or off (practice matches only) */
 function handleDebugMessage(connection: WebSocketConnection, data: { enabled?: unknown }): void {
-  const playerId = connectionToPlayer.get(connection.id);
+  const playerId = playerConnections.playerOf(connection.id);
   if (!playerId) return;
   const enabled = data?.enabled === true;
   if (!roomManager.setDebug(playerId, enabled) && enabled) {
@@ -276,22 +277,20 @@ function handleReadyMessage(connection: WebSocketConnection, data: ReadyMessageD
     });
   }
 
-  // Drop the mapping for a previous connection of this player so it can no
-  // longer send inputs, and so its later close doesn't disconnect the player
-  const previousConnection = playerToConnection.get(playerId);
-  if (previousConnection && previousConnection.id !== connection.id) {
-    connectionToPlayer.delete(previousConnection.id);
+  // Register player. A previous connection of this player stops being theirs
+  // (its inputs are dropped, no state goes to it, its later close doesn't
+  // disconnect them) and is closed, so the tab it's in shows it instead of
+  // freezing: a second tab with the same session, or a socket a reconnect left
+  const replaced = playerConnections.claim(playerId, connection);
+  if (replaced) {
+    Logger.server.info(`${connection.id} takes ${playerId} over from ${replaced.id}`);
+    replaced.close(CONNECTION_REPLACED_CODE, 'Replaced by a newer connection');
   }
-
-  // Register player
-  connectionToPlayer.set(connection.id, playerId);
-  playerToConnection.set(playerId, connection);
 
   // Signed in: their account's name, and their results count
   const account = accounts.accountForToken(data.accountToken);
   if (account) playerAccounts.set(playerId, account);
   else playerAccounts.delete(playerId);
-  connection.playerId = playerId;
 
   Logger.server.info(`Player joined: ${playerId} (champion: ${championId})`);
 
@@ -377,7 +376,7 @@ function handleConnect(connection: WebSocketConnection): void {
 }
 
 function handleDisconnect(connection: WebSocketConnection, code: number, reason: string): void {
-  const playerId = connectionToPlayer.get(connection.id);
+  const playerId = playerConnections.release(connection.id);
 
   if (playerId) {
     // Remove from matchmaking if queued, and from their room
@@ -387,9 +386,6 @@ function handleDisconnect(connection: WebSocketConnection, code: number, reason:
     // Notify game room of disconnect (but keep player in game for reconnect)
     roomManager.handleDisconnect(playerId);
 
-    // Clean up mappings
-    connectionToPlayer.delete(connection.id);
-    playerToConnection.delete(playerId);
 
     // Keep the session (and the account it played with) only while there's a game to reconnect to
     if (!roomManager.isPlayerInGame(playerId)) {
@@ -458,7 +454,7 @@ function startMatch(
 
   // Update connection game IDs
   for (const player of humans) {
-    const connection = playerToConnection.get(player.playerId);
+    const connection = playerConnections.connectionOf(player.playerId);
     if (connection) {
       connection.gameId = gameId;
     }

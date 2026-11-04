@@ -13,6 +13,7 @@ import {
   ClientMessageType,
   ServerMessageType,
   InputType,
+  CONNECTION_REPLACED_CODE,
   type ClientInput,
   type StateUpdate,
   type FullStateSnapshot,
@@ -98,6 +99,8 @@ export class NetworkClient {
   // Reconnection
   private reconnectAttempts = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  /** The socket being opened (connect), until it opens or fails */
+  private opening: Promise<void> | null = null;
 
   // Latency tracking
   private pingInterval: ReturnType<typeof setInterval> | null = null;
@@ -165,47 +168,66 @@ export class NetworkClient {
   }
 
   /**
-   * Connect to the game server.
+   * Connect to the game server. One socket at a time: while one is opening,
+   * this waits for it instead of opening a second (two sockets of the same
+   * player: the newer takes the player over and the other goes deaf).
    */
   connect(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (this.ws && this.state === ConnectionState.CONNECTED) {
-        resolve();
-        return;
-      }
+    if (this.ws && this.state === ConnectionState.CONNECTED) return Promise.resolve();
+    if (this.opening) return this.opening;
 
-      this.state = ConnectionState.CONNECTING;
+    // Connecting now replaces a reconnect that was waiting
+    this.cancelReconnect();
+    this.state = ConnectionState.CONNECTING;
 
+    const opening = new Promise<void>((resolve, reject) => {
+      let ws: WebSocket;
       try {
-        this.ws = new WebSocket(this.config.serverUrl);
-        this.ws.binaryType = 'arraybuffer';
-
-        this.ws.onopen = () => {
-          this.state = ConnectionState.CONNECTED;
-          this.reconnectAttempts = 0;
-          this.startHeartbeat();
-          (this.onConnect || this.handlers.onConnect)?.();
-
-          resolve();
-        };
-
-        this.ws.onclose = (event) => {
-          this.handleDisconnect(event.code, event.reason);
-        };
-
-        this.ws.onerror = (error) => {
-          console.error('[NetworkClient] WebSocket error:', error);
-          reject(error);
-        };
-
-        this.ws.onmessage = (event) => {
-          this.handleMessage(event.data);
-        };
+        ws = new WebSocket(this.config.serverUrl);
       } catch (error) {
         this.state = ConnectionState.DISCONNECTED;
         reject(error);
+        return;
       }
+      ws.binaryType = 'arraybuffer';
+      this.ws = ws;
+
+      // A socket this client let go of (disconnect, a newer one) is ignored:
+      // its late close would cut the current one off
+      ws.onopen = () => {
+        if (ws !== this.ws) return;
+        this.state = ConnectionState.CONNECTED;
+        this.reconnectAttempts = 0;
+        this.startHeartbeat();
+        (this.onConnect || this.handlers.onConnect)?.();
+
+        resolve();
+      };
+
+      ws.onclose = (event) => {
+        if (ws !== this.ws) return;
+        reject(new Error(`Closed (${event.code})`));
+        this.handleDisconnect(event.code, event.reason);
+      };
+
+      ws.onerror = (error) => {
+        if (ws !== this.ws) return;
+        console.error('[NetworkClient] WebSocket error:', error);
+        reject(error);
+      };
+
+      ws.onmessage = (event) => {
+        if (ws !== this.ws) return;
+        this.handleMessage(event.data);
+      };
     });
+
+    this.opening = opening;
+    const opened = () => {
+      if (this.opening === opening) this.opening = null;
+    };
+    opening.then(opened, opened);
+    return opening;
   }
 
   /**
@@ -215,10 +237,11 @@ export class NetworkClient {
     this.stopHeartbeat();
     this.cancelReconnect();
 
-    if (this.ws) {
-      this.ws.close(1000, 'Client disconnect');
-      this.ws = null;
-    }
+    // Let go of the socket first: its close event, which comes later, is ignored
+    const ws = this.ws;
+    this.ws = null;
+    this.opening = null;
+    ws?.close(1000, 'Client disconnect');
 
     this.state = ConnectionState.DISCONNECTED;
   }
@@ -618,38 +641,38 @@ export class NetworkClient {
   private handleDisconnect(code: number, reason: string): void {
     this.stopHeartbeat();
     this.ws = null;
+    this.opening = null;
 
     if (this.state === ConnectionState.CONNECTED) {
       (this.onDisconnect || this.handlers.onDisconnect)?.(code, reason);
     }
 
-    // Attempt reconnection
-    if (code !== 1000 && this.reconnectAttempts < (this.config.reconnectAttempts ?? 5)) {
+    // Attempt reconnection, unless it closed on purpose: the client, or the
+    // server for a newer connection of the player (reconnecting would take
+    // the player back from it)
+    const onPurpose = code === 1000 || code === CONNECTION_REPLACED_CODE;
+    if (!onPurpose && this.reconnectAttempts < (this.config.reconnectAttempts ?? 5)) {
       this.state = ConnectionState.RECONNECTING;
       this.scheduleReconnect();
     } else {
+      if (!onPurpose) console.error('[NetworkClient] Failed to reconnect after max attempts');
       this.state = ConnectionState.DISCONNECTED;
     }
   }
 
   /**
-   * Schedule reconnection attempt.
+   * Schedule reconnection attempt: one at a time. A failed attempt's socket
+   * closes, which schedules the next one (handleDisconnect).
    */
   private scheduleReconnect(): void {
+    if (this.reconnectTimer) return;
     const delay = this.config.reconnectDelay ?? 2000;
 
     this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
       this.reconnectAttempts++;
       console.log(`[NetworkClient] Reconnecting (attempt ${this.reconnectAttempts})...`);
-
-      this.connect().catch(() => {
-        if (this.reconnectAttempts < (this.config.reconnectAttempts ?? 5)) {
-          this.scheduleReconnect();
-        } else {
-          this.state = ConnectionState.DISCONNECTED;
-          console.error('[NetworkClient] Failed to reconnect after max attempts');
-        }
-      });
+      this.connect().catch(() => {});
     }, delay);
   }
 
@@ -667,6 +690,7 @@ export class NetworkClient {
    * Start heartbeat/ping.
    */
   private startHeartbeat(): void {
+    this.stopHeartbeat();
     this.pingInterval = setInterval(() => {
       this.sendPing();
     }, this.config.heartbeatInterval ?? 5000);

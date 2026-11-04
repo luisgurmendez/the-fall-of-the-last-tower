@@ -80,6 +80,10 @@ The client game class for multiplayer:
 - Uses **NetworkClient** for server communication
 - Creates **OnlineStateManager** to track server state
 - Generates **OnlineLevel** for rendering
+- `stop()` when the player is done with the match (leaves the results, loses the
+  connection, or another match starts; `src/index.ts` keeps the current one): its loop,
+  canvas, keys, menu and chat go away. Left running, it kept drawing the old match behind
+  the menu and under the next one, two games every frame.
 
 ### State Manager (`src/core/OnlineStateManager.ts`)
 
@@ -97,6 +101,23 @@ interface InterpolatedEntity {
   animation: EntityAnimationState; // Attack/cast animation from events
 }
 ```
+
+**Playout.** State updates aren't applied as they arrive: over the internet they
+come unevenly (one late, then the next ones right behind it, since a WebSocket
+keeps them in order), and applied on arrival the units stall and then jump.
+`OnlineGame` hands each one to `OnlineStateManager.receiveStateUpdate()`, and
+`advance()` applies those whose time has come: each at its tick's time plus a
+delay (`src/core/state/playout.ts`). The delay is what the connection needs:
+how late 95% of the last 3 s of updates came after the earliest ones, between
+20 ms (a steady connection) and `GameConfig.NETWORK.INTERPOLATION_DELAY`
+(100 ms); it changes a little at a time (the playout runs up to 10% faster or
+slower meanwhile). An update later than that is applied as soon as it arrives.
+Whole updates wait, not only positions, so a hit's damage number and a death stay
+in step with where the units are drawn. A full state is applied at once and drops
+the waiting updates it covers; the updates buffered during the loading screen
+are applied at once too (`processStateUpdate`). With more than a second's worth
+waiting (no frames run in a hidden tab), the oldest are applied as they arrive.
+The debug overlay's DEBUG_STATE (F3) isn't delayed, so it's that much ahead.
 
 Every frame, before drawing, `OnlineStateManager.advance()` eases each entity's
 `position` toward the server's latest one over a little more than a tick
@@ -116,6 +137,7 @@ hands the work to modules in `src/core/state/`:
 | `gameEvents.ts` | Turns game events into animations, ability effects and VFX, hit sparks, floating numbers (only the local champion's: damage it deals or takes, its gold, XP and heals), camp timers and announcements |
 | `entityVFX.ts` | Death, respawn, level up and recall VFX from entity deltas |
 | `entities.ts` | `InterpolatedEntity`, interpolation and animation queries |
+| `playout.ts` | `StatePlayout`: when each state update is applied (the delay the connection needs) |
 | `abilityEffects.ts` | Legacy ability effect shapes and colors |
 | `floatingNumbers.ts`, `campTimers.ts`, `announcements.ts` | The numbers, camp timers and messages the renderers and HUD read |
 | `damageTaken.ts` | Damage the local champion took over the last 10 s, by source, for the death recap (`DeathOverlay`). A DAMAGE event on a champion carries `sourceType`, `sourceChampionId` and `sourceCreatureType`, so a source the client can't see still gets a name |

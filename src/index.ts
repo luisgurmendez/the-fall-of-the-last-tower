@@ -2,7 +2,7 @@ import OnlineGame from "./core/OnlineGame";
 import { BitmapFont } from "./render/BitmapFont";
 import { MatchmakingUI, type MatchData } from "./ui/matchmaking/MatchmakingUI";
 import { setupFullscreenButton } from "./ui/FullscreenButton";
-import type { GameEndData } from "@siege/shared";
+import { CONNECTION_REPLACED_CODE, type GameEndData } from "@siege/shared";
 
 // Get server URL from environment or default
 function getServerUrl(): string {
@@ -28,6 +28,9 @@ function getServerUrl(): string {
 /** How long the victory/defeat banner shows before the final scoreboard */
 const GAME_END_BANNER_MS = 3000;
 
+/** The match being played (stopped when the player leaves it or another starts) */
+let currentGame: OnlineGame | null = null;
+
 async function startOnlineGame(matchData: MatchData, matchmakingUI: MatchmakingUI) {
   console.log('[Game] Starting online game with match data:', matchData);
 
@@ -44,10 +47,13 @@ async function startOnlineGame(matchData: MatchData, matchmakingUI: MatchmakingU
     networkClient,
     matchData,
     onLeaveResults: () => {
+      game.stop();
       matchmakingUI.reset();
       matchmakingUI.show();
     },
   });
+  currentGame?.stop();
+  currentGame = game;
 
   (window as any).g = game;
   (window as any).networkClient = networkClient;
@@ -99,8 +105,13 @@ async function startOnlineGame(matchData: MatchData, matchmakingUI: MatchmakingU
 
   networkClient.onDisconnect = (code: number, reason: string) => {
     console.log('[Game] Disconnected:', code, reason);
+    game.stop();
     matchmakingUI.reset();
     matchmakingUI.show();
+    // A newer connection of the player took the match: another tab or window
+    if (code === CONNECTION_REPLACED_CODE) {
+      matchmakingUI.showError('This match is open in another tab or window.');
+    }
   };
 }
 
