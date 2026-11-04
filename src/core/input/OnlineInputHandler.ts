@@ -127,6 +127,11 @@ function getEntityCollisionRadius(entity: InterpolatedEntity): number {
         return 18;
       case "super":
         return 22;
+      // Nocthar's summons, as big as they're drawn
+      case "hollow":
+        return 11 * (snapshot.scale ?? 1);
+      case "colossus":
+        return 24 * (snapshot.scale ?? 1);
       default:
         return 12;
     }
@@ -740,7 +745,8 @@ export class OnlineInputHandler implements GameObject {
   private getAbilityDefinition(slot: AbilitySlot) {
     const champDef = getChampionDefinition(this.championId);
     if (!champDef) return null;
-    const abilityId = champDef.abilities[slot];
+    // The slot's ability now: its own, or one swapped in (Nocthar's colossus's)
+    const abilityId = this.localAbilityState(slot)?.abilityId ?? champDef.abilities[slot];
     return getAbilityDefinition(abilityId);
   }
 

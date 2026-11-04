@@ -108,6 +108,13 @@ const EFFECT_DISPLAY_INFO: Record<string, EffectDisplayInfo> = {
     icon: 'T',
     color: '#e91e63',
   },
+  fear: {
+    name: 'Feared',
+    description: 'Running away from whoever scared it, unable to attack or cast.',
+    category: 'debuff',
+    icon: 'F',
+    color: '#bfe3d6',
+  },
 
   // ===================
   // Slow effects

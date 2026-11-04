@@ -604,6 +604,8 @@ export class TargetInfoHUD extends ScreenEntity {
       case 'caster': return 'Caster Minion';
       case 'siege': return 'Siege Minion';
       case 'super': return 'Super Minion';
+      case 'hollow': return 'Hollow';
+      case 'colossus': return 'Colossus of Bones';
       default: return 'Minion';
     }
   }

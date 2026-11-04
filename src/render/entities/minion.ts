@@ -21,6 +21,8 @@ import {
   renderHealthBar,
 } from "@/render/overlays/healthBars";
 import { getTrailHealth } from "@/render/overlays/damageTrail";
+import { drawFear } from "@/render/overlays/crowdControl";
+import { isSummonType, renderSummon, SUMMON_IMAGES } from "@/render/entities/summon";
 
 /**
  * Sprite configuration.
@@ -100,6 +102,7 @@ const MINION_BAR = {
  */
 export const MINION_IMAGES = [
   ...Object.values(MINION_STRIPS).flatMap((strips) => [strips.idle, strips.walk, strips.attack]),
+  ...SUMMON_IMAGES,
   // Warriors
   SPRITES.WARRIOR.IDLE_BLUE,
   SPRITES.WARRIOR.IDLE_RED,
@@ -126,6 +129,11 @@ export function renderMinion(
   state: EntityRenderState,
   rc: EntityRenderContext,
 ): void {
+  // A summon (Nocthar's Hollows and colossus) has its own look
+  if (isSummonType(snapshot.minionType)) {
+    renderSummon(ctx, snapshot, side, state, rc);
+    return;
+  }
   const minionType = snapshot.minionType || "melee";
   // Siege and super minions are bigger: a wider bar, a bit higher
   const isSiege = minionType === "siege" || minionType === "super";
@@ -135,6 +143,9 @@ export function renderMinion(
   if (!strips || !drawMinionStrips(ctx, snapshot, side, state, rc, strips)) {
     drawLegacyMinion(ctx, snapshot, side, state, rc, minionType);
   }
+
+  // Feared (Nocthar's Lament): a ghost over its head
+  if (snapshot.isFeared) drawFear(ctx, isSiege ? MINION_BAR.siegeY - 4 : MINION_BAR.y - 4, rc.animationTime);
 
   // Draw health bar - blue for ally minions, red for enemy minions
   if (snapshot.health !== undefined && snapshot.maxHealth !== undefined) {

@@ -7,7 +7,7 @@
 
 import RenderUtils from '@/render/utils';
 import type { AbilitySlot } from '@siege/shared';
-import type { AbilityIconSlot } from '@/ui/AbilityIconLoader';
+import { abilityIconKey, type AbilityIconSlot } from '@/ui/AbilityIconLoader';
 import { HUD_COLORS, PANEL } from '@/ui/hud/layout';
 import { drawHealthBar, drawResourceBar } from '@/ui/hud/resourceBars';
 import type { HUDAbility, HUDChampionData, HUDContext } from '@/ui/hud/types';
@@ -282,8 +282,9 @@ function drawAbilityBox(
   ctx.fillRect(x, y, size, size);
 
   // Try to draw ability icon
-  const iconSlot = slot.toLowerCase() as AbilityIconSlot;
   const championId = hud.config.championId;
+  // An ability swapped into the slot (Nocthar's colossus's) has its own icon
+  const iconSlot: AbilityIconSlot = abilityIconKey(championId ?? '', slot, ability?.swappedAbilityId);
   let iconDrawn = false;
 
   if (championId) {

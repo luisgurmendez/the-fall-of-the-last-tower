@@ -2,13 +2,15 @@
  * AbilityIconLoader - Loads and caches ability icons for HUD display.
  *
  * Icons are src/assets/abilities/{championId}/{slot}.png, where slot is:
- * passive, q, w, e, r. Vite bundles them (abilityIconUrl), so they load in
- * a production build too, not only from the dev server's /src.
+ * passive, q, w, e, r, or an ability a slot swaps in, named without the
+ * champion's prefix (Nocthar's colossus_w for nocthar_colossus_w:
+ * abilityIconKey). Vite bundles them (abilityIconUrl), so they load in a
+ * production build too, not only from the dev server's /src.
  */
 
 import { drawPixelArtInBox } from '@/render/pixelArt';
 
-export type AbilityIconSlot = 'passive' | 'q' | 'w' | 'e' | 'r';
+export type AbilityIconSlot = 'passive' | 'q' | 'w' | 'e' | 'r' | (string & {});
 
 /** Every ability icon's URL, by its path under src/assets/abilities */
 const ICON_URLS = import.meta.glob('/src/assets/abilities/*/*.png', {
@@ -16,6 +18,17 @@ const ICON_URLS = import.meta.glob('/src/assets/abilities/*/*.png', {
   query: '?url',
   import: 'default',
 }) as Record<string, string>;
+
+/**
+ * The icon for a slot: the slot's own, or that of the ability swapped into
+ * it (its id without the champion's prefix) when it has one
+ */
+export function abilityIconKey(championId: string, slot: string, swappedAbilityId?: string | null): AbilityIconSlot {
+  const own = slot.toLowerCase();
+  if (!swappedAbilityId) return own;
+  const key = swappedAbilityId.startsWith(`${championId}_`) ? swappedAbilityId.slice(championId.length + 1) : swappedAbilityId;
+  return `/src/assets/abilities/${championId}/${key}.png` in ICON_URLS ? key : own;
+}
 
 /** An ability icon's URL (a path that won't load if the icon doesn't exist) */
 export function abilityIconUrl(championId: string, slot: AbilityIconSlot): string {
@@ -56,6 +69,8 @@ class AbilityIconLoader {
       return null;
     }
 
+    // An icon of an ability swapped into a slot: loaded the first time it's asked for
+    if (!champCache.has(slot)) this.loadIcon(championId.toLowerCase(), champCache, slot);
     const cached = champCache.get(slot);
     if (!cached || !cached.loaded || cached.error) {
       return null;
@@ -94,30 +109,33 @@ class AbilityIconLoader {
 
     const slots: AbilityIconSlot[] = ['passive', 'q', 'w', 'e', 'r'];
 
-    for (const slot of slots) {
-      const image = new Image();
-      const cached: CachedIcon = {
-        image,
-        loaded: false,
-        error: false,
-      };
+    for (const slot of slots) this.loadIcon(champLower, champCache, slot);
+  }
 
-      champCache.set(slot, cached);
+  /** Start loading one of a champion's icons into its cache */
+  private loadIcon(champLower: string, champCache: Map<AbilityIconSlot, CachedIcon>, slot: AbilityIconSlot): void {
+    const image = new Image();
+    const cached: CachedIcon = {
+      image,
+      loaded: false,
+      error: false,
+    };
 
-      image.onload = () => {
-        cached.loaded = true;
-        cached.error = false;
-      };
+    champCache.set(slot, cached);
 
-      image.onerror = () => {
-        cached.loaded = true;
-        cached.error = true;
-        console.warn(`Failed to load ability icon: ${champLower}/${slot}.png`);
-      };
+    image.onload = () => {
+      cached.loaded = true;
+      cached.error = false;
+    };
 
-      // Start loading
-      image.src = abilityIconUrl(champLower, slot);
-    }
+    image.onerror = () => {
+      cached.loaded = true;
+      cached.error = true;
+      console.warn(`Failed to load ability icon: ${champLower}/${slot}.png`);
+    };
+
+    // Start loading
+    image.src = abilityIconUrl(champLower, slot);
   }
 
   /**

@@ -87,6 +87,8 @@ export interface HUDAbility {
   readonly cooldownRemaining: number;
   /** Time remaining in recast window (> 0 means recast is available) */
   readonly recastWindowRemaining?: number;
+  /** The ability swapped into the slot for now (Nocthar's colossus's): its icon is shown */
+  readonly swappedAbilityId?: string | null;
   getTargetDescription?(): HUDTargetDescription | null;
 }
 

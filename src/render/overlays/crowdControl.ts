@@ -3,12 +3,12 @@
  * act: a golden shell (in stasis, by its own hourglass), stars circling its
  * head (stunned, suppressed, airborne), roots
  * around its feet (rooted), a crossed-out speech bubble (silenced), a red
- * "!" (taunted), a dark cloud (blinded), and under its feet a label with
+ * "!" (taunted), a pale shivering ghost over its head (feared), a dark cloud (blinded), and under its feet a label with
  * what it is and a bar of the time left.
  */
 
 /** Kinds of crowd control, strongest first (the label shows the strongest) */
-const KINDS = ["stasis", "suppress", "stun", "knockup", "taunt", "root", "silence", "blind", "disarm", "grounded"] as const;
+const KINDS = ["stasis", "suppress", "stun", "knockup", "taunt", "fear", "root", "silence", "blind", "disarm", "grounded"] as const;
 export type CrowdControlKind = typeof KINDS[number];
 
 /** Effects that are crowd control, by effect id (server data/effects.ts) */
@@ -17,6 +17,7 @@ const CC_EFFECTS: Record<string, CrowdControlKind> = {
   suppress: "suppress",
   knockup: "knockup",
   taunt: "taunt",
+  fear: "fear",
   root: "root",
   vile_root: "root",
   silence: "silence",
@@ -32,6 +33,7 @@ const LABELS: Record<CrowdControlKind, string> = {
   stun: "STUNNED",
   knockup: "AIRBORNE",
   taunt: "TAUNTED",
+  fear: "FEARED",
   root: "ROOTED",
   silence: "SILENCED",
   blind: "BLINDED",
@@ -45,6 +47,7 @@ const COLORS: Record<CrowdControlKind, string> = {
   stun: "#ffd54f",
   knockup: "#ffd54f",
   taunt: "#ff5252",
+  fear: "#bfe3d6",
   root: "#7bd88f",
   silence: "#90caf9",
   blind: "#b0bec5",
@@ -114,6 +117,7 @@ export function renderCrowdControl(
   }
   if (kinds.has("silence")) drawSilence(ctx, headY);
   if (kinds.has("taunt")) drawTaunt(ctx, headY, time);
+  if (kinds.has("fear")) drawFear(ctx, headY, time);
   if (kinds.has("blind")) drawBlind(ctx, headY, time);
 
   drawLabel(ctx, crowdControl[0], feetY);
@@ -209,6 +213,31 @@ function drawTaunt(ctx: CanvasRenderingContext2D, headY: number, time: number): 
   ctx.strokeText("!", 0, headY - 4 + bob);
   ctx.fillStyle = COLORS.taunt;
   ctx.fillText("!", 0, headY - 4 + bob);
+}
+
+/** A pale ghost shivering over its head, its mouth wide open (Nocthar's Lament); minions and summons show it too */
+export function drawFear(ctx: CanvasRenderingContext2D, headY: number, time: number): void {
+  const shiver = Math.sin(time * 40) * 1.2;
+  const y = headY - 12 + Math.sin(time * 6) * 1.5;
+  ctx.fillStyle = "rgba(191, 227, 214, 0.9)";
+  ctx.strokeStyle = "#000";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(shiver, y, 6, Math.PI, 0);
+  ctx.lineTo(shiver + 6, y + 7);
+  ctx.lineTo(shiver + 3, y + 5);
+  ctx.lineTo(shiver, y + 7);
+  ctx.lineTo(shiver - 3, y + 5);
+  ctx.lineTo(shiver - 6, y + 7);
+  ctx.closePath();
+  ctx.stroke();
+  ctx.fill();
+  ctx.fillStyle = "#1b2a26";
+  ctx.fillRect(shiver - 3, y - 2, 2, 2);
+  ctx.fillRect(shiver + 1, y - 2, 2, 2);
+  ctx.beginPath();
+  ctx.ellipse(shiver, y + 2.5, 1.5, 2, 0, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 /** A dark cloud over the eyes */

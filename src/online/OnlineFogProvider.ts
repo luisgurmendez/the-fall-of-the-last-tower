@@ -11,7 +11,7 @@ import type GameContext from '@/core/gameContext';
 import Vector from '@/physics/vector';
 import type { OnlineStateManager } from '@/core/OnlineStateManager';
 import type { FogRevealer } from '@/core/FogOfWar';
-import { EntityType, GameConfig, DEFAULT_MINION_STATS, DEFAULT_TOWER_STATS, type MinionType } from '@siege/shared';
+import { EntityType, GameConfig, DEFAULT_MINION_STATS, DEFAULT_TOWER_STATS, hollowStats, colossusStats, type MinionType, type SummonType } from '@siege/shared';
 import { Bush } from '@/vision/Bush';
 import type { BushManager, BushGroup } from '@/vision';
 import { markRevealRange } from './markReveal';
@@ -37,7 +37,10 @@ const SIGHT_RANGES: Record<number, number> = {
  * Get sight range for a minion based on its type.
  * Uses DEFAULT_MINION_STATS to match server-side values.
  */
-function getMinionSightRange(minionType: MinionType | undefined): number {
+function getMinionSightRange(minionType: MinionType | SummonType | undefined): number {
+  // Nocthar's summons see as far as his kit says
+  if (minionType === 'hollow') return hollowStats(1, 0).sightRange;
+  if (minionType === 'colossus') return colossusStats(1, 0, 0).sightRange;
   if (minionType && DEFAULT_MINION_STATS[minionType]) {
     return DEFAULT_MINION_STATS[minionType].sightRange;
   }

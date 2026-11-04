@@ -109,7 +109,7 @@ export interface ClientAbilityDefinition {
  * Get ability definition for a champion and slot.
  * Uses the shared registry from @siege/shared.
  */
-function getAbilityDefinition(championId: string, slot: AbilitySlot): ClientAbilityDefinition {
+function getAbilityDefinition(championId: string, slot: AbilitySlot, swappedAbilityId?: string | null): ClientAbilityDefinition {
   // Get champion definition to find ability ID
   const championDef = getChampionDefinition(championId);
   if (!championDef) {
@@ -121,8 +121,8 @@ function getAbilityDefinition(championId: string, slot: AbilitySlot): ClientAbil
     };
   }
 
-  // Get ability definition from shared registry
-  const abilityId = championDef.abilities[slot];
+  // Get ability definition from shared registry: the slot's own, or the one swapped into it (Nocthar's colossus's)
+  const abilityId = swappedAbilityId ?? championDef.abilities[slot];
 
   const abilityDef = getSharedAbilityDefinition(abilityId);
 
@@ -168,13 +168,18 @@ class OnlineAbilityAdapter {
 
   constructor(state: AbilityState, slot: AbilitySlot, championId: string) {
     this.state = state;
-    this.abilityDef = getAbilityDefinition(championId, slot);
+    this.abilityDef = getAbilityDefinition(championId, slot, state.abilityId);
     // Expose the full definition for tooltip interpolation
     this.definition = this.abilityDef;
   }
 
   get rank(): number {
     return this.state.rank;
+  }
+
+  /** The ability swapped into the slot for now (Nocthar's colossus's), if any */
+  get swappedAbilityId(): string | null {
+    return this.state.abilityId ?? null;
   }
 
   get isReady(): boolean {

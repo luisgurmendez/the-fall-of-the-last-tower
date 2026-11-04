@@ -33,6 +33,8 @@ function pickArea(snapshot: { entityType: number; minionType?: string; creatureT
     case EntityType.CHAMPION:
       return { radius: 44, lift: 5 };
     case EntityType.MINION:
+      // Nocthar's colossus is big, and grows
+      if (snapshot.minionType === "colossus") return { radius: 44 * ((snapshot as { scale?: number }).scale ?? 1), lift: 20 };
       return snapshot.minionType === "siege" ? { radius: 30, lift: 2 } : { radius: 26, lift: 2 };
     case EntityType.JUNGLE_CAMP:
       return CREATURE_AREAS[snapshot.creatureType ?? ""] ?? { radius: 34, lift: 0 };
