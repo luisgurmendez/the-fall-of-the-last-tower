@@ -172,4 +172,74 @@ describe('AccountClient', () => {
     await client.logout();
     expect(heard).toEqual(['Luis', null]);
   });
+
+  it('an account kept from before ratings still reads (no rating yet)', () => {
+    const kept = memoryStorage({ [ACCOUNT_STORAGE_KEY]: JSON.stringify({ token: 't', account: LUIS }) });
+    expect(new AccountClient(base, kept, fakeFetch({}).fetchFn).current()?.account.rating).toBeUndefined();
+  });
+
+  it('refresh keeps the rating and tier the server says', async () => {
+    const kept = memoryStorage({ [ACCOUNT_STORAGE_KEY]: JSON.stringify({ token: 'tok', account: LUIS }) });
+    const rated = { ...LUIS, rating: 1234, peakRating: 1250, ratedGames: 12, tier: 'silver' };
+    const { fetchFn } = fakeFetch({ '/api/me': () => ({ status: 200, body: { account: rated } }) });
+    const client = new AccountClient(base, kept, fetchFn);
+    await client.refresh();
+    expect(client.current()?.account).toEqual(rated);
+  });
+});
+
+describe('Profiles and matches', () => {
+  const base = 'http://localhost:8080';
+  const PROFILE = {
+    profile: { name: 'Luis', wins: 3, losses: 2, rating: 1240, peakRating: 1260, ratedGames: 5, tier: 'silver', champions: [{ championId: 'vex', games: 3, wins: 2 }] },
+    matches: [{ id: 9, championId: 'vex', won: true }],
+    more: true,
+  };
+
+  it("a profile: asked by name (written for a URL), with its page", async () => {
+    const { fetchFn, calls } = fakeFetch({ '/api/profile/%C3%91and%C3%BA': () => ({ status: 200, body: PROFILE }) });
+    const client = new AccountClient(base, memoryStorage(), fetchFn);
+    expect(await client.profile('Ñandú')).toEqual({ ok: true, ...PROFILE } as never);
+    expect(calls[0]).toMatchObject({ url: `${base}/api/profile/%C3%91and%C3%BA`, method: 'GET' });
+  });
+
+  it('the next page: the matches before the last one seen', async () => {
+    const { fetchFn, calls } = fakeFetch({ '/api/profile/Luis': () => ({ status: 200, body: PROFILE }) });
+    await new AccountClient(base, memoryStorage(), fetchFn).profile('Luis', 9);
+    expect(calls[0].url).toBe(`${base}/api/profile/Luis?before=9`);
+  });
+
+  it('a name with a slash or a question mark stays one name', async () => {
+    const { fetchFn, calls } = fakeFetch({});
+    await new AccountClient(base, memoryStorage(), fetchFn).profile('a/b?c');
+    expect(calls[0].url).toBe(`${base}/api/profile/a%2Fb%3Fc`);
+  });
+
+  it('no such account, a broken answer, or no server: says which', async () => {
+    const missing = fakeFetch({ '/api/profile/Nadie': () => ({ status: 404, body: { error: 'no_account' } }) });
+    expect(await new AccountClient(base, memoryStorage(), missing.fetchFn).profile('Nadie')).toEqual({ ok: false, error: 'no_account' });
+    const broken = fakeFetch({ '/api/profile/Luis': () => ({ status: 200, body: { profile: 'nope' } }) });
+    expect(await new AccountClient(base, memoryStorage(), broken.fetchFn).profile('Luis')).toEqual({ ok: false, error: 'server_error' });
+    const down = fakeFetch({ '/api/profile/Luis': () => new Error('down') });
+    expect(await new AccountClient(base, memoryStorage(), down.fetchFn).profile('Luis')).toEqual({ ok: false, error: 'offline' });
+  });
+
+  it('a match: by its id', async () => {
+    const match = { id: 9, mapId: 'vale', players: [{ name: 'Luis', championId: 'vex' }] };
+    const { fetchFn, calls } = fakeFetch({ '/api/matches/9': () => ({ status: 200, body: { match } }) });
+    expect(await new AccountClient(base, memoryStorage(), fetchFn).match(9)).toEqual({ ok: true, match } as never);
+    expect(calls[0].url).toBe(`${base}/api/matches/9`);
+  });
+
+  it('a match no one kept, or an answer without one: says which', async () => {
+    const missing = fakeFetch({ '/api/matches/5': () => ({ status: 404, body: { error: 'no_match' } }) });
+    expect(await new AccountClient(base, memoryStorage(), missing.fetchFn).match(5)).toEqual({ ok: false, error: 'no_match' });
+    const broken = fakeFetch({ '/api/matches/5': () => ({ status: 200, body: {} }) });
+    expect(await new AccountClient(base, memoryStorage(), broken.fetchFn).match(5)).toEqual({ ok: false, error: 'server_error' });
+  });
+
+  it('error messages for them', () => {
+    expect(accountErrorMessage('no_account')).toContain('account');
+    expect(accountErrorMessage('no_match')).toContain('match');
+  });
 });
