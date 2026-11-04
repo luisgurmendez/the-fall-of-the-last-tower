@@ -20,6 +20,7 @@ import type { ServerEntity } from '../simulation/ServerEntity';
 import type { ServerChampion } from '../simulation/ServerChampion';
 import type { ServerInhibitor } from '../simulation/ServerInhibitor';
 import { passiveTriggerSystem } from './PassiveTriggerSystem';
+import { championHooksRegistry } from '../abilities/ChampionHooksRegistry';
 import { Logger } from '../utils/Logger';
 
 /** Tower XP reward constant (not in GameConfig yet) */
@@ -73,13 +74,26 @@ export class RewardSystem {
     return undefined;
   }
 
+  /** Who a kill counts for: a summon's (a unit with an owner) are its owner's */
+  static creditedKiller(killerId: string | undefined, context: ServerGameContext): string | undefined {
+    const killer = killerId ? context.getEntity(killerId) : undefined;
+    const ownerId = (killer as { ownerId?: string } | undefined)?.ownerId;
+    return ownerId && context.getEntity(ownerId) ? ownerId : killerId;
+  }
+
   /** Returns a champion kill's event data (see announceDeath) */
   static awardKillRewards(
     killedEntity: ServerEntity,
     killerId: string | undefined,
     context: ServerGameContext
   ): Record<string, unknown> | undefined {
+    killerId = RewardSystem.creditedKiller(killerId, context);
     const announced = RewardSystem.announceDeath(killedEntity, killerId, context);
+
+    // Champions' kits that care about deaths (Nocthar's passive)
+    for (const champion of context.getAllChampions()) {
+      championHooksRegistry.get(champion.definition.id)?.onUnitDied?.(champion, killedEntity, context);
+    }
 
     // Get XP and gold values from the killed entity
     const { xp, gold } = RewardSystem.getRewardValues(killedEntity, context);

@@ -15,6 +15,8 @@
  * - Farther than its leash from the owner, it drops its order and comes back
  * - Its owner dying, it crumbles (a death with no killer)
  * - Crowd control holds it as it does a minion: stun, root, slow, fear
+ * - Its owner's kit can frenzy it (attacks faster), charge it (faster and
+ *   harder-hitting), hold it still for a windup and make it pay health
  * - A dash (startDash, the colossus charging) carries it along a line
  *   whatever its orders and crowd control, touching each enemy unit once
  *   and, if it carries, pushing them ahead of it; walls stop it
@@ -30,6 +32,7 @@ import {
   type DebugUnit,
   type MinionSnapshot,
   type Side,
+  type SummonStats,
   type SummonType,
 } from '@siege/shared';
 import { ServerEntity } from './ServerEntity';
@@ -39,27 +42,7 @@ import { calculateCCStatus } from './champion/ChampionEffects';
 import { findFear, fleeDirection } from './fear';
 import { RewardSystem } from '../systems/RewardSystem';
 
-/** A summon's numbers (its owner's kit decides them) */
-export interface SummonStats {
-  maxHealth: number;
-  armor: number;
-  magicResist: number;
-  attackDamage: number;
-  damageType: DamageType;
-  /** Edge to edge, like every attack range */
-  attackRange: number;
-  /** Seconds between attacks */
-  attackCooldown: number;
-  /** Seconds from an attack's start until it lands */
-  attackWindup: number;
-  movementSpeed: number;
-  sightRange: number;
-  /** How far from itself it notices enemies to hit back at (and, sent somewhere, to fight) */
-  acquisitionRange: number;
-  /** Body radius at scale 1 */
-  radius: number;
-  mass: number;
-}
+export type { SummonStats };
 
 /** What it's been told to do */
 export type SummonOrder =
@@ -123,6 +106,12 @@ export class ServerSummon extends ServerEntity {
   private pendingAttack: { targetId: string; delay: number } | null = null;
   private fleeing: Vector | null = null;
   private dash: (SummonDash & { elapsed: number; touched: Set<string>; carried: Set<string> }) | null = null;
+  /** Attacking faster (0.5: 50% faster) for a while */
+  private frenzy = { bonus: 0, remaining: 0 };
+  /** Running faster and hitting harder for a while */
+  private charge = { speed: 0, damage: 0, remaining: 0 };
+  /** Standing still, winding something up */
+  private holdRemaining = 0;
 
   // Walking: where to, and the path there
   private destination: Vector | null = null;
@@ -152,6 +141,16 @@ export class ServerSummon extends ServerEntity {
 
   isDashing(): boolean {
     return this.dash !== null;
+  }
+
+  /** Attacking faster for now (frenzyFor) */
+  isFrenzied(): boolean {
+    return this.frenzy.remaining > 0;
+  }
+
+  /** Charging for now: faster and harder-hitting (chargeFor) */
+  isCharged(): boolean {
+    return this.charge.remaining > 0;
   }
 
   /** The unit it's attacking, or null */
@@ -211,6 +210,31 @@ export class ServerSummon extends ServerEntity {
     this.pendingAttack = null;
     this.destination = null;
     this.path = [];
+  }
+
+  /** Attack `bonus` faster (0.5: 50%) for `duration` seconds */
+  frenzyFor(bonus: number, duration: number): void {
+    this.frenzy = { bonus, remaining: duration };
+  }
+
+  /** Run `speed` faster and hit `damage` harder (0.3: 30%) for `duration` seconds */
+  chargeFor(speed: number, damage: number, duration: number): void {
+    this.charge = { speed, damage, remaining: duration };
+  }
+
+  /** Stand still for `seconds`, winding something up (an attack winding up is dropped) */
+  holdFor(seconds: number): void {
+    this.holdRemaining = Math.max(this.holdRemaining, seconds);
+    this.pendingAttack = null;
+    this.destination = null;
+    this.path = [];
+  }
+
+  /** Spend `amount` health on something, if it has more than that; false if it can't */
+  payHealth(amount: number): boolean {
+    if (this.isDead || this.health <= amount) return false;
+    this.health -= amount;
+    return true;
   }
 
   /** It falls apart: a death without a killer (its owner died, it was absorbed) */
@@ -282,6 +306,8 @@ export class ServerSummon extends ServerEntity {
 
     this.updateEffects(dt);
     if (this.attackCooldown > 0) this.attackCooldown -= dt;
+    if (this.frenzy.remaining > 0) this.frenzy.remaining -= dt;
+    if (this.charge.remaining > 0) this.charge.remaining -= dt;
 
     if (this.rising > 0) {
       this.rising = Math.max(0, this.rising - dt);
@@ -290,6 +316,11 @@ export class ServerSummon extends ServerEntity {
 
     if (this.dash) {
       this.updateDash(dt, context);
+      return;
+    }
+
+    if (this.holdRemaining > 0) {
+      this.holdRemaining -= dt;
       return;
     }
 
@@ -418,7 +449,8 @@ export class ServerSummon extends ServerEntity {
   /** As fast as its owner, if that's faster than itself, less its slows */
   private speed(owner: ServerEntity): number {
     const ownerSpeed = (owner as ServerEntity & { getStats?: () => { movementSpeed: number } }).getStats?.().movementSpeed ?? 0;
-    return Math.max(this.stats.movementSpeed, ownerSpeed) * (1 - this.slowPercent());
+    const charge = this.charge.remaining > 0 ? this.charge.speed : 0;
+    return Math.max(this.stats.movementSpeed, ownerSpeed) * (1 + charge) * (1 - this.slowPercent());
   }
 
   /** Walk toward `goal`, around walls (past its leash, update() calls it back) */
@@ -477,7 +509,7 @@ export class ServerSummon extends ServerEntity {
   }
 
   private attack(target: ServerEntity, context: ServerGameContext): void {
-    this.attackCooldown = this.stats.attackCooldown;
+    this.attackCooldown = this.stats.attackCooldown / (1 + (this.frenzy.remaining > 0 ? this.frenzy.bonus : 0));
     this.pendingAttack = { targetId: target.id, delay: this.stats.attackWindup };
     this.destination = null;
     context.addEvent(GameEventType.BASIC_ATTACK, {
@@ -488,7 +520,8 @@ export class ServerSummon extends ServerEntity {
   }
 
   private landAttack(target: ServerEntity, context: ServerGameContext): void {
-    target.takeDamage(this.stats.attackDamage, this.stats.damageType, this.id, context);
+    const charge = this.charge.remaining > 0 ? this.charge.damage : 0;
+    target.takeDamage(this.stats.attackDamage * (1 + charge), this.stats.damageType, this.id, context);
     target.onBasicAttackTaken(this, context);
   }
 

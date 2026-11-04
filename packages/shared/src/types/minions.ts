@@ -18,6 +18,28 @@ export type MinionType = "melee" | "caster" | "siege" | "super";
  */
 export type SummonType = "hollow" | "colossus";
 
+/** A summon's numbers (its owner's kit decides them) */
+export interface SummonStats {
+  maxHealth: number;
+  armor: number;
+  magicResist: number;
+  attackDamage: number;
+  damageType: "physical" | "magic" | "true";
+  /** Edge to edge, like every attack range */
+  attackRange: number;
+  /** Seconds between attacks */
+  attackCooldown: number;
+  /** Seconds from an attack's start until it lands */
+  attackWindup: number;
+  movementSpeed: number;
+  sightRange: number;
+  /** How far from itself it notices enemies to hit back at (and, sent somewhere, to fight) */
+  acquisitionRange: number;
+  /** Body radius at scale 1 */
+  radius: number;
+  mass: number;
+}
+
 /**
  * Lane identifiers.
  */

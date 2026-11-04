@@ -14,7 +14,7 @@
  *   from handlers/<championId>/index.ts
  */
 
-import type { AbilitySlot, FullChampionStats } from '@siege/shared';
+import type { AbilitySlot, FullChampionStats, Vector } from '@siege/shared';
 import type { ServerChampion } from '../simulation/ServerChampion';
 import type { ServerEntity } from '../simulation/ServerEntity';
 import type { ServerGameContext } from '../game/ServerGameContext';
@@ -146,6 +146,25 @@ export interface IChampionHooks {
    * Fenris healing to full in his bloodthirst.
    */
   onChampionKill?(champion: ServerChampion, victim: ServerChampion, context: ServerGameContext): void;
+
+  /**
+   * Called when any unit dies (minions, summons, monsters, champions,
+   * structures), for every champion: Nocthar's passive raises the enemies
+   * dying near him.
+   */
+  onUnitDied?(champion: ServerChampion, dead: ServerEntity, context: ServerGameContext): void;
+
+  /**
+   * Called when one of its abilities starts its cast time (before it goes
+   * off), e.g. Nocthar's Hollows running to where his colossus will rise.
+   */
+  onCastStart?(champion: ServerChampion, abilityId: string, target: Vector | null, context: ServerGameContext): void;
+
+  /**
+   * Called when stun or silence cancels one of its abilities in its cast
+   * time, e.g. Nocthar's R coming back sooner.
+   */
+  onCastInterrupted?(champion: ServerChampion, abilityId: string, context: ServerGameContext): void;
 
   /**
    * Called after a melee basic attack damages its target, before on_hit

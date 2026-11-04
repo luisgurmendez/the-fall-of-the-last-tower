@@ -240,6 +240,7 @@ export class ServerAbilityExecutor {
         if (champion.resource < manaCost) return;
         this.completeCast(params, definition, abilityId, manaCost);
       });
+      hooks?.onCastStart?.(champion, abilityId, params.targetPosition ?? target?.position ?? null, context);
       context.addEvent(GameEventType.ABILITY_WINDUP, {
         entityId: champion.id,
         abilityId,

@@ -387,6 +387,28 @@ describe('Summons', () => {
       expect(arena.red.experience).toBe(xp);
     });
 
+    test("its last hit counts as its owner's: the gold, the creep score and the XP are the owner's", () => {
+      const arena = ownerArena();
+      const unit = summon(arena, p(30));
+      const victim = arena.addMinion(TEAM_RED, p(60));
+      const { gold, cs } = arena.blue;
+      const xp = arena.blue.experience;
+      victim.takeDamage(1e9, 'true', unit.id, arena.context);
+      expect(victim.isDead).toBe(true);
+      expect(arena.blue.gold).toBeGreaterThan(gold);
+      expect(arena.blue.cs).toBe(cs + 1);
+      expect(arena.blue.experience).toBeGreaterThan(xp);
+    });
+
+    test("killing a champion, the kill is its owner's", () => {
+      const arena = ownerArena(p(60));
+      const unit = summon(arena, p(30));
+      const kills = arena.blue.kills;
+      arena.red.takeDamage(1e9, 'true', unit.id, arena.context);
+      expect(arena.red.isDead).toBe(true);
+      expect(arena.blue.kills).toBe(kills + 1);
+    });
+
     test('crumbling (absorbed, or its owner gone) is a death without a killer', () => {
       const arena = ownerArena();
       const unit = summon(arena, p(30));
@@ -423,6 +445,74 @@ describe('Summons', () => {
       free.command({ kind: 'move', point: p(330, 40) }, arena.context);
       step(arena, 1);
       expect(slowed.position.dot(ALONG) - 30).toBeLessThan((free.position.dot(ALONG) - 30) * 0.75);
+    });
+  });
+
+  describe('what its owner can do to it', () => {
+    /** How many attacks it starts on a dummy minion in `seconds` */
+    function attacksIn(arena: TestArena, unit: ServerSummon, seconds: number): number {
+      let attacks = 0;
+      for (let i = 0; i < seconds / DT; i++) {
+        arena.tickAll(DT);
+        attacks += arena.context.flushEvents().filter(e => e.type === GameEventType.BASIC_ATTACK && e.data.entityId === unit.id).length;
+      }
+      return attacks;
+    }
+
+    test('a frenzy makes it attack faster for a while', () => {
+      const arena = ownerArena();
+      const calm = summon(arena, p(30));
+      arena.addMinion(TEAM_RED, p(30 + 30), 'siege').health = 1e6;
+      const calmAttacks = attacksIn(arena, calm, 4);
+      const arena2 = ownerArena();
+      const frenzied = summon(arena2, p(30));
+      arena2.addMinion(TEAM_RED, p(30 + 30), 'siege').health = 1e6;
+      frenzied.frenzyFor(1, 4);
+      expect(attacksIn(arena2, frenzied, 4)).toBeGreaterThanOrEqual(calmAttacks + 2);
+    });
+
+    test('a charge makes it faster and hit harder, for a while', () => {
+      const arena = ownerArena();
+      const charged = summon(arena, p(30));
+      const plain = summon(arena, p(30, 40));
+      charged.chargeFor(0.5, 0.5, 1);
+      charged.command({ kind: 'move', point: p(330) }, arena.context);
+      plain.command({ kind: 'move', point: p(330, 40) }, arena.context);
+      step(arena, 1);
+      expect(charged.position.dot(ALONG) - 30).toBeGreaterThan((plain.position.dot(ALONG) - 30) * 1.3);
+
+      const victim = arena.addMinion(TEAM_RED, charged.position.added(ALONG.scaled(30)));
+      const health = victim.health;
+      charged.chargeFor(0.5, 0.5, 2);
+      charged.command({ kind: 'attack', targetId: victim.id }, arena.context);
+      step(arena, STATS.attackWindup + 0.1);
+      // 20 x 1.5, less the minion's magic resist
+      expect(health - victim.health).toBeGreaterThan(STATS.attackDamage * 1.3);
+    });
+
+    test('held for a windup, it neither moves nor attacks', () => {
+      const arena = ownerArena();
+      const unit = summon(arena, p(30));
+      const enemy = arena.addMinion(TEAM_RED, p(60));
+      unit.holdFor(0.6);
+      arena.blue.setMoveTarget(p(300));
+      const at = unit.position.clone();
+      for (let i = 0; i < 0.55 / DT; i++) {
+        arena.tickAll(DT);
+        expect(arena.context.flushEvents().some(e => e.type === GameEventType.BASIC_ATTACK && e.data.entityId === unit.id)).toBe(false);
+      }
+      expect(unit.position.distanceTo(at)).toBeLessThan(1);
+      expect(enemy.isDead).toBe(false);
+    });
+
+    test('it pays health only if it has more than the price', () => {
+      const arena = ownerArena();
+      const unit = summon(arena, p(30));
+      expect(unit.payHealth(100)).toBe(true);
+      expect(unit.health).toBe(STATS.maxHealth - 100);
+      expect(unit.payHealth(unit.health)).toBe(false);
+      expect(unit.health).toBe(STATS.maxHealth - 100);
+      expect(unit.isDead).toBe(false);
     });
   });
 

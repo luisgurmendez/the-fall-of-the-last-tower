@@ -568,7 +568,9 @@ export class ServerChampion extends ServerEntity {
     if (!this.cast) return;
     const { slot, abilityId } = this.cast;
     this.endCast();
-    context?.addEvent(GameEventType.ABILITY_INTERRUPTED, { entityId: this.id, abilityId, slot });
+    if (!context) return;
+    context.addEvent(GameEventType.ABILITY_INTERRUPTED, { entityId: this.id, abilityId, slot });
+    championHooksRegistry.get(this.definition.id)?.onCastInterrupted?.(this, abilityId, context);
   }
 
   /**
