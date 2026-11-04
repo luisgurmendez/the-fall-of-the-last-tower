@@ -14,7 +14,7 @@
  */
 
 import { writeFileSync } from 'node:fs';
-import { getAllChampionDefinitions, getAbilityDefinition, getPassiveDefinition, getCastTime, type AbilityDefinition, type PassiveAbilityDefinition } from '@siege/shared';
+import { getAllChampionDefinitions, getAbilityDefinition, getPassiveDefinition, getCastTime, dodgeOf, DODGE_RULES, type AbilityDefinition, type PassiveAbilityDefinition } from '@siege/shared';
 
 const SLOTS = ['Q', 'W', 'E', 'R'] as const;
 
@@ -31,6 +31,8 @@ export interface TimingRow {
   delay: string;
   /** How long its effects last (each one) */
   lasts: string;
+  /** How dodgeable it is: warning / time to walk out (abilities/dodge.ts), against its rule */
+  dodge: string;
   cooldown: string;
   cost: string;
   range: string;
@@ -137,6 +139,7 @@ function passiveRow(champion: string, p: PassiveAbilityDefinition): TimingRow {
     cast: '—',
     delay: p.intervalSeconds ? `every ${s(p.intervalSeconds)}` : '',
     lasts: lasts.join('; '),
+    dodge: '',
     cooldown: p.internalCooldown ? s(p.internalCooldown) : '',
     cost: '', range: '', size: p.auraRadius ? `radius ${p.auraRadius}` : '',
     other: other.join(', '),
@@ -265,6 +268,7 @@ export function abilityRows(): TimingRow[] {
         cast: castOf(a),
         delay: joinCode(delay || (a.aoeRadius || a.damage ? 'at once' : ''), code.delay, delay === ''),
         lasts: joinCode(lasts, code.lasts, lasts === ''),
+        dodge: dodgeText(a, slot),
         cooldown: list(a.cooldown, ' s'),
         cost: list(a.manaCost),
         range: a.range ? String(a.range) : '',
@@ -276,6 +280,15 @@ export function abilityRows(): TimingRow[] {
   return rows;
 }
 
+/** "1.2 (ground area, needs 1)", "exempt: <why>", or "" for what isn't dodged */
+function dodgeText(a: AbilityDefinition, slot: string): string {
+  if (a.dodgeExempt) return `exempt: ${a.dodgeExempt}`;
+  const dodge = dodgeOf(a);
+  if (!dodge) return '';
+  const rule = DODGE_RULES[dodge.kind][slot.startsWith('R') ? 'ultimate' : 'basic'];
+  return `${dodge.ratio.toFixed(2)} (${dodge.kind.replace('_', ' ')}, needs ${rule})`;
+}
+
 /** A definition's value with the handler's after it (marked "(code)"), or the handler's in its place */
 function joinCode(own: string, fromHandler: string | undefined, replace: boolean): string {
   if (!fromHandler) return own;
@@ -285,7 +298,7 @@ function joinCode(own: string, fromHandler: string | undefined, replace: boolean
 
 const COLUMNS: [keyof TimingRow, string][] = [
   ['champion', 'Champion'], ['slot', 'Slot'], ['ability', 'Ability'], ['aim', 'Aim'], ['cast', 'Cast time'],
-  ['delay', 'Until it takes effect'], ['lasts', 'How long it lasts'], ['cooldown', 'Cooldown'], ['cost', 'Cost'],
+  ['delay', 'Until it takes effect'], ['lasts', 'How long it lasts'], ['dodge', 'Dodge'], ['cooldown', 'Cooldown'], ['cost', 'Cost'],
   ['range', 'Range'], ['size', 'Size'], ['other', 'Other'],
 ];
 
