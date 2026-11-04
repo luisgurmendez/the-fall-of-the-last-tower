@@ -120,6 +120,8 @@ export const SOUNDS = {
   magnus_fireball_impact: { prompt: `a fireball exploding on impact, a crackling fiery burst, ${DRY}`, duration: 0.8, volume: 1, maxVoices: 2 },
   magnus_shield: { prompt: `an arcane magic barrier forming around a mage, a deep humming swell with crystalline shimmer, ${DRY}`, duration: 1, volume: 0.5, maxVoices: 2 },
   magnus_mud: { prompt: `a thick pool of mud splashing onto the ground, a wet squelch and bubbling, ${DRY}`, duration: 0.9, volume: 1, maxVoices: 2 },
+  // In his ultimate's cast: the beam of fire shooting up from his staff
+  magnus_meteor_windup: { prompt: `a column of fire shooting up into the sky from a staff, a fast rising fiery roar, ${DRY}`, duration: 0.5, volume: 0.5, maxVoices: 2 },
   magnus_meteor_fall: { prompt: `a flaming meteor falling fast from the sky, a descending fiery whistle, ${DRY}`, duration: 0.7, volume: 0.2, maxVoices: 2 },
   magnus_meteor_impact: { prompt: `a meteor crashing into the ground, a big fiery explosion then roaring crackling flames, ${DRY}`, duration: 1.5, volume: 0.85, maxVoices: 2 },
   // Elara: holy light
@@ -130,6 +132,9 @@ export const SOUNDS = {
   // Gorath: stone
   gorath_slam: { prompt: `a huge stone fist pounding the ground once, a short deep thud with cracking rock, ${DRY}`, duration: 0.8, volume: 1, maxVoices: 2 },
   gorath_fortify: { prompt: `heavy rocks grinding and crunching together as stone armor forms, ${DRY}`, duration: 0.9, volume: 1, maxVoices: 2 },
+  // His slam's and roar's cast times: the stone hammer hoisted, a deep breath drawn
+  gorath_slam_windup: { prompt: `a heavy stone hammer hoisted overhead, a short low grinding scrape of stone, ${DRY}`, duration: 0.5, volume: 0.6, maxVoices: 2 },
+  gorath_taunt_windup: { prompt: "a huge creature drawing in a deep rumbling breath, video game sound effect, dry, no music", duration: 0.5, volume: 0.5, maxVoices: 2 },
   gorath_taunt: { prompt: "a giant stone golem's deep furious roar, video game sound effect, no music", duration: 1.2, volume: 0.3, maxVoices: 2 },
   gorath_earthquake_rumble: { prompt: `a deep earthquake rumble building up, the ground trembling, ${DRY}`, duration: 0.7, volume: 0.8, maxVoices: 2 },
   gorath_earthquake: { prompt: `a massive earthquake, the ground splitting with a huge booming crack and boulders tumbling, ${DRY}`, duration: 1.8, volume: 1, maxVoices: 2 },
