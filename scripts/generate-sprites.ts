@@ -612,7 +612,8 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
     name: 'Kael',
     description: 'a young knight in steel plate armor with a blue tabard, holding a longsword and a round steel shield',
     attack: 'swings his longsword in a quick horizontal slash',
-    q: 'makes a wide sweeping cleave with the longsword',
+    // Redone 2026-11-04: the old take's sweep ran off the frame
+    q: 'steps in and makes a wide horizontal sweep with the longsword in front of him, then recovers',
     w: 'raises his shield and braces as a pale glow surrounds him',
     e: 'charges forward shield first',
     r: 'leaps up and brings the longsword down in a mighty overhead strike',
@@ -624,16 +625,20 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
     q: 'swings the staff and hurls a large fireball forward',
     w: 'plants the staff as a shimmering arcane barrier forms around him',
     e: 'points the staff at the ground, conjuring a swirling pool of mud',
-    r: 'raises the staff high and calls down fire from the sky',
+    // Redone 2026-11-04: Inferno Zone falls far away; the old take burned around his feet
+    r: 'raises the staff high above his head with both hands and looks up at the sky, then sweeps it down to point forward',
   }),
   champion('elara', {
     name: 'Elara',
     description: 'a priestess in white and gold robes with long silver hair, holding a slender golden staff with a glowing crystal',
     attack: 'flicks the staff and fires a small spark of light',
-    q: 'raises the staff and releases a soft beam of healing light',
-    w: 'extends a hand as a golden shield of light forms',
-    e: 'spins gracefully as light swirls around her feet',
-    r: 'lifts both arms skyward as a column of radiant light descends',
+    // Redone 2026-11-04 with the body's motion only (the game draws the light): the old takes
+    // drew a beam, a shield and a pillar into the frames, and the pillar ran off the top
+    q: 'raises the staff and points it gently forward at an ally, then lowers it',
+    w: 'steps forward and holds the open palm of her free hand out toward an ally',
+    e: 'spins gracefully once on the spot, robes swirling',
+    r: 'lifts the staff high above her head with both hands, looking up, then brings it down slowly',
+    feetFromFirstFrame: true,
   }),
   minion(
     'melee',
@@ -660,16 +665,20 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
     q: 'throws a spinning shuriken forward with a flick of the wrist',
     w: 'crouches low and vanishes into a swirl of dark violet smoke',
     e: 'dashes forward in a low blur, scarf streaming behind',
-    r: 'draws a second blade and takes a fierce ninja stance as violet energy flares around the body',
+    // Redone 2026-11-04: the old take's violet arc ran off the frame
+    r: 'draws a second curved blade from his back and drops into a low two-blade fighting stance',
   }),
   champion('gorath', {
     name: 'Gorath',
     description: 'a stout stone guardian in heavy stone-plated armor with a braided beard and glowing amber runes, carrying a huge stone hammer',
     attack: 'swings the stone hammer down in a heavy blow',
-    q: 'raises the hammer and slams it into the ground, cracking the earth',
-    w: 'plants his feet as stone plates harden over his body',
-    e: 'pounds his chest and roars a challenge',
-    r: 'leaps and smashes the hammer into the ground with both hands, sending out a shockwave',
+    // Redone 2026-11-04 with the body's motion only, lined up by the standing frame: the old
+    // slams drew cracks below his feet, which lifted the strip and cut the raised hammer off
+    q: 'raises the stone hammer high over his head with both hands, then slams it down into the ground in front of him',
+    w: 'crosses his arms over his chest and bows his head, bracing his whole body',
+    e: 'throws his head back and arms wide and roars a challenge',
+    r: 'lifts the stone hammer far behind his head with both hands, then smashes it straight down into the ground with all his strength',
+    feetFromFirstFrame: true,
   }),
 ];
 
