@@ -53,7 +53,7 @@ export const NOCTHAR_KIT = {
   bigHollowStrength: 1.5,
 
   /** With the colossus alive, an enemy dying near it heals it this share of its max health */
-  colossusHealPerUnit: 0.01,
+  colossusHealPerUnit: 0.04,
   colossusHealPerChampion: 0.25,
 
   /** Grasping Hands: the hands drag enemies this far toward the middle */
@@ -251,7 +251,7 @@ export const NoctharColossusOfBones: AbilityDefinition = {
   id: "nocthar_r",
   name: "Colossus of Bones",
   description:
-    "Plunge your arms into the earth: your Hollows sink into the ground and, after 1.5 seconds, a colossus made of their bones bursts out, dealing {damage} magic damage and knocking up enemies around it for 1 second. It's bigger and stronger for each Hollow it took. It lasts until it's destroyed; meanwhile your W, E and R are its own, no more Hollows rise, and enemies dying near it heal it. Its cooldown starts when it falls. Stunned or silenced while casting, nothing happens and it's back in 10 seconds.",
+    "Plunge your arms into the earth: your Hollows sink and, after 1.5 seconds, a colossus of their bones bursts out, dealing {damage} magic damage and knocking up enemies around it for 1 second. Each Hollow makes it bigger and stronger. It lasts until destroyed: meanwhile your W, E and R are its own, no Hollows rise, and enemies dying near it heal it 4% of its max health (25% for a champion). Its cooldown starts when it falls. Stunned or silenced while casting: nothing, and it's back in 10 seconds.",
   type: "active",
   targetType: "ground_target",
   maxRank: 3,

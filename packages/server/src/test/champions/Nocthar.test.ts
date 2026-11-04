@@ -6,7 +6,7 @@
  *   summon) dying within reach rises as a Hollow where it fell, if the
  *   passive is ready; then it waits 12.5 s (7.5 s at level 18). Up to 5; a
  *   champion rises as a big one. With the colossus alive none rise: the
- *   deaths heal the colossus instead (1% a unit, 25% a champion)
+ *   deaths heal the colossus instead (4% a unit, 25% a champion)
  * - Q: Grasping Hands - 0.25 s cast, then 0.85 s later hands burst out of a
  *   circle: damage, a drag toward its middle and a 30% slow
  * - W: Lament - 0.5 s cast (he channels it): enemies near him take damage and flee from him
@@ -551,15 +551,15 @@ describe('Nocthar', () => {
       expect(arena.blue.abilityInSlot('W')).toBe('nocthar_w');
     });
 
-    test('while it lives no Hollows rise; enemies dying near it heal it (1% a minion, 25% a champion)', () => {
+    test('while it lives no Hollows rise; enemies dying near it heal it (4% a minion, 25% a champion)', () => {
       const arena = noctharArena(p(140));
       const giant = raiseColossus(arena, p(120));
       giant.health = giant.maxHealth * 0.5;
       killMinion(arena, p(130));
       expect(hollows(arena).length).toBe(0);
-      expect(giant.health).toBeCloseTo(giant.maxHealth * 0.51, 3);
+      expect(giant.health).toBeCloseTo(giant.maxHealth * 0.54, 3);
       arena.red.takeDamage(1e9, 'true', arena.blue.id, arena.context);
-      expect(giant.health).toBeCloseTo(giant.maxHealth * 0.76, 3);
+      expect(giant.health).toBeCloseTo(giant.maxHealth * 0.79, 3);
     });
 
     test('deaths far from the colossus heal nothing', () => {

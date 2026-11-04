@@ -48,7 +48,7 @@ Tiene dos modos: **sin coloso** (normal) y **con el coloso vivo** (después de l
 - **Con 5 Hollows:** la pasiva no se activa ni entra en enfriamiento.
 - **Cuánto duran:** hasta que los matan.
 - **Estadísticas de los Hollows:** como punto de partida, las de un minion melee, que crecen con el nivel y el AP de Nocthar.
-- **Con el coloso vivo:** no levanta Hollows. Cada enemigo que muere a menos de 550 del coloso lo cura: un 1% de su vida máxima por minion o monstruo, un 25% por campeón.
+- **Con el coloso vivo:** no levanta Hollows. Cada enemigo que muere a menos de 550 del coloso lo cura: un 4% de su vida máxima por minion o monstruo, un 25% por campeón.
 - **El número clave del balance:** cuánto cura cada minion. Si en línea el coloso se cura más de lo que gasta, queda un coloso eterno.
 
 ### Q: Grasping Hands
