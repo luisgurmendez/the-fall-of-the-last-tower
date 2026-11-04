@@ -2,7 +2,7 @@ import OnlineGame from "./core/OnlineGame";
 import { BitmapFont } from "./render/BitmapFont";
 import { MatchmakingUI, type MatchData } from "./ui/matchmaking/MatchmakingUI";
 import { setupFullscreenButton } from "./ui/FullscreenButton";
-import type { GameEndData } from "@siege/shared";
+import { CONNECTION_REPLACED_CODE, type GameEndData } from "@siege/shared";
 
 // Get server URL from environment or default
 function getServerUrl(): string {
@@ -101,6 +101,10 @@ async function startOnlineGame(matchData: MatchData, matchmakingUI: MatchmakingU
     console.log('[Game] Disconnected:', code, reason);
     matchmakingUI.reset();
     matchmakingUI.show();
+    // A newer connection of the player took the match: another tab or window
+    if (code === CONNECTION_REPLACED_CODE) {
+      matchmakingUI.showError('This match is open in another tab or window.');
+    }
   };
 }
 

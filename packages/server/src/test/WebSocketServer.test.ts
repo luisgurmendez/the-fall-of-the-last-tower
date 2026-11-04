@@ -283,6 +283,21 @@ describe('WebSocketServer', () => {
       expect(found).toBe(conn);
     });
 
+    it('sends to the newest connection of a player that has two', () => {
+      // An old socket of the player still open (a reconnect, a second tab)
+      const old = new MockWebSocketConnection('conn-2');
+      old.playerId = 'player-1';
+      const newer = new MockWebSocketConnection('conn-3');
+      newer.playerId = 'player-1';
+      server.simulateConnection(old);
+      server.simulateConnection(newer);
+
+      expect(server.getConnectionByPlayer('player-1')).toBe(newer);
+      server.sendToPlayer('player-1', { type: ServerMessageType.PONG, data: {} });
+      expect(newer.sentMessages.length).toBe(1);
+      expect(old.sentMessages.length).toBe(0);
+    });
+
     it('should return undefined for unknown player', () => {
       const found = server.getConnectionByPlayer('unknown');
       expect(found).toBeUndefined();

@@ -158,7 +158,12 @@ export abstract class WebSocketServer {
    * Get connection by player ID.
    */
   getConnectionByPlayer(playerId: string): WebSocketConnection | undefined {
-    return Array.from(this.connections.values()).find(c => c.playerId === playerId);
+    // The newest: an older one of the same player is one it replaced
+    let found: WebSocketConnection | undefined;
+    for (const connection of this.connections.values()) {
+      if (connection.playerId === playerId) found = connection;
+    }
+    return found;
   }
 
   /**

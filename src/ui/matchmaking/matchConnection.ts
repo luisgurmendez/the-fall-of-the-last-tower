@@ -81,6 +81,10 @@ export class MatchConnection {
     practice?: { size: number; map: MapId },
     lobby?: { create?: boolean; code?: string; name: string },
   ): void {
+    // One client at a time: a previous one left open would say READY for the
+    // same player again (a reconnect), and take the player from this one
+    this.disconnect();
+
     // Create network client
     this.networkClient = new NetworkClient({
       serverUrl: this.serverUrl,
