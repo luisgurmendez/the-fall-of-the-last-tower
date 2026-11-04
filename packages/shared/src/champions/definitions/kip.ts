@@ -42,9 +42,9 @@ export const KIP_KIT = {
   markDuration: 4,
 
   /** The Bigger They Are: his arrow on an enemy he marked pops the mark for bonus physical damage... */
-  popAdRatio: 0.4,
+  popAdRatio: 0.6,
   /** ...plus this share of the target's max health... */
-  popMaxHealthRatio: 0.05,
+  popMaxHealthRatio: 0.06,
   /** ...plus this share of how much more max health the target has than him... */
   popHealthGapRatio: 0.1,
   /** ...counted up to this much */
@@ -92,7 +92,7 @@ const KIP_BASE_STATS: ChampionBaseStats = {
   healthRegen: 1.4,
   resource: 300,
   resourceRegen: 2.6,
-  attackDamage: 57,
+  attackDamage: 59,
   abilityPower: 0,
   attackSpeed: 0.65,
   attackRange: 200, // A big bow, but not Elora's reach
@@ -128,7 +128,7 @@ export const KipTargetPractice: AbilityDefinition = {
   targetType: "skillshot",
   maxRank: 5,
   manaCost: [40, 45, 50, 55, 60],
-  cooldown: [9, 8.5, 8, 7.5, 7],
+  cooldown: [8, 7.5, 7, 6.5, 6],
   range: 500,
   projectileSpeed: 560,
   projectileRadius: 18,
@@ -191,7 +191,7 @@ export const KipShowThemAll: AbilityDefinition = {
   affectsJungleCamps: false,
   damage: {
     type: "physical",
-    scaling: scaling([150, 250, 350], { adRatio: 0.75 }),
+    scaling: scaling([175, 275, 375], { adRatio: 0.8 }),
   },
 };
 
@@ -204,7 +204,7 @@ export const KipPassive: PassiveAbilityDefinition = {
   id: "kip_passive",
   name: "The Bigger They Are",
   description:
-    "Enemy champions you mark are seen by your team, even in fog and bushes, and your team's basic attacks on them give the attacker 20% movement speed for 1.5 seconds. Your basic attack on an enemy you marked pops the mark: 40% AD + 5% of its max health + 10% of how much more max health it has than you (up to +200) bonus physical damage. Only your basic attacks pop marks.",
+    "Enemy champions you mark are seen by your team, even in fog and bushes, and your team's basic attacks on them give the attacker 20% movement speed for 1.5 seconds. Your basic attack on an enemy you marked pops the mark: 60% AD + 6% of its max health + 10% of how much more max health it has than you (up to +200) bonus physical damage. Only your basic attacks pop marks.",
   trigger: "always",
   usesStacks: true,
   maxStacks: 5,

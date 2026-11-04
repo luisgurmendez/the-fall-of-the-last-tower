@@ -6,7 +6,7 @@
  *   team sees it, in fog and bushes (not through stealth), and his team's
  *   champions' basic attacks on it give the attacker +20% movement speed
  * - Passive: The Bigger They Are - his basic attack on an enemy he marked
- *   pops the mark: 40% AD + 5% of its max health + 10% of how much more max
+ *   pops the mark: 60% AD + 6% of its max health + 10% of how much more max
  *   health it has than him (counted up to 2000) bonus physical damage. Only
  *   his basic attacks pop marks; abilities never do
  * - Q: Target Practice - a skillshot that stops at the first enemy: damage,
@@ -110,7 +110,7 @@ function alwaysCrit(champion: TestChampion): void {
 /** The pop's bonus, from the passive's rules */
 function popBonus(kip: TestChampion, target: TestChampion): number {
   const gap = Math.min(2000, Math.max(0, maxHealthOf(target) - maxHealthOf(kip)));
-  return 0.4 * adOf(kip) + 0.05 * maxHealthOf(target) + 0.1 * gap;
+  return 0.6 * adOf(kip) + 0.06 * maxHealthOf(target) + 0.1 * gap;
 }
 
 /** Shoot basic attacks at a target until `arrows` of them landed (an arrow: his attack damage, or twice it with crits); returns the hits since */
@@ -210,14 +210,14 @@ describe('Kip passive - The Bigger They Are', () => {
     expect(arena.red.hasEffect(MARK)).toBe(false);
   });
 
-  test('against a champion with more max health: 40% AD + 5% of its max health + 10% of the difference', () => {
+  test('against a champion with more max health: 60% AD + 6% of its max health + 10% of the difference', () => {
     const arena = kipArena();
     const gap = maxHealthOf(arena.red) - maxHealthOf(arena.blue);
     expect(gap).toBeGreaterThan(0);
     mark(arena, arena.red);
     const hits = recordHits(arena.red);
     const shot = shoot(arena, arena.red, hits, 1);
-    expect(shot[1].amount).toBeCloseTo(0.4 * adOf(arena.blue) + 0.05 * maxHealthOf(arena.red) + 0.1 * gap, 6);
+    expect(shot[1].amount).toBeCloseTo(0.6 * adOf(arena.blue) + 0.06 * maxHealthOf(arena.red) + 0.1 * gap, 6);
   });
 
   test('against a champion with as much max health as him: no difference to add', () => {
@@ -226,7 +226,7 @@ describe('Kip passive - The Bigger They Are', () => {
     mark(arena, arena.red);
     const hits = recordHits(arena.red);
     const shot = shoot(arena, arena.red, hits, 1);
-    expect(shot[1].amount).toBeCloseTo(0.4 * adOf(arena.blue) + 0.05 * maxHealthOf(arena.red), 6);
+    expect(shot[1].amount).toBeCloseTo(0.6 * adOf(arena.blue) + 0.06 * maxHealthOf(arena.red), 6);
   });
 
   test('against a champion with less max health: no difference to add (never less)', () => {
@@ -235,7 +235,7 @@ describe('Kip passive - The Bigger They Are', () => {
     mark(arena, arena.red);
     const hits = recordHits(arena.red);
     const shot = shoot(arena, arena.red, hits, 1);
-    expect(shot[1].amount).toBeCloseTo(0.4 * adOf(arena.blue) + 0.05 * maxHealthOf(arena.red), 6);
+    expect(shot[1].amount).toBeCloseTo(0.6 * adOf(arena.blue) + 0.06 * maxHealthOf(arena.red), 6);
   });
 
   test('the bigger the target, the bigger the pop', () => {
@@ -264,7 +264,7 @@ describe('Kip passive - The Bigger They Are', () => {
     mark(arena, arena.red);
     const hits = recordHits(arena.red);
     const shot = shoot(arena, arena.red, hits, 1);
-    expect(shot[1].amount).toBeCloseTo(0.4 * adOf(arena.blue) + 0.05 * maxHealthOf(arena.red) + 200, 6);
+    expect(shot[1].amount).toBeCloseTo(0.6 * adOf(arena.blue) + 0.06 * maxHealthOf(arena.red) + 200, 6);
   });
 
   test("a critical arrow doesn't raise the pop: it scales with his attack damage, not the crit", () => {
@@ -693,12 +693,12 @@ describe('Kip Q - Target Practice', () => {
     expect(arena.blue.getAbilityCooldown('Q')).toBe(0);
   });
 
-  test('it costs 40 mana with a 9 s cooldown at rank 1, 60 mana and 7 s at rank 5', () => {
+  test('it costs 40 mana with an 8 s cooldown at rank 1, 60 mana and 6 s at rank 5', () => {
     const arena = kipArena(new Vector(3000, 3000));
     const mana = arena.blue.resource;
     fire(arena);
     expect(arena.blue.resource).toBe(mana - 40);
-    expect(arena.blue.getAbilityCooldown('Q')).toBe(9);
+    expect(arena.blue.getAbilityCooldown('Q')).toBe(8);
     arena.blue.setLevel(18);
     arena.blue.maxAbility('Q');
     arena.blue.resetCooldowns();
@@ -706,7 +706,7 @@ describe('Kip Q - Target Practice', () => {
     const full = arena.blue.resource;
     fire(arena);
     expect(arena.blue.resource).toBe(full - 60);
-    expect(arena.blue.getAbilityCooldown('Q')).toBe(7);
+    expect(arena.blue.getAbilityCooldown('Q')).toBe(6);
   });
 });
 
@@ -1140,7 +1140,7 @@ describe('Kip R - Show Them All', () => {
     expect(arena.blue.getAbilityCooldown('R')).toBe(0);
   });
 
-  test('one mark: one arrow of 150 + 75% AD physical damage', () => {
+  test('one mark: one arrow of 175 + 80% AD physical damage', () => {
     const { arena, hits } = markedArena(1);
     expect(cast(arena).success).toBe(true);
     expect(ultimateArrows(arena).length).toBe(1);
@@ -1302,14 +1302,14 @@ describe('Kip R - Show Them All', () => {
     }
   });
 
-  test('at rank 3: 350 + 75% AD with one mark', () => {
+  test('at rank 3: 375 + 80% AD with one mark', () => {
     const { arena, hits } = markedArena(1);
     arena.blue.setLevel(18);
     arena.blue.maxAbility('R');
     cast(arena);
     expect(ultimateArrows(arena).length).toBe(1);
     step(arena, 1.5);
-    expect(hits[0][0].amount).toBeCloseTo(350 + 0.75 * adOf(arena.blue), 6);
+    expect(hits[0][0].amount).toBeCloseTo(375 + 0.8 * adOf(arena.blue), 6);
   });
 
   test('it costs 100 mana; its cooldown is 100 / 85 / 70 s', () => {
