@@ -85,8 +85,8 @@ const ABILITY_SLOTS: AbilitySlot[] = ['Q', 'W', 'E', 'R'];
  * - army: orders to its summons (ARMY_ORDERS says which): at the target, when
  *   it has some, they aren't hunting it already and it's within their leash
  *   (Nocthar's E, his R with the colossus)
- * - colossus: with summons to make it of, at an enemy champion in range
- *   (Nocthar's R)
+ * - colossus: with at least COLOSSUS_HOLLOWS summons to make it of (or
+ *   any, on a weakened enemy), at an enemy champion in range (Nocthar's R)
  * - summon reach: from its summon, at a target within SUMMON_REACH of it
  *   (the colossus's Bone Volley and Trample)
  */
@@ -132,6 +132,9 @@ const ARMY_ORDERS: Partial<Record<string, SummonType>> = {
   nocthar_e: 'hollow',
   nocthar_colossus_r: 'colossus',
 };
+
+/** Hollows a bot waits for before raising the colossus (but on a weakened enemy) */
+const COLOSSUS_HOLLOWS = 2;
 
 /** How far from the colossus its abilities reach */
 const SUMMON_REACH: Partial<Record<string, number>> = {
@@ -468,7 +471,8 @@ export class LaneBot implements BotController {
         return { type: InputType.ABILITY, slot, targetType: 'unit', targetEntityId: target.id, targetX: target.position.x, targetY: target.position.y };
       }
       if (role === 'colossus') {
-        if (summonsOf(champion, 'hollow', context).length === 0 || target.entityType !== EntityType.CHAMPION) continue;
+        const hollows = summonsOf(champion, 'hollow', context).length;
+        if (hollows < (targetLow ? 1 : COLOSSUS_HOLLOWS) || target.entityType !== EntityType.CHAMPION) continue;
         if (distance > (definition.range ?? 260) + target.getRadius()) continue;
         return { type: InputType.ABILITY, slot, targetType: 'position', targetX: target.position.x, targetY: target.position.y };
       }
