@@ -73,3 +73,45 @@ Added:
 - **poisoned:** green bubbles;
 - **disarmed:** a crossed sword;
 - **hasted:** speed lines.
+
+## Results (2026-11-04)
+
+Every kit meets the dodge rule or says why it's exempt (`bun test dodge` in packages/shared). The
+details, with before/after ratios, are in `docs/reviews/2026-11-04-readability/group-{a,b,c,d}.md`;
+the whole table is in `docs/reviews/2026-11-04-ability-timings.md`.
+
+- **Timings:**
+  - Gorath stands and winds up his slams (cast times), and Kael's cleave lands later.
+  - Magnus's meteor falls over 1.3 s and his mud is a pool you walk out of.
+  - Lume's orb flies slower, and her W gathers 0.45 s first.
+  - Caelum's roots rise later.
+  - Calamitus's burst has a cast, Protobot's overload charges for 1.05 s, and Fenris's swipe winds up.
+  - Zhak'rul's cloud billows out for 0.75 s before it bites.
+  - Nocthar's hands, wail and Bone Volley got small nudges.
+  - Kip's homing volleys, Lume's beam, Uruk's frost burst and Oitboil's point-blank spray are exempt,
+    each with a reason in its definition.
+- **Animations:**
+  - About 30 strips were regenerated with body motion only (no effects baked in), and blow frames
+    were retimed.
+  - The cuts went from up to 46 px to at most 7 px (a weapon tip on one frame:
+    `bun scripts/sprite-crop-audit.ts`).
+  - Missing animations were made: Vile W, Lume W.
+  - Caelum was rebuilt holding his staff.
+  - Kip's bow no longer pops in and out (east and south).
+  - The jungle dragon's fire and the thornspitter's spit now leave the mouth at the breath frame.
+- **Blow timing fix (shared):** an ability with a cast time showed its blow frame a cast time early.
+  The cast state now carries the windup it played through (`lead`; `abilityBlowShare` in
+  `stripBody.ts`).
+- **VFX and sounds:**
+  - New tells for Calamitus Q, Fenris W, Zhak'rul Q/E/R, Kip E and Elora R.
+  - New windup sounds for Gorath, Magnus, Calamitus, Fenris and Lume.
+  - Kip has his own sounds instead of Elora's.
+- **Status marks and sounds:** slow chevrons, burning, poison, bleeding, haste and disarm; a chip
+  sound when crowd control lands on us.
+- **Spent:** PixelLab about USD 1.5 of the 17 (balance about 16), ElevenLabs about 65 credits.
+- **Left:**
+  - Kip's north attack and Q lose the bow mid-shot.
+  - Elara's R doesn't raise the staff overhead.
+  - Melee monsters deal damage at the start of their attack, not on the bite frame.
+  - Lines (Elora R, Calamitus W) would read better with a real line warning, which needs a new GPU
+    VFX type.
