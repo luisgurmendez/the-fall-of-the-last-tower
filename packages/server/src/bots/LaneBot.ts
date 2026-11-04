@@ -47,7 +47,9 @@ import {
   type AbilityDefinition,
   type LaneId,
   getLane,
+  NOCTHAR_KIT,
   type Side,
+  type SummonType,
 } from '@siege/shared';
 import type { BotController, BotInput } from './BotController';
 import type { ServerChampion } from '../simulation/ServerChampion';
@@ -59,6 +61,7 @@ import { isStructureVulnerable } from '../systems/StructureRules';
 import { chooseSummonerSpell } from './summonerTactics';
 import { chooseItemUse } from './itemTactics';
 import { getScalingStats } from '../abilities/generic/AbilityHelpers';
+import { ServerSummon } from '../simulation/ServerSummon';
 
 export interface LaneBotConfig {
   playerId: string;
@@ -79,8 +82,15 @@ const ABILITY_SLOTS: AbilitySlot[] = ['Q', 'W', 'E', 'R'];
  *   sends the enemy out of reach)
  * - marked: only on a target holding the champion's mark (`<championId>_mark`
  *   from it) within the ability's reach (Kip's W and R, which fail without one)
+ * - army: orders to its summons (ARMY_ORDERS says which): at the target, when
+ *   it has some, they aren't hunting it already and it's within their leash
+ *   (Nocthar's E, his R with the colossus)
+ * - colossus: with summons to make it of, at an enemy champion in range
+ *   (Nocthar's R)
+ * - summon reach: from its summon, at a target within SUMMON_REACH of it
+ *   (the colossus's Bone Volley and Trample)
  */
-const ABILITY_ROLES: Partial<Record<string, 'offense' | 'defense' | 'engage' | 'execute' | 'kill' | 'marked'>> = {
+const ABILITY_ROLES: Partial<Record<string, 'offense' | 'defense' | 'engage' | 'execute' | 'kill' | 'marked' | 'army' | 'colossus' | 'summon reach'>> = {
   vex_shroud: 'defense',
   vex_dash: 'engage',
   vex_ninja_mode: 'offense',
@@ -110,7 +120,30 @@ const ABILITY_ROLES: Partial<Record<string, 'offense' | 'defense' | 'engage' | '
   kip_w: 'marked',
   kip_e: 'engage',
   kip_r: 'marked',
+  nocthar_e: 'army',
+  nocthar_r: 'colossus',
+  nocthar_colossus_r: 'army',
+  nocthar_colossus_w: 'summon reach',
+  nocthar_colossus_e: 'summon reach',
 };
+
+/** Which of its summons an 'army' ability orders */
+const ARMY_ORDERS: Partial<Record<string, SummonType>> = {
+  nocthar_e: 'hollow',
+  nocthar_colossus_r: 'colossus',
+};
+
+/** How far from the colossus its abilities reach */
+const SUMMON_REACH: Partial<Record<string, number>> = {
+  nocthar_colossus_w: NOCTHAR_KIT.colossusWRange,
+  nocthar_colossus_e: NOCTHAR_KIT.colossusEDistance,
+};
+
+/** A champion's living summons of a type */
+function summonsOf(champion: ServerChampion, type: SummonType, context: ServerGameContext): ServerSummon[] {
+  return context.getAllEntities().filter((entity): entity is ServerSummon =>
+    entity instanceof ServerSummon && entity.ownerId === champion.id && entity.minionType === type && !entity.isDead);
+}
 
 /** Whether a unit holds a champion's own mark (`<championId>_mark`, from it) */
 function holdsMarkOf(unit: ServerEntity, champion: ServerChampion): boolean {
@@ -426,6 +459,23 @@ export class LaneBot implements BotController {
         const reach = (definition.aoeRadius ?? definition.range ?? 300) + target.getRadius();
         if (!holdsMarkOf(target, champion) || distance > reach) continue;
         return { type: InputType.ABILITY, slot, targetType: 'none' };
+      }
+      if (role === 'army') {
+        const army = summonsOf(champion, ARMY_ORDERS[definition.id] ?? 'hollow', context);
+        const hunting = (unit: ServerSummon) => unit.order.kind === 'attack' && unit.order.targetId === target.id;
+        // (past their leash they'd drop the order)
+        if (army.length === 0 || army.every(hunting) || target.position.distanceTo(champion.position) > army[0].leash) continue;
+        return { type: InputType.ABILITY, slot, targetType: 'unit', targetEntityId: target.id, targetX: target.position.x, targetY: target.position.y };
+      }
+      if (role === 'colossus') {
+        if (summonsOf(champion, 'hollow', context).length === 0 || target.entityType !== EntityType.CHAMPION) continue;
+        if (distance > (definition.range ?? 260) + target.getRadius()) continue;
+        return { type: InputType.ABILITY, slot, targetType: 'position', targetX: target.position.x, targetY: target.position.y };
+      }
+      if (role === 'summon reach') {
+        const [summon] = summonsOf(champion, 'colossus', context);
+        if (!summon || summon.position.distanceTo(target.position) > (SUMMON_REACH[definition.id] ?? 200) + target.getRadius()) continue;
+        return { type: InputType.ABILITY, slot, targetType: 'position', targetX: target.position.x, targetY: target.position.y };
       }
       if (role === 'kill') {
         const reach = (definition.range ?? 300) + champion.getRadius() + target.getRadius();

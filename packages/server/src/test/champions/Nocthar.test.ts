@@ -38,6 +38,9 @@ import { createTestArena, type TestArena } from '../ServerTestUtils';
 import { ServerSummon } from '../../simulation/ServerSummon';
 import type { ServerEntity } from '../../simulation/ServerEntity';
 import { noctharState } from '../../abilities/handlers/nocthar/state';
+import { LaneBot } from '../../bots/LaneBot';
+import { ROLE_PICKS as PRACTICE_PICKS } from '../../bots/practiceMatch';
+import type { TestChampion } from '../ServerTestUtils';
 
 const DT = 1 / 60;
 const Q = getAbilityDefinition('nocthar_q')!;
@@ -672,6 +675,65 @@ describe('Nocthar', () => {
       const event = arena.context.flushEvents().find(e => e.data.abilityId === 'nocthar_e');
       expect(event?.data.targetX).toBeCloseTo(p(200).x, 3);
       expect(E.manaCost![0]).toBe(0);
+    });
+  });
+
+  describe('played by a practice bot', () => {
+    class AskedBot extends LaneBot {
+      offense(champion: TestChampion, target: TestChampion, arena: TestArena) {
+        return this.chooseAbility(champion, target, 'offense', arena.context);
+      }
+    }
+    /** Nocthar with only `ready` off cooldown, Kael at `at` */
+    function botArena(ready: ('Q' | 'W' | 'E' | 'R')[], at = p(200)): { arena: TestArena; bot: AskedBot } {
+      const arena = noctharArena(at);
+      for (const slot of ['Q', 'W', 'E', 'R'] as const) {
+        arena.blue.abilityStates[slot].cooldownRemaining = ready.includes(slot) ? 0 : 10;
+      }
+      return { arena, bot: new AskedBot({ playerId: arena.blue.playerId }) };
+    }
+
+    test('with no Hollows it gives no orders', () => {
+      const { arena, bot } = botArena(['E']);
+      expect(bot.offense(arena.blue, arena.red, arena)).toBeNull();
+    });
+
+    test('it sends its Hollows at its target once, not again while they hunt it', () => {
+      const { arena, bot } = botArena(['E']);
+      raiseHollows(arena, 2);
+      expect(bot.offense(arena.blue, arena.red, arena)).toMatchObject({ slot: 'E', targetType: 'unit', targetEntityId: arena.red.id });
+      arena.castAbility(arena.blue, 'E', { targetPosition: arena.red.position.clone(), targetId: arena.red.id });
+      expect(bot.offense(arena.blue, arena.red, arena)).toBeNull();
+    });
+
+    test('it raises the colossus on a champion in reach, with Hollows to make it of', () => {
+      const { arena, bot } = botArena(['R'], p(150));
+      expect(bot.offense(arena.blue, arena.red, arena)).toBeNull();
+      raiseHollows(arena, 2);
+      expect(bot.offense(arena.blue, arena.red, arena)).toMatchObject({ slot: 'R', targetType: 'position' });
+    });
+
+    test('with the colossus it sends it at its target, and uses its abilities only within its reach', () => {
+      const { arena, bot } = botArena(['W', 'E', 'R'], p(300));
+      raiseColossus(arena, p(-100));
+      for (const slot of ['W', 'E'] as const) arena.blue.abilityStates[slot].cooldownRemaining = 10;
+      expect(bot.offense(arena.blue, arena.red, arena)).toMatchObject({ slot: 'R', targetType: 'unit', targetEntityId: arena.red.id });
+      arena.castAbility(arena.blue, 'R', { targetPosition: arena.red.position.clone(), targetId: arena.red.id });
+      arena.blue.abilityStates.W.cooldownRemaining = 0;
+      // Kael too far from the colossus to throw at
+      expect(bot.offense(arena.blue, arena.red, arena)).toBeNull();
+      arena.red.position.setFrom(p(150));
+      expect(bot.offense(arena.blue, arena.red, arena)).toMatchObject({ slot: 'W', targetType: 'position' });
+    });
+
+    test("it doesn't send them at a target past their leash", () => {
+      const { arena, bot } = botArena(['E'], p(NOCTHAR_KIT.leash + 100));
+      raiseHollows(arena, 2);
+      expect(bot.offense(arena.blue, arena.red, arena)).toBeNull();
+    });
+
+    test('it plays Nocthar in practice lanes', () => {
+      expect(PRACTICE_PICKS.mid).toContain('nocthar');
     });
   });
 

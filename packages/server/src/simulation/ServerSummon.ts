@@ -63,6 +63,13 @@ export interface SummonDash {
   onEnd?: () => void;
 }
 
+/** Whether two orders say the same thing */
+function sameOrder(a: SummonOrder, b: SummonOrder): boolean {
+  if (a.kind === 'attack' && b.kind === 'attack') return a.targetId === b.targetId;
+  if (a.kind === 'move' && b.kind === 'move') return a.point.distanceTo(b.point) < 1;
+  return a.kind === 'follow' && b.kind === 'follow';
+}
+
 export interface ServerSummonConfig {
   id: string;
   position: Vector;
@@ -187,6 +194,8 @@ export class ServerSummon extends ServerEntity {
    * ally, a structure... dead or unseen) is a walk to where that is.
    */
   command(order: SummonOrder, context: ServerGameContext): void {
+    // The same order again changes nothing (an attack winding up lands)
+    if (sameOrder(this.order, order)) return;
     if (order.kind === 'attack') {
       const target = context.getEntity(order.targetId);
       if (!target || target.isDead) return;

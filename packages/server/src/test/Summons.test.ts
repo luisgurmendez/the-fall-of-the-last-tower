@@ -350,6 +350,18 @@ describe('Summons', () => {
       expect(unit.position.distanceTo(arena.blue.position)).toBeLessThan(80);
     });
 
+    test('the same order again keeps the attack it is winding up', () => {
+      const arena = ownerArena();
+      const unit = summon(arena, p(30));
+      const enemy = arena.addMinion(TEAM_RED, p(30 + STATS.radius + 12 + 10));
+      unit.command({ kind: 'attack', targetId: enemy.id }, arena.context);
+      for (let i = 0; i < 120 && !unit.toSnapshot().isAttacking; i++) arena.tickAll(DT);
+      expect(unit.toSnapshot().isAttacking).toBe(true);
+      unit.command({ kind: 'attack', targetId: enemy.id }, arena.context);
+      step(arena, STATS.attackWindup + 0.05);
+      expect(enemy.health).toBeLessThan(enemy.maxHealth);
+    });
+
     test("an order at an ally or something it can't attack is a walk there", () => {
       const arena = ownerArena();
       const unit = summon(arena, p(30));
