@@ -105,19 +105,33 @@ const TOWER_SHOT_TOP = 75;
 const TOWER_SHOT_BODY = 22;
 
 /**
- * How high a tower shot is drawn: it leaves from the top of the tower and
- * drops onto its target as it closes in. Drawn at the ground, it stayed
- * hidden under the tower for the moment it took to hit.
+ * Shots drawn leaving from above their shooter and dropping onto their
+ * target: how high they leave (above the shooter's position) and land. A
+ * tower's from its top; a monster's from its mouth (its strips are drawn
+ * centered on its position: the dragon's mouth is 31 above, the
+ * thornspitter's 8), landing where projectiles are drawn.
  */
-function towerShotLift(snapshot: any, x: number, y: number, rc: EntityRenderContext): number {
-  const tower = rc.stateManager.getEntity(snapshot.sourceId);
-  if (!tower) return TOWER_SHOT_BODY;
-  const travelled = Math.hypot(x - tower.position.x, y - tower.position.y);
-  const targetId = (tower.snapshot as { targetEntityId?: string | null }).targetEntityId;
+const LIFTED_SHOTS: Record<string, { from: number; to: number }> = {
+  tower: { from: TOWER_SHOT_TOP, to: TOWER_SHOT_BODY },
+  dragon_fire: { from: 31, to: 0 },
+  jungle_spit: { from: 8, to: 0 },
+};
+
+/**
+ * How high a lifted shot is drawn: it leaves from its shooter's top or mouth
+ * and drops onto its target as it closes in. Drawn at the ground, a tower's
+ * stayed hidden under the tower for the moment it took to hit, and a
+ * dragon's fire left from its chest instead of its mouth.
+ */
+function shotLift(snapshot: any, x: number, y: number, rc: EntityRenderContext, lift: { from: number; to: number }): number {
+  const shooter = rc.stateManager.getEntity(snapshot.sourceId);
+  if (!shooter) return lift.to;
+  const travelled = Math.hypot(x - shooter.position.x, y - shooter.position.y);
+  const targetId = (shooter.snapshot as { targetEntityId?: string | null }).targetEntityId;
   const target = targetId ? rc.stateManager.getEntity(targetId) : undefined;
   const left = target ? Math.hypot(target.position.x - x, target.position.y - y) : 0;
   const progress = target ? travelled / Math.max(1, travelled + left) : 1;
-  return TOWER_SHOT_TOP + (TOWER_SHOT_BODY - TOWER_SHOT_TOP) * progress;
+  return lift.from + (lift.to - lift.from) * progress;
 }
 
 /**
@@ -139,7 +153,8 @@ export function renderProjectile(
 
   const gpu = getGPURenderer();
   const position = rc.stateManager.getEntity(snapshot.entityId)?.position;
-  const lift = projectileType === "tower" && position ? towerShotLift(snapshot, position.x, position.y, rc) : 0;
+  const lifted = LIFTED_SHOTS[projectileType];
+  const lift = lifted && position ? shotLift(snapshot, position.x, position.y, rc, lifted) : 0;
   if (gpu && position) {
     emitProjectile(gpu.topFx, snapshot.entityId, projectileType, position.x, position.y - lift, angle, rc.animationTime, side);
     if (projectileType === "minion_siege") SPECIAL_PROJECTILES.minion_siege(ctx, angle, rc.animationTime);
