@@ -8,11 +8,13 @@
 
 import {
   InputType,
+  Vector,
   getAbilityDefinition,
   type AbilityDefinition,
   type AbilitySlot,
 } from '@siege/shared';
 import type { BotController, BotInput } from '../bots/BotController';
+import { abilityHandlerRegistry } from '../abilities/AbilityHandlerRegistry';
 import type { ServerChampion } from '../simulation/ServerChampion';
 import type { ServerGameContext } from '../game/ServerGameContext';
 
@@ -50,7 +52,7 @@ export class DuelBot implements BotController {
     if (!enemy || enemy.isDead) return [];
     const distance = champion.position.distanceTo(enemy.position);
 
-    const cast = this.chooseCast(champion, enemy, distance);
+    const cast = this.chooseCast(champion, enemy, distance, context);
     if (cast) {
       this.lastCast = cast.type === InputType.ABILITY ? cast.slot : null;
       return [cast];
@@ -59,7 +61,7 @@ export class DuelBot implements BotController {
     return [{ type: InputType.TARGET_UNIT, targetEntityId: enemy.id }];
   }
 
-  private chooseCast(champion: ServerChampion, enemy: ServerChampion, distance: number): BotInput | null {
+  private chooseCast(champion: ServerChampion, enemy: ServerChampion, distance: number, context: ServerGameContext): BotInput | null {
     if (champion.ccStatus.isSilenced || champion.ccStatus.isStunned) return null;
     const reach = champion.getAttackRange() + champion.getRadius() + enemy.getRadius();
     for (const slot of SLOTS) {
@@ -69,10 +71,29 @@ export class DuelBot implements BotController {
       const definition = getAbilityDefinition(champion.definition.abilities[slot]);
       if (!definition || champion.resource < (definition.manaCost?.[rank - 1] ?? 0)) continue;
       const input = castAt(definition, slot, champion, enemy, distance, reach);
-      if (input) return input;
+      if (input && wouldGoOff(definition, slot, champion, input, context)) return input;
     }
     return null;
   }
+}
+
+/**
+ * Whether its handler would let it go off now, as a player would see (Kip's
+ * W and R need an enemy he marked): one it would refuse isn't pressed.
+ */
+function wouldGoOff(definition: AbilityDefinition, slot: AbilitySlot, champion: ServerChampion, input: BotInput, context: ServerGameContext): boolean {
+  const handler = abilityHandlerRegistry.get(definition.id);
+  if (!handler?.validate || input.type !== InputType.ABILITY) return true;
+  return handler.validate({
+    champion,
+    slot,
+    definition,
+    rank: champion.abilityRanks[slot],
+    targetPosition: input.targetX !== undefined && input.targetY !== undefined ? new Vector(input.targetX, input.targetY) : undefined,
+    targetEntityId: input.targetEntityId,
+    context,
+    damageMultiplier: 1,
+  }).valid;
 }
 
 /** The cast of an ability on the enemy, if it reaches and makes sense now */
