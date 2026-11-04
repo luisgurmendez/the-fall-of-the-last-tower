@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { retimedFrame } from './stripBody';
+import { abilityBlowShare, retimedFrame } from './stripBody';
 
 const frames = (release: number | undefined, hitShare: number) =>
   Array.from({ length: 20 }, (_, i) => retimedFrame(i / 20, 9, release, hitShare));
@@ -25,5 +25,15 @@ describe('strip timing', () => {
     const gorath = frames(7, 1);
     expect(gorath.indexOf(7) / 20).toBeGreaterThan(0.85);
     expect(gorath[19]).toBeGreaterThanOrEqual(7);
+  });
+
+  it("an ability's blow comes after its cast time when its animation started with the cast", () => {
+    // Calamitus Q: a 0.6 s cast, the burst 0.12 s after it, a 1.2 s animation in all
+    expect(abilityBlowShare(0.6, 0.12, 1.2)).toBeCloseTo(0.6, 5);
+    // Without a cast before it, the impact alone
+    expect(abilityBlowShare(0, 0.12, 0.6)).toBeCloseTo(0.2, 5);
+    // Never past the end
+    expect(abilityBlowShare(1, 1, 1.5)).toBe(1);
+    expect(abilityBlowShare(0.5, 0.2, 0)).toBe(1);
   });
 });

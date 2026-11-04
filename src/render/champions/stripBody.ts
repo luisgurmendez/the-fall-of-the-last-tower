@@ -92,6 +92,16 @@ export function retimedFrame(progress: number, frameCount: number, blow: number 
   return Math.min(last, blow + Math.floor(((progress - at) / (1 - at)) * (frameCount - blow)));
 }
 
+/**
+ * How far through an ability's animation its blow lands (0-1): after the
+ * cast time it played through first (`lead`, 0 when the animation started
+ * as the ability went off), then the ability's impact time
+ */
+export function abilityBlowShare(lead: number, impact: number, duration: number): number {
+  if (duration <= 0) return 1;
+  return Math.min(1, (lead + impact) / duration);
+}
+
 /** How far through a champion's basic attack its damage lands (0-1) */
 function hitShare(championId: string, attackSpeed: number | undefined): number {
   const definition = getChampionDefinition(championId);
@@ -194,7 +204,8 @@ export function createStripBodyRenderer(
       } else if (src === strips.attack) {
         frameIndex = retimedFrame(progress, frameCount, timing.attackBlow, hitShare(snapshot.championId, snapshot.attackSpeed));
       } else if (src === abilityStrip && !dashStrip && cast.abilityId && cast.duration) {
-        frameIndex = retimedFrame(progress, frameCount, timing.abilityBlows?.[cast.abilityId], abilityImpactTime(cast.abilityId) / cast.duration);
+        frameIndex = retimedFrame(progress, frameCount, timing.abilityBlows?.[cast.abilityId],
+          abilityBlowShare(cast.lead ?? 0, abilityImpactTime(cast.abilityId), cast.duration));
       } else {
         frameIndex = Math.min(frameCount - 1, Math.floor(progress * frameCount));
       }

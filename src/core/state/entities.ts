@@ -25,6 +25,8 @@ export interface EntityAnimationState {
   abilityStartTime: number;
   /** Duration of ability animation (ms) */
   abilityDuration: number;
+  /** The cast time it started with (ms; 0 when it started as the ability went off) */
+  abilityLead: number;
   /** Where the ability being cast is aimed: a point, or a unit (null when it isn't aimed) */
   abilityTargetX: number | null;
   abilityTargetY: number | null;
@@ -78,6 +80,7 @@ export function createDefaultAnimationState(): EntityAnimationState {
     abilityId: undefined,
     abilityStartTime: 0,
     abilityDuration: 0,
+    abilityLead: 0,
     abilityTargetX: null,
     abilityTargetY: null,
     abilityTargetId: null,
@@ -175,6 +178,8 @@ export interface AbilityCastState {
   abilityId?: string;
   /** How long its cast animation lasts (seconds) */
   duration?: number;
+  /** The cast time it played through before the ability went off (seconds) */
+  lead?: number;
   /** Where it's aimed: a point, or a unit */
   target?: { x: number; y: number } | { entityId: string };
 }
@@ -193,7 +198,10 @@ export function getAbilityCastState(entity: InterpolatedEntity | undefined): Abi
   }
   const { abilityTargetX: x, abilityTargetY: y, abilityTargetId } = entity.animation;
   const target = x !== null && y !== null ? { x, y } : abilityTargetId !== null ? { entityId: abilityTargetId } : undefined;
-  return { casting: true, abilityId: entity.animation.abilityId, duration: entity.animation.abilityDuration / 1000, target };
+  return {
+    casting: true, abilityId: entity.animation.abilityId, duration: entity.animation.abilityDuration / 1000,
+    lead: entity.animation.abilityLead / 1000, target,
+  };
 }
 
 /**
