@@ -6,6 +6,7 @@ bots: `startPracticeMatch` creates the room with `allowDebug`).
 
 **Turning it on:** F3 (fn+F3 on a Mac) or the Escape menu's "Debug" button.
 The performance profiler's panel moved to F4 (Shift+F4 logs its breakdown).
+The practice tools (levels, teleport, no cooldowns...) are F2: see [practice.md](practice.md).
 
 ## What it shows
 

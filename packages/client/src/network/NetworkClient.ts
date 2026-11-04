@@ -27,6 +27,7 @@ import {
   type DebugStateData,
   type LobbyRequest,
   type LobbyState,
+  type PracticeTool,
 } from '@siege/shared';
 
 /**
@@ -310,6 +311,19 @@ export class NetworkClient {
       seq: ++this.inputSeq,
       clientTime: Date.now(),
       type: InputType.SURRENDER,
+    });
+  }
+
+  /**
+   * Use a practice tool (practice matches only); a teleport goes to (x, y).
+   */
+  sendPracticeTool(tool: PracticeTool, x?: number, y?: number): void {
+    this.sendInput({
+      seq: ++this.inputSeq,
+      clientTime: Date.now(),
+      type: InputType.PRACTICE_TOOL,
+      tool,
+      ...(x !== undefined && y !== undefined && { x, y }),
     });
   }
 

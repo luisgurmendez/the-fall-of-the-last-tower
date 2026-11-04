@@ -59,8 +59,11 @@ Every action has a default key, the ones the game always used:
 - No two actions share a key: binding an action to a taken key gives the other action the old
   key (the panel says so).
 - Reserved, never bound: Escape (menu, cancelling), Enter (kept for chat), Control (levels
-  abilities), Alt (pings), Shift, Meta, Caps Lock and F1-F12 (F3 debug, F4 profiler, the
-  browser's own).
+  abilities), Alt (pings), Shift, Meta, Caps Lock and F1-F12 (F2 practice tools, F3 debug, F4
+  profiler, the browser's own).
+- In practice matches, Shift + a letter is a practice tool (Shift+L levels up, Shift+T
+  teleports to the cursor...; [practice.md](practice.md#keys)). Those keys are fixed, and the
+  game doesn't hear them, so Shift+Q doesn't cast there.
 - What was stored is checked part by part (`parseControlSettings`): an unknown cast mode, an
   unknown action, a reserved or non-string key falls back to its default, and the rest is kept.
 - Everything that names a key reads the bindings: the input handler, the HUD's labels (ability

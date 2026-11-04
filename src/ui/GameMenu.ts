@@ -1,7 +1,8 @@
 /**
  * GameMenu - The in-match menu Escape opens: resume, the sound's volumes
  * (master, effects, ambience; kept by AudioManager), the controls (cast
- * mode and keys: ControlsPanel), the debug overlay (F3 too), or surrender.
+ * mode and keys: ControlsPanel), the debug overlay (F3 too), the practice
+ * tools' panel (F2 too; practice matches), or surrender.
  *
  * The game keeps running on the server while it's open. Surrendering asks
  * for a second click instead of a browser dialog; the match then ends like
@@ -10,6 +11,7 @@
 
 import { getAudio, type VolumeChannel } from "@/audio/AudioManager";
 import { ControlsPanel } from "@/ui/ControlsPanel";
+import type { PracticeSwitch } from "@/ui/PracticePanel";
 
 const CONFIRM_MS = 3000;
 
@@ -32,10 +34,15 @@ export class GameMenu {
   private readonly controls: ControlsPanel;
   private readonly surrenderButton: HTMLButtonElement;
   private readonly debugButton: HTMLButtonElement | null = null;
+  private readonly practiceButton: HTMLButtonElement | null = null;
   private confirmUntil = 0;
   private closed = false;
 
-  constructor(private readonly onSurrender: () => void, private readonly debug?: DebugSwitch) {
+  constructor(
+    private readonly onSurrender: () => void,
+    private readonly debug?: DebugSwitch,
+    private readonly practice?: PracticeSwitch,
+  ) {
     this.root = document.createElement("div");
     this.root.className = "game-menu";
     this.root.hidden = true;
@@ -80,6 +87,16 @@ export class GameMenu {
       panel.append(button);
       this.debugButton = button;
     }
+    if (practice) {
+      const button = document.createElement("button");
+      button.className = "pixel-button";
+      button.addEventListener("click", () => {
+        practice.toggle();
+        this.labelPracticeButton();
+      });
+      panel.append(button);
+      this.practiceButton = button;
+    }
     panel.append(this.surrenderButton, hint);
     this.root.append(panel, this.controls.element);
     // Clicks on the dimmed backdrop close it
@@ -103,7 +120,13 @@ export class GameMenu {
     if (this.closed) return;
     this.resetSurrenderButton();
     this.labelDebugButton();
+    this.labelPracticeButton();
     this.root.hidden = false;
+  }
+
+  private labelPracticeButton(): void {
+    if (!this.practiceButton || !this.practice) return;
+    this.practiceButton.textContent = `Practice tools: ${this.practice.isShown() ? "shown" : "hidden"} (F2)`;
   }
 
   private labelDebugButton(): void {

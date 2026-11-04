@@ -205,6 +205,13 @@ export class ChampionItemActives {
     });
   }
 
+  /** Every item's active ready (a practice tool) */
+  resetCooldowns(): void {
+    for (const item of this.champion.items) {
+      if (item && item.readyAt !== undefined) item.readyAt = 0;
+    }
+  }
+
   /** Every item with this active waits out its cooldown */
   private startCooldown(active: ItemActiveData, context: ServerGameContext): void {
     const readyAt = context.getGameTime() + active.cooldown;

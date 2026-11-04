@@ -213,6 +213,12 @@ export class OnlineInputHandler implements GameObject {
   /** Whether a screen position is over the HUD or the minimap (a click there casts nothing) */
   private pointerOverUI: ((x: number, y: number) => boolean) | null = null;
 
+  /** Takes a left-click's world position first (practice's teleport); true when it took it */
+  private worldClickHandler: ((at: Vector) => boolean) | null = null;
+
+  /** The world position under the cursor (the minimap's, over it), as of the last step */
+  private cursorWorld: Vector | null = null;
+
   /** When it last stepped (ms) */
   private lastStepAt = 0;
 
@@ -260,6 +266,20 @@ export class OnlineInputHandler implements GameObject {
   }
 
   /** Set how to tell the pointer is over the HUD or the minimap */
+  /**
+   * Let something take left-clicks in the world or on the minimap before the
+   * game does (practice's teleport waits for one): when it returns true, the
+   * click selects and casts nothing.
+   */
+  setWorldClickHandler(handler: (at: Vector) => boolean): void {
+    this.worldClickHandler = handler;
+  }
+
+  /** The world position under the cursor (the minimap's, over it), null before the first step */
+  getCursorWorldPosition(): Vector | null {
+    return this.cursorWorld;
+  }
+
   setPointerOverUI(test: (x: number, y: number) => boolean): void {
     this.pointerOverUI = test;
   }
@@ -358,6 +378,8 @@ export class OnlineInputHandler implements GameObject {
     // Clicks on the minimap are about map positions, not what's under the cursor in the world
     const mousePosition = this.inputManager.getMousePosition();
     const minimapTarget = this.minimapLocator?.(mousePosition.x, mousePosition.y) ?? null;
+    const cursor = minimapTarget ?? this.screenToWorld(mousePosition, camera);
+    this.cursorWorld = cursor;
 
     // A charge that can't move holds move and attack orders until it's let go
     const holdingStill = blocksMovement(this.chargeState);
@@ -370,6 +392,12 @@ export class OnlineInputHandler implements GameObject {
 
     // A left-click in the world while a preview shows casts it (not on the HUD or the minimap)
     let leftClick = this.inputManager.isMouseButtonJustPressed(MouseButton.LEFT);
+    // A click something waits for (practice's teleport) is its: in the world (not on the HUD) or on the minimap
+    if (leftClick && !pinging && this.worldClickHandler &&
+        (minimapTarget || !this.pointerOverUI?.(mousePosition.x, mousePosition.y)) &&
+        this.worldClickHandler(cursor)) {
+      leftClick = false;
+    }
     if (leftClick && !pinging && !minimapTarget && this.casts.getArmed() && !this.pointerOverUI?.(mousePosition.x, mousePosition.y)) {
       const castable = this.casts.click(getControls().getCastMode());
       if (castable) {

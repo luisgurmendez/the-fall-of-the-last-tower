@@ -80,6 +80,7 @@ For detailed documentation on the multiplayer MOBA systems, see the following fi
 | **Controls** | [docs/architecture/controls.md](docs/architecture/controls.md) | Cast modes (quick, quick with indicator, normal), key bindings, the settings panel |
 | **Accounts** | [docs/architecture/accounts.md](docs/architecture/accounts.md) | Optional accounts (name + password, SQLite in DATA_DIR), the /api/ routes, wins and losses, names in matches |
 | **Summons** | [docs/architecture/summons.md](docs/architecture/summons.md) | Units a champion raises (Nocthar's Hollows and colossus): minions with an owner, following, orders, leash, dashes |
+| **Practice tools** | [docs/architecture/practice.md](docs/architecture/practice.md) | F2 in practice: level up, gold, reset cooldowns, refill, teleport; no cooldowns, invulnerable, frozen bots |
 
 ### Quick Reference
 
@@ -124,6 +125,7 @@ For detailed documentation on the multiplayer MOBA systems, see the following fi
 | Cast modes, key bindings, keys the game reads | `controls.md` |
 | Accounts, sessions, the /api/ routes, DATA_DIR | `accounts.md` |
 | Summons (ServerSummon), their AI and orders | `summons.md` |
+| Practice tools (the PRACTICE_TOOL input, the panel, its keys) | `practice.md` |
 | The Dockerfile, fly.toml, serving the client | `deploy.md` |
 
 **When adding new systems**, create a new doc file in `docs/architecture/` and add a reference here.
@@ -337,7 +339,7 @@ Look at `sheet.png` (frames over time) to see what happened, read `report.md` fo
 `packages/server/scenarios/` with `check()` assertions for new behavior; scenarios run in `bun test`.
 For step-by-step play there is an HTTP sandbox (`bun run sim:serve`). See [docs/architecture/simulation.md](docs/architecture/simulation.md).
 
-**PLAY** opens the mode screen, then champion select for the mode picked. To play with friends, its **WITH FRIENDS** card makes a room (or joins one with its code), and champion select shows the room; see [docs/architecture/matchmaking.md](docs/architecture/matchmaking.md#rooms-play-with-friends). To play the real client alone, use the **PRACTICE** card (you vs bots; its chips pick 1v1, 3v3, 5v5 or ARAM: 1v1 on The Narrows). In practice, **F3** (fn+F3 on a Mac, or the Escape menu) turns on the debug overlay: each unit's path, target, hitbox, ranges and state, and the bots' decisions ([docs/architecture/debug.md](docs/architecture/debug.md)).
+**PLAY** opens the mode screen, then champion select for the mode picked. To play with friends, its **WITH FRIENDS** card makes a room (or joins one with its code), and champion select shows the room; see [docs/architecture/matchmaking.md](docs/architecture/matchmaking.md#rooms-play-with-friends). To play the real client alone, use the **PRACTICE** card (you vs bots; its chips pick 1v1, 3v3, 5v5 or ARAM: 1v1 on The Narrows). In practice, **F2** shows the practice tools (level up, gold, reset cooldowns, refill, teleport, no cooldowns, invulnerable, frozen bots; [docs/architecture/practice.md](docs/architecture/practice.md)), and **F3** (fn+F3 on a Mac, or the Escape menu) turns on the debug overlay: each unit's path, target, hitbox, ranges and state, and the bots' decisions ([docs/architecture/debug.md](docs/architecture/debug.md)).
 
 ### Debug starting level
 

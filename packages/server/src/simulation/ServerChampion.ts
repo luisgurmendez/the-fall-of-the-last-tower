@@ -123,6 +123,8 @@ export class ServerChampion extends ServerEntity {
   private attackMoveResumedFrom: Vector | null = null;
   timeSinceCombat = 0;
   respawnTimer = 0;
+  /** Takes no damage at all: a practice tool (game/practiceTools.ts) */
+  invulnerableInPractice = false;
   isRecalling = false;
   recallProgress = 0;
 
@@ -1071,6 +1073,16 @@ export class ServerChampion extends ServerEntity {
   /**
    * Level up an ability.
    */
+  /**
+   * Abilities (their charges full), summoner spells and item actives ready:
+   * a practice tool (game/practiceTools.ts). Recasts and casts under way stay.
+   */
+  resetCooldowns(): void {
+    this.abilities.resetCooldowns();
+    this.summoners.resetCooldowns();
+    this.itemActives.resetCooldowns();
+  }
+
   /** The ability a slot holds now (its own, or one swapped in: swapSlotAbility) */
   abilityInSlot(slot: AbilitySlot): string {
     return this.abilities.abilityInSlot(slot);
@@ -1303,7 +1315,7 @@ export class ServerChampion extends ServerEntity {
    * Check if champion is currently invulnerable.
    */
   isInvulnerable(): boolean {
-    return this.effects.isInvulnerable();
+    return this.invulnerableInPractice || this.effects.isInvulnerable();
   }
 
   /**
