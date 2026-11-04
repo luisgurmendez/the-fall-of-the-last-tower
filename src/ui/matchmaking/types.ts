@@ -16,6 +16,7 @@ export type ScreenId =
   | "how-to-play"
   | "settings"
   | "account"
+  | "profile"
   | "error";
 
 /**

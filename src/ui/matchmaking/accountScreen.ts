@@ -1,11 +1,13 @@
 /**
  * The account on the menu: a line under the main menu's links (signed out,
- * "Sign in"; signed in, the name, wins and losses, and "Sign out"), and the
+ * "Sign in"; signed in, the name, rating and tier, wins and losses,
+ * "Profile" and "Sign out"), and the
  * screen to sign in or create an account (a name, a password, the error if
  * any). Accounts are optional: guests play as before.
  */
 
 import { accountErrorMessage, type AccountClient, type StoredAccount } from "./account";
+import { ratingLine } from "./profileFormat";
 
 export class AccountScreen {
   private readonly line = getEl("menu-account");
@@ -20,6 +22,8 @@ export class AccountScreen {
     private readonly client: AccountClient,
     /** Show a menu screen: the account screen, or back to the menu */
     private readonly show: (screen: "account" | "menu") => void,
+    /** Open an account's profile (profileScreen.ts) */
+    private readonly openProfile: (name: string) => void,
   ) {
     this.signInButton.addEventListener("click", () => this.submit("login"));
     this.signUpButton.addEventListener("click", () => this.submit("register"));
@@ -83,14 +87,21 @@ export class AccountScreen {
     const who = document.createElement("span");
     who.className = "menu-account-name";
     who.textContent = name;
+    const rating = document.createElement("span");
+    rating.className = "menu-account-rating";
+    rating.textContent = ratingLine(current.account);
     const record = document.createElement("span");
     record.className = "menu-account-note";
     record.textContent = `${wins}W ${losses}L`;
+    const profile = document.createElement("span");
+    profile.className = "menu-link";
+    profile.textContent = "Profile";
+    profile.addEventListener("click", () => this.openProfile(name));
     const signOut = document.createElement("span");
     signOut.className = "menu-link";
     signOut.textContent = "Sign out";
     signOut.addEventListener("click", () => void this.client.logout());
-    this.line.replaceChildren(who, record, signOut);
+    this.line.replaceChildren(who, rating, record, profile, signOut);
   }
 }
 
