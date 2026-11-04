@@ -31,6 +31,7 @@ import {
   phase,
   ring,
   rocks,
+  scorch,
   shake,
   shockwave,
   smoke,
@@ -46,6 +47,8 @@ const DUST = '#9c8b72';
 const SPECTRAL = '#bfe3d6';
 const GRAVE = '#7f9a8c';
 const EYES = '#ff5a4a';
+/** Torn-up earth, darker as it cracks */
+const CRACKED = '#2e2418';
 
 const HANDS_RADIUS = getAbilityDefinition('nocthar_q')?.aoeRadius ?? 95;
 const HANDS_DELAY = landsAt('nocthar_q');
@@ -70,7 +73,7 @@ registerAbilityVFX({
     phase('strike', 0, 'caster', [debris(DIRT, 8, [60, 140]), smoke(DUST, 4, [10, 16], [20, 50])], 0.4),
     phase('cracking', 0, 'ground_target', [
       warning(GRAVE, HANDS_RADIUS, HANDS_DELAY),
-      spikes('rock', DIRT, 5, HANDS_RADIUS * 0.8, 'lines', [6, 14], HANDS_DELAY),
+      scorch(CRACKED, HANDS_RADIUS * 0.9, HANDS_DELAY + 0.6, 0, 0.75),
       debris(DUST, 6, [20, 60]),
     ], HANDS_DELAY),
   ],
@@ -159,7 +162,7 @@ registerAbilityVFX({
     phase('arms', 0, 'caster', [debris(DIRT, 10, [40, 100]), smoke(DUST, 6, [12, 20], [10, 40])], RISE_CAST),
     phase('cracks', 0, 'ground_target', [
       warning(GRAVE, NOCTHAR_KIT.rKnockupRadius, RISE_CAST),
-      spikes('rock', DIRT, 7, NOCTHAR_KIT.rKnockupRadius, 'lines', [10, 26], RISE_CAST),
+      scorch(CRACKED, NOCTHAR_KIT.rKnockupRadius, RISE_CAST + 0.8, 0, 0.8),
       light(SPECTRAL, NOCTHAR_KIT.rKnockupRadius * 0.7, 0.35, RISE_CAST, 0.3),
     ], RISE_CAST),
   ],
@@ -256,8 +259,7 @@ registerAbilityVFX({
   abilityId: 'nocthar_hollow_rise',
   phases: [
     phase('crack', 0, 'ground_target', [
-      spikes('rock', DIRT, 5, 16, 'lines', [8, 14], NOCTHAR_KIT.riseTime),
-      spikes('thorn', BONE, 3, 6, 'area', [8, 14], NOCTHAR_KIT.riseTime * 0.6),
+      scorch(CRACKED, 20, NOCTHAR_KIT.riseTime + 0.6, 0, 0.8),
       debris(DIRT, 10, [40, 110]),
       smoke(DUST, 4, [10, 16], [10, 40]),
       light(SPECTRAL, 22, 0.4, NOCTHAR_KIT.riseTime),
