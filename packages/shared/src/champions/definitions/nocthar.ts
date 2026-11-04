@@ -378,6 +378,7 @@ export const NoctharDefinition: ChampionDefinition = {
     R: "nocthar_r",
   },
   passive: "nocthar_passive",
+  swapLabel: "With the colossus",
   swapAbilities: {
     W: "nocthar_colossus_w",
     E: "nocthar_colossus_e",

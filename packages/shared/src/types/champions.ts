@@ -173,6 +173,9 @@ export interface ChampionDefinition {
    */
   swapAbilities?: Partial<Record<AbilitySlot, string>>;
 
+  /** When the slots hold them, for tooltips ("With the colossus") */
+  swapLabel?: string;
+
   /** Passive ability ID (slot "P") */
   passive: string;
 

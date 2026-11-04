@@ -319,6 +319,8 @@
 .ability-card:hover {
   border-color: var(--pixel-accent);
   transform: translateY(-3px);
+  /* Its tooltip over the other cards (the transform makes the card its own stack) */
+  z-index: 10;
 }
 
 .ability-card-header {
@@ -376,7 +378,7 @@
   position: absolute;
   bottom: calc(100% + 16px);
   left: 0;
-  width: 400px;
+  width: 540px;
   background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1a 100%);
   border: 4px solid var(--pixel-accent);
   border-radius: 6px;
@@ -388,6 +390,31 @@
 
 .ability-card:hover .ability-dialog {
   display: block;
+}
+
+/* Moved down to stay on screen (abilityDialog.ts): its arrow no longer points at the icon */
+.ability-dialog.moved::after,
+.passive-dialog.moved::after {
+  display: none;
+}
+
+/* What the slot becomes for a while (Nocthar's colossus) */
+.ability-dialog-swap {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 2px dashed var(--pixel-border);
+}
+
+.ability-dialog-swap-title {
+  font-family: var(--pixel-font);
+  font-size: 26px;
+  color: var(--pixel-text);
+  text-shadow: 2px 2px 0 #000;
+  margin-bottom: 8px;
+}
+
+.ability-dialog-swap-when {
+  color: #b48cff;
 }
 
 /* Dialog arrow, under the icon's middle */
@@ -483,6 +510,8 @@
 .passive-card:hover {
   border-color: #FFD700;
   transform: translateY(-3px);
+  /* Its tooltip over the other cards (the transform makes the card its own stack) */
+  z-index: 10;
 }
 
 .passive-card-header {

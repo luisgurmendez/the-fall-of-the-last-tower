@@ -1,6 +1,8 @@
 /**
  * Ability and passive cards for the champion select detail panel: an icon
- * with a tooltip dialog that shows the name, description, costs and scaling.
+ * with a tooltip dialog that shows the name, description, costs and scaling,
+ * and what the slot becomes while it's swapped (Nocthar's colossus). The
+ * tooltip stays on screen (abilityDialog.ts).
  */
 
 import { abilityIconUrl, type AbilityIconSlot } from "@/ui/AbilityIconLoader";
@@ -15,6 +17,7 @@ import {
   interpolatePassiveDescription,
   getAbilityScalingInfo,
 } from "./abilityText";
+import { keepDialogOnScreen } from "./abilityDialog";
 
 /**
  * Create an ability card element for the champion select screen.
@@ -25,6 +28,8 @@ export function createAbilityCard(
   ability: AbilityDefinition,
   baseStats: ChampionDefinition["baseStats"],
   championId: string,
+  /** What the slot becomes for a while (Nocthar's colossus), and when */
+  swap?: { label: string; ability: AbilityDefinition },
 ): HTMLElement {
   const card = document.createElement("div");
   card.className = "ability-card";
@@ -72,25 +77,8 @@ export function createAbilityCard(
   dialog.appendChild(description);
 
   // Stats row (cooldown, cost, range)
-  const statParts: string[] = [];
-  if (ability.cooldown && ability.cooldown.length > 0) {
-    const cdValues = ability.cooldown.map((cd) => cd.toString()).join("/");
-    statParts.push(`CD: ${cdValues}s`);
-  }
-  if (ability.manaCost && ability.manaCost.length > 0) {
-    const costValues = ability.manaCost.map((c) => c.toString()).join("/");
-    statParts.push(`Cost: ${costValues}`);
-  }
-  if (ability.range && ability.range > 0) {
-    statParts.push(`Range: ${ability.range}`);
-  }
-
-  if (statParts.length > 0) {
-    const statsRow = document.createElement("div");
-    statsRow.className = "ability-dialog-stats";
-    statsRow.textContent = statParts.join("  •  ");
-    dialog.appendChild(statsRow);
-  }
+  const statsRow = abilityStats(ability);
+  if (statsRow) dialog.appendChild(statsRow);
 
   // Scaling info
   const scalingInfo = getAbilityScalingInfo(ability);
@@ -101,9 +89,47 @@ export function createAbilityCard(
     dialog.appendChild(scaling);
   }
 
+  // What the slot becomes for a while: its name, description and stats
+  if (swap) {
+    const section = document.createElement("div");
+    section.className = "ability-dialog-swap";
+    const title = document.createElement("div");
+    title.className = "ability-dialog-swap-title";
+    title.innerHTML = `<span class="ability-dialog-swap-when">${swap.label}:</span> ${swap.ability.name}`;
+    const swapDescription = document.createElement("div");
+    swapDescription.className = "ability-dialog-description";
+    swapDescription.innerHTML = interpolateAbilityDescription(swap.ability, 1, baseStats);
+    section.append(title, swapDescription);
+    const swapStats = abilityStats(swap.ability);
+    if (swapStats) section.appendChild(swapStats);
+    dialog.appendChild(section);
+  }
+
   card.appendChild(dialog);
+  keepDialogOnScreen(card, dialog);
 
   return card;
+}
+
+/** The cooldown, cost and range line (null without any: free, no cooldown) */
+function abilityStats(ability: AbilityDefinition): HTMLElement | null {
+  const statParts: string[] = [];
+  if (ability.cooldown && ability.cooldown.some((cd) => cd > 0)) {
+    const cdValues = ability.cooldown.map((cd) => cd.toString()).join("/");
+    statParts.push(`CD: ${cdValues}s`);
+  }
+  if (ability.manaCost && ability.manaCost.some((cost) => cost > 0)) {
+    const costValues = ability.manaCost.map((c) => c.toString()).join("/");
+    statParts.push(`Cost: ${costValues}`);
+  }
+  if (ability.range && ability.range > 0) {
+    statParts.push(`Range: ${ability.range}`);
+  }
+  if (statParts.length === 0) return null;
+  const statsRow = document.createElement("div");
+  statsRow.className = "ability-dialog-stats";
+  statsRow.textContent = statParts.join("  •  ");
+  return statsRow;
 }
 
 /**
@@ -176,6 +202,7 @@ export function createPassiveCard(passive: PassiveAbilityDefinition, championId:
   }
 
   card.appendChild(dialog);
+  keepDialogOnScreen(card, dialog);
 
   return card;
 }

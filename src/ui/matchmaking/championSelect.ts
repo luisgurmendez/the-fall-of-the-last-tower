@@ -13,6 +13,7 @@ import {
   type ChampionDefinition,
 } from "@siege/shared";
 import { createAbilityCard, createPassiveCard } from "./abilityCards";
+import { swapFor } from "./abilityDialog";
 import { showPortrait } from "./portraits";
 import { championGridColumns } from "./championGrid";
 
@@ -260,7 +261,11 @@ export class ChampionSelect {
           continue;
         }
 
-        this.detailAbilities.appendChild(createAbilityCard(slot, abilityDef, stats, championId));
+        // A slot swapped for a while (Nocthar's colossus) says what it becomes
+        const swap = swapFor(champion, slot);
+        const swapDef = swap ? getAbilityDefinition(swap.abilityId) : undefined;
+        this.detailAbilities.appendChild(createAbilityCard(slot, abilityDef, stats, championId,
+          swap && swapDef ? { label: swap.label, ability: swapDef } : undefined));
       }
     }
   }
