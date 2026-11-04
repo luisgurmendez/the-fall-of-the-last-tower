@@ -14,7 +14,7 @@
  *   from handlers/<championId>/index.ts
  */
 
-import type { AbilitySlot } from '@siege/shared';
+import type { AbilitySlot, FullChampionStats } from '@siege/shared';
 import type { ServerChampion } from '../simulation/ServerChampion';
 import type { ServerEntity } from '../simulation/ServerEntity';
 import type { ServerGameContext } from '../game/ServerGameContext';
@@ -83,6 +83,13 @@ export interface IChampionHooks {
    * passive state (e.g., Lume's passive follows the Light Orb).
    */
   updatePassiveState?(champion: ServerChampion, context: ServerGameContext): void;
+
+  /**
+   * Change the champion's stats last, after its items and effects: its own
+   * rules that follow its other stats (e.g., Kip's Run Them Down: faster the
+   * more crit chance he has). Called by ChampionStats on a fresh copy.
+   */
+  modifyStats?(champion: ServerChampion, stats: FullChampionStats): void;
 
   /**
    * Flat armor penetration the champion's physical damage has from its own

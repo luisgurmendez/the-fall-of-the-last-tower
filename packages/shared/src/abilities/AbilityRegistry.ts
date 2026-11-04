@@ -92,6 +92,11 @@ import {
   ZhakrulToxicCloud,
   ZhakrulBurrowedAmbush,
   ZhakrulDeathStinger,
+  KipAbilities,
+  KipTargetPractice,
+  KipRunThemDown,
+  KipGrandEntrance,
+  KipShowThemAll,
 } from '../champions/definitions';
 
 // Re-export individual abilities for backward compatibility
@@ -176,6 +181,11 @@ export {
   ZhakrulToxicCloud,
   ZhakrulBurrowedAmbush,
   ZhakrulDeathStinger,
+  // Kip
+  KipTargetPractice,
+  KipRunThemDown,
+  KipGrandEntrance,
+  KipShowThemAll,
 };
 
 // =============================================================================
@@ -202,6 +212,7 @@ export const ABILITY_DEFINITIONS: Record<string, AbilityDefinition> = {
   ...ProtobotAbilities,
   ...HopAbilities,
   ...ZhakrulAbilities,
+  ...KipAbilities,
 };
 
 /**

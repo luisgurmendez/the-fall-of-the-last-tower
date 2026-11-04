@@ -10,6 +10,8 @@
  *    (Vile's Dark Resilience) shrinks the slows by that share
  * 5. Item passives that scale stats: ability power from max mana, then the
  *    ability power multiplier; crit chance capped at 100%
+ * 6. The champion's hooks (modifyStats): its own rules that follow its other
+ *    stats (Kip's Run Them Down: faster the more crit chance he has)
  *
  * This is a pure calculation. ServerChampion.getStats() caches the result
  * and copies maxHealth, maxResource and movementSpeed back onto the champion.
@@ -33,6 +35,7 @@ import {
   isStatEffect,
   type ServerStatEffectDef,
 } from '../../data/effects';
+import { championHooksRegistry } from '../../abilities/ChampionHooksRegistry';
 import type { ServerChampion } from '../ServerChampion';
 
 /**
@@ -129,6 +132,8 @@ export function calculateChampionStats(
   }
 
   applyItemScaling(stats, items);
+  // The champion's own rules that follow its other stats (Kip's speed from crit chance)
+  championHooksRegistry.get(champion.definition.id)?.modifyStats?.(champion, stats);
   return stats;
 }
 

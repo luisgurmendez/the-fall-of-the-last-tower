@@ -9,7 +9,7 @@ import type {
   StackBehavior,
   StatModificationType,
 } from '@siege/shared';
-import { CALAMITUS_LAVA, PROTOBOT_MACHINE, ZHAKRUL_VENOM } from '@siege/shared';
+import { CALAMITUS_LAVA, KIP_KIT, PROTOBOT_MACHINE, ZHAKRUL_VENOM } from '@siege/shared';
 
 /**
  * Base effect definition for server.
@@ -29,6 +29,17 @@ export interface ServerEffectDefinition {
   slowResist?: number;
   /** Share more magic damage the holder takes from the effect's source while it lasts (ChampionEffects) */
   damageAmpMagic?: number;
+  /**
+   * The holder is seen by its source's team while it lasts, in the fog and in
+   * bushes (not through stealth): FogOfWarServer (Kip's mark)
+   */
+  revealsHolder?: boolean;
+  /**
+   * A champion of the source's team that lands a basic attack on the holder
+   * gets this effect (ServerChampion.onBasicAttackTaken; Kip's mark speeds
+   * his team up)
+   */
+  rewardsAttackers?: { effectId: string; duration: number };
 }
 
 /**
@@ -692,6 +703,31 @@ export const ZhakrulAncientVenomEffect: ServerEffectDefinition = {
   stackBehavior: 'refresh',
   cleansable: true,
   persistsThroughDeath: false,
+};
+
+// Kip's mark (Target Practice, Grand Entrance): his team sees the holder, and
+// their basic attacks on it speed them up; his own arrow pops it (KipHooks)
+export const KipMarkEffect: ServerEffectDefinition = {
+  id: KIP_KIT.markEffect,
+  name: 'Marked',
+  category: 'debuff',
+  stackBehavior: 'refresh',
+  cleansable: true,
+  persistsThroughDeath: false,
+  revealsHolder: true,
+  rewardsAttackers: { effectId: KIP_KIT.huntSpeedEffect, duration: KIP_KIT.huntSpeedDuration },
+};
+
+// ...the speed his team's attacks on the marked give them
+export const KipHuntSpeedEffect: ServerStatEffectDef = {
+  id: KIP_KIT.huntSpeedEffect,
+  name: 'On the Hunt',
+  category: 'buff',
+  stackBehavior: 'refresh',
+  cleansable: false,
+  persistsThroughDeath: false,
+  stat: 'movement_speed',
+  percentValue: KIP_KIT.huntSpeed,
 };
 
 // Lume's Prismatic Beam (E): a beam runs from her to the orb while it lasts (LumeHooks)
@@ -1437,6 +1473,8 @@ export const ALL_SERVER_EFFECTS: AnyServerEffectDef[] = [
   HopSugarRushEffect,
   ZhakrulVenomEffect,
   ZhakrulAncientVenomEffect,
+  KipMarkEffect,
+  KipHuntSpeedEffect,
   UrukSpearChargeEffect,
   UrukPiercingEffect,
   UrukHuntEffect,

@@ -28,6 +28,7 @@ import {
   ProtobotDefinition,
   HopDefinition,
   ZhakrulDefinition,
+  KipDefinition,
 } from './definitions';
 
 // Re-export individual definitions for backward compatibility
@@ -48,6 +49,7 @@ export {
   ProtobotDefinition,
   HopDefinition,
   ZhakrulDefinition,
+  KipDefinition,
 };
 
 // =============================================================================
@@ -74,6 +76,7 @@ export const CHAMPION_DEFINITIONS: Record<string, ChampionDefinition> = {
   protobot: ProtobotDefinition,
   hop: HopDefinition,
   zhakrul: ZhakrulDefinition,
+  kip: KipDefinition,
 };
 
 /**

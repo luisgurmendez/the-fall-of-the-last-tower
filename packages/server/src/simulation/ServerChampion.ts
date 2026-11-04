@@ -784,10 +784,18 @@ export class ServerChampion extends ServerEntity {
   }
 
   /**
-   * An enemy's basic attack hit this champion: item thorns hit back.
+   * An enemy's basic attack hit this champion: item thorns hit back, and an
+   * effect on it that rewards its source's team for attacking it (Kip's
+   * mark: speed) rewards an attacking champion of that team.
    */
   override onBasicAttackTaken(attacker: ServerEntity, context: ServerGameContext): void {
     this.itemPassives.onHitByBasicAttack(attacker, context);
+    if (!(attacker instanceof ServerChampion) || attacker.isDead) return;
+    for (const effect of this.activeEffects) {
+      const reward = getServerEffectById(effect.definitionId)?.rewardsAttackers;
+      if (!reward || !effect.sourceId || context.getEntity(effect.sourceId)?.side !== attacker.side) continue;
+      attacker.applyEffect(reward.effectId, reward.duration, effect.sourceId);
+    }
   }
 
   /**

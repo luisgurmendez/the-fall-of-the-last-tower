@@ -7,14 +7,17 @@
  * - Minion vision
  * - Ward vision
  * - Bush visibility (entities in bushes are hidden unless revealed)
+ * - Effects that reveal their holder to their source's team, in the fog and
+ *   in bushes (`revealsHolder`: Kip's mark); stealth still hides it
  *
  * Used for:
  * - Filtering state updates (don't send hidden enemy positions)
  * - Validating targeting (can't target invisible enemies)
  */
 
-import { Vector, Side, EntityType, GameConfig, MOBAConfig, WallGrid } from '@siege/shared';
+import { Vector, Side, EntityType, GameConfig, MOBAConfig, WallGrid, type ActiveEffectState } from '@siege/shared';
 import type { ServerEntity } from '../simulation/ServerEntity';
+import { getServerEffectById } from '../data/effects';
 import type { ServerGameContext } from '../game/ServerGameContext';
 import { ServerBushManager, type BushVisibilityResult } from './ServerBushManager';
 
@@ -217,6 +220,12 @@ export class FogOfWarServer {
       return { isVisible: false };
     }
 
+    // Revealed to the viewers by an effect it holds from one of them (Kip's
+    // mark): seen in the fog and in bushes (stealth still hides it, above)
+    if (this.isRevealedTo(entity, viewingSide)) {
+      return { isVisible: true };
+    }
+
     // First check bush visibility
     // If entity is hidden in a bush and viewer doesn't have vision in that bush,
     // the entity is not visible regardless of range
@@ -318,6 +327,20 @@ export class FogOfWarServer {
 
     // Can only target visible enemies
     return this.isVisibleTo(target, source.side);
+  }
+
+  /**
+   * Whether the entity holds an effect that reveals it (`revealsHolder`) from
+   * a source on the viewing side.
+   */
+  private isRevealedTo(entity: ServerEntity, viewingSide: Side): boolean {
+    const effects = (entity as Partial<{ activeEffects: ActiveEffectState[] }>).activeEffects;
+    if (!effects?.length || !this.currentContext) return false;
+    for (const effect of effects) {
+      if (!effect.sourceId || !getServerEffectById(effect.definitionId)?.revealsHolder) continue;
+      if (this.currentContext.getEntity(effect.sourceId)?.side === viewingSide) return true;
+    }
+    return false;
   }
 
   /**

@@ -55,11 +55,17 @@ export interface ServerTargetedProjectileConfig extends Omit<ServerEntityConfig,
   onHitCallback?: ProjectileOnHitCallback;
   /** A champion's basic attack: its damage counts as one for the champion's items (and may be a crit) */
   basicAttack?: { crit: boolean };
+  /**
+   * Fired by a champion's ability (Kip's Show Them All): not a basic attack
+   * (no thorns, no rules for attacks on the target), its damage is the
+   * ability's, and it may be a crit
+   */
+  ability?: { crit: boolean };
 }
 
 /** A champion, as a source that can mark the damage it deals (ServerChampion.withDamageKind) */
 interface DamageKindSource {
-  withDamageKind<T>(kind: 'basic', deal: () => T, crit?: boolean): T;
+  withDamageKind<T>(kind: 'basic' | 'ability', deal: () => T, crit?: boolean): T;
 }
 
 export class ServerTargetedProjectile extends ServerEntity {
@@ -74,6 +80,7 @@ export class ServerTargetedProjectile extends ServerEntity {
   readonly effectDuration: number;
   readonly onHitCallback?: ProjectileOnHitCallback;
   private readonly basicAttack?: { crit: boolean };
+  private readonly ability?: { crit: boolean };
 
   // Current direction (updated each tick to track target)
   private direction: Vector = new Vector(1, 0);
@@ -97,6 +104,7 @@ export class ServerTargetedProjectile extends ServerEntity {
     this.effectDuration = config.effectDuration ?? 0;
     this.onHitCallback = config.onHitCallback;
     this.basicAttack = config.basicAttack;
+    this.ability = config.ability;
 
     // Set movement speed for visual interpolation
     this.movementSpeed = config.speed;
@@ -145,12 +153,15 @@ export class ServerTargetedProjectile extends ServerEntity {
     // Deal damage (pass context for death handling/rewards)
     const source = context.getEntity(this.sourceId);
     const deal = () => target.takeDamage(this.damage, this.damageType, this.sourceId, context);
-    const dealt = this.basicAttack && source && 'withDamageKind' in source
-      ? (source as unknown as DamageKindSource).withDamageKind('basic', deal, this.basicAttack.crit)
+    const kind = this.basicAttack ? { kind: 'basic' as const, crit: this.basicAttack.crit }
+      : this.ability ? { kind: 'ability' as const, crit: this.ability.crit } : null;
+    const dealt = kind && source && 'withDamageKind' in source
+      ? (source as unknown as DamageKindSource).withDamageKind(kind.kind, deal, kind.crit)
       : deal();
 
-    // Targeted projectiles are basic attacks (champions, minions, towers, monsters)
-    if (source) target.onBasicAttackTaken(source, context);
+    // Targeted projectiles are basic attacks (champions, minions, towers,
+    // monsters), unless an ability fired them
+    if (source && !this.ability) target.onBasicAttackTaken(source, context);
 
     // Apply effects
     if (this.appliesEffects.length > 0 && 'applyEffect' in target) {

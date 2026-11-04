@@ -180,6 +180,20 @@ export {
   ZHAKRUL_KIT,
 } from './zhakrul';
 
+// Kip
+export {
+  KipDefinition,
+  KipTargetPractice,
+  KipRunThemDown,
+  KipGrandEntrance,
+  KipShowThemAll,
+  KipAbilities,
+  KipPassive,
+  KIP_KIT,
+  kipArrowShare,
+  kipPopDamage,
+} from './kip';
+
 // Lume
 export {
   LumeDefinition,

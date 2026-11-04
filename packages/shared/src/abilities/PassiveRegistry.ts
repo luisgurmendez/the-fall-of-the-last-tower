@@ -28,6 +28,7 @@ import {
   ProtobotPassive,
   HopPassive,
   ZhakrulPassive,
+  KipPassive,
 } from '../champions/definitions';
 
 // Re-export individual passives for convenience
@@ -48,6 +49,7 @@ export {
   ProtobotPassive,
   HopPassive,
   ZhakrulPassive,
+  KipPassive,
 };
 
 // =============================================================================
@@ -74,6 +76,7 @@ export const PASSIVE_DEFINITIONS: Record<string, PassiveAbilityDefinition> = {
   protobot_passive: ProtobotPassive,
   hop_passive: HopPassive,
   zhakrul_passive: ZhakrulPassive,
+  kip_passive: KipPassive,
 };
 
 /**
