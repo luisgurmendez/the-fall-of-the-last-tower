@@ -1,3 +1,5 @@
+import { attachUiSounds } from "./audio/uiSounds";
+import { getAudio } from "./audio/AudioManager";
 import OnlineGame from "./core/OnlineGame";
 import { BitmapFont } from "./render/BitmapFont";
 import { MatchmakingUI, type MatchData } from "./ui/matchmaking/MatchmakingUI";
@@ -143,6 +145,9 @@ async function main() {
       console.log('[Main] Game ready, hiding UI');
     }
   });
+
+  // The menus' little sounds: clicks, hovers, confirm, back (src/audio/uiSounds.ts)
+  attachUiSounds(document.body, sound => getAudio().playUi(sound));
 
   // Show the matchmaking UI
   matchmakingUI.show();

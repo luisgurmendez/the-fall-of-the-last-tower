@@ -77,9 +77,8 @@ describe('the songs', () => {
     });
   }
 
-  it('the menu has its theme and the match its calmer one', () => {
+  it('the menu has its theme, soft', () => {
     expect(SONGS.title).toBeDefined();
-    expect(SONGS.match).toBeDefined();
-    expect(SONGS.match.volume).toBeLessThan(SONGS.title.volume);
+    expect(SONGS.title.volume).toBeLessThanOrEqual(0.5);
   });
 });

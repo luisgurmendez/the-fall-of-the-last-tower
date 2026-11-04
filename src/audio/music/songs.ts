@@ -1,18 +1,15 @@
 /**
- * The game's music: chiptune songs written for it (notation.ts says how they
- * read; ChiptunePlayer.ts plays them). Both share one 8-note motif (D F A G F,
- * rising and settling), so the match's music recalls the menu's theme.
+ * The game's music: chiptune written for it (notation.ts says how it reads;
+ * ChiptunePlayer.ts plays it). Matches have none.
  *
  * - title: the menu's theme. D minor with a chorus in F major, heroic and a
- *   little melancholic: a music-box intro, the motif (A), the chorus (B), a
- *   bridge climbing to A, then back to A.
- * - match: under a match, quiet: soft arpeggios and bass, light drums, the
- *   motif now and then, so it never covers the game's sounds.
+ *   little melancholic: a music-box intro, an 8-note motif (D F A G F, rising
+ *   and settling; A), the chorus (B), a bridge climbing to A, then back to A.
  */
 
 import type { Song } from "./notation";
 
-export type SongId = "title" | "match";
+export type SongId = "title";
 
 /** Bars joined into a voice */
 const bars = (...list: string[]) => list.join(" | ");
@@ -54,7 +51,8 @@ const CHORUS: Chord[] = ["F", "C", "Dm", "Bb", "F", "C", "Bb", "A"];
 const TITLE: Song = {
   bpm: 112,
   stepsPerBar: 16,
-  volume: 0.8,
+  // Soft, under the menu
+  volume: 0.5,
   sections: {
     // A music box under the night sky: the chords slowly, then a pickup
     intro: {
@@ -107,34 +105,4 @@ const TITLE: Song = {
   loopFrom: 1,
 };
 
-const MATCH: Song = {
-  bpm: 92,
-  stepsPerBar: 16,
-  volume: 0.35,
-  sections: {
-    // The verse's chords, the motif once
-    calm: {
-      lead: bars("r:16", "r:16", "r:16", "r:16", "D5:4 F5:2 A5:2 G5:8", "F5:16", "r:16", "r:16"),
-      harmony: bars(
-        arp8("D4", "F4", "A4", "D5"), arp8("D4", "F4", "Bb4", "D5"), arp8("C4", "F4", "A4", "C5"), arp8("C4", "E4", "G4", "C5"),
-        arp8("D4", "F4", "A4", "D5"), arp8("D4", "F4", "Bb4", "D5"), arp8("D4", "G4", "Bb4", "D5"), arp8("C#4", "E4", "A4", "C#5"),
-      ),
-      bass: bars("D2:8 A1:8", "Bb1:8 F2:8", "F2:8 C2:8", "C2:8 G1:8", "D2:8 A1:8", "Bb1:8 F2:8", "G1:8 D2:8", "A1:16"),
-      drums: bars(...Array.from({ length: 8 }, (_, i) => (i % 4 === 3 ? "k:4 h:4 h:4 h:2 h:2" : "k:4 h:4 r:4 h:4"))),
-    },
-    // The chorus's chords, the motif up high
-    rise: {
-      lead: bars("r:16", "r:16", "F5:4 A5:4 D6:8", "C6:16", "r:16", "r:16", "F5:4 D6:4 C6:4 Bb5:4", "A5:16"),
-      harmony: bars(
-        arp8("C4", "F4", "A4", "C5"), arp8("C4", "E4", "G4", "C5"), arp8("D4", "F4", "A4", "D5"), arp8("D4", "F4", "Bb4", "D5"),
-        arp8("C4", "F4", "A4", "C5"), arp8("C4", "E4", "G4", "C5"), arp8("D4", "F4", "Bb4", "D5"), arp8("C#4", "E4", "A4", "C#5"),
-      ),
-      bass: bars("F2:8 C2:8", "C2:8 G1:8", "D2:8 A1:8", "Bb1:8 F2:8", "F2:8 C2:8", "C2:8 G1:8", "Bb1:8 F2:8", "A1:16"),
-      drums: bars(...Array.from({ length: 8 }, (_, i) => (i % 4 === 3 ? "k:4 h:4 s:4 h:2 h:2" : "k:4 h:4 s:4 h:4"))),
-    },
-  },
-  order: ["calm", "rise"],
-  loopFrom: 0,
-};
-
-export const SONGS: Record<SongId, Song> = { title: TITLE, match: MATCH };
+export const SONGS: Record<SongId, Song> = { title: TITLE };

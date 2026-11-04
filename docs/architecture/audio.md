@@ -83,15 +83,34 @@ not files (`src/audio/music/`):
 | File | Role |
 |---|---|
 | `notation.ts` | How a song is written: each voice a line of `note:steps` tokens (`D5:4`, `r:2`, drums `k` `s` `h`), bars split by `|`, a step a sixteenth. Every bar must add up to a whole bar (`parseVoice` throws), so voices can't drift |
-| `songs.ts` | The songs. **title**: the menu's theme, D minor with a chorus in F major at 112 BPM (music-box intro, the motif, the chorus, a bridge, then back to the motif: about 85 s a loop). **match**: under a match at 92 BPM, quiet (soft arpeggios and bass, light drums, the motif now and then) |
-| `ChiptunePlayer.ts` | Plays them: a 25% pulse lead with vibrato on long notes, a thin 12.5% pulse for arpeggios, a triangle bass, noise snare and hi-hat and a falling-sine kick. Notes are scheduled on the audio clock a section ahead; a new song fades the old one out |
+| `songs.ts` | The songs. **title**: the menu's theme, D minor with a chorus in F major at 112 BPM (music-box intro, an 8-note motif, the chorus, a bridge, then back to the motif: about 85 s a loop), soft (0.5 of the music volume). Matches have no music |
+| `ChiptunePlayer.ts` | Plays them: a 25% pulse lead with vibrato on long notes, a thin 12.5% pulse for arpeggios, a triangle bass, noise snare and hi-hat and a falling-sine kick. Notes are scheduled on the audio clock a section ahead; a new song fades the old one out. It also plays the menus' blips (`blip`) |
 
-Both songs share one 8-note motif, so the match's music recalls the theme.
-- **When:** `MatchmakingUI.show()` plays `title`, and `hide()` (into a match) plays `match`
+- **When:** `MatchmakingUI.show()` plays `title`, and `hide()` (into a match) stops it
   (`AudioManager.playMusic`).
 - **Before audio is allowed:** asked before the first click, the song starts with it.
 - **Volume:** it has its own bus, `music` (0.6 by default), and a slider in the in-match menu and
   in the main menu's Settings (`src/ui/soundControls.ts`).
 - **Tests:** `src/audio/music/notation.test.ts` checks the songs' bars and notes.
+
+## Menu sounds
+
+The menus' clicks are chip blips like the music's (`src/audio/uiSounds.ts`, on the `ui` bus; no
+files). `attachUiSounds(document.body)` in `src/index.ts` plays them for every click and hover:
+
+| Sound | On |
+|---|---|
+| `hover` | a faint tick on a new button, link or card under the pointer |
+| `click` | any other button or menu link |
+| `confirm` | PLAY, START, making or joining a room, choosing a mode, signing in (a rising arpeggio) |
+| `back` | back and cancel (falling) |
+| `select` | a champion, a summoner spell, a profile tab, a match in the history |
+| `error` | an error screen (`MatchmakingUI.showError`) |
+
+- **Its own sound:** an element can name one with `data-sound`, or `"none"` for silence.
+- **Disabled buttons and sliders:** silent.
+- **The shop:** left alone, since buying has its own sound.
+
+Tests: `src/audio/uiSounds.test.ts`.
 
 The account is on ElevenLabs' free plan (10,000 credits a month; the script prints what's left, a little behind). A sound costs about 10 credits a second: the 38 ability sounds cost about 400.

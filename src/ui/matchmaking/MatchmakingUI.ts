@@ -650,6 +650,7 @@ export class MatchmakingUI {
    * Show error screen (also from a match: why it was left).
    */
   showError(message: string): void {
+    getAudio().playUi("error");
     if (this.errorMessage) {
       this.errorMessage.textContent = message;
     }
@@ -675,8 +676,8 @@ export class MatchmakingUI {
    */
   hide(): void {
     this.overlay?.classList.add("hidden");
-    // Into a match: its quieter music
-    getAudio().playMusic("match");
+    // Into a match: no music there
+    getAudio().playMusic(null);
     this.titleScreen?.setActive(false);
   }
 

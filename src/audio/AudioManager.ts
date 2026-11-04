@@ -10,7 +10,7 @@
  *   frequent sounds don't repeat exactly;
  * - sfx, ui, ambience and music buses under a master volume (kept in
  *   localStorage); the music is chiptune played live (music/ChiptunePlayer.ts):
- *   the menu's theme, a quieter one in matches.
+ *   the menu's theme (matches have none), and the menus' blips (uiSounds.ts).
  *
  * Browsers keep audio suspended until the player clicks or presses a key:
  * the first one resumes it. Until a sound has loaded, playing it does
@@ -20,6 +20,7 @@
 import { SOUNDS, soundFiles, type SoundBus, type SoundDef, type SoundKey } from "./soundCatalog";
 import { ChiptunePlayer } from "./music/ChiptunePlayer";
 import { SONGS, type SongId } from "./music/songs";
+import { UI_SOUNDS, type UiSound } from "./uiSounds";
 
 /** Full volume within this share of the view's width from its middle */
 const NEAR = 0.45;
@@ -110,6 +111,13 @@ export class AudioManager {
     if (!this.music) return;
     if (song) this.music.play(SONGS[song]);
     else this.music.stop();
+  }
+
+  /** A menu's little sound (uiSounds.ts), on the ui bus */
+  playUi(sound: UiSound): void {
+    if (!this.music || this.context?.state !== "running") return;
+    const def = UI_SOUNDS[sound];
+    this.music.blip(def.notes, def.wave, def.gain, this.bus("ui"));
   }
 
   /** Where the camera is and how much of the world it shows across */

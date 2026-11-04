@@ -116,6 +116,25 @@ export class ChiptunePlayer {
     }
   }
 
+  /** A short blip right now: notes one after another (the menus' sounds, uiSounds.ts) */
+  blip(notes: [string, number][], wave: "pulse25" | "pulse12" | "square", gain: number, out: AudioNode): void {
+    let at = this.context.currentTime + 0.005;
+    for (const [note, seconds] of notes) {
+      const osc = this.context.createOscillator();
+      if (wave === "square") osc.type = "square";
+      else osc.setPeriodicWave(this.pulse(wave === "pulse25" ? 0.25 : 0.125));
+      osc.frequency.setValueAtTime(noteFrequency(note), at);
+      const env = this.context.createGain();
+      env.gain.setValueAtTime(gain, at);
+      env.gain.setValueAtTime(gain, at + seconds * 0.7);
+      env.gain.linearRampToValueAtTime(0, at + seconds);
+      osc.connect(env).connect(out);
+      osc.start(at);
+      osc.stop(at + seconds + 0.01);
+      at += seconds;
+    }
+  }
+
   /** One note of a tone voice */
   private tone(voice: ToneVoice, note: string, at: number, length: number, out: AudioNode): void {
     const ctx = this.context;
