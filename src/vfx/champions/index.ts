@@ -22,3 +22,4 @@ import './calamitus';
 import './protobot';
 import './hop';
 import './zhakrul';
+import './kip';

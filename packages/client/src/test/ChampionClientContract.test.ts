@@ -55,6 +55,9 @@ const OTHER_CAST_EVENT_IDS = [
   'hop_hop',
   'hop_r_crash',
   'zhakrul_e_burst',
+  // Kip: Run Them Down on each enemy it slows, Show Them All's volleys after the first (his E's landing is a <id>_land)
+  'kip_w_hit',
+  'kip_r_volley',
   ...Object.values(MOBAConfig.JUNGLE.SPECIAL_ATTACKS).map((attack) => attack.abilityId),
   // A champion crawling through a jungle tunnel (server: systems/JungleTunnels.ts)
   MOBAConfig.TUNNELS.ABILITY_ID,
@@ -67,8 +70,8 @@ const OTHER_CAST_EVENT_IDS = [
   'blossom_heal',
 ];
 
-/** Basic attack projectiles other than <championId>_auto (EloraHooks.basicAttackProjectileType), which have impacts */
-const OTHER_ATTACK_PROJECTILES = ['elora_poison_auto', 'elora_weak_auto'];
+/** Basic attack projectiles other than <championId>_auto (EloraHooks and KipHooks basicAttackProjectileType), which have impacts */
+const OTHER_ATTACK_PROJECTILES = ['elora_poison_auto', 'elora_weak_auto', 'kip_pop_auto'];
 
 const ALL_ABILITY_IDS = Object.values(CHAMPION_DEFINITIONS).flatMap((definition) =>
   Object.values(definition.abilities)
