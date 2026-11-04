@@ -213,6 +213,23 @@ export class ChampionAbilities {
     }
   }
 
+  /**
+   * Every ability ready, its charges full (those put away too): a practice
+   * tool. Recasts and casts under way are left as they are.
+   */
+  resetCooldowns(): void {
+    for (const slot of ABILITY_SLOTS) {
+      const state = this.champion.abilityStates[slot];
+      state.cooldownRemaining = 0;
+      const ammo = this.ammoOf(slot);
+      if (ammo && state.rank > 0) {
+        state.charges = ammo.maxCharges;
+        state.chargeRegenRemaining = 0;
+      }
+    }
+    for (const stored of this.putAway.values()) stored.cooldownRemaining = 0;
+  }
+
   // =====================
   // Swaps
   // =====================

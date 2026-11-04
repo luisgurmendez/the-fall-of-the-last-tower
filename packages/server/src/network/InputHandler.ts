@@ -69,6 +69,7 @@ const RATE_LIMITS: Record<InputType, number> = {
   [InputType.USE_ITEM]: 8,
   [InputType.EMOTE]: 2,
   [InputType.SURRENDER]: 1,       // Handled by GameRoom before queueing
+  [InputType.PRACTICE_TOOL]: 10,  // Handled by GameRoom before queueing (practice only)
 };
 
 /** Pings: at most this many in this many seconds, so a team can't be spammed */

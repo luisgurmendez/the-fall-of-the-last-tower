@@ -85,6 +85,8 @@ export enum InputType {
   USE_ITEM = 14,
   /** Show an emote over the champion (EmoteInput) */
   EMOTE = 15,
+  /** A practice tool: level up, teleport, reset cooldowns... (PracticeToolInput; practice matches only) */
+  PRACTICE_TOOL = 16,
 }
 
 /**
@@ -261,6 +263,41 @@ export interface SurrenderInput extends InputMessage {
   type: InputType.SURRENDER;
 }
 
+/**
+ * The practice tools (practice matches only; the server ignores them in any
+ * other match). The toggles turn on and off with each use.
+ */
+export const PRACTICE_TOOLS = [
+  'level_up',
+  'max_level',
+  'gold',
+  'reset_cooldowns',
+  'refill',
+  'teleport',
+  'toggle_no_cooldowns',
+  'toggle_invulnerable',
+  'toggle_freeze_bots',
+] as const;
+export type PracticeTool = typeof PRACTICE_TOOLS[number];
+
+/** Use a practice tool; teleport goes to (x, y) */
+export interface PracticeToolInput extends InputMessage {
+  type: InputType.PRACTICE_TOOL;
+  tool: PracticeTool;
+  x?: number;
+  y?: number;
+}
+
+/** Which practice toggles are on (PRACTICE_TOOLS events) */
+export interface PracticeToggles {
+  /** Cooldowns are back to zero after every cast */
+  noCooldowns: boolean;
+  /** The player's champion takes no damage */
+  invulnerable: boolean;
+  /** The bots stand still and do nothing */
+  freezeBots: boolean;
+}
+
 export type ClientInput =
   | MoveInput
   | TargetUnitInput
@@ -276,7 +313,8 @@ export type ClientInput =
   | PlaceWardInput
   | SummonerSpellInput
   | UseItemInput
-  | SurrenderInput;
+  | SurrenderInput
+  | PracticeToolInput;
 
 /**
  * Entity types in the game.
@@ -774,6 +812,12 @@ export enum GameEventType {
    * ({ ..., status: 'back' })
    */
   PLAYER_CONNECTION = 25,
+  /**
+   * A player used a practice tool ({ entityId, tool, noCooldowns,
+   * invulnerable, freezeBots }: the tool, and which toggles are on now);
+   * also sent again when they reconnect
+   */
+  PRACTICE_TOOLS = 26,
 }
 
 /**

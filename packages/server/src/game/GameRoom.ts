@@ -35,6 +35,7 @@ import { ReliableEventQueue, shouldSendReliably } from '../network/ReliableEvent
 import { reachesSide } from '../network/eventAudience';
 import type { ClientInput, DebugStateData, FinalPlayerStats } from '@siege/shared';
 import { buildDebugState } from './DebugReport';
+import { PracticeTools } from './practiceTools';
 import { Logger } from '../utils/Logger';
 
 export interface PlayerInfo {
@@ -97,6 +98,8 @@ export class GameRoom {
   /** Players may turn on the debug overlay */
   private readonly allowDebug: boolean;
   private readonly practice: boolean;
+  /** Levels, teleports, no cooldowns... (practice matches only) */
+  private readonly practiceTools = new PracticeTools(() => this.botPlayerIds());
   /** Players who turned it on */
   private readonly debugPlayers = new Set<string>();
   /** Debug states go out every this many broadcasts (10 a second at 30) */
@@ -206,6 +209,12 @@ export class GameRoom {
       return;
     }
 
+    // Practice tools: only in practice, only for people
+    if (input.type === InputType.PRACTICE_TOOL) {
+      if (this.practice && this.players.get(playerId)?.isBot !== true) this.practiceTools.use(playerId, input, this.context);
+      return;
+    }
+
     const result = this.inputHandler.queueInput(playerId, input);
     if (!result.valid) {
       Logger.input.debug(`Invalid input from ${playerId}: ${result.reason}`);
@@ -216,13 +225,14 @@ export class GameRoom {
    * Called each game tick.
    */
   private onTick(tick: number, dt: number): void {
-    // 1. Process inputs (bots queue theirs first, like a client would)
+    // 1. Process inputs (bots queue theirs first, like a client would; frozen in practice, they don't)
     this.takeOverAwayPlayers();
-    this.botDriver.update(this.context, this.inputHandler, dt, Date.now());
+    if (!this.practiceTools.botsFrozen) this.botDriver.update(this.context, this.inputHandler, dt, Date.now());
     this.inputHandler.processInputs(this.context);
 
-    // 2. Update game state
+    // 2. Update game state (practice's no cooldowns after it)
     this.context.update(dt);
+    if (this.practice) this.practiceTools.afterTick(this.context);
 
     // 3. Check win conditions
     this.checkWinConditions();
@@ -398,6 +408,8 @@ export class GameRoom {
       this.context.getChampionByPlayerId(playerId)?.stop();
       this.announceConnection(playerId, 'back');
     }
+    // Their practice panel shows which toggles are on
+    if (this.practice) this.practiceTools.announce(playerId, null, this.context);
 
     // Send full state snapshot
     return {
@@ -440,6 +452,11 @@ export class GameRoom {
   /** A practice match: its result doesn't count for accounts */
   isPractice(): boolean {
     return this.practice;
+  }
+
+  /** The players bots play (not a bot playing for someone away) */
+  private botPlayerIds(): string[] {
+    return Array.from(this.players.values()).filter(player => player.isBot).map(player => player.playerId);
   }
 
   /** Whether a bot plays for a player who lost their connection */

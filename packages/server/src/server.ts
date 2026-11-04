@@ -314,6 +314,7 @@ function handleReadyMessage(connection: WebSocketConnection, data: ReadyMessageD
           yourPlayerId: playerId,
           players: room.getPlayersWithEntityIds(),
           mapId: room.mapId,
+          practice: room.isPractice(),
         },
       });
     }
@@ -479,6 +480,7 @@ function startMatch(
         yourPlayerId: player.playerId,
         players: playersWithEntityIds,
         mapId,
+        practice: options.practice === true,
       },
     });
 

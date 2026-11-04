@@ -43,6 +43,11 @@ export class ChampionSummoners {
     }
   }
 
+  /** Both spells ready (a practice tool) */
+  resetCooldowns(): void {
+    for (const spell of this.spells) spell.cooldownRemaining = 0;
+  }
+
   /** For snapshots */
   getState(): SummonerSpellState[] {
     return this.spells.map(spell => ({

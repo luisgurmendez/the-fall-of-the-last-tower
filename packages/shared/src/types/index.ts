@@ -144,6 +144,9 @@ export type {
   UseItemInput,
   SummonerSpellState,
   SurrenderInput,
+  PracticeTool,
+  PracticeToolInput,
+  PracticeToggles,
   WardType,
   ClientInput,
   PassiveStateSnapshot,
@@ -189,6 +192,7 @@ export {
   CHAT_SCOPES,
   CHAT_MAX_LENGTH,
   EMOTES,
+  PRACTICE_TOOLS,
 } from './network';
 
 // Minion types

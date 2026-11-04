@@ -239,6 +239,7 @@ export function shouldSendReliably(event: GameEvent): boolean {
     GameEventType.ACE,
     GameEventType.LEVEL_UP,
     GameEventType.CAMP_CLEARED,
+    GameEventType.PRACTICE_TOOLS,
   ];
 
   return reliableEventTypes.includes(event.type);
