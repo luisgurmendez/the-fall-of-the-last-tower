@@ -5,8 +5,11 @@
  * - Right-click: Move to position
  * - Q/W/E/R: Ability cast (a charge ability charges while held; one that
  *   can't move while charging stops the champion and holds move orders, see
- *   charging.ts)
+ *   charging.ts), as the player's cast mode says (castModes.ts: on the
+ *   press, on the release, or on a left-click after the press)
  * - S: Stop
+ * Every key is the player's binding (controls.ts); the defaults are the
+ * keys named here.
  * - Click on enemy: Target unit
  * - Cursor icons: Attack cursor when hovering enemies
  * - Visual feedback: Enemy hover ellipse, move markers
@@ -19,7 +22,7 @@ import Vector from "@/physics/vector";
 import type { NetworkClient } from "@siege/client";
 import { isPingModifierDown } from "@/ui/SignalWheel";
 import type { AbilitySlot } from "@siege/shared";
-import { EntityType, GameConfig, MOBAConfig, getAbilityDefinition, getChampionDefinition, hasChargeBehavior, type AbilityState, type WardType } from "@siege/shared";
+import { EntityType, GameConfig, MOBAConfig, SUMMONER_SPELLS, getAbilityDefinition, getChampionDefinition, hasChargeBehavior, isSummonerSpellId, type AbilityState, type EquippedItemState, type SummonerSpellState, type WardType } from "@siege/shared";
 import type {
   OnlineStateManager,
   InterpolatedEntity,
@@ -29,14 +32,21 @@ import { pickScore } from "@/core/input/picking";
 import RenderElement from "@/render/renderElement";
 import { renderWardPreview } from "@/render/entities/ward";
 import { Dimensions } from "@/core/canvas";
-import { ITEM_KEYS } from "@/core/input/itemKeys";
 import { blocksMovement, chargeProgress, chargeTime, startCharge, type ChargeState } from "@/core/input/charging";
+import { getControls } from "@/core/input/controls";
+import { abilityAction, itemAction, summonerAction, type ControlAction } from "@/core/input/keyBindings";
+import { CastController, abilityAims, abilityReady, itemAims, summonerAims, type Castable } from "@/core/input/castModes";
+import { getItemActive } from "@/data/itemStats";
 
-/** Summoner spell keys and their slots */
-const SUMMONER_KEYS: [string, 0 | 1][] = [["d", 0], ["f", 1]];
+const ABILITY_SLOTS: AbilitySlot[] = ["Q", "W", "E", "R"];
+const SUMMONER_SLOTS: (0 | 1)[] = [0, 1];
+const ITEM_SLOTS = [0, 1, 2, 3, 4, 5];
 
-/** Ward keys: 4 places a stealth ward (the trinket), 5 a control ward */
-const WARD_KEYS: [string, WardType][] = [["4", "stealth"], ["5", "control"]];
+/** Ward actions: a stealth ward (the trinket), a control ward */
+const WARD_ACTIONS: [ControlAction, WardType][] = [["ward", "stealth"], ["control_ward", "control"]];
+
+/** Escape only drops a preview for a handler that stepped this recently (ms): not one left from an earlier match */
+const ESCAPE_WINDOW_MS = 1000;
 
 /** Entity types that can be attacked (for cursor hover) */
 /**
@@ -188,6 +198,27 @@ export class OnlineInputHandler implements GameObject {
   /** Callback for selection state updates (for TargetInfoHUD) */
   private onSelectionChange: ((entityId: string | null) => void) | null = null;
 
+  /** The ability, summoner spell or item whose preview shows (cast modes other than quick cast) */
+  private readonly casts = new CastController();
+
+  /** Callback for the ability whose preview shows (for the HUD) */
+  private onArmedAbilityChange: ((slot: AbilitySlot | null) => void) | null = null;
+
+  /** Whether a screen position is over the HUD or the minimap (a click there casts nothing) */
+  private pointerOverUI: ((x: number, y: number) => boolean) | null = null;
+
+  /** When it last stepped (ms) */
+  private lastStepAt = 0;
+
+  /** Escape drops the preview shown before the menu hears it */
+  private readonly onEscape = (event: KeyboardEvent) => {
+    if (event.key !== "Escape" || performance.now() - this.lastStepAt > ESCAPE_WINDOW_MS) return;
+    if (this.casts.cancel()) event.stopImmediatePropagation();
+  };
+
+  /** A change of settings drops the preview shown */
+  private readonly unsubscribeControls: () => void;
+
   constructor(
     networkClient: NetworkClient,
     stateManager: OnlineStateManager,
@@ -199,6 +230,38 @@ export class OnlineInputHandler implements GameObject {
     this.localSide = localSide;
     this.championId = championId;
     this.inputManager = InputManager.getInstance();
+    // Capture: before OnlineGame's Escape opens the menu
+    window.addEventListener("keydown", this.onEscape, true);
+    this.unsubscribeControls = getControls().subscribe(() => this.casts.cancel());
+  }
+
+  dispose(): void {
+    window.removeEventListener("keydown", this.onEscape, true);
+    this.unsubscribeControls();
+  }
+
+  /** The key bound to an action */
+  private key(action: ControlAction): string {
+    return getControls().keyFor(action);
+  }
+
+  /**
+   * Set callback for the ability whose preview shows until it's cast (for
+   * the HUD to draw it).
+   */
+  setArmedAbilityCallback(callback: (slot: AbilitySlot | null) => void): void {
+    this.onArmedAbilityChange = callback;
+  }
+
+  /** Set how to tell the pointer is over the HUD or the minimap */
+  setPointerOverUI(test: (x: number, y: number) => boolean): void {
+    this.pointerOverUI = test;
+  }
+
+  /** The ability whose preview shows, if one does */
+  getArmedAbility(): AbilitySlot | null {
+    const armed = this.casts.getArmed();
+    return armed?.kind === "ability" ? armed.slot : null;
   }
 
   /**
@@ -266,6 +329,7 @@ export class OnlineInputHandler implements GameObject {
 
   step(ctx: GameContext): void {
     if (ctx.isPaused) return;
+    this.lastStepAt = performance.now();
 
     const { camera } = ctx;
 
@@ -280,12 +344,33 @@ export class OnlineInputHandler implements GameObject {
       this.onChargeStateChange(this.getChargeProgress());
     }
 
+    // Dead, nothing shown can be cast
+    if ((this.stateManager.getLocalPlayerEntity()?.snapshot as { isDead?: boolean } | undefined)?.isDead) {
+      this.casts.cancel();
+    }
+
     // Clicks on the minimap are about map positions, not what's under the cursor in the world
     const mousePosition = this.inputManager.getMousePosition();
     const minimapTarget = this.minimapLocator?.(mousePosition.x, mousePosition.y) ?? null;
 
     // A charge that can't move holds move and attack orders until it's let go
     const holdingStill = blocksMovement(this.chargeState);
+
+    // A right-click drops the preview shown (and still moves)
+    if (this.inputManager.isMouseButtonJustPressed(MouseButton.RIGHT)) this.casts.cancel();
+
+    // A left-click with the ping key held pings (SignalWheel)
+    const pinging = isPingModifierDown(this.inputManager);
+
+    // A left-click in the world while a preview shows casts it (not on the HUD or the minimap)
+    let leftClick = this.inputManager.isMouseButtonJustPressed(MouseButton.LEFT);
+    if (leftClick && !pinging && !minimapTarget && this.casts.getArmed() && !this.pointerOverUI?.(mousePosition.x, mousePosition.y)) {
+      const castable = this.casts.click(getControls().getCastMode());
+      if (castable) {
+        this.cast(castable, camera);
+        leftClick = false;
+      }
+    }
 
     // Handle right-click movement or attack
     if (!holdingStill && this.inputManager.isMouseButtonJustPressed(MouseButton.RIGHT)) {
@@ -306,15 +391,14 @@ export class OnlineInputHandler implements GameObject {
       }
     }
 
-    // A left-click with the ping key held pings (SignalWheel)
-    const pinging = isPingModifierDown(this.inputManager);
+    const attackMoveKey = this.key("attack_move");
 
     // Handle entity selection (left-click when NOT holding A)
     if (
       !minimapTarget &&
       !pinging &&
-      !this.inputManager.isKeyDown("a") &&
-      this.inputManager.isMouseButtonJustPressed(MouseButton.LEFT)
+      !this.inputManager.isKeyDown(attackMoveKey) &&
+      leftClick
     ) {
       this.handleEntitySelection(camera);
     }
@@ -323,8 +407,8 @@ export class OnlineInputHandler implements GameObject {
     if (
       !pinging &&
       !holdingStill &&
-      this.inputManager.isKeyDown("a") &&
-      this.inputManager.isMouseButtonJustPressed(MouseButton.LEFT)
+      this.inputManager.isKeyDown(attackMoveKey) &&
+      leftClick
     ) {
       const worldPos = minimapTarget ?? this.screenToWorld(mousePosition, camera);
       this.networkClient.sendAttackMoveInput(worldPos.x, worldPos.y);
@@ -332,60 +416,93 @@ export class OnlineInputHandler implements GameObject {
     }
 
     // Handle stop (S key)
-    if (this.inputManager.isKeyJustPressed("s")) {
+    if (this.inputManager.isKeyJustPressed(this.key("stop"))) {
       this.networkClient.sendStopInput();
     }
 
     // Handle abilities (Q, W, E, R) or level-up with Ctrl held
     // Note: e.key returns 'Control' (capital C) for the control key
     if (this.inputManager.isKeyDown("Control")) {
-      // Ctrl + QWER = Level up ability
-      if (this.inputManager.isKeyJustPressed("q")) {
-        this.networkClient.sendLevelUpInput("Q");
-      }
-      if (this.inputManager.isKeyJustPressed("w")) {
-        this.networkClient.sendLevelUpInput("W");
-      }
-      if (this.inputManager.isKeyJustPressed("e")) {
-        this.networkClient.sendLevelUpInput("E");
-      }
-      if (this.inputManager.isKeyJustPressed("r")) {
-        this.networkClient.sendLevelUpInput("R");
+      // Ctrl + an ability's key = Level up ability
+      for (const slot of ABILITY_SLOTS) {
+        if (this.inputManager.isKeyJustPressed(this.key(abilityAction(slot)))) {
+          this.networkClient.sendLevelUpInput(slot);
+        }
       }
     } else {
       // Normal ability cast
-      this.handleAbilityInput("q", "Q", camera);
-      this.handleAbilityInput("w", "W", camera);
-      this.handleAbilityInput("e", "E", camera);
-      this.handleAbilityInput("r", "R", camera);
+      for (const slot of ABILITY_SLOTS) this.handleAbilityInput(this.key(abilityAction(slot)), slot, camera);
     }
 
     // Handle recall (B key)
-    if (this.inputManager.isKeyJustPressed("b")) {
+    if (this.inputManager.isKeyJustPressed(this.key("recall"))) {
       this.networkClient.sendRecallInput();
     }
 
     // Summoner spells: D and F, cast at the cursor (on the unit under it, if any)
-    for (const [key, slot] of SUMMONER_KEYS) {
-      if (!this.inputManager.isKeyJustPressed(key)) continue;
-      const at = this.screenToWorld(this.inputManager.getMousePosition(), camera);
-      this.networkClient.sendSummonerSpellInput(slot, at.x, at.y, this.hoveredEnemyId ?? undefined);
+    for (const slot of SUMMONER_SLOTS) {
+      const castable: Castable = { kind: "summoner", slot };
+      const summoner = this.localSummoner(slot);
+      const definition = summoner && isSummonerSpellId(summoner.id) ? SUMMONER_SPELLS[summoner.id] : undefined;
+      this.handleCastKey(this.key(summonerAction(slot)), castable, summonerAims(definition), (summoner?.cooldownRemaining ?? 0) <= 0, camera);
     }
 
     // Items: 1, 2, 3, 6, 7, 8 use the item in each slot, aimed at the cursor
-    ITEM_KEYS.forEach((key, slot) => {
-      if (!this.inputManager.isKeyJustPressed(key)) return;
-      const at = this.screenToWorld(this.inputManager.getMousePosition(), camera);
-      this.networkClient.sendUseItemInput(slot, at.x, at.y);
-    });
+    for (const slot of ITEM_SLOTS) {
+      const item = this.localItem(slot);
+      const aims = item ? itemAims(getItemActive(item.definitionId)) : false;
+      this.handleCastKey(this.key(itemAction(slot)), { kind: "item", slot }, aims, true, camera);
+    }
 
     // Wards: hold 4 (5 for a control ward) to see where it goes and what it
     // will see (render), release to place it there
-    for (const [key, wardType] of WARD_KEYS) {
-      if (!this.inputManager.isKeyJustReleased(key)) continue;
+    for (const [action, wardType] of WARD_ACTIONS) {
+      if (!this.inputManager.isKeyJustReleased(this.key(action))) continue;
       const at = this.wardPlacement(camera);
       if (at) this.networkClient.sendPlaceWardInput(wardType, at.x, at.y);
     }
+
+    this.onArmedAbilityChange?.(this.getArmedAbility());
+  }
+
+  /**
+   * A summoner spell's or an item's key: cast now, or show it and cast on
+   * the release or a click, as the cast mode says.
+   */
+  private handleCastKey(key: string, castable: Castable, aims: boolean, ready: boolean, camera: any): void {
+    const mode = getControls().getCastMode();
+    if (this.inputManager.isKeyJustPressed(key) && this.casts.press(castable, { mode, aims, ready }) === "cast") {
+      this.cast(castable, camera);
+    }
+    if (this.inputManager.isKeyJustReleased(key) && this.casts.release(castable, mode)) {
+      this.cast(castable, camera);
+    }
+  }
+
+  /** Cast an ability, summoner spell or item at the cursor (on the unit under it, if any) */
+  private cast(castable: Castable, camera: any): void {
+    const at = this.screenToWorld(this.inputManager.getMousePosition(), camera);
+    switch (castable.kind) {
+      case "ability":
+        this.sendAbilityWithTarget(castable.slot, at);
+        break;
+      case "summoner":
+        this.networkClient.sendSummonerSpellInput(castable.slot, at.x, at.y, this.hoveredEnemyId ?? undefined);
+        break;
+      case "item":
+        this.networkClient.sendUseItemInput(castable.slot, at.x, at.y);
+        break;
+    }
+  }
+
+  /** The local champion's summoner spell in a slot */
+  private localSummoner(slot: 0 | 1): SummonerSpellState | undefined {
+    return (this.stateManager.getLocalPlayerEntity()?.snapshot as { summoners?: SummonerSpellState[] } | undefined)?.summoners?.[slot];
+  }
+
+  /** The local champion's item in an inventory slot */
+  private localItem(slot: number): EquippedItemState | null {
+    return (this.stateManager.getLocalPlayerEntity()?.snapshot as { items?: (EquippedItemState | null)[] } | undefined)?.items?.[slot] ?? null;
   }
 
   /**
@@ -518,13 +635,13 @@ export class OnlineInputHandler implements GameObject {
         collisionRadius: getEntityCollisionRadius(closestAlly),
       };
       // No special cursor for allies, unless A arms an attack-move
-      cursorManager.setCursor(this.inputManager.isKeyDown("a") ? "attack" : "default");
+      cursorManager.setCursor(this.inputManager.isKeyDown(this.key("attack_move")) ? "attack" : "default");
     } else {
       this.hoveredEnemyId = null;
       this.hoveredAllyId = null;
       this.hoveredEntityInfo = null;
       // Holding A arms an attack-move
-      cursorManager.setCursor(this.inputManager.isKeyDown("a") ? "attack" : "default");
+      cursorManager.setCursor(this.inputManager.isKeyDown(this.key("attack_move")) ? "attack" : "default");
     }
 
     // A tunnel's mouth, when no unit is in the way
@@ -601,13 +718,10 @@ export class OnlineInputHandler implements GameObject {
       return;
     }
 
-    // Handle instant-cast ability (no charge behavior)
-    if (!isChargeAbility && this.inputManager.isKeyJustPressed(key)) {
-      const worldPos = this.screenToWorld(
-        this.inputManager.getMousePosition(),
-        camera,
-      );
-      this.sendAbilityWithTarget(slot, worldPos);
+    // Abilities that don't charge: as the cast mode says
+    if (!isChargeAbility && abilityDef) {
+      const state = this.localAbilityState(slot);
+      this.handleCastKey(key, { kind: "ability", slot }, abilityAims(abilityDef, state), abilityReady(state), camera);
     }
   }
 
@@ -696,12 +810,15 @@ export class OnlineInputHandler implements GameObject {
     const element = new RenderElement((ctx: GameContext) => {
       const { canvasRenderingContext } = ctx;
 
-      if (this.inputManager.isKeyDown("a")) {
+      if (this.inputManager.isKeyDown(this.key("attack_move"))) {
         this.renderAttackRange(canvasRenderingContext);
       }
-      for (const [key, wardType] of WARD_KEYS) {
-        if (this.inputManager.isKeyDown(key)) this.renderWardPlacement(canvasRenderingContext, wardType, ctx.camera);
+      for (const [action, wardType] of WARD_ACTIONS) {
+        if (this.inputManager.isKeyDown(this.key(action))) this.renderWardPlacement(canvasRenderingContext, wardType, ctx.camera);
       }
+      // A summoner spell's or item's preview: how far it reaches (the HUD draws abilities')
+      const armed = this.casts.getArmed();
+      if (armed && armed.kind !== "ability") this.renderAimRange(canvasRenderingContext, this.aimRange(armed));
 
       if (this.hoveredTunnelMouth) this.renderTunnelMouthHover(canvasRenderingContext, this.hoveredTunnelMouth);
 
@@ -756,6 +873,35 @@ export class OnlineInputHandler implements GameObject {
     ctx.restore();
 
     renderWardPreview(ctx, wardType, at.x, at.y, GameConfig.VISION.WARD_SIGHT_RANGE, charges > 0);
+  }
+
+  /** How far an aimed summoner spell or item active reaches */
+  private aimRange(castable: Castable): number {
+    if (castable.kind === "summoner") {
+      const id = this.localSummoner(castable.slot)?.id;
+      return (id && isSummonerSpellId(id) ? SUMMONER_SPELLS[id].range : undefined) ?? 0;
+    }
+    if (castable.kind === "item") {
+      const item = this.localItem(castable.slot);
+      return (item ? getItemActive(item.definitionId)?.range : undefined) ?? 0;
+    }
+    return 0;
+  }
+
+  /** The ring a shown summoner spell or item active reaches to, around the local champion */
+  private renderAimRange(ctx: CanvasRenderingContext2D, range: number): void {
+    const local = this.stateManager.getLocalPlayerEntity();
+    if (!local || range <= 0) return;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(local.position.x, local.position.y, range, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(0, 206, 209, 0.06)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(0, 206, 209, 0.6)";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([10, 5]);
+    ctx.stroke();
+    ctx.restore();
   }
 
   /**

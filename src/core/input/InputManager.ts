@@ -5,6 +5,8 @@
 
 import Vector from "@/physics/vector";
 import { Dimensions } from "@/core/canvas";
+import { getControls } from "@/core/input/controls";
+import { abilityAction, normalizeKey } from "@/core/input/keyBindings";
 
 /**
  * Mouse button constants.
@@ -27,8 +29,11 @@ export interface KeyboardState {
   justReleased: Set<string>;
 }
 
-/** Keys that level an ability with Ctrl held (OnlineInputHandler) */
-const LEVEL_UP_KEYS = new Set(['q', 'w', 'e', 'r']);
+/** Whether a key levels an ability with Ctrl held (OnlineInputHandler): an ability's key */
+function isLevelUpKey(key: string): boolean {
+  const controls = getControls();
+  return (['Q', 'W', 'E', 'R'] as const).some(slot => controls.keyFor(abilityAction(slot)) === key);
+}
 
 export class InputManager {
   private static instance: InputManager | null = null;
@@ -78,11 +83,15 @@ export class InputManager {
     this.canvas = canvas;
     this.initialized = true;
 
-    // Keyboard events
+    // Keyboard events. Keys are kept with letters in lowercase, so Shift or
+    // Caps Lock don't change what a key does (and a letter let go after
+    // Shift still lets go of what it pressed)
     const onKeyDown = (e: KeyboardEvent) => {
+      const key = normalizeKey(e.key);
+
       // Ctrl+Q/W/E/R levels abilities: keep the browser's own shortcuts out
       // of it where it allows (Ctrl+R reloads; Ctrl+W can't be stopped)
-      if (e.ctrlKey && LEVEL_UP_KEYS.has(e.key.toLowerCase())) {
+      if (e.ctrlKey && isLevelUpKey(key)) {
         e.preventDefault();
       }
 
@@ -96,16 +105,17 @@ export class InputManager {
       // Alt (with a click) pings: left to the browser, a lone Alt would focus its menu bar
       if (e.key === 'Alt') e.preventDefault();
 
-      if (!this.keysDown.has(e.key)) {
-        this.keysJustPressed.add(e.key);
+      if (!this.keysDown.has(key)) {
+        this.keysJustPressed.add(key);
       }
-      this.keysDown.add(e.key);
+      this.keysDown.add(key);
     };
 
     const onKeyUp = (e: KeyboardEvent) => {
       if (e.key === 'Tab' || e.key === 'Alt') e.preventDefault();
-      this.keysDown.delete(e.key);
-      this.keysJustReleased.add(e.key);
+      const key = normalizeKey(e.key);
+      this.keysDown.delete(key);
+      this.keysJustReleased.add(key);
     };
 
     // Alt (pings) as the mouse says: right even when its key went up outside the window

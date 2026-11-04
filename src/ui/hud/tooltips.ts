@@ -11,7 +11,8 @@ import { HUD_COLORS, PANEL } from '@/ui/hud/layout';
 import { getItemCategoryColor } from '@/ui/hud/items';
 import { drawItemIcon, ITEM_ICON_SIZE } from '@/ui/itemIcons';
 import { getItemActive, listItemStats } from '@/data/itemStats';
-import { ITEM_KEYS } from '@/core/input/itemKeys';
+import { getControls } from '@/core/input/controls';
+import { abilityAction, itemAction, keyLabel } from '@/core/input/keyBindings';
 import { getItemPassive } from '@/data/items';
 import { wrapText, interpolateAbilityDescription, interpolatePassiveDescription, formatTriggerType, formatBuffName } from '@/ui/hud/tooltipText';
 import type { EquippedItem, HUDActiveEffect, HUDChampionData, HUDPassive } from '@/ui/hud/types';
@@ -83,7 +84,7 @@ export function drawAbilityTooltip(
   // Ability name
   RenderUtils.renderBitmapText(
     ctx,
-    `${slot} - ${name}`,
+    `${keyLabel(getControls().keyFor(abilityAction(slot)))} - ${name}`,
     clampedX + padding,
     currentY,
     { color: accentColor, size: 26, shadow: false }
@@ -538,7 +539,7 @@ export function drawItemTooltip(
   // Its active (and key) first
   const active = getItemActive(item.id);
   if (active) {
-    const key = ITEM_KEYS[equipped.slot];
+    const key = keyLabel(getControls().keyFor(itemAction(equipped.slot)));
     const cooldown = active.cooldown >= 1 ? ` - ${active.cooldown}s` : '';
     passiveData.unshift({
       name: `Active (${key}): ${active.name}${cooldown}`,

@@ -1,7 +1,7 @@
 /**
- * Summoner spells in the HUD: a column of two boxes (D over F) beside the
- * abilities, with each spell's icon, a cooldown overlay and seconds left,
- * and the key; hovering one shows its tooltip.
+ * Summoner spells in the HUD: a column of two boxes (D over F, or the keys
+ * bound to them) beside the abilities, with each spell's icon, a cooldown
+ * overlay and seconds left, and the key; hovering one shows its tooltip.
  */
 
 import { SUMMONER_SPELLS, type SummonerSpellId } from '@siege/shared';
@@ -12,8 +12,15 @@ import { HUD_COLORS, PANEL } from '@/ui/hud/layout';
 import { wrapText } from '@/ui/hud/tooltipText';
 import type { HUDChampionData, HUDContext } from '@/ui/hud/types';
 import { drawPixelArt } from '@/render/pixelArt';
+import { getControls } from '@/core/input/controls';
+import { keyLabel, summonerAction } from '@/core/input/keyBindings';
 
-const KEYS = ['D', 'F'];
+const SLOTS = [0, 1] as const;
+
+/** The key that casts the summoner spell in a slot, as shown */
+function summonerKey(slot: 0 | 1): string {
+  return keyLabel(getControls().keyFor(summonerAction(slot)));
+}
 
 /** Draw the summoner spell column; its top-left corner is (x, y) */
 export function drawSummonersPanel(
@@ -26,7 +33,8 @@ export function drawSummonersPanel(
   const size = PANEL.summonerBoxSize;
   const spells = champion.getSummoners();
 
-  KEYS.forEach((key, slot) => {
+  SLOTS.forEach((slot) => {
+    const key = summonerKey(slot);
     const boxY = y + slot * (size + PANEL.summonerSpacing);
     const spell = spells[slot];
     hud.summonerBoxes.set(slot, { x, y: boxY, size });
@@ -89,7 +97,7 @@ export function drawSummonerTooltip(
   ctx.strokeRect(tooltipX, tooltipY, width, height);
 
   let lineY = tooltipY + padding;
-  RenderUtils.renderBitmapText(ctx, `${KEYS[slot]} - ${definition.name}`, tooltipX + padding, lineY, {
+  RenderUtils.renderBitmapText(ctx, `${summonerKey(slot as 0 | 1)} - ${definition.name}`, tooltipX + padding, lineY, {
     color: definition.color,
     size: 26,
     shadow: false,

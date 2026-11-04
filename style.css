@@ -115,6 +115,130 @@ canvas {
     color: #ffffff;
 }
 
+.game-menu-panel[hidden] {
+    display: none;
+}
+
+/* Controls settings: cast mode and keys (src/ui/ControlsPanel.ts), in the
+   in-match menu and the main menu's Settings */
+.controls-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    box-sizing: border-box;
+    width: min(620px, 92vw);
+    max-height: 88vh;
+    padding: 18px 24px;
+    background: var(--pixel-bg-dark);
+    border: 2px solid var(--pixel-border);
+    font-family: var(--pixel-font);
+    color: #d8d8e8;
+    text-align: left;
+}
+
+.controls-panel[hidden] {
+    display: none;
+}
+
+.controls-title {
+    color: var(--pixel-gold);
+    font-size: 28px;
+    text-align: center;
+}
+
+.controls-modes {
+    display: flex;
+    gap: 8px;
+}
+
+.controls-mode.pixel-button {
+    flex: 1;
+    font-size: 17px;
+    padding: 8px 6px;
+    letter-spacing: 0;
+}
+
+.controls-mode.selected {
+    background: var(--pixel-gold-dark);
+    border-color: var(--pixel-gold-darker);
+    color: var(--pixel-bg-dark);
+    text-shadow: none;
+}
+
+.controls-hint {
+    color: #8a8aa8;
+    font-size: 17px;
+    text-align: center;
+}
+
+.controls-keys {
+    display: grid;
+    grid-template-columns: 1fr max-content;
+    gap: 4px 16px;
+    align-items: center;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 6px;
+    font-size: 18px;
+}
+
+.controls-group {
+    grid-column: 1 / -1;
+    margin-top: 8px;
+    color: var(--pixel-accent);
+    font-size: 19px;
+}
+
+.controls-key {
+    min-width: 76px;
+    padding: 2px 10px;
+    font-family: var(--pixel-font);
+    font-size: 18px;
+    color: #ffffff;
+    background: var(--pixel-bg-light);
+    border: 2px solid var(--pixel-border);
+    cursor: pointer;
+}
+
+.controls-key:hover {
+    border-color: var(--pixel-border-highlight);
+}
+
+.controls-key.listening {
+    border-color: var(--pixel-gold);
+    color: var(--pixel-gold);
+}
+
+.controls-message {
+    min-height: 20px;
+    color: var(--pixel-gold);
+    font-size: 17px;
+    text-align: center;
+}
+
+.controls-buttons {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.controls-buttons .pixel-button {
+    font-size: 20px;
+    padding: 8px 20px;
+}
+
+/* On the main menu's Settings screen, under the logo */
+#screen-settings.active {
+    display: flex;
+    justify-content: center;
+}
+
+#screen-settings .controls-panel {
+    max-height: calc(100vh - 340px);
+    min-height: 260px;
+}
+
 /* Debug overlay's panel (src/debug/DebugOverlay.ts) */
 .debug-panel {
     position: fixed;

@@ -1,11 +1,11 @@
 /**
  * Pinging and emoting: the ping wheel and the emote wheel.
  *
- * - Alt (or G) + left-click pings the spot clicked, on the map or the
+ * - Alt (or G, or the key bound to pinging) + left-click pings the spot clicked, on the map or the
  *   minimap ("look"). Held, a wheel comes up around the click: dragging
  *   toward an option and letting go pings that one (danger, on my way,
  *   help, missing) at the spot clicked.
- * - Holding T brings up the emote wheel around the cursor: letting go over
+ * - Holding T (the emotes key) brings up the emote wheel around the cursor: letting go over
  *   an emote shows it over the champion.
  *
  * The server sends pings to the team only and limits them (InputHandler);
@@ -19,6 +19,7 @@ import RenderUtils from '@/render/utils';
 import Vector from '@/physics/vector';
 import { Dimensions } from '@/core/canvas';
 import { InputManager } from '@/core/input/InputManager';
+import { getControls } from '@/core/input/controls';
 import { drawPixelArt } from '@/render/pixelArt';
 import type { NetworkClient } from '@siege/client';
 import type { OnlineStateManager } from '@/core/OnlineStateManager';
@@ -38,9 +39,9 @@ const WHEEL = {
   slot: 40,
 };
 
-/** Whether the ping key (Alt or G) is held: a left-click pings instead of selecting */
+/** Whether the ping key (Alt, or G or what's bound to pinging) is held: a left-click pings instead of selecting */
 export function isPingModifierDown(input: InputManager): boolean {
-  return input.isKeyDown('Alt') || input.isKeyDown('g') || input.isKeyDown('G');
+  return input.isKeyDown('Alt') || input.isKeyDown(getControls().keyFor('ping'));
 }
 
 type OpenWheel =
@@ -76,10 +77,11 @@ export class SignalWheel extends ScreenEntity {
     }
 
     // Emote: hold T, let go over one
-    if (!this.wheel && this.input.isKeyJustPressed('t') && !this.isDead()) {
+    const emoteKey = getControls().keyFor('emotes');
+    if (!this.wheel && this.input.isKeyJustPressed(emoteKey) && !this.isDead()) {
       this.wheel = { kind: 'emote', center: mouse.clone() };
     }
-    if (this.wheel?.kind === 'emote' && !this.input.isKeyDown('t')) {
+    if (this.wheel?.kind === 'emote' && !this.input.isKeyDown(emoteKey)) {
       const index = this.selected(EMOTES.length);
       if (index !== null) this.networkClient.sendEmoteInput(EMOTES[index]);
       this.wheel = null;

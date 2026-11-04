@@ -21,6 +21,8 @@ import { DebugOverlay } from '@/debug/DebugOverlay';
 import type { NetworkClient } from '@siege/client';
 import type { MatchData } from '@/ui/matchmaking/MatchmakingUI';
 import type { GameApi } from './gameContext';
+import { getControls } from '@/core/input/controls';
+import { normalizeKey } from '@/core/input/keyBindings';
 
 /**
  * Configuration for online game.
@@ -102,8 +104,8 @@ class OnlineGame {
     shopUI.setNetworkClient(this.networkClient);
 
     window.addEventListener('keydown', (e) => {
-      // 'P' key to toggle shop
-      if (e.key === 'p' || e.key === 'P') {
+      // P (the shop key) toggles the shop
+      if (normalizeKey(e.key) === getControls().keyFor('shop')) {
         shopUI.toggle();
       }
 

@@ -34,6 +34,8 @@ import type { NetworkClient } from '@siege/client';
 import type { MatchData } from '@/ui/matchmaking/MatchmakingUI';
 import { findLocalPlayer } from '@/ui/matchmaking/types';
 import type { GameObject } from '@/core/GameObject';
+import { getControls } from '@/core/input/controls';
+import { normalizeKey } from '@/core/input/keyBindings';
 
 /**
  * Configuration for online level.
@@ -122,6 +124,11 @@ export function generateOnlineLevel(config: OnlineLevelConfig): Level {
   inputHandler.setChargeStateCallback((chargeState) => {
     championHUD.setChargeState(chargeState);
   });
+
+  // The ability aimed before its cast (cast modes other than quick cast): the HUD draws its preview
+  inputHandler.setArmedAbilityCallback((slot) => championHUD.setArmedAbility(slot));
+  // A click on the HUD or the minimap doesn't cast what's aimed
+  inputHandler.setPointerOverUI((x, y) => championHUD.isPointOver(x, y) || minimap.screenToWorldIfInside(x, y) !== null);
 
   // Wire up hover state callback from input handler to EntityRenderer for sprite outlines
   inputHandler.setHoverStateCallback((enemyId, allyId) => {
@@ -230,10 +237,13 @@ class OnlineCameraController implements GameObject {
       this.camera.isPointerOverUI = this.isPointerOverUI;
     }
 
-    // Listen for camera control keys
+    // Listen for camera control keys (the player's bindings)
     this.keyListener = (e: KeyboardEvent) => {
+      const key = normalizeKey(e.key);
+      const controls = getControls();
+
       // Y key: Toggle camera lock
-      if (e.key === 'y' || e.key === 'Y') {
+      if (key === controls.keyFor('camera_lock')) {
         this.isLocked = !this.isLocked;
 
         // If re-locking, snap to player position
@@ -243,7 +253,7 @@ class OnlineCameraController implements GameObject {
       }
 
       // Space key: Instantly snap camera to champion (without enabling lock)
-      if (e.key === ' ') {
+      if (key === controls.keyFor('camera_center')) {
         e.preventDefault(); // Prevent page scroll
         if (this.camera) {
           this.snapToPlayer();

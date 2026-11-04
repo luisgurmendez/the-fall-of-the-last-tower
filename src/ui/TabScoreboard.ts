@@ -41,6 +41,7 @@ import { drawSummonerTooltip } from '@/ui/hud/summoners';
 import { drawItemTooltip } from '@/ui/hud/tooltips';
 import { SCOREBOARD_COLORS, SCOREBOARD_FONT } from '@/ui/scoreboardStyle';
 import { drawMatchStats, matchStatsHeight } from '@/ui/matchStats';
+import { getControls } from '@/core/input/controls';
 
 /** One champion's line */
 interface ScoreboardRow {
@@ -188,7 +189,7 @@ export class TabScoreboard extends ScreenEntity {
     this.resultShownAt ??= performance.now();
     const ready = performance.now() - this.resultShownAt >= CONTINUE_GRACE_MS;
 
-    if (input.isKeyJustPressed('Tab')) this.page = this.page === 'board' ? 'stats' : 'board';
+    if (input.isKeyJustPressed(getControls().keyFor('scoreboard'))) this.page = this.page === 'board' ? 'stats' : 'board';
     if (input.isMouseButtonJustPressed(MouseButton.LEFT)) {
       const button = this.buttonAt(input.getMousePosition());
       if (button?.kind === 'page') this.page = button.page;
@@ -263,9 +264,9 @@ export class TabScoreboard extends ScreenEntity {
 
   render(): RenderElement {
     return this.createOverlayRender((ctx: GameContext) => {
-      // Show while Tab is held, and for good once the match is over
+      // Show while Tab (the scoreboard key) is held, and for good once the match is over
       const result = this.stateManager.getMatchResult();
-      if (!this.inputManager.isKeyDown('Tab') && !result) return;
+      if (!this.inputManager.isKeyDown(getControls().keyFor('scoreboard')) && !result) return;
 
       const { canvasRenderingContext: c } = ctx;
       const canvasWidth = Dimensions.w;

@@ -14,6 +14,7 @@ export type ScreenId =
   | "queue"
   | "match-found"
   | "how-to-play"
+  | "settings"
   | "error";
 
 /**

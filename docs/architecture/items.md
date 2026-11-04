@@ -134,7 +134,8 @@ Markers show a passive's state on the champion (data/effects.ts, with names in
 ## Actives and consumables
 
 An item with an `active` is used with its slot's key: **1, 2, 3** (top row) and **6, 7, 8**
-(bottom row), since 4 and 5 place wards (`src/core/input/itemKeys.ts`). The client sends
+(bottom row) by default, since 4 and 5 place wards (players can rebind them and pick a cast
+mode: [controls.md](controls.md); an active used at a point is aimed like an ability). The client sends
 `InputType.USE_ITEM { slot, targetX, targetY }` with the cursor's world position;
 `ChampionItemActives.use` checks it and does it:
 

@@ -1,7 +1,7 @@
 /**
  * GameMenu - The in-match menu Escape opens: resume, the sound's volumes
- * (master, effects, ambience; kept by AudioManager), the debug overlay
- * (F3 too), or surrender.
+ * (master, effects, ambience; kept by AudioManager), the controls (cast
+ * mode and keys: ControlsPanel), the debug overlay (F3 too), or surrender.
  *
  * The game keeps running on the server while it's open. Surrendering asks
  * for a second click instead of a browser dialog; the match then ends like
@@ -9,6 +9,7 @@
  */
 
 import { getAudio, type VolumeChannel } from "@/audio/AudioManager";
+import { ControlsPanel } from "@/ui/ControlsPanel";
 
 const CONFIRM_MS = 3000;
 
@@ -27,6 +28,8 @@ const VOLUMES: { channel: VolumeChannel; label: string }[] = [
 
 export class GameMenu {
   private readonly root: HTMLDivElement;
+  private readonly panel: HTMLDivElement;
+  private readonly controls: ControlsPanel;
   private readonly surrenderButton: HTMLButtonElement;
   private readonly debugButton: HTMLButtonElement | null = null;
   private confirmUntil = 0;
@@ -39,6 +42,15 @@ export class GameMenu {
 
     const panel = document.createElement("div");
     panel.className = "game-menu-panel";
+    this.panel = panel;
+
+    // The controls take the menu's place, and Back brings it back
+    this.controls = new ControlsPanel(() => this.showControls(false));
+    this.controls.element.hidden = true;
+    const controlsButton = document.createElement("button");
+    controlsButton.className = "pixel-button";
+    controlsButton.textContent = "Controls";
+    controlsButton.addEventListener("click", () => this.showControls(true));
 
     const title = document.createElement("div");
     title.className = "game-menu-title";
@@ -57,7 +69,7 @@ export class GameMenu {
     hint.className = "game-menu-hint";
     hint.textContent = "The match keeps going while this is open";
 
-    panel.append(title, resumeButton, this.createSoundControls());
+    panel.append(title, resumeButton, this.createSoundControls(), controlsButton);
     if (debug) {
       const button = document.createElement("button");
       button.className = "pixel-button";
@@ -69,7 +81,7 @@ export class GameMenu {
       this.debugButton = button;
     }
     panel.append(this.surrenderButton, hint);
-    this.root.append(panel);
+    this.root.append(panel, this.controls.element);
     // Clicks on the dimmed backdrop close it
     this.root.addEventListener("mousedown", (event) => {
       if (event.target === this.root) this.hide();
@@ -101,6 +113,13 @@ export class GameMenu {
 
   hide(): void {
     this.root.hidden = true;
+    this.showControls(false);
+  }
+
+  private showControls(shown: boolean): void {
+    this.panel.hidden = shown;
+    this.controls.element.hidden = !shown;
+    if (!shown) this.controls.stopListening();
   }
 
   /**
@@ -108,6 +127,7 @@ export class GameMenu {
    */
   dispose(): void {
     this.closed = true;
+    this.controls.dispose();
     this.root.remove();
   }
 

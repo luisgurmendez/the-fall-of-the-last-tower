@@ -3,7 +3,7 @@
  * trinket box next to them. Caches the item slot positions in the HUDContext
  * for hit testing.
  *
- * A slot shows its key (ITEM_KEYS: 1 2 3 / 6 7 8), brighter for an item it
+ * A slot shows its key (1 2 3 / 6 7 8, or the keys bound to them), brighter for an item it
  * uses; while an active recharges, a shade falling from the top with the
  * seconds left; a consumable's charges in the bottom right; a stacking
  * item's stacks in the top right.
@@ -15,7 +15,8 @@ import { HUD_COLORS, PANEL } from '@/ui/hud/layout';
 import { drawItemIcon, ITEM_ICON_SIZE } from '@/ui/itemIcons';
 import type { EquippedItem, HUDChampionData, HUDContext } from '@/ui/hud/types';
 import { drawPixelArt } from '@/render/pixelArt';
-import { ITEM_KEYS } from '@/core/input/itemKeys';
+import { getControls } from '@/core/input/controls';
+import { itemAction, keyLabel } from '@/core/input/keyBindings';
 
 /** Draw the items panel (2 rows x 3 cols) with gold display */
 export function drawItemsPanel(
@@ -99,7 +100,7 @@ function drawItemSlot(
   }
   ctx.strokeRect(x, y, size, size);
 
-  const key = ITEM_KEYS[slotIndex];
+  const key = keyLabel(getControls().keyFor(itemAction(slotIndex)));
   if (equipped) {
     const iconOffset = (size - ITEM_ICON_SIZE) / 2;
     drawItemIcon(ctx, equipped.definition, x + iconOffset, y + iconOffset, 1, (symbol) => {

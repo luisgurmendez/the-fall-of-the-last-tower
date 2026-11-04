@@ -51,9 +51,11 @@ import { startTipRotation, showRandomTip } from "./tips";
 import { TitleScreen } from "../title/TitleScreen";
 import { ModeSelect, describePracticeMode, type PracticeMode } from "./modeSelect";
 import { RoomPanel, type Room } from "./roomPanel";
+import { fillHowToPlay } from "./howToPlay";
+import { ControlsPanel } from "@/ui/ControlsPanel";
 
 /** The screens the title screen's valley shows behind (not champion select or the loading screen) */
-const TITLE_SCREENS: ReadonlySet<ScreenId> = new Set(["menu", "modes", "how-to-play", "connecting", "queue", "error"]);
+const TITLE_SCREENS: ReadonlySet<ScreenId> = new Set(["menu", "modes", "how-to-play", "settings", "connecting", "queue", "error"]);
 
 /** What champion select is for: the mode picked on the mode screen */
 type SelectFor =
@@ -132,6 +134,7 @@ export class MatchmakingUI {
     this.screens.set("queue", getEl("screen-queue"));
     this.screens.set("match-found", getEl("screen-match-found"));
     this.screens.set("how-to-play", getEl("screen-how-to-play"));
+    this.screens.set("settings", getEl("screen-settings"));
     this.screens.set("error", getEl("screen-error"));
 
     // Get status elements
@@ -295,15 +298,19 @@ export class MatchmakingUI {
       this.showScreen("menu");
     });
 
-    // Settings button (placeholder)
+    // Settings: the controls (cast mode, keys)
+    const settings = new ControlsPanel(() => this.showScreen("menu"));
+    this.screens.get("settings")?.append(settings.element);
     document.getElementById("btn-settings")?.addEventListener("click", () => {
-      console.log("Settings clicked");
+      this.showScreen("settings");
     });
 
-    // How to play: the controls
+    // How to play: the controls, with the player's keys
     document
       .getElementById("btn-how-to-play")
       ?.addEventListener("click", () => {
+        const grid = document.getElementById("how-to-play-controls");
+        if (grid) fillHowToPlay(grid);
         this.showScreen("how-to-play");
       });
     document

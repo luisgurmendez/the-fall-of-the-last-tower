@@ -127,9 +127,11 @@ For each `STATE_UPDATE` it applies the deltas first, then the events, in order.
 Captures player input and sends to server:
 
 - Right-click → Move command
-- Q/W/E/R → Ability cast
+- Q/W/E/R → Ability cast (as the player's cast mode says)
 - S → Stop
 - B → Recall
+
+The keys are the player's bindings (defaults shown); see [controls.md](controls.md).
 
 ## Communication Protocol
 

@@ -11,6 +11,8 @@ import { Dimensions } from "@/core/canvas";
 import { getAudio } from "@/audio/AudioManager";
 import { updateAmbience } from "@/audio/ambience";
 import { setShakeView } from "@/core/screenShake";
+import { getControls } from "@/core/input/controls";
+import { normalizeKey } from "@/core/input/keyBindings";
 
 const { CAMERA: CAMERA_CONFIG } = GameConfig;
 export const CAMERA_ID = "camera";
@@ -98,11 +100,12 @@ class Camera implements GameObject, Stepable, Disposable, Initializable {
     };
 
     const handleZoom = (e: KeyboardEvent) => {
-      if (e.key === ".") {
+      const key = normalizeKey(e.key);
+      if (key === getControls().keyFor("zoom_in")) {
         this.zoomIn();
       }
 
-      if (e.key === ",") {
+      if (key === getControls().keyFor("zoom_out")) {
         this.zoomOut();
       }
     };

@@ -11,6 +11,8 @@ import type { AbilityIconSlot } from '@/ui/AbilityIconLoader';
 import { HUD_COLORS, PANEL } from '@/ui/hud/layout';
 import { drawHealthBar, drawResourceBar } from '@/ui/hud/resourceBars';
 import type { HUDAbility, HUDChampionData, HUDContext } from '@/ui/hud/types';
+import { getControls } from '@/core/input/controls';
+import { abilityAction, keyLabel } from '@/core/input/keyBindings';
 
 /** How long a slot flashes red after pressing an ability that can't be cast */
 export const DENIED_FLASH_MS = 300;
@@ -249,7 +251,8 @@ function drawAbilityBox(
   hud: HUDContext
 ): void {
   const ability = champion.getAbility(slot);
-  const isHovered = hud.hoverState.ability === slot;
+  // Hovered, or aimed before its cast: lit up
+  const isHovered = hud.hoverState.ability === slot || hud.armedAbility === slot;
   let progress = 1;
   let isReady = true;
   let recastWindowRemaining = 0;
@@ -339,7 +342,7 @@ function drawAbilityBox(
   if (!iconDrawn) {
     RenderUtils.renderBitmapText(
       ctx,
-      slot,
+      keyLabel(getControls().keyFor(abilityAction(slot))),
       x + size / 2,
       y + size / 2 - 18,
       { color: isReady || hasRecast ? HUD_COLORS.text : HUD_COLORS.textDim, size: 32, centered: true }

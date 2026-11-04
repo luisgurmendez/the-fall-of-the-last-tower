@@ -77,6 +77,7 @@ For detailed documentation on the multiplayer MOBA systems, see the following fi
 | **Deploy** | [docs/architecture/deploy.md](docs/architecture/deploy.md) | Playing online: the server serving the built client, Docker, Fly.io |
 | **Debug mode** | [docs/architecture/debug.md](docs/architecture/debug.md) | F3 in practice: what the server thinks about each unit (paths, targets, ranges, states, bots' decisions) |
 | **Pings & Emotes** | [docs/architecture/signals.md](docs/architecture/signals.md) | The ping wheel (Alt/G + click), the emote wheel (T), who gets them, how they're drawn |
+| **Controls** | [docs/architecture/controls.md](docs/architecture/controls.md) | Cast modes (quick, quick with indicator, normal), key bindings, the settings panel |
 
 ### Quick Reference
 
@@ -118,6 +119,7 @@ For detailed documentation on the multiplayer MOBA systems, see the following fi
 | Sounds, the audio engine | `audio.md` |
 | The debug overlay, a unit's debug info | `debug.md` |
 | Pings, emotes | `signals.md` |
+| Cast modes, key bindings, keys the game reads | `controls.md` |
 | The Dockerfile, fly.toml, serving the client | `deploy.md` |
 
 **When adding new systems**, create a new doc file in `docs/architecture/` and add a reference here.
@@ -211,7 +213,10 @@ the renderers read (`abilityEffects.ts`, `floatingNumbers.ts`, `campTimers.ts`,
 
 ### 3. Online Input Handler (`src/core/input/OnlineInputHandler.ts`)
 
-Captures player input and sends to server:
+Captures player input and sends to server. The keys below are the defaults: each player can
+rebind them and pick a cast mode (quick cast, quick cast with indicator, normal cast) in
+Settings or the in-match menu's Controls; read keys through `getControls().keyFor(action)`,
+never as literals (see [docs/architecture/controls.md](docs/architecture/controls.md)).
 - Right-click → Move command (or attack the unit under the cursor)
 - A + left-click → Attack-move (attacks enemies that come in range on the way)
 - Q/W/E/R → Ability cast (Ctrl + key levels it)

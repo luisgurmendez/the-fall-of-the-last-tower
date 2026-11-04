@@ -64,6 +64,8 @@ import {
 } from '@/ui/hud/tooltips';
 import { drawAbilityRangeCircles } from '@/ui/hud/rangePreview';
 import { getAudio } from '@/audio/AudioManager';
+import { getControls } from '@/core/input/controls';
+import { abilityAction } from '@/core/input/keyBindings';
 // Re-export for external use
 export type { ItemSlot, AbilitySlot };
 export type {
@@ -87,6 +89,9 @@ export class ChampionHUD extends ScreenEntity {
 
   /** Callback for level-up button clicks */
   private onLevelUp?: (slot: AbilitySlot) => void;
+
+  /** Where the HUD panel was last drawn (screen space), for clicks on it */
+  private bounds: { x: number; y: number; w: number; h: number } | null = null;
 
   /**
    * Create a ChampionHUD.
@@ -121,6 +126,7 @@ export class ChampionHUD extends ScreenEntity {
       hoveredLevelUpButton: null,
       levelUpPulseTime: 0,
       chargeState: null,
+      armedAbility: null,
       deniedAt: new Map(),
     };
 
@@ -152,14 +158,26 @@ export class ChampionHUD extends ScreenEntity {
     this.hud.chargeState = state;
   }
 
+  /** Set the ability aimed before its cast (null when none is) */
+  setArmedAbility(slot: AbilitySlot | null): void {
+    this.hud.armedAbility = slot;
+  }
+
+  /** Whether a screen point is over the HUD panel */
+  isPointOver(x: number, y: number): boolean {
+    const b = this.bounds;
+    return b !== null && x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h;
+  }
+
   /**
    * Flash the slot of an ability pressed while it can't be cast (not
    * learned, on cooldown, not enough mana): the server ignores the press.
    */
   private flashDeniedAbilities(): void {
     if (!this.champion || this.inputManager.isKeyDown('Control')) return;
+    const controls = getControls();
     for (const slot of ABILITY_KEYS) {
-      if (!this.inputManager.isKeyJustPressed(slot.toLowerCase())) continue;
+      if (!this.inputManager.isKeyJustPressed(controls.keyFor(abilityAction(slot)))) continue;
       if (!canCastAbility(this.champion.getAbility(slot), this.champion)) {
         this.hud.deniedAt.set(slot, performance.now());
         getAudio().play('cant_cast');
@@ -305,9 +323,12 @@ export class ChampionHUD extends ScreenEntity {
       const ctx = gctx.canvasRenderingContext;
 
       // Draw ability range circles in world space (before HUD overlay): the
-      // hovered ability's, or the charging one's as far as it reaches so far
+      // charging one's as far as it reaches so far, the one aimed before its
+      // cast, or the hovered one's
       if (this.hud.chargeState) {
         drawAbilityRangeCircles(ctx, gctx, this.champion, this.hud.chargeState.slot, this.inputManager, this.hud.chargeState.progress);
+      } else if (this.hud.armedAbility) {
+        drawAbilityRangeCircles(ctx, gctx, this.champion, this.hud.armedAbility, this.inputManager);
       } else if (this.hud.hoverState.ability) {
         drawAbilityRangeCircles(ctx, gctx, this.champion, this.hud.hoverState.ability, this.inputManager);
       }
@@ -317,6 +338,7 @@ export class ChampionHUD extends ScreenEntity {
       const hudHeight = getTotalHeight(this.champion.getSkillPoints(), this.hud.config.showManaBar);
       const startX = (Dimensions.w - hudWidth) / 2;
       const startY = Dimensions.h - hudHeight - 10;
+      this.bounds = { x: startX, y: startY, w: hudWidth, h: hudHeight };
 
       // Draw main HUD background
       this.drawHUDBackground(ctx, startX, startY, hudWidth, hudHeight);

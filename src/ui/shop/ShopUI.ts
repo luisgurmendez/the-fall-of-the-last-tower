@@ -9,7 +9,8 @@ import type { NetworkClient } from "@siege/client";
 import { createItemIconElement } from "@/ui/itemIcons";
 import { SHOP_ITEMS, getItemDefinition, getItemPassive, isRecommendedFor } from "@/data/items";
 import { describeConsumable, getItemActive, listItemStats } from "@/data/itemStats";
-import { ITEM_KEYS } from "@/core/input/itemKeys";
+import { getControls } from "@/core/input/controls";
+import { itemAction, keyLabel } from "@/core/input/keyBindings";
 import { InputManager } from "@/core/input/InputManager";
 import { renderItemTree, renderBuildsInto } from "@/ui/shop/itemTree";
 import { getAudio } from "@/audio/AudioManager";
@@ -640,7 +641,7 @@ export class ShopUI {
         const numberDiv = document.createElement("div");
         numberDiv.className = "slot-number";
         // The key that uses the item in this slot
-        numberDiv.textContent = ITEM_KEYS[index] ?? (index + 1).toString();
+        numberDiv.textContent = keyLabel(getControls().keyFor(itemAction(index)));
         slot.appendChild(numberDiv);
       }
     });
