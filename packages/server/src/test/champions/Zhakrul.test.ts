@@ -376,6 +376,25 @@ describe("Zhak'rul W: Toxic Cloud", () => {
   const cloudOf = (arena: TestArena) => arena.context.getAllEntities()
     .find((e): e is ServerZone => e.entityType === EntityType.ZONE && e instanceof ServerZone && e.abilityId === 'zhakrul_w' && !e.isDead);
 
+  test('it billows out for a moment first (its warning): nothing hurt or slowed, no cloud yet', () => {
+    expect(W.aoeDelay).toBeGreaterThanOrEqual(0.7);
+    const arena = zhakrulArena(at(100, 0));
+    expect(castFresh(arena, 'W', { windup: true }).success).toBe(true);
+    const hits = hitsOver(arena, arena.red, W.aoeDelay! - 0.05, true);
+    expect(hits.length).toBe(0);
+    expect(arena.red.hasEffect('slow_30')).toBe(false);
+    expect(cloudOf(arena)).toBeUndefined();
+    tickAllFor(arena, 0.1);
+    expect(cloudOf(arena)).toBeDefined();
+  });
+
+  test('stepping out while it billows: never hurt', () => {
+    const arena = zhakrulArena(at(150, 0));
+    castFresh(arena, 'W', { windup: true });
+    arena.red.position.setFrom(at(W.aoeRadius! + 60, 0));
+    expect(hitsOver(arena, arena.red, ZHAKRUL_KIT.cloudDuration + W.aoeDelay!, true).length).toBe(0);
+  });
+
   test('a cloud of 190 around him for 4 seconds', () => {
     const arena = zhakrulArena(at(600, 0));
     expect(castFresh(arena, 'W').success).toBe(true);

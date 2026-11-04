@@ -20,6 +20,7 @@ import {
   slash,
   smoke,
   sparks,
+  warning,
   wisps,
 } from '../recipes';
 
@@ -33,6 +34,8 @@ const SAND_DARK = '#8a6a3a';
 const PINCERS = getAbilityDefinition('zhakrul_q')?.range ?? 150;
 const PINCERS_ANGLE = getAbilityDefinition('zhakrul_q')?.coneAngle ?? Math.PI / 2;
 const CLOUD = getAbilityDefinition('zhakrul_w')?.aoeRadius ?? 190;
+/** How long the cloud billows out before it bites (its warning) */
+const CLOUD_BILLOW = getAbilityDefinition('zhakrul_w')?.aoeDelay ?? 0.75;
 const BURST = getAbilityDefinition('zhakrul_e')?.aoeRadius ?? 130;
 /** How long Death Stinger's venom burns */
 const STING_VENOM = ZHAKRUL_KIT.stingDuration;
@@ -50,16 +53,24 @@ registerAbilityVFX({
   ],
 });
 
-// W: he breathes out the gas in a rush (the cloud that stays is a zone)
+// W: he breathes out the gas: it billows out to the cloud's edge while it
+// can still be stepped out of (its warning, aoeDelay), then it settles and
+// bites (the cloud that stays is a zone)
 registerAbilityVFX({
   abilityId: 'zhakrul_w',
   phases: [
     phase('breath', 0, 'caster', [
-      smoke(VENOM, 14, [16, 28], [80, 180]),
-      smoke(VENOM_DARK, 8, [14, 24], [40, 120]),
-      ring(VENOM, 20, CLOUD, 0.4, 5),
-      light(VENOM, CLOUD, 0.6, 0.5),
-    ], 0.6),
+      smoke(VENOM, 10, [14, 24], [60, 140]),
+      smoke(VENOM_DARK, 6, [12, 20], [30, 90]),
+      warning(VENOM, CLOUD, CLOUD_BILLOW),
+      ring(VENOM_LIGHT, 18, CLOUD, CLOUD_BILLOW, 3),
+      light(VENOM, CLOUD * 0.6, 0.4, CLOUD_BILLOW),
+    ], CLOUD_BILLOW),
+    phase('settle', CLOUD_BILLOW, 'caster', [
+      smoke(VENOM, 14, [18, 30], [20, 70]),
+      ring(VENOM, CLOUD * 0.9, CLOUD, 0.3, 6),
+      light(VENOM, CLOUD, 0.6, 0.4),
+    ], 0.5),
   ],
 });
 

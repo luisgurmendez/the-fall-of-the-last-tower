@@ -256,7 +256,7 @@ describe('Nocthar', () => {
       expect(arena.blue.isCasting()).toBe(true);
       expect(Q.castTime).toBe(0.25);
       // The circle fills a while before the hands come
-      expect(Q.aoeDelay).toBe(0.85);
+      expect(Q.aoeDelay).toBe(0.9);
     });
 
     test('nothing until the ground cracks open, then damage in the circle', () => {
@@ -307,7 +307,7 @@ describe('Nocthar', () => {
       const arena = noctharArena();
       expect(arena.castAbility(arena.blue, 'W', { casting: true }).success).toBe(true);
       expect(arena.blue.isCasting()).toBe(true);
-      expect(W.castTime).toBe(0.5);
+      expect(W.castTime).toBe(0.6);
     });
 
     test('enemies near him take damage and flee from him for 1 s', () => {
@@ -610,7 +610,8 @@ describe('Nocthar', () => {
       const arena = noctharArena(p(300));
       raiseColossus(arena, p(120));
       const hits = recordHits(arena.red);
-      arena.castAbility(arena.blue, 'W', { targetPosition: p(300) });
+      // (windup: the arena doesn't skip its landing time, which the definition states as aoeDelay)
+      arena.castAbility(arena.blue, 'W', { targetPosition: p(300), windup: true });
       step(arena, NOCTHAR_KIT.colossusWWindup + NOCTHAR_KIT.colossusWFlight - 0.15);
       expect(hits.length).toBe(0);
       step(arena, 0.25);

@@ -2,8 +2,10 @@
  * ZhakrulWHandler - Toxic Cloud
  *
  * A cloud of poison stays where he breathed it out (a zone, which slows
- * enemies in it). Once a second it hurts every enemy in it, more for each
- * second in a row it has been there, and gives it a dose of Ancient Venom.
+ * enemies in it). It billows out first (the definition's aoeDelay, its
+ * warning: nothing in it is hurt or slowed yet), then settles: once a
+ * second it hurts every enemy in it, more for each second in a row it has
+ * been there, and gives it a dose of Ancient Venom.
  */
 
 import { ZHAKRUL_KIT, canAbilityAffectEntityType } from '@siege/shared';
@@ -20,8 +22,9 @@ export class ZhakrulWHandler extends BaseAbilityHandler {
     const center = champion.position.clone();
     const radius = definition.aoeRadius ?? 190;
     const damage = this.calculateDamage(definition, rank, champion, damageMultiplier);
+    const billow = definition.aoeDelay ?? 0;
 
-    context.addEntity(new ServerZone({
+    context.schedule(billow, () => context.addEntity(new ServerZone({
       id: context.generateEntityId(),
       position: center.clone(),
       side: champion.side,
@@ -32,13 +35,13 @@ export class ZhakrulWHandler extends BaseAbilityHandler {
       zoneType: 'slow',
       appliesEffects: definition.appliesEffects,
       effectDuration: definition.effectDuration ?? 0.5,
-    }));
+    })));
 
     /** Seconds in a row each enemy has been in the cloud */
     const inCloud = new Map<string, number>();
     const ticks = Math.floor(ZHAKRUL_KIT.cloudDuration);
     for (let i = 0; i < ticks; i++) {
-      context.schedule(i, () => {
+      context.schedule(billow + i, () => {
         const inside = new Set<string>();
         for (const entity of context.getEntitiesInRadius(center, radius + 40)) {
           if (entity.side === champion.side || entity.isDead || !canAbilityAffectEntityType(definition, entity.entityType)) continue;

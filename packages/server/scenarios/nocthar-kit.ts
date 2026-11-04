@@ -69,14 +69,15 @@ export default defineScenario({
     } },
     { at: 3, note: 'Grasping Hands on Kael', run: sim => { sim.cast('nocthar', 'Q', sim.champion('kael').position); } },
     // (its cast, then the circle filling before the hands)
-    { at: 4.15, run: sim => { slowed = sim.champion('kael').hasEffect('slow_30'); } },
-    { at: 4.2, note: 'Kael walks up to him; Lament', run: sim => {
+    { at: 4.25, run: sim => { slowed = sim.champion('kael').hasEffect('slow_30'); } },
+    { at: 4.3, note: 'Kael walks up to him; Lament', run: sim => {
       const nocthar = sim.champion('nocthar').position;
       sim.champion('kael').position.setFrom(nocthar.added(nocthar.subtracted(nocthar).normalized().scaled(0)).clone());
       sim.champion('kael').position.x += 80;
       sim.cast('nocthar', 'W');
     } },
-    { at: 4.7, run: sim => { feared = sim.champion('kael').hasEffect('fear'); } },
+    // (its 0.6 s wail, then the fear)
+    { at: 5.0, run: sim => { feared = sim.champion('kael').hasEffect('fear'); } },
     { at: 6, note: 'Colossus of Bones at Kael', run: sim => { sim.cast('nocthar', 'R', sim.champion('kael').position); } },
     { at: 7.8, run: sim => {
       colossusUp = summons(sim, 'colossus').length === 1;

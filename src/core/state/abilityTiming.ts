@@ -15,6 +15,9 @@
 
 import { CHAMPION_DEFINITIONS, NOCTHAR_KIT, getAbilityDefinition, getCastTime } from '@siege/shared';
 
+/** An order given at once (no trip): the first frames of the cast, as AT_ONCE */
+const AT_ONCE_ORDER = 0.12;
+
 /** Typical trips, for the cast animation (the blow itself comes with its event) */
 const TRIP_TIMES: Record<string, number> = {
   warrior_ultimate: 0.37,
@@ -23,6 +26,8 @@ const TRIP_TIMES: Record<string, number> = {
   kip_e: 0.27,
   // The colossus throws or lunges when its windup ends
   nocthar_colossus_w_throw: NOCTHAR_KIT.colossusWWindup,
+  // Nocthar's order is at once (the bones' landing, its aoeDelay, is the colossus's throw)
+  nocthar_colossus_w: AT_ONCE_ORDER,
   nocthar_colossus_e_trample: NOCTHAR_KIT.colossusEWindup,
   lume_q: 0.5,
 };
