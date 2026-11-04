@@ -441,6 +441,17 @@ export const TauntEffect: ServerCCEffectDef = {
   ccType: 'taunt',
 };
 
+// Fear CC effect: the unit runs away from its source (simulation/fear.ts)
+export const FearEffect: ServerCCEffectDef = {
+  id: 'fear',
+  name: 'Feared',
+  category: 'debuff',
+  stackBehavior: 'refresh',
+  cleansable: true,
+  persistsThroughDeath: false,
+  ccType: 'fear',
+};
+
 // Gorath's Stone Skin (W): +30% armor (gorath_fortify_mr_buff is its magic resist)
 export const GorathFortifyBuff: ServerStatEffectDef = {
   id: 'gorath_fortify_buff',
@@ -1426,6 +1437,7 @@ export const ALL_SERVER_EFFECTS: AnyServerEffectDef[] = [
   DisarmEffect,
   GroundedEffect,
   TauntEffect,
+  FearEffect,
   // Stat buffs
   AttackSpeedBuff,
   MovementSpeedBuff,

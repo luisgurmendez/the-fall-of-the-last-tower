@@ -254,12 +254,13 @@ function computeCCStatus(activeEffects: ActiveEffectState[]): CCStatus {
   const grounded = ccTypes.has('grounded');
   const disarmed = ccTypes.has('disarm');
   const taunted = ccTypes.has('taunt');  // isTaunted
+  const feared = ccTypes.has('fear');    // isFeared
 
   return {
     canMove: !stunned && !rooted,
-    canAttack: !stunned && !disarmed,
-    canCast: !stunned && !silenced && !taunted,
-    canUseMobilityAbilities: !stunned && !rooted && !silenced && !grounded && !taunted,
+    canAttack: !stunned && !disarmed && !feared,
+    canCast: !stunned && !silenced && !taunted && !feared,
+    canUseMobilityAbilities: !stunned && !rooted && !silenced && !grounded && !taunted && !feared,
     isAirborne: ccTypes.has('knockup') || ccTypes.has('knockback'),
   };
 }
@@ -289,6 +290,16 @@ After it, the champion keeps attacking the taunter until ordered otherwise. Tena
 shortens it. A taunted jungle monster fights its taunter (an idle camp turns on it, as
 when hit) and keeps on after: a taunt takes a monster's aggro ([jungle.md](jungle.md)).
 Minions aren't taunted (the roar has `affectsMinions: false`).
+
+**Fear** (`ccType: 'fear'`, effect `fear`, Nocthar's Lament): the unit runs straight away
+from whoever scared it (the effect's `sourceId`), from wherever the source is now; a source
+that's dead or gone leaves it running the way it was going (`simulation/fear.ts`). A feared
+champion can't attack, cast (the cast fails with `feared`, and one in its cast time is
+interrupted) or use summoner spells, a recall is interrupted, and the input handler ignores
+its orders to move, attack, cast or recall, as for a taunt (`ServerChampion.flee`, every
+tick). When it ends, the champion stands where the fear left it. Minions, summons and
+jungle monsters flee the same way and don't attack meanwhile (a shot already in the air
+still lands). Tenacity shortens it.
 
 **Slow resistance**: an effect's `slowResist` shrinks every slow on its holder (a movement
 speed effect with a negative value) by that share while it lasts: Vile's Dark Resilience,

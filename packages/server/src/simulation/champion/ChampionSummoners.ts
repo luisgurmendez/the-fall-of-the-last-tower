@@ -59,7 +59,7 @@ export class ChampionSummoners {
     const spell = this.spells[slot];
     const champion = this.champion;
     if (!spell || spell.cooldownRemaining > 0 || champion.isDead) return false;
-    if (champion.ccStatus.isStunned || champion.ccStatus.isTaunted) return false;
+    if (champion.ccStatus.isStunned || champion.ccStatus.isTaunted || champion.ccStatus.isFeared) return false;
 
     const definition = SUMMONER_SPELLS[spell.id];
     const from = champion.position.clone();

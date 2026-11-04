@@ -67,6 +67,7 @@ export interface AbilityCastResult {
     | "stunned"
     | "rooted"
     | "taunted"
+    | "feared"
     | "casting"
     | "no_ammo";
   manaCost?: number;
@@ -107,6 +108,9 @@ export class ServerAbilityExecutor {
       }
       if (champion.ccStatus.isSilenced) {
         return { success: false, failReason: "silenced" };
+      }
+      if (champion.ccStatus.isFeared) {
+        return { success: false, failReason: "feared" };
       }
       // Taunted: it can only attack its taunter
       return { success: false, failReason: "taunted" };

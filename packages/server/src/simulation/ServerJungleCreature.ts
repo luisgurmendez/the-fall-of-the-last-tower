@@ -35,6 +35,7 @@ import {
 import { ServerEntity, type ServerEntityConfig } from './ServerEntity';
 import { getServerEffectById, isStatEffect } from '../data/effects';
 import { calculateCCStatus, findTaunt } from './champion/ChampionEffects';
+import { findFear, fleeDirection, fleeTarget } from './fear';
 import type { ServerGameContext } from '../game/ServerGameContext';
 import { RewardSystem } from '../systems/RewardSystem';
 import { grantJungleBuffs } from '../systems/JungleBuffs';
@@ -79,6 +80,8 @@ export class ServerJungleCreature extends ServerEntity {
   private attackTarget: string | null = null;
   private attackCooldownTimer: number = 0;
   private moveTarget: Vector | null = null;
+  /** Feared, the way it's running (fear.ts) */
+  private fleeing: Vector | null = null;
   private returnPath: Vector[] = [];
   /** Champions that damaged this creature, with the game time they last did */
   private aggressors: Map<string, number> = new Map();
@@ -190,8 +193,18 @@ export class ServerJungleCreature extends ServerEntity {
     if (this.windup && !this.ccStatus.canCast) this.interruptSpecialAttack(context);
     this.followTaunt(context);
 
-    // State machine (idle creatures wait to be attacked; stunned ones do nothing)
-    switch (this.aiState) {
+    // Feared: it runs from whoever scared it instead of fighting
+    const fear = this.ccStatus.isFeared ? findFear(this.activeEffects) : undefined;
+    if (fear) {
+      this.fleeing = fleeDirection(this, fear, context, this.fleeing);
+      this.moveTarget = fleeTarget(this, this.fleeing);
+    } else if (this.fleeing) {
+      this.fleeing = null;
+      this.moveTarget = null;
+    }
+
+    // State machine (idle creatures wait to be attacked; stunned or feared ones do nothing)
+    if (!fear) switch (this.aiState) {
       case 'aggro':
         if (!this.ccStatus.isStunned) this.updateAggro(context);
         break;

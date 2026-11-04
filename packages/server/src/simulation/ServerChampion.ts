@@ -62,6 +62,7 @@ import { getServerEffectById, isStatEffect } from '../data/effects';
 import { Logger } from '../utils/Logger';
 import { calculateChampionStats, tickStatModifiers } from './champion/ChampionStats';
 import { ChampionEffects, findTaunt, type ActiveShield } from './champion/ChampionEffects';
+import { findFear, fleeDirection, fleeTarget } from './fear';
 import { ChampionBasicAttacks } from './champion/ChampionBasicAttacks';
 import {
   ChampionAbilities,
@@ -174,6 +175,8 @@ export class ServerChampion extends ServerEntity {
 
   /** An ability in its cast time (startCast): it goes off when the time is up */
   private cast: { slot: AbilitySlot; abilityId: string; remaining: number; finish: () => void } | null = null;
+  /** Feared, the way it's running (fear.ts); null when not feared */
+  private fleeing: Vector | null = null;
 
   // Direction facing
   direction: Vector = new Vector(1, 0);
@@ -293,6 +296,9 @@ export class ServerChampion extends ServerEntity {
 
     // Taunted: it goes for its taunter, whatever it was doing
     this.followTaunt(context);
+
+    // Feared: it runs from whoever scared it, whatever it was doing
+    this.flee(context);
 
     // Update forced movement first
     if (this.forcedMovement) {
@@ -662,6 +668,29 @@ export class ServerChampion extends ServerEntity {
     context.pathFollower.clear(this.id);
     this.targetPosition = null;
     this.setAttackTarget(taunter.id);
+  }
+
+  /**
+   * A fear holds it: it runs straight away from whoever scared it (orders to
+   * do anything else are ignored, see InputHandler; it neither attacks nor
+   * casts). When the fear ends it stands where the fear left it.
+   */
+  private flee(context: ServerGameContext): void {
+    const fear = this.ccStatus.isFeared ? findFear(this.activeEffects) : undefined;
+    if (!fear) {
+      if (this.fleeing) {
+        this.fleeing = null;
+        this.targetPosition = null;
+      }
+      return;
+    }
+    this.cancelRecall();
+    this.basicAttacks.cancelPendingAttack();
+    this.endAttackMove();
+    context.pathFollower.clear(this.id);
+    this.targetEntityId = null;
+    this.fleeing = fleeDirection(this, fear, context, this.fleeing);
+    this.targetPosition = fleeTarget(this, this.fleeing);
   }
 
   // =====================

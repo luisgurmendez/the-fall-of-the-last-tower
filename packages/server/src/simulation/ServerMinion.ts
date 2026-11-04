@@ -36,6 +36,7 @@ import {
   type ServerStatEffectDef,
 } from '../data/effects';
 import { steerAroundStructures } from '../navigation/StructureAvoidance';
+import { findFear, fleeDirection, fleeTarget } from './fear';
 
 /**
  * Simplified CC status for minions.
@@ -43,6 +44,8 @@ import { steerAroundStructures } from '../navigation/StructureAvoidance';
 export interface MinionCCStatus {
   isStunned: boolean;
   isRooted: boolean;
+  /** Running away from whoever scared it (fear.ts) */
+  isFeared: boolean;
   slowPercent: number;
   canMove: boolean;
   canAttack: boolean;
@@ -85,6 +88,8 @@ export class ServerMinion extends ServerEntity {
   private lanePath: LanePath | null = null;
   private readonly laneOffset: number;
   private moveTarget: Vector | null = null;
+  /** Feared, the way it's running (fear.ts) */
+  private fleeing: Vector | null = null;
 
   /** How far ahead on the lane the minion steers (world units) */
   private static readonly LANE_LOOKAHEAD = 120;
@@ -129,6 +134,7 @@ export class ServerMinion extends ServerEntity {
   ccStatus: MinionCCStatus = {
     isStunned: false,
     isRooted: false,
+    isFeared: false,
     slowPercent: 0,
     canMove: true,
     canAttack: true,
@@ -251,6 +257,7 @@ export class ServerMinion extends ServerEntity {
     const status: MinionCCStatus = {
       isStunned: false,
       isRooted: false,
+      isFeared: false,
       slowPercent: 0,
       canMove: true,
       canAttack: true,
@@ -284,6 +291,9 @@ export class ServerMinion extends ServerEntity {
           case 'taunt':
             // Taunt doesn't affect minions' CC status
             break;
+          case 'fear':
+            status.isFeared = true;
+            break;
         }
       }
 
@@ -302,7 +312,7 @@ export class ServerMinion extends ServerEntity {
 
     // Compute derived flags
     status.canMove = !status.isStunned && !status.isRooted;
-    status.canAttack = !status.isStunned;
+    status.canAttack = !status.isStunned && !status.isFeared;
 
     return status;
   }
@@ -403,6 +413,13 @@ export class ServerMinion extends ServerEntity {
       }
     }
 
+    // Feared: it runs from whoever scared it, and does nothing else
+    if (this.ccStatus.isFeared && this.ccStatus.canMove) {
+      this.flee(dt, context);
+      return;
+    }
+    this.fleeing = null;
+
     // Only do combat if not stunned
     if (this.ccStatus.canAttack) {
       this.updateCombat(dt, context);
@@ -412,6 +429,16 @@ export class ServerMinion extends ServerEntity {
     if (this.ccStatus.canMove) {
       this.updateMovement(dt, context);
     }
+  }
+
+  /** Run straight away from whoever scared it (fear.ts); it drops its target */
+  private flee(dt: number, context: ServerGameContext): void {
+    const fear = findFear(this.activeEffects);
+    if (!fear) return;
+    this.attackTarget = null;
+    this.fleeing = fleeDirection(this, fear, context, this.fleeing);
+    this.moveTarget = fleeTarget(this, this.fleeing);
+    this.position.add(this.fleeing.scaled(this.getEffectiveMovementSpeed() * dt));
   }
 
   /**
@@ -732,6 +759,7 @@ export class ServerMinion extends ServerEntity {
       // CC status for visual feedback
       isStunned: this.ccStatus.isStunned || undefined,
       isRooted: this.ccStatus.isRooted || undefined,
+      isFeared: this.ccStatus.isFeared || undefined,
       slowPercent: this.ccStatus.slowPercent > 0 ? this.ccStatus.slowPercent : undefined,
     };
   }

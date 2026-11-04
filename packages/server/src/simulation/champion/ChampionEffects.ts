@@ -65,6 +65,7 @@ export function calculateCCStatus(activeEffects: readonly ActiveEffectState[]): 
     isRooted: false,
     isDisarmed: false,
     isTaunted: false,
+    isFeared: false,
     canMove: true,
     canAttack: true,
     canCast: true,
@@ -100,6 +101,10 @@ export function calculateCCStatus(activeEffects: readonly ActiveEffectState[]): 
         // It walks (to its taunter) and attacks (its taunter), but casts nothing
         status.isTaunted = true;
         break;
+      case 'fear':
+        // It runs (away from whoever scared it), and neither attacks nor casts
+        status.isFeared = true;
+        break;
       case 'slow':
         // Slow doesn't set a flag, it modifies movement speed via stat effect
         break;
@@ -108,8 +113,8 @@ export function calculateCCStatus(activeEffects: readonly ActiveEffectState[]): 
 
   // Compute ability to act
   status.canMove = !status.isStunned && !status.isRooted;
-  status.canAttack = !status.isStunned && !status.isDisarmed;
-  status.canCast = !status.isStunned && !status.isSilenced && !status.isTaunted;
+  status.canAttack = !status.isStunned && !status.isDisarmed && !status.isFeared;
+  status.canCast = !status.isStunned && !status.isSilenced && !status.isTaunted && !status.isFeared;
   status.canUseMobilityAbilities = status.canMove && status.canCast && !status.isGrounded;
 
   return status;

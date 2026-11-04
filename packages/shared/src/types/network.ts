@@ -447,6 +447,7 @@ export interface MinionSnapshot {
   // CC status for visual feedback
   isStunned?: boolean;
   isRooted?: boolean;
+  isFeared?: boolean;
   slowPercent?: number;
 }
 
