@@ -28,3 +28,5 @@ export * from './abilities';
 
 // Summoner spells
 export * from './summoners';
+export { dodgeOf, DODGE_RULES, DODGE_MOVE_SPEED, DODGE_BODY_RADIUS } from './abilities/dodge';
+export type { Dodge, DodgeKind } from './abilities/dodge';

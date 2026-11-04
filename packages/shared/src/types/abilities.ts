@@ -306,6 +306,12 @@ export interface AbilityDefinition {
    * spent). Absent: the default for its kind (getCastTime).
    */
   castTime?: number;
+  /**
+   * Why the dodge rule (abilities/dodge.ts) doesn't apply to it: its warning
+   * is in its handler (a windup, a flight) or it isn't dodged by walking out
+   * (homing on marks, a lingering zone you walk out of). Say it in a sentence.
+   */
+  dodgeExempt?: string;
 
   /** Maximum cast range */
   range?: number;
