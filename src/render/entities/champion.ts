@@ -28,6 +28,7 @@ import {
 } from "@/render/overlays/healthBars";
 import { getTrailHealth } from "@/render/overlays/damageTrail";
 import { getCrowdControl, renderCrowdControl } from "@/render/overlays/crowdControl";
+import { getStatusMarks, renderStatusMarks } from "@/render/overlays/statusMarks";
 import { renderMarkIndicators } from "@/render/overlays/statusIndicators";
 import { getGPURenderer } from "@/gpu/GPURenderer";
 import {
@@ -308,6 +309,15 @@ export class ChampionRenderer {
     }
 
     this.renderItemPassiveAuras(ctx, snapshot.activeEffects);
+
+    // Slowed, burning, poisoned, bleeding, hastened: marks on the champion (statusMarks.ts)
+    renderStatusMarks(
+      ctx,
+      getStatusMarks(snapshot.activeEffects),
+      healthBarYOffset + HEALTH_BAR_PADDING,
+      feet?.y ?? -healthBarYOffset - HEALTH_BAR_PADDING,
+      this.rc.animationTime,
+    );
 
     // Stunned, rooted, silenced...: shown on the champion with what it is and the time left
     renderCrowdControl(

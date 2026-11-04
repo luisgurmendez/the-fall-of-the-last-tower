@@ -575,3 +575,21 @@ Drawn directly by renderers rather than as VFX definitions:
 - **Status icons** (`statusIndicators.ts`): knockup, root, silence, slows, burn and the jungle buffs.
 
 Ability VFX are registered under the ability ID the server sends in `ABILITY_CAST`. The client contract test (`packages/client/src/test/ChampionClientContract.test.ts`) fails if an ability has no VFX or a registered key is never spawned.
+
+## Status marks
+
+What a champion is under is drawn on it, so it reads at a glance and the same everywhere, whichever
+ability caused it.
+- **Crowd control** (`src/render/overlays/crowdControl.ts`): stars (stunned, suppressed, airborne),
+  roots, a crossed-out bubble (silenced), a red "!" (taunted), a ghost (feared), a dark cloud
+  (blinded), a crossed-out sword (disarmed) and a golden shell (stasis). Under the feet, a label
+  says what it is and how long is left.
+- **The rest** (`src/render/overlays/statusMarks.ts`):
+  - slowed: pale blue chevrons pointing down, circling the feet;
+  - burning: flames;
+  - poisoned: green bubbles;
+  - bleeding: red drops;
+  - hastened: speed lines.
+
+  Effects are sorted into marks by id. `packages/client/src/test/StatusMarks.test.ts` checks that
+  every server effect that slows, hastens or does damage over time has its mark.

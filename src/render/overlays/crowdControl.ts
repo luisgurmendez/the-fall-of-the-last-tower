@@ -3,8 +3,9 @@
  * act: a golden shell (in stasis, by its own hourglass), stars circling its
  * head (stunned, suppressed, airborne), roots
  * around its feet (rooted), a crossed-out speech bubble (silenced), a red
- * "!" (taunted), a pale shivering ghost over its head (feared), a dark cloud (blinded), and under its feet a label with
- * what it is and a bar of the time left.
+ * "!" (taunted), a pale shivering ghost over its head (feared), a dark cloud (blinded),
+ * a crossed-out sword (disarmed), and under its feet a label with what it is and a bar of
+ * the time left. Slows, burning, poison, bleeding and haste have their marks in statusMarks.ts.
  */
 
 /** Kinds of crowd control, strongest first (the label shows the strongest) */
@@ -119,6 +120,7 @@ export function renderCrowdControl(
   if (kinds.has("taunt")) drawTaunt(ctx, headY, time);
   if (kinds.has("fear")) drawFear(ctx, headY, time);
   if (kinds.has("blind")) drawBlind(ctx, headY, time);
+  if (kinds.has("disarm")) drawDisarm(ctx, headY);
 
   drawLabel(ctx, crowdControl[0], feetY);
   ctx.restore();
@@ -241,6 +243,32 @@ export function drawFear(ctx: CanvasRenderingContext2D, headY: number, time: num
 }
 
 /** A dark cloud over the eyes */
+/** A sword crossed out over the head: it can't attack */
+function drawDisarm(ctx: CanvasRenderingContext2D, headY: number): void {
+  const y = headY - 4;
+  ctx.lineCap = "round";
+  // The sword: blade, guard, grip
+  ctx.strokeStyle = "#e0e0e0";
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(-6, y + 6);
+  ctx.lineTo(6, y - 6);
+  ctx.stroke();
+  ctx.strokeStyle = "#8d6e63";
+  ctx.beginPath();
+  ctx.moveTo(-7, y + 1);
+  ctx.lineTo(-1, y + 7);
+  ctx.stroke();
+  // Crossed out
+  ctx.strokeStyle = "#ff7043";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(0, y, 9, 0, Math.PI * 2);
+  ctx.moveTo(-6.4, y - 6.4);
+  ctx.lineTo(6.4, y + 6.4);
+  ctx.stroke();
+}
+
 function drawBlind(ctx: CanvasRenderingContext2D, headY: number, time: number): void {
   ctx.fillStyle = "rgba(40, 40, 50, 0.75)";
   for (let i = 0; i < 4; i++) {
