@@ -13,9 +13,11 @@ const MAGNUS_STRIPS = generatedStrips("magnus", {
   e: "magnus_mud",
   r: "magnus_meteor",
 }, {
-  // The frames where the blow lands: the flame leaves the staff, the barrier rises, the mud pools, the flames rise
+  // The frames where the blow lands: the flame leaves the staff, the barrier rises, the mud pools,
+  // the staff sweeps down at the meteor's target as it hits (R's strip of 2026-11-04)
   attackBlow: 8,
-  abilityBlows: { magnus_fireball: 8, magnus_shield: 4, magnus_mud: 5, magnus_meteor: 6 },
+  // (Q's strip of 2026-11-04: the staff swung forward, pointing, on frame 6)
+  abilityBlows: { magnus_fireball: 6, magnus_shield: 4, magnus_mud: 5, magnus_meteor: 7 },
 });
 
 /** World units per sprite pixel */

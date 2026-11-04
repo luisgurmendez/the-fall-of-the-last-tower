@@ -13,9 +13,10 @@ const ELARA_STRIPS = generatedStrips("elara", {
   e: "elara_speed",
   r: "elara_resurrection",
 }, {
-  // The frames where the blow lands: the staff flashes, the beam, the shield, the swirl, the pillar
+  // The frames where the blow lands: the staff flashes, the staff pointed at the ally, her palm held
+  // out to the ally, the swirl, the staff raised high (Q, W and R's strips of 2026-11-04)
   attackBlow: 4,
-  abilityBlows: { elara_heal: 3, elara_barrier: 4, elara_speed: 3, elara_resurrection: 2 },
+  abilityBlows: { elara_heal: 4, elara_barrier: 5, elara_speed: 3, elara_resurrection: 4 },
 });
 
 /** World units per sprite pixel */

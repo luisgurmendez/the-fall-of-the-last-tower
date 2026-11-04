@@ -622,7 +622,8 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
     name: 'Magnus',
     description: 'a broad-shouldered bearded battlemage in crimson robes with iron pauldrons, face clearly visible, holding a tall staff at his side with a burning orb above his head height',
     attack: 'thrusts the staff forward and fires a small fire bolt',
-    q: 'swings the staff and hurls a large fireball forward',
+    // Redone 2026-11-04: the old take drew its own fireball over him as the game's flew off
+    q: 'swings the staff forward in an overhand arc and points it straight ahead, then pulls it back',
     w: 'plants the staff as a shimmering arcane barrier forms around him',
     e: 'points the staff at the ground, conjuring a swirling pool of mud',
     // Redone 2026-11-04: Inferno Zone falls far away; the old take burned around his feet
@@ -637,7 +638,7 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
     q: 'raises the staff and points it gently forward at an ally, then lowers it',
     w: 'steps forward and holds the open palm of her free hand out toward an ally',
     e: 'spins gracefully once on the spot, robes swirling',
-    r: 'lifts the staff high above her head with both hands, looking up, then brings it down slowly',
+    r: 'raises the golden staff straight up above her head with both arms fully stretched toward the sky, holds it there looking up, then lowers it',
     feetFromFirstFrame: true,
   }),
   minion(
