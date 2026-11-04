@@ -52,11 +52,12 @@ export default defineScenario({
     { at: 5.4, note: 'attack a while', run: sim => { sim.attack('zhakrul', sim.champion('tank').id); } },
     { at: 7.6, run: sim => { sim.stop('zhakrul'); dosesBeforeCloud = doses(sim); } },
     { at: 7.7, note: 'W', run: sim => { sim.cast('zhakrul', 'W'); } },
-    { at: 7.85, run: sim => {
+    { at: 8.0, note: 'Q on the poisoned tank', run: sim => { sim.cast('zhakrul', 'Q', { x: 100, y: 0 }); } },
+    // (the cloud billows out for 0.75 s before it bites)
+    { at: 8.5, run: sim => {
       ancient = sim.champion('tank').hasEffect('zhakrul_ancient_venom');
       slowed = sim.champion('tank').hasEffect('slow_30');
     } },
-    { at: 8.0, note: 'Q on the poisoned tank', run: sim => { sim.cast('zhakrul', 'Q', { x: 100, y: 0 }); } },
     { at: 9.0, note: 'back off, E under the tank', run: sim => {
       sim.champion('zhakrul').position.x = -220;
       sim.cast('zhakrul', 'E', { x: 100, y: 0 });
