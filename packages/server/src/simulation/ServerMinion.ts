@@ -572,7 +572,7 @@ export class ServerMinion extends ServerEntity {
   }
 
   /** How fast their shots fly: a caster's bolt, a siege minion's cannonball (slower than champions' attacks, so they read) */
-  private static readonly PROJECTILE_SPEED = { caster: 400, siege: 450 };
+  private static readonly PROJECTILE_SPEED = { caster: 330, siege: 450 };
   /** Projectile radius for collision */
   private static readonly PROJECTILE_RADIUS = 8;
 

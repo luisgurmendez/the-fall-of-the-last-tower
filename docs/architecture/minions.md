@@ -45,7 +45,7 @@ A minion keeps its target while it's alive, visible, in reach and the minion is 
 
 Tests: `packages/server/src/test/MinionAggro.test.ts`, `ServerMinion.test.ts`; scenarios `minion-call-for-help`, `bot-sieges-tower`.
 
-Casters and siege minions fire targeted projectiles (`minion_caster` at 400, `minion_siege` at 450: slower than champions' attacks, so a wave's shots read; League's 650 and 1200 would be about 270 and 500 at this map's scale), drawn small (`src/gpu/fx/projectiles.ts`, `src/render/entities/projectile.ts`). Melee and super minions hit instantly.
+Casters and siege minions fire targeted projectiles (`minion_caster` at 330, `minion_siege` at 450: slower than champions' attacks, so a wave's shots read; League's 650 and 1200 would be about 270 and 500 at this map's scale), drawn small (`src/gpu/fx/projectiles.ts`, `src/render/entities/projectile.ts`). Melee and super minions hit instantly.
 
 Structures fall in lane order (see [map.md](map.md)): a wave that has taken a lane's towers walks on to that lane's inhibitor and hits it, then, with it destroyed, walks past it to the nexus.
 

@@ -97,7 +97,7 @@ describe('Minion aggro', () => {
     sim.dispose();
   });
 
-  test("casters' bolts and cannonballs fly slower than champions' attacks (400 and 450)", () => {
+  test("casters' bolts and cannonballs fly slower than champions' attacks (330 and 450)", () => {
     const sim = new Simulation({ seed: 1, minionWaves: false, jungle: false, structures: false });
     sim.addMinion({ side: 'blue', lane: 'mid', at: { x: 0, y: 100 }, type: 'caster' });
     sim.addMinion({ side: 'blue', lane: 'mid', at: { x: -20, y: 120 }, type: 'siege' });
@@ -110,7 +110,7 @@ describe('Minion aggro', () => {
         if (entity instanceof ServerTargetedProjectile) speeds.set(entity.toSnapshot().abilityId as string, entity.speed);
       }
     }
-    expect(speeds.get('minion_caster')).toBe(400);
+    expect(speeds.get('minion_caster')).toBe(330);
     expect(speeds.get('minion_siege')).toBe(450);
     sim.dispose();
   });
