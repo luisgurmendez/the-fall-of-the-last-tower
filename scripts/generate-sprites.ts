@@ -406,9 +406,11 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
     description: 'a hulking hunched grey werewolf with ragged dark fur, glowing red eyes, a broken iron chain around his neck and long black claws',
     attack: 'slashes forward with one clawed hand',
     q: 'lunges forward and bites hard with his jaws',
-    w: 'rakes a wide sweeping swipe with both claws in front of him',
+    // Not his attack's one-handed slash: both arms, a wide sweep
+    w: 'rears up and brings both clawed arms down and across in one wide two-handed sweep in front of him, his body twisting into it',
     e: 'crouches low and pounces forward through the air',
-    r: 'throws his head back and howls as a red glow surrounds him',
+    // No glow (it gets baked in as a flat red blob): the game draws his red rage
+    r: 'throws his head back and howls up at the sky, chest out and arms spread wide',
   }),
   champion('calamitus', {
     name: 'Calamitus',
