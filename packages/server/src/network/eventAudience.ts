@@ -1,7 +1,8 @@
 /**
  * Who gets a game event. Most go to every player; a ping only to its team
  * (the enemy mustn't learn where it points), an emote to its team and to
- * whoever sees the champion.
+ * whoever sees the champion, a chat message to its team or, sent to all,
+ * to everyone.
  */
 
 import { GameEventType, type GameEvent } from '@siege/shared';
@@ -16,6 +17,8 @@ export function reachesSide(event: GameEvent, side: number, sees: (entityId: str
       return event.data.side === side;
     case GameEventType.EMOTE:
       return event.data.side === side || sees(event.data.entityId as string);
+    case GameEventType.CHAT:
+      return event.data.scope === 'all' || event.data.side === side;
     default:
       return true;
   }

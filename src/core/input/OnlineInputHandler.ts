@@ -37,6 +37,7 @@ import { getControls } from "@/core/input/controls";
 import { abilityAction, itemAction, summonerAction, type ControlAction } from "@/core/input/keyBindings";
 import { CastController, abilityAims, abilityReady, itemAims, summonerAims, type Castable } from "@/core/input/castModes";
 import { getItemActive } from "@/data/itemStats";
+import { isTypingTarget } from "@/core/state/chat";
 
 const ABILITY_SLOTS: AbilitySlot[] = ["Q", "W", "E", "R"];
 const SUMMONER_SLOTS: (0 | 1)[] = [0, 1];
@@ -212,7 +213,7 @@ export class OnlineInputHandler implements GameObject {
 
   /** Escape drops the preview shown before the menu hears it */
   private readonly onEscape = (event: KeyboardEvent) => {
-    if (event.key !== "Escape" || performance.now() - this.lastStepAt > ESCAPE_WINDOW_MS) return;
+    if (event.key !== "Escape" || isTypingTarget(event.target) || performance.now() - this.lastStepAt > ESCAPE_WINDOW_MS) return;
     if (this.casts.cancel()) event.stopImmediatePropagation();
   };
 

@@ -73,7 +73,7 @@ export enum InputType {
   RECALL = 8,
   /** Ping the map for the team (PingInput) */
   PING = 9,
-  /** Chat message */
+  /** Chat message (ChatInput) */
   CHAT = 10,
   /** Place a ward */
   PLACE_WARD = 11,
@@ -185,6 +185,22 @@ export interface PingInput extends InputMessage {
   y: number;
 }
 
+/** Who a chat message is for: the sender's team, or both teams */
+export const CHAT_SCOPES = ['team', 'all'] as const;
+export type ChatScope = typeof CHAT_SCOPES[number];
+
+/** The longest chat message (characters); the server cuts longer ones */
+export const CHAT_MAX_LENGTH = 150;
+
+/**
+ * A chat message: for the team, or for everyone in the match.
+ */
+export interface ChatInput extends InputMessage {
+  type: InputType.CHAT;
+  text: string;
+  scope: ChatScope;
+}
+
 /** The emotes (the emote wheel) */
 export const EMOTES = ['laugh', 'cool', 'angry', 'cry', 'shock', 'heart', 'thumbs_up', 'gg'] as const;
 export type EmoteId = typeof EMOTES[number];
@@ -255,6 +271,7 @@ export type ClientInput =
   | SellItemInput
   | RecallInput
   | PingInput
+  | ChatInput
   | EmoteInput
   | PlaceWardInput
   | SummonerSpellInput
@@ -734,6 +751,11 @@ export enum GameEventType {
   PING = 22,
   /** A champion's emote ({ entityId, side, emote }); only its team and who sees it get it */
   EMOTE = 23,
+  /**
+   * A chat message ({ entityId, side, championId, scope, text }): a team
+   * message only reaches its side, one to all reaches both
+   */
+  CHAT = 24,
 }
 
 /**

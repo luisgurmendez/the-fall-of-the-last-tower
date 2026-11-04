@@ -438,7 +438,8 @@ Events requiring reliable delivery (`shouldSendReliably`):
 
 Most events go to every player; `GameRoom` filters the unreliable ones per player with
 `reachesSide` (`network/eventAudience.ts`): a `PING` only to its team, an `EMOTE` to its team and
-to a side that sees the champion (see [signals.md](signals.md)).
+to a side that sees the champion, a `CHAT` message to its team or, sent to all, to both sides (see
+[signals.md](signals.md)).
 
 Each reliable event is resent every 10 ticks (up to 10 times) until the client acknowledges it. The client
 (`NetworkClient.withoutRepeatedEvents`) passes each event on once: messages arrive in order, so an

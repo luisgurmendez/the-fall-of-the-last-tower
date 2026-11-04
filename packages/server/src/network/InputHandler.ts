@@ -24,16 +24,19 @@ import {
   UseItemInput,
   PingInput,
   EmoteInput,
+  ChatInput,
   AbilitySlot,
   GameConfig,
   GameEventType,
   PING_TYPES,
   EMOTES,
+  CHAT_SCOPES,
 } from '@siege/shared';
 import type { ServerChampion } from '../simulation/ServerChampion';
 import type { ServerGameContext } from '../game/ServerGameContext';
 import { abilityExecutor } from '../simulation/ServerAbilityExecutor';
 import { Logger } from '../utils/Logger';
+import { cleanChatText } from './chat';
 
 export interface InputValidationResult {
   valid: boolean;
@@ -72,11 +75,14 @@ const RATE_LIMITS: Record<InputType, number> = {
 const PING_BURST = { count: 5, seconds: 6 };
 /** Seconds between a player's emotes */
 const EMOTE_COOLDOWN = 2;
+/** Chat: at most this many messages in this many seconds */
+const CHAT_BURST = { count: 5, seconds: 5 };
 
 const ABILITY_SLOTS: ReadonlySet<unknown> = new Set<AbilitySlot>(['Q', 'W', 'E', 'R']);
 const WARD_TYPES: ReadonlySet<unknown> = new Set(['stealth', 'control', 'farsight']);
 const PING_TYPE_SET: ReadonlySet<unknown> = new Set(PING_TYPES);
 const EMOTE_SET: ReadonlySet<unknown> = new Set(EMOTES);
+const CHAT_SCOPE_SET: ReadonlySet<unknown> = new Set(CHAT_SCOPES);
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);
@@ -142,6 +148,9 @@ function hasValidPayload(input: ClientInput): boolean {
     case InputType.EMOTE:
       return EMOTE_SET.has(data.emote);
 
+    case InputType.CHAT:
+      return typeof data.text === 'string' && CHAT_SCOPE_SET.has(data.scope);
+
     default:
       return true;
   }
@@ -152,8 +161,8 @@ export interface InputHandlerOptions {
   now?: () => number;
 }
 
-/** The inputs a dead champion still sends: the shop, and pings */
-const DEAD_CHAMPION_INPUTS: ReadonlySet<InputType> = new Set([InputType.BUY_ITEM, InputType.SELL_ITEM, InputType.PING]);
+/** The inputs a dead champion still sends: the shop, pings and chat */
+const DEAD_CHAMPION_INPUTS: ReadonlySet<InputType> = new Set([InputType.BUY_ITEM, InputType.SELL_ITEM, InputType.PING, InputType.CHAT]);
 
 /** What a taunted champion can't be ordered to do: it attacks its taunter, nothing else */
 const TAUNTED_IGNORED_INPUTS: ReadonlySet<InputType> = new Set([
@@ -188,8 +197,9 @@ export class InputHandler {
   // Last acknowledged sequence per player
   private lastAckedSeq: Map<string, number> = new Map();
 
-  // Each player's recent pings and last emote (game time), for their limits
+  // Each player's recent pings and chat messages, and last emote (game time), for their limits
   private recentPings: Map<string, number[]> = new Map();
+  private recentChats: Map<string, number[]> = new Map();
   private lastEmoteAt: Map<string, number> = new Map();
 
   constructor(options: InputHandlerOptions = {}) {
@@ -326,7 +336,34 @@ export class InputHandler {
       case InputType.EMOTE:
         this.handleEmoteInput(champion, input as EmoteInput, context);
         break;
+
+      case InputType.CHAT:
+        this.handleChatInput(champion, input as ChatInput, context);
+        break;
     }
+  }
+
+  /**
+   * A chat message, cleaned (chat.ts), for the team or for everyone
+   * (GameRoom sends CHAT events by scope), unless it's empty or the player
+   * sent too many lately.
+   */
+  private handleChatInput(champion: ServerChampion, input: ChatInput, context: ServerGameContext): void {
+    const text = cleanChatText(input.text);
+    if (text === '') return;
+    const now = context.getGameTime();
+    const recent = (this.recentChats.get(champion.playerId) ?? []).filter(time => now - time < CHAT_BURST.seconds);
+    this.recentChats.set(champion.playerId, recent);
+    if (recent.length >= CHAT_BURST.count) return;
+    recent.push(now);
+
+    context.addEvent(GameEventType.CHAT, {
+      entityId: champion.id,
+      side: champion.side,
+      championId: champion.definition.id,
+      scope: input.scope,
+      text,
+    });
   }
 
   /**
@@ -617,6 +654,7 @@ export class InputHandler {
     this.rateLimitTracking.delete(playerId);
     this.lastAckedSeq.delete(playerId);
     this.recentPings.delete(playerId);
+    this.recentChats.delete(playerId);
     this.lastEmoteAt.delete(playerId);
   }
 }

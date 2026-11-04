@@ -30,6 +30,7 @@ export function howToPlayRows(): [string, string][] {
     [key("scoreboard"), "Scoreboard (hold)"],
     [`Alt or ${key("ping")} + left-click`, "Ping (hold and drag for the ping wheel)"],
     [key("emotes"), "Emotes (hold, let go over one)"],
+    ["Enter", "Chat with your team (Shift+Enter, or /all, for everyone)"],
     [key("camera_lock"), "Lock the camera on your champion"],
     [key("camera_center"), "Center the camera on your champion"],
     [`Mouse wheel, ${key("zoom_in")} ${key("zoom_out")}`, "Zoom"],

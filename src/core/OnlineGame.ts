@@ -23,6 +23,8 @@ import type { MatchData } from '@/ui/matchmaking/MatchmakingUI';
 import type { GameApi } from './gameContext';
 import { getControls } from '@/core/input/controls';
 import { normalizeKey } from '@/core/input/keyBindings';
+import { isTypingTarget } from '@/core/state/chat';
+import { ChatBox } from '@/ui/ChatBox';
 
 /**
  * Configuration for online game.
@@ -41,6 +43,8 @@ export interface OnlineGameConfig {
 class OnlineGame {
   /** The Escape menu (resume, surrender) */
   private gameMenu!: GameMenu;
+  /** The match's chat (Enter) */
+  private chatBox!: ChatBox;
   /** F3: what the server thinks about the units in sight (practice matches) */
   private readonly debugOverlay: DebugOverlay;
   private clock: Clock;
@@ -98,12 +102,16 @@ class OnlineGame {
     // Note: No pause on blur/focus - online games continue running on server
 
     this.gameMenu = new GameMenu(() => this.networkClient.sendSurrender(), this.debugOverlay);
+    this.chatBox = new ChatBox(this.stateManager.getChat(), this.networkClient);
 
     // Wire up shop to network client for online buy/sell
     const shopUI = getShopUI();
     shopUI.setNetworkClient(this.networkClient);
 
     window.addEventListener('keydown', (e) => {
+      // Typed into the chat: not a key for the game (the chat closes itself on Escape)
+      if (isTypingTarget(e.target)) return;
+
       // P (the shop key) toggles the shop
       if (normalizeKey(e.key) === getControls().keyFor('shop')) {
         shopUI.toggle();
@@ -186,10 +194,11 @@ class OnlineGame {
   }
 
   /**
-   * The match is over: the in-match menu and the debug overlay go away.
+   * The match is over: the in-match menu, the chat and the debug overlay go away.
    */
   onMatchEnd(): void {
     this.gameMenu.dispose();
+    this.chatBox.dispose();
     this.debugOverlay.dispose();
   }
 

@@ -22,6 +22,7 @@ import type { CampTimers } from './campTimers';
 import { ANNOUNCEMENT_DURATION, type Announcements } from './announcements';
 import type { DamageTaken } from './damageTaken';
 import type { Signals } from './signals';
+import type { ChatLog } from './chat';
 import { spawnWorldVFX } from './entityVFX';
 import { playEventSound } from '@/audio/gameSounds';
 
@@ -44,6 +45,8 @@ export interface GameEventContext {
   readonly scores: Map<string, ChampionScore>;
   /** Pings and emotes */
   readonly signals: Signals;
+  /** The match's chat */
+  readonly chat: ChatLog;
 }
 
 /** A champion's kills, deaths and assists */
@@ -456,6 +459,22 @@ export function processGameEvent(event: GameEvent, ctx: GameEventContext): void 
 
     case GameEventType.EMOTE: {
       ctx.signals.addEmote(event.data.entityId as string, event.data.emote as EmoteId, now);
+      break;
+    }
+
+    case GameEventType.CHAT: {
+      // The server sends a team message to its team only
+      const { text, entityId, championId, side, scope } = event.data;
+      if (typeof text !== 'string') break;
+      ctx.chat.add({
+        text,
+        scope: scope === 'all' ? 'all' : 'team',
+        entityId: entityId as string,
+        championId: championId as string,
+        isAlly: side === ctx.localSide,
+        isLocal: entityId === ctx.localEntityId,
+        time: now,
+      });
       break;
     }
   }

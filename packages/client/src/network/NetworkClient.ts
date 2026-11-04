@@ -21,6 +21,7 @@ import {
   type WardType,
   type PingType,
   type EmoteId,
+  type ChatScope,
   type GameEndData,
   type DebugStateData,
   type LobbyRequest,
@@ -376,6 +377,17 @@ export class NetworkClient {
       pingType,
       x,
       y,
+    });
+  }
+
+  /** Say something in the chat: to the team, or to everyone */
+  sendChatInput(text: string, scope: ChatScope): void {
+    this.sendInput({
+      seq: ++this.inputSeq,
+      clientTime: Date.now(),
+      type: InputType.CHAT,
+      text,
+      scope,
     });
   }
 

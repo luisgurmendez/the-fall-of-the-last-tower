@@ -134,6 +134,8 @@ export type {
   SellItemInput,
   RecallInput,
   PingInput,
+  ChatInput,
+  ChatScope,
   PingType,
   EmoteInput,
   EmoteId,
@@ -183,6 +185,8 @@ export {
   ClientMessageType,
   LOBBY_MAX_TEAM_SIZE,
   PING_TYPES,
+  CHAT_SCOPES,
+  CHAT_MAX_LENGTH,
   EMOTES,
 } from './network';
 

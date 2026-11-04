@@ -1,6 +1,7 @@
-# Pings and Emotes
+# Pings, Emotes and Chat
 
-Players signal their team with pings (marks on the map) and show emotes over their champion.
+Players signal their team with pings (marks on the map), show emotes over their champion, and
+write in the chat (to the team or to everyone).
 
 ## Controls
 
@@ -44,3 +45,33 @@ learn where it points), an emote to its team and to a side that sees the champio
   (pings 11 pixels square, emotes 13), with each ping's color and name and each emote's name.
 - Sounds (`src/audio/gameSounds.ts`): `ping_<type>` on the `ui` bus (heard by the team wherever
   the camera is), `emote_pop` in the world at the champion.
+
+## Chat
+
+| Input | Does |
+|-------|------|
+| Enter | Opens the chat for the team |
+| Shift+Enter | Opens it for everyone (`[All]`) |
+| `/all ...`, `/a ...` / `/team ...`, `/t ...` at the start | Sends that message to everyone / the team (`parseChatDraft`) |
+| Tab, while typing | Switches between team and all |
+| Enter, while typing | Sends (an empty message isn't sent) and closes it |
+| Escape, or a click on the game | Closes it without sending (Escape doesn't open the menu) |
+
+`src/ui/ChatBox.ts` draws it at the left, above the HUD: closed, the last 6 lines of the last 10
+seconds (fading over their last 2); open, the last 30 over a dark backdrop. Names are the champions'
+(players have names only in rooms): yours green, allies blue, enemies red. Lines are text, never
+markup. While it's open the keys are the chat's: `InputManager` and the other key listeners skip a
+key typed into a text field (`isTypingTarget`, `src/core/state/chat.ts`), so typing "qwer" casts
+nothing. The log (`ChatLog`, the last 100) lives in `OnlineStateManager.getChat()`; the chat box
+goes away when the match ends.
+
+Server: `CHAT` input (`ChatInput { text, scope: 'team' | 'all' }`, `CHAT_SCOPES`). `InputHandler`
+checks that `text` is a string and the scope one of the two, then cleans the text
+(`network/chat.ts`, `cleanChatText`: line breaks and tabs become spaces, control characters and
+invisible reordering marks go, the ends are trimmed, cut to `CHAT_MAX_LENGTH` = 150 characters
+without splitting an emoji) and drops it if empty. A player sends at most 5 messages in 5 seconds
+(`CHAT_BURST`; empty ones don't count). Dead, stunned or taunted champions chat too. It emits
+`GameEventType.CHAT { entityId, side, championId, scope, text }`, an unreliable event:
+`reachesSide` sends a team message to its side only and one to all to both sides.
+
+Tests: `packages/server/src/test/Chat.test.ts`, `packages/client/src/test/ChatLog.test.ts`.

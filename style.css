@@ -239,6 +239,90 @@ canvas {
     min-height: 260px;
 }
 
+/* The match's chat (src/ui/ChatBox.ts): left side, above the HUD */
+.chat-box {
+    position: fixed;
+    left: 12px;
+    bottom: 170px;
+    z-index: 2000;
+    width: min(420px, 40vw);
+    font-family: var(--pixel-font);
+    font-size: 19px;
+    pointer-events: none;
+}
+
+.chat-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 260px;
+    overflow-y: hidden;
+}
+
+.chat-box.open .chat-lines {
+    padding: 6px 8px;
+    background: rgba(10, 10, 18, 0.72);
+    border: 2px solid var(--pixel-border);
+    border-bottom: none;
+    overflow-y: auto;
+    pointer-events: auto;
+}
+
+.chat-line {
+    color: #e8e8f0;
+    text-shadow: 1px 1px 0 #000, -1px 1px 0 #000;
+    overflow-wrap: anywhere;
+}
+
+.chat-scope {
+    color: #f5c542;
+}
+
+.chat-name.ally {
+    color: #5dade2;
+}
+
+.chat-name.enemy {
+    color: #ec7063;
+}
+
+.chat-name.local {
+    color: #7cfc8a;
+}
+
+.chat-input-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    background: rgba(10, 10, 18, 0.88);
+    border: 2px solid var(--pixel-border);
+    pointer-events: auto;
+}
+
+.chat-input-row[hidden] {
+    display: none;
+}
+
+.chat-input-scope {
+    color: #5dade2;
+}
+
+.chat-input-scope.all {
+    color: #f5c542;
+}
+
+.chat-input {
+    flex: 1;
+    min-width: 0;
+    font-family: var(--pixel-font);
+    font-size: 19px;
+    color: #ffffff;
+    background: transparent;
+    border: none;
+    outline: none;
+}
+
 /* Debug overlay's panel (src/debug/DebugOverlay.ts) */
 .debug-panel {
     position: fixed;

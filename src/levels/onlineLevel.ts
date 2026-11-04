@@ -36,6 +36,7 @@ import { findLocalPlayer } from '@/ui/matchmaking/types';
 import type { GameObject } from '@/core/GameObject';
 import { getControls } from '@/core/input/controls';
 import { normalizeKey } from '@/core/input/keyBindings';
+import { isTypingTarget } from '@/core/state/chat';
 
 /**
  * Configuration for online level.
@@ -239,6 +240,7 @@ class OnlineCameraController implements GameObject {
 
     // Listen for camera control keys (the player's bindings)
     this.keyListener = (e: KeyboardEvent) => {
+      if (isTypingTarget(e.target)) return;
       const key = normalizeKey(e.key);
       const controls = getControls();
 

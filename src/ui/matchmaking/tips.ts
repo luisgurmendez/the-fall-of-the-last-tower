@@ -19,6 +19,7 @@ function tips(): string[] {
     "Tip: Stay behind your minions to avoid tower damage",
     `Tip: Hold ${key("scoreboard")} to see the scoreboard`,
     "Tip: Settings has the cast modes and lets you change every key",
+    "Tip: Press Enter to chat with your team, Shift+Enter to talk to everyone",
     "Tip: Wards reveal invisible enemies",
     "Tip: Killing dragon gives team-wide buffs",
     "Tip: The Rootwyrm wakes in the top river at 4:00; slaying it toughens your whole team",

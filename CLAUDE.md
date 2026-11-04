@@ -76,7 +76,7 @@ For detailed documentation on the multiplayer MOBA systems, see the following fi
 | **Audio** | [docs/architecture/audio.md](docs/architecture/audio.md) | Sound effects and ambience: generation (ElevenLabs), the engine, heard from the camera |
 | **Deploy** | [docs/architecture/deploy.md](docs/architecture/deploy.md) | Playing online: the server serving the built client, Docker, Fly.io |
 | **Debug mode** | [docs/architecture/debug.md](docs/architecture/debug.md) | F3 in practice: what the server thinks about each unit (paths, targets, ranges, states, bots' decisions) |
-| **Pings & Emotes** | [docs/architecture/signals.md](docs/architecture/signals.md) | The ping wheel (Alt/G + click), the emote wheel (T), who gets them, how they're drawn |
+| **Pings, Emotes & Chat** | [docs/architecture/signals.md](docs/architecture/signals.md) | The ping wheel (Alt/G + click), the emote wheel (T), the chat (Enter; Shift+Enter for all), who gets them, how they're drawn |
 | **Controls** | [docs/architecture/controls.md](docs/architecture/controls.md) | Cast modes (quick, quick with indicator, normal), key bindings, the settings panel |
 
 ### Quick Reference
@@ -118,7 +118,7 @@ For detailed documentation on the multiplayer MOBA systems, see the following fi
 | Summoner spells | `summoner-spells.md` |
 | Sounds, the audio engine | `audio.md` |
 | The debug overlay, a unit's debug info | `debug.md` |
-| Pings, emotes | `signals.md` |
+| Pings, emotes, chat | `signals.md` |
 | Cast modes, key bindings, keys the game reads | `controls.md` |
 | The Dockerfile, fly.toml, serving the client | `deploy.md` |
 
@@ -226,6 +226,7 @@ never as literals (see [docs/architecture/controls.md](docs/architecture/control
 - 1 / 2 / 3 / 6 / 7 / 8 → Use the item in each inventory slot (actives, potions; see docs/architecture/items.md)
 - 4 / 5 → Hold to aim a ward / control ward (bought in the shop), release to place it
 - Alt (or G) + left-click → Ping (drag for the ping wheel); hold T → the emote wheel (`src/ui/SignalWheel.ts`, see docs/architecture/signals.md)
+- Enter → Chat with the team (Shift+Enter: everyone; `src/ui/ChatBox.ts`); keys typed into it aren't the game's
 
 Escape opens the in-match menu (`src/ui/GameMenu.ts`: resume, surrender).
 

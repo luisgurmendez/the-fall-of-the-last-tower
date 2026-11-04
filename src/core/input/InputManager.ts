@@ -7,6 +7,7 @@ import Vector from "@/physics/vector";
 import { Dimensions } from "@/core/canvas";
 import { getControls } from "@/core/input/controls";
 import { abilityAction, normalizeKey } from "@/core/input/keyBindings";
+import { isTypingTarget } from "@/core/state/chat";
 
 /**
  * Mouse button constants.
@@ -87,6 +88,8 @@ export class InputManager {
     // Caps Lock don't change what a key does (and a letter let go after
     // Shift still lets go of what it pressed)
     const onKeyDown = (e: KeyboardEvent) => {
+      // Typed into the chat (or another text field): not the game's
+      if (isTypingTarget(e.target)) return;
       const key = normalizeKey(e.key);
 
       // Ctrl+Q/W/E/R levels abilities: keep the browser's own shortcuts out

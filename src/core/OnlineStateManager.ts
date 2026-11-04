@@ -37,6 +37,7 @@ import { AbilityEffects, type AbilityEffect } from './state/abilityEffects';
 import { Corpses, type Corpse } from './state/corpses';
 import { KillFeed, type KillRecord } from './state/killFeed';
 import { Signals } from './state/signals';
+import { ChatLog } from './state/chat';
 import {
   FloatingNumbers,
   type DamageNumber,
@@ -97,6 +98,8 @@ export class OnlineStateManager {
   private readonly killFeed = new KillFeed();
   /** Pings and emotes */
   private readonly signals = new Signals();
+  /** The match's chat */
+  private readonly chat = new ChatLog();
 
   // Death, respawn, level up and recall effects
   private readonly entityVFX = new EntityVFX();
@@ -188,6 +191,7 @@ export class OnlineStateManager {
       announcements: this.announcements,
       killFeed: this.killFeed,
       signals: this.signals,
+      chat: this.chat,
       damageTaken: this.damageTaken,
       scores: this.scores,
     };
@@ -353,6 +357,11 @@ export class OnlineStateManager {
   /** The pings on the map and the emotes over champions */
   getSignals(): Signals {
     return this.signals;
+  }
+
+  /** The match's chat */
+  getChat(): ChatLog {
+    return this.chat;
   }
 
   getKillFeed(now = Date.now()): readonly KillRecord[] {
