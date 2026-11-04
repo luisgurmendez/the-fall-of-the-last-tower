@@ -134,6 +134,9 @@ W, E and R while it lives.
   levels it.
 - **Cooldowns:** each ability keeps its own cooldown, and it keeps running while the ability
   is out of the slot.
+- **Tooltips:** the champion's definition lists them (`swapAbilities`) with when they hold the
+  slots (`swapLabel`: "With the colossus"). Champion select's tooltip for each such slot shows
+  what it becomes (`src/ui/matchmaking/abilityDialog.ts`).
 - **A cast in its cast time:** swapping that slot cancels it.
 - **The client:** snapshots name the ability in `abilities[slot].abilityId`, so the HUD shows
   that ability's icon, tooltip and cooldown.
