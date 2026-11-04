@@ -278,22 +278,15 @@
 /* Passive & Abilities - Icon Row with Dialog  */
 /* ============================================ */
 
-.champion-passive-section,
-.champion-abilities-section {
+/* The passive and Q W E R in one row (the passive tells itself apart by its gold frame) */
+.champion-kit {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
   width: 100%;
   border-top: 3px solid var(--pixel-border);
-  padding-top: 12px;
+  padding-top: 16px;
   overflow: visible;
-}
-
-.passive-title,
-.abilities-title {
-  font-family: var(--pixel-font);
-  font-size: 28px;
-  color: var(--pixel-gold);
-  text-shadow: 2px 2px 0 #000;
-  margin-bottom: 10px;
-  letter-spacing: 3px;
 }
 
 /* Abilities as horizontal icon row */
