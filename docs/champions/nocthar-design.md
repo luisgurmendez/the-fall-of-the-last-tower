@@ -1,6 +1,14 @@
 # Nocthar, the Unburied: diseño del kit
 
-Fecha: 2026-11-04. **Estado:** diseño aprobado, sin implementar. Los números son valores de partida, para ajustar jugando.
+Fecha: 2026-11-04. **Estado:** implementado (servidor, bots, cliente, arte, VFX y sonidos).
+
+**Unidades:** las distancias de este doc están en escala de LoL. En el juego son más o menos 0,42 de eso: 550 es 230, 900 es 380, 800 es 340. Los números reales están en `NOCTHAR_KIT` y en las definiciones de `packages/shared/src/champions/definitions/nocthar.ts`. El resumen jugable está en `docs/architecture/champions.md`.
+
+**Cambios al implementarlo:**
+- Las criaturas son minions con dueño (`docs/architecture/summons.md`).
+- La W, la E y la R del coloso entran a las teclas con `swapSlotAbility`.
+- El miedo es un control nuevo (`fear.ts`).
+- El bot espera a tener 2 Hollows para levantar el coloso.
 
 ## Concepto
 

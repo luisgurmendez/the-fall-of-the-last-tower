@@ -64,7 +64,32 @@ A summon's `MinionSnapshot` adds:
 Delta updates send them, with `isFeared` (any minion's), under the STATE mask: booleans
 as `false` when they end.
 
+## What its owner can do to it
+
+- **`frenzyFor`:** it attacks faster (Lament).
+- **`chargeFor`:** it runs faster and hits harder (Heed Me's charge).
+- **`holdFor`:** it stands still for a windup (Bone Volley, Trample).
+- **`payHealth`:** it spends health, only if it has more than the price.
+
+Its last hit counts as its owner's: the gold, creep score, XP and the kill
+(`RewardSystem.creditedKiller`). A summon given the same order again keeps the attack it's
+winding up.
+
+## On the client
+
+`src/render/entities/summon.ts` draws them from their strips (`/assets/sprites/summons/<type>/`),
+like a champion's body.
+- **Size:** at their snapshot's scale.
+- **Rising:** cut off at their feet while they climb out of the ground.
+- **Feared:** a ghost over the head.
+- **Animations:** their own events (ABILITY_CAST from them: the colossus's throw and charge)
+  play their strips.
+- **Deaths:** they crumble into bones (`fx_hollow_crumble`, `fx_colossus_crumble` and their
+  sounds).
+- **Sight in the client's fog:** that of their kit.
+
 ## Nocthar's
 
 The passive raises Hollows; his E gives them orders; his R fuses them into the colossus.
-See [champions/nocthar-design.md](../champions/nocthar-design.md).
+See [champions/nocthar-design.md](../champions/nocthar-design.md) and
+[champions.md](champions.md).
