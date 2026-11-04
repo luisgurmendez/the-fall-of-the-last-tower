@@ -46,7 +46,7 @@ export function describeChampion(champion: ServerChampion, context: ServerGameCo
   const abilities: NonNullable<DebugUnit['abilities']> = [];
   for (const slot of SLOTS) {
     if (champion.abilityRanks[slot] <= 0) continue;
-    const definition = getAbilityDefinition(champion.definition.abilities[slot]);
+    const definition = getAbilityDefinition(champion.abilityInSlot(slot));
     if (!definition?.range) continue;
     abilities.push({ slot, range: definition.range, radius: definition.aoeRadius });
   }

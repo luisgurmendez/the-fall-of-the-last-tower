@@ -380,7 +380,7 @@ export function createTestArena(options: TestArenaOptions = {}): TestArena {
       // Let the cast time pass: the ability goes off
       if (result.success && caster.isCasting() && !casting) caster.advanceCast(10, context);
       // Let the windup pass (game time only, so effects and cooldowns don't tick)
-      const aoeDelay = getAbilityDefinition(caster.definition.abilities[slot])?.aoeDelay ?? 0;
+      const aoeDelay = getAbilityDefinition(caster.abilityInSlot(slot))?.aoeDelay ?? 0;
       if (result.success && aoeDelay > 0 && !windup) context.advanceTime(aoeDelay + 1e-6);
       return result;
     },

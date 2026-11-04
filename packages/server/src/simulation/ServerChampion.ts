@@ -1057,6 +1057,20 @@ export class ServerChampion extends ServerEntity {
   /**
    * Level up an ability.
    */
+  /** The ability a slot holds now (its own, or one swapped in: swapSlotAbility) */
+  abilityInSlot(slot: AbilitySlot): string {
+    return this.abilities.abilityInSlot(slot);
+  }
+
+  /**
+   * Put another ability in a slot for a while (null: back to its own). Each
+   * keeps its own cooldown; the slot's rank is the rank (ChampionAbilities.swapSlot).
+   */
+  swapSlotAbility(slot: AbilitySlot, abilityId: string | null, context: ServerGameContext): void {
+    if (this.cast?.slot === slot) this.cancelCast(context);
+    this.abilities.swapSlot(slot, abilityId, context.getGameTime());
+  }
+
   levelUpAbility(slot: AbilitySlot): boolean {
     return this.abilities.levelUp(slot);
   }

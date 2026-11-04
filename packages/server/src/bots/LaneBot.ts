@@ -390,7 +390,7 @@ export class LaneBot implements BotController {
       const rank = champion.abilityRanks[slot];
       if (rank <= 0 || champion.abilityStates[slot].cooldownRemaining > 0) continue;
 
-      const definition = getAbilityDefinition(champion.definition.abilities[slot]);
+      const definition = getAbilityDefinition(champion.abilityInSlot(slot));
       if (!definition) continue;
 
       const cost = definition.manaCost?.[rank - 1] ?? 0;

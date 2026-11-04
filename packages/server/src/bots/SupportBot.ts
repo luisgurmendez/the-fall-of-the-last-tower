@@ -87,7 +87,7 @@ export class SupportBot extends LaneBot {
     for (const slot of SLOTS) {
       const rank = champion.abilityRanks[slot];
       if (rank <= 0 || champion.abilityStates[slot].cooldownRemaining > 0) continue;
-      const ability = getAbilityDefinition(champion.definition.abilities[slot]);
+      const ability = getAbilityDefinition(champion.abilityInSlot(slot));
       if (ability?.targetType !== 'target_ally') continue;
       if (champion.resource < (ability.manaCost?.[rank - 1] ?? 0)) continue;
       const ally = this.mostWoundedAlly(champion, ability.range ?? 300, context, ability.excludesSelf);

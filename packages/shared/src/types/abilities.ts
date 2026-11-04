@@ -562,6 +562,12 @@ export interface AbilityState {
   /** Current rank (0 = not learned, 1-5 = learned) */
   rank: number;
 
+  /**
+   * The ability the slot holds instead of its own for now (Nocthar's colossus
+   * swaps his W, E and R); null once back to its own, absent if never swapped
+   */
+  abilityId?: string | null;
+
   /** Time remaining on cooldown (0 = ready) */
   cooldownRemaining: number;
 

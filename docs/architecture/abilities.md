@@ -122,8 +122,21 @@ interface AbilityState {
   passiveCooldownRemaining: number; // Internal CD for passives
   charges?: number;                // Abilities with ammo: charges left
   chargeRegenRemaining?: number;   // ...and seconds until the next comes back (0 when full)
+  abilityId?: string | null;       // The ability swapped into the slot (null: back to its own)
 }
 ```
+
+**Swapping a slot's ability.** `ServerChampion.swapSlotAbility(slot, abilityId, context)` puts
+another ability in a slot for a while (null puts its own back). Nocthar's colossus swaps his
+W, E and R while it lives.
+- **What changes:** casting the slot casts what it holds now (`abilityInSlot`; the executor,
+  the bots and the debug overlay read it), at the slot's rank. Leveling the slot meanwhile
+  levels it.
+- **Cooldowns:** each ability keeps its own cooldown, and it keeps running while the ability
+  is out of the slot.
+- **A cast in its cast time:** swapping that slot cancels it.
+- **The client:** snapshots name the ability in `abilities[slot].abilityId`, so the HUD shows
+  that ability's icon, tooltip and cooldown.
 
 ## Damage Scaling
 

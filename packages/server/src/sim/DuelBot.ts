@@ -68,7 +68,7 @@ export class DuelBot implements BotController {
       const rank = champion.abilityRanks[slot];
       if (rank <= 0 || champion.abilityStates[slot].cooldownRemaining > 0) continue;
       if ((this.refusedUntil.get(slot) ?? 0) > this.time) continue;
-      const definition = getAbilityDefinition(champion.definition.abilities[slot]);
+      const definition = getAbilityDefinition(champion.abilityInSlot(slot));
       if (!definition || champion.resource < (definition.manaCost?.[rank - 1] ?? 0)) continue;
       const input = castAt(definition, slot, champion, enemy, distance, reach);
       if (input && wouldGoOff(definition, slot, champion, input, context)) return input;

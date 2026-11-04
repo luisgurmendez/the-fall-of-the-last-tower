@@ -408,7 +408,7 @@ export class ServerAbilityExecutor {
    * Get the ability ID for a champion's slot.
    */
   private getAbilityId(champion: ServerChampion, slot: AbilitySlot): string {
-    return champion.definition.abilities[slot];
+    return champion.abilityInSlot(slot);
   }
 
   /**

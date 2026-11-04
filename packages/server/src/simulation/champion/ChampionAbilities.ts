@@ -8,6 +8,9 @@
  *   gets one back every rechargeTime[rank], one at a time, up to maxCharges
  *   (state.charges, state.chargeRegenRemaining)
  * - Recasts: abilities whose projectile hit opens a recast at the hit position
+ * - Swaps: a slot can hold another ability for a while (swapSlot; Nocthar's
+ *   colossus). The slot's rank is its rank; each ability keeps its own
+ *   cooldown, which keeps running while it's out of the slot
  * - Ability projectiles scheduled at an animation keyframe; they are
  *   cancelled when the champion can no longer cast
  *
@@ -69,6 +72,8 @@ export function createDefaultAbilityState(): AbilityState {
 export class ChampionAbilities {
   /** Recast tracking - stores hit position for abilities with recast behavior */
   private recastHitPositions: Partial<Record<AbilitySlot, Vector>> = {};
+  /** Cooldowns of abilities out of their slot, and when they were put away (game time) */
+  private putAway = new Map<string, { cooldownRemaining: number; cooldownTotal: number; at: number }>();
   /** Ability actions waiting on an animation keyframe (separate from basic attacks) */
   private readonly animationScheduler = new AnimationScheduler();
 
@@ -179,7 +184,7 @@ export class ChampionAbilities {
 
   /** The slot's ability's ammo, if it has charges */
   private ammoOf(slot: AbilitySlot): AmmoBehavior | undefined {
-    const definition = getAbilityDefinition(this.champion.definition.abilities[slot]);
+    const definition = getAbilityDefinition(this.abilityInSlot(slot));
     return definition ? getAmmoBehavior(definition) : undefined;
   }
 
@@ -206,6 +211,38 @@ export class ChampionAbilities {
         ? state.chargeRegenRemaining + rechargeTime(ammo, state.rank)
         : 0;
     }
+  }
+
+  // =====================
+  // Swaps
+  // =====================
+
+  /** The ability a slot holds now: its own, or the one swapped in */
+  abilityInSlot(slot: AbilitySlot): string {
+    return this.champion.abilityStates[slot].abilityId ?? this.champion.definition.abilities[slot];
+  }
+
+  /**
+   * Put `abilityId` in the slot instead of what it holds (null: its own
+   * ability). The ability put away keeps its cooldown, running; the one put
+   * in gets back what's left of its own (ready if it was never cast).
+   */
+  swapSlot(slot: AbilitySlot, abilityId: string | null, gameTime: number): void {
+    const state = this.champion.abilityStates[slot];
+    const own = this.champion.definition.abilities[slot];
+    const incoming = abilityId ?? own;
+    const outgoing = this.abilityInSlot(slot);
+    if (incoming === outgoing) return;
+
+    this.putAway.set(outgoing, { cooldownRemaining: state.cooldownRemaining, cooldownTotal: state.cooldownTotal, at: gameTime });
+    const stored = this.putAway.get(incoming);
+    this.putAway.delete(incoming);
+    state.cooldownRemaining = stored ? Math.max(0, stored.cooldownRemaining - (gameTime - stored.at)) : 0;
+    state.cooldownTotal = stored?.cooldownTotal ?? 0;
+    state.abilityId = incoming === own ? null : incoming;
+    state.recastCount = undefined;
+    state.recastWindowRemaining = undefined;
+    delete this.recastHitPositions[slot];
   }
 
   // =====================
