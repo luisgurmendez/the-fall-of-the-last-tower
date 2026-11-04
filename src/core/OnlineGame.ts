@@ -159,6 +159,8 @@ class OnlineGame {
     this.stopped = true;
     cancelAnimationFrame(this.frame);
     window.removeEventListener('keydown', this.onKeyDown);
+    // Its canvas goes: the input lets go of it (unless the next match's has it)
+    InputManager.getInstance().release(this.canvas);
     this.onMatchEnd();
     if (getShopUI().isOpen()) getShopUI().close();
     this.canvas.remove();
