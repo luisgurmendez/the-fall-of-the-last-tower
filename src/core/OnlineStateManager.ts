@@ -184,6 +184,7 @@ export class OnlineStateManager {
     this.eventContext = {
       entities: this.entities,
       localEntityId: this.localEntityId,
+      playerNames: new Map(matchData.players.filter(player => player.name).map(player => [player.entityId, player.name!])),
       localSide: this.localSide,
       floatingNumbers: this.floatingNumbers,
       abilityEffects: this.abilityEffects,

@@ -34,6 +34,8 @@ export interface GameEventContext {
   readonly entities: ReadonlyMap<string, InterpolatedEntity>;
   readonly localEntityId: string;
   readonly localSide: number;
+  /** Players' names by their champion's entity id (those the match knows) */
+  readonly playerNames: ReadonlyMap<string, string>;
   readonly floatingNumbers: FloatingNumbers;
   readonly abilityEffects: AbilityEffects;
   readonly campTimers: CampTimers;
@@ -474,6 +476,7 @@ export function processGameEvent(event: GameEvent, ctx: GameEventContext): void 
         isAlly: side === ctx.localSide,
         isLocal: entityId === ctx.localEntityId,
         time: now,
+        name: ctx.playerNames.get(entityId as string),
       });
       break;
     }

@@ -56,6 +56,27 @@ describe('Game end', () => {
   });
 });
 
+describe("Players' names at the start", () => {
+  test("GAME_START's players carry the names they have", () => {
+    const room = new GameRoom({
+      gameId: 'names-test',
+      players: [
+        { playerId: 'a', side: 0, championId: 'vex', connected: true, name: 'Luis' },
+        { playerId: 'b', side: 1, championId: 'vile', connected: true },
+      ],
+      championDefinitions: new Map<string, ChampionDefinition>(Object.entries(CHAMPION_DEFINITIONS)),
+    });
+    room.start();
+    try {
+      const players = room.getPlayersWithEntityIds();
+      expect(players.find(p => p.playerId === 'a')?.name).toBe('Luis');
+      expect(players.find(p => p.playerId === 'b')?.name).toBeUndefined();
+    } finally {
+      room.stop();
+    }
+  });
+});
+
 describe('Surrender', () => {
   function practiceRoom(onGameEnd: (side: number) => void) {
     return new GameRoom({

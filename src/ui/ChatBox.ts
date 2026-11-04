@@ -149,7 +149,8 @@ export class ChatBox {
     }
     const name = document.createElement("span");
     name.className = `chat-name ${message.isLocal ? "local" : message.isAlly ? "ally" : "enemy"}`;
-    name.textContent = `${getChampionDefinition(message.championId)?.name ?? message.championId}: `;
+    const champion = getChampionDefinition(message.championId)?.name ?? message.championId;
+    name.textContent = message.name ? `${message.name} (${champion}): ` : `${champion}: `;
     const text = document.createElement("span");
     text.className = "chat-text";
     text.textContent = message.text;

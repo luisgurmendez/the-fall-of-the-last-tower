@@ -49,7 +49,11 @@ export class MatchConnection {
   /** About 30 seconds of updates at 30 Hz */
   private static readonly MAX_BUFFERED_UPDATES = 900;
 
-  constructor(serverUrl: string) {
+  /**
+   * @param getAccountToken The token of the account the player is signed in
+   *   with, sent with READY (none: a guest)
+   */
+  constructor(serverUrl: string, private readonly getAccountToken: () => string | undefined = () => undefined) {
     this.serverUrl = serverUrl;
     this.playerId = this.generatePlayerId();
   }
@@ -102,6 +106,7 @@ export class MatchConnection {
         mapId: practice?.map,
         lobby: lobby ? { create: lobby.create, code: lobby.code } : undefined,
         name: lobby?.name,
+        accountToken: this.getAccountToken(),
       });
       if (mode === "queue") {
         events.onQueueEntered();

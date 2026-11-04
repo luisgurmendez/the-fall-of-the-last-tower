@@ -75,6 +75,11 @@ export interface WebSocketServerConfig {
    * one address serves the game and its WebSocket. Absent: no files.
    */
   staticDir?: string;
+  /**
+   * Answers HTTP requests before the files (the accounts' /api/); null
+   * passes the request on. `clientIp` is the caller's address.
+   */
+  httpHandler?: (request: Request, clientIp: string) => Promise<Response | null>;
 }
 
 /**

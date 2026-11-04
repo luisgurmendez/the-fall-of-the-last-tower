@@ -84,7 +84,7 @@ export class GameRoomManager {
     players: PlayerInfo[],
     bots: BotController[] = [],
     mapId: MapId = 'vale',
-    options: { allowDebug?: boolean } = {},
+    options: { allowDebug?: boolean; practice?: boolean } = {},
   ): GameRoom {
     const gameId = `game-${Date.now()}-${this.gameIdCounter++}`;
 
@@ -94,6 +94,7 @@ export class GameRoomManager {
       bots,
       mapId,
       allowDebug: options.allowDebug,
+      practice: options.practice,
       championDefinitions: this.championDefinitions,
       onStateUpdate: (playerId, update) => {
         this.onStateUpdate?.(playerId, update);

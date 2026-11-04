@@ -108,8 +108,18 @@ export class ModeSelect {
     this.actions.joinRoom(code, this.name());
   }
 
+  /**
+   * Signed in, rooms show the account's name (the server uses it anyway):
+   * the field shows it and can't be changed. Signed out, the name typed.
+   */
+  setAccountName(name: string | null): void {
+    this.nameInput.disabled = name !== null;
+    this.nameInput.value = name ?? readName();
+  }
+
   /** The name typed, remembered for next time */
   private name(): string {
+    if (this.nameInput.disabled) return this.nameInput.value;
     const name = this.nameInput.value.trim();
     try {
       localStorage.setItem(NAME_KEY, name);

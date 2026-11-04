@@ -27,6 +27,8 @@ export interface ChatMessage {
   time: number;
   /** The game's own line (a player lost their connection, came back), not a player's */
   system?: boolean;
+  /** The player's name, when the match knows it (an account, a room) */
+  name?: string;
 }
 
 /** How long a line shows while the chat is closed (ms) */

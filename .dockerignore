@@ -12,6 +12,9 @@ dist
 packages/*/dist
 **/*.tsbuildinfo
 
+# A local server's accounts (the image's live in DATA_DIR, a volume)
+packages/server/data
+
 # Not needed to run the game
 siege-artwork
 packages/server/sim-output

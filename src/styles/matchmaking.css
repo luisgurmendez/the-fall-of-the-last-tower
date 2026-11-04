@@ -1068,6 +1068,61 @@
   width: 170px;
 }
 
+.mode-field input:disabled {
+  color: var(--pixel-gold);
+  opacity: 0.85;
+}
+
+/* Signed in or a guest, under the main menu's links (accountScreen.ts) */
+.menu-account {
+  margin-top: 18px;
+  font-family: var(--pixel-font);
+  font-size: 22px;
+}
+
+.menu-account .menu-link {
+  font-size: 22px;
+}
+
+.menu-account-name {
+  color: var(--pixel-gold);
+  margin-right: 10px;
+}
+
+.menu-account-note {
+  color: var(--pixel-text-dim);
+}
+
+/* The account screen: sign in or create an account */
+.account-text {
+  font-family: var(--pixel-font);
+  font-size: 20px;
+  color: var(--pixel-text-dim);
+  margin-bottom: 18px;
+}
+
+.account-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.account-form .mode-field {
+  width: 340px;
+  justify-content: space-between;
+}
+
+.account-form .mode-field input {
+  width: 200px;
+}
+
+.account-buttons {
+  display: flex;
+  gap: 12px;
+}
+
 .mode-card.friends .mode-card-button {
   margin-top: 0;
 }

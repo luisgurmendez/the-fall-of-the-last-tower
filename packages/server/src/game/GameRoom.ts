@@ -46,6 +46,8 @@ export interface PlayerInfo {
   isBot?: boolean;
   /** Summoner spells (D, F); the defaults when absent */
   summonerSpells?: SummonerSpellId[];
+  /** The player's name: their account's, or the one they gave a room (none for bots and guests in the queue) */
+  name?: string;
 }
 
 export interface GameRoomConfig {
@@ -58,6 +60,8 @@ export interface GameRoomConfig {
   mapId?: MapId;
   /** Players may turn on the debug overlay (practice matches) */
   allowDebug?: boolean;
+  /** A practice match (against bots): its result doesn't count for accounts */
+  practice?: boolean;
   onStateUpdate?: (playerId: string, update: StateUpdate) => void;
   /** A debug overlay's DEBUG_STATE for a player who turned it on */
   onDebugState?: (playerId: string, data: DebugStateData) => void;
@@ -92,6 +96,7 @@ export class GameRoom {
 
   /** Players may turn on the debug overlay */
   private readonly allowDebug: boolean;
+  private readonly practice: boolean;
   /** Players who turned it on */
   private readonly debugPlayers = new Set<string>();
   /** Debug states go out every this many broadcasts (10 a second at 30) */
@@ -107,6 +112,7 @@ export class GameRoom {
     this.onDebugState = config.onDebugState;
     this.onGameEnd = config.onGameEnd;
     this.allowDebug = config.allowDebug ?? false;
+    this.practice = config.practice ?? false;
 
     // Initialize players
     for (const player of config.players) {
@@ -431,6 +437,11 @@ export class GameRoom {
     });
   }
 
+  /** A practice match: its result doesn't count for accounts */
+  isPractice(): boolean {
+    return this.practice;
+  }
+
   /** Whether a bot plays for a player who lost their connection */
   isBotPlaying(playerId: string): boolean {
     const player = this.players.get(playerId);
@@ -524,6 +535,7 @@ export class GameRoom {
     entityId: string;
     isBot: boolean;
     summonerSpells: SummonerSpellId[];
+    name?: string;
   }> {
     const result = [];
     for (const [playerId, playerInfo] of this.players) {
@@ -535,6 +547,7 @@ export class GameRoom {
         entityId: champion?.id || '',
         isBot: playerInfo.isBot === true,
         summonerSpells: playerInfo.summonerSpells ?? [...DEFAULT_SUMMONER_SPELLS],
+        ...(playerInfo.name !== undefined && { name: playerInfo.name }),
       });
     }
     return result;

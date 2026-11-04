@@ -34,6 +34,10 @@ import type { BotController } from './bots/BotController';
 import type { WebSocketConnection, ParsedMessage } from './network/WebSocketServer';
 import { Logger } from './utils/Logger';
 import { initializeAbilityHandlers } from './abilities';
+import { mkdirSync } from 'node:fs';
+import { join } from 'node:path';
+import { AccountStore, matchResults, type Account } from './accounts/AccountStore';
+import { AccountRoutes } from './accounts/accountRoutes';
 
 // ============================================================================
 // Configuration
@@ -41,6 +45,8 @@ import { initializeAbilityHandlers } from './abilities';
 
 const PORT = parseInt(process.env.PORT || '8080', 10);
 const PLAYERS_PER_TEAM = parseInt(process.env.PLAYERS_PER_TEAM || '1', 10); // 1v1 by default
+/** Where accounts are kept (accounts.db; a volume on Fly) */
+const DATA_DIR = process.env.DATA_DIR || './data';
 
 // ============================================================================
 // Champion Definitions (loaded from shared registry)
@@ -75,6 +81,11 @@ const playerToConnection: Map<string, WebSocketConnection> = new Map();
 // visible to everyone in a match, so resuming a player ID (reconnect) requires
 // the token that was issued to its owner.
 const playerSessions: Map<string, string> = new Map();
+
+/** Accounts (name, password, wins and losses) */
+let accounts: AccountStore;
+/** The account each player is signed in with (READY's accountToken); guests have none */
+const playerAccounts: Map<string, Account> = new Map();
 
 // ============================================================================
 // Message Handlers
@@ -221,8 +232,10 @@ interface ReadyMessageData {
   mapId?: unknown;
   /** 'lobby' mode: make a room, or join one by its code */
   lobby?: { create?: boolean; code?: string };
-  /** The player's name, shown in rooms */
+  /** The player's name, shown in rooms (an account's name wins) */
   name?: unknown;
+  /** The token of the account they're signed in with (POST /api/login) */
+  accountToken?: unknown;
   /** Summoner spells picked in champion select (D, F) */
   summonerSpells?: unknown;
 }
@@ -273,6 +286,11 @@ function handleReadyMessage(connection: WebSocketConnection, data: ReadyMessageD
   // Register player
   connectionToPlayer.set(connection.id, playerId);
   playerToConnection.set(playerId, connection);
+
+  // Signed in: their account's name, and their results count
+  const account = accounts.accountForToken(data.accountToken);
+  if (account) playerAccounts.set(playerId, account);
+  else playerAccounts.delete(playerId);
   connection.playerId = playerId;
 
   Logger.server.info(`Player joined: ${playerId} (champion: ${championId})`);
@@ -313,7 +331,7 @@ function handleReadyMessage(connection: WebSocketConnection, data: ReadyMessageD
   }
 
   if (mode === 'lobby') {
-    const player = { playerId, name: sanitizeName(data.name), championId, summonerSpells };
+    const player = { playerId, name: account?.name ?? sanitizeName(data.name), championId, summonerSpells };
     const lobby = typeof data.lobby?.code === 'string' && !data.lobby.create
       ? lobbies.join(data.lobby.code, player)
       : lobbies.create(player);
@@ -373,9 +391,10 @@ function handleDisconnect(connection: WebSocketConnection, code: number, reason:
     connectionToPlayer.delete(connection.id);
     playerToConnection.delete(playerId);
 
-    // Keep the session only while there's a game to reconnect to
+    // Keep the session (and the account it played with) only while there's a game to reconnect to
     if (!roomManager.isPlayerInGame(playerId)) {
       playerSessions.delete(playerId);
+      playerAccounts.delete(playerId);
     }
   }
 
@@ -411,15 +430,21 @@ function startPracticeMatch(
     botChampionId: typeof botChampionId === 'string' && CHAMPION_DEFINITIONS.has(botChampionId) ? botChampionId : undefined,
   });
   Logger.server.info(`Practice ${teamSize}v${teamSize} on ${mapId}: ${players.map(p => `${p.playerId} (${p.championId})`).join(', ')}`);
-  startMatch(players, bots, mapId, { allowDebug: true });
+  startMatch(players, bots, mapId, { allowDebug: true, practice: true });
 }
 
 function startMatch(
   players: PlayerInfo[],
   bots: BotController[] = [],
   mapId: MapId = 'vale',
-  options: { allowDebug?: boolean } = {},
+  options: { allowDebug?: boolean; practice?: boolean } = {},
 ): void {
+  // Signed-in players play under their account's name (rooms already named everyone)
+  players = players.map(player => {
+    const name = player.name ?? (player.isBot ? undefined : playerAccounts.get(player.playerId)?.name);
+    return name === undefined ? player : { ...player, name };
+  });
+
   // Create the game room
   const room = roomManager.createRoom(players, bots, mapId, options);
   const gameId = room.getState() === 'waiting' ? room.gameId : null;
@@ -543,6 +568,12 @@ async function startServer(): Promise<void> {
   Logger.server.info('Ability handlers initialized');
 
   // Initialize WebSocket server with metrics callback
+  // Accounts, kept in DATA_DIR
+  mkdirSync(DATA_DIR, { recursive: true });
+  accounts = new AccountStore(join(DATA_DIR, 'accounts.db'));
+  const accountRoutes = new AccountRoutes(accounts);
+  Logger.server.info(`Accounts kept in ${join(DATA_DIR, 'accounts.db')}`);
+
   wsServer = new BunWebSocketServer({
     onMessage: handleMessage,
     onConnect: handleConnect,
@@ -550,6 +581,8 @@ async function startServer(): Promise<void> {
     getMetrics: getServerMetrics,
     // The built client (vite build's dist/), served from the same address in production
     staticDir: process.env.STATIC_DIR,
+    // POST /api/register, /api/login, /api/logout; GET /api/me
+    httpHandler: (request, clientIp) => accountRoutes.handle(request, clientIp),
   });
 
   // Initialize game room manager
@@ -565,6 +598,12 @@ async function startServer(): Promise<void> {
 
       // Notify players
       const room = roomManager.getRoom(gameId);
+      // Wins and losses for the accounts in it (not against bots in practice)
+      if (room && !room.isPractice()) {
+        for (const { accountId, won } of matchResults(room.getPlayersWithEntityIds(), id => playerAccounts.get(id)?.id, winningSide)) {
+          accounts.recordResult(accountId, won);
+        }
+      }
       if (room) {
         for (const playerId of room.getHumanPlayerIds()) {
           wsServer.sendToPlayer(playerId, {

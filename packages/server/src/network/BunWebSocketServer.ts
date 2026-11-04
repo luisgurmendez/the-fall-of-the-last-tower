@@ -82,10 +82,12 @@ export class BunWebSocketServer extends WebSocketServer {
   private idCounter = 0;
 
   private readonly staticDir?: string;
+  private readonly httpHandler?: WebSocketServerConfig['httpHandler'];
 
   constructor(config: WebSocketServerConfig = {}) {
     super(config);
     this.staticDir = config.staticDir;
+    this.httpHandler = config.httpHandler;
   }
 
   /**
@@ -135,6 +137,14 @@ export class BunWebSocketServer extends WebSocketServer {
           return new Response(JSON.stringify(metrics, null, 2), {
             headers: { 'Content-Type': 'application/json' },
           });
+        }
+
+        // The accounts' API (and anything else the server answers over HTTP).
+        // Behind Fly's proxy the caller's address is in Fly-Client-IP
+        if (self.httpHandler) {
+          const clientIp = req.headers.get('Fly-Client-IP') ?? server.requestIP(req)?.address ?? 'unknown';
+          const response = await self.httpHandler(req, clientIp);
+          if (response) return response;
         }
 
         if (staticDir) return serveStatic(staticDir, url.pathname);

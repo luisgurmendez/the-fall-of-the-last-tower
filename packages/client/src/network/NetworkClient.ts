@@ -459,6 +459,8 @@ export class NetworkClient {
       lobby?: { create?: boolean; code?: string };
       /** The player's name, shown in rooms */
       name?: string;
+      /** The token of the account they're signed in with */
+      accountToken?: string;
     } = {}
   ): void {
     console.log(`[NetworkClient] sendReady: playerId="${this.config.playerId}", championId="${championId}"`);
@@ -475,6 +477,7 @@ export class NetworkClient {
         mapId: options.mapId,
         lobby: options.lobby,
         name: options.name,
+        accountToken: options.accountToken,
       },
     });
   }

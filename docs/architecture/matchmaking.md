@@ -205,6 +205,13 @@ The final scoreboard has a second page, Stats (its header's buttons, or Tab, swi
 
 A player can also surrender from the Escape menu (`src/ui/GameMenu.ts`, two clicks). The client sends a `SURRENDER` input, which `GameRoom.handleInput` handles itself instead of queueing it. Once every human on that side has surrendered (just them in 1v1 and practice), the other side wins through the same `endGame` as a destroyed nexus. Bots can't surrender.
 
+## Names
+
+A match knows a player's name when they gave one: the name typed in a room, or their account's
+(signed in, it wins over the typed one; see [accounts.md](accounts.md)). `PlayerInfo.name` carries it
+into `GAME_START`'s players; bots and guests in the queue have none. Matches that aren't practice
+count a win or a loss for each signed-in player.
+
 ## A Bot Plays for Who Left
 
 When a player loses their connection, `GameRoom` notes when (`awaySince`, game time). After

@@ -101,7 +101,7 @@ const BOT_ROLE_ORDER: PracticeRole[] = ['jungle', 'support', 'top', 'bot', 'mid'
 
 export interface LobbyMatchOptions {
   /** The room's players, with their sides */
-  humans: Array<{ playerId: string; side: 0 | 1; championId: string; summonerSpells: SummonerSpellId[] }>;
+  humans: Array<{ playerId: string; side: 0 | 1; championId: string; summonerSpells: SummonerSpellId[]; name?: string }>;
   teamSize: PracticeTeamSize;
   /** Every champion bots may play */
   champions: readonly string[];
@@ -121,6 +121,7 @@ export function buildLobbyMatch(options: LobbyMatchOptions): { players: PlayerIn
   const random = options.random ?? Math.random;
   const players: PlayerInfo[] = humans.map(human => ({
     playerId: human.playerId, side: human.side, championId: human.championId, connected: true, summonerSpells: human.summonerSpells,
+    ...(human.name !== undefined && { name: human.name }),
   }));
   const bots: BotController[] = [];
 

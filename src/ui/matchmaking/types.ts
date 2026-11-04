@@ -15,6 +15,7 @@ export type ScreenId =
   | "match-found"
   | "how-to-play"
   | "settings"
+  | "account"
   | "error";
 
 /**
@@ -39,6 +40,8 @@ export interface MatchData {
     entityId: string;
     /** Their summoner spells (D, F) */
     summonerSpells?: string[];
+    /** Their name: their account's, or the one they gave a room (none for bots and guests in the queue) */
+    name?: string;
   }>;
 }
 

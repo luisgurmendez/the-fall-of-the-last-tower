@@ -26,3 +26,6 @@ deploy/siege-key.pem
 # Simulation output (bun run sim)
 packages/server/sim-output/
 .claude/worktrees/
+
+# Accounts kept by a local server (packages/server/src/accounts)
+packages/server/data

@@ -53,6 +53,28 @@ describe('Chat events', () => {
     expect(lines[2]).toMatchObject({ isLocal: false, isAlly: true, scope: 'all', championId: 'elara' });
   });
 
+  it("a player's name, when the match knows it (an account, a room)", () => {
+    const state = new OnlineStateManager({
+      gameId: 'game',
+      yourSide: 0,
+      yourPlayerId: 'player-local',
+      players: [
+        { playerId: 'player-local', championId: 'warrior', side: 0, entityId: 'champ-local', name: 'Luis' },
+        { playerId: 'player-guest', championId: 'magnus', side: 1, entityId: 'champ-guest' },
+      ],
+    } as never);
+    state.processStateUpdate({
+      tick: 1, timestamp: Date.now(), gameTime: 1, deltas: [],
+      events: [
+        chatEvent({ entityId: 'champ-local', side: 0, championId: 'warrior', scope: 'team', text: 'a' }),
+        chatEvent({ entityId: 'champ-guest', side: 1, championId: 'magnus', scope: 'all', text: 'b' }),
+      ],
+    } as never);
+    const [named, guest] = state.getChat().lines(Date.now(), true);
+    expect(named.name).toBe('Luis');
+    expect(guest.name).toBeUndefined();
+  });
+
   it('a malformed event (no text) is skipped', () => {
     const state = manager();
     state.processStateUpdate({

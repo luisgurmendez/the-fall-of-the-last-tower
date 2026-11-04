@@ -39,4 +39,27 @@ fly open                               # opens https://<app>.fly.dev
 Later deploys: `fly deploy --ha=false`. Logs: `fly logs`. The public queue's team size is
 `PLAYERS_PER_TEAM` in `fly.toml`; rooms and practice don't use it.
 
+## Accounts volume
+
+Accounts live in SQLite at `DATA_DIR/accounts.db` ([accounts.md](accounts.md)). A machine's own disk
+is reset on every start (each deploy, each idle stop), so on Fly `DATA_DIR` must be a volume:
+
+```bash
+fly volumes create retroleague_data --region gru --size 1   # 1 GB; one machine, one volume
+```
+
+and in `fly.toml`:
+
+```toml
+[env]
+  DATA_DIR = "/data"
+
+[mounts]
+  source = "retroleague_data"
+  destination = "/data"
+```
+
+Without it the server still starts (in `./data` inside the machine), but accounts vanish on the next
+restart. Not set up yet: the volume has to be created first (it costs a little a month).
+
 `deploy/` holds an older EC2 + nginx deploy (São Paulo); it's no longer running.

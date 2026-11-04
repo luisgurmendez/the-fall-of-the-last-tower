@@ -52,10 +52,12 @@ import { TitleScreen } from "../title/TitleScreen";
 import { ModeSelect, describePracticeMode, type PracticeMode } from "./modeSelect";
 import { RoomPanel, type Room } from "./roomPanel";
 import { fillHowToPlay } from "./howToPlay";
+import { AccountClient, apiBaseUrl } from "./account";
+import { AccountScreen } from "./accountScreen";
 import { ControlsPanel } from "@/ui/ControlsPanel";
 
 /** The screens the title screen's valley shows behind (not champion select or the loading screen) */
-const TITLE_SCREENS: ReadonlySet<ScreenId> = new Set(["menu", "modes", "how-to-play", "settings", "connecting", "queue", "error"]);
+const TITLE_SCREENS: ReadonlySet<ScreenId> = new Set(["menu", "modes", "how-to-play", "settings", "account", "connecting", "queue", "error"]);
 
 /** What champion select is for: the mode picked on the mode screen */
 type SelectFor =
@@ -106,6 +108,8 @@ export class MatchmakingUI {
 
   // Network client and the state buffered for OnlineGame
   private connection: MatchConnection;
+  /** The player's account, if they signed in */
+  private readonly accounts: AccountClient;
 
   // State
   private currentScreen: ScreenId = "menu";
@@ -118,7 +122,9 @@ export class MatchmakingUI {
     serverUrl: string = "ws://localhost:8080/ws",
     callbacks: MatchmakingUICallbacks = {},
   ) {
-    this.connection = new MatchConnection(serverUrl);
+    // The player's account (optional): its token goes with READY
+    this.accounts = new AccountClient(apiBaseUrl(serverUrl), browserStorage());
+    this.connection = new MatchConnection(serverUrl, () => this.accounts.current()?.token);
     this.callbacks = callbacks;
 
     // Get DOM elements - use safe getter that won't crash if element missing
@@ -135,6 +141,7 @@ export class MatchmakingUI {
     this.screens.set("match-found", getEl("screen-match-found"));
     this.screens.set("how-to-play", getEl("screen-how-to-play"));
     this.screens.set("settings", getEl("screen-settings"));
+    this.screens.set("account", getEl("screen-account"));
     this.screens.set("error", getEl("screen-error"));
 
     // Get status elements
@@ -164,6 +171,11 @@ export class MatchmakingUI {
       online: () => this.openChampionSelect({ kind: "queue" }),
       back: () => this.showScreen("menu"),
     });
+
+    // Signing in (the main menu's line, its screen); signed in, rooms show the account's name
+    new AccountScreen(this.accounts, (screen) => this.showScreen(screen));
+    this.accounts.subscribe(current => this.modes.setAccountName(current?.account.name ?? null));
+    this.modes.setAccountName(this.accounts.current()?.account.name ?? null);
 
     // Rooms: play with friends, shown on champion select
     this.room = new RoomPanel(
@@ -556,6 +568,8 @@ export class MatchmakingUI {
   show(): void {
     this.overlay?.classList.remove("hidden");
     this.showScreen("menu");
+    // Back from a match: the account's wins and losses may have changed
+    void this.accounts.refresh();
   }
 
   /**
@@ -627,5 +641,14 @@ export class MatchmakingUI {
     this.connection.clearBufferedState();
     this.updateConnectionStatus("offline");
     this.showScreen("menu");
+  }
+}
+
+/** The browser's localStorage, if it's allowed */
+function browserStorage(): Storage | null {
+  try {
+    return typeof localStorage === "undefined" ? null : localStorage;
+  } catch {
+    return null;
   }
 }

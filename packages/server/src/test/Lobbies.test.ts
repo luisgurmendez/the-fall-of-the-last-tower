@@ -136,6 +136,21 @@ describe('buildLobbyMatch', () => {
     }
   });
 
+  test("the players keep their names; bots have none", () => {
+    const { players } = buildLobbyMatch({
+      humans: [
+        { playerId: 'ana', side: 0, championId: 'lume', summonerSpells: [], name: 'Ana' },
+        { playerId: 'bo', side: 1, championId: 'vex', summonerSpells: [] },
+      ],
+      teamSize: 3,
+      champions,
+      matchId: 'ROOM3',
+    });
+    expect(players.find(p => p.playerId === 'ana')?.name).toBe('Ana');
+    expect(players.find(p => p.playerId === 'bo')?.name).toBeUndefined();
+    expect(players.filter(p => p.isBot).every(p => p.name === undefined)).toBe(true);
+  });
+
   test('a full room has no bots', () => {
     const { bots } = buildLobbyMatch({
       humans: [

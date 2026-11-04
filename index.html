@@ -32,6 +32,24 @@
           <span class="menu-link" id="btn-settings">Settings</span>
           <span class="menu-link" id="btn-how-to-play">How to Play</span>
         </div>
+        <!-- Signed in or a guest (src/ui/matchmaking/accountScreen.ts) -->
+        <div class="menu-account" id="menu-account"></div>
+      </div>
+
+      <!-- Account: sign in or create one (src/ui/matchmaking/accountScreen.ts) -->
+      <div class="mm-screen" id="screen-account">
+        <div class="modes-title">YOUR ACCOUNT</div>
+        <div class="account-text">Optional: your name in matches and chat, and your wins and losses</div>
+        <div class="account-form">
+          <label class="mode-field">NAME <input id="account-name" maxlength="16" autocomplete="username" spellcheck="false"></label>
+          <label class="mode-field">PASSWORD <input id="account-password" type="password" maxlength="128" autocomplete="current-password"></label>
+          <div class="mode-error" id="account-error"></div>
+          <div class="account-buttons">
+            <button class="mode-card-button" id="btn-account-login">SIGN IN</button>
+            <button class="mode-card-button" id="btn-account-register">CREATE ACCOUNT</button>
+          </div>
+        </div>
+        <button class="mode-back" id="btn-account-back">BACK</button>
       </div>
 
       <!-- How to play: practice, a room with friends or the online queue (src/ui/matchmaking/modeSelect.ts) -->
