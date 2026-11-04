@@ -376,12 +376,13 @@
   border: 2px solid var(--pixel-border);
 }
 
+/* Opens up and to the right of its icon: the icons sit at the panel's left
+   edge, and the screen scrolls, so a dialog centered on one would be cut off */
 .ability-dialog {
   display: none;
   position: absolute;
   bottom: calc(100% + 16px);
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
   width: 400px;
   background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1a 100%);
   border: 4px solid var(--pixel-accent);
@@ -396,12 +397,12 @@
   display: block;
 }
 
-/* Dialog arrow */
+/* Dialog arrow, under the icon's middle */
 .ability-dialog::after {
   content: '';
   position: absolute;
   bottom: -12px;
-  left: 50%;
+  left: 36px;
   transform: translateX(-50%);
   border-left: 12px solid transparent;
   border-right: 12px solid transparent;
@@ -533,12 +534,12 @@
   border: 2px solid #B8860B;
 }
 
+/* Opens up and to the right of its icon, like the abilities' */
 .passive-dialog {
   display: none;
   position: absolute;
   bottom: calc(100% + 16px);
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
   width: 420px;
   background: linear-gradient(135deg, #2a2a1e 0%, #1a1a12 100%);
   border: 4px solid #FFD700;
@@ -557,7 +558,7 @@
   content: '';
   position: absolute;
   bottom: -12px;
-  left: 50%;
+  left: 36px;
   transform: translateX(-50%);
   border-left: 12px solid transparent;
   border-right: 12px solid transparent;
@@ -782,8 +783,6 @@
   .ability-dialog,
   .passive-dialog {
     width: 320px;
-    left: 0;
-    transform: translateX(0);
   }
 
   .ability-dialog-name,
