@@ -113,4 +113,9 @@ files). `attachUiSounds(document.body)` in `src/index.ts` plays them for every c
 
 Tests: `src/audio/uiSounds.test.ts`.
 
+**Crowd control landing on us:** when a crowd control or a slow lands on our champion, a short chip
+sound plays: dizzy for a stun, thrown up for a knockup, a thud for a root, muffled for a silence,
+ghostly for a fear, angry for a taunt, sinking for a slow (`src/audio/statusSounds.ts`, from
+`playChangeSound`). If several land at once, only the strongest plays, and a refresh is quiet.
+
 The account is on ElevenLabs' free plan (10,000 credits a month; the script prints what's left, a little behind). A sound costs about 10 credits a second: the 38 ability sounds cost about 400.

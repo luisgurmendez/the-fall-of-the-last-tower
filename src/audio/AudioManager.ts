@@ -20,7 +20,7 @@
 import { SOUNDS, soundFiles, type SoundBus, type SoundDef, type SoundKey } from "./soundCatalog";
 import { ChiptunePlayer } from "./music/ChiptunePlayer";
 import { SONGS, type SongId } from "./music/songs";
-import { UI_SOUNDS, type UiSound } from "./uiSounds";
+import { UI_SOUNDS, type UiSound, type UiSoundDef } from "./uiSounds";
 
 /** Full volume within this share of the view's width from its middle */
 const NEAR = 0.45;
@@ -115,8 +115,12 @@ export class AudioManager {
 
   /** A menu's little sound (uiSounds.ts), on the ui bus */
   playUi(sound: UiSound): void {
+    this.playChip(UI_SOUNDS[sound]);
+  }
+
+  /** A short chip sound (a menu's blip, crowd control landing on us: statusSounds.ts), on the ui bus */
+  playChip(def: UiSoundDef): void {
     if (!this.music || this.context?.state !== "running") return;
-    const def = UI_SOUNDS[sound];
     this.music.blip(def.notes, def.wave, def.gain, this.bus("ui"));
   }
 

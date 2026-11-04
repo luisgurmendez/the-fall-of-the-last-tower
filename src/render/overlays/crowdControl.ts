@@ -74,6 +74,11 @@ interface ActiveCrowdControl {
   totalDuration: number;
 }
 
+/** An effect's kind of crowd control, if it's one */
+export function crowdControlKindOf(effectId: string): CrowdControlKind | null {
+  return CC_EFFECTS[effectId] ?? null;
+}
+
 /**
  * The crowd control on a unit, strongest first.
  */

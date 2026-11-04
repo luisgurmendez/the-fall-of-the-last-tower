@@ -11,6 +11,9 @@ import type { InterpolatedEntity } from "@/core/state/entities";
 import { ABILITY_CUES, type AbilityCue } from "./abilitySounds";
 import { getAudio, type SoundHandle, type SoundPosition } from "./AudioManager";
 import { SOUNDS, type SoundKey } from "./soundCatalog";
+import { STATUS_SOUNDS, newStatusSounds } from "./statusSounds";
+
+type StatusEffect = { definitionId: string; timeRemaining: number };
 
 /**
  * The lane (minions, and towers and monsters fighting them) is in the
@@ -226,6 +229,11 @@ export function playChangeSound(entity: InterpolatedEntity, data: any, localEnti
   const previous = entity.snapshot as { entityId: string; level?: number; isRecalling?: boolean; skillPoints?: number };
 
   if (entity.snapshot.entityId === localEntityId) {
+    // Stunned, rooted, slowed...: heard the moment it lands (the strongest, if several)
+    if (Array.isArray(data.activeEffects)) {
+      const [landed] = newStatusSounds((entity.snapshot as { activeEffects?: StatusEffect[] }).activeEffects, data.activeEffects);
+      if (landed) audio.playChip(STATUS_SOUNDS[landed]);
+    }
     if (typeof data.level === "number" && data.level > (previous.level ?? data.level)) {
       audio.play("level_up");
     } else if (typeof data.skillPoints === "number" && data.skillPoints < (previous.skillPoints ?? 0)) {
