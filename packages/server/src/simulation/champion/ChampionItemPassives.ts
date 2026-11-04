@@ -102,10 +102,7 @@ export class ChampionItemPassives {
    * conditional buffs up.
    */
   update(dt: number, context: ServerGameContext): void {
-    for (const [passiveId, remaining] of this.cooldowns) {
-      if (remaining - dt <= 0) this.cooldowns.delete(passiveId);
-      else this.cooldowns.set(passiveId, remaining - dt);
-    }
+    this.tickCooldowns(dt);
     this.harvestHealIn = Math.max(0, this.harvestHealIn - dt);
     this.updateBurns(dt, context);
     this.updateTithe(dt);
@@ -130,6 +127,14 @@ export class ChampionItemPassives {
   }
 
   /** Effects kept up while their condition holds, refreshed every tick */
+  /** Count down cooldowns (also while dead) */
+  tickCooldowns(dt: number): void {
+    for (const [passiveId, remaining] of this.cooldowns) {
+      if (remaining - dt <= 0) this.cooldowns.delete(passiveId);
+      else this.cooldowns.set(passiveId, remaining - dt);
+    }
+  }
+
   private refreshAuras(context: ServerGameContext): void {
     const champion = this.champion;
     const lasting = TICK * 2;

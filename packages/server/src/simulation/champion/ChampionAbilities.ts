@@ -87,20 +87,15 @@ export class ChampionAbilities {
    * Update abilities (cooldowns and recast windows).
    */
   update(dt: number): void {
+    this.tickCooldowns(dt);
     for (const slot of ABILITY_SLOTS) {
       const state = this.champion.abilityStates[slot];
-      if (state.cooldownRemaining > 0) {
-        // Cooldowns tick at normal rate - CDR is applied upfront when ability is cast
-        state.cooldownRemaining = Math.max(0, state.cooldownRemaining - dt);
-      }
       if (state.castTimeRemaining > 0) {
         state.castTimeRemaining = Math.max(0, state.castTimeRemaining - dt);
         if (state.castTimeRemaining <= 0) {
           state.isCasting = false;
         }
       }
-      // Charges come back
-      if (state.charges !== undefined) this.rechargeAmmo(slot, dt);
       // Update recast window
       if (state.recastWindowRemaining !== undefined && state.recastWindowRemaining > 0) {
         state.recastWindowRemaining = Math.max(0, state.recastWindowRemaining - dt);
@@ -111,6 +106,28 @@ export class ChampionAbilities {
           delete this.recastHitPositions[slot];
         }
       }
+    }
+  }
+
+  /** Cooldowns and charges coming back (also while dead) */
+  tickCooldowns(dt: number): void {
+    for (const slot of ABILITY_SLOTS) {
+      const state = this.champion.abilityStates[slot];
+      if (state.cooldownRemaining > 0) {
+        // Cooldowns tick at normal rate - CDR is applied upfront when ability is cast
+        state.cooldownRemaining = Math.max(0, state.cooldownRemaining - dt);
+      }
+      if (state.charges !== undefined) this.rechargeAmmo(slot, dt);
+    }
+  }
+
+  /** Every recast window closes (the champion died) */
+  endRecasts(): void {
+    for (const slot of ABILITY_SLOTS) {
+      const state = this.champion.abilityStates[slot];
+      state.recastCount = undefined;
+      state.recastWindowRemaining = undefined;
+      delete this.recastHitPositions[slot];
     }
   }
 

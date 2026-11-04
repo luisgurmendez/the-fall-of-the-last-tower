@@ -356,9 +356,19 @@ export class ServerChampion extends ServerEntity {
   }
 
   /**
-   * Update while dead (respawn timer).
+   * Update while dead: the respawn timer, and every cooldown keeps counting
+   * (abilities and their charges, summoner spells, the trinket, item
+   * passives, the passive).
    */
   private updateDead(dt: number, context: ServerGameContext): void {
+    this.abilities.tickCooldowns(dt);
+    this.summoners.update(dt);
+    this.trinket.update(dt);
+    this.itemPassives.tickCooldowns(dt);
+    if (this.passiveState.cooldownRemaining > 0) {
+      this.passiveState.cooldownRemaining = Math.max(0, this.passiveState.cooldownRemaining - dt);
+    }
+
     this.respawnTimer -= dt;
     if (this.respawnTimer <= 0) {
       this.respawn(context);
@@ -934,6 +944,8 @@ export class ServerChampion extends ServerEntity {
     }
     this.recentAttackers.clear();
     this.itemPassives.onDeath();
+    // A recast doesn't outlive the death (its cooldown keeps counting)
+    this.abilities.endRecasts();
 
     // Calculate respawn time
     const baseRespawn = GameConfig.RESPAWN.BASE_RESPAWN_TIME;

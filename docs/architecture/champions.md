@@ -581,7 +581,9 @@ Collaborators clear it with `invalidateStats()`. Code that changes `items`, `lev
 `ServerChampion.update(dt, context)` runs, in order:
 
 1. Advance the transform clock (also while dead)
-2. If dead: count down the respawn timer, respawn when it ends, and stop here
+2. If dead: every cooldown keeps counting (abilities and their charges, summoner spells, the
+   trinket, item passives, the passive), the respawn timer counts down (respawn when it ends), and
+   stop here. A recast window closes with the death
 3. Forced movement if one is active, otherwise normal movement if CC allows
 4. Combat: attack cooldown, combat timeout, target visibility check, start an auto-attack if ready
 5. Scheduled basic attack damage (cancelled if the champion can't attack)
