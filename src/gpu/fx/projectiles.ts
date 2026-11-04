@@ -164,6 +164,22 @@ export const PROJECTILE_STYLES: Record<string, Style> = {
     arrow(fxColor("#e8dcc0"), 52, fxColor("#c8b070"), 7)(batch, id, x, y, angle, time, 0);
     batch.glow(x, y, 26, fxColor("#c8b070"), 0.6, 0.2, 0.4, 0.4, seedOf(id));
   },
+  // Kip's arrows: a plain shaft with an orange streak; the one that pops a
+  // mark with a red bullseye glint at its tip; Target Practice's with a
+  // red-and-white tip; Show Them All's, gold
+  kip_auto: arrow(ARROW, 30, fxColor("#e0662a")),
+  kip_pop_auto: (batch, id, x, y, angle, time) => {
+    arrow(ARROW, 32, fxColor("#ff4a3a"))(batch, id, x, y, angle, time, 0);
+    batch.flare(x + Math.cos(angle) * 14, y + Math.sin(angle) * 14, 14, fxColor("#ff4a3a"), 1.4, time * 8);
+  },
+  kip_q: (batch, id, x, y, angle, time) => {
+    arrow(fxColor("#fff4e6"), 40, fxColor("#ff4a3a"), 5)(batch, id, x, y, angle, time, 0);
+    batch.glow(x + Math.cos(angle) * 16, y + Math.sin(angle) * 16, 18, fxColor("#ff4a3a"), 0.8, 0.3, 0.4, 0.4, seedOf(id));
+  },
+  kip_r: (batch, id, x, y, angle, time) => {
+    arrow(fxColor("#fff0b0"), 34, GOLD, 4)(batch, id, x, y, angle, time, 0);
+    batch.glow(x, y, 20, GOLD, 0.7, 0.2, 0.4, 0.4, seedOf(id));
+  },
   // Caelum's light: a soft green-gold mote, and a long golden ray
   caelum_auto: energyBolt(4, fxColor("#c8f08a"), 4, 7),
   caelum_q: (batch, id, x, y, angle, time) => {

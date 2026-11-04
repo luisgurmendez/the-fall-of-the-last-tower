@@ -28,6 +28,7 @@ import { calamitusRenderer } from "./calamitus";
 import { protobotRenderer } from "./protobot";
 import { hopRenderer } from "./hop";
 import { zhakrulRenderer } from "./zhakrul";
+import { kipRenderer } from "./kip";
 import { vileRenderer } from "./vile";
 import { warriorRenderer } from "./warrior";
 
@@ -56,6 +57,7 @@ export const CHAMPION_RENDERERS: Readonly<
   protobot: protobotRenderer,
   hop: hopRenderer,
   zhakrul: zhakrulRenderer,
+  kip: kipRenderer,
   vex: vexRenderer,
   vile: vileRenderer,
   warrior: warriorRenderer,

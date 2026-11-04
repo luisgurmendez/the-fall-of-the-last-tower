@@ -14,6 +14,7 @@ import type { FogRevealer } from '@/core/FogOfWar';
 import { EntityType, GameConfig, DEFAULT_MINION_STATS, DEFAULT_TOWER_STATS, type MinionType } from '@siege/shared';
 import { Bush } from '@/vision/Bush';
 import type { BushManager, BushGroup } from '@/vision';
+import { markRevealRange } from './markReveal';
 
 /**
  * Sight ranges for different entity types.
@@ -144,6 +145,14 @@ export class OnlineFogProvider implements GameObject, FogRevealer {
     // Now process entities for fog revealers
     for (const entity of entities) {
       const snapshot = entity.snapshot as any;
+
+      // An enemy champion our team marked (Kip's mark): a small window
+      // around it, so the fog isn't drawn over what the server shows us
+      const marked = markRevealRange(snapshot, this.localSide);
+      if (marked > 0) {
+        this.revealers.push(new ServerEntityRevealer(entity.position.x, entity.position.y, this.localSide, marked));
+        continue;
+      }
 
       // Only reveal for our team's entities
       if (snapshot.side !== this.localSide) {

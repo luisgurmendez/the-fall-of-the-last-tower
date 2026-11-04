@@ -598,6 +598,20 @@ const EFFECT_DISPLAY_INFO: Record<string, EffectDisplayInfo> = {
     icon: '☠',
     color: '#7cc850',
   },
+  kip_mark: {
+    name: 'Marked',
+    description: "Kip's team sees you, even in fog and bushes, and runs faster at you; his next arrow pops the mark for heavy damage.",
+    category: 'debuff',
+    icon: 'O',
+    color: '#ff4a3a',
+  },
+  kip_hunt_speed: {
+    name: 'On the Hunt',
+    description: '20% movement speed, from hitting a marked enemy.',
+    category: 'buff',
+    icon: '>',
+    color: '#e0662a',
+  },
   elora_dexterity: {
     name: 'Dexterity',
     description: '35% attack speed.',

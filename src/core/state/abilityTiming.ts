@@ -20,6 +20,7 @@ const TRIP_TIMES: Record<string, number> = {
   warrior_ultimate: 0.37,
   uruk_r: 0.35,
   fenris_e: 0.4,
+  kip_e: 0.27,
   lume_q: 0.5,
 };
 

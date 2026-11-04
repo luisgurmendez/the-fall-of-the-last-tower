@@ -17,6 +17,7 @@ const MARCHERS: { id: string; scale: number }[] = [
   { id: "magnus", scale: 0.84 },
   { id: "calamitus", scale: 1.5 },
   { id: "elora", scale: 1.32 },
+  { id: "kip", scale: 1.26 },
   { id: "uruk", scale: 1.26 },
   { id: "vile", scale: 0.84 },
   { id: "protobot", scale: 1.6 },

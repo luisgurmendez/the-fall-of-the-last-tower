@@ -19,7 +19,7 @@ import { showPortrait } from "./portraits";
  * Champions available for selection.
  * Filter to only show finished/polished champions.
  */
-export const ENABLED_CHAMPIONS = ['vex', 'lume', 'vile', 'warrior', 'magnus', 'elara', 'gorath', 'uruk', 'oitboil', 'elora', 'caelum', 'fenris', 'calamitus', 'protobot', 'hop', 'zhakrul'];
+export const ENABLED_CHAMPIONS = ['vex', 'lume', 'vile', 'warrior', 'magnus', 'elara', 'gorath', 'uruk', 'oitboil', 'elora', 'caelum', 'fenris', 'calamitus', 'protobot', 'hop', 'zhakrul', 'kip'];
 
 const CHAMPION_KEY = "siege-champion";
 
