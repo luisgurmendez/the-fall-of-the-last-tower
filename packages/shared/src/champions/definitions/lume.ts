@@ -347,8 +347,11 @@ const LUME_ANIMATIONS: ChampionAnimations = {
     },
     lume_w: {
       id: "lume_w",
-      totalFrames: 1, // No W sprite yet - use idle
-      baseFrameDuration: 0.1,
+      // Lume-W-Sheet.png (animated from her idle with PixMiniMax: scripts/animate-frame.ts): she cups her
+      // hands at her chest while the orb gathers warmth, and spreads her palms at frame 10, as it pulses
+      // (aoeDelay 0.45 s)
+      totalFrames: 13,
+      baseFrameDuration: 0.045,
       loop: false,
       keyframes: [],
     },

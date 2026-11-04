@@ -22,6 +22,8 @@ const SPRITES = {
     WALK: "/assets/champs/lume/Lume-Walk-Sheet.png",
     ATTACK: "/assets/champs/lume/Lume-BasicAttack-Sheet.png",
     Q: "/assets/champs/lume/Lume-Q-Sheet.png",
+    // Animated from her idle frame (scripts/animate-frame.ts): hands cupped as the orb gathers, palms spread as it pulses
+    W: "/assets/champs/lume/Lume-W-Sheet.png",
     E: "/assets/champs/lume/Lume-E-Sheet.png",
     R: "/assets/champs/lume/Lume-R-Sheet.png",
     FRAME_WIDTH: 152,
@@ -30,6 +32,7 @@ const SPRITES = {
     WALK_FRAMES: 6,
     ATTACK_FRAMES: 10,
     Q_FRAMES: 8,
+    W_FRAMES: 13,
     E_FRAMES: 11,
     R_FRAMES: 12,
     SCALE: 1.12,
@@ -88,6 +91,10 @@ class LumeBodyRenderer implements ChampionBodyRenderer {
       if (abilityId === "lume_q") {
         spriteSrc = SPRITES.LUME.Q;
         frameCount = SPRITES.LUME.Q_FRAMES;
+        useAbilityProgress = true;
+      } else if (abilityId === "lume_w") {
+        spriteSrc = SPRITES.LUME.W;
+        frameCount = SPRITES.LUME.W_FRAMES;
         useAbilityProgress = true;
       } else if (abilityId === "lume_e") {
         spriteSrc = SPRITES.LUME.E;
@@ -273,6 +280,7 @@ export const lumeRenderer: ChampionRendererEntry = {
     SPRITES.LUME.WALK,
     SPRITES.LUME.ATTACK,
     SPRITES.LUME.Q,
+    SPRITES.LUME.W,
     SPRITES.LUME.E,
     SPRITES.LUME.R,
   ],
