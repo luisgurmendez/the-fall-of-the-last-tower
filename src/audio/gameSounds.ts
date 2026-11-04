@@ -16,7 +16,9 @@ import { SOUNDS, type SoundKey } from "./soundCatalog";
  * The lane (minions, and towers and monsters fighting them) is in the
  * background: what champions do is what the player follows
  */
-const LANE_VOLUME = 0.3;
+const LANE_VOLUME = 0.2;
+/** A minion hitting a champion: heard, but under what champions do */
+const MINION_ON_CHAMPION_VOLUME = 0.6;
 
 /** Recalls in progress, by champion, to stop their sound when cancelled */
 const recalls = new Map<string, SoundHandle>();
@@ -33,6 +35,17 @@ export interface SoundContext {
 
 function at(entity: InterpolatedEntity | undefined) {
   return entity ? { x: entity.position.x, y: entity.position.y } : undefined;
+}
+
+/**
+ * How loud an attack (and its hit) is: a champion's, or anything hitting a
+ * champion, in front; a minion hitting a champion a little under; the lane
+ * fighting itself in the background
+ */
+export function attackVolume(attacker: InterpolatedEntity | undefined, target: InterpolatedEntity | undefined): number {
+  if (isChampion(attacker)) return 1;
+  if (isChampion(target)) return attacker?.snapshot.entityType === EntityType.MINION ? MINION_ON_CHAMPION_VOLUME : 1;
+  return LANE_VOLUME;
 }
 
 function isChampion(entity: InterpolatedEntity | undefined): boolean {
@@ -98,7 +111,7 @@ export function playEventSound(event: GameEvent, ctx: SoundContext): void {
       const entity = ctx.entities.get(data.entityId as string);
       const sound = entity && attackSound(entity);
       const target = ctx.entities.get(data.targetId as string);
-      if (sound) audio.play(sound, at(entity), isChampion(entity) || isChampion(target) ? 1 : LANE_VOLUME);
+      if (sound) audio.play(sound, at(entity), attackVolume(entity, target));
       break;
     }
     case GameEventType.ABILITY_CAST:
@@ -112,7 +125,7 @@ export function playEventSound(event: GameEvent, ctx: SoundContext): void {
       const target = ctx.entities.get(data.entityId as string);
       if (!target || !((data.amount as number) > 0)) break;
       const source = typeof data.sourceId === "string" ? ctx.entities.get(data.sourceId) : undefined;
-      audio.play(data.damageType === "physical" ? "hit_physical" : "hit_magic", at(target), isChampion(target) || isChampion(source) ? 1 : LANE_VOLUME);
+      audio.play(data.damageType === "physical" ? "hit_physical" : "hit_magic", at(target), attackVolume(source, target));
       break;
     }
     case GameEventType.SUMMONER_CAST:
