@@ -399,6 +399,12 @@ An enemy entity is sent only if all of these hold (see `FogOfWarServer.calculate
 4. It is within sight range of one of the viewer's vision sources, and no wall blocks the
    line between them (`WallGrid.hasLineOfSight`, shared with the client)
 
+...or, instead of 3 and 4, it holds an effect that reveals it to its source's team
+(`revealsHolder` on the server's effect definition: Kip's mark, `kip_mark`) and the viewer is
+that team: it's sent from the fog and from bushes (a stealthed champion still isn't, rule 1).
+The client opens a small window in its own fog around such an enemy (`src/online/markReveal.ts`,
+60 units, used by `OnlineFogProvider`), so the fog overlay isn't drawn over it.
+
 Towers, inhibitors and nexuses are always visible. Hidden entities are never serialized for that
 team, so a modified client can't reveal them.
 

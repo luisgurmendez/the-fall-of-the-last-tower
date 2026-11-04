@@ -299,6 +299,17 @@ more magic damage from the effect's source (its `sourceId`) while it lasts: Lume
 Glow, on enemy champions near her orb, adds 8% to hers. The strongest counts
 (`ChampionEffects.damageAmpFrom`, applied in `ServerChampion.takeDamage` before resistances).
 
+**Reveal**: an effect with `revealsHolder` makes its holder seen by its source's team while it
+lasts, in the fog and in bushes (not through stealth): `FogOfWarServer.isRevealedTo`. Kip's mark
+(`kip_mark`, 4 s, cleansable); see [networking.md](networking.md#fog-of-war-filtering) for the
+client's side.
+
+**Rewarding attackers**: an effect with `rewardsAttackers` gives a champion of its source's team
+that lands a basic attack on the holder another effect (`ServerChampion.onBasicAttackTaken`,
+called by melee hits and by every targeted projectile that isn't an ability's). Kip's mark gives
+the attacker `kip_hunt_speed` (+20% movement speed, 1.5 s, refreshed by each attack); minions
+and the marked's own team get nothing.
+
 **Stasis** (`ccType: 'stasis'`, effect `item_stasis`, Hourglass of Stillness): the
 champion is frozen like a stun and invulnerable; clients draw a golden shell and the
 label STASIS. See [items.md](items.md) for the item effects.

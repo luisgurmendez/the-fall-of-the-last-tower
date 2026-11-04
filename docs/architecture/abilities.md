@@ -268,8 +268,9 @@ Rules that belong to a champion rather than to one ability implement `IChampionH
 | `amplifyDamageTo` | `ServerChampion.amplifyDamageTo`, any damage it deals, before resistances and its items | Vex: +10% to an enemy her Shadow Shuriken marked |
 | `updatePassiveState` | `ServerChampion`, every tick | Lume: passive follows the Light Orb, and the Prismatic Beam (E) hits along the line from her to it; Oitboil: heat falls, the overheat burns him (damage with no source: not his, for his stats, omnivamp or items); Caelum: Lightweaving's pulse; Fenris: feral under 40% health; Calamitus: tougher in his lava |
 | `onMeleeAttackHit` | `ServerChampion`, melee hits (with the damage dealt) | Vex: empowered attack after Shadow Step; Fenris: Bloodthirst's life steal |
-| `onRangedAttackHit` | A ranged basic attack's projectile, on hit | Elora: every third arrow on the same target strikes a weak point; the poisoned arrow (both scale with her attack damage, which a crit doesn't raise) |
-| `basicAttackProjectileType` | A ranged basic attack about to be fired | Elora: the poisoned arrow and the weak point's arrow look different (their `<type>_impact` VFX play where they land) |
+| `onRangedAttackHit` | A ranged basic attack's projectile, on hit | Elora: every third arrow on the same target strikes a weak point; the poisoned arrow (both scale with her attack damage, which a crit doesn't raise). Kip: his arrow on an enemy he marked pops the mark |
+| `basicAttackProjectileType` | A ranged basic attack about to be fired | Elora: the poisoned arrow and the weak point's arrow look different (their `<type>_impact` VFX play where they land); Kip's arrow that will pop a mark (`kip_pop_auto`) |
+| `modifyStats` | `calculateChampionStats`, last (after items and effects), on the fresh stats | Kip: Run Them Down makes him faster the more crit chance he has |
 | `onChampionKill` | `ServerChampion.onDeath`, for the killer (an enemy champion with the last hit) | Fenris: a kill in his Bloodthirst heals him to full |
 | `getAttackRange` | `ServerChampion.getAttackRange`, given the range it would have | Hop-To-Eat: 250 while its hop is ready (rooted or grounded, the hop waits: melee reach, nothing spent) |
 | `onBasicAttackStart` | A basic attack starting, before its blow | Hop-To-Eat: an attack from out of melee reach hops onto the target (a dash); its bonus is basic attack damage (`withDamageKind`), so Veil doesn't block it |
@@ -288,7 +289,19 @@ generic cone (`executeConeAbility`) takes a `damageFor(entity, damage)` callback
 depends on the target (Zhak'rul's pincers on the poisoned). Zones given the same `ZoneHitGroup`
 (`ServerZone.ts`) burn as one: a unit standing in several takes one tick's damage per tick interval,
 not one from each (the patches of Oitboil's trail of fire, which also never drops a patch on another,
-as against a wall where he stopped).
+as against a wall where he stopped). A `ServerTargetedProjectile` (it follows its target and can't
+be dodged) fired by an ability takes `ability: { crit }`: it isn't a basic attack (no thorns, no
+`onBasicAttackTaken` rules such as the speed Kip's mark gives) and its crit shows as one (Kip's
+Show Them All).
+
+**Kip's marks** (`handlers/kip/`): Target Practice (an arrow stopping at the first enemy, like
+Protobot's claw) and Grand Entrance (a dash, then a burst where he lands, polled each tick until the
+dash is over, as Zhak'rul's burrow) put `kip_mark` on the enemy champions they hit; minions and
+monsters are only hurt (`marks.ts`). Run Them Down and Show Them All `validate` that he has a marked
+enemy in reach (their `aoeRadius`, to the edge of the body), so without one the cast fails and
+costs nothing. Show Them All picks its targets and their number X when cast: X volleys 0.15 s
+apart, an arrow at each living target in each, `kipArrowShare(X)` of the full damage each; it stops
+if he dies or can't cast. Only his basic attacks pop marks (`KipHooks.onRangedAttackHit`).
 
 `initializeAbilityHandlers()` (called at server startup) registers both handlers and hooks.
 
