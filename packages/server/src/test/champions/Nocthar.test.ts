@@ -500,11 +500,24 @@ describe('Nocthar', () => {
       expect(giant.maxHealth).toBeGreaterThan(colossusStats(level, ap(arena), 0).maxHealth);
     });
 
+    test('its size goes with what it took: small with one Hollow, big with five, never past the cap', () => {
+      expect(colossusScale(1)).toBeCloseTo(0.7, 5);
+      expect(colossusScale(5)).toBeCloseTo(1.3, 5);
+      expect(colossusScale(0)).toBeLessThan(colossusScale(1));
+      for (let absorbed = 1; absorbed <= 10; absorbed++) {
+        expect(colossusScale(absorbed)).toBeGreaterThanOrEqual(colossusScale(absorbed - 1));
+      }
+      expect(colossusScale(10)).toBe(1.6);
+      // Twice as big from one Hollow to five, near enough
+      expect(colossusScale(5) / colossusScale(1)).toBeGreaterThan(1.8);
+    });
+
     test('with no Hollows a small colossus rises', () => {
       const arena = noctharArena();
       const giant = raiseColossus(arena);
       expect(giant.maxHealth).toBe(colossusStats(6, ap(arena), 0).maxHealth);
-      expect(giant.scale).toBe(1);
+      expect(giant.scale).toBeCloseTo(colossusScale(0), 5);
+      expect(giant.scale).toBeLessThan(colossusScale(1));
     });
 
     test('enemies where it rises are knocked up and take damage; those farther are not', () => {

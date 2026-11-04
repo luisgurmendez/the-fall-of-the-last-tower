@@ -149,9 +149,12 @@ export function colossusStats(level: number, abilityPower: number, absorbed: num
   };
 }
 
-/** How big the colossus is drawn: bigger the more it absorbed */
+/**
+ * How big the colossus is (drawn, and its body): small from one Hollow (0.7),
+ * big from five (1.3), up to 1.6 (a big Hollow counts twice)
+ */
 export function colossusScale(absorbed: number): number {
-  return Math.min(1.6, 1 + 0.06 * absorbed);
+  return Math.min(1.6, 0.55 + 0.15 * absorbed);
 }
 
 // =============================================================================

@@ -107,7 +107,7 @@ Son órdenes a los Hollows, sin enfriamiento ni costo. Se apunta con el modo de 
   - Una grieta en el suelo marca dónde va a salir el coloso, así que se puede esquivar.
 - **Si la interrumpen:** si la aturden, la silencian o la levantan durante el lanzamiento, se cancela. Los Hollows se quedan y la R vuelve en 10 s.
 - **Al salir:** el coloso levanta 1 s a los enemigos que están en un radio de 250 y les hace daño mágico.
-- **Tamaño:** su tamaño, su vida y su daño crecen con cada Hollow absorbido (un Hollow grande cuenta doble). Con ninguno sale un coloso chico.
+- **Tamaño:** su tamaño, su vida y su daño crecen con cada Hollow absorbido (un Hollow grande cuenta doble). El tamaño va de chico con 1 Hollow (0,7) a grande con 5 (1,3), con un tope de 1,6. Con ninguno sale todavía más chico (0,55).
 - **Cuánto dura:** hasta que lo matan. No tiene duración.
 - **Volver a apretar R:** le da órdenes al coloso, con las mismas reglas que la E (punto, enemigo, Nocthar y radio máximo).
 - **Enfriamiento:** 120/100/80 s, que empieza a contar cuando muere el coloso.
