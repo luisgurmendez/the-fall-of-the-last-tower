@@ -60,6 +60,8 @@ and in `fly.toml`:
 ```
 
 Without it the server still starts (in `./data` inside the machine), but accounts vanish on the next
-restart. Not set up yet: the volume has to be created first (it costs a little a month).
+restart. Set up on 2026-11-04: `retroleague_data` (1 GB, gru, encrypted; Fly keeps 5 daily snapshots).
+The machine and its volume are in the same region; a volume belongs to one machine, another reason
+to run only one.
 
 `deploy/` holds an older EC2 + nginx deploy (São Paulo); it's no longer running.

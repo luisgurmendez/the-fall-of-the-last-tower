@@ -9,6 +9,13 @@ primary_region = "gru"
   STATIC_DIR = "/app/dist"
   # Players per team in the public queue
   PLAYERS_PER_TEAM = "1"
+  # Accounts (accounts.db), on the volume below
+  DATA_DIR = "/data"
+
+# The accounts' volume: the machine's own disk is reset on every start
+[mounts]
+  source = "retroleague_data"
+  destination = "/data"
 
 [http_service]
   internal_port = 8080
