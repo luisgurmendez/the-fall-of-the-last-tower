@@ -299,5 +299,11 @@
       "e": "89373687-b29e-40d0-9022-1d7337544563"
     },
     "characterId": "20188e3c-ab6c-4aa3-a698-04e3c1e9dd86"
+  },
+  "nocthar_hand": {
+    "animations": {
+      "grab": "bbab5816-a379-4e89-a789-f119115c084c"
+    },
+    "characterId": "b507cc33-ee03-48c8-9bf9-5a5f37b2e3ed"
   }
 }

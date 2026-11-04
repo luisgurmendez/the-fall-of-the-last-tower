@@ -60,6 +60,7 @@ const MANIFEST_PATH = 'scripts/sprites.json';
 const MONSTERS_DIR = 'public/assets/sprites/monsters';
 const MINIONS_DIR = 'public/assets/sprites/minions';
 const SUMMONS_DIR = 'public/assets/sprites/summons';
+const FX_DIR = 'public/assets/sprites/fx';
 
 /** The directions a set can be animated in; west is east mirrored */
 type Direction = 'east' | 'south' | 'north';
@@ -73,7 +74,9 @@ type AnimationSpec =
   /** Drawn from a description on PixMiniMax (multiple of 4 frames); a loop is drawn back to its first pose */
   | { mode: 'pixminimax'; action: string; frames: number; loop?: boolean }
   /** A PixelLab skeleton animation (needs a matching character template) */
-  | { mode: 'template'; template: string };
+  | { mode: 'template'; template: string }
+  /** The character standing still, one frame (its look facing that way): nothing to draw */
+  | { mode: 'still' };
 
 interface SpriteSetSpec {
   /** Its key in scripts/sprites.json and for --only (a creature type or champion id) */
@@ -88,7 +91,7 @@ interface SpriteSetSpec {
   detail?: string;
   /** PixelLab skeleton the character is fitted to: mannequin, dog, bear, cat, horse, lion */
   template: string;
-  /** Directions its animations face (default east only) */
+  /** Directions its animations face (default east only); a set facing one way writes <animation>.png */
   directions?: Direction[];
   /**
    * Its south-facing look: the character is turned from it. A create-image-pixen
@@ -582,6 +585,29 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
       e: 'lowers its head, scrapes the ground with one foot like a bull, then lunges forward head first',
     },
   }),
+  // Nocthar's Q: one of the hands that grab out of the earth (the game draws
+  // the dirt and clips the sprite at the ground line). A generate-image-v2
+  // take in the Hollow's style. It only faces the viewer: its other
+  // directions are the same drawing, so PixelLab draws none of them
+  {
+    key: 'nocthar_hand',
+    outputDir: `${FX_DIR}/nocthar_hand`,
+    name: 'Grasping Hand',
+    description: 'a single skeletal bony hand standing upright, palm facing the viewer, long thin bony fingers pointing up, a short bony forearm below the wrist, grey-white bone with a little dried grave dirt and a scrap of brown burial cloth around the wrist',
+    size: 48,
+    template: 'mannequin',
+    directions: ['south'],
+    reference: { file: 'scripts/references/nocthar_hand_south.png' },
+    directionImages: { east: 'scripts/references/nocthar_hand_south.png', north: 'scripts/references/nocthar_hand_south.png' },
+    lockPalette: true,
+    feetFromFirstFrame: true,
+    // Its 9 frames end on 5 of the same closed claw
+    trim: { 'grab@south': [0, 7] },
+    animations: {
+      idle: { mode: 'still' },
+      grab: { mode: 'pixminimax', action: 'the open hand snaps its long bony fingers shut into a tight grabbing claw, then holds the closed claw still, the wrist staying in place', frames: 8 },
+    },
+  },
   champion('warrior', {
     name: 'Kael',
     description: 'a young knight in steel plate armor with a blue tabard, holding a longsword and a round steel shield',
@@ -861,6 +887,7 @@ async function createAnimation(
   palette: string[] | null,
 ): Promise<string> {
   const animation = spec.animations[name];
+  if (animation.mode === 'still') throw new Error(`${name} is a still: nothing to animate`);
   const request = (direction: Direction, groupId?: string): Record<string, unknown> => {
     const body: Record<string, unknown> = {
       character_id: characterId,
@@ -953,7 +980,7 @@ function withoutDetached(frame: RgbaImage, maxPixels: number): RgbaImage {
  * all of them, centered, with every animation's feet on the idle's row (its
  * lowest pixel, or with byFirstFrame its first frame's).
  */
-function buildStrips(animations: Record<string, RgbaImage[]>, byFirstFrame = false): Record<string, RgbaImage> {
+function buildStrips(animations: Record<string, RgbaImage[]>, byFirstFrame = false, idleKey = 'idle'): Record<string, RgbaImage> {
   const canvas = Math.max(...Object.values(animations).flat().map(frame => Math.max(frame.width, frame.height)));
   const centered = (frame: RgbaImage, dy = 0) => {
     const out = createImage(canvas, canvas);
@@ -961,7 +988,7 @@ function buildStrips(animations: Record<string, RgbaImage[]>, byFirstFrame = fal
     return out;
   };
   const feetRow = (frames: RgbaImage[]) => Math.max(...(byFirstFrame ? frames.slice(0, 1) : frames).map(frame => bottomRow(centered(frame))));
-  const idleFeet = feetRow(animations.idle);
+  const idleFeet = feetRow(animations[idleKey]);
 
   const strips: Record<string, RgbaImage> = {};
   for (const name of Object.keys(animations)) {
@@ -1064,6 +1091,8 @@ async function generateSpriteSet(spec: SpriteSetSpec, manifest: Manifest, option
   const names = Object.keys(spec.animations);
   // A strip per animation and direction
   const keys = names.flatMap(name => directions.map(direction => animationKey(name, direction)));
+  const idleKey = animationKey('idle', directions[0]);
+  const fileOf = (key: string) => (directions.length === 1 ? `${parseKey(key).name}.png` : stripFile(key));
   if (!entry.characterId || options.newCharacter) {
     entry.characterId = await createCharacter(spec, options.seed);
     entry.animations = {};
@@ -1074,7 +1103,7 @@ async function generateSpriteSet(spec: SpriteSetSpec, manifest: Manifest, option
   if (options.characterOnly) {
     if (options.review) {
       mkdirSync(options.review, { recursive: true });
-      const standing = buildStrips(Object.fromEntries(directions.map(direction => [animationKey('idle', direction), [rotations[direction]]])));
+      const standing = buildStrips(Object.fromEntries(directions.map(direction => [animationKey('idle', direction), [rotations[direction]]])), false, idleKey);
       writeFileSync(join(options.review, `${spec.key}-character.png`), encodePng(contactSheet(Object.values(standing), 4)));
     }
     log(`${spec.name}: character ${characterId} (${directions.join(', ')})`);
@@ -1083,7 +1112,7 @@ async function generateSpriteSet(spec: SpriteSetSpec, manifest: Manifest, option
   const palette = spec.lockPalette ? [...paletteOf(Object.values(rotations)), ...(spec.paletteExtras ?? [])] : null;
 
   // Missing animations, a few at a time (a redo is a new animation: the old take stays in the PixelLab library)
-  const missing = names.filter(name => !entry.animations[name] || options.redo.includes(name));
+  const missing = names.filter(name => spec.animations[name].mode !== 'still' && (!entry.animations[name] || options.redo.includes(name)));
   await runPool(missing, async name => {
     entry.animations[name] = await createAnimation(characterId, spec, name, directions, options.seed, rotations, palette);
     saveManifest(manifest);
@@ -1093,26 +1122,26 @@ async function generateSpriteSet(spec: SpriteSetSpec, manifest: Manifest, option
   const frames: Record<string, RgbaImage[]> = {};
   for (const key of keys) {
     const { name, direction } = parseKey(key);
-    const drawn = await downloadFrames(character, entry.animations[name], direction);
     const animation = spec.animations[name];
+    const drawn = animation.mode === 'still' ? [rotations[direction]] : await downloadFrames(character, entry.animations[name], direction);
     // A loop's last frame is drawn back to its first pose: drop it so the pose doesn't show twice
-    const kept = animation.mode !== 'template' && animation.loop && drawn.length > 2 ? drawn.slice(0, -1) : drawn;
+    const kept = 'loop' in animation && animation.loop && drawn.length > 2 ? drawn.slice(0, -1) : drawn;
     const trim = spec.trim?.[key];
     const trimmed = trim ? kept.slice(trim[0], trim[1] + 1) : kept;
     frames[key] = spec.dropDetached ? trimmed.map(frame => withoutDetached(frame, spec.dropDetached!)) : trimmed;
   }
-  const strips = buildStrips(frames, spec.feetFromFirstFrame);
+  const strips = buildStrips(frames, spec.feetFromFirstFrame, idleKey);
   mkdirSync(spec.outputDir, { recursive: true });
   for (const key of keys) {
-    writeFileSync(join(spec.outputDir, stripFile(key)), encodePng(strips[key]));
+    writeFileSync(join(spec.outputDir, fileOf(key)), encodePng(strips[key]));
   }
-  log(`${spec.name}: wrote ${spec.outputDir} (${keys.map(key => `${key} ${frames[key].length}`).join(', ')} frames, ${strips.idle.height}px)`);
+  log(`${spec.name}: wrote ${spec.outputDir} (${keys.map(key => `${key} ${frames[key].length}`).join(', ')} frames, ${strips[idleKey].height}px)`);
 
   const report: string[] = [];
   for (const key of keys) {
     const { name, direction } = parseKey(key);
     const animation = spec.animations[name];
-    const findings = checkStrip(frames[key], rotations[direction], animation.mode === 'template' || animation.loop === true);
+    const findings = checkStrip(frames[key], rotations[direction], animation.mode === 'template' || ('loop' in animation && animation.loop === true));
     report.push(findings.length ? `${key}:\n${findings.map(finding => `  - ${finding}`).join('\n')}` : `${key}: ok`);
   }
   log(`${spec.name}: check\n${report.join('\n')}`);
