@@ -98,6 +98,21 @@ export interface ChampionRecord {
   championId: string;
   games: number;
   wins: number;
+  /** Added up over its games */
+  kills: number;
+  deaths: number;
+  assists: number;
+}
+
+/** An account's numbers per match, over every match kept */
+export interface ProfileAverages {
+  games: number;
+  kills: number;
+  deaths: number;
+  assists: number;
+  cs: number;
+  gold: number;
+  damageToChampions: number;
 }
 
 export interface Profile {
@@ -110,6 +125,8 @@ export interface Profile {
   tier: TierId;
   /** Most played first (at most PROFILE_CHAMPIONS) */
   champions: ChampionRecord[];
+  /** Null before its first match */
+  averages: ProfileAverages | null;
 }
 
 /** A match in a profile: the match, and the account's line in it */
@@ -473,10 +490,16 @@ export class AccountStore {
     if (!row) return null;
     const { wins, losses, rating, peakRating, ratedGames, tier } = toAccount(row);
     const champions = (this.db.query(`
-      SELECT champion_id, COUNT(*) AS games, SUM(won) AS wins FROM match_players WHERE account_id = ?
+      SELECT champion_id, COUNT(*) AS games, SUM(won) AS wins, SUM(kills) AS kills, SUM(deaths) AS deaths,
+        SUM(assists) AS assists
+      FROM match_players WHERE account_id = ?
       GROUP BY champion_id ORDER BY games DESC, wins DESC, champion_id LIMIT ?
-    `).all(row.id, PROFILE_CHAMPIONS) as { champion_id: string; games: number; wins: number }[])
-      .map(champion => ({ championId: champion.champion_id, games: champion.games, wins: champion.wins }));
+    `).all(row.id, PROFILE_CHAMPIONS) as { champion_id: string; games: number; wins: number; kills: number; deaths: number; assists: number }[])
+      .map(champion => ({
+        championId: champion.champion_id, games: champion.games, wins: champion.wins,
+        kills: champion.kills, deaths: champion.deaths, assists: champion.assists,
+      }));
+    const averages = this.averages(row.id);
 
     const before = isMatchId(options.before) ? options.before : Number.MAX_SAFE_INTEGER;
     const rows = this.db.query(`
@@ -484,7 +507,7 @@ export class AccountStore {
       WHERE match_players.account_id = ? AND matches.id < ? ORDER BY matches.id DESC LIMIT ?
     `).all(row.id, before, PROFILE_PAGE + 1) as (MatchRow & MatchPlayerRow)[];
     return {
-      profile: { name: row.name, wins, losses, rating, peakRating, ratedGames, tier, champions },
+      profile: { name: row.name, wins, losses, rating, peakRating, ratedGames, tier, champions, averages },
       matches: rows.slice(0, PROFILE_PAGE).map(match => ({ ...toMatchFacts(match), ...toMatchLine(match) })),
       more: rows.length > PROFILE_PAGE,
     };
@@ -504,6 +527,22 @@ export class AccountStore {
         totals: parseJson<ChampionMatchTotals | null>(player.totals, null),
       }));
     return { ...toMatchFacts(match), winningSide: match.winning_side, players };
+  }
+
+  /** An account's numbers per match (null before its first) */
+  private averages(accountId: number): ProfileAverages | null {
+    const row = this.db.query(`
+      SELECT COUNT(*) AS games, AVG(kills) AS kills, AVG(deaths) AS deaths, AVG(assists) AS assists, AVG(cs) AS cs,
+        AVG(gold) AS gold, AVG(COALESCE(json_extract(totals, '$.damageToChampions'), 0)) AS damageToChampions
+      FROM match_players WHERE account_id = ?
+    `).get(accountId) as ProfileAverages;
+    if (!row || row.games === 0) return null;
+    const round = (value: number) => Math.round(value * 10) / 10;
+    return {
+      games: row.games,
+      kills: round(row.kills), deaths: round(row.deaths), assists: round(row.assists),
+      cs: Math.round(row.cs), gold: Math.round(row.gold), damageToChampions: Math.round(row.damageToChampions),
+    };
   }
 
   close(): void {

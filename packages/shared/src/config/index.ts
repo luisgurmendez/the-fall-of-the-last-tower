@@ -20,6 +20,8 @@ export { WallGrid } from './WallGrid';
 export { jungleTrails } from './siegeMap';
 export { WallField } from './wallField';
 export { MAPS, useMap, activeMapId, isMapId } from './maps';
+export { TIERS, TIER_SPAN, tierFor, tierProgress } from './ranks';
+export type { Tier, TierId, TierProgress } from './ranks';
 export type { MapId } from './maps';
 
 export { ITEM_CATALOG, getItemCatalogEntry, CONTROL_WARD_ITEM_ID } from './items';

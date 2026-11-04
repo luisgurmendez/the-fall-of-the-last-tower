@@ -181,7 +181,8 @@ describe('Profiles and matches', () => {
     expect(response!.status).toBe(200);
     const body = await json(response);
     expect(body.profile).toMatchObject({ name: 'Luis', wins: 1, losses: 0, rating: 1220, peakRating: 1220, ratedGames: 1, tier: 'silver' });
-    expect(body.profile.champions).toEqual([{ championId: 'vex', games: 1, wins: 1 }]);
+    expect(body.profile.champions).toEqual([{ championId: 'vex', games: 1, wins: 1, kills: 1, deaths: 2, assists: 3 }]);
+    expect(body.profile.averages).toMatchObject({ games: 1, kills: 1, deaths: 2, assists: 3 });
     expect(body.matches).toHaveLength(1);
     expect(body.matches[0]).toMatchObject({ id: matchId, won: true, championId: 'vex', ratingBefore: 1200, ratingAfter: 1220 });
     expect(body.more).toBe(false);

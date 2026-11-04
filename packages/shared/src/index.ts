@@ -14,8 +14,8 @@ export type { Shape } from './math/shapes';
 export * from './types';
 
 // Configuration
-export { MOBAConfig, GameConfig, calculateBushGroupBounds, calculateIndividualBushPositions, isPointInBushGroup, mapLanes, getLane, WallGrid, WallField, MAPS, useMap, activeMapId, isMapId, ITEM_CATALOG, getItemCatalogEntry, CONTROL_WARD_ITEM_ID, jungleTrails, planItemPurchase, getItemTree, getItemCombineCost, getItemBuildsInto, isItemPartOf, purchaseBlockReason, consumableStackSlot, recommendedBuild, withStarter, isBuildItemDone } from './config';
-export type { MapSide, MapId, LaneConfig, LaneId, JungleCreatureType, BushSpread, BushGroupBounds, BushPosition, ItemCatalogEntry, ItemPassiveData, ItemPassiveEffect, ItemActiveData, ItemActiveEffect, ConsumableData, ItemTreeNode, PurchasePlan, InventoryEntry, PurchaseBlock } from './config';
+export { MOBAConfig, GameConfig, calculateBushGroupBounds, calculateIndividualBushPositions, isPointInBushGroup, mapLanes, getLane, WallGrid, WallField, MAPS, useMap, activeMapId, isMapId, ITEM_CATALOG, getItemCatalogEntry, CONTROL_WARD_ITEM_ID, jungleTrails, planItemPurchase, getItemTree, getItemCombineCost, getItemBuildsInto, isItemPartOf, purchaseBlockReason, consumableStackSlot, recommendedBuild, withStarter, isBuildItemDone, TIERS, TIER_SPAN, tierFor, tierProgress } from './config';
+export type { MapSide, MapId, LaneConfig, LaneId, JungleCreatureType, BushSpread, BushGroupBounds, BushPosition, ItemCatalogEntry, ItemPassiveData, ItemPassiveEffect, ItemActiveData, ItemActiveEffect, ConsumableData, ItemTreeNode, PurchasePlan, InventoryEntry, PurchaseBlock, Tier, TierId, TierProgress } from './config';
 
 // Utility functions
 export * from './utils';

@@ -10,8 +10,12 @@
  *   teams' ratings. K is K_PROVISIONAL for an account's first
  *   PROVISIONAL_GAMES rated matches, K_SETTLED after. Ratings are whole
  *   numbers, never below MIN_RATING.
- * - Tiers go by the rating (TIERS).
+ * - Tiers go by the rating (TIERS, in @siege/shared's config/ranks.ts).
  */
+
+import { TIERS, tierFor, type Tier, type TierId } from '@siege/shared';
+
+export { TIERS, type Tier, type TierId };
 
 export const START_RATING = 1200;
 export const PROVISIONAL_GAMES = 10;
@@ -35,25 +39,6 @@ export interface RatingChange {
   before: number;
   after: number;
 }
-
-export type TierId = 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond' | 'master';
-
-export interface Tier {
-  id: TierId;
-  name: string;
-  /** The rating it starts at */
-  from: number;
-}
-
-/** From the bottom up; a new account starts in the middle of Silver */
-export const TIERS: readonly Tier[] = [
-  { id: 'bronze', name: 'Bronze', from: Number.NEGATIVE_INFINITY },
-  { id: 'silver', name: 'Silver', from: 1100 },
-  { id: 'gold', name: 'Gold', from: 1300 },
-  { id: 'platinum', name: 'Platinum', from: 1500 },
-  { id: 'diamond', name: 'Diamond', from: 1700 },
-  { id: 'master', name: 'Master', from: 1900 },
-];
 
 /** A rating to count with: one that isn't a number counts as the starting one */
 function sane(rating: number | null): number {
@@ -105,10 +90,7 @@ export function ratingChanges(players: readonly RatedPlayer[], winningSide: numb
   return changes;
 }
 
-/** The tier a rating is in */
+/** The tier a rating is in (one that isn't a number counts as the starting one) */
 export function tierOf(rating: number): Tier {
-  const value = sane(rating);
-  let tier = TIERS[0];
-  for (const candidate of TIERS) if (value >= candidate.from) tier = candidate;
-  return tier;
+  return tierFor(sane(rating));
 }

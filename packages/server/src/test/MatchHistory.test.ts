@@ -229,11 +229,32 @@ describe('A profile', () => {
       store.recordMatch(match([line('p1', 0, { accountId: luis, championId }), line('p2', 1, { accountId: ana })], { winningSide }));
     play('kael', 0); play('vex', 0); play('vex', 1); play('vex', 0); play('kael', 1);
     play('gorath', 0);
+    // (Each line is 4 / 2 / 7: the champions add up their KDA)
     expect(store.profile('Luis')!.profile.champions).toEqual([
-      { championId: 'vex', games: 3, wins: 2 },
-      { championId: 'kael', games: 2, wins: 1 },
-      { championId: 'gorath', games: 1, wins: 1 },
+      { championId: 'vex', games: 3, wins: 2, kills: 12, deaths: 6, assists: 21 },
+      { championId: 'kael', games: 2, wins: 1, kills: 8, deaths: 4, assists: 14 },
+      { championId: 'gorath', games: 1, wins: 1, kills: 4, deaths: 2, assists: 7 },
     ]);
+  });
+
+  test('averages per match: KDA, CS, gold and damage to champions', async () => {
+    const { store, ids: [luis, ana] } = await setup();
+    store.recordMatch(match([
+      line('p1', 0, { accountId: luis, kills: 10, deaths: 2, assists: 4, cs: 200, gold: 12000, totals: { ...TOTALS, damageToChampions: 20000 } }),
+      line('p2', 1, { accountId: ana }),
+    ]));
+    store.recordMatch(match([
+      line('p1', 1, { accountId: luis, kills: 2, deaths: 6, assists: 8, cs: 100, gold: 6000, totals: { ...TOTALS, damageToChampions: 10000 } }),
+      line('p2', 0, { accountId: ana }),
+    ]));
+    expect(store.profile('Luis')!.profile.averages).toEqual({
+      games: 2, kills: 6, deaths: 4, assists: 6, cs: 150, gold: 9000, damageToChampions: 15000,
+    });
+  });
+
+  test('no matches yet: no averages', async () => {
+    const { store } = await setup();
+    expect(store.profile('Luis')!.profile.averages).toBeNull();
   });
 });
 
