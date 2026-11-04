@@ -350,6 +350,76 @@ describe('Summons', () => {
       expect(unit.position.distanceTo(arena.blue.position)).toBeLessThan(80);
     });
 
+    /** A summon at p(30) fighting a sturdy red minion right next to it */
+    function fighting(arena: TestArena): { unit: ServerSummon; enemy: ServerEntity } {
+      const unit = summon(arena, p(30));
+      const enemy = arena.addMinion(TEAM_RED, p(30 + STATS.radius + 12 + 6));
+      enemy.health = enemy.maxHealth = 1e6;
+      step(arena, 1.5);
+      expect(enemy.health).toBeLessThan(1e6);
+      return { unit, enemy };
+    }
+
+    test('BUG: fighting something, sent to a point it stops and goes there', () => {
+      const arena = ownerArena();
+      const { unit, enemy } = fighting(arena);
+      unit.command({ kind: 'move', point: p(-200) }, arena.context);
+      const health = enemy.health;
+      // On its way it hits nothing (there, it fights whatever followed it)
+      for (let i = 0; i < 4 / DT && unit.position.distanceTo(p(-200)) > 8; i++) arena.tickAll(DT);
+      expect(unit.position.distanceTo(p(-200))).toBeLessThanOrEqual(8);
+      expect(enemy.health).toBe(health);
+    });
+
+    test('BUG: fighting something, told to come back it comes back', () => {
+      const arena = ownerArena();
+      arena.blue.position.setFrom(p(-150));
+      const { unit, enemy } = fighting(arena);
+      unit.command({ kind: 'follow' }, arena.context);
+      const health = enemy.health;
+      // On its way it hits nothing (back by its owner, it fights whatever followed it)
+      for (let i = 0; i < 4 / DT && unit.position.distanceTo(arena.blue.position) > 70; i++) arena.tickAll(DT);
+      expect(unit.position.distanceTo(arena.blue.position)).toBeLessThanOrEqual(70);
+      expect(enemy.health).toBe(health);
+    });
+
+    test('BUG: fighting something its owner attacks, told to come back it comes back', () => {
+      const arena = ownerArena();
+      arena.blue.position.setFrom(p(-150));
+      const { unit, enemy } = fighting(arena);
+      arena.blue.setAttackTarget(enemy.id);
+      // (the owner keeps hitting from range; the summon is called off)
+      unit.command({ kind: 'follow' }, arena.context);
+      step(arena, 3);
+      expect(unit.position.distanceTo(arena.blue.position)).toBeLessThan(80);
+    });
+
+    test('BUG: fighting something, sent at another enemy it goes for that one', () => {
+      const arena = ownerArena();
+      const { unit, enemy } = fighting(arena);
+      const other = arena.addMinion(TEAM_RED, p(-120));
+      other.health = other.maxHealth = 1e6;
+      unit.command({ kind: 'attack', targetId: other.id }, arena.context);
+      const health = enemy.health;
+      step(arena, 4);
+      expect(other.health).toBeLessThan(1e6);
+      expect(enemy.health).toBe(health);
+    });
+
+    test('once back by its owner, it hits back at enemies next to it again', () => {
+      const arena = ownerArena();
+      arena.blue.position.setFrom(p(-150));
+      const { unit, enemy } = fighting(arena);
+      unit.command({ kind: 'follow' }, arena.context);
+      step(arena, 4);
+      // (the one that followed it gone)
+      enemy.takeDamage(1e9, 'true');
+      step(arena, 0.1);
+      const near = arena.addMinion(TEAM_RED, unit.position.added(ACROSS.scaled(STATS.radius + 12 + 6)));
+      step(arena, 2);
+      expect(near.health).toBeLessThan(near.maxHealth);
+    });
+
     test('the same order again keeps the attack it is winding up', () => {
       const arena = ownerArena();
       const unit = summon(arena, p(30));

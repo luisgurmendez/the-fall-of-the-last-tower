@@ -32,6 +32,10 @@ sight, acquisition range, body radius and mass. `scale` makes it bigger: the bod
     hits back at enemy champions and minions right next to it (`acquisitionRange`).
   - It doesn't go for structures or jungle monsters on its own.
 - **Orders** (`command`):
+  - **Sent somewhere or called back:** it drops the fight it's in and fights nothing on its
+    way, until it's there (or by its owner). The same holds when its leash calls it back.
+    A call back always applies, even if it was already following its owner and fighting
+    on its own.
   - **`move`:** walk to a point, and fight what comes near there.
   - **`attack`:** chase a unit until it dies or hides. An order at something it can't
     attack (an ally, ...) is a walk to where that is.

@@ -383,6 +383,22 @@ describe('Nocthar', () => {
       for (const hollow of army) expect(hollow.order.kind).toBe('follow');
     });
 
+    test('BUG: Hollows fighting a minion heed him: sent away, they leave it; called back, they come', () => {
+      const arena = noctharArena();
+      const army = raiseHollows(arena, 2, p(80));
+      const minion = arena.addMinion(TEAM_RED, p(110));
+      minion.health = minion.maxHealth = 1e6;
+      step(arena, 2.5);
+      expect(minion.health).toBeLessThan(1e6);
+      arena.castAbility(arena.blue, 'E', { targetPosition: p(-150) });
+      const health = minion.health;
+      step(arena, 0.8);
+      expect(minion.health).toBe(health);
+      for (const hollow of army) expect(hollow.position.dot(ALONG)).toBeLessThan(60);
+      arena.castAbility(arena.blue, 'E', { targetPosition: p(5), targetId: arena.blue.id });
+      for (const hollow of army) expect(hollow.order.kind).toBe('follow');
+    });
+
     test('Hollows still rising get the order too', () => {
       const arena = noctharArena();
       const [hollow] = raiseHollows(arena, 1);

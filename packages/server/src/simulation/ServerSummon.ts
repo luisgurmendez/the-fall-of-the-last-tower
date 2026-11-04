@@ -11,7 +11,9 @@
  *   what the owner attacks and hits back at enemy units right next to it.
  *   It doesn't go for structures or jungle monsters on its own
  * - Orders (command): walk to a point and fight what comes near there,
- *   attack a unit until it dies or hides, come back
+ *   attack a unit until it dies or hides, come back. Sent somewhere or
+ *   called back, it drops the fight it's in and fights nothing until it gets
+ *   there
  * - Farther than its leash from the owner, it drops its order and comes back
  * - Its owner dying, it crumbles (a death with no killer)
  * - Crowd control holds it as it does a minion: stun, root, slow, fear
@@ -111,6 +113,8 @@ export class ServerSummon extends ServerEntity {
   private attackTarget: string | null = null;
   private attackCooldown = 0;
   private pendingAttack: { targetId: string; delay: number } | null = null;
+  /** Sent somewhere or called back: it fights nothing until it gets there */
+  private disengaged = false;
   private fleeing: Vector | null = null;
   private dash: (SummonDash & { elapsed: number; touched: Set<string>; carried: Set<string> }) | null = null;
   /** Attacking faster (0.5: 50% faster) for a while */
@@ -194,8 +198,9 @@ export class ServerSummon extends ServerEntity {
    * ally, a structure... dead or unseen) is a walk to where that is.
    */
   command(order: SummonOrder, context: ServerGameContext): void {
-    // The same order again changes nothing (an attack winding up lands)
-    if (sameOrder(this.order, order)) return;
+    // The same order again changes nothing (an attack winding up lands); but
+    // called back while it fights on its own, it comes back
+    if (sameOrder(this.order, order) && !(order.kind === 'follow' && this.attackTarget)) return;
     if (order.kind === 'attack') {
       const target = context.getEntity(order.targetId);
       if (!target || target.isDead) return;
@@ -203,11 +208,18 @@ export class ServerSummon extends ServerEntity {
         this.command({ kind: 'move', point: target.position.clone() }, context);
         return;
       }
-      this.attackTarget = target.id;
-    } else {
-      this.attackTarget = null;
     }
+    this.setOrder(order, order.kind !== 'attack');
+  }
+
+  /**
+   * Take an order; `disengage`: drop the fight it's in and fight nothing on
+   * its way (its owner sent it or called it back, or it's past its leash)
+   */
+  private setOrder(order: SummonOrder, disengage: boolean): void {
+    this.attackTarget = order.kind === 'attack' ? order.targetId : null;
     this.order = order.kind === 'move' ? { kind: 'move', point: order.point.clone() } : order;
+    this.disengaged = disengage;
     this.pendingAttack = null;
     this.path = [];
     this.repathIn = 0;
@@ -372,10 +384,22 @@ export class ServerSummon extends ServerEntity {
 
   /** What it fights now: its order's target, its owner's, or an enemy right next to it */
   private chooseTarget(owner: ServerEntity & { targetEntityId: string | null }, context: ServerGameContext): void {
+    // On its way where it was sent (or back to its owner): nothing until it's there
+    if (this.disengaged) {
+      const there = this.order.kind === 'move'
+        ? this.position.distanceTo(this.order.point) <= ARRIVED
+        : this.position.distanceTo(this.followSpot(owner, context)) <= ARRIVED + this.getRadius();
+      if (!there) {
+        this.attackTarget = null;
+        return;
+      }
+      this.disengaged = false;
+    }
+
     if (this.order.kind === 'attack') {
       const target = context.getEntity(this.order.targetId);
       if (!target || !this.canFight(target, context) || target.position.distanceTo(owner.position) > this.leash) {
-        this.command({ kind: 'follow' }, context);
+        this.setOrder({ kind: 'follow' }, false);
       } else {
         this.attackTarget = target.id;
         return;
