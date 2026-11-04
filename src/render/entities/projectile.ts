@@ -35,21 +35,21 @@ const SPECIAL_PROJECTILES: Record<
   string,
   (ctx: CanvasRenderingContext2D, angle: number, time: number) => void
 > = {
-  // Siege minion cannonball with a smoke puff behind it
+  // Siege minion cannonball (small) with a smoke puff behind it
   minion_siege: (ctx, angle) => {
     ctx.save();
     ctx.rotate(angle);
-    ctx.fillStyle = "rgba(180, 180, 180, 0.35)";
+    ctx.fillStyle = "rgba(180, 180, 180, 0.3)";
     ctx.beginPath();
-    ctx.arc(-8, 0, 5, 0, Math.PI * 2);
+    ctx.arc(-6, 0, 3.5, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = "#2b2b2b";
     ctx.beginPath();
-    ctx.arc(0, 0, 6, 0, Math.PI * 2);
+    ctx.arc(0, 0, 4, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = "#6b6b6b";
     ctx.beginPath();
-    ctx.arc(-2, -2, 2, 0, Math.PI * 2);
+    ctx.arc(-1.5, -1.5, 1.5, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   },
@@ -160,11 +160,11 @@ export function renderProjectile(
       ctx.translate(0, -lift);
       ctx.rotate(angle);
 
-      // Scale: tower arrows are larger
+      // Scale: tower arrows are larger, casters' small
       const scale =
         projectileType === "tower"
           ? SPRITES.ARROW.SCALE * 1.5
-          : SPRITES.ARROW.SCALE;
+          : SPRITES.ARROW.SCALE * 0.7;
 
       const width = arrowImg.naturalWidth * scale;
       const height = arrowImg.naturalHeight * scale;

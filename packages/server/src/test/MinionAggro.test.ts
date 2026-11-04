@@ -9,6 +9,7 @@ import './ServerTestUtils';
 import { describe, test, expect } from 'bun:test';
 import { GameEventType, InputType } from '@siege/shared';
 import { Simulation } from '../sim';
+import { ServerTargetedProjectile } from '../simulation/ServerTargetedProjectile';
 
 /** A blue minion fighting a red one, a blue champion by them, a red one coming */
 function setup(enemyAt = { x: 60, y: 200 }) {
@@ -93,6 +94,24 @@ describe('Minion aggro', () => {
     expect(hit).toBeDefined();
     const attackDamage = (minion as unknown as { stats: { attackDamage: number } }).stats.attackDamage;
     expect(hit!.data.amount as number).toBeCloseTo(0.6 * attackDamage * (100 / (100 + armor)), 1);
+    sim.dispose();
+  });
+
+  test("casters' bolts and cannonballs fly slower than champions' attacks (400 and 450)", () => {
+    const sim = new Simulation({ seed: 1, minionWaves: false, jungle: false, structures: false });
+    sim.addMinion({ side: 'blue', lane: 'mid', at: { x: 0, y: 100 }, type: 'caster' });
+    sim.addMinion({ side: 'blue', lane: 'mid', at: { x: -20, y: 120 }, type: 'siege' });
+    const target = sim.addMinion({ side: 'red', lane: 'mid', at: { x: 120, y: -20 } });
+    target.health = target.maxHealth = 1e6;
+    const speeds = new Map<string, number>();
+    for (let i = 0; i < 60 && speeds.size < 2; i++) {
+      sim.run(0.1);
+      for (const entity of sim.context.getAllEntities()) {
+        if (entity instanceof ServerTargetedProjectile) speeds.set(entity.toSnapshot().abilityId as string, entity.speed);
+      }
+    }
+    expect(speeds.get('minion_caster')).toBe(400);
+    expect(speeds.get('minion_siege')).toBe(450);
     sim.dispose();
   });
 });

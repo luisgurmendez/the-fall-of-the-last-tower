@@ -208,7 +208,8 @@ export const PROJECTILE_STYLES: Record<string, Style> = {
     batch.spark(x + Math.cos(angle) * 10, y + Math.sin(angle) * 10, angle, 28, 9, fxColor("#4ae0ff"), 1.8);
     batch.flare(x, y, 16, fxColor("#d8f8ff"), 1.3, time * 12);
   },
-  minion_caster: energyBolt(4, null, 4, 6),
+  // Small, so a wave's shots don't crowd the lane
+  minion_caster: energyBolt(2.5, null, 2.5, 5),
   tower: energyBolt(8, null, 9, 10),
   default: energyBolt(5, null, 4, 6),
 
@@ -227,7 +228,7 @@ export const PROJECTILE_STYLES: Record<string, Style> = {
     const points = trailOf(id, x, y, time, 10);
     for (let i = 0; i < points.length - 1; i++) {
       const t = i / (points.length - 1);
-      batch.dust(points[i].x, points[i].y, 4 + (1 - t) * 6, fxColor("#9a9a9a"), 0.4 * t, seed + i * 0.13);
+      batch.dust(points[i].x, points[i].y, 3 + (1 - t) * 4, fxColor("#9a9a9a"), 0.35 * t, seed + i * 0.13);
     }
   },
 };
