@@ -269,5 +269,35 @@
       "r": "9e69d8e8-0a84-44fc-923b-2ebc0ff19b30"
     },
     "characterId": "42edafbb-bf7d-4566-8dde-8235c2510bb7"
+  },
+  "nocthar": {
+    "animations": {
+      "idle": "b2ee3568-b825-42fb-b5f8-eaf4a9f477b8",
+      "attack": "5f2a0e51-39a2-4536-b69e-ab6ab4004b92",
+      "walk": "66cd7ec8-8f28-42b5-a64e-4a7dfd35ea7f",
+      "q": "e109b942-388f-46a5-9702-0473b8cdcad3",
+      "w": "a4e7c9f4-7937-4cf3-ba42-4bcf23a77001",
+      "e": "1227ec00-8900-4ca5-87b3-8f2ed141a543",
+      "r": "bbe9c518-085b-455e-a758-f3b8fc8a9f0c"
+    },
+    "characterId": "d63f309f-efb7-4690-8ef2-6bb807f93afe"
+  },
+  "nocthar_hollow": {
+    "animations": {
+      "walk": "6fa13fe8-2b83-4914-bdea-5939f6b6c561",
+      "idle": "a3b35f72-8f0c-4df3-9b8c-159a36210d73",
+      "attack": "9fd05617-e301-4f14-832c-daa79abd6fc6"
+    },
+    "characterId": "439cb9c8-a99d-470f-a3e7-3b604ecfb66b"
+  },
+  "nocthar_colossus": {
+    "animations": {
+      "idle": "75973b8f-8461-4e36-82a8-147c375c7b46",
+      "walk": "223d3926-6b15-4cc7-8e35-91e0bc72d2e9",
+      "attack": "19a1daa5-361b-4633-9204-ceaaa4aed532",
+      "w": "f850ad14-c4c6-4b20-8fab-5bb08ca6b017",
+      "e": "89373687-b29e-40d0-9022-1d7337544563"
+    },
+    "characterId": "20188e3c-ab6c-4aa3-a698-04e3c1e9dd86"
   }
 }

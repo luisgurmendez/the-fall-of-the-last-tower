@@ -1,6 +1,6 @@
 /**
  * Generates animated sprites with PixelLab (https://api.pixellab.ai/v2): the
- * jungle monsters and the champions without hand-made art.
+ * jungle monsters, the champions without hand-made art and their summons.
  *
  * For each sprite set: a PixelLab character (its look), then its animations
  * facing east (the game mirrors them to face west) and, for a set with more
@@ -15,9 +15,14 @@
  * - Effects aren't drawn into the sprites (the game draws its own): the
  *   descriptions only say how the body moves
  * - A set with `reference` is made from a south-facing look picked from a few
- *   create-image-pixen takes, so all its directions are really that look
+ *   create-image-pixen takes, or a PNG in scripts/references/ (made or edited
+ *   elsewhere), so all its directions are really that look; `directionImages`
+ *   gives its other directions as drawn
  * - `lockPalette` keeps every frame on the character's own colors
  * - A looping animation (idle, walk) is drawn back to its first pose
+ * - `dropDetached` leaves out bits not joined to the body (rubble, a bone in
+ *   flight), and `feetFromFirstFrame` keeps a strip whose hands reach the
+ *   ground in front of the feet from being lifted
  * - A direction can be told more than the action: seen from behind, told to
  *   strike "forward", a character turns around to face the viewer
  * - Each run prints a check of every strip: frames that lost part of the
@@ -54,9 +59,13 @@ const API = 'https://api.pixellab.ai/v2';
 const MANIFEST_PATH = 'scripts/sprites.json';
 const MONSTERS_DIR = 'public/assets/sprites/monsters';
 const MINIONS_DIR = 'public/assets/sprites/minions';
+const SUMMONS_DIR = 'public/assets/sprites/summons';
 
 /** The directions a set can be animated in; west is east mirrored */
 type Direction = 'east' | 'south' | 'north';
+
+/** A south-facing look: a create-image-pixen take, or a PNG file (from the repo root) */
+type Reference = { description: string; seed: number } | { file: string };
 
 type AnimationSpec =
   /** Drawn frame by frame from a description (4-16 frames); a loop is drawn back to its first pose */
@@ -82,13 +91,29 @@ interface SpriteSetSpec {
   /** Directions its animations face (default east only) */
   directions?: Direction[];
   /**
-   * Its south-facing look, a create-image-pixen take (the description and the
-   * seed of the one picked): the character is turned from it. Without it,
-   * PixelLab draws the character from the description.
+   * Its south-facing look: the character is turned from it. A create-image-pixen
+   * take (the description and the seed of the one picked) or a PNG made
+   * elsewhere. Without it, PixelLab draws the character from the description.
    */
-  reference?: { description: string; seed: number };
+  reference?: Reference;
+  /**
+   * PNGs of its look facing other ways (on the reference's canvas), used as
+   * drawn: PixelLab only draws the directions missing. East mirrored is west.
+   */
+  directionImages?: { east?: string; north?: string };
   /** Draw every frame with the character's own colors only */
   lockPalette?: boolean;
+  /**
+   * Line each strip up by its first frame, the character standing, not by its
+   * lowest pixel: for a set whose hands reach the ground in front of its feet
+   * (lower on screen), which would lift the whole strip
+   */
+  feetFromFirstFrame?: boolean;
+  /**
+   * Leave out pieces of a frame not joined to the body, up to this many
+   * pixels: rubble or a thrown bone PixelLab drew, which the game draws itself
+   */
+  dropDetached?: number;
   /** With lockPalette, colors besides the character's that its animations need (a prop it pulls out) */
   paletteExtras?: string[];
   /**
@@ -115,7 +140,9 @@ interface ChampionActions {
   detail?: string;
   /** Facing south and north too (the four-direction champions) */
   directions?: Direction[];
-  reference?: { description: string; seed: number };
+  reference?: Reference;
+  directionImages?: SpriteSetSpec['directionImages'];
+  feetFromFirstFrame?: boolean;
   trim?: Record<string, [number, number]>;
   paletteExtras?: string[];
   directionActions?: Record<string, string>;
@@ -146,6 +173,8 @@ function champion(championId: string, actions: ChampionActions): SpriteSetSpec {
     template: 'mannequin',
     directions: actions.directions,
     reference: actions.reference,
+    directionImages: actions.directionImages,
+    feetFromFirstFrame: actions.feetFromFirstFrame,
     lockPalette: actions.directions !== undefined,
     paletteExtras: actions.paletteExtras,
     directionActions: actions.directionActions,
@@ -183,6 +212,39 @@ function minion(minionType: string, name: string, description: string, attack: s
       idle: { mode: 'v3', action: 'standing ready, breathing calmly', frames: 4 },
       walk: { mode: 'template', template: 'walking-6-frames' },
       attack: { mode: 'pixminimax', action: attack, frames: 8 },
+    },
+  };
+}
+
+/**
+ * A champion's summon (key <championId>_<name>): idle, walk, attack and its
+ * own casts, in public/assets/sprites/summons/<name>, in four directions like
+ * the champions made from a reference, on its colors only.
+ */
+function summon(
+  championId: string,
+  name: string,
+  spec: Omit<SpriteSetSpec, 'key' | 'outputDir' | 'template' | 'directions' | 'lockPalette' | 'animations'> & {
+    idle: string;
+    walk: string;
+    attack: string;
+    casts?: Record<string, string>;
+  },
+): SpriteSetSpec {
+  const { idle, walk, attack, casts, ...look } = spec;
+  return {
+    key: `${championId}_${name}`,
+    outputDir: `${SUMMONS_DIR}/${name}`,
+    template: 'mannequin',
+    directions: ['east', 'south', 'north'],
+    lockPalette: true,
+    feetFromFirstFrame: true,
+    ...look,
+    animations: {
+      idle: { mode: 'pixminimax', action: idle, frames: 8, loop: true },
+      walk: { mode: 'pixminimax', action: walk, frames: 8, loop: true },
+      attack: { mode: 'pixminimax', action: attack, frames: 8 },
+      ...Object.fromEntries(Object.entries(casts ?? {}).map(([cast, action]) => [cast, { mode: 'pixminimax', action, frames: 8 } as AnimationSpec])),
     },
   };
 }
@@ -446,6 +508,80 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
     e: 'leaps forward high in a showy jump and lands crouching with the bow ready',
     r: 'draws and looses the longbow forward again and again, rapidly, several shots one after another',
   }),
+  // The look the user picked, a ghoul drawn in SpriteFusion
+  // (references/nocthar_original.png), without the tombstone on its back: that
+  // drawing is his east as drawn (nocthar_east.png, the tombstone's pixels cut
+  // out), and his south an edit of it turned to face the viewer
+  // (edit-image-pixen, seed 1). Medium detail,
+  // like the drawing: the low-detail champions above read blurry next to it.
+  // Seen from behind, a strike "forward" turns a character round: his north
+  // says where his hands go.
+  champion('nocthar', {
+    name: 'Nocthar',
+    size: 64,
+    directions: ['east', 'south', 'north'],
+    reference: { file: 'scripts/references/nocthar_south.png' },
+    directionImages: { east: 'scripts/references/nocthar_east.png' },
+    // His Q and R put his hands on the ground in front of his feet
+    feetFromFirstFrame: true,
+    directionActions: {
+      'attack@north': 'seen from behind, flicks one long clawed hand up and forward away from the viewer in a quick throwing motion, then pulls it back, only its back, white hair and the back of its head visible the whole time',
+      'q@north': 'seen from behind, raises both clawed hands and slams them down onto the ground in front of it, away from the viewer, then straightens up, only its back, white hair and the back of its head visible the whole time',
+      // Told to throw its head back, it showed its face
+      'w@north': 'seen from behind, spreads its long arms wide and lifts its head up toward the sky, its face hidden, only its back, the back of its head and its white hair visible the whole time',
+      'e@north': 'seen from behind, raises one long arm and points a clawed finger straight ahead away from the viewer, only its back, white hair and the back of its head visible the whole time',
+      'r@north': 'seen from behind, crouches and drives both long arms down into the ground in front of it, away from the viewer, then holds there straining, only its back, white hair and the back of its head visible the whole time',
+    },
+    description: 'a tall hunched grey-green undead ghoul with rotting skin, a skull-like face with pale eyes and bared teeth, wispy white hair strands, exposed ribs, a torn brown loincloth, very long thin arms and huge brown dirt-caked claws',
+    idle: 'stands hunched, swaying slightly, its long clawed fingers twitching',
+    walk: 'shambles forward in a looping lurching walk, dragging its feet, long arms swinging loosely',
+    attack: 'flicks one long clawed hand forward in a quick throwing motion, then pulls it back',
+    q: 'raises both clawed hands and slams them down onto the ground in front of it, then straightens up',
+    w: 'throws its head back with its mouth wide open, wailing, its long arms spread wide',
+    e: 'raises one long arm and points a clawed finger forward, commanding',
+    r: 'crouches and drives both long arms down into the ground in front of it, then holds there straining and trembling',
+  }),
+  // Nocthar's army. Both looks are generate-image-v2 takes in his drawing's
+  // style, south-facing: the colossus made of bones and grave dirt, then the
+  // Hollow in the colossus's style (Hollows fuse into it), with pale eyes
+  // dotted in. The big Hollow is the same sprite drawn bigger. The colossus
+  // rises out of the ground through the game's clipping, without an animation.
+  // Turned by PixelLab, the colossus's east was a side view, a column of bones
+  // with its skull hidden: its east is an edit of its look turned to the right,
+  // and its north the back PixelLab drew the first time (the second had ribs).
+  summon('nocthar', 'hollow', {
+    name: 'Hollow',
+    size: 48,
+    reference: { file: 'scripts/references/nocthar_hollow_south.png' },
+    directionActions: {
+      'attack@north': 'seen from behind, rears back and rakes one bony claw forward away from the viewer in a quick swipe, then pulls back, only its back, spine and the back of its skull visible the whole time',
+    },
+    description: 'a small skinny hunched skeletal ghoul made of grey-white bones caked with dried grave dirt, a cracked skull with small pale eyes, long thin bony arms with long bony claws, scraps of brown burial cloth around its waist',
+    idle: 'stands hunched with its bony claws raised, swaying a little, its fingers twitching',
+    walk: 'skitters forward quickly in a looping hunched run, its bony arms held low',
+    attack: 'rears back and rakes one bony claw forward in a quick swipe, then pulls back',
+  }),
+  summon('nocthar', 'colossus', {
+    name: 'Colossus of Bones',
+    size: 96,
+    reference: { file: 'scripts/references/nocthar_colossus_south.png' },
+    directionImages: { east: 'scripts/references/nocthar_colossus_east.png', north: 'scripts/references/nocthar_colossus_north.png' },
+    // Its slams drew rubble, its throw the bone in flight
+    dropDetached: 120,
+    directionActions: {
+      'attack@north': 'seen from behind, raises both enormous fists high overhead and slams them down onto the ground in front of it, away from the viewer, then straightens up, only its back and the bones jutting from it visible the whole time',
+      'w@north': 'seen from behind, reaches over its shoulder with one huge hand, rips a long bone off its own back and hurls it overhand away from the viewer, then straightens up, only its back visible the whole time',
+      'e@north': 'seen from behind, lowers its head, scrapes the ground with one foot, then lunges forward head first away from the viewer, only its back visible the whole time',
+    },
+    description: 'a huge hulking hunched colossus made of hundreds of fused grey-white bones and packed brown grave dirt, a giant skull head sunk between massive shoulders, rib bones like armor plates, long bones jutting from its back, enormous bone fists and scraps of brown burial cloth',
+    idle: 'stands hunched, breathing heavily, its huge shoulders slowly rising and falling',
+    walk: 'stomps forward heavily in a looping walk cycle, its enormous fists swinging',
+    attack: 'raises both enormous fists high overhead and slams them down onto the ground in front of it, then straightens up',
+    casts: {
+      w: 'reaches back over its shoulder with one huge hand, rips a long bone off its own back and hurls it forward overhand, then straightens up',
+      e: 'lowers its head, scrapes the ground with one foot like a bull, then lunges forward head first',
+    },
+  }),
   champion('warrior', {
     name: 'Kael',
     description: 'a young knight in steel plate armor with a blue tabard, holding a longsword and a round steel shield',
@@ -580,8 +716,13 @@ function base64Image(image: RgbaImage): { type: 'base64'; base64: string } {
   return { type: 'base64', base64: `data:image/png;base64,${Buffer.from(encodePng(image)).toString('base64')}` };
 }
 
-/** The set's south-facing look: the create-image-pixen take its reference names */
-async function referenceImage(spec: SpriteSetSpec, reference: { description: string; seed: number }): Promise<string> {
+function pngFileBase64(path: string): string {
+  return `data:image/png;base64,${readFileSync(path).toString('base64')}`;
+}
+
+/** The set's south-facing look: the PNG or the create-image-pixen take its reference names */
+async function referenceImage(spec: SpriteSetSpec, reference: Reference): Promise<string> {
+  if ('file' in reference) return pngFileBase64(reference.file);
   const generated = await api<{ image: { base64: string } }>('/create-image-pixen', {
     description: reference.description,
     image_size: { width: spec.size, height: spec.size },
@@ -596,11 +737,38 @@ async function referenceImage(spec: SpriteSetSpec, reference: { description: str
   return base64.startsWith('data:') ? base64 : `data:image/png;base64,${base64}`;
 }
 
+/** A set's own drawings of other directions, as create-character-v3 takes them; east mirrored is west */
+function directionImages(files: NonNullable<SpriteSetSpec['directionImages']>): Record<string, { type: 'base64'; base64: string }> {
+  const images: Record<string, { type: 'base64'; base64: string }> = {};
+  if (files.north) images.north = { type: 'base64', base64: pngFileBase64(files.north) };
+  if (files.east) {
+    const east = decodePng(readFileSync(files.east));
+    images.east = base64Image(east);
+    images.west = base64Image(mirrored(east));
+  }
+  return images;
+}
+
+function mirrored(image: RgbaImage): RgbaImage {
+  const out = createImage(image.width, image.height);
+  for (let y = 0; y < image.height; y++) {
+    for (let x = 0; x < image.width; x++) {
+      const from = (y * image.width + x) * 4;
+      out.data.set(image.data.subarray(from, from + 4), (y * image.width + image.width - 1 - x) * 4);
+    }
+  }
+  return out;
+}
+
 async function createCharacter(spec: SpriteSetSpec, seed: number): Promise<string> {
   log(`${spec.name}: creating the character`);
   const look = spec.reference
     // Turned from its picked south-facing look, in four directions
-    ? { reference_image: { type: 'base64', base64: await referenceImage(spec, spec.reference) }, n_directions: 4 }
+    ? {
+      reference_image: { type: 'base64', base64: await referenceImage(spec, spec.reference) },
+      n_directions: 4,
+      ...(spec.directionImages ? { direction_images: directionImages(spec.directionImages) } : {}),
+    }
     : { image_size: { width: spec.size, height: spec.size }, ...(spec.detail ? { detail: spec.detail } : {}) };
   const created = await api<{ character_id: string; background_job_id: string }>('/create-character-v3', {
     description: spec.description,
@@ -621,10 +789,14 @@ interface CharacterDetail {
 }
 
 async function downloadImage(url: string): Promise<RgbaImage> {
-  // The file host rejects some default user agents
-  const response = await fetch(url, { headers: { 'User-Agent': 'curl/8' } });
-  if (!response.ok) throw new Error(`${url}: HTTP ${response.status}`);
-  return decodePng(new Uint8Array(await response.arrayBuffer()));
+  for (let attempt = 1; ; attempt++) {
+    // The file host rejects some default user agents
+    const response = await fetch(url, { headers: { 'User-Agent': 'curl/8' } });
+    if (response.ok) return decodePng(new Uint8Array(await response.arrayBuffer()));
+    // It sometimes answers 500 for a moment
+    if (response.status < 500 || attempt >= 4) throw new Error(`${url}: HTTP ${response.status}`);
+    await sleep(3000 * attempt);
+  }
 }
 
 /** The character standing still, facing each direction: where its animations start */
@@ -739,18 +911,56 @@ function stripFile(key: string): string {
   return direction === 'east' ? `${name}.png` : `${name}_${direction}.png`;
 }
 
+/** A frame without the pieces (8-connected) of at most maxPixels apart from its biggest one */
+function withoutDetached(frame: RgbaImage, maxPixels: number): RgbaImage {
+  const { width, height } = frame;
+  const piece = new Int32Array(width * height).fill(-1);
+  const sizes: number[] = [];
+  for (let start = 0; start < width * height; start++) {
+    if (frame.data[start * 4 + 3] === 0 || piece[start] >= 0) continue;
+    const id = sizes.length;
+    const stack = [start];
+    piece[start] = id;
+    let size = 0;
+    while (stack.length) {
+      const at = stack.pop()!;
+      size++;
+      const x = at % width, y = Math.floor(at / width);
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          const nx = x + dx, ny = y + dy;
+          if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+          const next = ny * width + nx;
+          if (frame.data[next * 4 + 3] === 0 || piece[next] >= 0) continue;
+          piece[next] = id;
+          stack.push(next);
+        }
+      }
+    }
+    sizes.push(size);
+  }
+  const biggest = sizes.indexOf(Math.max(...sizes));
+  const out = createImage(width, height);
+  out.data.set(frame.data);
+  for (let i = 0; i < width * height; i++) {
+    if (piece[i] >= 0 && piece[i] !== biggest && sizes[piece[i]] <= maxPixels) out.data[i * 4 + 3] = 0;
+  }
+  return out;
+}
+
 /**
  * Lay out each animation's frames side by side on a square canvas shared by
- * all of them, centered, with every animation's feet on the idle's row.
+ * all of them, centered, with every animation's feet on the idle's row (its
+ * lowest pixel, or with byFirstFrame its first frame's).
  */
-function buildStrips(animations: Record<string, RgbaImage[]>): Record<string, RgbaImage> {
+function buildStrips(animations: Record<string, RgbaImage[]>, byFirstFrame = false): Record<string, RgbaImage> {
   const canvas = Math.max(...Object.values(animations).flat().map(frame => Math.max(frame.width, frame.height)));
   const centered = (frame: RgbaImage, dy = 0) => {
     const out = createImage(canvas, canvas);
     blit(out, frame, Math.floor((canvas - frame.width) / 2), Math.floor((canvas - frame.height) / 2) + dy);
     return out;
   };
-  const feetRow = (frames: RgbaImage[]) => Math.max(...frames.map(frame => bottomRow(centered(frame))));
+  const feetRow = (frames: RgbaImage[]) => Math.max(...(byFirstFrame ? frames.slice(0, 1) : frames).map(frame => bottomRow(centered(frame))));
   const idleFeet = feetRow(animations.idle);
 
   const strips: Record<string, RgbaImage> = {};
@@ -888,9 +1098,10 @@ async function generateSpriteSet(spec: SpriteSetSpec, manifest: Manifest, option
     // A loop's last frame is drawn back to its first pose: drop it so the pose doesn't show twice
     const kept = animation.mode !== 'template' && animation.loop && drawn.length > 2 ? drawn.slice(0, -1) : drawn;
     const trim = spec.trim?.[key];
-    frames[key] = trim ? kept.slice(trim[0], trim[1] + 1) : kept;
+    const trimmed = trim ? kept.slice(trim[0], trim[1] + 1) : kept;
+    frames[key] = spec.dropDetached ? trimmed.map(frame => withoutDetached(frame, spec.dropDetached!)) : trimmed;
   }
-  const strips = buildStrips(frames);
+  const strips = buildStrips(frames, spec.feetFromFirstFrame);
   mkdirSync(spec.outputDir, { recursive: true });
   for (const key of keys) {
     writeFileSync(join(spec.outputDir, stripFile(key)), encodePng(strips[key]));
