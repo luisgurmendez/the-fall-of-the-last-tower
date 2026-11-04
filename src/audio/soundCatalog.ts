@@ -188,12 +188,16 @@ export const SOUNDS = {
   // Fenris: a cursed werewolf
   fenris_attack: { prompt: `a werewolf claw swipe, a fast whoosh with a fleshy slash, ${DRY}`, duration: 0.5, volume: 0.9, maxVoices: 3 },
   fenris_q: { prompt: `a wolf snarling and biting hard, jaws snapping shut, ${DRY}`, duration: 0.6, volume: 1.1, maxVoices: 2 },
+  // Its claws drawn back through the cast (the swipe lands later: fenris_w)
+  fenris_w_windup: { prompt: `a werewolf drawing its claws back with a low rising snarl, ${DRY}`, duration: 0.5, volume: 0.9, maxVoices: 2 },
   fenris_w: { prompt: `a heavy raking swipe of big claws, two fast slashing whooshes, ${DRY}`, duration: 0.6, volume: 1.4, maxVoices: 2 },
   fenris_e: { prompt: `a big wolf pouncing, a growl and a heavy whoosh landing with a thud, ${DRY}`, duration: 0.7, volume: 1.5, maxVoices: 2 },
   fenris_r: { prompt: "a werewolf howling at the moon, a long eerie menacing howl, video game sound effect, no music", duration: 1.6, volume: 0.35, maxVoices: 2 },
   fenris_r_feast: { prompt: `a beast growling with satisfaction as dark power surges back into it, ${DRY}`, duration: 0.9, volume: 0.6, maxVoices: 2 },
   // Calamitus: a golem of rock and lava
   calamitus_attack: { prompt: `a heavy rock fist punching, a deep stony thud with a lava sizzle, ${DRY}`, duration: 0.5, volume: 0.95, maxVoices: 3 },
+  // The ground churning through his Q's cast, before the lava bursts (calamitus_q)
+  calamitus_q_windup: { prompt: `molten lava bubbling and churning under cracking rock, a low building rumble, ${DRY}`, duration: 0.7, volume: 0.8, maxVoices: 2 },
   calamitus_q: { prompt: `fists slamming the ground as lava bursts up, a deep thump and a molten splash with sizzling, ${DRY}`, duration: 0.8, volume: 0.95, maxVoices: 2 },
   calamitus_w: { prompt: `a wave of magma rolling along the ground, a deep rumbling roar with bubbling lava, ${DRY}`, duration: 1.0, volume: 0.7, maxVoices: 2 },
   calamitus_e: { prompt: `rock hardening into glassy obsidian, a crystalline crackling and grinding stone, ${DRY}`, duration: 0.8, volume: 1.4, maxVoices: 2 },
@@ -205,7 +209,7 @@ export const SOUNDS = {
   protobot_q_pull: { prompt: `a heavy chain reeled in fast by a winch, a ratcheting whir ending in a magnetic clamp clang, ${DRY}`, duration: 0.7, volume: 0.8, maxVoices: 2 },
   protobot_w: { prompt: `a robot powering up, a rising electric whine with crackling electricity, ${DRY}`, duration: 0.8, volume: 0.5, maxVoices: 2 },
   protobot_e: { prompt: `a rocket-powered metal fist launched and smashing into something, a short rocket blast and a heavy metallic impact, ${DRY}`, duration: 0.7, volume: 0.45, maxVoices: 2 },
-  protobot_r: { prompt: `a big machine charging up, a fast rising high-pitched electric whine and humming, ${DRY}`, duration: 0.6, volume: 0.45, maxVoices: 2 },
+  protobot_r: { prompt: `a big machine charging up for a second, a steadily rising high-pitched electric whine and humming, ${DRY}`, duration: 1.1, volume: 0.45, maxVoices: 2 },
   protobot_r_pulse: { prompt: `an electromagnetic pulse going off, a deep electric boom with a crackling discharge and electronics shorting out, ${DRY}`, duration: 1.2, volume: 1.15, maxVoices: 2 },
   // Hop-To-Eat: a cute, vicious rabbit
   hop_attack: { prompt: `a small quick kick, a soft thump and a short whoosh, ${DRY}`, duration: 0.5, volume: 1, maxVoices: 3 },
