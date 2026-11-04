@@ -477,7 +477,9 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
     walk: 'walks forward on its six legs in a looping walk cycle, the legs stepping in alternating waves, tail held high',
     attack: 'jabs forward with one big pincer and snaps it shut, then pulls it back',
     q: 'lunges forward and snaps both big pincers shut together like scissors, then pulls back',
-    w: 'rears up and shakes its raised tail hard, its whole body trembling, then settles back down',
+    // His cloud billows out for 0.75 s before it bites: the first take barely
+    // moved facing east, so he now rears right up while it does
+    w: 'rears its front half high up off the ground with both big pincers spread wide apart and its tail raised high, its whole body puffed up and trembling hard, holds it there, then drops back down onto its six legs',
     // Out of the ground, but not told so: told to burst out of the sand, it
     // drew the dirt, in its own reds (lockPalette). The game draws the earth.
     e: 'rears up high with both pincers raised wide open, then slams them down in front of it and settles on its six legs',
@@ -495,6 +497,10 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
       description: 'a cocky small teenage boy archer standing facing the viewer, messy dark brown curly hair with a white headband whose long tails flutter, freckles and a big grin, a short burnt-orange hooded cape with the hood down, a cream shirt with a purple sash, olive shorts, bandaged forearms, sandals, and an oversized wooden longbow taller than him held upright in one hand, no effects',
       seed: 21,
     },
+    // PixelLab's own east hid the bow behind him, so every east animation
+    // started without it and grew it a few frames in (the bow popped in and
+    // out of his idle): his east is one of those frames with the bow in front
+    directionImages: { east: 'scripts/references/kip_east.png' },
     // Told to shoot seen from behind, he turned sideways (shooting west) or
     // round to grin at the viewer: his north shots say where the bow points
     directionActions: {

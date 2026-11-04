@@ -18,9 +18,10 @@ const KIP_STRIPS = generatedStrips("kip", {
   r: "kip_r",
 }, {
   // The frames where the blow lands: the arrow loosed, the practice arrow
-  // loosed, the fist pumped, the landing, the first shot of the volleys
-  attackBlow: 7,
-  abilityBlows: { kip_q: 5, kip_w: 3, kip_e: 7, kip_r: 2 },
+  // loosed, the fist pumped, the landing crouch, the first shot of the volleys
+  // (the strips made 2026-11-04 with his bow in every frame)
+  attackBlow: 5,
+  abilityBlows: { kip_q: 5, kip_w: 3, kip_e: 8, kip_r: 5 },
 }, ["south", "north"]);
 
 /** World units per sprite pixel: chunky pixels like Urûk's, a small body under a big bow */
