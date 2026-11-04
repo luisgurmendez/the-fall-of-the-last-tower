@@ -14,9 +14,9 @@ const CAELUM_STRIPS = generatedStrips("caelum", {
   e: "caelum_e",
   r: "caelum_r",
 }, {
-  // The frames where the blow lands: the bolt, the ray, the blessing, the roots, the light given
+  // The frames where the blow lands: the bolt, the ray (the staff thrust forward), the blessing, the staff slammed down, the light given
   attackBlow: 5,
-  abilityBlows: { caelum_q: 7, caelum_w: 4, caelum_e: 6, caelum_r: 6 },
+  abilityBlows: { caelum_q: 2, caelum_w: 4, caelum_e: 6, caelum_r: 6 },
 });
 
 /** World units per sprite pixel, as Urûk's: chunky pixels */

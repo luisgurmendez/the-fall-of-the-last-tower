@@ -19,6 +19,7 @@ import {
   shake,
   sparks,
   twinkles,
+  warning,
 } from '../recipes';
 
 const LIGHT = '#fff3b0';
@@ -29,6 +30,8 @@ const CYAN = '#9ff3ff';
 const PINK = '#ffb0f0';
 
 const ECLIPSE = landsAt('lume_r');
+/** Warmth gathers at the orb this long before it pulses */
+const WARMTH = landsAt('lume_w');
 const ECLIPSE_WIDTH = (getAbilityDefinition('lume_r')?.aoeRadius ?? LUME_ORB_CONFIG.rBeamHalfWidth) * 2;
 
 const crystals = (color: string, count: number, speed: [number, number]) =>
@@ -55,11 +58,18 @@ registerAbilityVFX({
   ],
 });
 
-// W: a warm pulse of rays rolling out
+// W: warmth gathers into the orb (its circle shows where it will reach), then
+// a warm pulse of rays rolls out
 registerAbilityVFX({
   abilityId: 'lume_w',
   phases: [
-    phase('pulse', 0, 'caster', [
+    phase('gather', 0, 'caster', [
+      warning(WARM, LUME_ORB_CONFIG.wPulseRadius, WARMTH),
+      gather(WARM, 14, LUME_ORB_CONFIG.wPulseRadius * 0.9, WARMTH, 'circle'),
+      rays(SOFT, LUME_ORB_CONFIG.wPulseRadius * 0.6, WARMTH, 12, true),
+      light(WARM, 50, 0.5, WARMTH, 0.2),
+    ], WARMTH),
+    phase('pulse', WARMTH, 'caster', [
       rays(WARM, LUME_ORB_CONFIG.wPulseRadius * 0.85, 0.6, 18, false, 0.6),
       ring(WARM, 10, LUME_ORB_CONFIG.wPulseRadius, 0.5, 3),
       light(WARM, LUME_ORB_CONFIG.wPulseRadius * 0.8, 0.6, 0.5),

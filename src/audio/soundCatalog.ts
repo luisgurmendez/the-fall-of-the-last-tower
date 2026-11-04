@@ -142,6 +142,7 @@ export const SOUNDS = {
   lume_q: { prompt: `a glowing orb of light flung away, a soft bright whoosh with a twinkling chime, ${DRY}`, duration: 0.6, volume: 1, maxVoices: 2 },
   lume_q_arrive: { prompt: `a small orb of light landing, a bright crystalline pop, ${DRY}`, duration: 0.6, volume: 0.7, maxVoices: 2 },
   lume_q_recast: { prompt: `an orb of light flying back to its owner, a soft reversed shimmering whoosh, ${DRY}`, duration: 0.7, volume: 0.45, maxVoices: 2 },
+  lume_w_gather: { prompt: `warm light gathering into a glowing orb, a soft rising shimmer that swells, ${DRY}`, duration: 0.6, volume: 0.4, maxVoices: 2 },
   lume_w: { prompt: `a warm pulse of light rolling out, a soft resonant swell with gentle bell shimmer, ${DRY}`, duration: 0.9, volume: 0.5, maxVoices: 2 },
   lume_e: { prompt: `a beam of prismatic light forming between two points, a shimmering crystalline hum, ${DRY}`, duration: 1, volume: 0.5, maxVoices: 2 },
   lume_r_charge: { prompt: `light gathering into a glowing orb, a fast rising bright shimmering tone, ${DRY}`, duration: 0.6, volume: 0.25, maxVoices: 2 },

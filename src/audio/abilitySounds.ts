@@ -75,7 +75,7 @@ export const ABILITY_CUES: Record<string, AbilityCue[]> = {
   lume_q: [{ sound: "lume_q" }],
   lume_q_arrive: [{ sound: "lume_q_arrive", at: "target" }],
   // Warmth pulses from the orb (the cast's point)
-  lume_w: [{ sound: "lume_w", at: "target" }],
+  lume_w: [{ sound: "lume_w_gather", at: "target" }, { sound: "lume_w", delay: landsAt("lume_w"), at: "target" }],
   // Eclipse fires from the orb by her: heard there, not at the beam's far end
   lume_r: [
     { sound: "lume_r_charge" },

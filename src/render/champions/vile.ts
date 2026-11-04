@@ -11,12 +11,14 @@ import { createStripBodyRenderer, generatedStrips, stripImages } from "./stripBo
 
 const VILE_STRIPS = generatedStrips("vile", {
   q: "vile_black_arrows",
+  w: "vile_veil_of_darkness",
   e: "vile_roots_of_vilix",
   r: "vile_restoration_of_vilix",
 }, {
-  // The frames where the blow lands: the arrow leaves the bow, the charged arrow, the rune set, the transformation
+  // The frames where the blow lands: the arrow leaves the bow, the charged arrow, wrapped in his cloak, the rune set,
+  // the transformation (arms widest)
   attackBlow: 7,
-  abilityBlows: { vile_black_arrows: 6, vile_roots_of_vilix: 4, vile_restoration_of_vilix: 4 },
+  abilityBlows: { vile_black_arrows: 6, vile_veil_of_darkness: 4, vile_roots_of_vilix: 4, vile_restoration_of_vilix: 4 },
 });
 
 /** World units per sprite pixel: about 55 tall, like Vex */

@@ -130,6 +130,8 @@ export const UrukSilverScales: AbilityDefinition = {
   },
   appliesEffects: ["slow_30"],
   effectDuration: 1.5,
+  dodgeExempt:
+    "The burst comes when the shield breaks or runs out (UrukHooks), up to 2.5 s after the cast: the glowing shield is the warning, and a burst set off by an enemy's own hits is theirs to choose",
 };
 
 /** R: leap to an enemy and run it through, harder the lower its health */

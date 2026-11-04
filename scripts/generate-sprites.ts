@@ -117,6 +117,12 @@ interface SpriteSetSpec {
    * pixels: rubble or a thrown bone PixelLab drew, which the game draws itself
    */
   dropDetached?: number;
+  /**
+   * The same, for some animations only (by animation name): a ground effect
+   * drawn in front of the feet, or an arrow in flight, where the set has
+   * detached bits of its own to keep elsewhere (Vile's soul wisps)
+   */
+  dropDetachedIn?: Record<string, number>;
   /** With lockPalette, colors besides the character's that its animations need (a prop it pulls out) */
   paletteExtras?: string[];
   /**
@@ -149,6 +155,7 @@ interface ChampionActions {
   trim?: Record<string, [number, number]>;
   paletteExtras?: string[];
   directionActions?: Record<string, string>;
+  dropDetachedIn?: Record<string, number>;
   /** Idle and walk, for a champion that doesn't stand or walk like a person (default: breathing, PixelLab's walk) */
   idle?: string;
   walk?: string;
@@ -182,6 +189,7 @@ function champion(championId: string, actions: ChampionActions): SpriteSetSpec {
     paletteExtras: actions.paletteExtras,
     directionActions: actions.directionActions,
     trim: actions.trim,
+    dropDetachedIn: actions.dropDetachedIn,
     animations: {
       idle: actions.directions
         ? { mode: 'pixminimax', action: idle, frames: 8, loop: true }
@@ -342,6 +350,8 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
     description: 'a gaunt hooded dark archer in tattered black robes holding a curved bone bow, glowing purple eyes, faint purple soul wisps around him',
     size: 96,
     template: 'mannequin',
+    // The rune trap he presses down and the arrow in flight are the game's (where they really are): not drawn
+    dropDetachedIn: { e: 600, attack: 200, q: 200 },
     animations: {
       idle: { mode: 'v3', action: 'standing ready with the bow lowered, breathing, purple wisps drifting', frames: 4 },
       walk: { mode: 'template', template: 'walking-6-frames' },
@@ -350,8 +360,11 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
       q: { mode: 'pixminimax', action: 'slowly draws the bow far back as dark purple energy gathers on the arrow, then releases a powerful shot', frames: 8 },
       // Roots of Vilix: sets a trap
       e: { mode: 'pixminimax', action: 'crouches and presses a glowing purple rune trap into the ground, then stands up', frames: 8 },
-      // Restoration of Vilix: transforms
-      r: { mode: 'pixminimax', action: 'throws his arms wide and roars as dark purple energy erupts around him', frames: 8 },
+      // Veil of Darkness: wraps himself in shadow (stealthed, rooted, untouchable: the game fades him and draws the veil)
+      w: { mode: 'pixminimax', action: 'pulls his tattered black cloak tightly around his body with one arm and crouches low, then holds still, hidden in it', frames: 8 },
+      // Restoration of Vilix: transforms. Only the body moves (the eruption is the game's VFX):
+      // the first take drew a huge purple disk over him, cut by the canvas
+      r: { mode: 'pixminimax', action: 'spreads his arms wide and throws his head back, his tattered cloak billowing, then lowers his arms, standing tall', frames: 8 },
     },
   },
   champion('uruk', {
@@ -375,7 +388,8 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
     q: 'crouches and sprays a ring of sparks all around him from both nozzles',
     w: 'raises both arms as cool blue flames wrap around his body',
     e: 'blasts both nozzles backward and rockets forward low to the ground',
-    r: 'plants his feet and blasts a long roaring stream of fire forward from both nozzles',
+    // Only the body (the game draws the cone of fire from the nozzles): the first take drew the stream, cut by the canvas
+    r: 'plants his feet wide and leans forward bracing hard, both forearm nozzles pointed straight ahead and shaking from the recoil',
   }),
   champion('elora', {
     name: 'Elora',
@@ -393,10 +407,23 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
     size: 64,
     detail: 'low detail',
     description: 'an old druid with a long white beard, flowing green robes, a crown of leaves and a gnarled wooden staff with a soft glowing light at its tip',
+    // Turned from a look holding his staff: the first character had none, so every animation
+    // started without it and drew it in a few frames later (it flickered on every attack)
+    reference: {
+      description: 'an old druid standing facing the viewer, a long white beard, flowing green robes, a crown of leaves, holding a tall gnarled wooden staff upright in his right hand, the staff as tall as he is with a soft glowing light at its tip, no effects',
+      seed: 3,
+    },
+    // His bolt in flight and roots drawn at his feet are the game's (where they really go): not drawn
+    dropDetachedIn: { attack: 200, e: 600 },
+    // He holds his staff in every animation (the first idle and walk drew him without it)
+    idle: 'standing ready holding his gnarled wooden staff upright beside him, breathing calmly',
+    walk: 'walks forward at a calm pace, leaning on his gnarled wooden staff, in a looping walk cycle',
     attack: 'points his staff forward and sends a small bolt of light',
-    q: 'thrusts his staff forward and fires a beam of golden light',
+    // Only the staff's thrust (the ray is the game's projectile): the first take drew a burst of light, cut by the canvas
+    q: 'thrusts his gnarled staff straight forward with both hands and holds it there, the staff tip glowing',
     w: 'raises his staff high as swirling green leaves and light rise around it',
-    e: 'slams the base of his staff into the ground as roots burst up in front of him',
+    // Only the slam (the roots are the game's, rising where they're aimed)
+    e: 'raises his staff high and slams its base down into the ground with both hands, leaning on it',
     r: 'presses a hand to his chest and pours a stream of his own glowing life light forward',
   }),
   champion('fenris', {
@@ -1142,7 +1169,8 @@ async function generateSpriteSet(spec: SpriteSetSpec, manifest: Manifest, option
     const kept = 'loop' in animation && animation.loop && drawn.length > 2 ? drawn.slice(0, -1) : drawn;
     const trim = spec.trim?.[key];
     const trimmed = trim ? kept.slice(trim[0], trim[1] + 1) : kept;
-    frames[key] = spec.dropDetached ? trimmed.map(frame => withoutDetached(frame, spec.dropDetached!)) : trimmed;
+    const dropAbove = spec.dropDetachedIn?.[name] ?? spec.dropDetached;
+    frames[key] = dropAbove ? trimmed.map(frame => withoutDetached(frame, dropAbove)) : trimmed;
   }
   const strips = buildStrips(frames, spec.feetFromFirstFrame, idleKey);
   mkdirSync(spec.outputDir, { recursive: true });

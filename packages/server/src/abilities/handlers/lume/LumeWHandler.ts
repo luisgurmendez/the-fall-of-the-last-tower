@@ -1,13 +1,13 @@
 /**
  * LumeWHandler - Warmth
  *
- * The Light Orb pulses with warmth:
+ * The Light Orb gathers warmth for the ability's aoeDelay (the warning:
+ * enemies can walk out), then pulses where it was at the cast:
  * - Allied units are healed (Lume too)
  * - Enemy units take magic damage
  * - Structures and wards aren't touched
  *
- * Effect centered on orb's current position, and reported from there (its
- * VFX and sound come from the orb, not from Lume).
+ * Reported from the orb (its VFX and sound come from it, not from Lume).
  */
 
 import { BaseAbilityHandler } from '../../BaseAbilityHandler';
@@ -39,27 +39,27 @@ export class LumeWHandler extends BaseAbilityHandler {
     const damageType = definition.damage?.type ?? 'magic';
     const pulseRadius = definition.aoeRadius ?? LUME_ORB_CONFIG.wPulseRadius;
 
-    // Get entities in range of orb
-    const entities = params.context.getEntitiesInRadius(orb.position, pulseRadius);
+    // Where the orb is now: the pulse lands there after the gathering
+    const center = orb.position.clone();
+    context.schedule(definition.aoeDelay ?? 0, () => {
+      for (const entity of context.getEntitiesInRadius(center, pulseRadius)) {
+        if (entity.isDead) continue;
+        if (!canAbilityAffectEntityType(definition, entity.entityType)) continue;
 
-    for (const entity of entities) {
-      if (entity.isDead) continue;
-      if (!canAbilityAffectEntityType(definition, entity.entityType)) continue;
+        const isAlly = entity.side === champion.side;
 
-      const isAlly = entity.side === champion.side;
-
-      if (isAlly && healAmount > 0) {
-        // Heal allies (including Lume)
-        this.healEntity(entity, healAmount, context, champion.id);
-      } else if (!isAlly && damageAmount > 0) {
-        // Damage enemies
-        this.dealDamage(entity, damageAmount, damageType, champion.id, context);
+        if (isAlly && healAmount > 0) {
+          // Heal allies (including Lume)
+          this.healEntity(entity, healAmount, context, champion.id);
+        } else if (!isAlly && damageAmount > 0) {
+          // Damage enemies
+          this.dealDamage(entity, damageAmount, damageType, champion.id, context);
+        }
       }
-    }
-
-    Logger.champion.debug(
-      `${champion.playerId} cast Warmth - healed ${healAmount.toFixed(0)}, dealt ${damageAmount.toFixed(0)}`
-    );
+      Logger.champion.debug(
+        `${champion.playerId} cast Warmth - healed ${healAmount.toFixed(0)}, dealt ${damageAmount.toFixed(0)}`
+      );
+    });
 
     // Its VFX and sound come from the orb
     return { success: true, vfxOrigin: orb.position.clone(), vfxPosition: orb.position.clone() };

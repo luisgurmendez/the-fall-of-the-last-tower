@@ -103,6 +103,8 @@ export const OitboilSparkSpray: AbilityDefinition = {
     type: "magic",
     scaling: scaling([50, 75, 100, 125, 150], { apRatio: 0.35 }),
   },
+  dodgeExempt:
+    "A cheap point-blank burst on a 3 s cooldown whose reach is his attack range: like his basic attack, it's kept out of rather than reacted to (the crouch of his animation is its tell)",
 };
 
 /** W: blue fire heals him and vents heat (OitboilWHandler, OitboilHooks) */

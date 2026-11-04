@@ -52,9 +52,10 @@
       "attack": "0a8f3415-6374-42b6-ad07-5aab7f8efa6c",
       "q": "56f43564-2fa0-443c-8be6-659176f63af7",
       "e": "c89cbb27-3b65-4738-b4cf-d99d283e242a",
-      "r": "0d595c47-0d97-4d75-8be0-f665070d95e7",
+      "r": "100a3353-7691-48d6-91a7-6403bab6fd95",
       "idle": "1211acf0-6b0c-42cc-b36e-ba4a93baf6fd",
-      "walk": "3a6696be-2a43-40c6-9506-b0681b5db439"
+      "walk": "3a6696be-2a43-40c6-9506-b0681b5db439",
+      "w": "0a231846-6f07-442a-baf2-1ca88520ab3a"
     },
     "characterId": "d8241ee4-3ba7-4cfb-94c6-a8f53f95f7c0"
   },
@@ -166,7 +167,7 @@
     "animations": {
       "q": "219eada3-1b6f-453f-8b76-705a059a649d",
       "w": "a7f8c2a2-b670-46b3-a023-14dcfad4604f",
-      "r": "3faedbbe-373c-4344-a47b-1e3aa3ee62b2",
+      "r": "20c8ad3a-5763-4996-85c7-00f2c846aa4e",
       "e": "3785ec23-e3df-4b76-993f-8af291ea5988",
       "attack": "892783b0-fafe-44d3-ad4b-cdb1b10a24d4",
       "walk": "5683c2e4-7522-4564-9684-48b087841a1c",
@@ -188,15 +189,15 @@
   },
   "caelum": {
     "animations": {
-      "q": "56b0bad9-05ec-45e5-b73e-fc593cda9108",
-      "walk": "30f5c67b-2dc1-4dc5-9256-f83437445ffe",
-      "attack": "290beb6f-d91a-4c48-a642-853c3b2ce543",
-      "w": "8e401f19-4e4d-462a-9811-e99d64111134",
-      "r": "9f25f84f-a19f-41c5-bf52-cd4b2eed75eb",
-      "e": "1d9e7b43-f385-40ca-9d0d-3208632898ac",
-      "idle": "bbef29ce-3ddf-43aa-8954-e7162271c031"
+      "attack": "d8a96c9e-77f8-4910-b8e7-f77c16082311",
+      "walk": "91b4b44c-a5c9-4686-ab7c-8a5026de810e",
+      "idle": "40e3b3ba-75bc-4f23-a339-18ad79bdfb42",
+      "q": "cf93befa-0c91-47fe-aa0a-9f9794ac7d5d",
+      "w": "2ea44a5e-31fa-4667-9c88-6d2f4f981139",
+      "e": "4ba51a9e-ccf6-4425-b768-b704d0ae1332",
+      "r": "0aa6337e-f3dc-4f54-a509-b753c3baa084"
     },
-    "characterId": "fb08849d-9495-4c5c-898e-85b7b5c8b705"
+    "characterId": "da1d4df3-20e6-48e2-a610-f735fe99eab5"
   },
   "fenris": {
     "animations": {
