@@ -40,8 +40,8 @@ export const NOCTHAR_KIT = {
   /** Nobody Leaves: an enemy dying within this of him rises as a Hollow... */
   raiseRadius: 230,
   /** ...if the passive is ready: then it waits this long, from level 1 down to level 18 */
-  raiseCooldownAtLevel1: 25,
-  raiseCooldownAtLevel18: 15,
+  raiseCooldownAtLevel1: 12.5,
+  raiseCooldownAtLevel18: 7.5,
   /** At most this many Hollows at once */
   maxHollows: 5,
   /** Seconds a Hollow takes to climb out of the ground */
@@ -100,7 +100,7 @@ export const NOCTHAR_KIT = {
   colossusEKnockupDuration: 0.5,
 } as const;
 
-/** Nobody Leaves's cooldown at a level: 25 s at 1 down to 15 s at 18 */
+/** Nobody Leaves's cooldown at a level: 12.5 s at 1 down to 7.5 s at 18 */
 export function noctharRaiseCooldown(level: number): number {
   const t = (Math.min(18, Math.max(1, level)) - 1) / 17;
   return NOCTHAR_KIT.raiseCooldownAtLevel1 + (NOCTHAR_KIT.raiseCooldownAtLevel18 - NOCTHAR_KIT.raiseCooldownAtLevel1) * t;
@@ -327,7 +327,7 @@ export const NoctharPassive: PassiveAbilityDefinition = {
   id: "nocthar_passive",
   name: "Nobody Leaves",
   description:
-    "An enemy dying near you (a minion, a monster or a champion) claws its way out of the ground as a Hollow that fights for you, follows you and hits what you hit, until it's destroyed. Then this waits 25 seconds (15 at level 18). Up to 5 Hollows; a champion rises as a bigger one. If you die, they crumble.",
+    "An enemy dying near you (a minion, a monster or a champion) claws its way out of the ground as a Hollow that fights for you, follows you and hits what you hit, until it's destroyed. Then this waits 12.5 seconds (7.5 at level 18). Up to 5 Hollows; a champion rises as a bigger one. If you die, they crumble.",
   trigger: "always",
   usesStacks: true,
   maxStacks: NOCTHAR_KIT.maxHollows,

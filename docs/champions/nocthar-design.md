@@ -43,7 +43,7 @@ Tiene dos modos: **sin coloso** (normal) y **con el coloso vivo** (después de l
 
 - **Cuándo se activa:** si la pasiva está lista y muere un enemigo a menos de 550 de Nocthar, sea minion, monstruo o campeón.
 - **Qué pasa:** de donde murió sale un Hollow arañando la tierra; tarda 0,75 s en aparecer.
-- **Enfriamiento:** baja de 25 s a nivel 1 a 15 s a nivel 18.
+- **Enfriamiento:** baja de 12,5 s a nivel 1 a 7,5 s a nivel 18. Empezó en 25 s y 15 s; se bajó a la mitad porque en las partidas nunca se llegaba a 5 Hollows.
 - **Si muere un campeón:** sale un **Hollow grande**, con un 50% más de vida y de daño.
 - **Con 5 Hollows:** la pasiva no se activa ni entra en enfriamiento.
 - **Cuánto duran:** hasta que los matan.
@@ -63,7 +63,7 @@ Tiene dos modos: **sin coloso** (normal) y **con el coloso vivo** (después de l
 
 ### W: Lament
 
-- **Efecto:** Nocthar suelta un lamento de ultratumba tras un instante (0,25 s). Los enemigos a menos de 350 de Nocthar huyen de miedo durante 1 s.
+- **Efecto:** Nocthar suelta un lamento de ultratumba después de canalizarlo 0,5 s. Los enemigos a menos de 350 de Nocthar huyen de miedo durante 1 s.
 - **Daño:** 60/90/120/150/180 (+40% AP) mágico.
 - **El miedo sale solo de Nocthar, no de los Hollows.**
 - **A sus Hollows:** los que estén a menos de 700 de Nocthar ganan un 40/50/60/70/80% de velocidad de ataque durante 2 s.

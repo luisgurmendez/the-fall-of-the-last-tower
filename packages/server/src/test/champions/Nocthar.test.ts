@@ -4,7 +4,7 @@
  * Nocthar - The Unburied, a mage who commands an army of the dead.
  * - Passive: Nobody Leaves - an enemy (minion, monster, champion; not a
  *   summon) dying within reach rises as a Hollow where it fell, if the
- *   passive is ready; then it waits 25 s (15 s at level 18). Up to 5; a
+ *   passive is ready; then it waits 12.5 s (7.5 s at level 18). Up to 5; a
  *   champion rises as a big one. With the colossus alive none rise: the
  *   deaths heal the colossus instead (1% a unit, 25% a champion)
  * - Q: Grasping Hands - 0.25 s cast, then 0.85 s later hands burst out of a
@@ -143,15 +143,15 @@ describe('Nocthar', () => {
       expect(hollows(arena).length).toBe(1);
     });
 
-    test('it waits 25 s at level 1 and 15 s at level 18', () => {
+    test('it waits 12.5 s at level 1 and 7.5 s at level 18', () => {
       for (const level of [1, 18]) {
         const arena = noctharArena();
         arena.blue.setLevel(level);
         killMinion(arena, p(100));
         expect(noctharState(arena.blue).raiseCooldown).toBeCloseTo(noctharRaiseCooldown(level), 5);
       }
-      expect(noctharRaiseCooldown(1)).toBe(25);
-      expect(noctharRaiseCooldown(18)).toBe(15);
+      expect(noctharRaiseCooldown(1)).toBe(12.5);
+      expect(noctharRaiseCooldown(18)).toBe(7.5);
     });
 
     test('once it has waited, the next death rises', () => {
