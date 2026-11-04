@@ -1,8 +1,11 @@
 /**
  * How the profile screen (profileScreen.ts) writes a match and an account:
  * a match's length, the KDA and its ratio, the rating change, when it was
- * played, the win rate, and the rating with its tier.
+ * played, the win rate, and the rating with its tier; the overview's recent
+ * form, rating trend (a sparkline) and the bar toward the next tier.
  */
+
+import { tierProgress } from "@siege/shared";
 
 /** The tiers' names (packages/server/src/accounts/elo.ts has their ratings) */
 const TIER_NAMES: Record<string, string> = {
@@ -69,4 +72,43 @@ export function tierName(tier: string | undefined): string {
 export function ratingLine(account: { rating?: number; tier?: string; ratedGames?: number }): string {
   if (!account.ratedGames || account.rating === undefined) return 'Unranked';
   return `${account.rating} ${tierName(account.tier)}`.trim();
+}
+
+/** A match's result and rating, as the overview reads it (the profile lists them newest first) */
+interface Played {
+  won: boolean;
+  ratingBefore: number | null;
+  ratingAfter: number | null;
+}
+
+/** The latest results, oldest first (read left to right), at most `count` */
+export function recentForm(matches: readonly Played[], count: number): ('W' | 'L')[] {
+  return matches.slice(0, count).map((match) => (match.won ? 'W' as const : 'L' as const)).reverse();
+}
+
+/** The rating through the rated matches, oldest first, from before the first of them */
+export function ratingTrend(matches: readonly Played[]): number[] {
+  const rated = matches.filter((match) => match.ratingBefore !== null && match.ratingAfter !== null).reverse();
+  if (rated.length === 0) return [];
+  return [rated[0].ratingBefore!, ...rated.map((match) => match.ratingAfter!)];
+}
+
+/** SVG polyline points for values across a box, the highest at the top ("" for fewer than two) */
+export function sparkline(values: readonly number[], width: number, height: number, margin: number): string {
+  if (values.length < 2) return '';
+  const low = Math.min(...values);
+  const high = Math.max(...values);
+  const round = (value: number) => Math.round(value * 10) / 10;
+  return values.map((value, i) => {
+    const x = margin + (i / (values.length - 1)) * (width - margin * 2);
+    const y = high === low ? height / 2 : margin + ((high - value) / (high - low)) * (height - margin * 2);
+    return `${round(x)},${round(y)}`;
+  }).join(' ');
+}
+
+/** The bar toward the next tier: how full (0-100) and what it says */
+export function tierBar(rating: number): { percent: number; label: string } {
+  const { next, progress, toNext } = tierProgress(rating);
+  if (!next || toNext === null) return { percent: 100, label: 'Top tier' };
+  return { percent: Math.round(progress * 100), label: `${toNext} to ${next.name}` };
 }

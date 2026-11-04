@@ -9,7 +9,7 @@ matches are kept for their profile. Guests play as before.
 | File | What it does |
 |------|--------------|
 | `packages/server/src/accounts/AccountStore.ts` | The accounts and sessions, the match history and ratings, in SQLite (`bun:sqlite`) |
-| `packages/server/src/accounts/elo.ts` | Elo: which matches are rated, team ratings, rating changes, tiers |
+| `packages/server/src/accounts/elo.ts` | Elo: which matches are rated, team ratings, rating changes (the tiers are in `@siege/shared`'s `config/ranks.ts`, which the client reads too) |
 | `packages/server/src/accounts/matchRecord.ts` | What's kept of a finished match (`matchRecordOf`: the final stats with who played each champion) |
 | `packages/server/src/accounts/accountRoutes.ts` | The HTTP API, answered by `BunWebSocketServer` before its files (`httpHandler`) |
 
@@ -89,8 +89,11 @@ sessions.
 
 Profiles and matches are public, like the names in matches.
 - **Profile names:** any capitalization works, written for a URL (`encodeURIComponent`).
-- **`profile`:** `{ name, wins, losses, rating, peakRating, ratedGames, tier, champions }`.
-  `champions` is the 10 most played, each `{ championId, games, wins }`.
+- **`profile`:** `{ name, wins, losses, rating, peakRating, ratedGames, tier, champions, averages }`.
+  - **`champions`:** the 10 most played, each `{ championId, games, wins, kills, deaths, assists }`
+    (K/D/A added up).
+  - **`averages`:** per match over every kept match, `{ games, kills, deaths, assists, cs, gold,
+    damageToChampions }`. It's null before the first match.
 - **`matches`:** 20 at a time, newest first. Each one is:
   - **the match:** `id`, `mapId`, `mode`, `rated`, `endedAt`, `duration`;
   - **the account's line:** `championId`, `side`, `won`, `level`, K/D/A, `cs`, `gold`, `items`,
@@ -119,19 +122,33 @@ carry `name`; the chat shows `Name (Champion)` when it's known.
 - `src/ui/matchmaking/accountScreen.ts`: the line under the main menu's links and the sign-in screen
   (`#screen-account`). The line reads:
   - signed out: "Playing as a guest · Sign in";
-  - signed in: "Name 1240 Silver 3W 2L · Profile · Sign out", with "Unranked" before a rated match.
+  - signed in: "Name [emblem] 1240 Silver 3W 2L · Profile · Sign out", with "Unranked" before a
+    rated match.
+- `src/ui/matchmaking/rankEmblem.ts`: a tier's emblem. Each tier has a 64px PixelLab crest that
+  grows grander tier by tier, kept in `public/assets/ranks/<tier>.png` (and `unranked.png`). They're
+  made by `scripts/generate-props.ts` (`rank_*`) and drawn with their pixels scaled up. Without the
+  art, a diamond in the tier's color.
 
   The menu refreshes the account when it comes back after a match.
-- `src/ui/matchmaking/profileScreen.ts`: the profile (`#screen-profile`, no logo or tips over it).
-  - **What it shows:** the rating and tier, the peak, wins, losses and win rate, the 5 most played
-    champions, and the latest matches.
+- `src/ui/matchmaking/profileScreen.ts`: the profile (`#screen-profile`, no logo or tips over it),
+  in two tabs.
+  - **PROFILE:**
+    - **Rank:** the emblem big, the tier and rating, the bar to the next tier ("43 to Gold") and the
+      peak with its tier's emblem. Before a rated match, the unranked emblem.
+    - **Numbers:** the record and win rate, rated matches, and per match the KDA, CS, gold and
+      damage to champions.
+    - **Form:** the last 10 results (W/L chips), and the rating's trend through the first page's
+      rated matches (an SVG line).
+    - **Champions:** the 3 most played, with games, win rate and KDA.
+  - **MATCH HISTORY:** the latest matches.
   - **Each match:** the champion, result, mode and map, KDA, CS, gold, items, length, when it was
     played, and the rating change. MORE loads the next page.
   - **A click on a match:** opens its scoreboard under it, both teams. A name with an account on the
     scoreboard opens that account's profile.
 
   `profileFormat.ts` writes its numbers: length, KDA and ratio, rating change, "5 min ago", win
-  rate, the rating line. `AccountClient.profile(name, before?)` and `match(id)` fetch them.
+  rate, the rating line, the recent form, the trend's points and the tier bar (`tierProgress`, in
+  `@siege/shared`'s `config/ranks.ts` with the tiers). `AccountClient.profile(name, before?)` and `match(id)` fetch them.
 - Signed in, the room screen's name field shows the account's name and can't be changed.
 
 Tests:

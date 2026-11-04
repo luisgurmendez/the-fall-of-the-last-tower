@@ -26,6 +26,21 @@ export interface ChampionRecordInfo {
   championId: string;
   games: number;
   wins: number;
+  /** Added up over its games (servers from before them: none) */
+  kills?: number;
+  deaths?: number;
+  assists?: number;
+}
+
+/** An account's numbers per match */
+export interface ProfileAveragesInfo {
+  games: number;
+  kills: number;
+  deaths: number;
+  assists: number;
+  cs: number;
+  gold: number;
+  damageToChampions: number;
 }
 
 export interface ProfileInfo {
@@ -38,6 +53,8 @@ export interface ProfileInfo {
   tier: string;
   /** Most played first */
   champions: ChampionRecordInfo[];
+  /** Null before its first match (servers from before them: none) */
+  averages?: ProfileAveragesInfo | null;
 }
 
 /** The numbers a champion's line in a match has */

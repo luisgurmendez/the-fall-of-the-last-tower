@@ -6,7 +6,8 @@
  * 0, left to right); PROPS keeps the pick, and --install copies the picks to
  * where the game reads them: public/assets/props/<key>.png for props and
  * structures (src/render/entities/ward.ts, inhibitor.ts), public/assets/summoners/<id>.png for icons
- * (src/ui/summonerIcons.ts).
+ * (src/ui/summonerIcons.ts), and the rank emblems' base, bronze (public/assets/ranks/bronze.png;
+ * scripts/generate-rank-emblems.ts builds the other tiers on it).
  *
  * Usage (from the repo root; Bun loads PIXELLAB_API_KEY from .env.local):
  *   bun scripts/generate-props.ts --out /tmp/props                  # every prop
@@ -36,6 +37,12 @@ const KINDS = {
     size: 32,
     style: 'simple bold pixel art spell icon readable at small size: one big centered symbol, thick dark outline, few colors, dark background',
     dir: 'public/assets/summoners',
+  },
+  // The profile shows it big (pixels scaled up), the menu small
+  emblem: {
+    size: 64,
+    style: 'pixel art rank emblem for a game menu, front view, centered and symmetrical heraldic crest, bold readable shapes, rich shading, transparent background',
+    dir: 'public/assets/ranks',
   },
 };
 
@@ -73,6 +80,8 @@ export const PROPS: Record<string, Prop> = {
   summoner_hinder: { kind: 'icon', file: 'hinder', pick: 1, description: 'heavy purple chains wrapped around an iron weight' },
   summoner_purge: { kind: 'icon', file: 'purge', pick: 1, description: 'white light shattering a chain into pieces' },
   summoner_reap: { kind: 'icon', file: 'reap', pick: 1, description: 'a golden lightning bolt striking down' },
+  // The rank emblems' base (Bronze): generate-rank-emblems.ts builds every other tier on it
+  rank_bronze: { kind: 'emblem', file: 'bronze', pick: 3, description: 'a small copper-brown bronze shield with a simple sword in the middle' },
 };
 
 async function generate(apiKey: string, key: string, outDir: string): Promise<number> {

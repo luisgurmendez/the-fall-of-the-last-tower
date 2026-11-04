@@ -8,6 +8,7 @@
 
 import { accountErrorMessage, type AccountClient, type StoredAccount } from "./account";
 import { ratingLine } from "./profileFormat";
+import { rankEmblem } from "./rankEmblem";
 
 export class AccountScreen {
   private readonly line = getEl("menu-account");
@@ -101,7 +102,8 @@ export class AccountScreen {
     signOut.className = "menu-link";
     signOut.textContent = "Sign out";
     signOut.addEventListener("click", () => void this.client.logout());
-    this.line.replaceChildren(who, rating, record, profile, signOut);
+    const ranked = current.account.ratedGames ? current.account.tier ?? null : null;
+    this.line.replaceChildren(who, rankEmblem(ranked, 24), rating, record, profile, signOut);
   }
 }
 

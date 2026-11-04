@@ -56,12 +56,20 @@
       <!-- An account's profile: rating, record, champions, latest matches (src/ui/matchmaking/profileScreen.ts) -->
       <div class="mm-screen" id="screen-profile">
         <div class="profile-panel">
-          <div class="profile-head" id="profile-head"></div>
-          <div class="profile-champions" id="profile-champions"></div>
-          <div class="profile-section-title">LATEST MATCHES</div>
-          <div class="profile-matches" id="profile-matches"></div>
+          <div class="profile-tabs">
+            <button class="profile-tab active" id="btn-profile-overview" type="button">PROFILE</button>
+            <button class="profile-tab" id="btn-profile-history" type="button">MATCH HISTORY</button>
+          </div>
+          <div class="profile-page" id="profile-overview">
+            <div class="profile-head" id="profile-head"></div>
+            <div class="profile-stats" id="profile-stats"></div>
+            <div class="profile-champions" id="profile-champions"></div>
+          </div>
+          <div class="profile-page" id="profile-history" hidden>
+            <div class="profile-matches" id="profile-matches"></div>
+            <button class="mode-back profile-more" id="btn-profile-more" hidden>MORE</button>
+          </div>
           <div class="mode-error" id="profile-error"></div>
-          <button class="mode-back profile-more" id="btn-profile-more" hidden>MORE</button>
         </div>
         <button class="mode-back" id="btn-profile-back">BACK</button>
       </div>

@@ -1404,6 +1404,201 @@
   margin-bottom: 14px;
 }
 
+/* Tabs: PROFILE, MATCH HISTORY */
+.profile-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  border-bottom: 3px solid var(--pixel-border);
+}
+
+.profile-tab {
+  font-family: var(--pixel-font);
+  font-size: 22px;
+  letter-spacing: 2px;
+  padding: 6px 16px;
+  color: var(--pixel-text-dim);
+  background: transparent;
+  border: 3px solid transparent;
+  border-bottom: none;
+  cursor: pointer;
+  margin-bottom: -3px;
+}
+
+.profile-tab:hover {
+  color: var(--pixel-text);
+}
+
+.profile-tab.active {
+  color: var(--pixel-gold);
+  background: var(--pixel-bg-dark);
+  border-color: var(--pixel-border);
+  border-bottom: 3px solid var(--pixel-bg-dark);
+}
+
+.profile-page[hidden] {
+  display: none;
+}
+
+/* The rank: its emblem big, the tier, the rating, the bar to the next tier */
+.profile-hero {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.profile-hero-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 280px;
+  flex: 1;
+}
+
+.rank-emblem {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.rank-emblem img {
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  filter: drop-shadow(4px 4px 0 rgba(0, 0, 0, 0.6));
+}
+
+/* Without its art: a diamond in the tier's color */
+.rank-emblem.missing::before {
+  content: "";
+  width: 60%;
+  height: 60%;
+  transform: rotate(45deg);
+  border: 4px solid currentColor;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.profile-hero .rank-emblem {
+  margin: -8px 0;
+}
+
+.menu-account .rank-emblem {
+  margin: 0 6px 0 -2px;
+}
+
+.profile-tier-name {
+  font-size: 44px;
+  letter-spacing: 4px;
+  text-shadow: 3px 3px 0 #000;
+  line-height: 1;
+}
+
+.tier-unranked { color: var(--pixel-text-dim); }
+.tier-bronze { color: #d08f52; }
+.tier-silver { color: #c8d0dc; }
+.tier-gold { color: var(--pixel-gold); }
+.tier-platinum { color: #6fe0c8; }
+.tier-diamond { color: #7fb8ff; }
+.tier-master { color: #d68cff; }
+
+.profile-rating-number {
+  font-size: 30px;
+  color: var(--pixel-text);
+}
+
+.profile-bar {
+  height: 14px;
+  max-width: 420px;
+  background: var(--pixel-bg-darker);
+  border: 3px solid var(--pixel-border);
+}
+
+.profile-bar-fill {
+  height: 100%;
+  background: currentColor;
+  box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.3);
+}
+
+.profile-peak {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* The record and the numbers per match */
+.profile-stats {
+  margin-top: 18px;
+}
+
+.profile-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.profile-stat {
+  padding: 8px 12px;
+  background: var(--pixel-bg-dark);
+  border: 3px solid var(--pixel-border);
+}
+
+.profile-stat-title {
+  font-size: 17px;
+  letter-spacing: 2px;
+  color: var(--pixel-gold-dark);
+}
+
+.profile-stat-value {
+  font-size: 26px;
+  color: var(--pixel-text);
+}
+
+/* The recent form and the rating's trend */
+.profile-form-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 28px;
+  margin-top: 14px;
+}
+
+.profile-form-chips {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.profile-form-chip {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: #000;
+  box-shadow: inset -3px -3px 0 rgba(0, 0, 0, 0.3);
+}
+
+.profile-form-chip.won { background: var(--pixel-health); }
+.profile-form-chip.lost { background: var(--pixel-error); }
+
+.profile-trend-line {
+  display: block;
+  margin-top: 4px;
+  background: var(--pixel-bg-darker);
+  border: 3px solid var(--pixel-border);
+}
+
+.profile-trend-line polyline {
+  fill: none;
+  stroke: var(--pixel-gold);
+  stroke-width: 3;
+  stroke-linejoin: miter;
+  shape-rendering: crispEdges;
+}
+
 .profile-name {
   font-size: 48px;
   color: var(--pixel-gold);
@@ -1460,18 +1655,18 @@
 }
 
 .profile-champion {
-  display: grid;
-  grid-template-columns: 48px auto;
-  grid-template-rows: auto auto;
-  column-gap: 10px;
+  display: flex;
+  gap: 12px;
   align-items: center;
-  padding: 6px 12px 6px 6px;
+  padding: 8px 16px 8px 8px;
   background: var(--pixel-bg-dark);
   border: 3px solid var(--pixel-border);
+  flex: 1 1 240px;
 }
 
 .profile-champion .profile-portrait {
-  grid-row: span 2;
+  width: 64px;
+  height: 64px;
 }
 
 .profile-champion-name {

@@ -1,25 +1,42 @@
 /**
  * An account's profile (#screen-profile), from the menu's account line or a
- * name on a match's scoreboard: its rating and tier, wins, losses and win
- * rate, most played champions, and its latest matches (practice isn't kept),
- * more at a time. A click on a match opens its scoreboard under it: both
- * teams, each champion's player, level, KDA, CS, gold and items. Profiles
- * are public (GET /api/profile/<name>, /api/matches/<id>).
+ * name on a match's scoreboard. Two tabs:
+ *
+ * - PROFILE: the rank's emblem big (rankEmblem.ts), the tier and rating, the
+ *   bar toward the next tier and the peak; the record and the numbers per
+ *   match (KDA, CS, gold, damage); the recent form and the rating's trend;
+ *   the most played champions.
+ * - MATCH HISTORY: the latest matches (practice isn't kept), more at a time.
+ *   A click on a match opens its scoreboard under it: both teams, each
+ *   champion's player, level, KDA, CS, gold and items.
+ *
+ * Profiles are public (GET /api/profile/<name>, /api/matches/<id>).
  */
 
-import { CHAMPION_DEFINITIONS, MAPS, isMapId } from "@siege/shared";
+import { CHAMPION_DEFINITIONS, MAPS, isMapId, tierFor } from "@siege/shared";
 import { getItemDefinition } from "@/data/items";
 import { getItemIconUrl } from "@/ui/itemIcons";
 import { accountErrorMessage, type AccountClient, type MatchInfo, type MatchPlayerInfo, type MatchSummaryInfo, type ProfileInfo } from "./account";
 import { showPortrait } from "./portraits";
-import { formatDuration, formatKda, formatPlayedAt, formatRatingChange, kdaRatio, ratingLine, winRate } from "./profileFormat";
+import {
+  formatDuration, formatKda, formatPlayedAt, formatRatingChange, kdaRatio, ratingTrend, recentForm, sparkline, tierBar, tierName, winRate,
+} from "./profileFormat";
+import { rankEmblem } from "./rankEmblem";
 
 /** Most played champions shown */
-const TOP_CHAMPIONS = 5;
+const TOP_CHAMPIONS = 3;
+/** Results in the recent form */
+const RECENT = 10;
+/** The rating trend's box (CSS pixels) */
+const TREND_WIDTH = 220;
+const TREND_HEIGHT = 56;
 
 export class ProfileScreen {
   private readonly head = getEl("profile-head");
+  private readonly stats = getEl("profile-stats");
   private readonly champions = getEl("profile-champions");
+  private readonly overviewTab = getEl("btn-profile-overview");
+  private readonly historyTab = getEl("btn-profile-history");
   private readonly list = getEl("profile-matches");
   private readonly more = getEl("btn-profile-more") as HTMLButtonElement;
   private readonly error = getEl("profile-error");
@@ -39,6 +56,16 @@ export class ProfileScreen {
   ) {
     getEl("btn-profile-back").addEventListener("click", () => this.show("menu"));
     this.more.addEventListener("click", () => void this.loadPage());
+    this.overviewTab.addEventListener("click", () => this.showTab("overview"));
+    this.historyTab.addEventListener("click", () => this.showTab("history"));
+  }
+
+  /** PROFILE or MATCH HISTORY */
+  private showTab(tab: "overview" | "history"): void {
+    this.overviewTab.classList.toggle("active", tab === "overview");
+    this.historyTab.classList.toggle("active", tab === "history");
+    getEl("profile-overview").hidden = tab !== "overview";
+    getEl("profile-history").hidden = tab !== "history";
   }
 
   /** Open an account's profile */
@@ -47,7 +74,9 @@ export class ProfileScreen {
     this.oldest = null;
     this.opened++;
     this.head.replaceChildren(el("div", "profile-name", name), el("div", "profile-loading", "Loading..."));
+    this.stats.replaceChildren();
     this.champions.replaceChildren();
+    this.showTab("overview");
     this.list.replaceChildren();
     this.error.textContent = "";
     this.more.hidden = true;
@@ -72,6 +101,7 @@ export class ProfileScreen {
     this.error.textContent = "";
     if (first) {
       this.renderHead(answer.profile);
+      this.renderStats(answer.profile, answer.matches);
       this.renderChampions(answer.profile);
       if (answer.matches.length === 0) {
         this.list.append(el("div", "profile-empty", "No matches yet (practice isn't kept)"));
@@ -82,34 +112,97 @@ export class ProfileScreen {
     this.more.hidden = !answer.more;
   }
 
-  /** The name, the rating and tier, the record */
+  /** The emblem big, the name, the tier and rating, the bar toward the next tier, the peak */
   private renderHead(profile: ProfileInfo): void {
-    const badge = el("div", `profile-tier tier-${profile.tier}`, ratingLine(profile));
-    const peak = profile.ratedGames > 0 && profile.peakRating > profile.rating
-      ? el("div", "profile-note", `Peak ${profile.peakRating}`)
-      : null;
-    const record = el("div", "profile-record");
-    record.append(
-      el("span", "profile-wins", `${profile.wins}W`),
-      el("span", "profile-losses", `${profile.losses}L`),
-      el("span", "profile-note", `${winRate(profile.wins, profile.losses)} won`),
+    const ranked = profile.ratedGames > 0;
+    const tier = ranked ? profile.tier : null;
+    const info = el("div", "profile-hero-info");
+    info.append(
+      el("div", "profile-name", profile.name),
+      el("div", `profile-tier-name tier-${tier ?? "unranked"}`, ranked ? tierName(profile.tier).toUpperCase() : "UNRANKED"),
     );
-    const rated = el("div", "profile-note", profile.ratedGames === 1 ? "1 rated match" : `${profile.ratedGames} rated matches`);
-    this.head.replaceChildren(el("div", "profile-name", profile.name), badge, ...(peak ? [peak] : []), record, rated);
+    if (ranked) {
+      const bar = tierBar(profile.rating);
+      const track = el("div", "profile-bar");
+      const fill = el("div", `profile-bar-fill tier-${profile.tier}`);
+      fill.style.width = `${bar.percent}%`;
+      track.append(fill);
+      const rating = el("div", "profile-rating");
+      rating.append(el("span", "profile-rating-number", String(profile.rating)), el("span", "profile-note", " rating"));
+      info.append(rating, track, el("div", "profile-note", bar.label));
+      if (profile.peakRating > profile.rating) {
+        const peak = el("div", "profile-peak");
+        peak.append(el("span", "profile-note", `Peak ${profile.peakRating}`), rankEmblem(tierOfPeak(profile), 20));
+        info.append(peak);
+      }
+    } else {
+      info.append(el("div", "profile-note", "Play a match against other players to get a rank"));
+    }
+    const hero = el("div", "profile-hero");
+    hero.append(rankEmblem(tier, 192), info);
+    this.head.replaceChildren(hero);
   }
 
-  /** Most played champions, with their games and win rate */
+  /** The record, the numbers per match, the recent form and the rating's trend */
+  private renderStats(profile: ProfileInfo, matches: MatchSummaryInfo[]): void {
+    const cards: HTMLElement[] = [];
+    const card = (title: string, value: string, note: string, valueClass = "") => {
+      const box = el("div", "profile-stat");
+      box.append(el("div", "profile-stat-title", title), el("div", `profile-stat-value ${valueClass}`.trim(), value), el("div", "profile-note", note));
+      cards.push(box);
+    };
+    card("RECORD", `${profile.wins}W ${profile.losses}L`, `${winRate(profile.wins, profile.losses)} won`);
+    card("RATED", String(profile.ratedGames), profile.ratedGames === 1 ? "match" : "matches");
+    const averages = profile.averages;
+    if (averages) {
+      card("KDA", `${averages.kills} / ${averages.deaths} / ${averages.assists}`, `${kdaRatio(averages.kills, averages.deaths, averages.assists)} ratio`);
+      card("CS", String(averages.cs), "per match");
+      card("GOLD", averages.gold.toLocaleString(), "per match");
+      card("DAMAGE", averages.damageToChampions.toLocaleString(), "to champions per match");
+    }
+    const grid = el("div", "profile-stat-grid");
+    grid.append(...cards);
+
+    const form = recentForm(matches, RECENT);
+    const trend = ratingTrend(matches);
+    const strip = el("div", "profile-form-row");
+    if (form.length > 0) {
+      const recent = el("div", "profile-form");
+      recent.append(el("div", "profile-stat-title", "RECENT"));
+      const chips = el("div", "profile-form-chips");
+      for (const result of form) chips.append(el("span", `profile-form-chip ${result === "W" ? "won" : "lost"}`, result));
+      recent.append(chips);
+      strip.append(recent);
+    }
+    const points = sparkline(trend, TREND_WIDTH, TREND_HEIGHT, 4);
+    if (points) {
+      const box = el("div", "profile-trend");
+      box.append(el("div", "profile-stat-title", "RATING"));
+      box.insertAdjacentHTML("beforeend",
+        `<svg class="profile-trend-line" width="${TREND_WIDTH}" height="${TREND_HEIGHT}" viewBox="0 0 ${TREND_WIDTH} ${TREND_HEIGHT}">` +
+        `<polyline points="${points}" /></svg>`);
+      strip.append(box);
+    }
+    this.stats.replaceChildren(grid, ...(strip.childElementCount > 0 ? [strip] : []));
+  }
+
+  /** Most played champions: games, win rate and KDA */
   private renderChampions(profile: ProfileInfo): void {
     if (profile.champions.length === 0) return;
-    const cards = profile.champions.slice(0, TOP_CHAMPIONS).map(({ championId, games, wins }) => {
+    const cards = profile.champions.slice(0, TOP_CHAMPIONS).map(({ championId, games, wins, kills, deaths, assists }) => {
       const card = el("div", "profile-champion");
       const portrait = el("div", "profile-portrait");
       showPortrait(portrait, championId);
-      card.append(
-        portrait,
+      const text = el("div", "profile-champion-text");
+      text.append(
         el("div", "profile-champion-name", championName(championId)),
-        el("div", "profile-note", `${games} ${games === 1 ? "game" : "games"} · ${winRate(wins, games - wins)}`),
+        el("div", "profile-note", `${games} ${games === 1 ? "game" : "games"} · ${winRate(wins, games - wins)} won`),
       );
+      if (kills !== undefined && deaths !== undefined && assists !== undefined) {
+        const per = (value: number) => Math.round((value / games) * 10) / 10;
+        text.append(el("div", "profile-note", `${per(kills)} / ${per(deaths)} / ${per(assists)} · ${kdaRatio(kills, deaths, assists)} KDA`));
+      }
+      card.append(portrait, text);
       return card;
     });
     this.champions.replaceChildren(el("div", "profile-section-title", "MOST PLAYED"), el("div", "profile-champion-list"));
@@ -233,6 +326,11 @@ function itemIcons(items: (string | null)[]): HTMLElement {
     row.append(slot);
   }
   return row;
+}
+
+/** The tier of the peak rating */
+function tierOfPeak(profile: ProfileInfo): string {
+  return tierFor(profile.peakRating).id;
 }
 
 function championName(championId: string): string {
