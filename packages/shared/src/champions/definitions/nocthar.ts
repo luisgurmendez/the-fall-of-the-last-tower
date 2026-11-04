@@ -88,8 +88,8 @@ export const NOCTHAR_KIT = {
   colossusAbilityCost: 0.1,
   /** Bone Volley: the colossus throws as far as this, the bones land after its windup and flight */
   colossusWRange: 300,
-  colossusWWindup: 0.4,
-  colossusWFlight: 0.5,
+  colossusWWindup: 0.45,
+  colossusWFlight: 0.65,
   colossusWSlowEffect: "slow_40",
   colossusWSlowDuration: 1.5,
   /** Trample: after its windup the colossus charges this far over this long, carrying who it hits */
@@ -206,7 +206,7 @@ export const NoctharGraspingHands: AbilityDefinition = {
   castTime: 0.25,
   range: 340,
   aoeRadius: 95,
-  aoeDelay: 0.85, // The ground cracks and the fingertips poke out, then the hands
+  aoeDelay: 0.9, // The ground cracks and the fingertips poke out, then the hands (dodge ratio 1.0: walk out of the middle in time)
   shape: "circle",
   damage: {
     type: "magic",
@@ -225,7 +225,7 @@ export const NoctharLament: AbilityDefinition = {
   maxRank: 5,
   manaCost: [70, 75, 80, 85, 90],
   cooldown: [14, 13, 12, 11, 10],
-  castTime: 0.5, // He draws breath: a channel the enemy sees coming
+  castTime: 0.6, // He draws breath: a channel the enemy sees coming (long enough to step back out of its edge)
   aoeRadius: 150,
   appliesEffects: ["fear"],
   effectDuration: 1,
@@ -281,6 +281,8 @@ export const NoctharBoneVolley: AbilityDefinition = {
   manaCost: [0, 0, 0, 0, 0],
   cooldown: [8, 7.5, 7, 6.5, 6],
   castTime: 0, // The colossus winds up, not him
+  // The bones land after its windup and flight (NoctharColossusWHandler), shown where they'll fall
+  aoeDelay: NOCTHAR_KIT.colossusWWindup + NOCTHAR_KIT.colossusWFlight,
   aoeRadius: 90,
   shape: "circle",
   damage: {

@@ -5,11 +5,13 @@
  * drawn by src/gpu/fx/championAuras.ts.
  */
 
-import { getAbilityDefinition, ZHAKRUL_KIT } from '@siege/shared';
+import { getAbilityDefinition, getCastTime, ZHAKRUL_KIT } from '@siege/shared';
 import { registerAbilityVFX } from '../VFXRegistryStore';
 import {
+  coneWarning,
   cuts,
   debris,
+  gather,
   landsAt,
   light,
   phase,
@@ -20,6 +22,7 @@ import {
   slash,
   smoke,
   sparks,
+  warning,
   wisps,
 } from '../recipes';
 
@@ -33,11 +36,22 @@ const SAND_DARK = '#8a6a3a';
 const PINCERS = getAbilityDefinition('zhakrul_q')?.range ?? 150;
 const PINCERS_ANGLE = getAbilityDefinition('zhakrul_q')?.coneAngle ?? Math.PI / 2;
 const CLOUD = getAbilityDefinition('zhakrul_w')?.aoeRadius ?? 190;
+/** How long the cloud billows out before it bites (its warning) */
+const CLOUD_BILLOW = getAbilityDefinition('zhakrul_w')?.aoeDelay ?? 0.75;
 const BURST = getAbilityDefinition('zhakrul_e')?.aoeRadius ?? 130;
 /** How long Death Stinger's venom burns */
 const STING_VENOM = ZHAKRUL_KIT.stingDuration;
 
-// Q: both pincers snap shut like scissors: two crossing blades and a spray of venom
+// Q: as he raises his pincers (its cast), the cone they'll close on darkens until they snap...
+const PINCERS_CAST = getCastTime(getAbilityDefinition('zhakrul_q')!);
+registerAbilityVFX({
+  abilityId: 'zhakrul_q_windup',
+  phases: [
+    phase('raise', 0, 'caster', [coneWarning(CHITIN, PINCERS, PINCERS_ANGLE, PINCERS_CAST + landsAt('zhakrul_q'))], PINCERS_CAST),
+  ],
+});
+
+// ...then both pincers snap shut like scissors: two crossing blades and a spray of venom
 registerAbilityVFX({
   abilityId: 'zhakrul_q',
   phases: [
@@ -50,20 +64,31 @@ registerAbilityVFX({
   ],
 });
 
-// W: he breathes out the gas in a rush (the cloud that stays is a zone)
+// W: he breathes out the gas: it billows out to the cloud's edge while it
+// can still be stepped out of (its warning, aoeDelay), then it settles and
+// bites (the cloud that stays is a zone)
 registerAbilityVFX({
   abilityId: 'zhakrul_w',
   phases: [
     phase('breath', 0, 'caster', [
-      smoke(VENOM, 14, [16, 28], [80, 180]),
-      smoke(VENOM_DARK, 8, [14, 24], [40, 120]),
-      ring(VENOM, 20, CLOUD, 0.4, 5),
-      light(VENOM, CLOUD, 0.6, 0.5),
-    ], 0.6),
+      smoke(VENOM, 10, [14, 24], [60, 140]),
+      smoke(VENOM_DARK, 6, [12, 20], [30, 90]),
+      warning(VENOM, CLOUD, CLOUD_BILLOW),
+      ring(VENOM_LIGHT, 18, CLOUD, CLOUD_BILLOW, 3),
+      light(VENOM, CLOUD * 0.6, 0.4, CLOUD_BILLOW),
+    ], CLOUD_BILLOW),
+    phase('settle', CLOUD_BILLOW, 'caster', [
+      smoke(VENOM, 14, [18, 30], [20, 70]),
+      ring(VENOM, CLOUD * 0.9, CLOUD, 0.3, 6),
+      light(VENOM, CLOUD, 0.6, 0.4),
+    ], 0.5),
   ],
 });
 
-// E: he digs in, sand flying (then he's a mound moving underground, src/render/champions/zhakrul.ts)...
+// E: he digs in, sand flying (then he's a mound moving underground,
+// src/render/champions/zhakrul.ts); the sand where he'll burst out stirs
+// in a circle as wide as the burst until he does
+const BURROW_TRIP = (getAbilityDefinition('zhakrul_e')?.range ?? 320) / ZHAKRUL_KIT.burrowSpeed;
 registerAbilityVFX({
   abilityId: 'zhakrul_e',
   phases: [
@@ -72,6 +97,10 @@ registerAbilityVFX({
       smoke(SAND, 6, [10, 18], [30, 80]),
       ring(SAND_DARK, 10, 50, 0.3, 4),
     ], 0.4),
+    phase('stir', 0, 'ground_target', [
+      warning(SAND_DARK, BURST, BURROW_TRIP),
+      debris(SAND, 6, [20, 60]),
+    ], BURROW_TRIP),
   ],
 });
 
@@ -91,7 +120,16 @@ registerAbilityVFX({
   ],
 });
 
-// R: the stinger stabs down and pumps venom in: a green burst, then fumes for as long as it burns
+// R: as he arches his tail (its cast), venom gathers at the stinger...
+const STING_CAST = getCastTime(getAbilityDefinition('zhakrul_r')!);
+registerAbilityVFX({
+  abilityId: 'zhakrul_r_windup',
+  phases: [
+    phase('arch', 0, 'caster', [gather(VENOM, 10, 50, STING_CAST), light(VENOM, 40, 0.6, STING_CAST)], STING_CAST),
+  ],
+});
+
+// ...then the stinger stabs down and pumps venom in: a green burst, then fumes for as long as it burns
 registerAbilityVFX({
   abilityId: 'zhakrul_r',
   phases: [

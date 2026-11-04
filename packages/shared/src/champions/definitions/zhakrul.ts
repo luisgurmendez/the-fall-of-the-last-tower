@@ -125,12 +125,14 @@ export const ZhakrulToxicCloud: AbilityDefinition = {
   id: "zhakrul_w",
   name: "Toxic Cloud",
   description:
-    "Breathe out a cloud of poison around you for 4 seconds. Enemies in it are slowed by 30%, take {damage} magic damage each second, 25% more for every second they stay, and get a dose of Ancient Venom.",
+    "Breathe out a cloud of poison around you: it billows out for a moment, then hangs there for 4 seconds. Enemies in it are slowed by 30%, take {damage} magic damage each second, 25% more for every second they stay, and get a dose of Ancient Venom.",
   type: "active",
   targetType: "no_target",
   maxRank: 5,
   manaCost: [70, 70, 70, 70, 70],
   cooldown: [14, 13, 12, 11, 10],
+  // It billows out before it bites (ZhakrulWHandler): enemies at its edge can step out
+  aoeDelay: 0.75,
   aoeRadius: 190,
   shape: "circle",
   damage: {

@@ -254,22 +254,22 @@
       "walk": "97f616c9-a35b-45e0-8763-37b45b9b320f",
       "idle": "0148a3c9-aed3-44c1-9cdf-ca75fb902a9e",
       "q": "4937c42e-a551-4bad-a628-ab52ac626e4d",
-      "w": "b208bdd5-00b8-4481-b60e-e8dc8757d763",
+      "w": "ee946455-c281-4c76-8414-cd4e77c34232",
       "e": "a5489f44-96e6-4dd9-b17e-f09ae05dcf30",
       "r": "7f418b16-9668-43e4-a8de-8682cd252447"
     }
   },
   "kip": {
     "animations": {
-      "idle": "f26cf545-e679-4de3-be58-d7b988b028ec",
-      "walk": "7192afe6-9266-4285-b927-e4c56d34be59",
-      "attack": "9b7a1103-a2bf-4ede-b887-2cf129dfa388",
-      "w": "b2877803-d057-4387-98e8-b23436b20e60",
-      "q": "b6ce8d03-8f20-4201-a1d8-77e0a45fe909",
-      "e": "f9127858-2cdc-44bb-8d4b-4d0e59af3714",
-      "r": "9e69d8e8-0a84-44fc-923b-2ebc0ff19b30"
+      "walk": "c529544a-6460-46a0-a107-52a8071e4786",
+      "idle": "c7a3f930-98ed-486e-ba64-f0c59bab4eec",
+      "attack": "0faffa46-cd52-4bab-bcc7-f938edf8ae11",
+      "q": "d2bfd6a9-2b4f-4352-9d0f-1cf449845dc9",
+      "e": "06b3e871-14f9-4ab0-957a-68ed32ce448d",
+      "w": "2c989054-1236-4c9e-8166-0567d752eeb0",
+      "r": "1c51473e-2696-4ac4-bf20-c962900c288f"
     },
-    "characterId": "42edafbb-bf7d-4566-8dde-8235c2510bb7"
+    "characterId": "60b1a03e-fc53-4de1-a96f-fa0f1de5080e"
   },
   "nocthar": {
     "animations": {

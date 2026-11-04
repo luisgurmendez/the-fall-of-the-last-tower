@@ -6,7 +6,7 @@
  * ./index.ts).
  */
 
-import { getAbilityDefinition, getCastTime } from '@siege/shared';
+import { KIP_KIT, getAbilityDefinition, getCastTime } from '@siege/shared';
 import { registerAbilityVFX } from '../VFXRegistryStore';
 import {
   cuts,
@@ -20,6 +20,7 @@ import {
   smoke,
   sparks,
   twinkles,
+  warning,
 } from '../recipes';
 
 const CAPE = '#e0662a';
@@ -103,7 +104,9 @@ registerAbilityVFX({
   ],
 });
 
-// E: he springs off in a puff of dust, his cape streaming...
+// E: he springs off in a puff of dust, his cape streaming, the spot he'll
+// land on marked as wide as his landing's burst...
+const LEAP = (getAbilityDefinition('kip_e')?.range ?? 200) / KIP_KIT.eDashSpeed;
 registerAbilityVFX({
   abilityId: 'kip_e',
   phases: [
@@ -112,6 +115,7 @@ registerAbilityVFX({
       debris(DUST, 5, [40, 100]),
       { type: 'trail', color: CAPE, thickness: 7, duration: 0.3, fadeLength: 10 },
     ], 0.4),
+    phase('spot', 0, 'ground_target', [warning(CAPE, LANDING, LEAP)], LEAP),
   ],
 });
 
