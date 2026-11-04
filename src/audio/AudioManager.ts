@@ -8,7 +8,9 @@
  *   MIN_GAP, so ten minions hitting at once are one hit, not a roar;
  * - each start picks one of the sound's variants and nudges its pitch, so
  *   frequent sounds don't repeat exactly;
- * - sfx, ui and ambience buses under a master volume (kept in localStorage).
+ * - sfx, ui, ambience and music buses under a master volume (kept in
+ *   localStorage); the music is chiptune played live (music/ChiptunePlayer.ts):
+ *   the menu's theme, a quieter one in matches.
  *
  * Browsers keep audio suspended until the player clicks or presses a key:
  * the first one resumes it. Until a sound has loaded, playing it does
@@ -16,6 +18,8 @@
  */
 
 import { SOUNDS, soundFiles, type SoundBus, type SoundDef, type SoundKey } from "./soundCatalog";
+import { ChiptunePlayer } from "./music/ChiptunePlayer";
+import { SONGS, type SongId } from "./music/songs";
 
 /** Full volume within this share of the view's width from its middle */
 const NEAR = 0.45;
@@ -34,7 +38,7 @@ const LOOP_FADE = 0.6;
 
 const STORAGE_KEY = "siege-audio";
 
-export type VolumeChannel = SoundBus | "master";
+export type VolumeChannel = SoundBus | "music" | "master";
 
 interface Settings {
   volumes: Record<VolumeChannel, number>;
@@ -42,7 +46,7 @@ interface Settings {
 }
 
 const DEFAULT_SETTINGS: Settings = {
-  volumes: { master: 0.7, sfx: 1, ui: 0.9, ambience: 0.6 },
+  volumes: { master: 0.7, sfx: 1, ui: 0.9, ambience: 0.6, music: 0.6 },
   muted: false,
 };
 
@@ -69,6 +73,10 @@ export class AudioManager {
   private totalVoices = 0;
   private loops = new Map<SoundKey, { gain: GainNode; source: AudioBufferSourceNode }>();
   private listener = { x: 0, y: 0, viewWidth: 900 };
+  private musicBus: GainNode | null = null;
+  private music: ChiptunePlayer | null = null;
+  /** The song asked for (it starts once audio is allowed) */
+  private song: SongId | null = null;
   private settings: Settings = AudioManager.loadSettings();
 
   constructor() {
@@ -90,6 +98,18 @@ export class AudioManager {
     for (const key of Object.keys(SOUNDS) as SoundKey[]) {
       for (const file of soundFiles(key)) void this.load(file);
     }
+  }
+
+  /**
+   * Play a song (the menu's theme, the match's), or none. The one playing
+   * fades out; asked before audio is allowed, it starts with the first click.
+   */
+  playMusic(song: SongId | null): void {
+    if (song === this.song) return;
+    this.song = song;
+    if (!this.music) return;
+    if (song) this.music.play(SONGS[song]);
+    else this.music.stop();
   }
 
   /** Where the camera is and how much of the world it shows across */
@@ -236,8 +256,12 @@ export class AudioManager {
       gain.connect(this.master);
       this.buses.set(bus, gain);
     }
+    this.musicBus = context.createGain();
+    this.musicBus.connect(this.master);
+    this.music = new ChiptunePlayer(context, this.musicBus);
     this.applyVolumes();
     this.preloadAll();
+    if (this.song) this.music.play(SONGS[this.song]);
   }
 
   private bus(bus: SoundBus): GainNode {
@@ -248,6 +272,7 @@ export class AudioManager {
     if (!this.master) return;
     this.master.gain.value = this.settings.muted ? 0 : this.settings.volumes.master;
     for (const [bus, gain] of this.buses) gain.gain.value = this.settings.volumes[bus];
+    if (this.musicBus) this.musicBus.gain.value = this.settings.volumes.music;
   }
 
   private async load(file: string): Promise<void> {

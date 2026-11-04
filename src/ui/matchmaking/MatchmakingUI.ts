@@ -37,6 +37,8 @@
  */
 
 import type { NetworkClient } from "../../../packages/client/src/network/NetworkClient";
+import { getAudio } from "@/audio/AudioManager";
+import { createSoundControls } from "@/ui/soundControls";
 import { continueLabel, fetchCurrentMatch, readLastMatch, type CurrentMatch } from "./currentMatch";
 import type {
   ScreenId,
@@ -332,10 +334,13 @@ export class MatchmakingUI {
       this.showScreen("menu");
     });
 
-    // Settings: the controls (cast mode, keys)
+    // Settings: the sound (volumes, music), then the controls (cast mode, keys)
     const settings = new ControlsPanel(() => this.showScreen("menu"));
-    this.screens.get("settings")?.append(settings.element);
+    const sound = createSoundControls();
+    sound.classList.add("settings-sound");
+    this.screens.get("settings")?.append(sound, settings.element);
     document.getElementById("btn-settings")?.addEventListener("click", () => {
+      sound.dispatchEvent(new Event("refresh"));
       this.showScreen("settings");
     });
 
@@ -658,6 +663,8 @@ export class MatchmakingUI {
   show(): void {
     this.overlay?.classList.remove("hidden");
     this.showScreen("menu");
+    // The menu's theme (it starts with the first click if audio isn't allowed yet)
+    getAudio().playMusic("title");
     // Back from a match: the account's wins and losses may have changed
     void this.accounts.refresh();
     void this.refreshContinue();
@@ -668,6 +675,8 @@ export class MatchmakingUI {
    */
   hide(): void {
     this.overlay?.classList.add("hidden");
+    // Into a match: its quieter music
+    getAudio().playMusic("match");
     this.titleScreen?.setActive(false);
   }
 

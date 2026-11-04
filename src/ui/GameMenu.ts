@@ -1,6 +1,6 @@
 /**
  * GameMenu - The in-match menu Escape opens: resume, the sound's volumes
- * (master, effects, ambience; kept by AudioManager), the controls (cast
+ * (master, effects, ambience, music; kept by AudioManager), the controls (cast
  * mode and keys: ControlsPanel), the debug overlay (F3 too), the practice
  * tools' panel (F2 too; practice matches), or surrender.
  *
@@ -9,7 +9,7 @@
  * any other (GAME_END, the final scoreboard, back to the menu).
  */
 
-import { getAudio, type VolumeChannel } from "@/audio/AudioManager";
+import { createSoundControls } from "./soundControls";
 import { ControlsPanel } from "@/ui/ControlsPanel";
 import type { PracticeSwitch } from "@/ui/PracticePanel";
 
@@ -21,12 +21,6 @@ export interface DebugSwitch {
   toggle(): void;
 }
 
-/** The volume sliders, in order */
-const VOLUMES: { channel: VolumeChannel; label: string }[] = [
-  { channel: "master", label: "Volume" },
-  { channel: "sfx", label: "Effects" },
-  { channel: "ambience", label: "Ambience" },
-];
 
 export class GameMenu {
   private readonly root: HTMLDivElement;
@@ -76,7 +70,7 @@ export class GameMenu {
     hint.className = "game-menu-hint";
     hint.textContent = "The match keeps going while this is open";
 
-    panel.append(title, resumeButton, this.createSoundControls(), controlsButton);
+    panel.append(title, resumeButton, createSoundControls(), controlsButton);
     if (debug) {
       const button = document.createElement("button");
       button.className = "pixel-button";
@@ -152,37 +146,6 @@ export class GameMenu {
     this.closed = true;
     this.controls.dispose();
     this.root.remove();
-  }
-
-  /** A slider per volume and a mute toggle */
-  private createSoundControls(): HTMLElement {
-    const audio = getAudio();
-    const section = document.createElement("div");
-    section.className = "game-menu-sound";
-    for (const { channel, label } of VOLUMES) {
-      const row = document.createElement("label");
-      row.className = "game-menu-volume";
-      const name = document.createElement("span");
-      name.textContent = label;
-      const slider = document.createElement("input");
-      slider.type = "range";
-      slider.min = "0";
-      slider.max = "100";
-      slider.value = String(Math.round(audio.getVolume(channel) * 100));
-      slider.addEventListener("input", () => audio.setVolume(channel, Number(slider.value) / 100));
-      row.append(name, slider);
-      section.append(row);
-    }
-    const mute = document.createElement("button");
-    mute.className = "pixel-button game-menu-mute";
-    const label = () => (mute.textContent = audio.isMuted() ? "Sound: off" : "Sound: on");
-    label();
-    mute.addEventListener("click", () => {
-      audio.setMuted(!audio.isMuted());
-      label();
-    });
-    section.append(mute);
-    return section;
   }
 
   private handleSurrenderClick(): void {

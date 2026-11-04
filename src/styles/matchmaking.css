@@ -1852,3 +1852,10 @@
   color: var(--pixel-text);
   margin-right: 10px;
 }
+
+/* Settings: the sound (volumes, music) above the controls */
+.settings-sound {
+  max-width: 420px;
+  margin: 0 auto 24px;
+  font-family: var(--pixel-font);
+}

@@ -23,7 +23,7 @@ played with the Web Audio API, heard from the camera.
 - **The mix**: what champions do is in front (abilities, their attacks and hits, given and taken); the lane is in the background: attacks and hits between units that aren't champions play at 0.3 (`LANE_VOLUME` in `gameSounds.ts`), minion deaths and cannons are quiet in the catalog, and the river and jungle loops sit low under everything.
 - **Variety**: a sound with several variants picks one at random, and every start nudges the pitch by up to 4% (not a `steadyPitch` one, timed to something: the recall channel lasts exactly the recall).
 - **Timing**: `play` can start a sound a delay from now, so an ability's impact sounds when it lands. A `rise` sound starts at that share of its volume and swells to full by its end.
-- **Buses**: `sfx` (in the world), `ui` (not placed: level up, gold, the shop, announcements) and `ambience`, under a master volume. The in-match menu (Escape) has sliders for master, effects and ambience and a mute; `AudioManager` keeps them in localStorage (`siege-audio`).
+- **Buses**: `sfx` (in the world), `ui` (not placed: level up, gold, the shop, announcements), `ambience` and `music` (see [Music](#music)), under a master volume. The in-match menu (Escape) and the main menu's Settings have sliders for master, effects, ambience and music and a mute; `AudioManager` keeps them in localStorage (`siege-audio`).
 - Browsers keep audio suspended until a click or key press; the first one starts it and loads the sounds. Until a sound has loaded, playing it does nothing.
 
 ## What plays when
@@ -73,6 +73,25 @@ bun scripts/generate-sounds.ts --reprocess --only gold --raw <dir>  # clean up t
 
 Add a sound to `SOUNDS` with a prompt (short and concrete; one-shots end with "video game sound effect, dry, no music, no voice"; a roar or a choir leaves out "no voice") and a length, generate it, then play it from `gameSounds.ts` (an ability's: `abilitySounds.ts`). One-shots lose their leading silence, peak at -1 dB (one still quieter than -17 LUFS, a boom with a short spike, is lifted toward it with a limiter, by up to 8 dB), fade out at the end and are saved as mono mp3; loops are asked for as seamless loops and saved as wav (an mp3's padding would leave a gap at the seam). Judge them in `/sound-lab.html` and tune `volume` in the catalog (above 1 lifts a quiet file: loops aren't lifted when made).
 
-ElevenLabs' music generation (`POST /v1/music`) needs a paid plan: on the free plan it answers 402, so there's no music yet.
+ElevenLabs' music generation (`POST /v1/music`) needs a paid plan: on the free plan it answers 402.
+
+## Music
+
+The music is chiptune written for the game and played live by a small sound chip in Web Audio,
+not files (`src/audio/music/`):
+
+| File | Role |
+|---|---|
+| `notation.ts` | How a song is written: each voice a line of `note:steps` tokens (`D5:4`, `r:2`, drums `k` `s` `h`), bars split by `|`, a step a sixteenth. Every bar must add up to a whole bar (`parseVoice` throws), so voices can't drift |
+| `songs.ts` | The songs. **title**: the menu's theme, D minor with a chorus in F major at 112 BPM (music-box intro, the motif, the chorus, a bridge, then back to the motif: about 85 s a loop). **match**: under a match at 92 BPM, quiet (soft arpeggios and bass, light drums, the motif now and then) |
+| `ChiptunePlayer.ts` | Plays them: a 25% pulse lead with vibrato on long notes, a thin 12.5% pulse for arpeggios, a triangle bass, noise snare and hi-hat and a falling-sine kick. Notes are scheduled on the audio clock a section ahead; a new song fades the old one out |
+
+Both songs share one 8-note motif, so the match's music recalls the theme.
+- **When:** `MatchmakingUI.show()` plays `title`, and `hide()` (into a match) plays `match`
+  (`AudioManager.playMusic`).
+- **Before audio is allowed:** asked before the first click, the song starts with it.
+- **Volume:** it has its own bus, `music` (0.6 by default), and a slider in the in-match menu and
+  in the main menu's Settings (`src/ui/soundControls.ts`).
+- **Tests:** `src/audio/music/notation.test.ts` checks the songs' bars and notes.
 
 The account is on ElevenLabs' free plan (10,000 credits a month; the script prints what's left, a little behind). A sound costs about 10 credits a second: the 38 ability sounds cost about 400.
