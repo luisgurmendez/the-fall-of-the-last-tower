@@ -23,10 +23,13 @@ WebSocket from the same address, so players only need a link.
   `STATIC_DIR=/app/dist`.
 - `.dockerignore` keeps out **`.env*` (the PixelLab and ElevenLabs keys)**, `deploy/` (the old
   EC2 deploy and its private key), `.git`, `.claude`, node_modules and build output.
-- `fly.toml`: app `retroleague` (https://retroleague.fly.dev; Fly can't rename an app: a new name is a new app), region `gru` (São Paulo, close to the River Plate), one shared
-  CPU and 512 MB, HTTPS forced, `/health` checked. The machine stops when nobody's connected
+- `fly.toml`: app `retroleague` (https://retroleague.fly.dev; Fly can't rename an app: a new name is a new app), region `gru` (São Paulo, close to the River Plate), one dedicated
+  CPU (`performance-1x`, which comes with 2 GB), HTTPS forced, `/health` checked. The machine stops when nobody's connected
   and starts on the next visit (a few seconds). **Run one machine only**: matches, rooms and
   the queue live in its memory, so two machines would split players apart.
+  Why dedicated: a shared CPU guarantees 6.25% and lends more from a credit; a 5v5 runs at
+  about 17%, so the credit ran out around minute 11 and the server was held back (the
+  match slowed down for everyone).
 
 First deploy (needs a Fly.io account, logged in with `fly auth login`):
 
