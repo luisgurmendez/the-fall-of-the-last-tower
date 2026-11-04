@@ -173,6 +173,11 @@ export const SOUNDS = {
   elora_w: { prompt: `a heavy war bow drawn and released, a deep twang and a heavy arrow thudding into wood, ${DRY}`, duration: 0.7, volume: 0.7, maxVoices: 2 },
   elora_e: { prompt: `a quick roll on dirt, rustling cloak and leather with a soft thump, ${DRY}`, duration: 0.5, volume: 1.2, maxVoices: 2 },
   elora_r: { prompt: `many bowstrings released at once, a volley of arrows whooshing up into the sky, ${DRY}`, duration: 0.8, volume: 1.4, maxVoices: 2 },
+  // Kip: a show-off kid with a big bow (his Q, E takeoff and R volleys reuse Elora's bow and roll, abilitySounds.ts); made at -9.6 (W), -22.5 (landing), -18.1 (R) and -18.4 (pop) LUFS
+  kip_w: { prompt: `a sharp cocky two-finger whistle, then a quick whoosh of a fist pump, ${DRY}`, duration: 0.8, volume: 0.35, maxVoices: 2 },
+  kip_e_land: { prompt: `a light acrobat landing on dirt with a cloak flapping and a small burst of dust, ${DRY}`, duration: 0.6, volume: 1.4, maxVoices: 2 },
+  kip_r: { prompt: `a rapid flurry of bow shots, several twangs and arrow whooshes in quick succession, ${DRY}`, duration: 1.0, volume: 1.2, maxVoices: 2 },
+  kip_pop_auto_impact: { prompt: `an arrow striking a wooden target dead center, a solid thunk with a bright metallic ding, ${DRY}`, duration: 0.6, volume: 0.9, maxVoices: 2 },
   // Caelum: an old druid's light and the forest
   caelum_attack: { prompt: `a small bolt of soft magical light, a gentle bright ping, ${DRY}`, duration: 0.5, volume: 0.65, maxVoices: 3 },
   caelum_q: { prompt: `a beam of golden holy light fired from a staff, a bright shimmering zap, ${DRY}`, duration: 0.6, volume: 0.5, maxVoices: 2 },

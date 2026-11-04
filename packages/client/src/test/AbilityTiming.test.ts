@@ -37,15 +37,15 @@ describe('ability timing', () => {
     }
   });
 
-  it("a leap's blow plays when it lands, and Lume's orb when it arrives", () => {
-    for (const abilityId of ['warrior_ultimate_land', 'uruk_r_land', 'fenris_e_land', 'lume_q_arrive']) {
+  it("a leap's blow plays when it lands (Kip's Grand Entrance too), and Lume's orb when it arrives", () => {
+    for (const abilityId of ['warrior_ultimate_land', 'uruk_r_land', 'fenris_e_land', 'lume_q_arrive', 'kip_e_land']) {
       // (Fenris's one sound is the whole pounce, whoosh to thud, from the cast)
       const sound = abilityId !== 'fenris_e_land';
       expect({ abilityId, vfx: getAbilityVFX(abilityId) !== undefined, sound: (ABILITY_CUES[abilityId]?.length ?? 0) > 0 })
         .toEqual({ abilityId, vfx: true, sound });
     }
     // ...not at a fixed time after the cast
-    for (const abilityId of ['warrior_ultimate', 'uruk_r', 'fenris_e', 'lume_q']) {
+    for (const abilityId of ['warrior_ultimate', 'uruk_r', 'fenris_e', 'lume_q', 'kip_e']) {
       const cues = ABILITY_CUES[abilityId] ?? [];
       expect({ abilityId, delayed: cues.some(cue => (cue.delay ?? 0) > 0) }).toEqual({ abilityId, delayed: false });
       const phases = getAbilityVFX(abilityId)?.phases ?? [];

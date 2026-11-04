@@ -86,6 +86,12 @@ export const ABILITY_CUES: Record<string, AbilityCue[]> = {
     { sound: "elora_r" },
     { sound: "elora_r_rain", delay: landsAt("elora_r"), at: "target" },
   ],
+  // Kip: his practice arrow as it flies; a leap, then his landing when the
+  // server says he landed; a twang with each volley of Show Them All
+  kip_q: [{ sound: "elora_attack", delay: landsAt("kip_q") }],
+  kip_e: [{ sound: "elora_e" }],
+  kip_e_land: [{ sound: "kip_e_land" }],
+  kip_r_volley: [{ sound: "elora_attack" }],
   caelum_q: [{ sound: "caelum_q", delay: landsAt("caelum_q") }],
   caelum_w: [{ sound: "caelum_w", at: "target" }],
   caelum_e: [{ sound: "caelum_e", delay: landsAt("caelum_e"), at: "target" }],
