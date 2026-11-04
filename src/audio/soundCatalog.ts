@@ -175,6 +175,9 @@ export const SOUNDS = {
   elora_r: { prompt: `many bowstrings released at once, a volley of arrows whooshing up into the sky, ${DRY}`, duration: 0.8, volume: 1.4, maxVoices: 2 },
   // Kip: a show-off kid with a big bow (his Q, E takeoff and R volleys reuse Elora's bow and roll, abilitySounds.ts); made at -9.6 (W), -22.5 (landing), -18.1 (R) and -18.4 (pop) LUFS
   kip_w: { prompt: `a sharp cocky two-finger whistle, then a quick whoosh of a fist pump, ${DRY}`, duration: 0.8, volume: 0.35, maxVoices: 2 },
+  kip_q: { prompt: `a quick creak of a wooden longbow drawn hard and a sharp showy snap of the string loosing an arrow with a fast whistle, ${DRY}`, duration: 0.8, volume: 0.9, maxVoices: 2 },
+  kip_e: { prompt: `a light springy jump off dirt with a cloak whooshing and flapping, ${DRY}`, duration: 0.6, volume: 0.8, maxVoices: 2 },
+  kip_r_volley: { prompt: `a single quick bowstring twang with a short arrow whoosh, ${DRY}`, duration: 0.5, volume: 0.6, maxVoices: 3 },
   kip_e_land: { prompt: `a light acrobat landing on dirt with a cloak flapping and a small burst of dust, ${DRY}`, duration: 0.6, volume: 1.4, maxVoices: 2 },
   kip_r: { prompt: `a rapid flurry of bow shots, several twangs and arrow whooshes in quick succession, ${DRY}`, duration: 1.0, volume: 1.2, maxVoices: 2 },
   kip_pop_auto_impact: { prompt: `an arrow striking a wooden target dead center, a solid thunk with a bright metallic ding, ${DRY}`, duration: 0.6, volume: 0.9, maxVoices: 2 },
