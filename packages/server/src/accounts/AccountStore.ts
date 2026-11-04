@@ -522,18 +522,3 @@ export class AccountStore {
     return token;
   }
 }
-
-/** A match's results for the accounts in it: each human with an account, won or lost by side */
-export function matchResults(
-  players: { playerId: string; side: number; isBot?: boolean }[],
-  accountOf: (playerId: string) => number | undefined,
-  winningSide: number,
-): { accountId: number; won: boolean }[] {
-  const results: { accountId: number; won: boolean }[] = [];
-  for (const player of players) {
-    if (player.isBot) continue;
-    const accountId = accountOf(player.playerId);
-    if (accountId !== undefined) results.push({ accountId, won: player.side === winningSide });
-  }
-  return results;
-}

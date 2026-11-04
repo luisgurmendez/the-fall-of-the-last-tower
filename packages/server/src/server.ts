@@ -22,13 +22,14 @@ import {
   isMapId,
   type MapId,
   type LobbyRequest,
+  type FinalPlayerStats,
   CONNECTION_REPLACED_CODE,
 } from '@siege/shared';
 
 import { BunWebSocketServer } from './network/BunWebSocketServer';
 import { GameRoomManager } from './game/GameRoomManager';
 import { Matchmaker, type MatchResult } from './matchmaking/Matchmaker';
-import type { PlayerInfo } from './game/GameRoom';
+import type { PlayerInfo, GameRoom } from './game/GameRoom';
 import { buildPracticeMatch, buildLobbyMatch, isPracticeTeamSize, type PracticeTeamSize } from './bots/practiceMatch';
 import { LobbyManager, sanitizeName, type Lobby } from './game/LobbyManager';
 import type { BotController } from './bots/BotController';
@@ -38,7 +39,9 @@ import { Logger } from './utils/Logger';
 import { initializeAbilityHandlers } from './abilities';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { AccountStore, matchResults, type Account } from './accounts/AccountStore';
+import { AccountStore, type Account, type MatchMode } from './accounts/AccountStore';
+import { matchRecordOf } from './accounts/matchRecord';
+import type { RatingChange } from './accounts/elo';
 import { AccountRoutes } from './accounts/accountRoutes';
 
 // ============================================================================
@@ -193,7 +196,7 @@ function startLobbyMatch(hostId: string): void {
     matchId: lobby.code,
   });
   Logger.server.info(`Room ${lobby.code} starts on ${lobby.mapId}: ${players.map(p => `${p.playerId} (${p.championId})`).join(', ')}`);
-  startMatch(players, bots, lobby.mapId);
+  startMatch(players, bots, lobby.mapId, { mode: 'room' });
 }
 
 /** Turn the player's debug overlay on or off (practice matches only) */
@@ -433,7 +436,7 @@ function startMatch(
   players: PlayerInfo[],
   bots: BotController[] = [],
   mapId: MapId = 'vale',
-  options: { allowDebug?: boolean; practice?: boolean } = {},
+  options: { allowDebug?: boolean; practice?: boolean; mode?: MatchMode } = {},
 ): void {
   // Signed-in players play under their account's name (rooms already named everyone)
   players = players.map(player => {
@@ -492,6 +495,30 @@ function startMatch(
 
   const playerNames = playersWithEntityIds.map(p => `${p.playerId}(${p.championId})`).join(' vs ');
   Logger.game.info(`Game started: ${gameId} - ${playerNames}`);
+}
+
+/**
+ * Keep a finished match in the match history (not practice): its accounts'
+ * wins, losses and, when it's rated, ratings. Each account's rating change
+ * by player id, if it was rated.
+ */
+function recordMatch(room: GameRoom, stats: FinalPlayerStats[], winningSide: number): Record<string, RatingChange> | null {
+  try {
+    const recorded = accounts.recordMatch(matchRecordOf({
+      stats,
+      players: room.getPlayersWithEntityIds(),
+      accountOf: playerId => playerAccounts.get(playerId)?.id,
+      mapId: room.mapId,
+      mode: room.mode,
+      practice: room.isPractice(),
+      duration: room.getGameTime(),
+      winningSide,
+    }));
+    return recorded?.rated ? Object.fromEntries(recorded.ratingChanges) : null;
+  } catch (error) {
+    Logger.server.error(`Couldn't keep match ${room.gameId}: ${error}`);
+    return null;
+  }
 }
 
 // ============================================================================
@@ -594,17 +621,14 @@ async function startServer(): Promise<void> {
 
       // Notify players
       const room = roomManager.getRoom(gameId);
-      // Wins and losses for the accounts in it (not against bots in practice)
-      if (room && !room.isPractice()) {
-        for (const { accountId, won } of matchResults(room.getPlayersWithEntityIds(), id => playerAccounts.get(id)?.id, winningSide)) {
-          accounts.recordResult(accountId, won);
-        }
-      }
       if (room) {
+        const players = room.getFinalStats();
+        // Kept in the match history (not practice), with the accounts' wins, losses and ratings
+        const ratingChanges = recordMatch(room, players, winningSide);
         for (const playerId of room.getHumanPlayerIds()) {
           wsServer.sendToPlayer(playerId, {
             type: ServerMessageType.GAME_END,
-            data: { winningSide, duration: room.getGameTime(), players: room.getFinalStats() },
+            data: { winningSide, duration: room.getGameTime(), players, ...(ratingChanges && { ratingChanges }) },
           });
         }
       }

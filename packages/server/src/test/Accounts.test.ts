@@ -12,7 +12,8 @@ import { Database } from 'bun:sqlite';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { AccountStore, SESSION_DAYS, matchResults, type AccountResult } from '../accounts/AccountStore';
+import { AccountStore, SESSION_DAYS, type AccountResult } from '../accounts/AccountStore';
+import { matchRecordOf } from '../accounts/matchRecord';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -213,21 +214,34 @@ describe('Wins and losses', () => {
     expect(() => store().recordResult(999, true)).not.toThrow();
   });
 
-  test("a match's results: the humans with accounts, won or lost by side", () => {
+  test("a match's results: the humans with accounts, won or lost by side (a bot's id counts for no one)", async () => {
+    const accounts = store();
+    const ids: number[] = [];
+    for (const name of ['Ana', 'Beto', 'Ceci']) ids.push(ok(await accounts.register(name, 'secreto1')).account.id);
     const players = [
-      { playerId: 'a', side: 0 as const },
-      { playerId: 'b', side: 1 as const },
-      { playerId: 'guest', side: 0 as const },
-      { playerId: 'bot-1', side: 1 as const, isBot: true },
+      { playerId: 'a', side: 0, isBot: false },
+      { playerId: 'b', side: 1, isBot: false },
+      { playerId: 'guest', side: 0, isBot: false },
+      { playerId: 'bot-1', side: 1, isBot: true },
     ];
-    const accountOf = (playerId: string) => ({ a: 1, b: 2, 'bot-1': 3 } as Record<string, number>)[playerId];
-    expect(matchResults(players, accountOf, 0)).toEqual([
-      { accountId: 1, won: true },
-      { accountId: 2, won: false },
-    ]);
-    expect(matchResults(players, accountOf, 1)).toEqual([
-      { accountId: 1, won: false },
-      { accountId: 2, won: true },
-    ]);
+    const accountOf = (playerId: string) => ({ a: ids[0], b: ids[1], 'bot-1': ids[2] } as Record<string, number>)[playerId];
+    const stats = players.map(({ playerId, side }) => ({
+      playerId, side, championId: 'vex', level: 1, kills: 0, deaths: 0, assists: 0, cs: 0, gold: 0, items: [],
+      totals: { damageToChampions: 0, damageDealt: 0, damageTaken: 0, healing: 0, damageToStructures: 0, goldEarned: 0, wardsPlaced: 0, wardsDestroyed: 0, largestKillingSpree: 0 },
+    }));
+    const end = (winningSide: number, practice = false) => accounts.recordMatch(matchRecordOf({
+      stats, players, accountOf, mapId: 'vale', mode: 'queue', practice, duration: 60, winningSide,
+    }));
+    end(0);
+    end(1);
+    end(1);
+    end(0, true);
+    const record = (name: string) => {
+      const { wins, losses } = accounts.profile(name)!.profile;
+      return { wins, losses };
+    };
+    expect(record('Ana')).toEqual({ wins: 1, losses: 2 });
+    expect(record('Beto')).toEqual({ wins: 2, losses: 1 });
+    expect(record('Ceci')).toEqual({ wins: 0, losses: 0 });
   });
 });
