@@ -53,6 +53,7 @@ export const PORTRAITS: Record<string, Portrait> = {
   hop: { sprite: 'public/assets/champs/hop/idle.png', pick: 6, prompt: 'a cute fluffy white rabbit with long ears, big pink eyes and a tiny mischievous grin showing a sharp fang' },
   kip: { sprite: 'public/assets/champs/kip/idle_south.png', pick: 6, prompt: 'a cocky freckled teenage boy with messy dark brown curly hair, a white headband with long tails, a big grin and a burnt-orange cape over a cream shirt' },
   zhakrul: { sprite: 'public/assets/champs/zhakrul/idle.png', pick: 0, prompt: 'a menacing giant scorpion head with crimson black armor plates, glowing green eyes and big pincers raised' },
+  nocthar: { sprite: 'public/assets/champs/nocthar/idle.png', pick: 0, prompt: 'a hunched grey-green undead ghoul with a rotting skull-like face, small pale eyes in dark sockets, bared yellowed teeth, wispy white hair strands and bony shoulders' },
   lume: { sprite: 'public/assets/champs/lume/Lume-IDLE.png', pick: 1, prompt: 'a gentle young woman with white hair in a cream hooded robe, soft warm light on her face' },
 };
 
