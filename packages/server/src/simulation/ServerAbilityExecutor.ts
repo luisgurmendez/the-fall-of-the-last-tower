@@ -288,6 +288,11 @@ export class ServerAbilityExecutor {
       return { success: false, failReason: "invalid_target" };
     }
 
+    // Aimed at an enemy champion: its minions near answer the call for help
+    if (definition.targetType === "target_enemy" && params.targetEntityId) {
+      context.noteChampionAggression(champion.id, params.targetEntityId);
+    }
+
     // Consume whatever granted the damage amp (e.g., Arcane Surge stacks)
     if (damageMultiplier > 1.0) {
       hooks?.consumeAbilityDamageMultiplier?.(champion);

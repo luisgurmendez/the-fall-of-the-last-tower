@@ -25,11 +25,12 @@ Lanes run straight through their towers and inhibitors. When one of the minion's
 
 ## Targeting
 
-A minion attacks a target within `attackRange` of its body, edge to edge (see [champions.md](champions.md#attack-range)). It notices enemies within `max(sightRange, attackRange + 100)`. Targets in priority order (ties go to the closest):
+Minions follow League's rules (wiki: "Minion"), at this map's scale (0.42 of League's distances).
+A minion attacks a target within `attackRange` of its body, edge to edge (see [champions.md](champions.md#attack-range)). It notices enemies within `max(220, attackRange + 30)` (League's 500; its sight, 400, is only for vision). Targets in priority order (ties go to the closest):
 
 | Priority | Target |
 |----------|--------|
-| 100 | **Call for help**: an enemy champion that damaged an allied champion within 400 units of the minion in the last 2s |
+| 100 | **Call for help**: an enemy champion that, in the last 2s, hit an allied champion within 400 units of the minion (League's 1000) with a **basic attack** or an **ability aimed at that champion** (`target_enemy`). An area ability, a skillshot, a damage over time or an item doesn't call for help |
 | 50 | Enemy minions |
 | 40 | Towers, inhibitors, nexus (a wave at a tower hits the tower, not a champion standing by) |
 | 30 | Enemy champions |
@@ -38,7 +39,11 @@ Every wave minion moves at the same speed (88, a little under a champion's 99-10
 
 Minions never attack jungle creatures, wards, zones or projectiles, and never target units their side can't see.
 
-A minion keeps its target while it's alive, visible, in reach and the minion is within `LANE_LEASH` (350) of its lane. Every 0.5s it checks for a better target. It switches to a higher-priority one, so a call for help interrupts a minion fight. A structure it's hitting holds it until it falls: only a call for help pulls it off, not minions or champions walking by. It also switches to an enemy of the same priority that is clearly closer when its current target is out of range (for example walled off by other units). Champion-on-champion damage is recorded by `ServerGameContext` from `DAMAGE` events (`getRecentChampionVictim()`).
+A minion keeps its target while it's alive, visible, in reach and the minion is within `LANE_LEASH` (350) of its lane. Every 0.5s it checks for a better target. It switches to a higher-priority one, so a call for help interrupts a minion fight. A structure it's hitting holds it until it falls: nothing pulls it off, not even a call for help (as in League, so diving a champion under its tower doesn't turn the wave on you). It also switches to an enemy of the same priority that is clearly closer when its current target is out of range (for example walled off by other units). Champion-on-champion attacks are recorded by `ServerGameContext`: basic-attack damage from `DAMAGE` events (the source's `damageKind`), and abilities aimed at a champion when they're cast (`noteChampionAggression`, from the executor); `getRecentChampionVictim()` reads them.
+
+**Damage to champions:** minions deal 60% of their damage to champions (`ServerMinion.DAMAGE_TO_CHAMPIONS`, League's rule), all of it to minions and structures. Health is League's (melee 477, caster 296, siege 900, super 1500; League 465, 284, 835, 1600). Against minions their damage per second is close to League's, whose minions add 2-5% of the target's current health; against champions a wave of three melee and three casters deals about 60 per second (League about 50).
+
+Tests: `packages/server/src/test/MinionAggro.test.ts`, `ServerMinion.test.ts`; scenarios `minion-call-for-help`, `bot-sieges-tower`.
 
 Casters and siege minions fire targeted projectiles (`minion_caster`, `minion_siege`). Melee and super minions hit instantly.
 

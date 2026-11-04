@@ -578,14 +578,24 @@ export class ServerGameContext {
   }
 
   /**
-   * Remember champion-on-champion damage so minions can respond to "calls for help".
+   * Remember champion-on-champion damage so minions can respond to "calls for
+   * help", as League does: a basic attack calls them (an ability aimed at the
+   * champion too: noteChampionAggression), not an area ability, a damage over
+   * time or an item.
    */
   private trackChampionAggression(sourceId: string | undefined, targetId: string): void {
     if (!sourceId) return;
     const source = this.champions.get(sourceId);
-    const target = this.champions.get(targetId);
+    if (source?.damageKind !== 'basic') return;
+    this.noteChampionAggression(sourceId, targetId);
+  }
+
+  /** A champion attacked an enemy champion (its minions near may answer the call for help) */
+  noteChampionAggression(attackerId: string, victimId: string): void {
+    const source = this.champions.get(attackerId);
+    const target = this.champions.get(victimId);
     if (source && target && source.side !== target.side) {
-      this.championAggression.set(sourceId, { victimId: targetId, time: this.gameTime });
+      this.championAggression.set(attackerId, { victimId, time: this.gameTime });
     }
   }
 

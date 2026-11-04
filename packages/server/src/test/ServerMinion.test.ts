@@ -192,12 +192,12 @@ describe('ServerMinion', () => {
       expect(minion.getAttackTargetId()).toBe('red-tower');
     });
 
-    it('leaves the tower for a champion that hits an allied champion (call for help)', () => {
+    it('keeps hitting the tower even when a champion hits an allied champion (calls for help are ignored at a tower, as in League)', () => {
       const { minion, enemy, ally, think } = siege();
       think();
-      ally.takeDamage(10, 'true', enemy.id, context);
+      enemy.withDamageKind('basic', () => ally.takeDamage(10, 'true', enemy.id, context));
       think();
-      expect(minion.getAttackTargetId()).toBe('red-champion');
+      expect(minion.getAttackTargetId()).toBe('red-tower');
     });
   });
 

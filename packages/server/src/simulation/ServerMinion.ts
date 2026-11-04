@@ -95,8 +95,12 @@ export class ServerMinion extends ServerEntity {
   private static readonly LANE_LOOKAHEAD = 120;
   /** Stop chasing a target once this far from the lane */
   private static readonly LANE_LEASH = 350;
-  /** Allied champions this close can call for help */
+  /** Allied champions this close can call for help (League's 1000) */
   private static readonly CALL_FOR_HELP_RANGE = 400;
+  /** Enemies this close are noticed (League's 500); casters reach a little past it */
+  private static readonly ACQUISITION_RANGE = 220;
+  /** What it deals to champions, of its damage (League's 60%) */
+  static readonly DAMAGE_TO_CHAMPIONS = 0.6;
   /** How recent a champion's attack must be to call for help (seconds) */
   private static readonly CALL_FOR_HELP_WINDOW = 2;
   /** How often a minion with a target looks for a better one (seconds) */
@@ -475,8 +479,8 @@ export class ServerMinion extends ServerEntity {
 
   /**
    * Whether a newly found target beats the current one. A structure it's
-   * hitting holds it until it falls (or it's out of reach): only a call for
-   * help pulls it off, not minions or champions walking by.
+   * hitting holds it until it falls (or it's out of reach): nothing pulls it
+   * off, not even a call for help (as in League).
    */
   private shouldSwitchTo(best: { id: string; priority: number; distance: number }, context: ServerGameContext): boolean {
     if (!this.attackTarget) return true;
@@ -485,7 +489,7 @@ export class ServerMinion extends ServerEntity {
 
     const currentPriority = this.getPriority(current, context) ?? 0;
     if (currentPriority === MinionTargetPriority.STRUCTURE && this.isInAttackRange(current, this.stats.attackRange)) {
-      return best.priority === MinionTargetPriority.CALL_FOR_HELP;
+      return false;
     }
     if (best.priority !== currentPriority) return best.priority > currentPriority;
 
@@ -510,7 +514,7 @@ export class ServerMinion extends ServerEntity {
    * How far away a minion notices enemies.
    */
   private getAcquisitionRange(): number {
-    return Math.max(this.stats.sightRange, this.stats.attackRange + 100);
+    return Math.max(ServerMinion.ACQUISITION_RANGE, this.stats.attackRange + 30);
   }
 
   /**
@@ -608,7 +612,7 @@ export class ServerMinion extends ServerEntity {
       this.fireProjectile(target, context);
     } else {
       // Melee - the blow lands
-      target.takeDamage(this.stats.attackDamage, 'physical', this.id, context);
+      target.takeDamage(this.damageAgainst(target), 'physical', this.id, context);
       target.onBasicAttackTaken(this, context);
     }
   }
@@ -626,11 +630,17 @@ export class ServerMinion extends ServerEntity {
       radius: ServerMinion.PROJECTILE_RADIUS,
       sourceId: this.id,
       projectileType: this.minionType === 'siege' ? 'minion_siege' : 'minion_caster',
-      damage: this.stats.attackDamage,
+      damage: this.damageAgainst(target),
       damageType: 'physical',
     });
 
     context.addEntity(projectile);
+  }
+
+  /** Its attack's damage to a target: 60% to a champion, all of it to the rest */
+  private damageAgainst(target: ServerEntity): number {
+    const toChampion = target.entityType === EntityType.CHAMPION;
+    return this.stats.attackDamage * (toChampion ? ServerMinion.DAMAGE_TO_CHAMPIONS : 1);
   }
 
   /**
