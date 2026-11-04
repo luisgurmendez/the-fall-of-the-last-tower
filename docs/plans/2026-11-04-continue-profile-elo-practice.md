@@ -5,11 +5,11 @@ test first. The big ones are built side by side on their own branches and merged
 
 | # | Piece | Where | Branch |
 |---|-------|-------|--------|
-| 1 | Cooldowns keep counting while dead | server | `iterate/gameplay` |
-| 2 | The server remembers your match: the menu only offers CONTINUE | server + client | `iterate/gameplay` |
-| 3 | Match history and a profile (not practice) | server (SQLite, API) + client | `feat/profile-elo` |
-| 4 | Elo | server + client | `feat/profile-elo` |
-| 5 | Practice tools (level, teleport, cooldowns, health, mana, gold...) | server + client | `feat/practice-tools` |
+| 1 | Cooldowns keep counting while dead | server | `iterate/gameplay` (done) |
+| 2 | The server remembers your match: the menu only offers CONTINUE | server + client | `iterate/gameplay` (done) |
+| 3 | Match history and a profile (not practice) | server (SQLite, API) + client | `feat/profile-elo` (merged) |
+| 4 | Elo | server + client | `feat/profile-elo` (merged) |
+| 5 | Practice tools (level, teleport, cooldowns, health, mana, gold...) | server + client | `feat/practice-tools` (merged) |
 
 ## 1. Cooldowns while dead
 
@@ -82,8 +82,10 @@ before the server sends them back in.
 - **Change:** each signed-in human gets `K · (result − expected)`, with
   `expected = 1 / (1 + 10^((other − own) / 400))` from the two team ratings. K is 40 for an account's
   first 10 rated matches, 24 after.
-- **Tiers, shown by the rating:** Bronze < 1000 ≤ Silver < 1200 ≤ Gold < 1400 ≤ Platinum < 1600 ≤
-  Diamond < 1800 ≤ Master.
+- **Tiers, shown by the rating:** Bronze < 1100 ≤ Silver < 1300 ≤ Gold < 1500 ≤ Platinum < 1700 ≤
+  Diamond < 1900 ≤ Master. A new account starts mid-Silver, so one loss doesn't drop it a tier. It
+  reads "Unranked" until its first rated match.
+- **Ratings:** whole numbers, never under 100. A winner never loses points, and a loser never gains.
 
 ## 5. Practice tools
 
@@ -100,4 +102,5 @@ Practice matches only (`GameRoom.isPractice()`); the server ignores them elsewhe
 - **On the client:**
   - a panel opened with F2 or from the Escape menu, shown only in practice;
   - GAME_START carries `practice`;
-  - the tools work from the panel's buttons and their keys.
+  - the tools work from the panel's buttons and their keys, Shift + a letter (see
+    docs/architecture/practice.md).
