@@ -7,6 +7,7 @@
 import { getAbilityDefinition } from '@siege/shared';
 import { registerAbilityVFX } from '../VFXRegistryStore';
 import {
+  embers,
   flames,
   landsAt,
   light,
@@ -29,15 +30,31 @@ const OBSIDIAN = '#3a3050';
 const GLINT = '#c8b8ff';
 
 const FLOW = getAbilityDefinition('calamitus_q')?.aoeRadius ?? 140;
+/** His Q's cast: the ground churns where the lava will burst */
+const CHURN = getAbilityDefinition('calamitus_q')?.castTime ?? 0.6;
 const WAVE = landsAt('calamitus_w');
 const ERUPTION = landsAt('calamitus_r');
 const ERUPTION_RADIUS = getAbilityDefinition('calamitus_r')?.aoeRadius ?? 220;
 
-// Q: lava bursts up around him (the pool it leaves is a zone)
+// Q's cast: the ground around him glows and churns, as wide as the burst coming
+registerAbilityVFX({
+  abilityId: 'calamitus_q_windup',
+  phases: [
+    phase('churn', 0, 'caster', [
+      warning(HOT, FLOW, CHURN),
+      embers(LAVA, 18, FLOW * 0.85, { lifetime: { min: 0.4, max: CHURN } }),
+      smoke(ROCK, 6, [12, 20], [10, 40]),
+      light(LAVA, FLOW * 0.8, 0.6, CHURN, 0.5),
+      shake(1, CHURN),
+    ], CHURN),
+  ],
+});
+
+// Q: lava bursts up around him as his cast ends (the pool it leaves is a zone)
 registerAbilityVFX({
   abilityId: 'calamitus_q',
   phases: [
-    phase('burst', 0.1, 'caster', [
+    phase('burst', 0, 'caster', [
       shockwave(LAVA, 20, FLOW, 0.35, 10),
       flames(LAVA, 14, [10, 18], [80, 200]),
       rocks(ROCK, 10, [100, 220]),

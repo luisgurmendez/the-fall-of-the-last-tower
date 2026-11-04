@@ -59,7 +59,8 @@ export default defineScenario({
       sim.champion('prey').shields.push({ amount: 300, remainingDuration: 5, sourceId: 'test', shieldType: 'normal' });
       sim.cast('protobot', 'R');
     } },
-    { at: 7.2, run: sim => {
+    // (its charge: 1.05 s)
+    { at: 7.7, run: sim => {
       silenced = sim.champion('prey').hasEffect('silence');
       shieldBroken = sim.champion('prey').shields.length === 0;
     } },
@@ -73,7 +74,8 @@ export default defineScenario({
     expect(knockedUp, 'E should knock Magnus up');
     expect(lessons >= 2, `Magnus's attacks should teach Protobot (${lessons} lessons)`);
     expect(armorGain >= 6, `the lessons should give armor (+${armorGain})`);
-    expect(damageBy(sim, 'prey', 6.9, 7.3) > 0, 'the pulse should damage Magnus');
+    expect(damageBy(sim, 'prey', 6.5, 7.5) === 0, 'the pulse should wait out its charge');
+    expect(damageBy(sim, 'prey', 7.5, 7.75) > 0, 'the pulse should damage Magnus');
     expect(silenced, 'the pulse should silence Magnus');
     expect(shieldBroken, "the pulse should break Magnus's shield");
   },

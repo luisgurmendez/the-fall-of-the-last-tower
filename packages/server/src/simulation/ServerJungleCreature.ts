@@ -93,6 +93,8 @@ export class ServerJungleCreature extends ServerEntity {
   private specialCooldownTimer = 0;
   /** The special attack being wound up: when it lands and where it's aimed */
   private windup: { landsAt: number; aim: Vector } | null = null;
+  /** A ranged attack drawing breath: who it's for and the seconds until it leaves the mouth */
+  private pendingShot: { targetId: string; in: number } | null = null;
 
   /** Effects on it (crowd control and slows from abilities), and the crowd control they add up to */
   activeEffects: ActiveEffectState[] = [];
@@ -103,13 +105,20 @@ export class ServerJungleCreature extends ServerEntity {
   /** Health regained per second while walking home, as a fraction of max health */
   private static readonly RETURN_REGEN = 0.3;
 
-  /** Creatures that attack with projectiles, and how their projectiles look */
   /** Longest basic attack animation the client plays (seconds) */
   private static readonly MAX_ATTACK_ANIMATION = 0.6;
+  /** After a special attack's windup, how long its strike (the dragon's breath, a slam) plays (seconds) */
+  private static readonly SPECIAL_RELEASE = 0.45;
 
-  private static readonly RANGED: Partial<Record<string, { projectileType: string; damageType: DamageType; speed: number }>> = {
-    thornspitter: { projectileType: 'jungle_spit', damageType: 'magic', speed: 450 },
-    dragon: { projectileType: 'dragon_fire', damageType: 'magic', speed: 700 },
+  /**
+   * Creatures that attack with projectiles, and how their projectiles look.
+   * The shot leaves at the attack strip's breath frame (`release`, a share of
+   * the attack's animation: the 6th of 9 frames, where the art's fire or spit
+   * comes out), from its mouth (`mouth` units in front of it, toward its target)
+   */
+  private static readonly RANGED: Partial<Record<string, { projectileType: string; damageType: DamageType; speed: number; release: number; mouth: number }>> = {
+    thornspitter: { projectileType: 'jungle_spit', damageType: 'magic', speed: 450, release: 5 / 9, mouth: 20 },
+    dragon: { projectileType: 'dragon_fire', damageType: 'magic', speed: 700, release: 5 / 9, mouth: 12 },
   };
 
   constructor(config: ServerJungleCreatureConfig) {
@@ -191,6 +200,7 @@ export class ServerJungleCreature extends ServerEntity {
 
     // Stunned, knocked up or taunted, a special attack winding up doesn't land
     if (this.windup && !this.ccStatus.canCast) this.interruptSpecialAttack(context);
+    this.updatePendingShot(dt, context);
     this.followTaunt(context);
 
     // Feared: it runs from whoever scared it instead of fighting
@@ -418,22 +428,47 @@ export class ServerJungleCreature extends ServerEntity {
 
     const ranged = ServerJungleCreature.RANGED[this.creatureType];
     if (ranged) {
-      context.addEntity(new ServerTargetedProjectile({
-        id: context.generateEntityId(),
-        position: this.position.clone(),
-        side: this.side,
-        targetId: target.id,
-        speed: ranged.speed,
-        radius: 8,
-        sourceId: this.id,
-        projectileType: ranged.projectileType,
-        damage: this.damage,
-        damageType: ranged.damageType,
-      }));
+      // It leaves the mouth at the breath frame
+      const animation = Math.min(ServerJungleCreature.MAX_ATTACK_ANIMATION, this.attackCooldown * 0.6);
+      this.pendingShot = { targetId: target.id, in: animation * ranged.release };
     } else {
       target.takeDamage(this.damage, 'physical', this.id, context);
       target.onBasicAttackTaken(this, context);
     }
+  }
+
+  /**
+   * A ranged attack drawing breath: at its breath frame the shot leaves the
+   * mouth (in front of it, toward the target). Unable to attack (stunned,
+   * knocked up, disarmed) or with its target gone, it doesn't.
+   */
+  private updatePendingShot(dt: number, context: ServerGameContext): void {
+    const shot = this.pendingShot;
+    if (!shot) return;
+    const ranged = ServerJungleCreature.RANGED[this.creatureType];
+    const target = context.getEntity(shot.targetId);
+    if (!ranged || !this.ccStatus.canAttack || !target || target.isDead) {
+      this.pendingShot = null;
+      return;
+    }
+    shot.in -= dt;
+    if (shot.in > 0) return;
+    this.pendingShot = null;
+    const toward = target.position.subtracted(this.position);
+    const length = toward.length();
+    const mouth = length > 0 ? toward.scaled(Math.min(ranged.mouth, length) / length) : toward;
+    context.addEntity(new ServerTargetedProjectile({
+      id: context.generateEntityId(),
+      position: this.position.added(mouth),
+      side: this.side,
+      targetId: target.id,
+      speed: ranged.speed,
+      radius: 8,
+      sourceId: this.id,
+      projectileType: ranged.projectileType,
+      damage: this.damage,
+      damageType: ranged.damageType,
+    }));
   }
 
   /**
@@ -448,7 +483,8 @@ export class ServerJungleCreature extends ServerEntity {
       abilityId: special.abilityId,
       targetX: aim.x,
       targetY: aim.y,
-      animationDuration: special.windup,
+      // The windup, then the strike or breath frames as it lands (SPECIAL_RELEASE)
+      animationDuration: special.windup + ServerJungleCreature.SPECIAL_RELEASE,
     });
   }
 

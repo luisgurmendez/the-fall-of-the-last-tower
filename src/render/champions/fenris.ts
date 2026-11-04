@@ -17,7 +17,7 @@ const FENRIS_STRIPS = generatedStrips("fenris", {
 }, {
   // The frames where the blow lands: the claw, the bite, the rake, the pounce, the howl
   attackBlow: 7,
-  abilityBlows: { fenris_q: 6, fenris_w: 7, fenris_e: 7, fenris_r: 4 },
+  abilityBlows: { fenris_q: 6, fenris_w: 5, fenris_e: 7, fenris_r: 4 },
 });
 
 /** World units per sprite pixel: chunky pixels, and a big wolf */

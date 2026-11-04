@@ -161,6 +161,7 @@ function startCastAnimation(entity: InterpolatedEntity, event: GameEvent, abilit
   entity.animation.abilityId = abilityId;
   entity.animation.abilityStartTime = now;
   entity.animation.abilityDuration = duration;
+  entity.animation.abilityLead = 0;
   const aimsAway = targetX !== undefined && targetY !== undefined
     && Math.hypot(targetX - entity.serverPosition.x, targetY - entity.serverPosition.y) >= AIM_MIN_DISTANCE;
   entity.animation.abilityTargetX = aimsAway ? targetX : null;
@@ -196,6 +197,8 @@ export function processGameEvent(event: GameEvent, ctx: GameEventContext): void 
         const abilityId = event.data.abilityId as string;
         const castTime = (event.data.castTime as number) * 1000;
         startCastAnimation(entity, event, abilityId, now, castTime + castDuration(event, abilityId));
+        // Its blow frame comes after the cast time, when the ability goes off
+        entity.animation.abilityLead = castTime;
         entity.animation.windupAbilityId = abilityId;
         entity.animation.windupEndTime = now + castTime;
         // What it gathers in the cast time (Magnus's fire at his staff), if it has a look for it

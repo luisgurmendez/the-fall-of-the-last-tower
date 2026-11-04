@@ -16,12 +16,13 @@
  * stands still for eight frames and throws on the ninth, while his damage
  * lands halfway. With a strip's blow frame (`StripTiming`), it's retimed so
  * that frame shows as the attack's damage lands or the ability takes effect
- * (retimedFrame, animationImpactTime: an ability with a cast time starts its
- * animation at the windup, so its blow comes after the cast time).
+ * (retimedFrame, abilityBlowShare: an ability with a cast time starts its
+ * animation at the windup, so its blow comes after the cast time it played
+ * through, `lead`).
  */
 
 import { getBasicAttackDamageDelay, getBasicAttackDuration, getChampionDefinition } from "@siege/shared";
-import { animationImpactTime } from "@/core/state/abilityTiming";
+import { abilityImpactTime } from "@/core/state/abilityTiming";
 import type {
   EntityRenderContext,
   EntityRenderState,
@@ -91,6 +92,16 @@ export function retimedFrame(progress: number, frameCount: number, blow: number 
   const at = Math.min(0.92, Math.max(0.05, hitShare - RELEASE_LEAD));
   if (progress < at) return Math.min(blow - 1, Math.floor((progress / at) * blow));
   return Math.min(last, blow + Math.floor(((progress - at) / (1 - at)) * (frameCount - blow)));
+}
+
+/**
+ * How far through an ability's animation its blow lands (0-1): after the
+ * cast time it played through first (`lead`, 0 when the animation started
+ * as the ability went off), then the ability's impact time
+ */
+export function abilityBlowShare(lead: number, impact: number, duration: number): number {
+  if (duration <= 0) return 1;
+  return Math.min(1, (lead + impact) / duration);
 }
 
 /** How far through a champion's basic attack its damage lands (0-1) */
@@ -195,7 +206,8 @@ export function createStripBodyRenderer(
       } else if (src === strips.attack) {
         frameIndex = retimedFrame(progress, frameCount, timing.attackBlow, hitShare(snapshot.championId, snapshot.attackSpeed));
       } else if (src === abilityStrip && !dashStrip && cast.abilityId && cast.duration) {
-        frameIndex = retimedFrame(progress, frameCount, timing.abilityBlows?.[cast.abilityId], animationImpactTime(cast.abilityId) / cast.duration);
+        frameIndex = retimedFrame(progress, frameCount, timing.abilityBlows?.[cast.abilityId],
+          abilityBlowShare(cast.lead ?? 0, abilityImpactTime(cast.abilityId), cast.duration));
       } else {
         frameIndex = Math.min(frameCount - 1, Math.floor(progress * frameCount));
       }

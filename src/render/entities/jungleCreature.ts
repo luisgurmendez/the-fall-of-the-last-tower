@@ -24,6 +24,7 @@ import {
 import { getTrailHealth } from "@/render/overlays/damageTrail";
 import { renderAggroIndicator } from "@/render/overlays/statusIndicators";
 import { hitFlashFilter } from "@/render/hitFlash";
+import { MOBAConfig } from "@siege/shared";
 import { BitmapFont } from "@/render/BitmapFont";
 
 /**
@@ -166,6 +167,26 @@ function renderAura(ctx: CanvasRenderingContext2D, rgb: string, radius: number, 
   }
 }
 
+/** Where a monster's attack strip releases (the 6th of 9 frames: the fire or spit leaves the mouth, the blow lands) */
+const RELEASE_SHARE = 5 / 9;
+
+/**
+ * Where a monster is in a special attack: its windup (0-1, 0 when not
+ * winding up) and its strike after it (0-1, null when not striking).
+ * The server's animation for it lasts the windup and then the strike.
+ */
+export function specialPhase(
+  creatureType: string,
+  cast: { casting: boolean; duration?: number },
+  progress: number,
+): { windup: number; strike: number | null } {
+  if (!cast.casting) return { windup: 0, strike: null };
+  const attack = (MOBAConfig.JUNGLE.SPECIAL_ATTACKS as Record<string, { windup: number } | undefined>)[creatureType];
+  const share = attack && cast.duration ? Math.min(1, attack.windup / cast.duration) : 1;
+  if (progress < share) return { windup: Math.max(0.001, progress / share), strike: null };
+  return { windup: 0, strike: share >= 1 ? 1 : (progress - share) / (1 - share) };
+}
+
 /**
  * Render a jungle camp creature.
  */
@@ -178,13 +199,15 @@ export function renderJungleCamp(
   const creatureType = (snapshot as any).creatureType || "thornspitter";
   const look = resolveLook(creatureType);
 
-  // Winding up a special attack (JungleSpecialAttacks): from 0 to 1 when it lands
-  const windup = rc.stateManager.isEntityCastingAbility(snapshot.entityId).casting
-    ? rc.stateManager.getAbilityAnimationProgress(snapshot.entityId)
-    : 0;
+  // A special attack (JungleSpecialAttacks): its windup (from 0 to 1 when it
+  // lands), then its strike: the server's animation lasts the windup and the
+  // strike after it (the dragon breathing its fire)
+  const special = specialPhase(creatureType, rc.stateManager.isEntityCastingAbility(snapshot.entityId),
+    rc.stateManager.getAbilityAnimationProgress(snapshot.entityId));
+  const windup = special.windup;
 
   // Determine animation state
-  const isAttacking = state.isAttacking || windup > 0;
+  const isAttacking = state.isAttacking || windup > 0 || special.strike !== null;
   const isMoving =
     snapshot.targetX != null &&
     snapshot.targetY != null &&
@@ -212,6 +235,10 @@ export function renderJungleCamp(
     if (windup > 0) {
       // A wind-up holds the attack's gathering pose until the hit
       frameIndex = Math.floor(frameCount * 0.3);
+    } else if (special.strike !== null) {
+      // Then the strike: from the release frame (the breath, the blow) to the end
+      const release = Math.floor(frameCount * RELEASE_SHARE);
+      frameIndex = Math.min(frameCount - 1, release + Math.floor(special.strike * (frameCount - release)));
     } else if (isAttacking) {
       // The attack plays once over the server's attack animation
       const progress = rc.stateManager.getAttackAnimationProgress(snapshot.entityId);

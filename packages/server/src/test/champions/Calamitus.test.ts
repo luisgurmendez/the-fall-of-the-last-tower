@@ -302,11 +302,17 @@ describe('Calamitus Q: Lava Flow', () => {
     expect(arena.blue.getAbilityCooldown('Q')).toBeCloseTo(7, 5);
   });
 
-  test('instant, 45 mana, 9 s cooldown at rank 1', () => {
-    const arena = calamitusArena();
+  test('a 0.6 s cast (the ground churns: steppable out of), then 45 mana and a 9 s cooldown at rank 1', () => {
+    const arena = calamitusArena(at(60, 0));
     const mana = arena.blue.resource;
-    arena.castAbility(arena.blue, 'Q', { casting: true } as { casting: boolean });
-    expect(arena.blue.isCasting()).toBe(false);
+    expect(arena.castAbility(arena.blue, 'Q', { casting: true } as { casting: boolean }).success).toBe(true);
+    expect(arena.blue.isCasting()).toBe(true);
+    expect(Q.castTime).toBe(0.6);
+    // Nothing yet: no burst, nothing spent
+    expect(hitsOn(arena, arena.red).length).toBe(0);
+    expect(arena.blue.resource).toBeCloseTo(mana, 5);
+    arena.blue.advanceCast(0.61, arena.context);
+    expect(hitsOn(arena, arena.red).length).toBe(1);
     expect(arena.blue.resource).toBeCloseTo(mana - 45, 5);
     expect(arena.blue.getAbilityCooldown('Q')).toBeCloseTo(9, 5);
   });

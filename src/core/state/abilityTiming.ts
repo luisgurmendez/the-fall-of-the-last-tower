@@ -39,17 +39,6 @@ export function abilityImpactTime(abilityId: string): number {
   return definition?.aoeDelay || AT_ONCE;
 }
 
-/**
- * Seconds from the start of an ability's cast animation until it takes
- * effect: an ability with a cast time starts its animation at the windup
- * (gameEvents.ts: ABILITY_WINDUP), so its blow comes after the cast time and
- * then abilityImpactTime; an instant one's animation starts with the cast.
- */
-export function animationImpactTime(abilityId: string): number {
-  const definition = getAbilityDefinition(abilityId);
-  return (definition ? getCastTime(definition) : 0) + abilityImpactTime(abilityId);
-}
-
 /** When the server throws a skillshot's projectile after its cast (packages/server generic/Skillshot.ts) */
 function projectileThrow(abilityId: string): number {
   for (const champion of Object.values(CHAMPION_DEFINITIONS)) {

@@ -112,7 +112,7 @@ export const FenrisSavageClaw: AbilityDefinition = {
   cooldown: [9, 8.5, 8, 7.5, 7],
   range: 170, // The rake's reach
   coneAngle: Math.PI / 2,
-  aoeDelay: 0.15, // The swipe
+  aoeDelay: 0.45, // The claws drawn back, then the swipe: about Darius Q's windup, steppable
   damage: {
     type: "physical",
     scaling: scaling([55, 90, 125, 160, 195], { adRatio: 0.8 }),

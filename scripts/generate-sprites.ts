@@ -406,9 +406,11 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
     description: 'a hulking hunched grey werewolf with ragged dark fur, glowing red eyes, a broken iron chain around his neck and long black claws',
     attack: 'slashes forward with one clawed hand',
     q: 'lunges forward and bites hard with his jaws',
-    w: 'rakes a wide sweeping swipe with both claws in front of him',
+    // Not his attack's one-handed slash: both arms, a wide sweep
+    w: 'rears up and brings both clawed arms down and across in one wide two-handed sweep in front of him, his body twisting into it',
     e: 'crouches low and pounces forward through the air',
-    r: 'throws his head back and howls as a red glow surrounds him',
+    // No glow (it gets baked in as a flat red blob): the game draws his red rage
+    r: 'throws his head back and howls up at the sky, chest out and arms spread wide',
   }),
   champion('calamitus', {
     name: 'Calamitus',
@@ -428,9 +430,11 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
     description: 'a hulking dark blue steel war robot with glowing cyan eyes and seams, the number 45 painted in white on its chest plate, and huge mechanical fists with rocket boosters at the wrists',
     attack: 'punches forward with a heavy steel fist',
     q: 'fires a magnetic claw on a chain forward from its arm and reels it back',
-    w: 'crackles with blue electricity as its whole body glows bright',
+    // Body only (an effect asked for gets baked into the frames: a flat glow, a ring cut by the canvas);
+    // the game draws its electricity and pulse
+    w: 'braces with its shoulders back and fists clenched at its sides, powering up, its chest swelling',
     e: 'launches its fist forward like a rocket on a burst of flame',
-    r: 'raises both arms and releases a big pulse of blue electricity all around',
+    r: 'raises both arms high above its head, then throws them out wide to the sides, bracing its legs',
   }),
   // Four directions too. Its first take turned to face the viewer to eat and
   // spun round for its kick: nothing turns now

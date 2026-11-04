@@ -47,13 +47,14 @@ export default defineScenario({
   },
   steps: [
     { at: 0.2, run: sim => { armorOff = sim.champion('calamitus').getStats().armor; } },
+    // (a 0.6 s cast: the ground churns, then it bursts at 0.9)
     { at: 0.3, note: 'Q: lava around him', run: sim => { sim.cast('calamitus', 'Q'); } },
-    { at: 0.5, run: sim => {
+    { at: 1.0, run: sim => {
       poolsAfterQ = lavaPools(sim);
       armorOn = sim.champion('calamitus').getStats().armor;
     } },
-    { at: 1.0, note: 'E on his lava', run: sim => { sim.cast('calamitus', 'E'); } },
-    { at: 1.1, run: sim => {
+    { at: 1.1, note: 'E on his lava', run: sim => { sim.cast('calamitus', 'E'); } },
+    { at: 1.2, run: sim => {
       shield = sim.champion('calamitus').shields.filter(s => s.sourceId === 'calamitus_e').reduce((sum, s) => sum + s.amount, 0);
       const skin = getAbilityDefinition('calamitus_e')!;
       const champion = sim.champion('calamitus');
@@ -65,18 +66,20 @@ export default defineScenario({
       poolsAfterW = lavaPools(sim);
     } },
     { at: 3.0, note: 'R: everything erupts', run: sim => { sim.cast('calamitus', 'R'); } },
-    { at: 3.7, run: sim => { farStunned = sim.champion('far').hasEffect('stun'); } },
+    // (it erupts 0.85 s after)
+    { at: 4.0, run: sim => { farStunned = sim.champion('far').hasEffect('stun'); } },
   ],
   view: { center: { x: 0, y: -150 }, size: 600 },
   check(sim, report, expect) {
-    expect(damageBy(sim, 'near', 0.3, 0.4) > 0, 'Q should burst on the enemy beside him');
+    expect(damageBy(sim, 'near', 0.3, 0.85) === 0, 'Q should wait out its cast before it bursts');
+    expect(damageBy(sim, 'near', 0.85, 1.0) > 0, 'Q should burst on the enemy beside him');
     expect(poolsAfterQ >= 1, 'Q should leave a pool of lava');
-    expect(damageBy(sim, 'near', 0.5, 2.0) > 0, 'the lava should burn the enemy standing in it');
+    expect(damageBy(sim, 'near', 1.0, 2.0) > 0, 'the lava should burn the enemy standing in it');
     expect(armorOn >= armorOff + 10, `standing in his lava he should be tougher (armor ${Math.round(armorOff)} -> ${Math.round(armorOn)})`);
     expect(shield > shieldOffLava * 1.4, `E on his lava should shield more (${Math.round(shield)} vs ${Math.round(shieldOffLava)})`);
     expect(slowed, 'W should slow Magnus down the line');
     expect(poolsAfterW >= poolsAfterQ + 4, `W should leave a stream of lava (${poolsAfterW - poolsAfterQ} pools)`);
     expect(farStunned, 'R should erupt under Magnus in the far stream and stun him');
-    expect(damageBy(sim, 'far', 3.5, 3.7) > 80, 'R should hit Magnus hard');
+    expect(damageBy(sim, 'far', 3.8, 4.0) > 80, 'R should hit Magnus hard');
   },
 });

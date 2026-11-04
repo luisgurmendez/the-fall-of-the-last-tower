@@ -92,12 +92,14 @@ export const CalamitusLavaFlow: AbilityDefinition = {
   id: "calamitus_q",
   name: "Lava Flow",
   description:
-    "Lava bursts up around you, dealing {damage} magic damage to nearby enemies, and stays as a pool for 4 seconds.",
+    "Churn the ground for 0.6 seconds, then lava bursts up around you, dealing {damage} magic damage to nearby enemies, and stays as a pool for 4 seconds.",
   type: "active",
   targetType: "no_target",
   maxRank: 5,
   manaCost: [45, 45, 45, 45, 45],
   cooldown: [9, 8.5, 8, 7.5, 7],
+  // The ground glows and churns where it'll burst: enemies at the edge can step out (dodge rule 0.35)
+  castTime: 0.6,
   aoeRadius: 140,
   damage: {
     type: "magic",
@@ -157,7 +159,7 @@ export const CalamitusEruption: AbilityDefinition = {
   manaCost: [100, 100, 100],
   cooldown: [110, 95, 80],
   aoeRadius: 220, // Around him
-  aoeDelay: 0.6, // The ground rumbles
+  aoeDelay: 0.85, // The ground rumbles: long enough to step out of the edge (dodge rule 0.35)
   damage: {
     type: "magic",
     scaling: scaling([120, 200, 280], { apRatio: 0.5 }),

@@ -95,7 +95,8 @@ export const ProtobotMagnetism: AbilityDefinition = {
   manaCost: [90, 90, 90, 90, 90],
   cooldown: [18, 16.5, 15, 13.5, 12],
   range: 470,
-  projectileSpeed: 750,
+  // About League's hook (1800 at 0.42 scale); steppable sideways at full range (dodge rule 2)
+  projectileSpeed: 700,
   projectileRadius: 24,
   shape: "line",
   damage: {
@@ -152,14 +153,14 @@ export const ProtobotOverload: AbilityDefinition = {
   id: "protobot_r",
   name: "Overload",
   description:
-    "Charge up for half a second, then release a pulse: enemies within reach take {damage} magic damage, lose their shields and are silenced for 1.5 seconds.",
+    "Charge up for a second, then release a pulse: enemies within reach take {damage} magic damage, lose their shields and are silenced for 1.5 seconds.",
   type: "active",
   targetType: "no_target",
   maxRank: 3,
   manaCost: [100, 100, 100],
   cooldown: [100, 85, 70],
   aoeRadius: 280,
-  aoeDelay: 0.5, // The charge
+  aoeDelay: 1.05, // The charge: enemies at the edge can step out (dodge rule 0.35)
   shape: "circle",
   damage: {
     type: "magic",

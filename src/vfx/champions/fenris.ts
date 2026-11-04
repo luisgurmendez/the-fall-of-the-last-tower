@@ -4,9 +4,10 @@
  * his bloodthirst is drawn by src/gpu/fx/championAuras.ts.
  */
 
-import { getAbilityDefinition } from '@siege/shared';
+import { getAbilityDefinition, getCastTime } from '@siege/shared';
 import { registerAbilityVFX } from '../VFXRegistryStore';
 import {
+  coneWarning,
   cuts,
   debris,
   embers,
@@ -29,6 +30,9 @@ const WHITE = '#f4ecec';
 
 const RAKE = getAbilityDefinition('fenris_w')?.range ?? 170;
 const RAKE_ANGLE = getAbilityDefinition('fenris_w')?.coneAngle ?? Math.PI / 2;
+/** From his W's cast to the swipe: its cast time and the claws drawn back */
+const RAKE_CAST = getCastTime(getAbilityDefinition('fenris_w')!);
+const RAKE_TELL = RAKE_CAST + landsAt('fenris_w');
 
 // Q: jaws snap shut on the target: two crescent cuts and a spray of red
 registerAbilityVFX({
@@ -40,6 +44,17 @@ registerAbilityVFX({
       sparks(BLOOD, 6, [60, 140]),
       light(RED, 40, 0.6, 0.25),
     ], 0.35),
+  ],
+});
+
+// W's cast: the cone his claws will sweep fills in red, claws glinting as he draws them back
+registerAbilityVFX({
+  abilityId: 'fenris_w_windup',
+  phases: [
+    phase('tell', 0, 'caster', [
+      coneWarning(RED, RAKE, RAKE_ANGLE, RAKE_TELL),
+      sparks(WHITE, 6, [20, 50], RAKE_ANGLE / 4),
+    ], RAKE_TELL),
   ],
 });
 

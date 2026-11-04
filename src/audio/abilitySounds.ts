@@ -120,6 +120,8 @@ export const ABILITY_CUES: Record<string, AbilityCue[]> = {
   caelum_e: [{ sound: "caelum_e", delay: landsAt("caelum_e"), at: "target" }],
   // The whole pounce, whoosh to thud (about as long as its leap)
   fenris_e: [{ sound: "fenris_e" }],
+  // The swipe lands after the claws are drawn back (its windup snarls first: fenris_w_windup)
+  fenris_w: [{ sound: "fenris_w", delay: landsAt("fenris_w") }],
   calamitus_r: [
     { sound: "calamitus_r_rumble" },
     { sound: "calamitus_r", delay: landsAt("calamitus_r") },

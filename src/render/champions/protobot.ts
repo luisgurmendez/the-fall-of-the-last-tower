@@ -16,7 +16,7 @@ const PROTOBOT_STRIPS = generatedStrips("protobot", {
 }, {
   // The frames where the blow lands: the punch, the claw, the charge, the rocket fist, the pulse
   attackBlow: 4,
-  abilityBlows: { protobot_q: 4, protobot_w: 3, protobot_e: 6, protobot_r: 4 },
+  abilityBlows: { protobot_q: 4, protobot_w: 3, protobot_e: 6, protobot_r: 7 },
 });
 
 /** World units per sprite pixel: chunky pixels, and a big machine */
