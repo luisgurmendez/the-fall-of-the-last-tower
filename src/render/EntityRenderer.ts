@@ -53,6 +53,7 @@ import { LightOrbRenderer } from "@/render/entities/lightOrb";
 import { renderGeneric } from "@/render/entities/generic";
 import { verticalFacing } from "@/render/entities/facing";
 import { renderAbilityEffects } from "@/render/overlays/abilityEffects";
+import { drawRisingSprite, risingSpritesNow, RISING_SPRITE_IMAGES } from "@/render/overlays/risingSprites";
 import { renderTowerRanges } from "@/render/overlays/towerRange";
 import { renderLeashTethers } from "@/render/overlays/jungleLeash";
 import { renderBlossom } from "@/render/entities/blossom";
@@ -135,6 +136,7 @@ export class EntityRenderer implements GameObject {
       ...JUNGLE_CREATURE_IMAGES,
       ...PROJECTILE_IMAGES,
       ...WARD_IMAGES,
+      ...RISING_SPRITE_IMAGES,
       ...getChampionImages(),
     ]);
   }
@@ -322,7 +324,15 @@ export class EntityRenderer implements GameObject {
       // Units that just died, under the living
       this.renderCorpses(canvasRenderingContext);
 
+      // Sprites rising out of the ground (Nocthar's hands), sorted in among the units
+      const wallClock = Date.now();
+      const risingSprites = risingSpritesNow(wallClock);
+      let nextRising = 0;
+
       for (const entity of sortedEntities) {
+        while (nextRising < risingSprites.length && risingSprites[nextRising].y <= entity.position.y) {
+          drawRisingSprite(canvasRenderingContext, risingSprites[nextRising++], wallClock);
+        }
         // Skip dead entities (except light orbs, which show a ghost when
         // destroyed, and inhibitors, whose rubble shows until they rebuild)
         const snapshot = entity.snapshot as any;
@@ -384,6 +394,9 @@ export class EntityRenderer implements GameObject {
           isAttacking,
         );
         this.renderEntity(canvasRenderingContext, entity, isLocalPlayer, state);
+      }
+      while (nextRising < risingSprites.length) {
+        drawRisingSprite(canvasRenderingContext, risingSprites[nextRising++], wallClock);
       }
 
       // Effects over the units (world space, camera transform already applied)

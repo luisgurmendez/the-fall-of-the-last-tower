@@ -24,6 +24,7 @@ import type { DamageTaken } from './damageTaken';
 import type { Signals } from './signals';
 import type { ChatLog } from './chat';
 import { spawnWorldVFX } from './entityVFX';
+import { spawnRisingSprites } from '@/render/overlays/risingSprites';
 import { playEventSound } from '@/audio/gameSounds';
 
 /**
@@ -243,6 +244,8 @@ export function processGameEvent(event: GameEvent, ctx: GameEventContext): void 
 
         // Create visual effect for the ability (legacy system)
         ctx.abilityEffects.create(entity, abilityId, targetX, targetY, now);
+        // What rises out of the ground where it's aimed (Nocthar's hands)
+        if (targetX !== undefined && targetY !== undefined) spawnRisingSprites(abilityId, targetX, targetY, now);
 
         // Spawn VFX for the ability (new VFX system)
         try {

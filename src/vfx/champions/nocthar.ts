@@ -3,7 +3,8 @@
  * violet, Vile's; no poison green, Zhak'rul's). Every ability reads before
  * it lands (docs/champions/nocthar-design.md, "Legibilidad"):
  * - Q: his claws glow in the cast, the ground cracks and fills where the
- *   hands will burst for the 0.6 s before they do
+ *   hands will burst for the 0.6 s before they do (their fingertips poking
+ *   out: risingSprites.ts), then they burst out and grab
  * - W: he draws breath in the cast, then rings of wailing; frenzied Hollows
  *   burn with pale flames on their claws
  * - E: a claw mark where he sends them (his team sees it) or a red ring
@@ -75,12 +76,13 @@ registerAbilityVFX({
   ],
 });
 
-// ...and bony hands burst out of it, clawing inward
+// ...and the hands burst out of it and grab (the hands themselves are
+// sprites drawn among the units: src/render/overlays/risingSprites.ts):
+// clods of earth flying, dust, the ground pulled inward
 registerAbilityVFX({
   abilityId: 'nocthar_q_burst',
   phases: [
     phase('hands', 0, 'ground_target', [
-      spikes('thorn', BONE, 10, HANDS_RADIUS, 'area', [16, 32], 0.7, SPECTRAL),
       shockwave(DIRT, HANDS_RADIUS, HANDS_RADIUS * 0.3, 0.35, 8),
       debris(DIRT, 16, [80, 200]),
       smoke(DUST, 8, [14, 24], [30, 90]),
