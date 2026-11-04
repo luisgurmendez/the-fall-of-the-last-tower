@@ -63,9 +63,9 @@ class OnlineGame {
     this.stateManager = new OnlineStateManager(this.matchData);
 
     // Wire up network client to state manager
+    // Applied by stateManager.advance() at the pace the server sent them
     this.networkClient.onStateUpdate = (update) => {
-      this.stateManager.processStateUpdate(update);
-      this.updateShopFromServerState();
+      this.stateManager.receiveStateUpdate(update);
     };
 
     this.networkClient.onFullState = (snapshot) => {
@@ -143,7 +143,7 @@ class OnlineGame {
   private update() {
     try {
       const gameApi = this.generateGameApi();
-      this.stateManager.advance();
+      if (this.stateManager.advance() > 0) this.updateShopFromServerState();
       this.level.update(gameApi);
 
       // Clear "just pressed" input states at end of frame

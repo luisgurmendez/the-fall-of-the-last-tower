@@ -486,6 +486,7 @@ Ping sent every 5 seconds to maintain connection and measure latency.
 | Server Tick Rate | 30 Hz | 33.3ms per tick |
 | Snapshot Rate | 30 Hz | State sent every tick |
 | Client Render Rate | The screen's (60-120 Hz) | Positions eased over ~1.2 ticks (infrastructure.md) |
+| Playout delay | 20-100 ms | Updates are applied at the pace they were sent, as far behind as the connection's jitter needs (infrastructure.md, `src/core/state/playout.ts`) |
 | Input Send Rate | 60 Hz | Responsive input capture |
 
 ## Key Files
