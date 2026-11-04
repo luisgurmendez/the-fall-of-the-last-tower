@@ -79,6 +79,7 @@ For detailed documentation on the multiplayer MOBA systems, see the following fi
 | **Pings, Emotes & Chat** | [docs/architecture/signals.md](docs/architecture/signals.md) | The ping wheel (Alt/G + click), the emote wheel (T), the chat (Enter; Shift+Enter for all), who gets them, how they're drawn |
 | **Controls** | [docs/architecture/controls.md](docs/architecture/controls.md) | Cast modes (quick, quick with indicator, normal), key bindings, the settings panel |
 | **Accounts** | [docs/architecture/accounts.md](docs/architecture/accounts.md) | Optional accounts (name + password, SQLite in DATA_DIR), the /api/ routes, wins and losses, names in matches |
+| **Summons** | [docs/architecture/summons.md](docs/architecture/summons.md) | Units a champion raises (Nocthar's Hollows and colossus): minions with an owner, following, orders, leash, dashes |
 
 ### Quick Reference
 
@@ -122,6 +123,7 @@ For detailed documentation on the multiplayer MOBA systems, see the following fi
 | Pings, emotes, chat | `signals.md` |
 | Cast modes, key bindings, keys the game reads | `controls.md` |
 | Accounts, sessions, the /api/ routes, DATA_DIR | `accounts.md` |
+| Summons (ServerSummon), their AI and orders | `summons.md` |
 | The Dockerfile, fly.toml, serving the client | `deploy.md` |
 
 **When adding new systems**, create a new doc file in `docs/architecture/` and add a reference here.

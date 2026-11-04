@@ -684,4 +684,37 @@ describe('StateSerializer Minion-Specific', () => {
 
     expect(deltas[0].changeMask & EntityChangeMask.STATE).toBeTruthy();
   });
+
+  it('BUG: sends a summon rising, then up (rising becomes null)', () => {
+    const playerId = 'player-1';
+    serializer.createDeltaUpdates([createMockMinion('hollow-1', { minionType: 'hollow', ownerId: 'nocthar', rising: 0.5 })] as any, playerId, 1);
+    const deltas = serializer.createDeltaUpdates([createMockMinion('hollow-1', { minionType: 'hollow', ownerId: 'nocthar', rising: null })] as any, playerId, 2);
+    expect(deltas[0].changeMask & EntityChangeMask.STATE).toBeTruthy();
+    expect((deltas[0].data as MinionSnapshot).rising).toBeNull();
+  });
+
+  it('BUG: sends a summon starting and ending a charge', () => {
+    const playerId = 'player-1';
+    serializer.createDeltaUpdates([createMockMinion('colossus-1', { minionType: 'colossus', ownerId: 'nocthar' })] as any, playerId, 1);
+    let deltas = serializer.createDeltaUpdates([createMockMinion('colossus-1', { minionType: 'colossus', ownerId: 'nocthar', isCharging: true })] as any, playerId, 2);
+    expect((deltas[0].data as MinionSnapshot).isCharging).toBe(true);
+    deltas = serializer.createDeltaUpdates([createMockMinion('colossus-1', { minionType: 'colossus', ownerId: 'nocthar' })] as any, playerId, 3);
+    expect((deltas[0].data as MinionSnapshot).isCharging).toBe(false);
+  });
+
+  it('BUG: sends a summon growing', () => {
+    const playerId = 'player-1';
+    serializer.createDeltaUpdates([createMockMinion('colossus-1', { minionType: 'colossus', ownerId: 'nocthar', scale: 1 })] as any, playerId, 1);
+    const deltas = serializer.createDeltaUpdates([createMockMinion('colossus-1', { minionType: 'colossus', ownerId: 'nocthar', scale: 1.4 })] as any, playerId, 2);
+    expect((deltas[0].data as MinionSnapshot).scale).toBe(1.4);
+  });
+
+  it('BUG: sends a minion becoming feared, and no longer feared', () => {
+    const playerId = 'player-1';
+    serializer.createDeltaUpdates([createMockMinion('minion-1')] as any, playerId, 1);
+    let deltas = serializer.createDeltaUpdates([createMockMinion('minion-1', { isFeared: true })] as any, playerId, 2);
+    expect((deltas[0].data as MinionSnapshot).isFeared).toBe(true);
+    deltas = serializer.createDeltaUpdates([createMockMinion('minion-1')] as any, playerId, 3);
+    expect((deltas[0].data as MinionSnapshot).isFeared).toBe(false);
+  });
 });

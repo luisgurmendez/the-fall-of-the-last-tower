@@ -370,6 +370,16 @@ export class StateSerializer {
           (prev as any).isProtected !== (curr as any).isProtected) {
         mask |= EntityChangeMask.STATE;
       }
+
+      // A feared minion, and a summon rising, charging or growing
+      if (current.entityType === EntityType.MINION) {
+        const prevMinion = prev as MinionSnapshot;
+        const currMinion = curr as MinionSnapshot;
+        if (!!prevMinion.isFeared !== !!currMinion.isFeared || !!prevMinion.isCharging !== !!currMinion.isCharging ||
+            prevMinion.rising !== currMinion.rising || prevMinion.scale !== currMinion.scale) {
+          mask |= EntityChangeMask.STATE;
+        }
+      }
     }
 
     // For the nexus
@@ -525,6 +535,13 @@ export class StateSerializer {
 
       if (mask & EntityChangeMask.STATE) {
         (result as any).isDead = currMinion.isDead;
+        // Booleans go as false when they end (an absent field would keep the old value)
+        (result as any).isFeared = !!currMinion.isFeared;
+        if (currMinion.ownerId !== undefined) {
+          (result as any).isCharging = !!currMinion.isCharging;
+          (result as any).rising = currMinion.rising ?? null;
+          (result as any).scale = currMinion.scale;
+        }
       }
     }
 

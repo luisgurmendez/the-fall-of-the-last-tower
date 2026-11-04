@@ -428,7 +428,8 @@ export interface MinionSnapshot {
   entityId: string;
   entityType: EntityType.MINION;
   side: Side;
-  minionType: 'melee' | 'caster' | 'siege' | 'super';
+  /** A lane minion's type, or a summon's (SummonType) */
+  minionType: 'melee' | 'caster' | 'siege' | 'super' | 'hollow' | 'colossus';
 
   x: number;
   y: number;
@@ -449,6 +450,16 @@ export interface MinionSnapshot {
   isRooted?: boolean;
   isFeared?: boolean;
   slowPercent?: number;
+
+  // A summon's (absent for lane minions)
+  /** The champion that raised it */
+  ownerId?: string;
+  /** How big it's drawn (1: its usual size; a big Hollow, a colossus that absorbed many) */
+  scale?: number;
+  /** Seconds left climbing out of the ground; null once it's up */
+  rising?: number | null;
+  /** Dashing (the colossus charging) */
+  isCharging?: boolean;
 }
 
 /**

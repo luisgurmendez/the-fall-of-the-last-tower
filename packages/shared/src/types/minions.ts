@@ -12,6 +12,13 @@ import type { EntityAnimations } from "./animation";
 export type MinionType = "melee" | "caster" | "siege" | "super";
 
 /**
+ * Units a champion raises that fight for it (Nocthar's Hollows and his
+ * colossus): minions with an owner, which towers, minions, abilities and
+ * vision treat like lane minions (the server's ServerSummon).
+ */
+export type SummonType = "hollow" | "colossus";
+
+/**
  * Lane identifiers.
  */
 export type LaneId = "top" | "mid" | "bot";

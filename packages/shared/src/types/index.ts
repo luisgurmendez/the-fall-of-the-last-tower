@@ -193,6 +193,7 @@ export {
 // Minion types
 export type {
   MinionType,
+  SummonType,
   LaneId,
   MinionStats,
   WaveComposition,
