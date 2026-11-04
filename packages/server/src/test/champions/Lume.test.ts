@@ -451,8 +451,8 @@ describe("Lume", () => {
       // Send orb near enemy (red is at 400,0)
       orb.sendTo(new Vector(350, 0));
 
-      // Tick until orb arrives and becomes stationed (350 units at 700 u/s = 30 frames)
-      arena.tickAllFrames(40);
+      // Tick until orb arrives and becomes stationed (350 units at LUME_ORB_CONFIG.travelSpeed)
+      arena.tickAllFrames(Math.ceil((350 / LUME_ORB_CONFIG.travelSpeed) * 60) + 5);
 
       // Red champion should have the damage amp debuff
       expect(arena.red.hasEffect("lume_guiding_glow_amp")).toBe(true);
@@ -926,6 +926,35 @@ describe("Lume: kit edge cases", () => {
       expect(allyTower.health).toBe(allyTowerHealth);
       expect(enemyTower.health).toBe(enemyTowerHealth);
       expect(ward.isDead).toBe(false);
+    });
+
+    test(`nothing at the cast: the orb gathers warmth for ${W.aoeDelay} s, then pulses where it was`, () => {
+      const arena = lumeArena(new Vector(400, 0));
+      const orb = addOrb(arena, new Vector(400, 30));
+      const dealt = recordDamage(arena.red);
+      arena.castAbility(arena.blue, "W", { windup: true });
+      expect(dealt.hits).toBe(0);
+      arena.context.advanceTime(W.aoeDelay! - 0.05);
+      expect(dealt.hits).toBe(0);
+      // The orb wandering off meanwhile doesn't move the pulse
+      orb.position.setFrom(new Vector(1200, 1200));
+      arena.context.advanceTime(0.1);
+      expect(dealt.hits).toBe(1);
+    });
+
+    test("an enemy that walks out of it before it pulses isn't hit (it's dodged)", () => {
+      const arena = lumeArena(new Vector(400, 0));
+      addOrb(arena, new Vector(400, 30));
+      const dealt = recordDamage(arena.red);
+      arena.castAbility(arena.blue, "W", { windup: true });
+      arena.red.position.setFrom(new Vector(400 + W.aoeRadius! + 60, 30));
+      arena.context.advanceTime(W.aoeDelay! + 0.01);
+      expect(dealt.hits).toBe(0);
+    });
+
+    test("the warning is the one its dodge exemption gives: a gathering of light at the orb", () => {
+      expect(W.aoeDelay).toBeGreaterThanOrEqual(0.4);
+      expect(W.dodgeExempt).toContain("orb");
     });
 
     for (const rank of [1, W.maxRank]) {

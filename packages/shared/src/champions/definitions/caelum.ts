@@ -134,7 +134,8 @@ export const CaelumWhisperingRoots: AbilityDefinition = {
   cooldown: [15, 14, 13, 12, 11],
   range: 380,
   aoeRadius: 100,
-  aoeDelay: 0.8, // The roots rise
+  // The roots rise: 0.25 s cast + 0.95 s, enough to walk out of the middle (dodge rule ratio 1.0; League's Morgana W ~1.1)
+  aoeDelay: 0.95,
   shape: "circle",
   damage: {
     type: "magic",

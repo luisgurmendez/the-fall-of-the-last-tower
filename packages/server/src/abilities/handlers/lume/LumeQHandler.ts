@@ -2,7 +2,7 @@
  * LumeQHandler - Send the Light
  *
  * Send the Light Orb to a target location.
- * - Orb travels at 700 units/s
+ * - Orb travels at LUME_ORB_CONFIG.travelSpeed (480 units/s)
  * - Deals magic damage to enemies in a small area on arrival
  * - Orb stays stationed at location for 4 seconds
  *

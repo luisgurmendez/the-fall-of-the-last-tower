@@ -10,7 +10,7 @@
  *
  * LIGHT ORB STATES:
  * - ORBITING: Circles Lume at 60 unit radius, 2 rad/s
- * - TRAVELING: Moving to/from target at 700 units/s
+ * - TRAVELING: Moving to/from target at 480 units/s
  * - STATIONED: Fixed at location for 4s before auto-returning
  * - DESTROYED: Gone while Lume is dead; back orbiting her when she respawns
  */
@@ -52,7 +52,9 @@ function scaling(
 export const LUME_ORB_CONFIG = {
   orbitRadius: 60, // Distance from Lume when orbiting
   orbitSpeed: 2.0, // Radians per second
-  travelSpeed: 700, // Units per second when traveling
+  // Units per second when traveling: sent to its range (360) it lands about 1 s after the press
+  // (0.25 s cast + 0.75 s flight), enough to walk out of the 80 around where it lands (dodge rule)
+  travelSpeed: 480,
   stationedDuration: 4.0, // Seconds before auto-returning (less than min cooldown)
   passiveAuraRadius: 160, // Radius for passive effects
   allySpeedBonus: 0.15, // 15% movement speed
@@ -136,7 +138,7 @@ export const LumePassive: PassiveAbilityDefinition = {
  * Send the Light
  *
  * FIRST CAST: Send the Light Orb to a target location.
- * - Orb travels at 700 units/s
+ * - Orb travels at 480 units/s
  * - Deals magic damage to enemies in a small area on arrival
  * - Orb stays stationed at location for 4 seconds before auto-returning
  *
@@ -177,6 +179,8 @@ export const LumeQ: AbilityDefinition = {
   },
   recastCondition: "always",
   recastWindow: 10, // While the orb is away (out, stationed, back): LumeQHandler
+  dodgeExempt:
+    "Its warning is the orb's flight (LumeQHandler, at LUME_ORB_CONFIG.travelSpeed 480): at its 360 range it lands 1 s after the press (0.25 s cast + 0.75 s), walking out of its 80 radius takes 1 s",
 };
 
 // =============================================================================
@@ -186,12 +190,13 @@ export const LumeQ: AbilityDefinition = {
 /**
  * Warmth
  *
- * The Light Orb pulses with warmth, affecting nearby units:
+ * The Light Orb gathers warmth for aoeDelay, then pulses where it was,
+ * affecting nearby units:
  * - Allies (Lume, champions, minions) are healed
  * - Enemies (champions, minions, monsters) take magic damage
  *
  * IMPLEMENTATION NOTES:
- * - Effect centered on orb's current position (its VFX and sound too)
+ * - Effect centered on the orb's position at the cast (its VFX and sound too)
  * - Units only: no structures, no wards
  * - Single pulse, not persistent
  */
@@ -199,7 +204,7 @@ export const LumeW: AbilityDefinition = {
   id: "lume_w",
   name: "Warmth",
   description:
-    "The Light Orb pulses, healing allies near it for {heal} and dealing {damage} magic damage to enemies near it.",
+    "The Light Orb gathers warmth for a moment, then pulses, healing allies near it for {heal} and dealing {damage} magic damage to enemies near it.",
   type: "active",
   targetType: "self", // Activates at orb location
   maxRank: 5,
@@ -214,6 +219,9 @@ export const LumeW: AbilityDefinition = {
     scaling: scaling([60, 90, 120, 150, 180], { apRatio: 0.45 }),
   },
   aoeRadius: LUME_ORB_CONFIG.wPulseRadius,
+  aoeDelay: 0.45, // The orb gathering warmth: the warning (LumeWHandler)
+  dodgeExempt:
+    "Centered on the orb, not on Lume: everyone sees where it is, and it gathers warmth for 0.45 s before it pulses (like League's Orianna W, the counterplay is keeping away from the orb)",
 };
 
 // =============================================================================
@@ -250,6 +258,8 @@ export const LumeE: AbilityDefinition = {
   appliesEffects: ["slow_30"],
   effectDuration: 2.5, // How long the beam lasts
   aoeRadius: LUME_ORB_CONFIG.eBeamHalfWidth,
+  dodgeExempt:
+    "A beam that stays 2.5 s between Lume and the orb, both in sight: it's walked around or out of, like a wall (its damage is once a cast), not reacted to as it lands",
 };
 
 // =============================================================================
