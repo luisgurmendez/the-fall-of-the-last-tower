@@ -58,6 +58,16 @@ const OTHER_CAST_EVENT_IDS = [
   // Kip: Run Them Down on each enemy it slows, Show Them All's volleys after the first (his E's landing is a <id>_land)
   'kip_w_hit',
   'kip_r_volley',
+  // Nocthar's army: hands bursting, Hollows rising, frenzying and charging, the colossus rising, throwing, trampling
+  'nocthar_q_burst',
+  'nocthar_hollow_rise',
+  'nocthar_w_frenzy',
+  'nocthar_e_charge',
+  'nocthar_r_emerge',
+  'nocthar_colossus_w_throw',
+  'nocthar_colossus_w_impact',
+  'nocthar_colossus_e_trample',
+  'nocthar_colossus_e_end',
   ...Object.values(MOBAConfig.JUNGLE.SPECIAL_ATTACKS).map((attack) => attack.abilityId),
   // A champion crawling through a jungle tunnel (server: systems/JungleTunnels.ts)
   MOBAConfig.TUNNELS.ABILITY_ID,
@@ -73,8 +83,14 @@ const OTHER_CAST_EVENT_IDS = [
 /** Basic attack projectiles other than <championId>_auto (EloraHooks and KipHooks basicAttackProjectileType), which have impacts */
 const OTHER_ATTACK_PROJECTILES = ['elora_poison_auto', 'elora_weak_auto', 'kip_pop_auto'];
 
+/** A champion's abilities: its slots', and those its slots swap in for a while (Nocthar's colossus's) */
+const kitAbilities = (definition: (typeof CHAMPION_DEFINITIONS)[string]): [string, string][] => [
+  ...Object.entries(definition.abilities),
+  ...Object.entries(definition.swapAbilities ?? {}).map(([slot, abilityId]): [string, string] => [`${slot} swapped`, abilityId!]),
+];
+
 const ALL_ABILITY_IDS = Object.values(CHAMPION_DEFINITIONS).flatMap((definition) =>
-  Object.values(definition.abilities)
+  kitAbilities(definition).map(([, abilityId]) => abilityId)
 );
 
 describe('Champion client contract', () => {
@@ -96,7 +112,7 @@ describe('Champion client contract', () => {
       });
 
       it('has VFX for every ability, or a listed reason it has none', () => {
-        const unexplained = Object.entries(definition.abilities)
+        const unexplained = kitAbilities(definition)
           .filter(([, abilityId]) => !getAbilityVFX(abilityId) && !ABILITIES_WITHOUT_VFX[abilityId])
           .map(([slot, abilityId]) => `${slot}: ${abilityId}`);
         expect(unexplained).toEqual([]);

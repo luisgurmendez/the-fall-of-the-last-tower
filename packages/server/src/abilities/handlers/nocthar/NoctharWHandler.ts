@@ -4,7 +4,7 @@
  * After its cast time (0.3 s) he wails: the enemy units within wFearRadius
  * of him (to the edge of their bodies) take damage and flee from him (fear,
  * from him) for 1 s; his Hollows within wFrenzyRadius attack faster for 2 s
- * (an ABILITY_CAST nocthar_w_frenzy on each, for their VFX).
+ * (an ABILITY_CAST nocthar_w_frenzy from each, for their VFX).
  */
 
 import { GameEventType, NOCTHAR_KIT } from '@siege/shared';
@@ -33,11 +33,10 @@ export class NoctharWHandler extends BaseAbilityHandler {
       if (hollow.position.distanceTo(champion.position) > NOCTHAR_KIT.wFrenzyRadius) continue;
       hollow.frenzyFor(bonus, NOCTHAR_KIT.wFrenzyDuration);
       context.addEvent(GameEventType.ABILITY_CAST, {
-        entityId: champion.id,
+        entityId: hollow.id,
         abilityId: 'nocthar_w_frenzy',
-        targetEntityId: hollow.id,
-        targetX: hollow.position.x,
-        targetY: hollow.position.y,
+        x: hollow.position.x,
+        y: hollow.position.y,
       });
     }
     return { success: true };

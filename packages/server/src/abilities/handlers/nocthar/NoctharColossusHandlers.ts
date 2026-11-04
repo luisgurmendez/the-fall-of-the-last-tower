@@ -3,11 +3,15 @@
  * - Bone Volley (W): it pays 10% of its max health, holds still for its
  *   windup and hurls bones at the area (as far as colossusWRange from it):
  *   they land after their flight, damaging and slowing the enemies there
- *   (ABILITY_CAST nocthar_colossus_w, then nocthar_colossus_w_impact)
+ *   (ABILITY_CAST nocthar_colossus_w_throw from the colossus, then
+ *   nocthar_colossus_w_impact)
  * - Trample (E): it pays 10%, holds still for its windup, then charges
  *   toward the aim carrying the enemies it hits (knocked up meanwhile);
  *   where it stops they take damage and are knocked up for 0.5 s
- *   (nocthar_colossus_e, then nocthar_colossus_e_end)
+ *   (nocthar_colossus_e_trample from the colossus, then nocthar_colossus_e_end)
+ *
+ * The colossus's events are its own (entityId): clients play its animation,
+ * look and sound on it; his cast plays his commanding point.
  * - Colossus, Heed Me (R): orders to it, as Heed Me's to the Hollows
  *
  * Without its colossus (or the health to pay) a cast fails, costing nothing.
@@ -54,21 +58,25 @@ export class NoctharColossusWHandler extends BaseAbilityHandler {
 
     colossus.holdFor(NOCTHAR_KIT.colossusWWindup);
     context.addEvent(GameEventType.ABILITY_CAST, {
-      entityId: champion.id,
-      abilityId: 'nocthar_colossus_w',
-      sourceEntityId: colossus.id,
+      entityId: colossus.id,
+      abilityId: 'nocthar_colossus_w_throw',
       targetX: landing.x,
       targetY: landing.y,
+      x: colossus.position.x,
+      y: colossus.position.y,
+      animationDuration: NOCTHAR_KIT.colossusWWindup + NOCTHAR_KIT.colossusWFlight,
     });
 
     context.schedule(NOCTHAR_KIT.colossusWWindup, () => {
       if (colossus.isDead) return;
       context.schedule(NOCTHAR_KIT.colossusWFlight, () => {
         context.addEvent(GameEventType.ABILITY_CAST, {
-          entityId: champion.id,
+          entityId: colossus.id,
           abilityId: 'nocthar_colossus_w_impact',
           targetX: landing.x,
           targetY: landing.y,
+          x: landing.x,
+          y: landing.y,
         });
         for (const entity of this.getAffectedEnemies(landing, radius + 40, champion, definition, context)) {
           if (entity.position.distanceTo(landing) > radius + entity.getRadius()) continue;
@@ -102,11 +110,13 @@ export class NoctharColossusEHandler extends BaseAbilityHandler {
 
     colossus.holdFor(NOCTHAR_KIT.colossusEWindup);
     context.addEvent(GameEventType.ABILITY_CAST, {
-      entityId: champion.id,
-      abilityId: 'nocthar_colossus_e',
-      sourceEntityId: colossus.id,
+      entityId: colossus.id,
+      abilityId: 'nocthar_colossus_e_trample',
       targetX: end.x,
       targetY: end.y,
+      x: colossus.position.x,
+      y: colossus.position.y,
+      animationDuration: NOCTHAR_KIT.colossusEWindup + NOCTHAR_KIT.colossusEDuration,
     });
 
     context.schedule(NOCTHAR_KIT.colossusEWindup, () => {
@@ -125,11 +135,12 @@ export class NoctharColossusEHandler extends BaseAbilityHandler {
         },
         onEnd: () => {
           context.addEvent(GameEventType.ABILITY_CAST, {
-            entityId: champion.id,
+            entityId: colossus.id,
             abilityId: 'nocthar_colossus_e_end',
-            sourceEntityId: colossus.id,
             targetX: colossus.position.x,
             targetY: colossus.position.y,
+            x: colossus.position.x,
+            y: colossus.position.y,
           });
           for (const entity of carried) {
             if (entity.isDead) continue;

@@ -13,7 +13,7 @@
  * events; the times here only pace the cast animation.
  */
 
-import { CHAMPION_DEFINITIONS, getAbilityDefinition, getCastTime } from '@siege/shared';
+import { CHAMPION_DEFINITIONS, NOCTHAR_KIT, getAbilityDefinition, getCastTime } from '@siege/shared';
 
 /** Typical trips, for the cast animation (the blow itself comes with its event) */
 const TRIP_TIMES: Record<string, number> = {
@@ -21,6 +21,9 @@ const TRIP_TIMES: Record<string, number> = {
   uruk_r: 0.35,
   fenris_e: 0.4,
   kip_e: 0.27,
+  // The colossus throws or lunges when its windup ends
+  nocthar_colossus_w_throw: NOCTHAR_KIT.colossusWWindup,
+  nocthar_colossus_e_trample: NOCTHAR_KIT.colossusEWindup,
   lume_q: 0.5,
 };
 

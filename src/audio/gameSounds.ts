@@ -76,6 +76,9 @@ function attackSound(entity: InterpolatedEntity): SoundKey | null {
     case EntityType.TOWER:
       return "tower_shot";
     case EntityType.MINION:
+      // Nocthar's Hollows claw, his colossus pounds
+      if (snapshot.minionType === "hollow") return "nocthar_hollow_attack";
+      if (snapshot.minionType === "colossus") return "nocthar_colossus_attack";
       return snapshot.minionType === "siege" ? "cannon_shot" : snapshot.minionType === "caster" ? "attack_bow" : null;
     case EntityType.JUNGLE_CAMP: {
       const sound = `monster_${(entity.snapshot as { creatureType?: string }).creatureType}`;
@@ -100,6 +103,10 @@ export function playEventSound(event: GameEvent, ctx: SoundContext): void {
     }
     case GameEventType.ABILITY_CAST:
       playAbilitySound(data, ctx);
+      break;
+    case GameEventType.ABILITY_WINDUP:
+      // A long cast's own sound, from its start (Nocthar's rumble): `<abilityId>_windup` cues
+      playAbilitySound({ ...data, abilityId: `${data.abilityId as string}_windup` }, ctx);
       break;
     case GameEventType.DAMAGE: {
       const target = ctx.entities.get(data.entityId as string);
@@ -151,9 +158,12 @@ export function playDeathSound(entity: InterpolatedEntity, localEntityId?: strin
   const audio = getAudio();
   const where = at(entity);
   switch (entity.snapshot.entityType) {
-    case EntityType.MINION:
-      audio.play("minion_death", where);
+    case EntityType.MINION: {
+      // Nocthar's summons fall apart into bones
+      const minionType = (entity.snapshot as { minionType?: string }).minionType;
+      audio.play(minionType === "hollow" ? "nocthar_hollow_crumble" : minionType === "colossus" ? "nocthar_colossus_crumble" : "minion_death", where);
       break;
+    }
     case EntityType.CHAMPION:
       recalls.get(entity.snapshot.entityId)?.stop();
       recalls.delete(entity.snapshot.entityId);

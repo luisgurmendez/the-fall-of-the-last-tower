@@ -7,7 +7,7 @@
  * catalog has one (gameSounds.ts).
  */
 
-import { MOBAConfig } from "@siege/shared";
+import { MOBAConfig, NOCTHAR_KIT } from "@siege/shared";
 import { abilityImpactTime } from "@/core/state/abilityTiming";
 import type { SoundKey } from "./soundCatalog";
 
@@ -92,6 +92,22 @@ export const ABILITY_CUES: Record<string, AbilityCue[]> = {
   kip_e: [{ sound: "elora_e" }],
   kip_e_land: [{ sound: "kip_e_land" }],
   kip_r_volley: [{ sound: "elora_attack" }],
+  // Nocthar: his claws into the dirt, the hands bursting where it cracked; the
+  // wail from the breath before it; a growl with every order (to the colossus
+  // too); the rumble building through his ultimate's cast (its windup), the
+  // eruption when the colossus rises; its bones ripped and thrown, shattering
+  // where they land; its stampede after its windup, then the crash
+  nocthar_q_burst: [{ sound: "nocthar_q_burst", at: "target" }],
+  nocthar_w_windup: [{ sound: "nocthar_w" }],
+  nocthar_w: [],
+  nocthar_colossus_w: [{ sound: "nocthar_e" }],
+  nocthar_colossus_e: [{ sound: "nocthar_e" }],
+  nocthar_colossus_r: [{ sound: "nocthar_e" }],
+  nocthar_r_windup: [{ sound: "nocthar_r" }],
+  nocthar_r: [],
+  nocthar_colossus_w_throw: [{ sound: "nocthar_colossus_w" }],
+  nocthar_colossus_w_impact: [{ sound: "nocthar_colossus_w_impact", at: "target" }],
+  nocthar_colossus_e_trample: [{ sound: "nocthar_colossus_e", delay: NOCTHAR_KIT.colossusEWindup }],
   caelum_q: [{ sound: "caelum_q", delay: landsAt("caelum_q") }],
   caelum_w: [{ sound: "caelum_w", at: "target" }],
   caelum_e: [{ sound: "caelum_e", delay: landsAt("caelum_e"), at: "target" }],

@@ -5,7 +5,7 @@
  * hunt it; at himself or right next to him, come back. Rising ones get it
  * too. With no Hollows it fails (it's free either way). The first order
  * after its charge cooldown (by rank) is a charge: they run faster and hit
- * harder for 3 s (an ABILITY_CAST nocthar_e_charge, for the VFX and sound).
+ * harder for 3 s (an ABILITY_CAST nocthar_e_charge from each, for the VFX and sound).
  */
 
 import { GameEventType, NOCTHAR_KIT } from '@siege/shared';
@@ -35,14 +35,14 @@ export class NoctharEHandler extends BaseAbilityHandler {
       const index = Math.min(rank, NOCTHAR_KIT.eChargeCooldown.length) - 1;
       for (const hollow of army) {
         hollow.chargeFor(NOCTHAR_KIT.eChargeSpeed, NOCTHAR_KIT.eChargeDamage[index], NOCTHAR_KIT.eChargeDuration);
+        context.addEvent(GameEventType.ABILITY_CAST, {
+          entityId: hollow.id,
+          abilityId: 'nocthar_e_charge',
+          x: hollow.position.x,
+          y: hollow.position.y,
+        });
       }
       state.chargeCooldown = NOCTHAR_KIT.eChargeCooldown[index];
-      context.addEvent(GameEventType.ABILITY_CAST, {
-        entityId: champion.id,
-        abilityId: 'nocthar_e_charge',
-        targetX: targetPosition?.x,
-        targetY: targetPosition?.y,
-      });
     }
     return { success: true };
   }

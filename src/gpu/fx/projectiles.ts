@@ -168,6 +168,14 @@ export const PROJECTILE_STYLES: Record<string, Style> = {
   // mark with a red bullseye glint at its tip; Target Practice's with a
   // red-and-white tip; Show Them All's, gold
   kip_auto: arrow(ARROW, 30, fxColor("#e0662a")),
+  // Nocthar's flicked bone shard: a sliver of bone tumbling end over end, a cold grey wisp behind it
+  nocthar_auto: (batch, id, x, y, _angle, time) => {
+    const points = trailOf(id, x, y, time, 7);
+    batch.ribbon(points, 3, fxColor("#9fb5ad"), 0.8);
+    batch.spark(x, y, time * 18, 14, 4, fxColor("#ece4cf"), 1.6);
+    batch.spark(x, y, time * 18 + Math.PI / 2, 8, 3, fxColor("#ece4cf"), 1.1);
+    batch.glow(x, y, 14, fxColor("#bfe3d6"), 0.5, 0.2, 0.3, 0.3, seedOf(id));
+  },
   kip_pop_auto: (batch, id, x, y, angle, time) => {
     arrow(ARROW, 32, fxColor("#ff4a3a"))(batch, id, x, y, angle, time, 0);
     batch.flare(x + Math.cos(angle) * 14, y + Math.sin(angle) * 14, 14, fxColor("#ff4a3a"), 1.4, time * 8);

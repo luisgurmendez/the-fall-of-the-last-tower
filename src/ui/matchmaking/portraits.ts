@@ -27,6 +27,7 @@ export const CHAMPION_ICONS: Record<string, string> = {
   hop: "🐰",
   zhakrul: "🦂",
   kip: "🎯",
+  nocthar: "💀",
 };
 
 /** Idle sprite strips: square frames side by side, the first one is used */
@@ -48,6 +49,7 @@ const IDLE_SPRITES: Record<string, string> = {
   hop: "/assets/champs/hop/idle.png",
   zhakrul: "/assets/champs/zhakrul/idle.png",
   kip: "/assets/champs/kip/idle.png",
+  nocthar: "/assets/champs/nocthar/idle.png",
 };
 
 /** The champion's face */

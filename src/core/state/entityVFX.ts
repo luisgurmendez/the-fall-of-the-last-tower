@@ -38,13 +38,20 @@ export class EntityVFX {
   spawnDeathVFX(entity: InterpolatedEntity): void {
     const { x, y } = entity.position;
     switch (entity.snapshot.entityType) {
-      case EntityType.MINION:
+      case EntityType.MINION: {
+        // Nocthar's summons fall apart into a heap of bones
+        const minionType = (entity.snapshot as { minionType?: string }).minionType;
+        if (minionType === 'hollow' || minionType === 'colossus') {
+          spawnWorldVFX(minionType === 'colossus' ? WORLD_VFX.COLOSSUS_CRUMBLE : WORLD_VFX.HOLLOW_CRUMBLE, x, y);
+          break;
+        }
         try {
           getVFXManager().spawnDeathParticles(x, y, '#8B0000');
         } catch {
           // VFX manager not initialized yet, skip
         }
         break;
+      }
       case EntityType.JUNGLE_CAMP:
         // A special attack winding up dies with the monster
         try {

@@ -54,11 +54,12 @@ export function raiseHollow(champion: ServerChampion, at: Vector, big: boolean, 
   });
   context.addEntity(hollow);
   context.addEvent(GameEventType.ABILITY_CAST, {
-    entityId: champion.id,
+    entityId: hollow.id,
     abilityId: 'nocthar_hollow_rise',
-    targetEntityId: hollow.id,
     targetX: at.x,
     targetY: at.y,
+    x: at.x,
+    y: at.y,
   });
   return hollow;
 }

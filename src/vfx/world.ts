@@ -50,6 +50,8 @@ export const WORLD_VFX = {
   LAST_HIT: 'fx_last_hit',
   WARD_PLACED: 'fx_ward_placed',
   CONTROL_WARD_PLACED: 'fx_control_ward_placed',
+  HOLLOW_CRUMBLE: 'fx_hollow_crumble',
+  COLOSSUS_CRUMBLE: 'fx_colossus_crumble',
 } as const;
 
 // A ward is placed: a glint where its eye opens, and a ring of its light
@@ -206,6 +208,31 @@ registerAbilityVFX({
       sparks('#ffe0b2', 8, [100, 220]),
       twinkles('#fff3e0', 3, [20, 50]),
     ], 0.6),
+  ],
+});
+
+// Nocthar's Hollow falls apart: a little heap of bones and grave dust...
+registerAbilityVFX({
+  abilityId: WORLD_VFX.HOLLOW_CRUMBLE,
+  phases: [
+    phase('crumble', 0, 'caster', [
+      debris('#ece4cf', 12, [40, 120]),
+      smoke('#9c8b72', 5, [10, 16], [10, 40]),
+    ], 0.6),
+  ],
+});
+
+// ...and his colossus, a landslide of them
+registerAbilityVFX({
+  abilityId: WORLD_VFX.COLOSSUS_CRUMBLE,
+  phases: [
+    phase('collapse', 0, 'caster', [
+      debris('#ece4cf', 30, [60, 200]),
+      rocks('#6b5a44', 12, [60, 160]),
+      smoke('#9c8b72', 12, [18, 30], [20, 80]),
+      shockwave('#9c8b72', 20, 90, 0.4, 12),
+      shake(3, 0.25),
+    ], 0.9),
   ],
 });
 

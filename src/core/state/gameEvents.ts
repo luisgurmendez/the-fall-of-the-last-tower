@@ -108,9 +108,18 @@ function describeDamageSource(data: Record<string, unknown>, ctx: GameEventConte
 
 /**
  * Blows the server tells about when they land, after their ability's cast:
- * a targeted leap's `<id>_land` (a target_enemy dash), Lume's orb arriving
+ * a targeted leap's `<id>_land` (a target_enemy dash), Lume's orb arriving,
+ * and Nocthar's army's moments (hands bursting, Hollows rising, frenzying
+ * and charging, the colossus rising, its bones and its charge landing)
  */
 const FOLLOW_UPS = new Set([
+  'nocthar_q_burst',
+  'nocthar_hollow_rise',
+  'nocthar_w_frenzy',
+  'nocthar_e_charge',
+  'nocthar_r_emerge',
+  'nocthar_colossus_w_impact',
+  'nocthar_colossus_e_end',
   ...Object.values(CHAMPION_DEFINITIONS).flatMap(champion => Object.values(champion.abilities))
     .filter(abilityId => {
       const definition = getAbilityDefinition(abilityId);
@@ -122,6 +131,17 @@ const FOLLOW_UPS = new Set([
 
 function isFollowUp(abilityId: string): boolean {
   return FOLLOW_UPS.has(abilityId);
+}
+
+/**
+ * Orders whose mark on the ground only the caster's team sees (where Nocthar
+ * sent his army); an order at a unit shows to everyone (it knows it's hunted)
+ */
+const TEAM_ONLY_GROUND_ORDERS = new Set(['nocthar_e', 'nocthar_colossus_r']);
+
+function hidesOrderFrom(event: GameEvent, caster: InterpolatedEntity, localSide: number): boolean {
+  return TEAM_ONLY_GROUND_ORDERS.has(event.data.abilityId as string) && !event.data.targetEntityId
+    && caster.snapshot.side !== localSide;
 }
 
 /** How long (ms) a cast's animation lasts: long enough to show the ability taking effect (an area landing late) */
@@ -226,6 +246,7 @@ export function processGameEvent(event: GameEvent, ctx: GameEventContext): void 
 
         // Spawn VFX for the ability (new VFX system)
         try {
+          if (hidesOrderFrom(event, entity, ctx.localSide)) break;
           const vfxManager = getVFXManager();
           // From where it starts: the caster, or elsewhere (Lume's Eclipse, from her orb)
           const originX = (event.data.originX as number | undefined) ?? entity.position.x;

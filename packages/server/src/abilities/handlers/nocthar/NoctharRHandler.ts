@@ -4,7 +4,7 @@
  * At the end of its cast time (1.5 s; meanwhile his Hollows run to the spot,
  * NoctharHooks.onCastStart) the Hollows sink and the colossus bursts out
  * where he aimed (army.ts raiseColossus): an ABILITY_CAST nocthar_r_emerge
- * there, damage to the enemies within rKnockupRadius and a 1 s knockup. Its
+ * from it, damage to the enemies within rKnockupRadius and a 1 s knockup. Its
  * cooldown starts when the colossus falls (army.ts endColossus), so the cast
  * starts none.
  */
@@ -22,11 +22,12 @@ export class NoctharRHandler extends BaseAbilityHandler {
     if (!targetPosition) return { success: false };
     const colossus = raiseColossus(champion, targetPosition, context);
     context.addEvent(GameEventType.ABILITY_CAST, {
-      entityId: champion.id,
+      entityId: colossus.id,
       abilityId: 'nocthar_r_emerge',
-      targetEntityId: colossus.id,
       targetX: colossus.position.x,
       targetY: colossus.position.y,
+      x: colossus.position.x,
+      y: colossus.position.y,
     });
 
     const damage = this.calculateDamage(definition, rank, champion, damageMultiplier);

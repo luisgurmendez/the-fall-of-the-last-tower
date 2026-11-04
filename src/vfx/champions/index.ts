@@ -23,3 +23,4 @@ import './protobot';
 import './hop';
 import './zhakrul';
 import './kip';
+import './nocthar';
