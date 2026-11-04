@@ -39,6 +39,7 @@ import { initializeAbilityHandlers } from './abilities';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { AccountStore, matchResults, type Account } from './accounts/AccountStore';
+import { findCurrentMatch, playsElsewhere, type CurrentMatchSources } from './game/currentMatch';
 import { AccountRoutes } from './accounts/accountRoutes';
 
 // ============================================================================
@@ -87,6 +88,24 @@ const playerSessions: Map<string, string> = new Map();
 let accounts: AccountStore;
 /** The account each player is signed in with (READY's accountToken); guests have none */
 const playerAccounts: Map<string, Account> = new Map();
+/** The player each account last played a match as, so it can go back to it (CONTINUE) */
+const accountMatches: Map<number, string> = new Map();
+
+/** What GET /api/current-match and READY ask about players' matches (game/currentMatch.ts) */
+const matchSources: CurrentMatchSources = {
+  accountForToken: token => accounts.accountForToken(token),
+  playerOfAccount: accountId => accountMatches.get(accountId),
+  sessionOf: playerId => playerSessions.get(playerId),
+  liveMatchOf: playerId => {
+    const room = roomManager.getRoomByPlayer(playerId);
+    const state = room?.getState();
+    if (!room || (state !== 'starting' && state !== 'playing')) return null;
+    const player = room.getPlayersWithEntityIds().find(info => info.playerId === playerId);
+    if (!player || player.isBot) return null;
+    return { championId: player.championId, gameTime: room.getGameTime(), practice: room.isPractice() };
+  },
+  isConnected: playerId => playerConnections.connectionOf(playerId) !== undefined,
+};
 
 // ============================================================================
 // Message Handlers
@@ -223,8 +242,9 @@ interface ReadyMessageData {
   playerId: string;
   championId?: string;
   sessionToken?: string;
-  /** 'practice' starts a match against a bot right away instead of queueing */
-  mode?: 'queue' | 'practice' | 'lobby';
+  /** 'practice' starts a match against a bot right away instead of queueing;
+   *  'resume' only goes back into the player's live match (CONTINUE) */
+  mode?: 'queue' | 'practice' | 'lobby' | 'resume';
   /** Champion for the practice bot (defaults to the player's champion) */
   botChampionId?: string;
   /** Players per team in practice: 1 (a bot in mid), 3 or 5 (bots in every role) */
@@ -268,6 +288,18 @@ function handleReadyMessage(connection: WebSocketConnection, data: ReadyMessageD
     return;
   }
 
+  // An account plays one match at a time: another tab or device in a live
+  // match as another player gets CONTINUE in its menu instead
+  const account = accounts.accountForToken(data.accountToken);
+  if (account && !roomManager.isPlayerInGame(playerId) && playsElsewhere(account.id, playerId, matchSources)) {
+    Logger.server.info(`Refused READY for ${playerId}: account ${account.id} is in a live match`);
+    wsServer.sendToConnection(connection.id, {
+      type: ServerMessageType.ERROR,
+      data: { error: 'in_match' },
+    });
+    return;
+  }
+
   if (existingToken === undefined) {
     const token = crypto.randomUUID();
     playerSessions.set(playerId, token);
@@ -288,7 +320,6 @@ function handleReadyMessage(connection: WebSocketConnection, data: ReadyMessageD
   }
 
   // Signed in: their account's name, and their results count
-  const account = accounts.accountForToken(data.accountToken);
   if (account) playerAccounts.set(playerId, account);
   else playerAccounts.delete(playerId);
 
@@ -326,6 +357,15 @@ function handleReadyMessage(connection: WebSocketConnection, data: ReadyMessageD
         data: snapshot,
       });
     }
+    return;
+  }
+
+  // CONTINUE, but the match is over meanwhile: nothing else starts
+  if (mode === 'resume') {
+    wsServer.sendToConnection(connection.id, {
+      type: ServerMessageType.ERROR,
+      data: { error: 'match_over' },
+    });
     return;
   }
 
@@ -452,6 +492,12 @@ function startMatch(
 
   const humans = players.filter(player => !player.isBot);
 
+  // Each account can go back to this match from anywhere until it ends
+  for (const player of humans) {
+    const account = playerAccounts.get(player.playerId);
+    if (account) accountMatches.set(account.id, player.playerId);
+  }
+
   // Update connection game IDs
   for (const player of humans) {
     const connection = playerConnections.connectionOf(player.playerId);
@@ -567,7 +613,9 @@ async function startServer(): Promise<void> {
   // Accounts, kept in DATA_DIR
   mkdirSync(DATA_DIR, { recursive: true });
   accounts = new AccountStore(join(DATA_DIR, 'accounts.db'));
-  const accountRoutes = new AccountRoutes(accounts);
+  const accountRoutes = new AccountRoutes(accounts, {
+    currentMatch: ask => findCurrentMatch(ask, matchSources),
+  });
   Logger.server.info(`Accounts kept in ${join(DATA_DIR, 'accounts.db')}`);
 
   wsServer = new BunWebSocketServer({
@@ -601,6 +649,11 @@ async function startServer(): Promise<void> {
         }
       }
       if (room) {
+        // Over: nothing to go back to
+        for (const playerId of room.getHumanPlayerIds()) {
+          const accountId = playerAccounts.get(playerId)?.id;
+          if (accountId !== undefined && accountMatches.get(accountId) === playerId) accountMatches.delete(accountId);
+        }
         for (const playerId of room.getHumanPlayerIds()) {
           wsServer.sendToPlayer(playerId, {
             type: ServerMessageType.GAME_END,

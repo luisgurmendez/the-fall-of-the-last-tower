@@ -542,6 +542,25 @@ in another tab or window."
 
 The client keeps the token in `NetworkClient` and `MatchmakingUI` persists it in
 `sessionStorage` (in `src/ui/matchmaking/matchConnection.ts`), so rejoining after a
-page reload works too. While a player is away for more than 5 s a bot plays their champion
+page reload works too.
+
+**CONTINUE.** The server remembers each player's live match, so the menu offers only
+**▶ CONTINUE** while there is one (the champion and the match's clock under it).
+- **Asking:** the menu asks `GET /api/current-match` on startup, when it's shown again, and when
+  the player signs in or out.
+- **Answer for an account** (bearer token): its live match wherever it was started
+  (`accountMatches` in `server.ts`, set when a match starts). This holds even while another tab
+  plays it.
+- **Answer for a guest:** the browser's last match (`localStorage["siege-last-match"]`, its player id
+  and token, written on GAME_START, sent as `X-Siege-Player` and `X-Siege-Session`), while it's live
+  and no connection plays it.
+- **Continuing:** the tab takes the match's player id and token (`MatchConnection.adopt`) and sends
+  READY with mode `resume`. The reconnect path above sends the match back. A match that ended
+  meanwhile answers ERROR `match_over`, and nothing else starts.
+- **One match per account:** a READY from an account already in a live match as another player
+  gets ERROR `in_match` (the client goes back to the menu, which offers CONTINUE).
+
+The logic is in `packages/server/src/game/currentMatch.ts`, with tests in `CurrentMatch.test.ts`
+(server and client). While a player is away for more than 5 s a bot plays their champion
 (see [matchmaking.md](matchmaking.md#a-bot-plays-for-who-left)). The server forgets a
 player's token when they disconnect while not in a game.

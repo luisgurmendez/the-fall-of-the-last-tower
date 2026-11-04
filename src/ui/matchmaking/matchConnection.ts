@@ -9,6 +9,7 @@
 import { NetworkClient } from "../../../packages/client/src/network/NetworkClient";
 import type { LobbyRequest, LobbyState, MapId } from "@siege/shared";
 import type { ConnectionStatus } from "./types";
+import { rememberLastMatch, type LastMatch } from "./currentMatch";
 
 /**
  * What MatchmakingUI does when the connection reports something.
@@ -59,6 +60,16 @@ export class MatchConnection {
   }
 
   /**
+   * Play as the player of a live match from now on (CONTINUE): its id and
+   * session token become the tab's, so READY takes it back.
+   */
+  adopt(match: LastMatch): void {
+    this.playerId = match.playerId;
+    sessionStorage.setItem("siege-player-id", match.playerId);
+    sessionStorage.setItem("siege-session-token", match.sessionToken);
+  }
+
+  /**
    * Generate a unique player ID.
    * Uses sessionStorage so each tab/window gets a unique ID.
    */
@@ -75,7 +86,7 @@ export class MatchConnection {
    * Create the network client, set up its handlers and connect.
    */
   connect(
-    mode: "queue" | "practice" | "lobby",
+    mode: "queue" | "practice" | "lobby" | "resume",
     botChampionId: string | undefined,
     events: MatchConnectionEvents,
     practice?: { size: number; map: MapId },
@@ -138,6 +149,9 @@ export class MatchConnection {
 
     this.networkClient.onGameStart = (data: any) => {
       console.log("[MatchmakingUI] Game starting:", data);
+      // Kept for the whole browser: a new tab can go back to it if this one closes
+      const sessionToken = sessionStorage.getItem("siege-session-token");
+      if (sessionToken) rememberLastMatch(browserLocalStorage(), { playerId: this.playerId, sessionToken });
       events.onGameStart(data);
     };
 
@@ -236,5 +250,14 @@ export class MatchConnection {
   clearBufferedState(): void {
     this.bufferedFullState = null;
     this.bufferedStateUpdates = [];
+  }
+}
+
+/** The browser's localStorage, if it's allowed */
+export function browserLocalStorage(): Storage | null {
+  try {
+    return typeof localStorage === "undefined" ? null : localStorage;
+  } catch {
+    return null;
   }
 }

@@ -29,6 +29,7 @@ account's name (rooms, the chat) and their wins and losses count. Guests play as
 | `POST /api/login` `{ name, password }` | `{ account, token }`; 401 `wrong_login` |
 | `GET /api/me`, `Authorization: Bearer <token>` | `{ account }`; 401 `no_session` |
 | `POST /api/logout`, the same header | 204 |
+| `GET /api/current-match` (the bearer token, or a guest's `X-Siege-Player` + `X-Siege-Session`) | `{ match }`: `{ playerId, sessionToken, championId, gameTime, practice }` or null (the menu's CONTINUE: see [networking.md](networking.md#reconnection)) |
 
 `account` is `{ id, name, wins, losses }`. Bodies over 2 KB get 413; one address gets at most 10
 sign-ups and sign-ins a minute (429 `too_many_attempts`; behind Fly the address is `Fly-Client-IP`).

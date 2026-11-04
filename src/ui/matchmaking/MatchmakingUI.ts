@@ -35,15 +35,16 @@
  */
 
 import type { NetworkClient } from "../../../packages/client/src/network/NetworkClient";
+import { continueLabel, fetchCurrentMatch, readLastMatch, type CurrentMatch } from "./currentMatch";
 import type {
   ScreenId,
   ConnectionStatus,
   MatchData,
   MatchmakingUICallbacks,
 } from "./types";
-import { MAPS, isMapId, useMap, type LobbyState } from "@siege/shared";
+import { MAPS, isMapId, useMap, type LobbyState, CHAMPION_DEFINITIONS } from "@siege/shared";
 import { ChampionSelect, ENABLED_CHAMPIONS } from "./championSelect";
-import { MatchConnection } from "./matchConnection";
+import { MatchConnection, browserLocalStorage } from "./matchConnection";
 import { MatchFoundScreen } from "./matchFound";
 import { QueueScreen } from "./queueScreen";
 import { SummonerPicker } from "./summonerPicker";
@@ -110,9 +111,15 @@ export class MatchmakingUI {
   private connection: MatchConnection;
   /** The player's account, if they signed in */
   private readonly accounts: AccountClient;
+  /** The game server's HTTP address (its /api/) */
+  private readonly apiBase: string;
 
   // State
   private currentScreen: ScreenId = "menu";
+  /** The live match the player can go back to: while there's one, PLAY is CONTINUE */
+  private continueMatch: CurrentMatch | null = null;
+  /** Answers to older asks are dropped */
+  private continueAsk = 0;
   private matchData: MatchData | null = null;
 
   // Callbacks
@@ -123,7 +130,8 @@ export class MatchmakingUI {
     callbacks: MatchmakingUICallbacks = {},
   ) {
     // The player's account (optional): its token goes with READY
-    this.accounts = new AccountClient(apiBaseUrl(serverUrl), browserStorage());
+    this.apiBase = apiBaseUrl(serverUrl);
+    this.accounts = new AccountClient(this.apiBase, browserLocalStorage());
     this.connection = new MatchConnection(serverUrl, () => this.accounts.current()?.token);
     this.callbacks = callbacks;
 
@@ -174,7 +182,11 @@ export class MatchmakingUI {
 
     // Signing in (the main menu's line, its screen); signed in, rooms show the account's name
     new AccountScreen(this.accounts, (screen) => this.showScreen(screen));
-    this.accounts.subscribe(current => this.modes.setAccountName(current?.account.name ?? null));
+    this.accounts.subscribe(current => {
+      this.modes.setAccountName(current?.account.name ?? null);
+      // Signed in elsewhere into a match, or out of it
+      void this.refreshContinue();
+    });
     this.modes.setAccountName(this.accounts.current()?.account.name ?? null);
 
     // Rooms: play with friends, shown on champion select
@@ -193,6 +205,9 @@ export class MatchmakingUI {
     };
     this.championSelect.onPick = sendPicks;
     this.summonerPicker.onChange = sendPicks;
+
+    // A match still going (closed tab, reload, another device): CONTINUE
+    void this.refreshContinue();
 
     // Warn if critical elements missing
     if (!this.overlay) {
@@ -276,7 +291,8 @@ export class MatchmakingUI {
   private setupEventListeners(): void {
     // Play button - pick how to play
     document.getElementById("btn-play")?.addEventListener("click", () => {
-      this.showScreen("modes");
+      if (this.continueMatch) this.continueToMatch(this.continueMatch);
+      else this.showScreen("modes");
     });
 
     // Back to the modes (leaving the room, in one)
@@ -419,7 +435,9 @@ export class MatchmakingUI {
         }
       },
       onLatencyUpdate: (latency) => this.updatePing(latency),
-      onError: (error) => this.showError(error),
+      onError: (error) => {
+        if (!this.backToLiveMatch(error)) this.showError(error);
+      },
       onGameStart: (data) => this.handleMatchFound(data),
       onQueueJoined: (position, queueSize) =>
         this.queue.updateInfo(position, queueSize),
@@ -446,7 +464,9 @@ export class MatchmakingUI {
         }
       },
       onLatencyUpdate: (latency) => this.updatePing(latency),
-      onError: (error) => this.closeRoom(error),
+      onError: (error) => {
+        if (!this.backToLiveMatch(error)) this.closeRoom(error);
+      },
       onGameStart: (data) => this.handleMatchFound(data),
       onQueueJoined: () => {},
       onLobbyState: (state) => this.showRoom(state),
@@ -515,6 +535,69 @@ export class MatchmakingUI {
   }
 
   /**
+   * Ask the server whether there's a live match to go back to, and show the
+   * menu's PLAY as CONTINUE while there is (the modes aren't offered).
+   */
+  private async refreshContinue(): Promise<void> {
+    const ask = ++this.continueAsk;
+    const match = await fetchCurrentMatch(
+      this.apiBase,
+      this.accounts.current()?.token,
+      readLastMatch(browserLocalStorage()),
+    );
+    if (ask !== this.continueAsk) return;
+    this.continueMatch = match;
+    const button = document.getElementById("btn-play");
+    if (button) button.textContent = match ? "▶ CONTINUE" : "▶ PLAY";
+    const line = document.getElementById("menu-continue");
+    if (line) {
+      line.textContent = match ? continueLabel(match, (id) => CHAMPION_DEFINITIONS[id]?.name ?? id) : "";
+      line.hidden = match === null;
+    }
+    // Somewhere past the menu (the modes) while a match is live: back to it
+    if (match && this.currentScreen === "modes") this.showScreen("menu");
+  }
+
+  /** CONTINUE: play as the match's player again; the server sends the match back */
+  private continueToMatch(match: CurrentMatch): void {
+    this.connection.adopt(match);
+    this.showScreen("connecting");
+    this.updateConnectionStatus("connecting");
+    this.connection.connect("resume", undefined, {
+      getChampionId: () => match.championId,
+      getSummonerSpells: () => this.summonerPicker.getSpells(),
+      onStatusChange: (status) => this.updateConnectionStatus(status),
+      onQueueEntered: () => {},
+      onDisconnect: () => {
+        if (this.currentScreen === "connecting") this.showError("Connection lost. Please try again.");
+      },
+      onLatencyUpdate: (latency) => this.updatePing(latency),
+      onError: (error) => {
+        if (this.backToLiveMatch(error)) return;
+        this.connection.disconnect();
+        // Over meanwhile: the menu offers PLAY again
+        if (error === "match_over") this.show();
+        else this.showError(error);
+      },
+      onGameStart: (data) => this.handleMatchFound(data),
+      onQueueJoined: () => {},
+    });
+  }
+
+  /**
+   * The account plays a live match elsewhere (another tab or device): back
+   * to the menu, which offers it (CONTINUE). Whether that was the error.
+   */
+  private backToLiveMatch(error: string): boolean {
+    if (error !== "in_match") return false;
+    this.connection.disconnect();
+    this.room.show(null);
+    this.showScreen("menu");
+    void this.refreshContinue();
+    return true;
+  }
+
+  /**
    * Handle match found from server.
    */
   private handleMatchFound(data: any): void {
@@ -570,6 +653,7 @@ export class MatchmakingUI {
     this.showScreen("menu");
     // Back from a match: the account's wins and losses may have changed
     void this.accounts.refresh();
+    void this.refreshContinue();
   }
 
   /**
@@ -641,14 +725,5 @@ export class MatchmakingUI {
     this.connection.clearBufferedState();
     this.updateConnectionStatus("offline");
     this.showScreen("menu");
-  }
-}
-
-/** The browser's localStorage, if it's allowed */
-function browserStorage(): Storage | null {
-  try {
-    return typeof localStorage === "undefined" ? null : localStorage;
-  } catch {
-    return null;
   }
 }

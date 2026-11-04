@@ -473,7 +473,8 @@ export class NetworkClient {
   sendReady(
     championId: string = 'warrior',
     options: {
-      mode?: 'queue' | 'practice' | 'lobby';
+      /** 'resume': only back into the player's live match (CONTINUE); nothing else starts */
+      mode?: 'queue' | 'practice' | 'lobby' | 'resume';
       botChampionId?: string;
       summonerSpells?: string[];
       practiceSize?: number;

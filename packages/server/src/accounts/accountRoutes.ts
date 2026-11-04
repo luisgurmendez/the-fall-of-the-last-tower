@@ -7,6 +7,9 @@
  * - POST /api/login { name, password } → { account, token } (401 wrong_login)
  * - GET /api/me, Authorization: Bearer <token> → { account } (401)
  * - POST /api/logout, the same header → 204
+ * - GET /api/current-match → { match } (null without one): the match to go
+ *   back to, for the account's bearer token or a guest's last match
+ *   (X-Siege-Player, X-Siege-Session); see game/currentMatch.ts
  *
  * Bodies over MAX_BODY_BYTES are refused (413). One address gets at most
  * LOGIN_ATTEMPTS_PER_MINUTE sign-ups and sign-ins a minute (429). Tokens
@@ -15,6 +18,7 @@
  */
 
 import type { AccountStore, AccountResult } from './AccountStore';
+import type { CurrentMatch, CurrentMatchAsk } from '../game/currentMatch';
 
 export const LOGIN_ATTEMPTS_PER_MINUTE = 10;
 const MAX_BODY_BYTES = 2048;
@@ -29,7 +33,7 @@ const HEADERS = {
 const PREFLIGHT_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Siege-Player, X-Siege-Session',
   'Access-Control-Max-Age': '600',
 };
 
@@ -50,8 +54,15 @@ export class AccountRoutes {
   /** Each address's recent sign-ups and sign-ins (ms) */
   private readonly attempts = new Map<string, number[]>();
 
-  constructor(private readonly store: AccountStore, options: { now?: () => number } = {}) {
+  /** The match a player can go back to (none without matches: tests, tools) */
+  private readonly currentMatch: (ask: CurrentMatchAsk) => CurrentMatch | null;
+
+  constructor(
+    private readonly store: AccountStore,
+    options: { now?: () => number; currentMatch?: (ask: CurrentMatchAsk) => CurrentMatch | null } = {},
+  ) {
     this.now = options.now ?? Date.now;
+    this.currentMatch = options.currentMatch ?? (() => null);
   }
 
   /** The answer to an /api/ request; null for any other path */
@@ -76,6 +87,15 @@ export class AccountRoutes {
         if (request.method !== 'GET') return reply(405, { error: 'method_not_allowed' });
         const account = this.store.accountForToken(bearerToken(request));
         return account ? reply(200, { account }) : reply(401, { error: 'no_session' });
+      }
+      case '/api/current-match': {
+        if (request.method !== 'GET') return reply(405, { error: 'method_not_allowed' });
+        const match = this.currentMatch({
+          accountToken: bearerToken(request),
+          playerId: request.headers.get('X-Siege-Player'),
+          sessionToken: request.headers.get('X-Siege-Session'),
+        });
+        return reply(200, { match });
       }
       case '/api/logout': {
         if (request.method !== 'POST') return reply(405, { error: 'method_not_allowed' });
