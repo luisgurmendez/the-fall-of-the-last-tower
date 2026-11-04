@@ -135,6 +135,12 @@ export class ChatBox {
       const left = CHAT_FADE_MS - (now - message.time);
       line.style.opacity = String(Math.max(0, Math.min(1, left / FADE_OUT_MS)));
     }
+    // The game's own lines: no name, in their own color
+    if (message.system) {
+      line.classList.add("system");
+      line.textContent = message.text;
+      return line;
+    }
     if (message.scope === "all") {
       const scope = document.createElement("span");
       scope.className = "chat-scope";

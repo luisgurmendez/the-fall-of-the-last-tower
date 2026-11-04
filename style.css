@@ -278,6 +278,10 @@ canvas {
     color: #f5c542;
 }
 
+.chat-line.system {
+    color: #c9b6e8;
+}
+
 .chat-name.ally {
     color: #5dade2;
 }

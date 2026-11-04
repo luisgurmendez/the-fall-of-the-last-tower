@@ -205,10 +205,26 @@ The final scoreboard has a second page, Stats (its header's buttons, or Tab, swi
 
 A player can also surrender from the Escape menu (`src/ui/GameMenu.ts`, two clicks). The client sends a `SURRENDER` input, which `GameRoom.handleInput` handles itself instead of queueing it. Once every human on that side has surrendered (just them in 1v1 and practice), the other side wins through the same `endGame` as a destroyed nexus. Bots can't surrender.
 
+## A Bot Plays for Who Left
+
+When a player loses their connection, `GameRoom` notes when (`awaySince`, game time). After
+`TAKEOVER_DELAY` (5 s; a page reload is quicker, and then nothing happens) a `LaneBot` plays their
+champion in the lane it's nearest (`takeoverLane` in `src/bots/takeover.ts`: the nearest lane path,
+mid in a base where they all meet). It plays like a practice bot: it levels abilities, buys the
+recommended build with the champion's gold, recalls, fights. Everyone gets a `PLAYER_CONNECTION`
+event (`status: 'bot'`), shown as a line in the chat.
+
+When they reconnect the bot lets go at once (`BotDriver.remove`), the champion stops where it is
+(not walking on where the bot was going), their input sequence starts afresh (a reloaded page
+numbers from 1), and everyone gets `PLAYER_CONNECTION` `status: 'back'`.
+A second disconnect is taken over again by one bot. `GameRoom.isBotPlaying(playerId)` tells. The
+camera of a rejoining client starts over its champion (`OnlineCameraController` snaps to the first
+position it gets, locked or not). Tests: `packages/server/src/test/Takeover.test.ts`.
+
 ## Abandoned Rooms
 
 When every human in a room disconnects, `GameRoomManager` keeps the room for `abandonTimeoutMs` (60s) so players can reconnect,
-then closes it. A reconnect cancels the timer.
+then closes it. A reconnect cancels the timer. Bots play for them meanwhile.
 
 ## Queue Management
 

@@ -10,6 +10,7 @@
 
 import {
   EntityType,
+  GameEventType,
   InputType,
   Side,
   StateUpdate,
@@ -26,6 +27,8 @@ import { ServerGameContext } from './ServerGameContext';
 import { spawnStructures, spawnChampion } from './MatchSetup';
 import { InputHandler } from '../network/InputHandler';
 import { BotDriver } from '../bots/BotDriver';
+import { LaneBot } from '../bots/LaneBot';
+import { TAKEOVER_DELAY, takeoverLane } from '../bots/takeover';
 import type { BotController } from '../bots/BotController';
 import { StateSerializer } from '../network/StateSerializer';
 import { ReliableEventQueue, shouldSendReliably } from '../network/ReliableEventQueue';
@@ -77,6 +80,8 @@ export class GameRoom {
   private stateSerializer: StateSerializer;
   private reliableEventQueue: ReliableEventQueue;
   private botDriver = new BotDriver();
+  /** Players without their connection, and since when (game time): a bot plays for them after TAKEOVER_DELAY */
+  private readonly awaySince = new Map<string, number>();
 
   private players: Map<string, PlayerInfo> = new Map();
   private championDefinitions: Map<string, ChampionDefinition>;
@@ -206,6 +211,7 @@ export class GameRoom {
    */
   private onTick(tick: number, dt: number): void {
     // 1. Process inputs (bots queue theirs first, like a client would)
+    this.takeOverAwayPlayers();
     this.botDriver.update(this.context, this.inputHandler, dt, Date.now());
     this.inputHandler.processInputs(this.context);
 
@@ -354,6 +360,8 @@ export class GameRoom {
     const playerInfo = this.players.get(playerId);
     if (playerInfo) {
       playerInfo.connected = false;
+      // A bot plays for them if they're not back soon
+      if (!playerInfo.isBot && !this.awaySince.has(playerId)) this.awaySince.set(playerId, this.context.getGameTime());
     }
 
     this.inputHandler.clearPlayer(playerId);
@@ -375,6 +383,16 @@ export class GameRoom {
     playerInfo.connected = true;
     Logger.game.info(`Player ${playerId} reconnected to game ${this.gameId}`);
 
+    // The bot playing for them lets go; their inputs are numbered afresh (a reloaded page starts at 1)
+    this.awaySince.delete(playerId);
+    this.inputHandler.clearPlayer(playerId);
+    if (this.isBotPlaying(playerId)) {
+      this.botDriver.remove(playerId);
+      // The champion stands where the bot left it, not walking on where the bot was going
+      this.context.getChampionByPlayerId(playerId)?.stop();
+      this.announceConnection(playerId, 'back');
+    }
+
     // Send full state snapshot
     return {
       tick: this.game.getCurrentTick(),
@@ -383,6 +401,40 @@ export class GameRoom {
       entities: this.context.createSnapshot(playerId),
       events: [], // Don't send old events on reconnect
     };
+  }
+
+  /**
+   * A bot (a LaneBot, in the lane the champion is nearest) for each player
+   * away for TAKEOVER_DELAY seconds; everyone hears it.
+   */
+  private takeOverAwayPlayers(): void {
+    const now = this.context.getGameTime();
+    for (const [playerId, since] of this.awaySince) {
+      if (now - since < TAKEOVER_DELAY || this.botDriver.has(playerId)) continue;
+      const champion = this.context.getChampionByPlayerId(playerId);
+      if (!champion) continue;
+      this.botDriver.add(new LaneBot({ playerId, lane: takeoverLane(champion.position, this.context.mapConfig) }));
+      this.announceConnection(playerId, 'bot');
+      Logger.game.info(`A bot plays for ${playerId} in game ${this.gameId}`);
+    }
+  }
+
+  /** Tell everyone a bot plays a player's champion, or they're back */
+  private announceConnection(playerId: string, status: 'bot' | 'back'): void {
+    const champion = this.context.getChampionByPlayerId(playerId);
+    if (!champion) return;
+    this.context.addEvent(GameEventType.PLAYER_CONNECTION, {
+      entityId: champion.id,
+      side: champion.side,
+      championId: champion.definition.id,
+      status,
+    });
+  }
+
+  /** Whether a bot plays for a player who lost their connection */
+  isBotPlaying(playerId: string): boolean {
+    const player = this.players.get(playerId);
+    return player !== undefined && !player.isBot && this.botDriver.has(playerId);
   }
 
   /**

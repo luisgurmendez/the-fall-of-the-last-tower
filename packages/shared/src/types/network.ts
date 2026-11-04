@@ -756,6 +756,12 @@ export enum GameEventType {
    * message only reaches its side, one to all reaches both
    */
   CHAT = 24,
+  /**
+   * A player lost their connection and a bot plays their champion
+   * ({ entityId, side, championId, status: 'bot' }), or they came back
+   * ({ ..., status: 'back' })
+   */
+  PLAYER_CONNECTION = 25,
 }
 
 /**

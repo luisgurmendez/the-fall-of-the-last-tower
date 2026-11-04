@@ -72,6 +72,44 @@ describe('Chat events', () => {
   });
 });
 
+describe('Players who leave and come back', () => {
+  const connection = (data: Record<string, unknown>) => ({ type: GameEventType.PLAYER_CONNECTION, timestamp: 1, data });
+  const linesAfter = (...events: unknown[]) => {
+    const state = manager();
+    state.processStateUpdate({ tick: 1, timestamp: Date.now(), gameTime: 1, deltas: [], events } as never);
+    return state.getChat().lines(Date.now(), true);
+  };
+
+  it('a bot playing for someone is a line in the chat, from no one', () => {
+    const [line] = linesAfter(connection({ entityId: 'champ-ally', side: 0, championId: 'vex', status: 'bot' }));
+    expect(line).toMatchObject({ system: true, championId: 'vex', isAlly: true });
+    expect(line.text).toBe('Vex lost their connection: a bot plays for them until they are back');
+  });
+
+  it('an enemy too', () => {
+    const [line] = linesAfter(connection({ entityId: 'champ-enemy', side: 1, championId: 'magnus', status: 'bot' }));
+    expect(line).toMatchObject({ system: true, isAlly: false });
+    expect(line.text).toBe('Magnus lost their connection: a bot plays for them until they are back');
+  });
+
+  it('coming back is a line too', () => {
+    const [line] = linesAfter(connection({ entityId: 'champ-enemy', side: 1, championId: 'magnus', status: 'back' }));
+    expect(line.text).toBe('Magnus is back');
+  });
+
+  it('the local player coming back reads as them', () => {
+    const [line] = linesAfter(connection({ entityId: 'champ-local', side: 0, championId: 'warrior', status: 'back' }));
+    expect(line).toMatchObject({ system: true, isLocal: true });
+    expect(line.text).toBe('You are back: the bot let go of your champion');
+  });
+
+  it('an unknown status or champion still reads', () => {
+    expect(linesAfter(connection({ entityId: 'x', side: 0, championId: 'warrior', status: 'gone' }))).toHaveLength(0);
+    const [line] = linesAfter(connection({ entityId: 'x', side: 1, championId: 'nobody', status: 'bot' }));
+    expect(line.text).toBe('nobody lost their connection: a bot plays for them until they are back');
+  });
+});
+
 describe('ChatLog', () => {
   it('closed: the last few lines, only while recent', () => {
     const log = new ChatLog();

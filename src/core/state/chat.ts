@@ -1,6 +1,8 @@
 /**
  * The match's chat (CHAT events): every line with who said it (an ally or
- * an enemy, the local player or not) and whether it was to all. ChatBox
+ * an enemy, the local player or not) and whether it was to all; and the
+ * game's own lines (PLAYER_CONNECTION: a bot plays for someone who lost
+ * their connection, they came back). ChatBox
  * (src/ui/ChatBox.ts) shows it: while the chat is closed, the last few
  * recent lines, fading after CHAT_FADE_MS; open, the last CHAT_SHOWN_OPEN.
  *
@@ -23,6 +25,8 @@ export interface ChatMessage {
   isLocal: boolean;
   /** When it arrived (Date.now, ms) */
   time: number;
+  /** The game's own line (a player lost their connection, came back), not a player's */
+  system?: boolean;
 }
 
 /** How long a line shows while the chat is closed (ms) */

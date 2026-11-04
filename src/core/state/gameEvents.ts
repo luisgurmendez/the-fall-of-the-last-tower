@@ -477,6 +477,27 @@ export function processGameEvent(event: GameEvent, ctx: GameEventContext): void 
       });
       break;
     }
+
+    case GameEventType.PLAYER_CONNECTION: {
+      const { entityId, championId, side, status } = event.data;
+      const isLocal = entityId === ctx.localEntityId;
+      const name = getChampionDefinition(championId as string)?.name ?? String(championId);
+      const text = status === 'bot' ? `${name} lost their connection: a bot plays for them until they are back`
+        : status === 'back' ? (isLocal ? 'You are back: the bot let go of your champion' : `${name} is back`)
+        : null;
+      if (text === null) break;
+      ctx.chat.add({
+        text,
+        scope: 'all',
+        entityId: entityId as string,
+        championId: championId as string,
+        isAlly: side === ctx.localSide,
+        isLocal,
+        time: now,
+        system: true,
+      });
+      break;
+    }
   }
 }
 

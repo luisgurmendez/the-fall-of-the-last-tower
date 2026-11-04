@@ -57,6 +57,10 @@ learn where it points), an emote to its team and to a side that sees the champio
 | Enter, while typing | Sends (an empty message isn't sent) and closes it |
 | Escape, or a click on the game | Closes it without sending (Escape doesn't open the menu) |
 
+The game writes its own lines there too, in lilac and without a name: `PLAYER_CONNECTION` events
+(a bot plays for a player who lost their connection, they're back; see
+[matchmaking.md](matchmaking.md#a-bot-plays-for-who-left)).
+
 `src/ui/ChatBox.ts` draws it at the left, above the HUD: closed, the last 6 lines of the last 10
 seconds (fading over their last 2); open, the last 30 over a dark backdrop. Names are the champions'
 (players have names only in rooms): yours green, allies blue, enemies red. Lines are text, never

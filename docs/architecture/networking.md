@@ -522,5 +522,6 @@ Ping sent every 5 seconds to maintain connection and measure latency.
 
 The client keeps the token in `NetworkClient` and `MatchmakingUI` persists it in
 `sessionStorage` (in `src/ui/matchmaking/matchConnection.ts`), so rejoining after a
-page reload works too. The server forgets a
+page reload works too. While a player is away for more than 5 s a bot plays their champion
+(see [matchmaking.md](matchmaking.md#a-bot-plays-for-who-left)). The server forgets a
 player's token when they disconnect while not in a game.
