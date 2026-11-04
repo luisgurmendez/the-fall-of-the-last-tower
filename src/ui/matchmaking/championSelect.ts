@@ -14,6 +14,7 @@ import {
 } from "@siege/shared";
 import { createAbilityCard, createPassiveCard } from "./abilityCards";
 import { showPortrait } from "./portraits";
+import { championGridColumns } from "./championGrid";
 
 /**
  * Champions available for selection.
@@ -93,6 +94,8 @@ export class ChampionSelect {
       const card = this.createChampionCard(champion);
       this.championGrid.appendChild(card);
     }
+    // Even rows (championGrid.ts)
+    this.championGrid.style.setProperty("--columns", String(championGridColumns(champions.length)));
 
     // The champion picked last time, or the first
     const saved = readSavedChampion();

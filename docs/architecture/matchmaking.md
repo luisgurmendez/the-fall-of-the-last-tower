@@ -149,7 +149,9 @@ The menu's **PLAY** opens the mode screen (`src/ui/matchmaking/modeSelect.ts`), 
 - **ONLINE 1V1**: champion select, then **FIND MATCH** joins the queue.
 
 Champion select (`championSelect.ts`) remembers the last champion picked (localStorage
-`siege-champion`), which is also the one a room starts with. BACK goes to the mode screen.
+`siege-champion`), which is also the one a room starts with. BACK goes to the mode screen. Its
+cards wrap into even rows of at most 10 (`championGrid.ts`: 17 champions are rows of 9 and 8), and
+the screen scrolls when it doesn't fit the window.
 
 ## Rooms (play with friends)
 
