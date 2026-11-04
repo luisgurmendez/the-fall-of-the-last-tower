@@ -41,7 +41,7 @@ export default defineScenario({
   steps: [
     { at: 0.3, note: 'Q on the tank', run: sim => { sim.cast('fenris', 'Q', sim.champion('tank').id); } },
     { at: 1.0, note: 'W on the tank', run: sim => { sim.cast('fenris', 'W', sim.champion('tank').position); } },
-    { at: 1.6, run: sim => { slowedByW = sim.champion('tank').hasEffect('slow_30'); } }, // after W's cast time and swing
+    { at: 1.8, run: sim => { slowedByW = sim.champion('tank').hasEffect('slow_30'); } }, // after W's cast time and swing (0.25 + 0.45)
     { at: 2.0, note: 'E on Magnus', run: sim => { sim.cast('fenris', 'E', sim.champion('prey').id); } },
     { at: 2.8, run: sim => { pounceGap = sim.champion('fenris').position.distanceTo(sim.champion('prey').position); } },
     { at: 3.0, note: 'hurt: feral', run: sim => { sim.champion('fenris').health = sim.champion('fenris').maxHealth * 0.3; } },
