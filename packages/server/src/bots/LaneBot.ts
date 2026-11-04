@@ -77,8 +77,10 @@ const ABILITY_SLOTS: AbilitySlot[] = ['Q', 'W', 'E', 'R'];
  * - execute: to finish an enemy under half health (Urûk's Fatal Strike)
  * - kill: only when the hit would kill (Hop-To-Eat's kick, which otherwise
  *   sends the enemy out of reach)
+ * - marked: only on a target holding the champion's mark (`<championId>_mark`
+ *   from it) within the ability's reach (Kip's W and R, which fail without one)
  */
-const ABILITY_ROLES: Partial<Record<string, 'offense' | 'defense' | 'engage' | 'execute' | 'kill'>> = {
+const ABILITY_ROLES: Partial<Record<string, 'offense' | 'defense' | 'engage' | 'execute' | 'kill' | 'marked'>> = {
   vex_shroud: 'defense',
   vex_dash: 'engage',
   vex_ninja_mode: 'offense',
@@ -105,7 +107,17 @@ const ABILITY_ROLES: Partial<Record<string, 'offense' | 'defense' | 'engage' | '
   hop_w: 'offense',
   hop_e: 'engage',
   hop_r: 'kill',
+  kip_w: 'marked',
+  kip_e: 'engage',
+  kip_r: 'marked',
 };
+
+/** Whether a unit holds a champion's own mark (`<championId>_mark`, from it) */
+function holdsMarkOf(unit: ServerEntity, champion: ServerChampion): boolean {
+  const effects = (unit as Partial<{ activeEffects: { definitionId: string; sourceId?: string }[] }>).activeEffects;
+  const mark = `${champion.definition.id}_mark`;
+  return effects?.some(effect => effect.definitionId === mark && effect.sourceId === champion.id) ?? false;
+}
 
 /** Health ratio under which a target is worth an execute */
 const EXECUTE_HEALTH = 0.5;
@@ -409,6 +421,11 @@ export class LaneBot implements BotController {
       if (role === 'execute') {
         if (target.health / target.maxHealth > EXECUTE_HEALTH || distance > (definition.range ?? 300)) continue;
         return { type: InputType.ABILITY, slot, targetType: 'unit', targetEntityId: target.id };
+      }
+      if (role === 'marked') {
+        const reach = (definition.aoeRadius ?? definition.range ?? 300) + target.getRadius();
+        if (!holdsMarkOf(target, champion) || distance > reach) continue;
+        return { type: InputType.ABILITY, slot, targetType: 'none' };
       }
       if (role === 'kill') {
         const reach = (definition.range ?? 300) + champion.getRadius() + target.getRadius();
