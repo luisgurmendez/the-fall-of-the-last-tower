@@ -4,7 +4,7 @@ Fecha: 2026-11-04. **Estado:** diseño aprobado, sin implementar. Los números s
 
 ## Concepto
 
-Nocthar es un monstruo de ultratumba, medio zombie, que salió de su tumba y se niega a volver. Alto, encorvado y podrido, con brazos larguísimos y manos enormes llenas de tierra, carga en la espalda la lápida rota de su tumba. Con esas manos saca a los muertos del suelo para que peleen con él.
+Nocthar es un monstruo de ultratumba, medio zombie, que salió de su tumba y se niega a volver. Alto, encorvado y podrido, con brazos larguísimos, garras enormes llenas de tierra, las costillas al aire de un lado y unos mechones de pelo blanco. Con esas manos saca a los muertos del suelo para que peleen con él. El look parte de una variante de SpriteFusion que eligió el usuario, sin la lápida que llevaba en la espalda.
 
 - **Clase:** mago (escala con AP), a distancia. Va por mid o top.
 - **Cómo se juega:** junta un ejército chico de criaturas de huesos (los **Hollows**) con la pasiva y las maneja con la E. Con la R las funde en un **coloso**. Mientras el coloso está vivo, su W y su E cambian a habilidades del coloso.
@@ -104,6 +104,58 @@ Son órdenes a los Hollows, sin enfriamiento ni costo. Se apunta con el modo de 
 - **Volver a apretar R:** le da órdenes al coloso, con las mismas reglas que la E (punto, enemigo, Nocthar y radio máximo).
 - **Enfriamiento:** 120/100/80 s, que empieza a contar cuando muere el coloso.
 - **Cuando muere el coloso:** la pasiva vuelve a levantar Hollows, y la W y la E vuelven a las normales.
+
+## Legibilidad: animación, tiempos, VFX y sonido
+
+Cada habilidad tiene que poder leerse en plena partida:
+- **Animación:** una propia del que la lanza, distinta de las de los otros campeones.
+- **Tiempo de lanzamiento:** el enemigo lo ve venir.
+- **Aviso en el suelo:** si el efecto llega después, todos lo ven durante la espera.
+- **VFX del impacto:** propios.
+- **Sonido:** uno para el lanzamiento y otro para el impacto.
+
+**Paleta de los VFX:**
+- **Colores:** blanco hueso, marrón tierra y un gris verdoso frío y espectral.
+- **Para el miedo y los espíritus:** un celeste pálido (`#bfe3d6`).
+- **Colores que no van:** el violeta (es de Vile) y el verde veneno (es de Zhak'rul).
+
+| Habilidad (id) | Animación | Lanzamiento | Aviso / espera | Impacto | Sonidos |
+|---|---|---|---|---|---|
+| **Ataque básico** | Sacude una garra hacia adelante | — | — | Una astilla de hueso girando (proyectil) | `nocthar_attack` |
+| **Q** `nocthar_q` | Golpea el suelo con las dos garras delante suyo | 0,25 s | Círculo de 200 donde la tierra se agrieta y asoman puntas de dedos durante 0,6 s (`aoeDelay`) | Brotan manos de hueso que se cierran hacia el centro, con polvo | `nocthar_q` (garras en la tierra), `nocthar_q_burst` (tierra que estalla y huesos que se cierran) |
+| **W** `nocthar_w` | Echa la cabeza atrás y aúlla con los brazos abiertos | 0,3 s | — | Anillo de ondas celestes hasta 350, con el ícono de miedo en los afectados. Los Hollows a menos de 700 tienen llamitas pálidas en las garras durante 2 s | `nocthar_w` (lamento de ultratumba) |
+| **E** `nocthar_e` | Señala adelante con un dedo largo | — | Orden a un punto: una marca de garra en el suelo, que solo ve su equipo. Orden a un enemigo: una calavera sobre el enemigo, que ven todos (sabe que lo persiguen) | Con la carga, los Hollows levantan polvo y les brillan los ojos en rojo durante 3 s | `nocthar_e` (orden ronca), `nocthar_e_charge` (huesos que corren) |
+| **R** `nocthar_r` | Hunde los dos brazos en la tierra y hace fuerza, durante todo el lanzamiento | 1,5 s | Círculo de grietas de 250 que se llena en 1,5 s, que ven todos. Los Hollows corren al punto y se hunden | El coloso sale de la tierra: escombros, onda de choque y los enemigos levantados | `nocthar_r` (retumbo que crece), `nocthar_r_emerge` (erupción y rugido) |
+| **R de nuevo** (orden al coloso) | La del E | — | Las mismas marcas del E | — | `nocthar_e` |
+| **W del coloso** `nocthar_colossus_w` | El coloso se arranca un hueso de la espalda y lo tira por arriba del hombro | 0,4 s | Círculo de 200 en el destino durante la preparación y el vuelo (unos 0,5 s; los huesos van en arco) | Huesos que se astillan, polvo, ralentización | `nocthar_colossus_w` (crujido y silbido), `nocthar_colossus_w_impact` (impactos de hueso) |
+| **E del coloso** `nocthar_colossus_e` | Baja la cabeza, rasca el suelo y carga | 0,35 s | Línea de 500 × 120 desde el coloso durante la preparación | Choque al final y enemigos levantados | `nocthar_colossus_e` (galope de pisotones), `nocthar_colossus_e_end` (choque) |
+| **Pasiva: nace un Hollow** (evento `nocthar_hollow_rise`) | El Hollow sale arañando de la tierra (el sprite emerge recortado) | 0,75 s | Grieta y una mano que asoma en el lugar | — | `nocthar_hollow_rise` |
+| **Pasiva: cura al coloso** | — | — | — | Una voluta celeste va del muerto al coloso | — |
+| **Ataque del Hollow** | Zarpazo | — | — | — | `nocthar_hollow_attack` |
+| **Ataque del coloso** | Golpe con los dos puños desde arriba | — | — | Polvo | `nocthar_colossus_attack` |
+| **Se desarma** (un Hollow o el coloso) | — | — | — | Huesos que caen y polvo | `nocthar_hollow_crumble`, `nocthar_colossus_crumble` |
+
+### Sprites (PixelLab, `scripts/generate-sprites.ts`)
+
+**Nivel de detalle:** el que eligió el usuario en SpriteFusion: un lienzo de 64 con detalle medio, no "low detail". Los últimos campeones son de 64 y poco detalle, y se veían borrosos al lado de los de 96.
+
+- **Nocthar:**
+  - **Lienzo:** 64, detalle medio, cuatro direcciones (este, sur y norte; el oeste es el este en espejo).
+  - **Referencia:** la variante de SpriteFusion sin la lápida.
+  - **Animaciones:**
+    - idle: encorvado, se balancea y crispa las garras;
+    - walk: arrastra los pies, tambaleándose;
+    - attack, q, w, e y r: las de la tabla.
+- **Hollow:**
+  - **Cómo es:** un ghoul chico de huesos gris-blancos y tierra seca, del tamaño de un minion.
+  - **Animaciones:** idle, walk (corre a saltitos) y attack (zarpazo).
+  - **Variantes:** el Hollow grande es el mismo sprite más grande.
+- **Coloso:**
+  - **Cómo es:** una mole encorvada hecha de cientos de huesos fundidos y tierra apisonada. Tiene un cráneo enorme, costillas como placas y puños gigantes de hueso. Lienzo de 96 con detalle medio; crece con los Hollows absorbidos.
+  - **Animaciones:** idle, walk (pisotones), attack (golpe con los dos puños), w y e (las de la tabla). Sale de la tierra con el sprite recortado y VFX, sin una animación aparte.
+- **Íconos y retrato:**
+  - 7 íconos de 32 px en `src/assets/abilities/nocthar/`: `passive`, `q`, `w`, `e`, `r`, `colossus_w` y `colossus_e`;
+  - el retrato.
 
 ## Ingeniería
 
