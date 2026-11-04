@@ -203,7 +203,7 @@ export const NoctharGraspingHands: AbilityDefinition = {
   castTime: 0.25,
   range: 340,
   aoeRadius: 95,
-  aoeDelay: 0.6, // The ground cracks, then the hands
+  aoeDelay: 0.85, // The ground cracks and the fingertips poke out, then the hands
   shape: "circle",
   damage: {
     type: "magic",
@@ -222,7 +222,7 @@ export const NoctharLament: AbilityDefinition = {
   maxRank: 5,
   manaCost: [70, 75, 80, 85, 90],
   cooldown: [14, 13, 12, 11, 10],
-  castTime: 0.3,
+  castTime: 0.5, // He draws breath: a channel the enemy sees coming
   aoeRadius: 150,
   appliesEffects: ["fear"],
   effectDuration: 1,

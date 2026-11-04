@@ -35,8 +35,9 @@ const GRASPING_HANDS = getAbilityDefinition("nocthar_q");
 
 const SETS: Record<string, RisingSpriteSet> = {
   nocthar_q: {
+    // 60px frames, the hand 39px tall (open), its wrist on the same row in every frame; shut from frame 4
     strip: "/assets/sprites/fx/nocthar_hand/grab.png",
-    scale: 0.8,
+    scale: 0.85,
     radius: GRASPING_HANDS?.aoeRadius ?? 95,
     count: 6,
     rise: (GRASPING_HANDS?.aoeDelay ?? 0.6) * 1000,

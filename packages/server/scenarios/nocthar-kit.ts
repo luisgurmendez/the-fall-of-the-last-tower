@@ -68,7 +68,8 @@ export default defineScenario({
       hunting = summons(sim, 'hollow').filter(hollow => hollow.order.kind === 'attack').length;
     } },
     { at: 3, note: 'Grasping Hands on Kael', run: sim => { sim.cast('nocthar', 'Q', sim.champion('kael').position); } },
-    { at: 4, run: sim => { slowed = sim.champion('kael').hasEffect('slow_30'); } },
+    // (its cast, then the circle filling before the hands)
+    { at: 4.15, run: sim => { slowed = sim.champion('kael').hasEffect('slow_30'); } },
     { at: 4.2, note: 'Kael walks up to him; Lament', run: sim => {
       const nocthar = sim.champion('nocthar').position;
       sim.champion('kael').position.setFrom(nocthar.added(nocthar.subtracted(nocthar).normalized().scaled(0)).clone());

@@ -7,9 +7,9 @@
  *   passive is ready; then it waits 25 s (15 s at level 18). Up to 5; a
  *   champion rises as a big one. With the colossus alive none rise: the
  *   deaths heal the colossus instead (1% a unit, 25% a champion)
- * - Q: Grasping Hands - 0.25 s cast, then 0.6 s later hands burst out of a
+ * - Q: Grasping Hands - 0.25 s cast, then 0.85 s later hands burst out of a
  *   circle: damage, a drag toward its middle and a 30% slow
- * - W: Lament - 0.3 s cast: enemies near him take damage and flee from him
+ * - W: Lament - 0.5 s cast (he channels it): enemies near him take damage and flee from him
  *   for 1 s; his Hollows near him attack faster for 2 s
  * - E: Heed Me - free orders to the Hollows (ground: go there; enemy: hunt
  *   it; himself: come back); the first after its cooldown is a charge
@@ -255,6 +255,8 @@ describe('Nocthar', () => {
       expect(arena.castAbility(arena.blue, 'Q', { targetPosition: p(200), casting: true }).success).toBe(true);
       expect(arena.blue.isCasting()).toBe(true);
       expect(Q.castTime).toBe(0.25);
+      // The circle fills a while before the hands come
+      expect(Q.aoeDelay).toBe(0.85);
     });
 
     test('nothing until the ground cracks open, then damage in the circle', () => {
@@ -305,7 +307,7 @@ describe('Nocthar', () => {
       const arena = noctharArena();
       expect(arena.castAbility(arena.blue, 'W', { casting: true }).success).toBe(true);
       expect(arena.blue.isCasting()).toBe(true);
-      expect(W.castTime).toBe(0.3);
+      expect(W.castTime).toBe(0.5);
     });
 
     test('enemies near him take damage and flee from him for 1 s', () => {
