@@ -161,6 +161,16 @@ export const ICONS: Record<string, ChampionIcons> = {
       r: { seed: 10, prompt: 'a huge scorpion stinger dripping glowing green venom' },
     },
   },
+  kip: {
+    theme: 'burnt orange, bullseye red and white, and gold',
+    icons: {
+      passive: { seed: 8, prompt: 'a big red and white bullseye target with an arrow stuck dead center and a burst of gold' },
+      q: { seed: 9, prompt: 'an arrow flying toward a small red and white bullseye target' },
+      w: { seed: 8, prompt: 'a fast running sandal with orange speed lines' },
+      e: { seed: 8, prompt: 'an orange cape flying in a high leap over a burst of dust' },
+      r: { seed: 8, prompt: 'a fan of many golden arrows flying out in all directions' },
+    },
+  },
   uruk: {
     theme: 'silver, steel grey and icy blue',
     icons: {

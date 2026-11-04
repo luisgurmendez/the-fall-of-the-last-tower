@@ -418,6 +418,34 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
     e: 'rears up high with both pincers raised wide open, then slams them down in front of it and settles on its six legs',
     r: 'arches its tail and stabs the stinger forward over its head, then pulls the tail back',
   }),
+  // A scrappy kid with a bow too big for him, out to prove he's the best.
+  // His first takes (a blond boy in a blue tunic) looked like another game's
+  // hero: the look is our own now (curls, headband, orange cape, purple sash)
+  champion('kip', {
+    name: 'Kip',
+    size: 64,
+    detail: 'low detail',
+    directions: ['east', 'south', 'north'],
+    reference: {
+      description: 'a cocky small teenage boy archer standing facing the viewer, messy dark brown curly hair with a white headband whose long tails flutter, freckles and a big grin, a short burnt-orange hooded cape with the hood down, a cream shirt with a purple sash, olive shorts, bandaged forearms, sandals, and an oversized wooden longbow taller than him held upright in one hand, no effects',
+      seed: 21,
+    },
+    // Told to shoot seen from behind, he turned sideways (shooting west) or
+    // round to grin at the viewer: his north shots say where the bow points
+    directionActions: {
+      'attack@north': 'seen from behind, raises the oversized longbow straight up in front of him, draws the string back and looses an arrow straight up away from the viewer, only his back, cape and headband knot visible the whole time',
+      'q@north': 'seen from behind, quickly raises the oversized longbow in front of him, draws and shoots an arrow straight up away from the viewer, only his back, cape and headband knot visible the whole time',
+      'w@north': 'seen from behind, thrusts the longbow up high away from the viewer and pumps his other fist, only his back, cape and headband knot visible the whole time',
+    },
+    description: 'a cocky small teenage boy archer with messy dark brown curly hair, a white headband with long tails, freckles, a short burnt-orange hooded cape with the hood down, a cream shirt with a purple sash, olive shorts, bandaged forearms, sandals and an oversized wooden longbow taller than him',
+    idle: 'standing with the oversized longbow upright at his side, bouncing on his heels impatiently, breathing',
+    walk: 'walks forward in a looping walk cycle with a cocky swagger, the longbow held at his side',
+    attack: 'draws the oversized longbow and looses an arrow straight forward',
+    q: 'quickly draws the longbow and shoots an arrow straight forward with a showy flourish of the bow',
+    w: 'points his bow forward and pumps his other fist, grinning',
+    e: 'leaps forward high in a showy jump and lands crouching with the bow ready',
+    r: 'draws and looses the longbow forward again and again, rapidly, several shots one after another',
+  }),
   champion('warrior', {
     name: 'Kael',
     description: 'a young knight in steel plate armor with a blue tabard, holding a longsword and a round steel shield',
