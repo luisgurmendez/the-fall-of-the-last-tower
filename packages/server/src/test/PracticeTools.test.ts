@@ -228,6 +228,8 @@ describe('Practice tools: cooldowns', () => {
     run(TICK);
     expect(vile.summoners.getState()[0].cooldownRemaining).toBe(0);
     expect(vile.summoners.cast(0, { x: vile.position.x - 100, y: vile.position.y }, context)).toBe(true);
+    run(TICK);
+    expect(vile.summoners.getState()[0].cooldownRemaining).toBe(0);
 
     use('toggle_no_cooldowns');
     trap();
@@ -235,7 +237,6 @@ describe('Practice tools: cooldowns', () => {
     expect(traps()).toBe(8);
     expect(vile.abilityStates.E.cooldownRemaining).toBeGreaterThan(0);
     expect(vile.abilityStates.E.charges).toBe(4);
-    run(SUMMONER_SPELLS.blink.cooldown);
     expect(vile.summoners.cast(0, { x: vile.position.x + 100, y: vile.position.y }, context)).toBe(true);
     run(TICK);
     expect(vile.summoners.getState()[0].cooldownRemaining).toBeGreaterThan(SUMMONER_SPELLS.blink.cooldown - 1);
