@@ -16,11 +16,12 @@
  * stands still for eight frames and throws on the ninth, while his damage
  * lands halfway. With a strip's blow frame (`StripTiming`), it's retimed so
  * that frame shows as the attack's damage lands or the ability takes effect
- * (retimedFrame, abilityImpactTime).
+ * (retimedFrame, animationImpactTime: an ability with a cast time starts its
+ * animation at the windup, so its blow comes after the cast time).
  */
 
 import { getBasicAttackDamageDelay, getBasicAttackDuration, getChampionDefinition } from "@siege/shared";
-import { abilityImpactTime } from "@/core/state/abilityTiming";
+import { animationImpactTime } from "@/core/state/abilityTiming";
 import type {
   EntityRenderContext,
   EntityRenderState,
@@ -194,7 +195,7 @@ export function createStripBodyRenderer(
       } else if (src === strips.attack) {
         frameIndex = retimedFrame(progress, frameCount, timing.attackBlow, hitShare(snapshot.championId, snapshot.attackSpeed));
       } else if (src === abilityStrip && !dashStrip && cast.abilityId && cast.duration) {
-        frameIndex = retimedFrame(progress, frameCount, timing.abilityBlows?.[cast.abilityId], abilityImpactTime(cast.abilityId) / cast.duration);
+        frameIndex = retimedFrame(progress, frameCount, timing.abilityBlows?.[cast.abilityId], animationImpactTime(cast.abilityId) / cast.duration);
       } else {
         frameIndex = Math.min(frameCount - 1, Math.floor(progress * frameCount));
       }

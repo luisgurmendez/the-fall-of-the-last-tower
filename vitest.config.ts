@@ -18,6 +18,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
+      // As vite.config.ts: the shared package's source, not whatever node_modules links to
+      '@siege/shared': resolve(__dirname, './packages/shared/src'),
     },
   },
 });

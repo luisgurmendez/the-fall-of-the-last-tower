@@ -15,9 +15,10 @@ const VEX_STRIPS = generatedStrips(
   {
     // The Shadow Step strip's blur is near its end
     dashHold: { vex_dash: 0.8 },
-    // The frames where the blow lands: the slash, the throw, the smoke, the blades drawn
+    // The frames where the blow lands: the slash, the throw, the smoke, the two-blade stance
+    // (R's strip of 2026-11-04)
     attackBlow: 6,
-    abilityBlows: { vex_shuriken: 3, vex_shroud: 4, vex_ninja_mode: 3 },
+    abilityBlows: { vex_shuriken: 3, vex_shroud: 4, vex_ninja_mode: 6 },
   },
 );
 

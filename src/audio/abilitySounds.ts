@@ -54,17 +54,24 @@ export const ABILITY_CUES: Record<string, AbilityCue[]> = {
   warrior_ultimate_land: [{ sound: "warrior_ultimate_strike", at: "target" }],
   magnus_fireball: [{ sound: "magnus_fireball", delay: landsAt("magnus_fireball") }],
   magnus_mud: [{ sound: "magnus_mud", delay: landsAt("magnus_mud"), at: "target" }],
+  // The beam shooting up from his staff in the cast time
+  magnus_meteor_windup: [{ sound: "magnus_meteor_windup" }],
   magnus_meteor: [
-    { sound: "magnus_meteor_fall", at: "target" },
+    // The whistle (0.7 s) ends as it hits
+    { sound: "magnus_meteor_fall", at: "target", delay: Math.max(0, landsAt("magnus_meteor") - 0.7) },
     { sound: "magnus_meteor_impact", delay: landsAt("magnus_meteor"), at: "target" },
   ],
   elara_heal: [{ sound: "elara_heal", at: "target" }],
   elara_barrier: [{ sound: "elara_barrier", at: "target" }],
+  // He hoists the hammer in the cast time, it falls when the slam lands
+  gorath_slam_windup: [{ sound: "gorath_slam_windup" }],
   gorath_slam: [{ sound: "gorath_slam", delay: landsAt("gorath_slam") }],
-  gorath_earthquake: [
-    { sound: "gorath_earthquake_rumble" },
-    { sound: "gorath_earthquake", delay: landsAt("gorath_earthquake") },
-  ],
+  gorath_taunt_windup: [{ sound: "gorath_taunt_windup" }],
+  // He draws breath in the cast time, roars when it lands
+  gorath_taunt: [{ sound: "gorath_taunt", delay: landsAt("gorath_taunt") }],
+  // The ground starts rumbling as he heaves the hammer back (the cast time)
+  gorath_earthquake_windup: [{ sound: "gorath_earthquake_rumble" }],
+  gorath_earthquake: [{ sound: "gorath_earthquake", delay: landsAt("gorath_earthquake") }],
   lume_q: [{ sound: "lume_q" }],
   lume_q_arrive: [{ sound: "lume_q_arrive", at: "target" }],
   // Warmth pulses from the orb (the cast's point)

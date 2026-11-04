@@ -61,7 +61,7 @@
   "warrior": {
     "animations": {
       "w": "7c4d8ba0-1037-48ff-b524-f2b9af128028",
-      "q": "b49fa835-c46b-4fb1-bb74-ac0a692ef7f5",
+      "q": "b3eba63a-38cc-464b-ba8c-fa9e2bee3413",
       "r": "757494a6-d98c-4722-b00f-133e36493150",
       "e": "26ed5136-9563-4205-9f3d-49787caf8f93",
       "idle": "566fe532-98e3-46fe-a685-26780bb420ef",
@@ -72,9 +72,9 @@
   },
   "magnus": {
     "animations": {
-      "r": "62772068-9d95-42d7-9ac9-f0345c86cf98",
+      "r": "ca664be2-6d2e-4447-8f59-300157b6ddc7",
       "w": "c1a9291b-b90f-4df6-af39-7e011122e6a3",
-      "q": "e7bf4143-ef28-454b-a6cd-c9b33ad31201",
+      "q": "fa1154d8-e869-4791-9658-010716b927a1",
       "attack": "f97c6db2-68be-4849-84e1-2439c000a6e5",
       "e": "c908fb4c-4200-4bbc-ab5e-73727dc9cba3",
       "idle": "6065310c-6c95-43cf-abef-2994413cf5db",
@@ -84,9 +84,9 @@
   },
   "elara": {
     "animations": {
-      "w": "3dbbbb51-3c48-4fdc-a05b-c9e9a009a3bf",
-      "q": "5e7ce3d9-66fc-4614-abd1-f3a171f5bf76",
-      "r": "c50c5d06-2120-4168-a9ee-d09e2c7ccab2",
+      "w": "9bd9b0b9-f98d-408d-8a36-7f4df7ef29ca",
+      "q": "7bb6e0f7-7014-4450-9cbf-aeaf81f0d7bb",
+      "r": "a8578953-929c-45d0-8f49-7c1029a32e5b",
       "attack": "3d256930-9925-4d8a-aa82-2c4dde455474",
       "e": "8bcf87aa-e603-4c7a-9d0c-677e4d668cab",
       "idle": "0c5d710c-b3e7-457f-bf3f-e252647a367f",
@@ -97,11 +97,11 @@
   "gorath": {
     "animations": {
       "attack": "dff9422e-62bb-44ed-bd8f-4c23c68a7bd3",
-      "e": "7bdb391c-2c63-4050-bcfc-afc2166d0fd2",
-      "w": "aba2d755-d9e3-46a2-b57c-79b8fefd796b",
-      "q": "21413e94-90bf-4fa7-8d91-4622620adb0e",
+      "e": "b2ba7ef3-55b1-457c-91bf-101a74dd268f",
+      "w": "5bb920e9-5544-4d3e-af30-3d9e3f56040d",
+      "q": "8599697e-ff21-4a78-a8f5-7786521d2153",
       "idle": "b994f7df-120d-45d0-b0ac-fcc84ad222b2",
-      "r": "deb208bd-a7a6-47f1-b939-62fecd2e8502",
+      "r": "6a6932b8-1b4f-474e-99d5-5d8d69db6092",
       "walk": "7e01402f-d47c-4c61-9f59-9f0b9154ceac"
     },
     "characterId": "872ea5b0-5fe0-4b9e-a447-fbecfe4e5a19"
@@ -109,7 +109,7 @@
   "vex": {
     "animations": {
       "e": "d17861db-2ec6-4633-a0ed-bd7c4569b5f6",
-      "r": "a5e503fb-1a9c-48dd-a917-88e18243f66b",
+      "r": "c38df685-28a4-4b26-9e2c-d5c3473d6e43",
       "w": "f4031699-8f95-4ded-a66a-14ec03828166",
       "attack": "752e48d9-2ab9-45a6-bd28-6ff8447109b1",
       "q": "fb8d66a7-a13b-4ea6-8554-7245dfb32899",

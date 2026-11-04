@@ -15,7 +15,8 @@ const WARRIOR_STRIPS = generatedStrips("warrior", {
 }, {
   // The frames where the blow lands: the sword sweeps, the shield comes up, the leap's slash
   attackBlow: 3,
-  abilityBlows: { warrior_slash: 7, warrior_shield: 5, warrior_ultimate: 7 },
+  // (Q's strip of 2026-11-04: the sword fully out on frame 5)
+  abilityBlows: { warrior_slash: 5, warrior_shield: 5, warrior_ultimate: 7 },
 });
 
 /** World units per sprite pixel */

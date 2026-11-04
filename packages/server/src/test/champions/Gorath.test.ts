@@ -15,6 +15,7 @@ import {
   Vector,
   CHAMPION_DEFINITIONS,
   getAbilityDefinition,
+  getCastTime,
   getPassiveDefinition,
   InputType,
   TEAM_RED,
@@ -762,7 +763,8 @@ describe('Gorath', () => {
         });
         sim.run(0.1);
         sim.cast('gorath', 'E');
-        sim.run(ROAR.aoeDelay! + 0.1);
+        // He draws breath (cast time), then roars (its delay)
+        sim.run(getCastTime(ROAR) + ROAR.aoeDelay! + 0.1);
         expect(kael.hasEffect('taunt')).toBe(true);
         return { sim, gorath, kael };
       }

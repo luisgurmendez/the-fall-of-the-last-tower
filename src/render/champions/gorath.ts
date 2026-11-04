@@ -13,9 +13,10 @@ const GORATH_STRIPS = generatedStrips("gorath", {
   e: "gorath_taunt",
   r: "gorath_earthquake",
 }, {
-  // The frames where the blow lands: the hammer hits the ground, the roar, the quake's blow
+  // The frames where the blow lands: the hammer hits the ground (slam and quake: the strips
+  // of 2026-11-04), the roar's head thrown back
   attackBlow: 7,
-  abilityBlows: { gorath_slam: 7, gorath_taunt: 2, gorath_earthquake: 4 },
+  abilityBlows: { gorath_slam: 7, gorath_taunt: 3, gorath_earthquake: 7 },
 });
 
 /** World units per sprite pixel: a little bigger than the others, he's the tank */
