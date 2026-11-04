@@ -10,6 +10,9 @@
  * - GET /api/current-match → { match } (null without one): the match to go
  *   back to, for the account's bearer token or a guest's last match
  *   (X-Siege-Player, X-Siege-Session); see game/currentMatch.ts
+ * - GET /api/profile/<name>[?before=<match id>] → { profile, matches, more }
+ *   (404 no_account): public, like the names in matches
+ * - GET /api/matches/<id> → { match } (404 no_match): both teams
  *
  * Bodies over MAX_BODY_BYTES are refused (413). One address gets at most
  * LOGIN_ATTEMPTS_PER_MINUTE sign-ups and sign-ins a minute (429). Tokens
@@ -49,6 +52,13 @@ function bearerToken(request: Request): string | null {
   return match ? match[1] : null;
 }
 
+/** A match id written in a path or a query (1, 2, ...), or null if it isn't one */
+function matchId(text: string): number | null {
+  if (!/^[1-9]\d{0,15}$/.test(text)) return null;
+  const id = Number(text);
+  return Number.isSafeInteger(id) ? id : null;
+}
+
 export class AccountRoutes {
   private readonly now: () => number;
   /** Each address's recent sign-ups and sign-ins (ms) */
@@ -70,6 +80,10 @@ export class AccountRoutes {
     const { pathname } = new URL(request.url);
     if (!pathname.startsWith('/api/')) return null;
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: PREFLIGHT_HEADERS });
+
+    // Profiles and matches, public (GET /api/profile/<name>, /api/matches/<id>)
+    const history = this.history(request, pathname);
+    if (history) return history;
 
     switch (pathname) {
       case '/api/register':
@@ -105,6 +119,33 @@ export class AccountRoutes {
       default:
         return reply(404, { error: 'not_found' });
     }
+  }
+
+  /** A profile or a match; null for other paths */
+  private history(request: Request, pathname: string): Response | null {
+    const profile = /^\/api\/profile\/([^/]*)$/.exec(pathname);
+    const match = /^\/api\/matches\/([^/]+)$/.exec(pathname);
+    if (!profile && !match) return null;
+    if (request.method !== 'GET') return reply(405, { error: 'method_not_allowed' });
+
+    if (match) {
+      const id = matchId(match[1]);
+      if (id === null) return reply(400, { error: 'bad_request' });
+      const found = this.store.match(id);
+      return found ? reply(200, { match: found }) : reply(404, { error: 'no_match' });
+    }
+
+    let name: string;
+    try {
+      name = decodeURIComponent(profile![1]);
+    } catch {
+      return reply(400, { error: 'bad_request' });
+    }
+    const beforeParam = new URL(request.url).searchParams.get('before');
+    const before = beforeParam === null ? undefined : matchId(beforeParam);
+    if (before === null) return reply(400, { error: 'bad_request' });
+    const found = this.store.profile(name, { before });
+    return found ? reply(200, found) : reply(404, { error: 'no_account' });
   }
 
   private answer(result: AccountResult): Response {

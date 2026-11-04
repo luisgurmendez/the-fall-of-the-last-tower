@@ -36,6 +36,7 @@ import { reachesSide } from '../network/eventAudience';
 import type { ClientInput, DebugStateData, FinalPlayerStats } from '@siege/shared';
 import { buildDebugState } from './DebugReport';
 import { PracticeTools } from './practiceTools';
+import type { MatchMode } from '../accounts/AccountStore';
 import { Logger } from '../utils/Logger';
 
 export interface PlayerInfo {
@@ -63,7 +64,9 @@ export interface GameRoomConfig {
   allowDebug?: boolean;
   /** A practice match (against bots): its result doesn't count for accounts */
   practice?: boolean;
-  onStateUpdate?: (playerId: string, update: StateUpdate) => void;
+  /** Where it came from: the queue (default) or a room of friends (its match history says) */
+  mode?: MatchMode;
+  onStateUpdate?:(playerId: string, update: StateUpdate) => void;
   /** A debug overlay's DEBUG_STATE for a player who turned it on */
   onDebugState?: (playerId: string, data: DebugStateData) => void;
   onGameEnd?: (winningSide: Side) => void;
@@ -100,6 +103,8 @@ export class GameRoom {
   private readonly practice: boolean;
   /** Levels, teleports, no cooldowns... (practice matches only) */
   private readonly practiceTools = new PracticeTools(() => this.botPlayerIds());
+  /** From the queue or a room of friends */
+  readonly mode: MatchMode;
   /** Players who turned it on */
   private readonly debugPlayers = new Set<string>();
   /** Debug states go out every this many broadcasts (10 a second at 30) */
@@ -116,6 +121,7 @@ export class GameRoom {
     this.onGameEnd = config.onGameEnd;
     this.allowDebug = config.allowDebug ?? false;
     this.practice = config.practice ?? false;
+    this.mode = config.mode ?? 'queue';
 
     // Initialize players
     for (const player of config.players) {

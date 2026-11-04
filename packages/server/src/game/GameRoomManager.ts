@@ -10,6 +10,7 @@
 
 import { GameRoom, type PlayerInfo, type GameRoomState } from './GameRoom';
 import type { BotController } from '../bots/BotController';
+import type { MatchMode } from '../accounts/AccountStore';
 import type { ClientInput, StateUpdate, FullStateSnapshot, ChampionDefinition, Side, MapId, DebugStateData } from '@siege/shared';
 import { Logger } from '../utils/Logger';
 
@@ -84,7 +85,7 @@ export class GameRoomManager {
     players: PlayerInfo[],
     bots: BotController[] = [],
     mapId: MapId = 'vale',
-    options: { allowDebug?: boolean; practice?: boolean } = {},
+    options: { allowDebug?: boolean; practice?: boolean; mode?: MatchMode } = {},
   ): GameRoom {
     const gameId = `game-${Date.now()}-${this.gameIdCounter++}`;
 
@@ -95,6 +96,7 @@ export class GameRoomManager {
       mapId,
       allowDebug: options.allowDebug,
       practice: options.practice,
+      mode: options.mode,
       championDefinitions: this.championDefinitions,
       onStateUpdate: (playerId, update) => {
         this.onStateUpdate?.(playerId, update);

@@ -1355,3 +1355,304 @@
   color: var(--pixel-text-dim);
   text-shadow: 2px 2px 0 #000;
 }
+
+
+/* ============================================ */
+/* Profile: rating, record, matches             */
+/* (profileScreen.ts)                           */
+/* ============================================ */
+
+/* The profile needs the room: no logo over it */
+.matchmaking-container.profile-mode .game-logo,
+.matchmaking-container.profile-mode .game-subtitle {
+  display: none;
+}
+
+/* Nor the tip under it */
+#matchmaking-overlay:has(.profile-mode) {
+  padding-bottom: 0;
+}
+
+#matchmaking-overlay:has(.profile-mode) .tip-text {
+  display: none;
+}
+
+.matchmaking-container.profile-mode {
+  max-width: 1100px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 24px;
+}
+
+.profile-panel {
+  font-family: var(--pixel-font);
+  text-align: left;
+  background: rgba(14, 14, 28, 0.88);
+  border: 4px solid var(--pixel-gold-dark);
+  box-shadow:
+    inset -4px -4px 0 0 rgba(0, 0, 0, 0.45),
+    inset 4px 4px 0 0 rgba(255, 255, 255, 0.06),
+    6px 6px 0 #000;
+  padding: 20px 24px;
+}
+
+.profile-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 22px;
+  margin-bottom: 14px;
+}
+
+.profile-name {
+  font-size: 48px;
+  color: var(--pixel-gold);
+  text-shadow: 2px 2px 0 var(--pixel-gold-darker), 4px 4px 0 #000;
+  letter-spacing: 2px;
+}
+
+.profile-tier {
+  font-size: 30px;
+  padding: 2px 12px;
+  border: 3px solid currentColor;
+  text-shadow: 2px 2px 0 #000;
+  color: var(--pixel-text-dim);
+}
+
+.profile-tier.tier-bronze { color: #c98a4b; }
+.profile-tier.tier-silver { color: #c8d0dc; }
+.profile-tier.tier-gold { color: var(--pixel-gold); }
+.profile-tier.tier-platinum { color: #6fe0c8; }
+.profile-tier.tier-diamond { color: #7fb8ff; }
+.profile-tier.tier-master { color: #d68cff; }
+
+.profile-record {
+  font-size: 26px;
+  display: flex;
+  gap: 10px;
+}
+
+.profile-wins { color: var(--pixel-health); }
+.profile-losses { color: var(--pixel-error); }
+
+.profile-note {
+  color: var(--pixel-text-dim);
+  font-size: 19px;
+}
+
+.profile-loading,
+.profile-empty {
+  color: var(--pixel-text-dim);
+  font-size: 22px;
+}
+
+.profile-section-title {
+  font-size: 24px;
+  color: var(--pixel-gold-dark);
+  letter-spacing: 3px;
+  margin: 10px 0 8px;
+}
+
+.profile-champion-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.profile-champion {
+  display: grid;
+  grid-template-columns: 48px auto;
+  grid-template-rows: auto auto;
+  column-gap: 10px;
+  align-items: center;
+  padding: 6px 12px 6px 6px;
+  background: var(--pixel-bg-dark);
+  border: 3px solid var(--pixel-border);
+}
+
+.profile-champion .profile-portrait {
+  grid-row: span 2;
+}
+
+.profile-champion-name {
+  font-size: 22px;
+  color: var(--pixel-text);
+}
+
+.profile-portrait {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  background: var(--pixel-bg-darker);
+  border: 2px solid var(--pixel-border);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.profile-portrait.small {
+  width: 36px;
+  height: 36px;
+  font-size: 20px;
+}
+
+.profile-matches {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.profile-match-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 48px 150px 110px 110px auto 90px 70px;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 10px 6px 6px;
+  font-family: var(--pixel-font);
+  font-size: 21px;
+  color: var(--pixel-text);
+  text-align: left;
+  background: var(--pixel-bg-dark);
+  border: 3px solid var(--pixel-border);
+  border-left: 8px solid var(--pixel-border);
+  cursor: pointer;
+}
+
+.profile-match-row.won { border-left-color: var(--pixel-health); }
+.profile-match-row.lost { border-left-color: var(--pixel-error); }
+
+.profile-match-row:hover,
+.profile-match-row.open {
+  background: var(--pixel-bg-light);
+  border-color: var(--pixel-border-highlight);
+}
+
+.profile-match-row.won:hover,
+.profile-match-row.won.open { border-left-color: var(--pixel-health); }
+.profile-match-row.lost:hover,
+.profile-match-row.lost.open { border-left-color: var(--pixel-error); }
+
+.profile-match-outcome {
+  font-size: 24px;
+  letter-spacing: 2px;
+}
+
+.profile-match-row.won .profile-match-outcome { color: var(--pixel-health); }
+.profile-match-row.lost .profile-match-outcome { color: var(--pixel-error); }
+
+.profile-match-rating {
+  font-size: 22px;
+  color: var(--pixel-text-dim);
+  text-align: right;
+}
+
+.profile-match-rating.up { color: var(--pixel-health); }
+.profile-match-rating.down { color: var(--pixel-error); }
+
+.profile-items {
+  display: flex;
+  gap: 2px;
+}
+
+.profile-item {
+  width: 28px;
+  height: 28px;
+  background: var(--pixel-bg-light);
+  border: 2px solid var(--pixel-border);
+}
+
+.profile-item img {
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  display: block;
+}
+
+.profile-scoreboard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 4px 0 6px 16px;
+  padding: 10px;
+  font-size: 20px;
+  color: var(--pixel-text-dim);
+  background: rgba(10, 10, 18, 0.9);
+  border: 3px solid var(--pixel-border);
+}
+
+.profile-team {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.profile-team-title {
+  font-size: 20px;
+  letter-spacing: 2px;
+}
+
+.profile-team.blue .profile-team-title { color: var(--pixel-team-blue); }
+.profile-team.red .profile-team-title { color: var(--pixel-team-red); }
+
+.profile-line {
+  display: grid;
+  grid-template-columns: 36px minmax(160px, 1fr) 100px 140px auto 50px;
+  align-items: center;
+  gap: 10px;
+  color: var(--pixel-text);
+}
+
+.profile-line-who {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile-link {
+  color: var(--pixel-gold);
+  cursor: pointer;
+}
+
+.profile-link:hover {
+  text-decoration: underline;
+}
+
+.profile-more {
+  display: block;
+  margin: 12px auto 0;
+  font-size: 22px;
+  padding: 4px 24px;
+}
+
+.profile-more[hidden] {
+  display: none;
+}
+
+@media (max-width: 1000px) {
+  .profile-match-row {
+    grid-template-columns: 48px 1fr 1fr 1fr 60px;
+  }
+
+  .profile-match-row .profile-items,
+  .profile-match-row .profile-match-when {
+    display: none;
+  }
+
+  .profile-line {
+    grid-template-columns: 36px 1fr 90px 60px;
+  }
+
+  .profile-line .profile-line-farm,
+  .profile-line .profile-items {
+    display: none;
+  }
+}
+
+/* The rating on the menu's account line */
+.menu-account-rating {
+  color: var(--pixel-text);
+  margin-right: 10px;
+}

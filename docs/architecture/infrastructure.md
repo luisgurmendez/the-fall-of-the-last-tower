@@ -182,7 +182,7 @@ The keys are the player's bindings (defaults shown); see [controls.md](controls.
 - `EVENT` (2): Game events (kills, objectives)
 - `PONG` (4): Ping response
 - `GAME_START` (5): Match begins
-- `GAME_END` (6): Match concludes (winning side, length, every champion's final stats)
+- `GAME_END` (6): Match concludes (winning side, length, every champion's final stats; a rated match's rating changes)
 
 ## Key Files
 

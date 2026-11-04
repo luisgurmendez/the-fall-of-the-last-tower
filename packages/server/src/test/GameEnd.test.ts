@@ -77,6 +77,58 @@ describe("Players' names at the start", () => {
   });
 });
 
+describe('The match history', () => {
+  test('a room knows where it came from: the queue unless said (a room of friends)', () => {
+    const definitions = new Map<string, ChampionDefinition>(Object.entries(CHAMPION_DEFINITIONS));
+    const players = [{ playerId: 'a', side: 0 as const, championId: 'vex', connected: true }];
+    expect(new GameRoom({ gameId: 'q', players, championDefinitions: definitions }).mode).toBe('queue');
+    expect(new GameRoom({ gameId: 'r', players, championDefinitions: definitions, mode: 'room' }).mode).toBe('room');
+  });
+
+  test("a finished room's lines are what's kept: its champions, names and accounts", async () => {
+    const { AccountStore } = await import('../accounts/AccountStore');
+    const { matchRecordOf } = await import('../accounts/matchRecord');
+    const store = new AccountStore(':memory:');
+    const registered = await store.register('Luis', 'secreto1');
+    if (!registered.ok) throw new Error(registered.error);
+    const room = new GameRoom({
+      gameId: 'history-test',
+      players: [
+        { playerId: 'a', side: 0, championId: 'vex', connected: true, name: 'Luis' },
+        { playerId: 'b', side: 1, championId: 'vile', connected: true, isBot: true },
+      ],
+      championDefinitions: new Map<string, ChampionDefinition>(Object.entries(CHAMPION_DEFINITIONS)),
+      mode: 'room',
+    });
+    room.start();
+    try {
+      const recorded = store.recordMatch(matchRecordOf({
+        stats: room.getFinalStats(),
+        players: room.getPlayersWithEntityIds(),
+        accountOf: playerId => (playerId === 'a' ? registered.account.id : undefined),
+        mapId: room.mapId,
+        mode: room.mode,
+        practice: room.isPractice(),
+        duration: 90,
+        winningSide: 0,
+      }))!;
+      // Against a bot: kept and counted, not rated
+      expect(recorded.rated).toBe(false);
+      const match = store.match(recorded.matchId)!;
+      expect(match).toMatchObject({ mapId: 'vale', mode: 'room', duration: 90 });
+      expect(match.players.map(p => [p.name, p.championId, p.isBot, p.account, p.won])).toEqual([
+        ['Luis', 'vex', false, true, true],
+        [null, 'vile', true, false, false],
+      ]);
+      expect(match.players[0].items).toHaveLength(6);
+      expect(store.profile('Luis')!.profile).toMatchObject({ wins: 1, losses: 0 });
+    } finally {
+      room.stop();
+      store.close();
+    }
+  });
+});
+
 describe('Surrender', () => {
   function practiceRoom(onGameEnd: (side: number) => void) {
     return new GameRoom({

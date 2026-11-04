@@ -53,6 +53,19 @@
         <button class="mode-back" id="btn-account-back">BACK</button>
       </div>
 
+      <!-- An account's profile: rating, record, champions, latest matches (src/ui/matchmaking/profileScreen.ts) -->
+      <div class="mm-screen" id="screen-profile">
+        <div class="profile-panel">
+          <div class="profile-head" id="profile-head"></div>
+          <div class="profile-champions" id="profile-champions"></div>
+          <div class="profile-section-title">LATEST MATCHES</div>
+          <div class="profile-matches" id="profile-matches"></div>
+          <div class="mode-error" id="profile-error"></div>
+          <button class="mode-back profile-more" id="btn-profile-more" hidden>MORE</button>
+        </div>
+        <button class="mode-back" id="btn-profile-back">BACK</button>
+      </div>
+
       <!-- How to play: practice, a room with friends or the online queue (src/ui/matchmaking/modeSelect.ts) -->
       <div class="mm-screen" id="screen-modes">
         <div class="modes-title">HOW DO YOU WANT TO PLAY?</div>

@@ -30,6 +30,8 @@
  * - matchConnection.ts: NetworkClient setup, player ID and session token,
  *   and the full state and updates buffered for OnlineGame
  * - tips.ts: rotating gameplay tips
+ * - account.ts, accountScreen.ts: signing in, the menu's account line
+ * - profileScreen.ts, profileFormat.ts: an account's profile and its matches
  * - types.ts: screen, status, match data and callback types (re-exported here)
  * - ../title/: the animated title screen behind the menu
  */
@@ -55,10 +57,11 @@ import { RoomPanel, type Room } from "./roomPanel";
 import { fillHowToPlay } from "./howToPlay";
 import { AccountClient, apiBaseUrl } from "./account";
 import { AccountScreen } from "./accountScreen";
+import { ProfileScreen } from "./profileScreen";
 import { ControlsPanel } from "@/ui/ControlsPanel";
 
 /** The screens the title screen's valley shows behind (not champion select or the loading screen) */
-const TITLE_SCREENS: ReadonlySet<ScreenId> = new Set(["menu", "modes", "how-to-play", "settings", "account", "connecting", "queue", "error"]);
+const TITLE_SCREENS: ReadonlySet<ScreenId> = new Set(["menu", "modes", "how-to-play", "settings", "account", "profile", "connecting", "queue", "error"]);
 
 /** What champion select is for: the mode picked on the mode screen */
 type SelectFor =
@@ -150,6 +153,7 @@ export class MatchmakingUI {
     this.screens.set("how-to-play", getEl("screen-how-to-play"));
     this.screens.set("settings", getEl("screen-settings"));
     this.screens.set("account", getEl("screen-account"));
+    this.screens.set("profile", getEl("screen-profile"));
     this.screens.set("error", getEl("screen-error"));
 
     // Get status elements
@@ -180,8 +184,10 @@ export class MatchmakingUI {
       back: () => this.showScreen("menu"),
     });
 
-    // Signing in (the main menu's line, its screen); signed in, rooms show the account's name
-    new AccountScreen(this.accounts, (screen) => this.showScreen(screen));
+    // Signing in (the main menu's line, its screen); signed in, rooms show the account's name.
+    // Its line opens the account's profile (rating, matches)
+    const profile = new ProfileScreen(this.accounts, (screen) => this.showScreen(screen));
+    new AccountScreen(this.accounts, (screen) => this.showScreen(screen), (name) => profile.open(name));
     this.accounts.subscribe(current => {
       this.modes.setAccountName(current?.account.name ?? null);
       // Signed in elsewhere into a match, or out of it
@@ -372,6 +378,7 @@ export class MatchmakingUI {
       } else {
         container.classList.remove("champion-select-mode");
       }
+      container.classList.toggle("profile-mode", screenId === "profile");
     }
     this.titleScreen?.setActive(this.isVisible() && TITLE_SCREENS.has(screenId));
   }

@@ -14,7 +14,83 @@ export interface AccountInfo {
   name: string;
   wins: number;
   losses: number;
+  /** The rating and its tier (an account kept from before ratings has none until refreshed) */
+  rating?: number;
+  peakRating?: number;
+  ratedGames?: number;
+  tier?: string;
 }
+
+/** A champion an account played, and how it went */
+export interface ChampionRecordInfo {
+  championId: string;
+  games: number;
+  wins: number;
+}
+
+export interface ProfileInfo {
+  name: string;
+  wins: number;
+  losses: number;
+  rating: number;
+  peakRating: number;
+  ratedGames: number;
+  tier: string;
+  /** Most played first */
+  champions: ChampionRecordInfo[];
+}
+
+/** The numbers a champion's line in a match has */
+interface MatchLineInfo {
+  championId: string;
+  side: number;
+  won: boolean;
+  level: number;
+  kills: number;
+  deaths: number;
+  assists: number;
+  cs: number;
+  gold: number;
+  items: (string | null)[];
+  /** null when the match wasn't rated */
+  ratingBefore: number | null;
+  ratingAfter: number | null;
+}
+
+/** A match in a profile: the match, and the account's line in it */
+export interface MatchSummaryInfo extends MatchLineInfo {
+  id: number;
+  mapId: string;
+  mode: 'queue' | 'room';
+  rated: boolean;
+  /** When it ended (ms) */
+  endedAt: number;
+  /** Seconds */
+  duration: number;
+}
+
+/** A champion's line on a kept match's scoreboard */
+export interface MatchPlayerInfo extends MatchLineInfo {
+  name: string | null;
+  /** It played with an account */
+  account: boolean;
+  isBot: boolean;
+}
+
+/** A kept match, both teams (GET /api/matches/<id>) */
+export interface MatchInfo {
+  id: number;
+  mapId: string;
+  mode: 'queue' | 'room';
+  rated: boolean;
+  endedAt: number;
+  duration: number;
+  winningSide: number;
+  players: MatchPlayerInfo[];
+}
+
+export type ProfileAnswer = { ok: true; profile: ProfileInfo; matches: MatchSummaryInfo[]; more: boolean } | { ok: false; error: string };
+export type MatchAnswer = { ok: true; match: MatchInfo } | { ok: false; error: string };
 
 export interface StoredAccount {
   token: string;
@@ -56,6 +132,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   wrong_login: 'Wrong name or password',
   too_many_attempts: 'Too many tries: wait a minute',
   offline: "Can't reach the server",
+  no_account: 'No account has that name',
+  no_match: "That match wasn't kept",
 };
 
 export function accountErrorMessage(error: string): string {
@@ -118,6 +196,25 @@ export class AccountClient {
     }
   }
 
+  /** An account's profile and a page of its latest matches (`before`: the ones before that match id) */
+  async profile(name: string, before?: number): Promise<ProfileAnswer> {
+    const query = before === undefined ? '' : `?before=${before}`;
+    const answer = await this.getJson(`/api/profile/${encodeURIComponent(name)}${query}`);
+    if (!answer.ok) return answer;
+    const { profile, matches, more } = answer.body as { profile?: ProfileInfo; matches?: unknown; more?: unknown };
+    if (typeof profile !== 'object' || profile === null || !Array.isArray(matches)) return { ok: false, error: 'server_error' };
+    return { ok: true, profile, matches: matches as MatchSummaryInfo[], more: more === true };
+  }
+
+  /** A kept match, both teams */
+  async match(id: number): Promise<MatchAnswer> {
+    const answer = await this.getJson(`/api/matches/${id}`);
+    if (!answer.ok) return answer;
+    const { match } = answer.body as { match?: MatchInfo };
+    if (typeof match !== 'object' || match === null || !Array.isArray(match.players)) return { ok: false, error: 'server_error' };
+    return { ok: true, match };
+  }
+
   /** Hear every change; returns how to stop */
   subscribe(listener: Listener): () => void {
     this.listeners.add(listener);
@@ -146,6 +243,24 @@ export class AccountClient {
       return { ok: true };
     }
     return { ok: false, error: typeof body.error === 'string' ? body.error : 'server_error' };
+  }
+
+  /** A public GET's JSON, or what went wrong (the server's error, offline, server_error) */
+  private async getJson(path: string): Promise<{ ok: true; body: unknown } | { ok: false; error: string }> {
+    let response: Response;
+    try {
+      response = await this.fetchFn(`${this.baseUrl}${path}`, { method: 'GET' });
+    } catch {
+      return { ok: false, error: 'offline' };
+    }
+    let body: { error?: unknown } | null;
+    try {
+      body = await response.json();
+    } catch {
+      return { ok: false, error: 'server_error' };
+    }
+    if (!response.ok) return { ok: false, error: typeof body?.error === 'string' ? body.error : 'server_error' };
+    return { ok: true, body };
   }
 
   private load(): StoredAccount | null {

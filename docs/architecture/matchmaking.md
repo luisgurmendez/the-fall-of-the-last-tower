@@ -189,7 +189,7 @@ side). Tests: `packages/server/src/test/Lobbies.test.ts`.
 
 ## Game End
 
-`GameRoom.checkWinConditions` ends the match when a nexus dies: it broadcasts the final state, then sends `GAME_END` (`GameEndData`) with the winning side, the match length and every champion's final stats (`GameRoom.getFinalStats`: level, K/D/A, CS, gold, items, and its `totals` over the match). The client shows VICTORY or DEFEAT for 3 seconds, then the final scoreboard (`TabScoreboard`, titled with the result; its gold is the gold earned) until the player continues (its Continue button, Enter, Space or Escape, after 1.5 seconds so a click mid-fight doesn't skip it), then returns to the menu.
+`GameRoom.checkWinConditions` ends the match when a nexus dies: it broadcasts the final state, then sends `GAME_END` (`GameEndData`) with the winning side, the match length and every champion's final stats (`GameRoom.getFinalStats`: level, K/D/A, CS, gold, items, and its `totals` over the match). A match that isn't practice is kept in the match history first (`server.ts` `recordMatch`, see [accounts.md](accounts.md#match-history-and-ratings)); when it was rated, `GAME_END` also carries `ratingChanges` (each signed-in player's rating before and after, by player id), and the client's VICTORY or DEFEAT banner says the new rating. A room knows where it came from (`GameRoom.mode`: `queue`, or `room` for a room of friends). The client shows VICTORY or DEFEAT for 3 seconds, then the final scoreboard (`TabScoreboard`, titled with the result; its gold is the gold earned) until the player continues (its Continue button, Enter, Space or Escape, after 1.5 seconds so a click mid-fight doesn't skip it), then returns to the menu.
 
 ### Post-match stats
 
@@ -212,7 +212,8 @@ A player can also surrender from the Escape menu (`src/ui/GameMenu.ts`, two clic
 A match knows a player's name when they gave one: the name typed in a room, or their account's
 (signed in, it wins over the typed one; see [accounts.md](accounts.md)). `PlayerInfo.name` carries it
 into `GAME_START`'s players; bots and guests in the queue have none. Matches that aren't practice
-count a win or a loss for each signed-in player.
+count a win or a loss for each signed-in player, are kept in the match history, and move ratings when
+there's a human on each side.
 
 ## A Bot Plays for Who Left
 

@@ -2,6 +2,7 @@ import OnlineGame from "./core/OnlineGame";
 import { BitmapFont } from "./render/BitmapFont";
 import { MatchmakingUI, type MatchData } from "./ui/matchmaking/MatchmakingUI";
 import { setupFullscreenButton } from "./ui/FullscreenButton";
+import { formatRatingChange } from "./ui/matchmaking/profileFormat";
 import { CONNECTION_REPLACED_CODE, type GameEndData } from "@siege/shared";
 
 // Get server URL from environment or default
@@ -90,9 +91,12 @@ async function startOnlineGame(matchData: MatchData, matchmakingUI: MatchmakingU
     const won = data.winningSide === matchData.yourSide;
     const minutes = Math.floor((data.duration ?? 0) / 60);
     const seconds = Math.floor((data.duration ?? 0) % 60).toString().padStart(2, '0');
+    // A rated match: the player's new rating, and by how much it moved
+    const rating = matchData.yourPlayerId ? data.ratingChanges?.[matchData.yourPlayerId] : undefined;
+    const ratingDetail = rating ? ` · Rating ${rating.after} (${formatRatingChange(rating.before, rating.after)})` : '';
     game.getStateManager().announce({
       text: won ? 'VICTORY' : 'DEFEAT',
-      detail: `Match length ${minutes}:${seconds}`,
+      detail: `Match length ${minutes}:${seconds}${ratingDetail}`,
       color: won ? '#f1c40f' : '#e74c3c',
       duration: GAME_END_BANNER_MS,
     });

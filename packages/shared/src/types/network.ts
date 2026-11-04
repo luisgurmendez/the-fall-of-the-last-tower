@@ -1015,6 +1015,8 @@ export interface GameEndData {
   /** Seconds */
   duration: number;
   players: FinalPlayerStats[];
+  /** A rated match: each signed-in player's rating before and after, by player id */
+  ratingChanges?: Record<string, { before: number; after: number }>;
 }
 
 /**
