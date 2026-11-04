@@ -1,21 +1,21 @@
-# Nocthar, the Last Mourner: diseño del kit
+# Nocthar, the Unburied: diseño del kit
 
 Fecha: 2026-11-04. **Estado:** diseño aprobado, sin implementar. Los números son valores de partida, para ajustar jugando.
 
 ## Concepto
 
-Nocthar es una nena pálida con un farol de cementerio que no soporta despedirse de nadie, así que los muertos vuelven para hacerle compañía.
+Nocthar es un monstruo de ultratumba, medio zombie, que salió de su tumba y se niega a volver. Alto, encorvado y podrido, con brazos larguísimos y manos enormes llenas de tierra, carga en la espalda la lápida rota de su tumba. Con esas manos saca a los muertos del suelo para que peleen con él.
 
-- **Clase:** maga (escala con AP), a distancia. Va por mid o top.
+- **Clase:** mago (escala con AP), a distancia. Va por mid o top.
 - **Cómo se juega:** junta un ejército chico de criaturas de huesos (los **Hollows**) con la pasiva y las maneja con la E. Con la R las funde en un **coloso**. Mientras el coloso está vivo, su W y su E cambian a habilidades del coloso.
-- **Lo que la distingue:** es la única del juego que maneja un ejército.
-- **Originalidad:** a propósito, nada de tumbas que se levantan después ni de "marcar un objetivo para que salten las criaturas". Eso es de un necromante conocido de otro juego.
+- **Lo que lo distingue:** es el único del juego que maneja un ejército.
+- **Originalidad:** a propósito, nada de tumbas que se levantan después ni de "marcar un objetivo para que salten las criaturas". Eso es de un necromante conocido de otro juego. Por lo mismo, el look no lleva pala de sepulturero ni farol verde.
 
 ## Reglas generales
 
 - **Tope:** hasta 5 Hollows a la vez.
-- **Sin orden:** siguen a Nocthar y atacan lo que ella ataca.
-- **Radio máximo:** 900 desde Nocthar. Una criatura que sale de ese radio abandona su orden y vuelve con ella.
+- **Sin orden:** siguen a Nocthar y atacan lo que Nocthar ataca.
+- **Radio máximo:** 900 desde Nocthar. Una criatura que sale de ese radio abandona su orden y vuelve con Nocthar.
 - **Si muere Nocthar, se desarma todo:** los Hollows y el coloso.
 - **Estructuras:** los Hollows y el coloso le pegan a las torres, así que Nocthar empuja líneas. Las torres y los minions los atacan como a cualquier unidad.
 
@@ -28,7 +28,7 @@ Tiene dos modos: **sin coloso** (normal) y **con el coloso vivo** (después de l
 | **Pasiva** | Nobody Leaves: levanta Hollows | No levanta Hollows. Las muertes cercanas curan al coloso |
 | **Q** | Grasping Hands | Igual |
 | **W** | Lament | Bone Volley (le cuesta vida al coloso) |
-| **E** | Come Play: órdenes a los Hollows | Trample (le cuesta vida al coloso) |
+| **E** | Heed Me: órdenes a los Hollows | Trample (le cuesta vida al coloso) |
 | **R** | Colossus of Bones | Volver a apretarla le da órdenes al coloso |
 
 ### Pasiva: Nobody Leaves
@@ -40,7 +40,7 @@ Tiene dos modos: **sin coloso** (normal) y **con el coloso vivo** (después de l
 - **Con 5 Hollows:** la pasiva no se activa ni entra en enfriamiento.
 - **Cuánto duran:** hasta que los matan.
 - **Estadísticas de los Hollows:** como punto de partida, las de un minion melee, que crecen con el nivel y el AP de Nocthar.
-- **Con el coloso vivo:** no levanta Hollows. Cada enemigo que muere a menos de 550 del coloso lo cura: un 8% de su vida máxima por minion o monstruo, un 25% por campeón.
+- **Con el coloso vivo:** no levanta Hollows. Cada enemigo que muere a menos de 550 del coloso lo cura: un 1% de su vida máxima por minion o monstruo, un 25% por campeón.
 - **El número clave del balance:** cuánto cura cada minion. Si en línea el coloso se cura más de lo que gasta, queda un coloso eterno.
 
 ### Q: Grasping Hands
@@ -55,7 +55,7 @@ Tiene dos modos: **sin coloso** (normal) y **con el coloso vivo** (después de l
 
 ### W: Lament
 
-- **Efecto:** Nocthar llora tras un instante (0,25 s). Los enemigos a menos de 350 de ella huyen de miedo durante 1 s.
+- **Efecto:** Nocthar suelta un lamento de ultratumba tras un instante (0,25 s). Los enemigos a menos de 350 de Nocthar huyen de miedo durante 1 s.
 - **Daño:** 60/90/120/150/180 (+40% AP) mágico.
 - **El miedo sale solo de Nocthar, no de los Hollows.**
 - **A sus Hollows:** los que estén a menos de 700 de Nocthar ganan un 40/50/60/70/80% de velocidad de ataque durante 2 s.
@@ -69,13 +69,13 @@ Tiene dos modos: **sin coloso** (normal) y **con el coloso vivo** (después de l
 - **Costo:** el 10% de la vida máxima del coloso. **No se puede usar si el coloso tiene menos vida que eso.**
 - **Para qué está:** le da alcance a un bicho que pega cuerpo a cuerpo. Usarla es un riesgo, porque si matan al coloso se pierde el ejército.
 
-### E: Come Play
+### E: Heed Me
 
 Son órdenes a los Hollows, sin enfriamiento ni costo. Se apunta con el modo de lanzamiento de cada jugador: con lanzamiento rápido, apretar E manda a los Hollows directo al cursor; en los otros modos se mantiene E y se clickea.
 
 - **Sobre el suelo:** van a ese punto y pelean con lo que se acerque, como en un ataque en movimiento.
 - **Sobre un enemigo:** lo persiguen y le pegan hasta que muera, se esconda o salgan del radio de 900.
-- **Sobre Nocthar:** vuelven con ella. Sirve para sacarlos de una pelea perdida.
+- **Sobre Nocthar:** vuelven con Nocthar. Sirve para sacarlos de una pelea perdida.
 - **La carga:**
   - La primera orden después del enfriamiento de la carga es una carga: los Hollows corren un 30% más rápido y pegan un 20/25/30/35/40% más durante 3 s.
   - Ese enfriamiento es de 10/9/8/7/6 s.
@@ -94,7 +94,7 @@ Son órdenes a los Hollows, sin enfriamiento ni costo. Se apunta con el modo de 
 ### R: Colossus of Bones
 
 - **Tiempo de lanzamiento:** 1,5 s.
-  - Nocthar se queda quieta levantando el farol.
+  - Nocthar no se puede mover: hunde las manos en la tierra.
   - Los Hollows corren al punto elegido, a hasta 600, y se hunden en la tierra.
   - Una grieta en el suelo marca dónde va a salir el coloso, así que se puede esquivar.
 - **Si la interrumpen:** si la aturden, la silencian o la levantan durante el lanzamiento, se cancela. Los Hollows se quedan y la R vuelve en 10 s.
