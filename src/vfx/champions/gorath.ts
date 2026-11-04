@@ -1,8 +1,8 @@
 /**
  * Gorath ability VFX: stone and molten amber; rock bursting out of the
- * ground, a red roar. His slam splits the ground in fissures running out
- * from him; his earthquake raises a ring of pillars at its edge and lava
- * bursts out inside. Registered when this module is imported (see
+ * ground, a red roar. His slam (Q) leaves a crater and rolls a shockwave of
+ * earth out to its edge; his earthquake (R) raises a ring of pillars at its
+ * edge and lava bursts out inside. Registered when this module is imported (see
  * ./index.ts). Each area has a cast time (he stands and winds up): its
  * windup shows the area's outline at once, then its warning fills up until
  * the area lands on the server.
@@ -10,7 +10,7 @@
 
 import { getAbilityDefinition, getCastTime } from '@siege/shared';
 import { registerAbilityVFX } from '../VFXRegistryStore';
-import { embers, gather, landsAt, light, phase, ring, rocks, scorch, shake, sigil, smoke, spikes, warning } from '../recipes';
+import { debris, embers, gather, landsAt, light, phase, ring, rocks, scorch, shake, shockwave, sigil, smoke, spikes, warning } from '../recipes';
 
 const EARTH = '#d9a35a';
 const MOLTEN = '#ff8a2a';
@@ -71,19 +71,23 @@ registerAbilityVFX({
   ],
 });
 
-// Q: he raises his fists over a warning, then slams: fissures run out from
-// him, rocks popping up along them one after another
+// Q: he raises the hammer over a warning, then slams it down: a crater at
+// his feet, a thick shockwave of earth rolling out to the slam's edge, a ring
+// of dust and stones thrown up. No pillars or spikes: those are his
+// earthquake's (R), so the two read apart
 registerAbilityVFX({
   abilityId: 'gorath_slam',
   phases: [
     phase('raise', 0, 'caster', [warning(EARTH, SLAM_RADIUS, SLAM), smoke(DUST, 4, [8, 12], [10, 30])], SLAM),
     phase('slam', SLAM, 'caster', [
-      { ...spikes('rock', STONE, 20, SLAM_RADIUS * 0.95, 'lines', [26, 46], 0.9, MOLTEN), lines: 5 },
-      scorch(MOLTEN, 70, 1.4, 0.5),
-      ring(EARTH, 30, SLAM_RADIUS, 0.4, 5),
-      smoke(DUST, 10, [14, 22], [60, 150]),
-      rocks(STONE, 8, [80, 180], [3, 5]),
-      light(EARTH, 120, 0.5, 0.35),
+      { type: 'screen_flash', color: '#ffe2b0', duration: 0.06, maxAlpha: 0.06 },
+      scorch(STONE, 46, 1.6, 0, 0.9),
+      shockwave(EARTH, 18, SLAM_RADIUS, 0.4, 14),
+      ring(DUST, 30, SLAM_RADIUS * 1.05, 0.55, 3),
+      smoke(DUST, 14, [14, 24], [80, 170]),
+      rocks(STONE, 12, [100, 220], [3, 6]),
+      debris(DUST, 10, [60, 140]),
+      light(EARTH, SLAM_RADIUS * 0.7, 0.5, 0.3),
       shake(3, 0.2),
     ], 0.9),
   ],
