@@ -54,6 +54,9 @@ class OnlineGame {
   private networkClient: NetworkClient;
   private stateManager: OnlineStateManager;
   private matchData: MatchData;
+  /** The loop's next frame, and whether the match is done with (stop) */
+  private frame = 0;
+  private stopped = false;
 
   constructor(config: OnlineGameConfig) {
     this.networkClient = config.networkClient;
@@ -108,37 +111,58 @@ class OnlineGame {
     const shopUI = getShopUI();
     shopUI.setNetworkClient(this.networkClient);
 
-    window.addEventListener('keydown', (e) => {
-      // Typed into the chat: not a key for the game (the chat closes itself on Escape)
-      if (isTypingTarget(e.target)) return;
-
-      // P (the shop key) toggles the shop
-      if (normalizeKey(e.key) === getControls().keyFor('shop')) {
-        shopUI.toggle();
-      }
-
-      // Escape closes the shop, or opens the menu (no pause in online mode)
-      if (e.key === 'Escape') {
-        if (shopUI.isOpen()) {
-          shopUI.close();
-        } else {
-          this.gameMenu.toggle();
-        }
-      }
-    });
+    window.addEventListener('keydown', this.onKeyDown);
 
     // Start the clock immediately
     this.clock.start();
   }
 
+  private readonly onKeyDown = (e: KeyboardEvent) => {
+    // Typed into the chat: not a key for the game (the chat closes itself on Escape)
+    if (isTypingTarget(e.target)) return;
+    const shopUI = getShopUI();
+
+    // P (the shop key) toggles the shop
+    if (normalizeKey(e.key) === getControls().keyFor('shop')) {
+      shopUI.toggle();
+    }
+
+    // Escape closes the shop, or opens the menu (no pause in online mode)
+    if (e.key === 'Escape') {
+      if (shopUI.isOpen()) {
+        shopUI.close();
+      } else {
+        this.gameMenu.toggle();
+      }
+    }
+  };
+
   loop = () => {
     return () => {
+      if (this.stopped) return;
       profiler.beginFrame();
       this.update();
       profiler.endFrame();
-      requestAnimationFrame(this.loop());
+      this.frame = requestAnimationFrame(this.loop());
     };
   };
+
+  /**
+   * Done with this match (the player left it, lost the connection, or another
+   * one starts): the loop stops, and its canvas, keys, menu, chat and debug
+   * overlay go away. Left running, it kept drawing the old match behind the
+   * menu and under the next one (two games drawn every frame), and its keys
+   * kept working (P opened the shop and closed it again).
+   */
+  stop(): void {
+    if (this.stopped) return;
+    this.stopped = true;
+    cancelAnimationFrame(this.frame);
+    window.removeEventListener('keydown', this.onKeyDown);
+    this.onMatchEnd();
+    if (getShopUI().isOpen()) getShopUI().close();
+    this.canvas.remove();
+  }
 
   private update() {
     try {

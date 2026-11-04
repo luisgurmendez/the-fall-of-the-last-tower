@@ -80,6 +80,10 @@ The client game class for multiplayer:
 - Uses **NetworkClient** for server communication
 - Creates **OnlineStateManager** to track server state
 - Generates **OnlineLevel** for rendering
+- `stop()` when the player is done with the match (leaves the results, loses the
+  connection, or another match starts; `src/index.ts` keeps the current one): its loop,
+  canvas, keys, menu and chat go away. Left running, it kept drawing the old match behind
+  the menu and under the next one, two games every frame.
 
 ### State Manager (`src/core/OnlineStateManager.ts`)
 
