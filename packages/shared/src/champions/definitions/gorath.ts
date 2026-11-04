@@ -82,7 +82,9 @@ export const GorathSlam: AbilityDefinition = {
   manaCost: [50, 55, 60, 65, 70],
   cooldown: [8, 7.5, 7, 6.5, 6],
   aoeRadius: 160,
-  aoeDelay: 0.35, // Fists raised
+  // He raises the hammer (standing), then it falls: 0.65 s, 0.36 of the time to step out
+  castTime: 0.3,
+  aoeDelay: 0.35,
   shape: "circle",
   damage: {
     type: "magic",
@@ -116,7 +118,9 @@ export const GorathTaunt: AbilityDefinition = {
   manaCost: [70, 70, 70, 70, 70],
   cooldown: [16, 15, 14, 13, 12],
   aoeRadius: 150,
-  aoeDelay: 0.25, // Drawing breath
+  // He draws breath (standing), then roars: 0.6 s, 0.35 of the time to step out
+  castTime: 0.35,
+  aoeDelay: 0.25,
   shape: "circle",
   appliesEffects: ["taunt"],
   effectDuration: 1.5,
@@ -135,7 +139,10 @@ export const GorathEarthquake: AbilityDefinition = {
   manaCost: [100, 100, 100],
   cooldown: [130, 110, 90],
   aoeRadius: 220,
-  aoeDelay: 0.6, // The ground rumbles first
+  // He lifts the hammer behind his head (standing), then the ground rumbles before it breaks:
+  // 0.85 s, 0.35 of the time to step out
+  castTime: 0.45,
+  aoeDelay: 0.4,
   shape: "circle",
   damage: {
     type: "magic",

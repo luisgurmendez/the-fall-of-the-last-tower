@@ -91,7 +91,8 @@ const GENERIC_SUPPORT: Record<keyof AbilityDefinition, FieldRule> = {
   range: always,
   targetType: (d) =>
     GENERIC_TARGET_TYPES.includes(d.targetType) || `targetType '${d.targetType}' has no generic execution path`,
-  castTime: (d) => !d.castTime || 'castTime is not implemented: casts resolve instantly',
+  // ServerAbilityExecutor stands the caster still for it, then casts (startCast)
+  castTime: always,
   // Read only by the dodge rule's test (shared abilities/dodge.ts)
   dodgeExempt: always,
   excludesSelf: always,

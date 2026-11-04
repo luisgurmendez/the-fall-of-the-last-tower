@@ -119,7 +119,8 @@ export const MagnusMudGround: AbilityDefinition = {
   cooldown: [14, 13, 12, 11, 10],
   range: 340,
   aoeRadius: 110,
-  aoeDelay: 0.25,
+  aoeDelay: 0.5, // The mud wells up
+  dodgeExempt: "a pool of mud that slows whoever stands in it for 2 s: it's walked out of, not dodged (it wells up 0.5 s after the cast)",
   shape: "circle",
   appliesEffects: ["slow_20"],
   effectDuration: 2,
@@ -138,7 +139,7 @@ export const MagnusMeteor: AbilityDefinition = {
   cooldown: [120, 100, 80],
   range: 400,
   aoeRadius: 150,
-  aoeDelay: 0.7, // The meteor's fall
+  aoeDelay: 1.3, // The meteor's fall: 1.55 s with the cast, 0.91 of the time to walk out of its middle
   shape: "circle",
   damage: {
     type: "magic",

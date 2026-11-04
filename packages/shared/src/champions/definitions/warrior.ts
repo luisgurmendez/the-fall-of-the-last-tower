@@ -82,7 +82,7 @@ export const WarriorSlash: AbilityDefinition = {
   cooldown: [7, 6.5, 6, 5.5, 5],
   range: 130,
   aoeRadius: 130,
-  aoeDelay: 0.2, // The swing
+  aoeDelay: 0.3, // The swing: 0.55 s with the cast, 0.37 of the time to step back out
   coneAngle: Math.PI / 2, // 90 degrees
   shape: "cone",
   damage: {

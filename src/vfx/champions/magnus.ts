@@ -16,6 +16,7 @@ import {
   light,
   meteor,
   phase,
+  pillar,
   ring,
   rocks,
   scorch,
@@ -41,6 +42,9 @@ const MUD_LANDS = landsAt('magnus_mud');
 const MUD_RADIUS = getAbilityDefinition('magnus_mud')?.aoeRadius ?? 110;
 const METEOR_LANDS = landsAt('magnus_meteor');
 const METEOR_RADIUS = getAbilityDefinition('magnus_meteor')?.aoeRadius ?? 250;
+/** The meteor's own cast time (his staff raised), and when the rock starts its fast drop */
+const METEOR_CAST = getCastTime(getAbilityDefinition('magnus_meteor')!);
+const METEOR_DROP = Math.max(0, METEOR_LANDS - 0.7);
 
 // Q: fire gathers at his staff in the cast time...
 registerAbilityVFX({
@@ -108,15 +112,31 @@ registerAbilityVFX({
   ],
 });
 
-// R: a burning rock falls from the sky onto the warning, and blasts a crater;
-// the burning zone follows
+// R's windup: he raises the staff and a thin beam of fire shoots from it into the sky
+registerAbilityVFX({
+  abilityId: 'magnus_meteor_windup',
+  phases: [
+    phase('call', 0, 'caster', [
+      pillar(FIRE, 260, 5, METEOR_CAST + 0.15, HOT),
+      light(FIRE, 50, 0.6, METEOR_CAST + 0.1),
+    ], METEOR_CAST),
+  ],
+});
+
+// R: the warning fills for the whole fall, a glow growing on it; the burning
+// rock drops fast in the fall's last moments and blasts a crater; the
+// burning zone follows
 registerAbilityVFX({
   abilityId: 'magnus_meteor',
   phases: [
-    phase('fall', 0, 'ground_target', [
+    phase('called', 0, 'ground_target', [
       warning(FIRE, METEOR_RADIUS, METEOR_LANDS),
-      meteor('fire', FIRE, 22, 420, METEOR_LANDS, HOT),
+      light(FIRE, METEOR_RADIUS * 0.8, 0.5, METEOR_LANDS, 0.3),
+      embers(HOT, 10, METEOR_RADIUS * 0.6, { lifetime: { min: 0.6, max: 1.0 } }),
     ], METEOR_LANDS),
+    phase('fall', METEOR_DROP, 'ground_target', [
+      meteor('fire', FIRE, 22, 420, METEOR_LANDS - METEOR_DROP, HOT),
+    ], METEOR_LANDS - METEOR_DROP),
     phase('impact', METEOR_LANDS, 'ground_target', [
       flames(FIRE, 18, [18, 30], [80, 220]),
       flames(HOT, 8, [12, 20], [30, 90]),

@@ -3,12 +3,14 @@
  * ground, a red roar. His slam splits the ground in fissures running out
  * from him; his earthquake raises a ring of pillars at its edge and lava
  * bursts out inside. Registered when this module is imported (see
- * ./index.ts). Each warning fills up until the area lands on the server.
+ * ./index.ts). Each area has a cast time (he stands and winds up): its
+ * windup shows the area's outline at once, then its warning fills up until
+ * the area lands on the server.
  */
 
-import { getAbilityDefinition } from '@siege/shared';
+import { getAbilityDefinition, getCastTime } from '@siege/shared';
 import { registerAbilityVFX } from '../VFXRegistryStore';
-import { embers, gather, landsAt, light, phase, ring, rocks, scorch, shake, smoke, spikes, warning } from '../recipes';
+import { embers, gather, landsAt, light, phase, ring, rocks, scorch, shake, sigil, smoke, spikes, warning } from '../recipes';
 
 const EARTH = '#d9a35a';
 const MOLTEN = '#ff8a2a';
@@ -22,6 +24,52 @@ const ROAR_LANDS = landsAt('gorath_taunt');
 const ROAR_RADIUS = getAbilityDefinition('gorath_taunt')?.aoeRadius ?? 350;
 const QUAKE = landsAt('gorath_earthquake');
 const QUAKE_RADIUS = getAbilityDefinition('gorath_earthquake')?.aoeRadius ?? 450;
+
+/** Each area's cast time: he winds up standing */
+const castOf = (abilityId: string) => {
+  const definition = getAbilityDefinition(abilityId);
+  return definition ? getCastTime(definition) : 0.3;
+};
+const SLAM_CAST = castOf('gorath_slam');
+const ROAR_CAST = castOf('gorath_taunt');
+const QUAKE_CAST = castOf('gorath_earthquake');
+
+// Q's windup: he hoists the hammer, dust rising off it, the slam's reach outlined
+registerAbilityVFX({
+  abilityId: 'gorath_slam_windup',
+  phases: [
+    phase('hoist', 0, 'caster', [
+      sigil(EARTH, SLAM_RADIUS, SLAM_CAST),
+      gather(EARTH, 8, 46, SLAM_CAST, 'ember'),
+      smoke(DUST, 3, [8, 12], [10, 30]),
+    ], SLAM_CAST),
+  ],
+});
+
+// E's windup: he draws breath, red air pulled into his chest, the roar's reach outlined
+registerAbilityVFX({
+  abilityId: 'gorath_taunt_windup',
+  phases: [
+    phase('inhale', 0, 'caster', [
+      sigil(ROAR, ROAR_RADIUS, ROAR_CAST),
+      gather(ROAR, 12, ROAR_RADIUS * 0.6, ROAR_CAST, 'ember'),
+      light(ROAR, 50, 0.4, ROAR_CAST),
+    ], ROAR_CAST),
+  ],
+});
+
+// R's windup: the hammer goes back, the ground starts shaking and glowing at the quake's edge
+registerAbilityVFX({
+  abilityId: 'gorath_earthquake_windup',
+  phases: [
+    phase('heave', 0, 'caster', [
+      sigil(MOLTEN, QUAKE_RADIUS, QUAKE_CAST),
+      light(MOLTEN, QUAKE_RADIUS * 0.5, 0.25, QUAKE_CAST),
+      smoke(DUST, 6, [10, 16], [10, 30]),
+      shake(1.5, QUAKE_CAST),
+    ], QUAKE_CAST),
+  ],
+});
 
 // Q: he raises his fists over a warning, then slams: fissures run out from
 // him, rocks popping up along them one after another
