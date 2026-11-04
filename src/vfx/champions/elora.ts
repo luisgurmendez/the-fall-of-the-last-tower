@@ -119,8 +119,9 @@ registerAbilityVFX({
 registerAbilityVFX({
   abilityId: 'elora_r',
   phases: [
+    // The lane the arrows will fall on, glowing as wide as it is until they land
     phase('loose', 0, 'caster', [
-      { type: 'beam', color: GOLD, thickness: 3, duration: BARRAGE, glowRadius: 4 },
+      { type: 'beam', color: GOLD, thickness: LANE_WIDTH / 4, duration: BARRAGE, glowRadius: LANE_WIDTH / 2 },
       sparks(SHAFT, 10, [220, 380], Math.PI / 6),
       light(GOLD, 50, 0.5, BARRAGE),
     ], BARRAGE),
