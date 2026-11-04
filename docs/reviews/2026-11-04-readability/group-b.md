@@ -48,7 +48,8 @@ Cut art (`scripts/sprite-crop-audit.ts`) and mismatches, looked at frame by fram
 
 ## Costs
 
-- **PixelLab:** about USD 0.30, from USD 17.14 before:
+- **PixelLab:** about USD 0.30-0.40 for this group. The balance went from USD 17.14 to 16.21 while
+  the other groups generated on the same account. What it paid for:
   - Vile W, R;
   - Oitboil R;
   - Caelum idle, walk, Q twice, then a new character and seven animations, then E;
