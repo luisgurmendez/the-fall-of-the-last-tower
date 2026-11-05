@@ -18,7 +18,8 @@
  * that frame shows as the attack's damage lands or the ability takes effect
  * (retimedFrame, abilityBlowShare: an ability with a cast time starts its
  * animation at the windup, so its blow comes after the cast time it played
- * through, `lead`).
+ * through, `lead`). PixelLab draws each direction on its own, so a strip
+ * facing south or north may land its blow on another frame (`facing`).
  */
 
 import { getBasicAttackDamageDelay, getBasicAttackDuration, getChampionDefinition } from "@siege/shared";
@@ -70,14 +71,32 @@ export interface ChampionStrips {
   directions: VerticalFacing[];
 }
 
-/** Which frames of a champion's strips matter */
-export interface StripTiming {
-  /** Where in a dash ability's strip to hold while dashing, by ability id (default DASH_HOLD_PROGRESS) */
-  dashHold?: Record<string, number>;
+/** The frames where a champion's strips land their blows */
+export interface BlowFrames {
   /** The attack strip's blow frame (the swing, the throw, the arrow loosed) */
   attackBlow?: number;
   /** Ability strips' blow frames, by ability id */
   abilityBlows?: Record<string, number>;
+}
+
+/** Which frames of a champion's strips matter */
+export interface StripTiming extends BlowFrames {
+  /** Where in a dash ability's strip to hold while dashing, by ability id (default DASH_HOLD_PROGRESS) */
+  dashHold?: Record<string, number>;
+  /**
+   * Blow frames of the strips facing south or north where they differ from
+   * the side view's (each direction is drawn on its own)
+   */
+  facing?: Partial<Record<VerticalFacing, BlowFrames>>;
+}
+
+/** The blow frames of a champion's strips facing a way (null: sideways) */
+export function blowFrames(timing: StripTiming, facing: VerticalFacing | null): BlowFrames {
+  const own = facing ? timing.facing?.[facing] : undefined;
+  return {
+    attackBlow: own?.attackBlow ?? timing.attackBlow,
+    abilityBlows: { ...timing.abilityBlows, ...own?.abilityBlows },
+  };
 }
 
 /**
@@ -198,15 +217,16 @@ export function createStripBodyRenderer(
 
       const frameSize = image.naturalHeight;
       const frameCount = Math.max(1, Math.round(image.naturalWidth / frameSize));
+      const blows = blowFrames(timing, image === turned ? facing : null);
       let frameIndex: number;
       if (progress === null) {
         frameIndex = state.isWalking
           ? walkFrame(entityId, snapshot.movementSpeed, rc.animationTime, frameCount)
           : Math.floor(rc.animationTime * IDLE_FPS) % frameCount;
       } else if (src === strips.attack) {
-        frameIndex = retimedFrame(progress, frameCount, timing.attackBlow, hitShare(snapshot.championId, snapshot.attackSpeed));
+        frameIndex = retimedFrame(progress, frameCount, blows.attackBlow, hitShare(snapshot.championId, snapshot.attackSpeed));
       } else if (src === abilityStrip && !dashStrip && cast.abilityId && cast.duration) {
-        frameIndex = retimedFrame(progress, frameCount, timing.abilityBlows?.[cast.abilityId],
+        frameIndex = retimedFrame(progress, frameCount, blows.abilityBlows?.[cast.abilityId],
           abilityBlowShare(cast.lead ?? 0, abilityImpactTime(cast.abilityId), cast.duration));
       } else {
         frameIndex = Math.min(frameCount - 1, Math.floor(progress * frameCount));

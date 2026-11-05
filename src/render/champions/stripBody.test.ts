@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { abilityBlowShare, retimedFrame } from './stripBody';
+import { abilityBlowShare, blowFrames, retimedFrame } from './stripBody';
 
 const frames = (release: number | undefined, hitShare: number) =>
   Array.from({ length: 20 }, (_, i) => retimedFrame(i / 20, 9, release, hitShare));
@@ -35,5 +35,22 @@ describe('strip timing', () => {
     // Never past the end
     expect(abilityBlowShare(1, 1, 1.5)).toBe(1);
     expect(abilityBlowShare(0.5, 0.2, 0)).toBe(1);
+  });
+});
+
+describe('blow frames facing up or down the screen', () => {
+  const timing = {
+    attackBlow: 7,
+    abilityBlows: { gorath_slam: 7, gorath_taunt: 3 },
+    facing: { north: { attackBlow: 5, abilityBlows: { gorath_slam: 6 } } },
+  };
+
+  it("a direction drawn on its own lands its blows on its own frames, the rest on the side view's", () => {
+    expect(blowFrames(timing, 'north')).toEqual({ attackBlow: 5, abilityBlows: { gorath_slam: 6, gorath_taunt: 3 } });
+  });
+
+  it("a direction without its own, or the side view, uses the side view's", () => {
+    expect(blowFrames(timing, 'south')).toEqual({ attackBlow: 7, abilityBlows: { gorath_slam: 7, gorath_taunt: 3 } });
+    expect(blowFrames(timing, null)).toEqual({ attackBlow: 7, abilityBlows: { gorath_slam: 7, gorath_taunt: 3 } });
   });
 });
