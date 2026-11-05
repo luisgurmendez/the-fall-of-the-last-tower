@@ -33,13 +33,16 @@
  *
  * scripts/sprites.json keeps each set's character and animation ids (one
  * PixelLab animation holds all of its directions): a later run reuses them
- * and only generates what's missing.
+ * and only generates what's missing, including directions a set gained after
+ * its animations were made (they're added to those animations).
  *
  * Usage (from the repo root; Bun loads PIXELLAB_API_KEY from .env.local):
  *   bun scripts/generate-sprites.ts                  # every set
  *   bun scripts/generate-sprites.ts --only spider    # some sets
  *   bun scripts/generate-sprites.ts --only spider --redo attack --seed 8
  *     # generate those animations again, in every direction (another seed gives another take)
+ *   bun scripts/generate-sprites.ts --only gorath --redo q@north --seed 8
+ *     # one direction again, into the same animation: the others stay
  *   bun scripts/generate-sprites.ts --only spider --new-character
  *   bun scripts/generate-sprites.ts --only hop --new-character --character-only --review /tmp/review
  *     # only the character, to look at it facing every direction before animating it
@@ -132,6 +135,13 @@ interface SpriteSetSpec {
    */
   directionActions?: Record<string, string>;
   /**
+   * An animation's action facing south and north (north's hint still added),
+   * by animation name, for a set turned after its east was drawn: east's
+   * action drew an effect into the frames that the game draws itself, so the
+   * new directions only move the body
+   */
+  turnedActions?: Record<string, string>;
+  /**
    * The frames to keep (first and last) of strips where only part of what
    * PixelLab drew fits, by manifest key (e, e@south)
    */
@@ -149,12 +159,19 @@ interface ChampionActions {
   detail?: string;
   /** Facing south and north too (the four-direction champions) */
   directions?: Direction[];
+  /**
+   * Directions added after its east animations were made (south and north):
+   * drawn into those animations, its idle and walk the way east's were (not
+   * the four-direction champions' looping ones), every frame in its colors
+   */
+  addedDirections?: Direction[];
   reference?: Reference;
   directionImages?: SpriteSetSpec['directionImages'];
   feetFromFirstFrame?: boolean;
   trim?: Record<string, [number, number]>;
   paletteExtras?: string[];
   directionActions?: Record<string, string>;
+  turnedActions?: Record<string, string>;
   dropDetachedIn?: Record<string, number>;
   /** Idle and walk, for a champion that doesn't stand or walk like a person (default: breathing, PixelLab's walk) */
   idle?: string;
@@ -181,13 +198,14 @@ function champion(championId: string, actions: ChampionActions): SpriteSetSpec {
     size: actions.size ?? 96,
     detail: actions.detail,
     template: 'mannequin',
-    directions: actions.directions,
+    directions: actions.directions ?? (actions.addedDirections ? ['east', ...actions.addedDirections] : undefined),
     reference: actions.reference,
     directionImages: actions.directionImages,
     feetFromFirstFrame: actions.feetFromFirstFrame,
-    lockPalette: actions.directions !== undefined,
+    lockPalette: actions.directions !== undefined || actions.addedDirections !== undefined,
     paletteExtras: actions.paletteExtras,
     directionActions: actions.directionActions,
+    turnedActions: actions.turnedActions,
     trim: actions.trim,
     dropDetachedIn: actions.dropDetachedIn,
     animations: {
@@ -366,6 +384,23 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
       // the first take drew a huge purple disk over him, cut by the canvas
       r: { mode: 'pixminimax', action: 'spreads his arms wide and throws his head back, his tattered cloak billowing, then lowers his arms, standing tall', frames: 8 },
     },
+    // South and north added 2026-11-04 to the animations made facing east.
+    // East's actions drew effects the game draws itself: the new directions
+    // only move the body. Seen from behind, a strike "forward" turns a
+    // character round: north says where it goes
+    directions: ['east', 'south', 'north'],
+    lockPalette: true,
+    turnedActions: {
+      attack: 'draws the bone bow and looses an arrow forward',
+      q: 'slowly draws the bone bow far back, holds it, then releases a powerful shot',
+      e: 'crouches and presses one hand flat onto the ground in front of him, then stands up',
+    },
+    directionActions: {
+      'attack@north': 'seen from behind, raises the bone bow in front of him, draws and looses an arrow straight away from the viewer, only his back, hood and tattered cloak visible the whole time',
+      'q@north': 'seen from behind, raises the bone bow in front of him, slowly draws it far back, holds it, then releases a powerful shot straight away from the viewer, only his back, hood and tattered cloak visible the whole time',
+      'e@north': 'seen from behind, crouches and presses one hand flat onto the ground in front of him, away from the viewer, then stands up, only his back, hood and tattered cloak visible the whole time',
+      'r@north': 'seen from behind, spreads his arms wide and lifts his head to the sky, his face hidden, his tattered cloak billowing, then lowers his arms, only his back, hood and tattered cloak visible the whole time',
+    },
   },
   champion('uruk', {
     name: 'Uruk',
@@ -378,6 +413,20 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
     w: 'spins the spear once and holds it ready as the spear tip glows silver',
     e: 'braces as glowing silver scales harden across his body',
     r: 'leaps high into the air and plunges down driving the spear into the ground',
+    // South and north added 2026-11-04 to the animations made facing east.
+    // East's actions drew effects the game draws itself: the new directions
+    // only move the body. Seen from behind, a strike "forward" turns a
+    // character round: north says where it goes
+    addedDirections: ['south', 'north'],
+    turnedActions: {
+      w: 'spins the spear once and holds it ready',
+      e: 'braces, hunching his shoulders and flexing his whole armored body',
+    },
+    directionActions: {
+      'attack@north': 'seen from behind, thrusts the spear forward away from the viewer in a quick jab, only his back, tail and armor visible the whole time',
+      'q@north': 'seen from behind, steps in and lunges far forward away from the viewer with a long powerful spear thrust, only his back, tail and armor visible the whole time',
+      'r@north': 'seen from behind, leaps high into the air and plunges down driving the spear into the ground in front of him, away from the viewer, only his back, tail and armor visible the whole time',
+    },
   }),
   champion('oitboil', {
     name: 'Oitboil',
@@ -390,6 +439,22 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
     e: 'blasts both nozzles backward and rockets forward low to the ground',
     // Only the body (the game draws the cone of fire from the nozzles): the first take drew the stream, cut by the canvas
     r: 'plants his feet wide and leans forward bracing hard, both forearm nozzles pointed straight ahead and shaking from the recoil',
+    // South and north added 2026-11-04 to the animations made facing east.
+    // East's actions drew effects the game draws itself: the new directions
+    // only move the body. Seen from behind, a strike "forward" turns a
+    // character round: north says where it goes
+    addedDirections: ['south', 'north'],
+    turnedActions: {
+      attack: 'points a forearm nozzle forward, his arm jolting from the recoil',
+      q: 'crouches and sweeps both forearm nozzles all around him in a full circle',
+      w: 'raises both arms up high and holds them there',
+      e: 'points both nozzles backward and lunges forward low to the ground',
+    },
+    directionActions: {
+      'attack@north': 'seen from behind, points a forearm nozzle forward away from the viewer, his arm jolting from the recoil, only his back, big ears and fuel tank visible the whole time',
+      'e@north': 'seen from behind, points both nozzles back toward the viewer and lunges forward low to the ground, away from the viewer, only his back, big ears and fuel tank visible the whole time',
+      'r@north': 'seen from behind, plants his feet wide and leans forward away from the viewer bracing hard, both forearm nozzles pointed straight ahead and shaking from the recoil, only his back, big ears and fuel tank visible the whole time',
+    },
   }),
   champion('elora', {
     name: 'Elora',
@@ -401,6 +466,20 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
     w: 'draws the longbow all the way back and looses a heavy arrow forward',
     e: 'rolls forward low to the ground and comes up crouching with the bow ready',
     r: 'aims the longbow up high and looses a volley of arrows into the sky',
+    // South and north added 2026-11-04 to the animations made facing east.
+    // East's actions drew effects the game draws itself: the new directions
+    // only move the body. Seen from behind, a strike "forward" turns a
+    // character round: north says where it goes
+    addedDirections: ['south', 'north'],
+    turnedActions: {
+      r: 'aims the longbow up high toward the sky, draws it and looses',
+    },
+    directionActions: {
+      'attack@north': 'seen from behind, raises the longbow in front of her, draws and looses an arrow straight away from the viewer, only her back, green hooded cloak and quiver visible the whole time',
+      'w@north': 'seen from behind, raises the longbow in front of her, draws it all the way back and looses a heavy arrow straight away from the viewer, only her back, green hooded cloak and quiver visible the whole time',
+      'e@north': 'seen from behind, rolls forward low to the ground away from the viewer and comes up crouching with the bow ready, only her back, green hooded cloak and quiver visible the whole time',
+      'r@north': 'seen from behind, aims the longbow up high toward the sky in front of her, draws it and looses, only her back, green hooded cloak and quiver visible the whole time',
+    },
   }),
   champion('caelum', {
     name: 'Caelum',
@@ -425,6 +504,22 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
     // Only the slam (the roots are the game's, rising where they're aimed)
     e: 'raises his staff high and slams its base down into the ground with both hands, leaning on it',
     r: 'presses a hand to his chest and pours a stream of his own glowing life light forward',
+    // South and north added 2026-11-04 to the animations made facing east.
+    // East's actions drew effects the game draws itself: the new directions
+    // only move the body. Seen from behind, a strike "forward" turns a
+    // character round: north says where it goes
+    addedDirections: ['south', 'north'],
+    turnedActions: {
+      attack: 'points his staff forward',
+      w: 'raises his staff high above his head and holds it there',
+      r: 'presses a hand to his chest, then stretches that open hand forward',
+    },
+    directionActions: {
+      'attack@north': 'seen from behind, points his staff forward away from the viewer, only his back, green robes and white hair visible the whole time',
+      'q@north': 'seen from behind, thrusts his gnarled staff straight forward away from the viewer with both hands and holds it there, only his back, green robes and white hair visible the whole time',
+      'e@north': 'seen from behind, raises his staff high and slams its base down into the ground in front of him with both hands, leaning on it, only his back, green robes and white hair visible the whole time',
+      'r@north': 'seen from behind, presses a hand to his chest, then stretches that open hand forward away from the viewer, only his back, green robes and white hair visible the whole time',
+    },
   }),
   champion('fenris', {
     name: 'Fenris',
@@ -438,6 +533,17 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
     e: 'crouches low and pounces forward through the air',
     // No glow (it gets baked in as a flat red blob): the game draws his red rage
     r: 'throws his head back and howls up at the sky, chest out and arms spread wide',
+    // South and north added 2026-11-04 to the animations made facing east.
+    // Seen from behind, a strike "forward" turns a character round: north
+    // says where it goes
+    addedDirections: ['south', 'north'],
+    directionActions: {
+      'attack@north': 'seen from behind, slashes forward away from the viewer with one clawed hand, only his furry back, the back of his head and his tail visible the whole time',
+      'q@north': 'seen from behind, lunges his head and shoulders forward away from the viewer in a hard bite, then pulls back, only his furry back, the back of his head and his tail visible the whole time',
+      'w@north': 'seen from behind, rears up and brings both clawed arms down and across in one wide two-handed sweep in front of him, away from the viewer, only his furry back, the back of his head and his tail visible the whole time',
+      'e@north': 'seen from behind, crouches low and pounces forward through the air away from the viewer, only his furry back, the back of his head and his tail visible the whole time',
+      'r@north': 'seen from behind, lifts his head toward the sky howling, his face hidden, chest out and arms spread wide, only his furry back, the back of his head and his tail visible the whole time',
+    },
   }),
   champion('calamitus', {
     name: 'Calamitus',
@@ -449,6 +555,22 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
     w: 'sweeps one arm forward sending a wave of magma rolling along the ground',
     e: 'hunches and his body hardens into glossy black obsidian',
     r: 'raises both arms high as lava erupts from the ground all around him',
+    // South and north added 2026-11-04 to the animations made facing east.
+    // East's actions drew effects the game draws itself: the new directions
+    // only move the body. Seen from behind, a strike "forward" turns a
+    // character round: north says where it goes
+    addedDirections: ['south', 'north'],
+    turnedActions: {
+      q: 'slams both fists down into the ground in front of him, then rises',
+      w: 'sweeps one arm forward low along the ground',
+      e: 'hunches down and tenses his whole body, holding still',
+      r: 'raises both arms high above his head, then slams them down to his sides',
+    },
+    directionActions: {
+      'attack@north': 'seen from behind, punches forward away from the viewer with a huge fist, only his rocky back visible the whole time',
+      'q@north': 'seen from behind, slams both fists down into the ground in front of him, away from the viewer, then rises, only his rocky back visible the whole time',
+      'w@north': 'seen from behind, sweeps one arm forward low along the ground, away from the viewer, only his rocky back visible the whole time',
+    },
   }),
   champion('protobot', {
     name: 'Protobot 45',
@@ -462,6 +584,21 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
     w: 'braces with its shoulders back and fists clenched at its sides, powering up, its chest swelling',
     e: 'launches its fist forward like a rocket on a burst of flame',
     r: 'raises both arms high above its head, then throws them out wide to the sides, bracing its legs',
+    // South and north added 2026-11-04 to the animations made facing east.
+    // East's actions drew effects the game draws itself: the new directions
+    // only move the body. Seen from behind, a strike "forward" turns a
+    // character round: north says where it goes
+    addedDirections: ['south', 'north'],
+    turnedActions: {
+      q: 'thrusts one arm forward hard, then pulls it back',
+      e: 'punches one fist far forward, its whole body lunging behind it',
+    },
+    directionActions: {
+      'attack@north': 'seen from behind, punches forward away from the viewer with a heavy steel fist, only its back and thrusters visible the whole time',
+      'q@north': 'seen from behind, thrusts one arm forward hard away from the viewer, then pulls it back, only its back and thrusters visible the whole time',
+      'e@north': 'seen from behind, punches one fist far forward away from the viewer, its whole body lunging behind it, only its back and thrusters visible the whole time',
+      'r@north': 'seen from behind, raises both arms high above its head, then throws them out wide to the sides, bracing its legs, only its back and thrusters visible the whole time',
+    },
   }),
   // Four directions too. Its first take turned to face the viewer to eat and
   // spun round for its kick: nothing turns now
@@ -654,6 +791,20 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
     w: 'raises his shield and braces as a pale glow surrounds him',
     e: 'charges forward shield first',
     r: 'leaps up and brings the longsword down in a mighty overhead strike',
+    // South and north added 2026-11-04 to the animations made facing east.
+    // East's actions drew effects the game draws itself: the new directions
+    // only move the body. Seen from behind, a strike "forward" turns a
+    // character round: north says where it goes
+    addedDirections: ['south', 'north'],
+    turnedActions: {
+      w: 'raises his shield in front of him and braces behind it',
+    },
+    directionActions: {
+      'attack@north': 'seen from behind, swings his longsword in a quick horizontal slash in front of him, away from the viewer, only his back, blue cape and brown hair visible the whole time',
+      'q@north': 'seen from behind, steps in and makes a wide horizontal sweep with the longsword in front of him, away from the viewer, then recovers, only his back, blue cape and brown hair visible the whole time',
+      'e@north': 'seen from behind, charges forward shield first, away from the viewer, only his back, blue cape and brown hair visible the whole time',
+      'r@north': 'seen from behind, leaps up and brings the longsword down in a mighty overhead strike in front of him, away from the viewer, only his back, blue cape and brown hair visible the whole time',
+    },
   }),
   champion('magnus', {
     name: 'Magnus',
@@ -665,6 +816,22 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
     e: 'points the staff at the ground, conjuring a swirling pool of mud',
     // Redone 2026-11-04: Inferno Zone falls far away; the old take burned around his feet
     r: 'raises the staff high above his head with both hands and looks up at the sky, then sweeps it down to point forward',
+    // South and north added 2026-11-04 to the animations made facing east.
+    // East's actions drew effects the game draws itself: the new directions
+    // only move the body. Seen from behind, a strike "forward" turns a
+    // character round: north says where it goes
+    addedDirections: ['south', 'north'],
+    turnedActions: {
+      attack: 'thrusts the staff forward and points it',
+      w: 'plants the staff firmly beside him and braces, his free hand raised',
+      e: 'points the staff down at the ground in front of him and stirs it in a slow circle',
+    },
+    directionActions: {
+      'attack@north': 'seen from behind, thrusts the staff forward away from the viewer and points it, only his back, crimson cloak and the burning orb over his head visible the whole time',
+      'q@north': 'seen from behind, swings the staff forward in an overhand arc and points it straight ahead, away from the viewer, then pulls it back, only his back, crimson cloak and the burning orb over his head visible the whole time',
+      'e@north': 'seen from behind, points the staff down at the ground in front of him, away from the viewer, and stirs it in a slow circle, only his back, crimson cloak and the burning orb over his head visible the whole time',
+      'r@north': 'seen from behind, raises the staff high above his head with both hands, then sweeps it down to point forward away from the viewer, only his back, crimson cloak and the burning orb over his head visible the whole time',
+    },
   }),
   champion('elara', {
     name: 'Elara',
@@ -677,6 +844,20 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
     e: 'spins gracefully once on the spot, robes swirling',
     r: 'raises the golden staff straight up above her head with both arms fully stretched toward the sky, holds it there looking up, then lowers it',
     feetFromFirstFrame: true,
+    // South and north added 2026-11-04 to the animations made facing east.
+    // East's actions drew effects the game draws itself: the new directions
+    // only move the body. Seen from behind, a strike "forward" turns a
+    // character round: north says where it goes
+    addedDirections: ['south', 'north'],
+    turnedActions: {
+      attack: 'flicks the staff forward',
+    },
+    directionActions: {
+      'attack@north': 'seen from behind, flicks the staff forward away from the viewer, only her back and long silver hair visible the whole time',
+      'q@north': 'seen from behind, raises the staff and points it gently forward away from the viewer, then lowers it, only her back and long silver hair visible the whole time',
+      'w@north': 'seen from behind, steps forward and holds the open palm of her free hand out away from the viewer, only her back and long silver hair visible the whole time',
+      'r@north': 'seen from behind, raises the golden staff straight up above her head with both arms, holds it there, then lowers it, only her back and long silver hair visible the whole time',
+    },
   }),
   minion(
     'melee',
@@ -705,6 +886,22 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
     e: 'dashes forward in a low blur, scarf streaming behind',
     // Redone 2026-11-04: the old take's violet arc ran off the frame
     r: 'draws a second curved blade from his back and drops into a low two-blade fighting stance',
+    // South and north added 2026-11-04 to the animations made facing east.
+    // East's actions drew effects the game draws itself: the new directions
+    // only move the body. Seen from behind, a strike "forward" turns a
+    // character round: north says where it goes
+    addedDirections: ['south', 'north'],
+    turnedActions: {
+      q: 'flicks his wrist forward in a quick throwing motion',
+      w: 'crouches low and pulls his scarf around himself, hunched down and still',
+      e: 'dashes forward low to the ground, scarf streaming behind',
+    },
+    directionActions: {
+      'attack@north': 'seen from behind, slashes quickly forward with the short curved blade, away from the viewer, only his back, hood and trailing scarf visible the whole time',
+      'q@north': 'seen from behind, flicks his wrist forward in a quick throwing motion, away from the viewer, only his back, hood and trailing scarf visible the whole time',
+      'e@north': 'seen from behind, dashes forward low to the ground away from the viewer, scarf streaming behind, only his back, hood and trailing scarf visible the whole time',
+      'r@north': 'seen from behind, draws a second curved blade from his back and drops into a low two-blade fighting stance, only his back, hood and trailing scarf visible the whole time',
+    },
   }),
   champion('gorath', {
     name: 'Gorath',
@@ -717,12 +914,25 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
     e: 'throws his head back and arms wide and roars a challenge',
     r: 'lifts the stone hammer far behind his head with both hands, then smashes it straight down into the ground with all his strength',
     feetFromFirstFrame: true,
+    // South and north added 2026-11-04 to the animations made facing east.
+    // Seen from behind, a strike "forward" turns a character round: his north
+    // says where the hammer goes
+    addedDirections: ['south', 'north'],
+    directionActions: {
+      'attack@north': 'seen from behind, swings the stone hammer up and down in a heavy blow in front of him, away from the viewer, only his back, long hair and crossed straps visible the whole time',
+      'q@north': 'seen from behind, raises the stone hammer high over his head with both hands, then slams it down into the ground in front of him, away from the viewer, only his back, long hair and crossed straps visible the whole time',
+      'e@north': 'seen from behind, throws his arms wide and lifts his head toward the sky, his face hidden, only his back, long hair and crossed straps visible the whole time',
+      'r@north': 'seen from behind, lifts the stone hammer far over his head with both hands, then smashes it straight down into the ground in front of him, away from the viewer, only his back, long hair and crossed straps visible the whole time',
+    },
   }),
 ];
 
 interface ManifestEntry {
   characterId?: string;
-  /** Animation ids by name, each with all of the set's directions */
+  /**
+   * Animation ids by name, each with all of the set's directions, and by
+   * key (q@north) for a direction redone on its own
+   */
   animations: Record<string, string>;
 }
 type Manifest = Record<string, ManifestEntry>;
@@ -765,6 +975,11 @@ async function api<T>(path: string, body?: unknown): Promise<T> {
     // PixelLab answers 429 past a few jobs at once: wait for a slot
     if (response.status === 429 && attempt < 30) {
       await sleep(15_000);
+      continue;
+    }
+    // ...and sometimes 500 under load, having started nothing ("Failed to start any animation jobs")
+    if (response.status >= 500 && attempt < 4) {
+      await sleep(20_000 * attempt);
       continue;
     }
     if (!response.ok) throw new Error(`${path}: HTTP ${response.status} ${await response.text()}`);
@@ -922,7 +1137,9 @@ interface CreatedAnimation {
  * One animation in all of the set's directions, as one PixelLab animation:
  * the first direction makes it and the others are added to it, each its own
  * job (PixelLab draws each direction on its own anyway), so each gets its own
- * hint and, for a loop, its own end pose.
+ * hint and, for a loop, its own end pose. Given an animation made earlier
+ * (`existing`), every direction is added to it: directions the set gained
+ * since.
  */
 async function createAnimation(
   characterId: string,
@@ -932,6 +1149,7 @@ async function createAnimation(
   seed: number,
   rotations: Record<Direction, RgbaImage>,
   palette: string[] | null,
+  existing?: string,
 ): Promise<string> {
   const animation = spec.animations[name];
   if (animation.mode === 'still') throw new Error(`${name} is a still: nothing to animate`);
@@ -948,7 +1166,8 @@ async function createAnimation(
     } else {
       const hint = DIRECTION_HINTS[direction];
       const own = spec.directionActions?.[animationKey(name, direction)];
-      const action = own ?? (hint ? `${animation.action}, ${hint.action}` : animation.action);
+      const base = (direction !== 'east' && spec.turnedActions?.[name]) || animation.action;
+      const action = own ?? (hint ? `${base}, ${hint.action}` : base);
       Object.assign(body, { mode: animation.mode, action_description: action, frame_count: animation.frames });
       if (animation.mode === 'pixminimax') {
         body.subject_description = spec.description;
@@ -960,12 +1179,15 @@ async function createAnimation(
     }
     return body;
   };
-  const [first, ...others] = directions;
-  log(`${spec.name}: animating ${name} (${animation.mode}, ${directions.join(', ')})`);
-  const created = await api<CreatedAnimation>('/characters/animations', request(first));
-  const groupId = created.animation_group_id;
-  await waitForJob(created.background_job_ids[0], `${spec.name} ${name} ${first}`);
-  await Promise.all(others.map(async direction => {
+  log(`${spec.name}: animating ${name} (${animation.mode}, ${directions.join(', ')}${existing ? ', added to the one made before' : ''})`);
+  const [first, ...others] = existing ? [] : directions;
+  let groupId = existing;
+  if (!groupId) {
+    const created = await api<CreatedAnimation>('/characters/animations', request(first));
+    groupId = created.animation_group_id;
+    await waitForJob(created.background_job_ids[0], `${spec.name} ${name} ${first}`);
+  }
+  await Promise.all((existing ? directions : others).map(async direction => {
     const added = await api<CreatedAnimation>('/characters/animations', request(direction, groupId));
     await waitForJob(added.background_job_ids[0], `${spec.name} ${name} ${direction}`);
   }));
@@ -1162,6 +1384,30 @@ async function generateSpriteSet(spec: SpriteSetSpec, manifest: Manifest, option
   const missing = names.filter(name => spec.animations[name].mode !== 'still' && (!entry.animations[name] || options.redo.includes(name)));
   await runPool(missing, async name => {
     entry.animations[name] = await createAnimation(characterId, spec, name, directions, options.seed, rotations, palette);
+    // Its directions redone on their own before are in it again
+    for (const key of Object.keys(entry.animations)) if (key.startsWith(`${name}@`)) delete entry.animations[key];
+    saveManifest(manifest);
+  });
+
+  // Directions an animation made earlier lacks (the set was turned since):
+  // drawn into that animation
+  const made = await api<CharacterDetail>(`/characters/${characterId}`);
+  const has = (name: string) => made.animations.find(a => a.animation_group_id === entry.animations[name])?.directions.map(d => d.direction) ?? [];
+  const lacking = names
+    .filter(name => spec.animations[name].mode !== 'still' && !missing.includes(name))
+    .map(name => ({ name, directions: directions.filter(direction => !has(name).includes(direction) && !entry.animations[animationKey(name, direction)]) }))
+    .filter(({ directions: added }) => added.length > 0);
+  await runPool(lacking, async ({ name, directions: added }) => {
+    await createAnimation(characterId, spec, name, added, options.seed, rotations, palette, entry.animations[name]);
+  });
+
+  // One direction's redo (--redo q@north): an animation of its own, kept by
+  // that key (PixelLab holds one take per direction in an animation, and the
+  // old take stays in the library), so the other directions stay as they are
+  const redone = keys.filter(key => key.includes('@') && options.redo.includes(key) && !missing.includes(parseKey(key).name));
+  await runPool(redone, async key => {
+    const { name, direction } = parseKey(key);
+    entry.animations[key] = await createAnimation(characterId, spec, name, [direction], options.seed, rotations, palette);
     saveManifest(manifest);
   });
 
@@ -1170,7 +1416,7 @@ async function generateSpriteSet(spec: SpriteSetSpec, manifest: Manifest, option
   for (const key of keys) {
     const { name, direction } = parseKey(key);
     const animation = spec.animations[name];
-    const drawn = animation.mode === 'still' ? [rotations[direction]] : await downloadFrames(character, entry.animations[name], direction);
+    const drawn = animation.mode === 'still' ? [rotations[direction]] : await downloadFrames(character, entry.animations[key] ?? entry.animations[name], direction);
     // A loop's last frame is drawn back to its first pose: drop it so the pose doesn't show twice
     const kept = 'loop' in animation && animation.loop && drawn.length > 2 ? drawn.slice(0, -1) : drawn;
     const trim = spec.trim?.[key];
