@@ -395,8 +395,14 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
       q: 'slowly draws the bone bow far back, holds it, then releases a powerful shot',
       e: 'crouches and presses one hand flat onto the ground in front of him, then stands up',
     },
+    // His first north shot turned sideways and lost the bow: it's held in
+    // front of his body, hidden by his back. Its last two frames still lose
+    // it, so the shot ends on the full draw
+    trim: { 'attack@north': [0, 6] },
     directionActions: {
-      'attack@north': 'seen from behind, raises the bone bow in front of him, draws and looses an arrow straight away from the viewer, only his back, hood and tattered cloak visible the whole time',
+      // Facing the viewer his arms spread off the side of the frame
+      'r@south': 'spreads his arms out a little to his sides and throws his head back, his tattered cloak billowing, then lowers his arms, standing tall',
+      'attack@north': 'seen from behind, his back to the viewer the whole time, lifts the bone bow upright in front of his body where his back hides most of it, pulls the string back to his shoulder with his elbow out, and releases straight away from the viewer, only his back, hood, tattered cloak and quiver visible the whole time',
       'q@north': 'seen from behind, raises the bone bow in front of him, slowly draws it far back, holds it, then releases a powerful shot straight away from the viewer, only his back, hood and tattered cloak visible the whole time',
       'e@north': 'seen from behind, crouches and presses one hand flat onto the ground in front of him, away from the viewer, then stands up, only his back, hood and tattered cloak visible the whole time',
       'r@north': 'seen from behind, spreads his arms wide and lifts his head to the sky, his face hidden, his tattered cloak billowing, then lowers his arms, only his back, hood and tattered cloak visible the whole time',
@@ -444,6 +450,9 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
     // only move the body. Seen from behind, a strike "forward" turns a
     // character round: north says where it goes
     addedDirections: ['south', 'north'],
+    // His north rocket leap flies off into the distance, shrinking: it ends
+    // as he lifts off
+    trim: { 'e@north': [0, 4] },
     turnedActions: {
       attack: 'points a forearm nozzle forward, his arm jolting from the recoil',
       q: 'crouches and sweeps both forearm nozzles all around him in a full circle',
@@ -474,11 +483,13 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
     turnedActions: {
       r: 'aims the longbow up high toward the sky, draws it and looses',
     },
+    // Her first north takes turned sideways to shoot, or round to shoot at the
+    // viewer: the bow is held in front of her body, hidden by her back
     directionActions: {
-      'attack@north': 'seen from behind, raises the longbow in front of her, draws and looses an arrow straight away from the viewer, only her back, green hooded cloak and quiver visible the whole time',
-      'w@north': 'seen from behind, raises the longbow in front of her, draws it all the way back and looses a heavy arrow straight away from the viewer, only her back, green hooded cloak and quiver visible the whole time',
-      'e@north': 'seen from behind, rolls forward low to the ground away from the viewer and comes up crouching with the bow ready, only her back, green hooded cloak and quiver visible the whole time',
-      'r@north': 'seen from behind, aims the longbow up high toward the sky in front of her, draws it and looses, only her back, green hooded cloak and quiver visible the whole time',
+      'attack@north': 'seen from behind, her back to the viewer the whole time, lifts the longbow upright in front of her body where her back hides most of it, pulls the string back to her shoulder with her elbow out, and releases straight away from the viewer, only her back, green hooded cloak and quiver visible the whole time',
+      'w@north': 'seen from behind, her back to the viewer the whole time, lifts the longbow upright in front of her body where her back hides most of it, slowly pulls the string far back past her shoulder with her elbow high, holds, and releases straight away from the viewer, only her back, green hooded cloak and quiver visible the whole time',
+      'e@north': 'seen from behind, dives forward away from the viewer into a quick roll and springs back up onto her feet in a crouch, the bow in her hand, only her back, green hooded cloak and quiver visible the whole time',
+      'r@north': 'seen from behind, her back to the viewer the whole time, raises the longbow high above her head pointing at the sky, pulls the string back and releases upward, only her back, green hooded cloak and quiver visible the whole time',
     },
   }),
   champion('caelum', {
@@ -537,6 +548,9 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
     // Seen from behind, a strike "forward" turns a character round: north
     // says where it goes
     addedDirections: ['south', 'north'],
+    // His north pounce leaps off into the distance, shrinking to a dot: it
+    // ends as he springs
+    trim: { 'e@north': [0, 5] },
     directionActions: {
       'attack@north': 'seen from behind, slashes forward away from the viewer with one clawed hand, only his furry back, the back of his head and his tail visible the whole time',
       'q@north': 'seen from behind, lunges his head and shoulders forward away from the viewer in a hard bite, then pulls back, only his furry back, the back of his head and his tail visible the whole time',
@@ -799,7 +813,9 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
     turnedActions: {
       w: 'raises his shield in front of him and braces behind it',
     },
+    // Facing the viewer his leap raised the sword off the top of the frame
     directionActions: {
+      'r@south': 'hops up and brings the longsword down in a short overhead strike in front of him, the sword raised just above his head',
       'attack@north': 'seen from behind, swings his longsword in a quick horizontal slash in front of him, away from the viewer, only his back, blue cape and brown hair visible the whole time',
       'q@north': 'seen from behind, steps in and makes a wide horizontal sweep with the longsword in front of him, away from the viewer, then recovers, only his back, blue cape and brown hair visible the whole time',
       'e@north': 'seen from behind, charges forward shield first, away from the viewer, only his back, blue cape and brown hair visible the whole time',
@@ -826,9 +842,11 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
       w: 'plants the staff firmly beside him and braces, his free hand raised',
       e: 'points the staff down at the ground in front of him and stirs it in a slow circle',
     },
+    // His first north thrust and swing turned him sideways, his face showing:
+    // they say his back stays to the viewer
     directionActions: {
-      'attack@north': 'seen from behind, thrusts the staff forward away from the viewer and points it, only his back, crimson cloak and the burning orb over his head visible the whole time',
-      'q@north': 'seen from behind, swings the staff forward in an overhand arc and points it straight ahead, away from the viewer, then pulls it back, only his back, crimson cloak and the burning orb over his head visible the whole time',
+      'attack@north': 'seen from behind, his back to the viewer the whole time, thrusts the staff up and forward in front of him, away from the viewer, its head rising above his shoulder, then pulls it back, only his back, crimson cloak and the burning orb over his head visible the whole time',
+      'q@north': 'seen from behind, his back to the viewer the whole time, swings the staff up over his shoulder and forward in an overhand arc, ending with it pointing straight ahead away from the viewer, then pulls it back, only his back, crimson cloak and the burning orb over his head visible the whole time',
       'e@north': 'seen from behind, points the staff down at the ground in front of him, away from the viewer, and stirs it in a slow circle, only his back, crimson cloak and the burning orb over his head visible the whole time',
       'r@north': 'seen from behind, raises the staff high above his head with both hands, then sweeps it down to point forward away from the viewer, only his back, crimson cloak and the burning orb over his head visible the whole time',
     },
@@ -891,6 +909,9 @@ export const SPRITE_SETS: SpriteSetSpec[] = [
     // only move the body. Seen from behind, a strike "forward" turns a
     // character round: north says where it goes
     addedDirections: ['south', 'north'],
+    // His north dash runs off into the distance, shrinking (and the game holds
+    // its strip near the end while he dashes): it ends as he lunges
+    trim: { 'e@north': [0, 4] },
     turnedActions: {
       q: 'flicks his wrist forward in a quick throwing motion',
       w: 'crouches low and pulls his scarf around himself, hunched down and still',
