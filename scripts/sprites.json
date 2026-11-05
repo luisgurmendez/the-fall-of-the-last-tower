@@ -103,7 +103,9 @@
       "q": "8599697e-ff21-4a78-a8f5-7786521d2153",
       "idle": "b994f7df-120d-45d0-b0ac-fcc84ad222b2",
       "r": "6a6932b8-1b4f-474e-99d5-5d8d69db6092",
-      "walk": "7e01402f-d47c-4c61-9f59-9f0b9154ceac"
+      "walk": "7e01402f-d47c-4c61-9f59-9f0b9154ceac",
+      "idle@south": "1a26e72b-4d66-4c85-a03e-71138474d7a8",
+      "idle@north": "e38b9785-475f-4a7f-a25b-0f8fb4a17aac"
     },
     "characterId": "872ea5b0-5fe0-4b9e-a447-fbecfe4e5a19"
   },

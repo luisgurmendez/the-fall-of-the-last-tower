@@ -1,7 +1,8 @@
 /**
  * Gorath: a stone guardian drawn from generated sprite strips (idle, walk,
- * attack and an animation per ability; scripts/generate-sprites.ts), and the
- * icons for Fortify's buffs. Without the strips he's the default circle.
+ * attack and an animation per ability; scripts/generate-sprites.ts) in four
+ * directions, and the icons for Fortify's buffs. Without the strips he's the
+ * default circle.
  */
 
 import type { ChampionRendererEntry } from "./types";
@@ -17,7 +18,12 @@ const GORATH_STRIPS = generatedStrips("gorath", {
   // of 2026-11-04), the roar's head thrown back
   attackBlow: 7,
   abilityBlows: { gorath_slam: 7, gorath_taunt: 3, gorath_earthquake: 7 },
-});
+  // Facing down and up the screen (drawn 2026-11-04): the hammer lands a frame or two sooner
+  facing: {
+    south: { attackBlow: 6, abilityBlows: { gorath_slam: 6 } },
+    north: { attackBlow: 8, abilityBlows: { gorath_slam: 5, gorath_earthquake: 5 } },
+  },
+}, ["south", "north"]);
 
 /** World units per sprite pixel: a little bigger than the others, he's the tank */
 const GORATH_SCALE = 0.88;
