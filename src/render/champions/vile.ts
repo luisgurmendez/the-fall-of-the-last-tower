@@ -1,8 +1,9 @@
 /**
  * Vile: a hooded archer drawn from generated sprite strips (idle, walk,
- * attack, and Q/E/R animations; scripts/generate-sprites.ts), and the dark
- * soul auto-attack projectile. Without the strips he's the default circle.
- * Vile's traps are synced as wards (src/render/entities/ward.ts).
+ * attack, and Q/E/R animations; scripts/generate-sprites.ts) in four
+ * directions, and the dark soul auto-attack projectile. Without the strips
+ * he's the default circle. Vile's traps are synced as wards
+ * (src/render/entities/ward.ts).
  */
 
 import type { EntityRenderContext } from "@/render/entities/types";
@@ -19,7 +20,9 @@ const VILE_STRIPS = generatedStrips("vile", {
   // the transformation (arms widest)
   attackBlow: 7,
   abilityBlows: { vile_black_arrows: 6, vile_veil_of_darkness: 4, vile_roots_of_vilix: 4, vile_restoration_of_vilix: 4 },
-});
+  // Facing up the screen (drawn 2026-11-04): the shot ends on the full draw
+  facing: { north: { attackBlow: 6 } },
+}, ["south", "north"]);
 
 /** World units per sprite pixel: about 55 tall, like Vex */
 const VILE_SCALE = 0.84;

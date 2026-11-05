@@ -1,7 +1,7 @@
 /**
  * Calamitus: a golem of black rock and magma, drawn from generated sprite
- * strips (scripts/generate-sprites.ts), on a small canvas with little
- * detail like Urûk's, the biggest of them. His lava is zones
+ * strips (scripts/generate-sprites.ts) in four directions, on a small canvas
+ * with little detail like Urûk's, the biggest of them. His lava is zones
  * (src/gpu/fx/zones.ts). Without the strips he's the default circle.
  */
 
@@ -17,7 +17,7 @@ const CALAMITUS_STRIPS = generatedStrips("calamitus", {
   // The frames where the blow lands: the punch, the slam, the wave, the hardening, the eruption
   attackBlow: 7,
   abilityBlows: { calamitus_q: 4, calamitus_w: 2, calamitus_e: 7, calamitus_r: 7 },
-});
+}, ["south", "north"]);
 
 /** World units per sprite pixel: chunky pixels, and the biggest body */
 const CALAMITUS_SCALE = 1.5;

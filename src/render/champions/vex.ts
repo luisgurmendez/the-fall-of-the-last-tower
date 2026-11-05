@@ -1,8 +1,9 @@
 /**
  * Vex: a ninja drawn from generated sprite strips (idle, walk, attack and an
- * animation per ability; scripts/generate-sprites.ts), see-through while
- * stealthed, with violet sparks in Ninja Mode and afterimages along a
- * Shadow Step; the shuriken projectile; and the icons for Vex's marks.
+ * animation per ability; scripts/generate-sprites.ts) in four directions,
+ * see-through while stealthed, with violet sparks in Ninja Mode and
+ * afterimages along a Shadow Step; the shuriken projectile; and the icons for
+ * Vex's marks.
  */
 
 import type { EntityRenderContext } from "@/render/entities/types";
@@ -19,7 +20,10 @@ const VEX_STRIPS = generatedStrips(
     // (R's strip of 2026-11-04)
     attackBlow: 6,
     abilityBlows: { vex_shuriken: 3, vex_shroud: 4, vex_ninja_mode: 6 },
+    // Facing down and up the screen (drawn 2026-11-04): the slash comes sooner
+    facing: { south: { attackBlow: 3 }, north: { attackBlow: 3 } },
   },
+  ["south", "north"],
 );
 
 /** World units per sprite pixel: about 55 tall, like the others */

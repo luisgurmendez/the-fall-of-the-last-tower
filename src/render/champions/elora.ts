@@ -1,9 +1,9 @@
 /**
  * Elora: a huntress with a longbow, drawn from generated sprite strips
- * (scripts/generate-sprites.ts), on a small canvas with little detail like
- * Urûk's. Her arrows (plain, poisoned, the weak point's) are GPU
- * projectiles (src/gpu/fx/projectiles.ts). Without the strips she's the
- * default circle.
+ * (scripts/generate-sprites.ts) in four directions, on a small canvas with
+ * little detail like Urûk's. Her arrows (plain, poisoned, the weak point's)
+ * are GPU projectiles (src/gpu/fx/projectiles.ts). Without the strips she's
+ * the default circle.
  */
 
 import type { ChampionRendererEntry } from "./types";
@@ -18,7 +18,9 @@ const ELORA_STRIPS = generatedStrips("elora", {
   // The frames where the blow lands: the arrow loosed, the vial, the heavy arrow loosed, the roll, the volley
   attackBlow: 8,
   abilityBlows: { elora_q: 6, elora_w: 8, elora_e: 5, elora_r: 6 },
-});
+  // Facing down the screen (drawn 2026-11-04): the arrow is loosed a frame sooner
+  facing: { south: { attackBlow: 7 } },
+}, ["south", "north"]);
 
 /** World units per sprite pixel, as Urûk's: chunky pixels */
 const ELORA_SCALE = 1.32;

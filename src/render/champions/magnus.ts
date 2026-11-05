@@ -1,7 +1,8 @@
 /**
  * Magnus: a battlemage drawn from generated sprite strips (idle, walk, attack
- * and an animation per ability; scripts/generate-sprites.ts), and the
- * fireball projectile. Without the strips he's the default circle.
+ * and an animation per ability; scripts/generate-sprites.ts) in four
+ * directions, and the fireball projectile. Without the strips he's the default
+ * circle.
  */
 
 import type { ChampionRendererEntry } from "./types";
@@ -18,7 +19,9 @@ const MAGNUS_STRIPS = generatedStrips("magnus", {
   attackBlow: 8,
   // (Q's strip of 2026-11-04: the staff swung forward, pointing, on frame 6)
   abilityBlows: { magnus_fireball: 6, magnus_shield: 4, magnus_mud: 5, magnus_meteor: 7 },
-});
+  // Facing up the screen (drawn 2026-11-04): the staff thrust forward and the swing land sooner
+  facing: { north: { attackBlow: 5, abilityBlows: { magnus_fireball: 5 } } },
+}, ["south", "north"]);
 
 /** World units per sprite pixel */
 const MAGNUS_SCALE = 0.84;

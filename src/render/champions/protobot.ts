@@ -1,8 +1,9 @@
 /**
  * Protobot 45: a hulking blue war robot, drawn from generated sprite strips
- * (scripts/generate-sprites.ts), on a small canvas with little detail like
- * Urûk's, a little bigger than Calamitus. His claw is a projectile
- * (src/gpu/fx/projectiles.ts). Without the strips he's the default circle.
+ * (scripts/generate-sprites.ts) in four directions, on a small canvas with
+ * little detail like Urûk's, a little bigger than Calamitus. His claw is a
+ * projectile (src/gpu/fx/projectiles.ts). Without the strips he's the default
+ * circle.
  */
 
 import type { ChampionRendererEntry } from "./types";
@@ -17,7 +18,7 @@ const PROTOBOT_STRIPS = generatedStrips("protobot", {
   // The frames where the blow lands: the punch, the claw, the charge, the rocket fist, the pulse
   attackBlow: 4,
   abilityBlows: { protobot_q: 4, protobot_w: 3, protobot_e: 6, protobot_r: 7 },
-});
+}, ["south", "north"]);
 
 /** World units per sprite pixel: chunky pixels, and a big machine */
 const PROTOBOT_SCALE = 1.6;

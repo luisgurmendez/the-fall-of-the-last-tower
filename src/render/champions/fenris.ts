@@ -1,9 +1,9 @@
 /**
  * Fenris: a hulking werewolf, drawn from generated sprite strips
- * (scripts/generate-sprites.ts), on a small canvas with little detail like
- * Urûk's, a head taller than most. Feral and in his bloodthirst he burns
- * red (src/gpu/fx/championAuras.ts). Without the strips he's the default
- * circle.
+ * (scripts/generate-sprites.ts) in four directions, on a small canvas with
+ * little detail like Urûk's, a head taller than most. Feral and in his
+ * bloodthirst he burns red (src/gpu/fx/championAuras.ts). Without the strips
+ * he's the default circle.
  */
 
 import type { ChampionRendererEntry } from "./types";
@@ -18,7 +18,7 @@ const FENRIS_STRIPS = generatedStrips("fenris", {
   // The frames where the blow lands: the claw, the bite, the rake, the pounce, the howl
   attackBlow: 7,
   abilityBlows: { fenris_q: 6, fenris_w: 5, fenris_e: 7, fenris_r: 4 },
-});
+}, ["south", "north"]);
 
 /** World units per sprite pixel: chunky pixels, and a big wolf */
 const FENRIS_SCALE = 1.45;

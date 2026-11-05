@@ -506,9 +506,11 @@ second at the base pace (100 units a second) and follows the champion's movement
 health bar above its art. During Vile's R the server puts a `vile_transformed` marker effect
 on him; his renderer draws him 30% bigger with a pulsing violet glow. Champions without art are drawn as a team-colored circle.
 
-**Four directions.** Zhak'rul, Hop-To-Eat, Kip and Nocthar (and Nocthar's Hollows and colossus) are drawn facing east, south and north (west is
-east mirrored); the others only sideways. Each of their strips has a `_south` and a `_north` version
-(`idle_south.png`), named by the fourth argument of `generatedStrips`. The client turns a
+**Four directions.** Every champion drawn with PixelLab (and Nocthar's Hollows and colossus) is drawn facing east, south and north (west is
+east mirrored); Lume, whose sheets are hand-drawn, only sideways. Each of their strips has a `_south` and a `_north` version
+(`idle_south.png`), named by the fourth argument of `generatedStrips`. PixelLab draws each
+direction on its own, so a strip facing south or north may land its blow on another frame than
+the side view's: `timing.facing` gives those (`blowFrames` in `stripBody.ts`). The client turns a
 champion up or down the screen once what it faces (its move target or its target; while it
 casts, where the ability is aimed, unless that point is at its feet like a cloud around it) is clearly
 more above or below it than beside it (`src/render/entities/facing.ts`: 1.25 times, back
@@ -532,6 +534,16 @@ paying for its animations (about USD 0.04 for the character, 0.01 per animation 
 the hint isn't enough, `directionActions` gives one direction its own action: told to bite or
 kick seen from behind, Hop turned round to show its face, so its north bite describes its head
 darting forward with its ears flattening back.
+
+The champions first drawn only sideways (Kael, Magnus, Elara, Vex, Gorath, Vile, Urûk, Oitboil,
+Elora, Caelum, Fenris, Calamitus, Protobot) were turned on 2026-11-04 with `addedDirections`:
+their characters already had south and north looks, so each animation got its south and north
+drawn into it, and their east takes stayed as they were. Their idle and walk are drawn the way
+east's were (not looped back to the first pose), every new frame on the character's colors.
+Where an east action drew an effect the game draws itself (a fireball, a ring of sparks),
+`turnedActions` gives the new directions the body's motion only. PixelLab holds one take per
+direction in an animation and old takes aren't deleted, so `--redo q@north` draws one direction
+again as an animation of its own, kept in `scripts/sprites.json` under that key.
 
 ## Server Champion
 
